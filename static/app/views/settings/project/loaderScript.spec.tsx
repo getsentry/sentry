@@ -75,9 +75,9 @@ describe('LoaderScript', function () {
 
     // Loader Script is rendered
     expect(screen.getByText(`Client Key: ${projectKey.name}`)).toBeInTheDocument();
-    const loaderScript = screen.getByRole('textbox', {
+    const loaderScript = screen.getByRole<HTMLInputElement>('textbox', {
       name: 'Loader Script',
-    }) as HTMLInputElement;
+    });
     const loaderScriptValue = loaderScript.value;
     expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0]!.dsn.cdn));
   });
@@ -137,7 +137,7 @@ describe('LoaderScript', function () {
 
     const allLoaderScripts = screen.getAllByRole('textbox', {
       name: 'Loader Script',
-    }) as HTMLInputElement[];
+    });
 
     expect(allLoaderScripts).toHaveLength(2);
   });

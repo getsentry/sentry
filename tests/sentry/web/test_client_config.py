@@ -10,7 +10,6 @@ from django.test import override_settings
 from django.urls import get_resolver
 
 from sentry import options
-from sentry.app import env
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
@@ -61,13 +60,6 @@ def make_user_request_from_org_with_auth_identities(org=None):
 @request_factory
 def none_request() -> None:
     return None
-
-
-@pytest.fixture(autouse=True)
-def clear_env_request():
-    env.clear()
-    yield
-    env.clear()
 
 
 multiregion_client_config_test = control_silo_test(
@@ -179,7 +171,7 @@ def test_client_config_default_region_data():
 @no_silo_test
 @django_db_all
 def test_client_config_empty_region_data():
-    region_directory = region.load_from_config(())
+    region_directory = region.load_from_config([])
 
     # Usually, we would want to use other testutils functions rather than calling
     # `swap_state` directly. We make an exception here in order to test the default

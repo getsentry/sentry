@@ -13,8 +13,8 @@ import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-
-import Header from '../header';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import Header from 'sentry/views/organizationStats/header';
 
 import TeamStatsControls from './controls';
 import DescriptionCard from './descriptionCard';
@@ -24,11 +24,12 @@ import TeamReleases from './teamReleases';
 import TeamStability from './teamStability';
 import {dataDatetime} from './utils';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
 function TeamStatsHealth({location, router}: Props) {
   const organization = useOrganization();
   const {teams, isLoading, isError} = useUserTeams();
+  const prefersStackedNav = usePrefersStackedNav();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
@@ -37,7 +38,7 @@ function TeamStatsHealth({location, router}: Props) {
 
   let localTeamId: string | null | undefined =
     query.team ?? localStorage.getItem(localStorageKey);
-  if (localTeamId && !teams.find(team => team.id === localTeamId)) {
+  if (localTeamId && !teams.some(team => team.id === localTeamId)) {
     localTeamId = null;
   }
   const currentTeamId = localTeamId ?? teams[0]?.id;
@@ -58,12 +59,14 @@ function TeamStatsHealth({location, router}: Props) {
     return <LoadingError />;
   }
 
+  const BodyWrapper = prefersStackedNav ? NewLayoutBody : Body;
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Project Health')} orgSlug={organization.slug} />
       <Header organization={organization} activeTab="health" />
 
-      <Body>
+      <BodyWrapper>
         <TeamStatsControls
           location={location}
           router={router}
@@ -136,7 +139,7 @@ function TeamStatsHealth({location, router}: Props) {
             </DescriptionCard>
           </Layout.Main>
         )}
-      </Body>
+      </BodyWrapper>
     </Fragment>
   );
 }
@@ -148,3 +151,5 @@ const Body = styled(Layout.Body)`
     display: block;
   }
 `;
+
+const NewLayoutBody = styled('div')``;

@@ -2,7 +2,7 @@ import {Component} from 'react';
 import type {Location} from 'history';
 
 import type {Client, RequestOptions} from 'sentry/api';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -52,7 +52,7 @@ class Filter extends Component<FilterProps> {
         onChange={({value}) => {
           if (value === 'any') {
             const query = {...this.props.location.query, cursor: undefined};
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             delete query[this.props.queryKey];
             browserHistory.push({pathname: this.props.path, query});
           } else {
@@ -230,7 +230,7 @@ class ResultGrid extends Component<Props, State> {
   }
 
   get query() {
-    return (this.props.location?.query ?? {}) as {[k: string]: string};
+    return (this.props.location?.query ?? {}) as Record<string, string>;
   }
 
   remountComponent() {
@@ -272,7 +272,7 @@ class ResultGrid extends Component<Props, State> {
   onSearch = (e: React.FormEvent<HTMLFormElement>) => {
     const location = this.props.location ?? {};
     const {query} = this.state;
-    const targetQueryParams = {...(location.query ?? {}), query, cursor: ''};
+    const targetQueryParams = {...location.query, query, cursor: ''};
 
     e.preventDefault();
 
@@ -388,7 +388,5 @@ class ResultGrid extends Component<Props, State> {
     );
   }
 }
-
-export {ResultGrid};
 
 export default withApi(ResultGrid);

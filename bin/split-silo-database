@@ -33,9 +33,9 @@ def split_database(tables: list[str], source: str, destination: str, reset: bool
 
     with get_docker_client() as client:
         postgres_container = (
-            "sentry_postgres"
-            if os.environ.get("USE_NEW_DEVSERVICES") != "1"
-            else "sentry-postgres-1"
+            "sentry-postgres-1"
+            if os.environ.get("USE_OLD_DEVSERVICES") != "1"
+            else "sentry_postgres"
         )
         postgres = client.containers.get(postgres_container)
 

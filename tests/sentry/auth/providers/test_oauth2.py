@@ -14,11 +14,12 @@ from sentry.testutils.silo import control_silo_test
 
 class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
+    key = "oauth2_dummy"
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         raise NotImplementedError
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         raise NotImplementedError
 
     def get_refresh_token_url(self) -> str:
@@ -44,6 +45,6 @@ class OAuth2ProviderTest(TestCase):
             data={"access_token": "access_token"},
         )
 
-        provider = DummyOAuth2Provider(key=self.auth_provider.provider)
+        provider = DummyOAuth2Provider()
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)

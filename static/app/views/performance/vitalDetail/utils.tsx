@@ -15,7 +15,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {Color} from 'sentry/utils/theme';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
-export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
+function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
 }
 
@@ -101,7 +101,7 @@ export function getVitalChartTitle(webVital: WebVital): string {
 }
 
 export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {
-  // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+  // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
   const vitalThreshold = webVitalPoor[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
     `p75(${vitalName})`
@@ -110,7 +110,7 @@ export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): stri
 }
 
 export function getVitalDetailTableMehStatusFunction(vitalName: WebVital): string {
-  // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+  // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
   const vitalThreshold = webVitalMeh[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
     `p75(${vitalName})`
@@ -124,8 +124,6 @@ export const vitalMap: Partial<Record<WebVital, string>> = {
   [WebVital.FID]: t('First Input Delay'),
   [WebVital.LCP]: t('Largest Contentful Paint'),
 };
-
-export const vitalChartTitleMap = vitalMap;
 
 export const vitalDescription: Partial<Record<WebVital, string>> = {
   [WebVital.FCP]: t(
@@ -212,9 +210,9 @@ export function getVitalChartDefinitions({
 }) {
   const utc = decodeScalar(location.query.utc) !== 'false';
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const vitalPoor = webVitalPoor[vital];
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const vitalMeh = webVitalMeh[vital];
 
   const legend = {

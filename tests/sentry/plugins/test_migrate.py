@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from collections.abc import Generator
+from unittest import mock
+
+import pytest
+
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.repository import Repository
@@ -12,10 +19,13 @@ class ExamplePlugin(IssuePlugin2):
     slug = "example"
 
 
-plugins.register(ExamplePlugin)
-
-
 class MigratorTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def _register_example_plugin(self) -> Generator[None]:
+        plugins.register(ExamplePlugin)
+        yield
+        plugins.unregister(ExamplePlugin)
+
     def setUp(self):
         super().setUp()
 
@@ -44,7 +54,31 @@ class MigratorTest(TestCase):
 
         assert plugin in plugins.for_project(self.project)
 
-        self.migrator.disable_for_all_projects(plugin)
+        self.migrator.run()
+
+        assert plugin not in plugins.for_project(self.project)
+
+    def test_only_disable_enabled_plugins(self):
+        plugin = plugins.get("example")
+        plugin_2 = plugins.get("webhooks")
+        plugin.enable(self.project)
+        plugin_2.disable(self.project)
+
+        with mock.patch("sentry.plugins.migrator.logger.info") as mock_logger:
+            self.migrator.run()
+
+            # Should only disable the enabled plugin
+            assert mock_logger.call_count == 1
+            mock_logger.assert_called_with(
+                "plugin.disabled",
+                extra={
+                    "project": self.project.slug,
+                    "plugin": plugin.slug,
+                    "org": self.organization.slug,
+                    "integration_id": self.integration.id,
+                    "integration_provider": self.integration.provider,
+                },
+            )
 
         assert plugin not in plugins.for_project(self.project)
 

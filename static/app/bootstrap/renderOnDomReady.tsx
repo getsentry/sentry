@@ -1,5 +1,5 @@
 let hasEventListener = false;
-const queued: Function[] = [];
+const queued: Array<() => void> = [];
 
 function onDomContentLoaded() {
   if (!queued.length) {

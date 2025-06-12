@@ -13,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export type OrganizationRateLimitProps = RouteComponentProps<{}, {}> & {
+export type OrganizationRateLimitProps = RouteComponentProps & {
   organization: Organization;
 };
 
@@ -67,26 +67,7 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
             apiEndpoint={`/organizations/${organization.slug}/`}
             initialData={initialData}
           >
-            {!maxRate ? (
-              <RangeField
-                name="accountRateLimit"
-                label={t('Account Limit')}
-                min={0}
-                max={1000000}
-                allowedValues={ACCOUNT_RATE_LIMIT_VALUES}
-                help={t(
-                  'The maximum number of events to accept across this entire organization.'
-                )}
-                placeholder="e.g. 500"
-                formatLabel={value =>
-                  !value
-                    ? t('No Limit')
-                    : tct('[number] per hour', {
-                        number: value.toLocaleString(),
-                      })
-                }
-              />
-            ) : (
+            {maxRate ? (
               <FieldGroup
                 label={t('Account Limit')}
                 help={t(
@@ -107,6 +88,25 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
                   )}
                 </TextBlock>
               </FieldGroup>
+            ) : (
+              <RangeField
+                name="accountRateLimit"
+                label={t('Account Limit')}
+                min={0}
+                max={1000000}
+                allowedValues={ACCOUNT_RATE_LIMIT_VALUES}
+                help={t(
+                  'The maximum number of events to accept across this entire organization.'
+                )}
+                placeholder="e.g. 500"
+                formatLabel={value =>
+                  value
+                    ? tct('[number] per hour', {
+                        number: value.toLocaleString(),
+                      })
+                    : t('No Limit')
+                }
+              />
             )}
             <RangeField
               name="projectRateLimit"
@@ -118,7 +118,7 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
               min={50}
               max={100}
               formatLabel={value =>
-                value !== 100 ? `${value}%` : t('No Limit \u2014 100%')
+                value === 100 ? t('No Limit \u2014 100%') : `${value}%`
               }
             />
           </Form>

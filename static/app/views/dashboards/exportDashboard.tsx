@@ -1,6 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 
 import type {DashboardDetails} from './types';
 
@@ -38,7 +39,7 @@ function getAPIParams(structure: any) {
   };
 
   for (const attr in regex) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const match = url.match(regex[attr]);
     if (match?.length) {
       structure[attr] = match.length >= 3 ? match[2] : null;
@@ -67,14 +68,14 @@ function normalizeData(
       if (['widgets'].includes(property)) {
         // get the object properties so that we can loop through them
         const type = getPropertyStructure(property);
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data = normalizeNestedObject(source[property], type);
       } else {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data = source[property];
       }
 
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       payload[property] = data;
     }
   }
@@ -141,18 +142,6 @@ function getPropertyStructure(property: any) {
   }
 
   return structure;
-}
-
-function downloadObjectAsJson(exportObj: any, exportName: any) {
-  const dataStr = `data:text/json;charset=utf-8,${encodeURIComponent(
-    JSON.stringify(exportObj)
-  )}`;
-  const downloadAnchorNode = document.createElement('a');
-  downloadAnchorNode.setAttribute('href', dataStr);
-  downloadAnchorNode.setAttribute('download', `${exportName}.json`);
-  document.body.appendChild(downloadAnchorNode); // required for firefox
-  downloadAnchorNode.click();
-  downloadAnchorNode.remove();
 }
 
 function cleanTitle(title: any) {

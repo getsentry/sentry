@@ -6,7 +6,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {EventsResults, Sort} from './types';
 
-export interface UseProfileFunctionsOptions<F extends string> {
+interface UseProfileFunctionsOptions<F extends string> {
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;
@@ -14,7 +14,7 @@ export interface UseProfileFunctionsOptions<F extends string> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
-  projects?: (number | string)[];
+  projects?: Array<number | string>;
   query?: string;
   refetchOnMount?: boolean;
 }

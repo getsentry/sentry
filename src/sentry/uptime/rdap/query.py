@@ -7,6 +7,8 @@ from typing import Any, TypedDict
 import requests
 from django.core.cache import cache
 
+from sentry.utils.json import JSONDecodeError
+
 RDAP_BOOTSTRAP_REGSITRY = "https://data.iana.org/rdap/ipv4.json"
 """
 JSON service registry maintained by the IANA containing a mapping of ipv4 CIDRs
@@ -48,12 +50,21 @@ class DomainAddressDetails(TypedDict):
     """
 
 
-def resolve_rdap_network_details(hostname: str) -> DomainAddressDetails:
+def resolve_rdap_network_details(hostname: str) -> DomainAddressDetails | None:
     addr = resolve_hostname(hostname)
+    if addr is None:
+        return None
+
     rdap_provider_url = resolve_rdap_provider(addr)
+    if rdap_provider_url is None:
+        return None
 
     resp = requests.get(f"{rdap_provider_url}ip/{addr}")
-    result: Mapping[str, Any] = resp.json()
+
+    try:
+        result: Mapping[str, Any] = resp.json()
+    except JSONDecodeError:
+        return None
 
     # We only extract details from the FIRST entity, there may be more with
     # other information about the network registration, but for now we're just
@@ -110,11 +121,14 @@ def resolve_rdap_bootstrap_registry() -> ServiceArray:
     return services
 
 
-def resolve_hostname(hostname: str) -> str:
+def resolve_hostname(hostname: str) -> str | None:
     """
-    Resolves a hostname to a ipv4 address.
+    Resolves a hostname to a ipv4 address. Returns none if the address cannot be resolved.
     """
-    return gethostbyname(hostname)
+    try:
+        return gethostbyname(hostname)
+    except OSError:
+        return None
 
 
 def resolve_rdap_provider(addr: str) -> str | None:

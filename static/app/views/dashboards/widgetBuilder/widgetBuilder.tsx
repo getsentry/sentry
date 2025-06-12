@@ -9,7 +9,7 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -25,6 +25,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -50,6 +51,9 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -62,18 +66,14 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-
-import {DEFAULT_STATS_PERIOD} from '../data';
-import {getDatasetConfig} from '../datasetConfig/base';
-import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
-import {hasThresholdMaxValue} from '../utils';
+import {hasThresholdMaxValue} from 'sentry/views/dashboards/utils';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
-} from '../widgetCard/dashboardsMEPContext';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -139,7 +139,7 @@ interface QueryData {
   queryOrderby: string;
 }
 
-interface Props extends RouteComponentProps<RouteParams, {}> {
+interface Props extends RouteComponentProps<RouteParams> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   selection: PageFilters;
@@ -221,14 +221,8 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const defaultWidgetType =
-    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
-      ? WidgetType.ERRORS
-      : WidgetType.DISCOVER;
-  const defaultDataset =
-    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
-      ? DataSet.ERRORS
-      : DataSet.EVENTS;
+  const defaultWidgetType = WidgetType.ERRORS;
+  const defaultDataset = DataSet.ERRORS;
   const dataSet = dataset ? dataset : defaultDataset;
 
   const api = useApi();
@@ -236,7 +230,7 @@ function WidgetBuilder({
   const isSubmittingRef = useRef(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
   );
 
@@ -306,8 +300,8 @@ function WidgetBuilder({
   let tags: TagCollection = useTags();
 
   // HACK: Inject EAP dataset tags when selecting the Spans dataset
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
   if (state.dataSet === DataSet.SPANS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
@@ -316,6 +310,8 @@ function WidgetBuilder({
     trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
+      builder_version: WidgetBuilderVersion.PAGE,
+      from: source,
     });
 
     if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
@@ -547,16 +543,6 @@ function WidgetBuilder({
   function handleDisplayTypeOrAnnotationChange<
     F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
-    if (value) {
-      trackAnalytics('dashboards_views.widget_builder.change', {
-        from: source,
-        field,
-        value,
-        widget_type: widgetType,
-        organization,
-        new_widget: !isEditing,
-      });
-    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -579,6 +565,7 @@ function WidgetBuilder({
       widget_type: widgetType,
       organization,
       new_widget: !isEditing,
+      builder_version: WidgetBuilderVersion.PAGE,
     });
     setState(prevState => {
       const newState = cloneDeep(prevState);
@@ -589,7 +576,7 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
@@ -701,14 +688,8 @@ function WidgetBuilder({
 
       if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
-        newQuery.fields = [
-          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
-          ...fieldStrings,
-        ];
-        newQuery.aggregates = [
-          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
-          ...fieldStrings,
-        ];
+        newQuery.fields = [...(newQuery.fields?.slice(0, -1) ?? []), ...fieldStrings];
+        newQuery.aggregates = [...newQuery.aggregates.slice(0, -1), ...fieldStrings];
       } else {
         newQuery.fields = [...newQuery.columns, ...fieldStrings];
         newQuery.aggregates = fieldStrings;
@@ -769,11 +750,11 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!orderOptions.length) {
-          newQuery.orderby = '';
-        } else {
+        if (orderOptions.length) {
           orderOption = orderOptions[0]!.value;
           newQuery.orderby = `-${orderOption}`;
+        } else {
+          newQuery.orderby = '';
         }
       }
       return newQuery;
@@ -882,27 +863,21 @@ function WidgetBuilder({
     if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
-      const nextWidgetData = {
-        ...widgetData,
-        id: widgetToBeUpdated.id,
-      };
+      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
       if (
-        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(widgetToBeUpdated.displayType) ===
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
+      } else {
         nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
-      } else {
-        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionStateURL(
-        {
-          ...dashboard,
-          widgets: [...nextWidgetList],
-        },
+        {...dashboard, widgets: [...nextWidgetList]},
         nextWidgetData
       );
       const query = {...location.query, unselectedSeries: unselectedSeriesParam};
@@ -913,6 +888,7 @@ function WidgetBuilder({
         organization,
         data_set: widgetData.widgetType ?? defaultWidgetType,
         new_widget: false,
+        builder_version: WidgetBuilderVersion.PAGE,
       });
       return;
     }
@@ -924,6 +900,7 @@ function WidgetBuilder({
       organization,
       data_set: widgetData.widgetType ?? defaultWidgetType,
       new_widget: true,
+      builder_version: WidgetBuilderVersion.PAGE,
     });
   }
 
@@ -983,10 +960,7 @@ function WidgetBuilder({
   function goToDashboards(id: string, query?: Record<string, any>) {
     const pathQuery =
       Object.keys(queryParamsWithoutSource).length > 0 || query
-        ? {
-            ...queryParamsWithoutSource,
-            ...query,
-          }
+        ? {...queryParamsWithoutSource, ...query}
         : {};
 
     const sanitizedQuery = omit(pathQuery, ['defaultWidgetQuery', 'defaultTitle']);
@@ -1151,6 +1125,8 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
+        disablePersistence
+        skipLoadLastUsed
       >
         <OnRouteLeave message={UNSAVED_CHANGES_MESSAGE} when={onRouteLeave} />
         <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -1197,6 +1173,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.title}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'title',
+                                            value: '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                     <StyledTextAreaField
                                       name="description"
@@ -1213,6 +1203,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.description}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'description',
+                                            value: '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                   </NameWidgetStep>
                                   <VisualizationStep
@@ -1227,6 +1231,18 @@ function WidgetBuilder({
                                       handleDisplayTypeOrAnnotationChange(
                                         'displayType',
                                         newDisplayType
+                                      );
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          from: source,
+                                          field: 'displayType',
+                                          value: newDisplayType,
+                                          widget_type: widgetType,
+                                          organization,
+                                          new_widget: !isEditing,
+                                          builder_version: WidgetBuilderVersion.PAGE,
+                                        }
                                       );
                                     }}
                                     isWidgetInvalid={!state.queryConditionsValid}

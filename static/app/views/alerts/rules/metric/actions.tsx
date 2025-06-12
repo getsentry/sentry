@@ -18,7 +18,7 @@ export function addOrUpdateRule(
   api: Client,
   orgId: string, // organization slug
   rule: MetricRule,
-  query?: object | any
+  query?: Record<PropertyKey, unknown> | any
 ) {
   const isExisting = isSavedRule(rule);
   const endpoint = isExisting

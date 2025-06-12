@@ -72,21 +72,13 @@ describe('dropdownMenuDeprecated', function () {
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', async function () {
-    render(<DeprecatedDropdownImplementation keepMenuOpen />);
-    await userEvent.click(screen.getByRole('button'));
-    await userEvent.click(screen.getByRole('listitem'));
-
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-  });
-
   it('render prop getters all extend props and call original onClick handlers', async function () {
     const rootClick = jest.fn();
     const actorClick = jest.fn();
     const menuClick = jest.fn();
 
     render(
-      <DeprecatedDropdownMenu keepMenuOpen>
+      <DeprecatedDropdownMenu>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({onClick: rootClick})} data-test-id="root">
             <button {...getActorProps({onClick: actorClick})} data-test-id="actor">
@@ -112,8 +104,6 @@ describe('dropdownMenuDeprecated', function () {
 
     await userEvent.click(screen.getByTestId('menu'));
     expect(menuClick).toHaveBeenCalled();
-
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
   it('always rendered menus should attach document event listeners only when opened', async function () {
@@ -138,10 +128,10 @@ describe('dropdownMenuDeprecated', function () {
 
     await userEvent.click(screen.getByRole('button'));
     expect(addSpy).toHaveBeenCalledWith('click', expect.anything(), true);
-    expect(removeSpy).not.toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button'));
-    expect(removeSpy).toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalledTimes(2);
 
     addSpy.mockRestore();
     removeSpy.mockRestore();

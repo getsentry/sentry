@@ -49,6 +49,7 @@ export default function MemoryPanel() {
 }
 
 const Grid = styled('div')`
+  padding-top: ${space(1)};
   display: grid;
   grid-template-rows: 1fr 1fr;
   grid-template-columns: 1fr;
@@ -71,8 +72,7 @@ const ChartWrapper = styled('div')`
 
 const ChartTitle = styled('h5')`
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.text.cardTitle.fontWeight};
-  line-height: ${p => p.theme.text.cardTitle.lineHeight};
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   flex: 0 1 auto;
   margin: 0;

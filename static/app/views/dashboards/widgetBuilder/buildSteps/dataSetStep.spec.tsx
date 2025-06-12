@@ -16,7 +16,7 @@ describe('DataSetStep', () => {
       />,
       {
         organization: OrganizationFixture({
-          features: ['dashboards-eap'],
+          features: ['visibility-explore-view'],
         }),
       }
     );

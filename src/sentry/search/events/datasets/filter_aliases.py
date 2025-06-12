@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from functools import reduce
 
 from snuba_sdk import Column, Condition, Function, Op
 
@@ -54,19 +53,16 @@ def release_filter_converter(
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
-            reduce(
-                lambda x, y: x + y,
-                [
-                    parse_release(
-                        v,
-                        builder.params.project_ids,
-                        builder.params.environments,
-                        builder.params.organization.id if builder.params.organization else None,
-                    )
-                    for v in to_list(search_filter.value.value)
-                ],
-                [],
-            )
+            [
+                part
+                for v in to_list(search_filter.value.value)
+                for part in parse_release(
+                    v,
+                    builder.params.project_ids,
+                    builder.params.environments,
+                    builder.params.organization.id if builder.params.organization else None,
+                )
+            ]
         )
 
     return builder.default_filter_converter(SearchFilter(search_filter.key, operator, value))

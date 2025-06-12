@@ -1,8 +1,12 @@
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
@@ -10,7 +14,9 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {MODULE_PRODUCT_DOC_LINKS} from 'sentry/views/insights/settings';
 import {
+  ModuleName,
   SpanFunction,
   SpanIndexedField,
   SpanMetricsField,
@@ -30,16 +36,18 @@ const {SPAN_SELF_TIME, SPAN_DURATION, HTTP_RESPONSE_CONTENT_LENGTH, CACHE_ITEM_S
 const {
   TIME_SPENT_PERCENTAGE,
   SPS,
-  SPM,
-  HTTP_ERROR_COUNT,
+  EPM,
+  TPM,
+  HTTP_RESPONSE_COUNT,
   HTTP_RESPONSE_RATE,
   CACHE_HIT_RATE,
   CACHE_MISS_RATE,
 } = SpanFunction;
 
-export const SORTABLE_FIELDS = new Set([
+const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `avg(${SPAN_DURATION})`,
+  `sum(${SPAN_DURATION})`,
   `sum(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
   `p75(transaction.duration)`,
@@ -47,12 +55,17 @@ export const SORTABLE_FIELDS = new Set([
   'transaction',
   `count()`,
   `${SPS}()`,
-  `${SPM}()`,
+  `${EPM}()`,
+  `${TPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
-  `${HTTP_ERROR_COUNT}()`,
-  `${HTTP_RESPONSE_RATE}(2)`,
-  `${HTTP_RESPONSE_RATE}(4)`,
+  `${HTTP_RESPONSE_COUNT}(5)`,
+  `${HTTP_RESPONSE_COUNT}(4)`,
+  `${HTTP_RESPONSE_COUNT}(3)`,
+  `${HTTP_RESPONSE_COUNT}(2)`,
   `${HTTP_RESPONSE_RATE}(5)`,
+  `${HTTP_RESPONSE_RATE}(4)`,
+  `${HTTP_RESPONSE_RATE}(3)`,
+  `${HTTP_RESPONSE_RATE}(2)`,
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
   `${CACHE_HIT_RATE}()`,
   `${CACHE_MISS_RATE}()`,
@@ -64,7 +77,24 @@ export const SORTABLE_FIELDS = new Set([
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
-  'time_spent_percentage(app,span.duration)',
+  'time_spent_percentage(span.duration)',
+  'transaction',
+  'request.method',
+  'span.op',
+  'project',
+  'epm()',
+  'p50(span.duration)',
+  'p95(span.duration)',
+  'failure_rate()',
+  'performance_score(measurements.score.total)',
+  'count_unique(user)',
+  'p50_if(span.duration,is_transaction,true)',
+  'p95_if(span.duration,is_transaction,true)',
+  'failure_rate_if(is_transaction,true)',
+  'sum_if(span.duration,is_transaction,true)',
+  'p75(measurements.frames_slow_rate)',
+  'p75(measurements.frames_frozen_rate)',
+  'trace_status_rate(ok)',
 ]);
 
 const NUMERIC_FIELDS = new Set([
@@ -90,12 +120,14 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
 
   const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
 
-  return (
+  const hasTooltip = column.tooltip;
+
+  const sortLink = (
     <SortLink
       align={alignment}
       canSort={Boolean(location && sort && SORTABLE_FIELDS.has(key))}
       direction={sort?.field === column.key ? sort.kind : undefined}
-      title={name}
+      title={hasTooltip ? <TooltipHeader>{name}</TooltipHeader> : name}
       generateSortLink={() => {
         return {
           ...location,
@@ -107,14 +139,40 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
       }}
     />
   );
+
+  if (hasTooltip) {
+    const AlignmentContainer = alignment === 'right' ? AlignRight : AlignLeft;
+
+    return (
+      <AlignmentContainer>
+        <StyledTooltip
+          isHoverable
+          title={
+            <span>
+              {t('The overall performance rating of this page.')}
+              <br />
+              <ExternalLink
+                href={`${MODULE_PRODUCT_DOC_LINKS[ModuleName.VITAL]}#performance-score`}
+              >
+                {t('How is this calculated?')}
+              </ExternalLink>
+            </span>
+          }
+        >
+          {sortLink}
+        </StyledTooltip>
+      </AlignmentContainer>
+    );
+  }
+
+  return sortLink;
 };
 
-export const getAlignment = (key: string): Alignments => {
+const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
 
   if (result) {
     const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
-
     if (outputType) {
       return fieldAlignment(key, outputType);
     }
@@ -125,3 +183,26 @@ export const getAlignment = (key: string): Alignments => {
   }
   return 'left';
 };
+
+const AlignLeft = styled('span')`
+  display: block;
+  margin: auto;
+  text-align: left;
+  width: 100%;
+`;
+
+const AlignRight = styled('span')`
+  display: block;
+  margin: auto;
+  text-align: right;
+  width: 100%;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
+`;
+
+const TooltipHeader = styled('span')`
+  ${p => p.theme.tooltipUnderline()};
+`;

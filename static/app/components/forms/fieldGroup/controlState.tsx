@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Spinner from 'sentry/components/forms/spinner';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 
-export interface ControlStateProps {
+interface ControlStateProps {
   /**
    * Display the  error indicator
    */
@@ -29,7 +29,12 @@ export interface ControlStateProps {
 /**
  * ControlState (i.e. loading/error icons) for form fields
  */
-function ControlState({isSaving, isSaved, error, hideErrorMessage}: ControlStateProps) {
+export function ControlState({
+  isSaving,
+  isSaved,
+  error,
+  hideErrorMessage,
+}: ControlStateProps) {
   return (
     <Fragment>
       {isSaving ? (
@@ -77,5 +82,3 @@ const StyledIconWarning = styled(IconWarning)`
 const FormSpinner = styled(Spinner)`
   margin-left: 0;
 `;
-
-export default ControlState;

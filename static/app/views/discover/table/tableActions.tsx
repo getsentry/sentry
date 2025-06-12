@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -19,8 +19,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-
-import {downloadAsCsv} from '../utils';
+import {downloadAsCsv} from 'sentry/views/discover/utils';
 
 type Props = {
   error: string | null;
@@ -71,11 +70,11 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       data-test-id="grid-download-csv"
       icon={<IconDownload />}
       title={
-        !disabled
-          ? t(
+        disabled
+          ? undefined
+          : t(
               "There aren't that many results, start your export and it'll download immediately."
             )
-          : undefined
       }
     >
       {t('Export All')}

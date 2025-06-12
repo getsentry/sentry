@@ -1,20 +1,21 @@
 import {useEffect, useState} from 'react';
 
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {TraceTree} from '../traceModels/traceTree';
-
 import type {TraceMetaQueryResults} from './useTraceMeta';
+import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
   meta: TraceMetaQueryResults;
   replay: ReplayRecord | null;
-  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
+  trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
 };
 
@@ -42,8 +43,11 @@ export function useTraceTree({
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const traceState = useTraceState();
 
   const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
+
+  const traceWaterfallSource = replay ? 'replay_details' : 'trace_view';
 
   useEffect(() => {
     const status = getTraceViewQueryStatus(trace.status, meta.status);
@@ -57,14 +61,13 @@ export function useTraceTree({
               event_id: traceSlug,
             })
       );
+      traceAnalytics.trackTraceErrorState(organization, traceWaterfallSource);
       return;
     }
 
-    if (
-      trace?.data?.transactions.length === 0 &&
-      trace?.data?.orphan_errors.length === 0
-    ) {
+    if (trace.data && isEmptyTrace(trace.data)) {
       setTree(t => (t.type === 'empty' ? t : TraceTree.Empty()));
+      traceAnalytics.trackTraceEmptyState(organization, traceWaterfallSource);
       return;
     }
 
@@ -84,12 +87,15 @@ export function useTraceTree({
       const newTree = TraceTree.FromTrace(trace.data, {
         meta: meta.data,
         replay,
+        preferences: traceState.preferences,
       });
 
       setTree(newTree);
       newTree.build();
       return;
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     api,
     organization,
@@ -100,6 +106,7 @@ export function useTraceTree({
     trace.data,
     meta.data,
     traceSlug,
+    traceWaterfallSource,
   ]);
 
   return tree;

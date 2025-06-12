@@ -27,8 +27,11 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_ATTACHMENTS = "quotaAttachments"
     QUOTA_REPLAYS = "quotaReplays"
     QUOTA_MONITOR_SEATS = "quotaMonitorSeats"
+    QUTOA_UPTIME = "quotaUptime"
     QUOTA_SPANS = "quotaSpans"
     QUOTA_PROFILE_DURATION = "quotaProfileDuration"
+    QUOTA_PROFILE_DURATION_UI = "quotaProfileDurationUI"
+    QUOTA_SEER_BUDGET = "quotaSeerBudget"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
@@ -114,11 +117,23 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
+    NotificationSettingEnum.QUTOA_UPTIME: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
     NotificationSettingEnum.QUOTA_SPANS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.QUOTA_PROFILE_DURATION: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_PROFILE_DURATION_UI: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_SEER_BUDGET: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },

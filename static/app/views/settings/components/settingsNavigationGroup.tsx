@@ -1,14 +1,13 @@
-import styled from '@emotion/styled';
-
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useParams} from 'sentry/utils/useParams';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 function SettingsNavigationGroup(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
+  const params = useParams();
 
   const navLinks = items.map(({path, title, index, show, badge, id, recordAnalytics}) => {
     if (typeof show === 'function' && !show(props)) {
@@ -18,10 +17,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
       return null;
     }
     const badgeResult = typeof badge === 'function' ? badge(props) : null;
-    const to = replaceRouterParams(path, {
-      ...(organization ? {orgId: organization.slug} : {}),
-      ...(project ? {projectId: project.slug} : {}),
-    });
+    const to = replaceRouterParams(path, {...params, orgId: organization?.slug});
 
     const handleClick = () => {
       // only call the analytics event if the URL is changing
@@ -38,7 +34,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
     return (
       <SettingsNavItem
         key={title}
-        to={normalizeUrl(to)}
+        to={to}
         label={title}
         index={index}
         badge={badgeResult}
@@ -53,23 +49,10 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
   }
 
   return (
-    <NavSection data-test-id={name}>
-      <SettingsHeading role="heading">{name}</SettingsHeading>
+    <SecondaryNav.Section id={props.id} title={name}>
       {navLinks}
-    </NavSection>
+    </SecondaryNav.Section>
   );
 }
-
-const NavSection = styled('div')`
-  margin-bottom: 20px;
-`;
-
-const SettingsHeading = styled('div')`
-  color: ${p => p.theme.text};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-transform: uppercase;
-  margin-bottom: ${space(0.5)};
-`;
 
 export default SettingsNavigationGroup;

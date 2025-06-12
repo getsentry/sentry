@@ -6,20 +6,20 @@ from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifySe
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.integrations.discord.spec import DiscordMessagingSpec
+from sentry.integrations.discord.utils.metrics import record_lifecycle_termination_level
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
 
 class DiscordNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
-    form_cls = DiscordNotifyServiceForm
     label = "Send a notification to the {server} Discord server in the channel with ID or URL: {channel_id} and show tags {tags} in the notification."
     prompt = "Send a Discord notification"
     provider = "discord"
@@ -38,7 +38,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         channel_id = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -49,7 +49,9 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
+            message = DiscordIssuesMessageBuilder(
+                event.group, event=event, tags=tags, rules=rules
+            ).build(notification_uuid=notification_uuid)
 
             client = DiscordClient()
             with MessagingInteractionEvent(
@@ -58,10 +60,10 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             ).capture() as lifecycle:
                 try:
                     lifecycle.add_extras({"integration_id": integration.id, "channel": channel_id})
-                    client.send_message(channel_id, message, notification_uuid=notification_uuid)
-                except ApiRateLimitedError as e:
-                    # TODO(ecosystem): We should batch this on a per-organization basis
-                    lifecycle.record_halt(e)
+                    client.send_message(channel_id, message)
+                except ApiError as error:
+                    # Errors that we recieve from the Discord API
+                    record_lifecycle_termination_level(lifecycle, error)
                 except Exception as e:
                     lifecycle.add_extras(
                         {
@@ -79,7 +81,14 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
         key = f"discord:{integration.id}:{channel_id}"
 
-        metrics.incr("notifications.sent", instance="discord.notifications", skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance="discord.notifications",
+            tags={
+                "issue_type": event.group.issue_type.slug,
+            },
+            skip_internal=False,
+        )
         yield self.future(send_notification, key=key)
 
     def render_label(self) -> str:
@@ -94,5 +103,5 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self) -> Any:
-        return self.form_cls(self.data, integrations=self.get_integrations())
+    def get_form_instance(self) -> DiscordNotifyServiceForm:
+        return DiscordNotifyServiceForm(self.data, integrations=self.get_integrations())

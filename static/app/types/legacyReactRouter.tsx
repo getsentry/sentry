@@ -13,16 +13,12 @@ import type {
   Query,
 } from 'history';
 
-interface Params {
-  [key: string]: string;
-}
+type Params = Record<string, string>;
 
 type RoutePattern = string;
 export type RouteComponent = React.ComponentClass<any> | React.FunctionComponent<any>;
 
-interface RouteComponents {
-  [name: string]: RouteComponent;
-}
+type RouteComponents = Record<string, RouteComponent>;
 
 interface RouterState<Q = any> {
   components: RouteComponent[];
@@ -84,9 +80,14 @@ export interface PlainRoute<Props = any> extends RouteProps<Props> {
   indexRoute?: PlainRoute | undefined;
 }
 
-export interface RouteComponentProps<P, R, ComponentProps = any, Q = any> {
+export interface RouteComponentProps<
+  P = Record<string, string | undefined>,
+  R = Record<string, string | undefined>,
+  ComponentProps = any,
+  Q = any,
+> {
   location: Location<Q>;
-  params: P & R;
+  params: P;
   route: PlainRoute<ComponentProps>;
   routeParams: R;
   router: InjectedRouter;
@@ -100,7 +101,7 @@ type ActiveFunction = (location: LocationDescriptor, indexOnly?: boolean) => boo
 type LeaveHookFunction = (route: any, callback: RouteHook) => () => void;
 type CreatePartFunction<Part> = (pathOrLoc: LocationDescriptor, query?: any) => Part;
 
-export interface InjectedRouter<P = Record<string, string>, Q = any> {
+export interface InjectedRouter<P = Record<string, string | undefined>, Q = any> {
   createHref: CreatePartFunction<Href>;
   createPath: CreatePartFunction<Path>;
   go: GoFunction;
@@ -115,14 +116,14 @@ export interface InjectedRouter<P = Record<string, string>, Q = any> {
   setRouteLeaveHook: LeaveHookFunction;
 }
 
-export interface WithRouterProps<P = Record<string, string>, Q = any> {
+export interface WithRouterProps<P = Record<string, string | undefined>, Q = any> {
   location: Location<Q>;
   params: P;
   router: InjectedRouter<P, Q>;
   routes: PlainRoute[];
 }
 
-export interface RouteContextInterface<P = Record<string, string>, Q = any> {
+export interface RouteContextInterface<P = Record<string, string | undefined>, Q = any> {
   location: Location<Q>;
   params: P;
   router: InjectedRouter<P, Q>;

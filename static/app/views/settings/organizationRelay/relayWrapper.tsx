@@ -3,7 +3,9 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,7 +19,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -67,7 +69,44 @@ export function RelayWrapper() {
           </Button>
         }
       />
-      <PermissionAlert />
+      <OrganizationPermissionAlert />
+      <Form
+        saveOnBlur
+        initialData={organization}
+        apiMethod="PUT"
+        apiEndpoint={`/organizations/${organization.slug}/`}
+      >
+        <JsonForm
+          disabled={disabled}
+          forms={[
+            {
+              title: t('Data Authenticity'),
+              fields: [
+                {
+                  name: 'ingestThroughTrustedRelaysOnly',
+                  type: 'boolean',
+                  label: t('Ingest Through Trusted Relays Only'),
+                  help: t(
+                    'Require events to be ingested only through trusted relays. Direct submissions from SDKs or other sources will be rejected unless signed by a registered relay.'
+                  ),
+                  'aria-label': t(
+                    'Enable to require events to be ingested only through trusted relays'
+                  ),
+                  confirm: {
+                    isDangerous: true,
+                    true: t(
+                      'Enabling this can lead to data being rejected for ALL projects, are you sure you want to continue?'
+                    ),
+                  },
+                  visible: organization.features.includes(
+                    'ingest-through-trusted-relays-only'
+                  ),
+                },
+              ],
+            },
+          ]}
+        />
+      </Form>
       <TextBlock>
         {tct(
           'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',

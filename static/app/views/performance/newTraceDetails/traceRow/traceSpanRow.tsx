@@ -1,27 +1,39 @@
-import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+import React from 'react';
+import {PlatformIcon} from 'platformicons';
 
-import {TraceIcons} from '../traceIcons';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor, TraceBar} from '../traceRow/traceBar';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getNodeDescriptionPrefix} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {
+  makeTraceNodeBarColor,
+  TraceBar,
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from '../traceRow/traceRow';
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 const NO_PROFILES: any = [];
 
-export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>) {
+export function TraceSpanRow(
+  props: TraceRowProps<TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>>
+) {
+  const spanId = isEAPSpanNode(props.node)
+    ? props.node.value.event_id
+    : props.node.value.span_id;
+
   return (
     <div
       key={props.index}
       ref={r =>
         props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
-          : null
+          : undefined
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
@@ -59,17 +71,22 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
               </TraceChildrenButton>
             ) : null}
           </div>
-          <SpanProjectIcon
+          <PlatformIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
           />
-          <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
-          <strong className="TraceEmDash"> — </strong>
+          {props.node.value.op && props.node.value.op !== 'default' && (
+            <React.Fragment>
+              <span className="TraceOperation">{props.node.value.op}</span>
+              <strong className="TraceEmDash"> — </strong>
+            </React.Fragment>
+          )}
           <span className="TraceDescription" title={props.node.value.description}>
-            {!props.node.value.description
-              ? props.node.value.span_id ?? 'unknown'
-              : props.node.value.description.length > 100
+            {getNodeDescriptionPrefix(props.node)}
+            {props.node.value.description
+              ? props.node.value.description.length > 100
                 ? props.node.value.description.slice(0, 100).trim() + '\u2026'
-                : props.node.value.description}
+                : props.node.value.description
+              : (spanId ?? 'unknown')}
           </span>
         </div>
       </div>
@@ -85,7 +102,7 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
           color={makeTraceNodeBarColor(props.theme, props.node)}
           node_space={props.node.space}
           errors={props.node.errors}
-          performance_issues={props.node.performance_issues}
+          occurrences={props.node.occurrences}
           profiles={NO_PROFILES}
         />
         <button

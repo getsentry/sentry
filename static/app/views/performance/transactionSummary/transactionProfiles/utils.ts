@@ -1,22 +1,23 @@
 import type {Query} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export function profilesRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
   view?: DomainView;
 }) {
-  const pathname = `${getTransactionSummaryBaseUrl(orgSlug, view)}/profiles/`;
+  const pathname = `${getTransactionSummaryBaseUrl(organization, view)}/profiles/`;
 
   return {
     pathname,

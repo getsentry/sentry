@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 /**
@@ -93,9 +93,13 @@ export function getGroupReleaseChartMarkers(
     show: true,
     trigger: 'item',
     formatter: ({data}: any) => {
-      const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT', {
-        local: true,
-      });
+      const time = getFormattedDate(
+        data.displayValue,
+        getFormat({timeZone: true, year: true}),
+        {
+          local: true,
+        }
+      );
       return [
         '<div class="tooltip-series">',
         `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
@@ -140,7 +144,7 @@ function GroupReleaseChart(props: Props) {
 
   const stats = group.stats[statsPeriod];
   const environmentPeriodStats = environmentStats?.[statsPeriod];
-  if (!stats || !stats.length || !environmentPeriodStats) {
+  if (!stats?.length || !environmentPeriodStats) {
     return null;
   }
 
@@ -157,8 +161,8 @@ function GroupReleaseChart(props: Props) {
   series.push({
     seriesName: t('Events in %s', environmentLabel),
     data: environmentStats[statsPeriod]!.map(point => ({
-      name: point![0] * 1000,
-      value: point![1],
+      name: point[0] * 1000,
+      value: point[1],
     })),
   });
 
@@ -166,8 +170,8 @@ function GroupReleaseChart(props: Props) {
     series.push({
       seriesName: t('Events in release %s', formatVersion(release.version)),
       data: releaseStats[statsPeriod]!.map(point => ({
-        name: point![0] * 1000,
-        value: point![1],
+        name: point[0] * 1000,
+        value: point[1],
       })),
     });
   }

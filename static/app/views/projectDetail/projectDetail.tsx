@@ -7,8 +7,8 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -32,6 +32,8 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
@@ -48,7 +50,7 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
 };
 
@@ -74,6 +76,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
     organization.slug,
     false
   );
+  const prefersStackedNav = usePrefersStackedNav();
 
   const visibleCharts = useMemo(() => {
     if (hasTransactions || hasSessions) {
@@ -83,7 +86,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId!, true, false);
+    fetchOrganizationDetails(api, params.orgId!);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(
@@ -151,12 +154,12 @@ export default function ProjectDetail({router, location, organization}: Props) {
       >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
+            <Layout.Header unified={prefersStackedNav}>
+              <Layout.HeaderContent unified={prefersStackedNav}>
                 <Breadcrumbs
                   crumbs={[
                     {
-                      to: `/organizations/${params.orgId}/projects/`,
+                      to: makeProjectsPathname({path: '/', organization}),
                       label: t('Projects'),
                     },
                     {label: t('Project Details')},
@@ -237,20 +240,20 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 {isProjectStabilized && (
                   <Fragment>
                     {visibleCharts.map((id, index) => (
-                      <ProjectCharts
-                        location={location}
-                        organization={organization}
-                        router={router}
-                        key={`project-charts-${id}`}
-                        chartId={id}
-                        chartIndex={index}
-                        projectId={project?.id}
-                        hasSessions={hasSessions}
-                        hasTransactions={!!hasTransactions}
-                        visibleCharts={visibleCharts}
-                        query={query}
-                        project={project}
-                      />
+                      <ErrorBoundary mini key={`project-charts-${id}`}>
+                        <ProjectCharts
+                          location={location}
+                          organization={organization}
+                          chartId={id}
+                          chartIndex={index}
+                          projectId={project?.id}
+                          hasSessions={hasSessions}
+                          hasTransactions={!!hasTransactions}
+                          visibleCharts={visibleCharts}
+                          query={query}
+                          project={project}
+                        />
+                      </ErrorBoundary>
                     ))}
                     <ProjectIssues
                       organization={organization}

@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
-import Timeline from 'sentry/components/timeline';
+import Link from 'sentry/components/links/link';
+import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -40,12 +41,14 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
+  isDrawer,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
   item: GroupActivity;
   teams: Team[];
+  isDrawer?: boolean;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -60,8 +63,8 @@ function TimelineItem({
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
   const Icon = iconMapping?.componentFunction
-    ? iconMapping.componentFunction(item.data)
-    : iconMapping?.Component ?? null;
+    ? iconMapping.componentFunction(item.data, item.user)
+    : (iconMapping?.Component ?? null);
 
   return (
     <ActivityTimelineItem
@@ -104,11 +107,11 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper>
+        <NoteWrapper isDrawer={isDrawer}>
           <NoteBody text={message} />
         </NoteWrapper>
       ) : (
-        message
+        <MessageWrapper isDrawer={isDrawer}>{message}</MessageWrapper>
       )}
     </ActivityTimelineItem>
   );
@@ -116,6 +119,10 @@ function TimelineItem({
 
 interface StreamlinedActivitySectionProps {
   group: Group;
+  /**
+   * Whether to filter the activity to only show comments.
+   */
+  filterComments?: boolean;
   /**
    * Whether the activity section is being rendered in the activity drawer.
    * Disables collapse feature, and hides headers
@@ -126,6 +133,7 @@ interface StreamlinedActivitySectionProps {
 export default function StreamlinedActivitySection({
   group,
   isDrawer,
+  filterComments,
 }: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
@@ -221,11 +229,52 @@ export default function StreamlinedActivitySection({
     [group.activity, mutators, group.id, organization]
   );
 
+  const activityLink = {
+    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+    query: {
+      ...location.query,
+      cursor: undefined,
+    },
+  };
+
+  const filteredActivityLink = {
+    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+    query: {
+      ...location.query,
+      cursor: undefined,
+      filter: 'comments',
+    },
+  };
+
   return (
     <div>
       {!isDrawer && (
-        <Flex justify="space-between" align="center">
-          <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
+        <Flex justify="space-between" align="center" style={{marginBottom: space(1)}}>
+          <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
+            {t('Activity')}
+            {group.numComments > 0 ? (
+              <CommentsLink
+                to={filteredActivityLink}
+                aria-label={t('Number of comments: %s', group.numComments)}
+                onClick={() => {
+                  trackAnalytics('issue_details.activity_comments_link_clicked', {
+                    organization,
+                    num_comments: group.numComments,
+                  });
+                }}
+              >
+                <IconChat
+                  size="xs"
+                  color={
+                    group.subscriptionDetails?.reason === 'mentioned'
+                      ? 'successText'
+                      : undefined
+                  }
+                />
+                <span>{group.numComments}</span>
+              </CommentsLink>
+            ) : null}
+          </SidebarSectionTitle>
           <ViewButton
             aria-label={t('Open activity drawer')}
             to={{
@@ -258,18 +307,21 @@ export default function StreamlinedActivitySection({
           {...noteProps}
         />
         {(group.activity.length < 5 || isDrawer) &&
-          group.activity.map(item => {
-            return (
-              <TimelineItem
-                item={item}
-                handleDelete={handleDelete}
-                handleUpdate={handleUpdate}
-                group={group}
-                teams={teams}
-                key={item.id}
-              />
-            );
-          })}
+          group.activity
+            .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
+            .map(item => {
+              return (
+                <TimelineItem
+                  item={item}
+                  handleDelete={handleDelete}
+                  handleUpdate={handleUpdate}
+                  group={group}
+                  teams={teams}
+                  key={item.id}
+                  isDrawer={isDrawer}
+                />
+              );
+            })}
         {!isDrawer && group.activity.length >= 5 && (
           <Fragment>
             {group.activity.slice(0, 3).map(item => {
@@ -281,6 +333,7 @@ export default function StreamlinedActivitySection({
                   group={group}
                   teams={teams}
                   key={item.id}
+                  isDrawer={isDrawer}
                 />
               );
             })}
@@ -288,13 +341,7 @@ export default function StreamlinedActivitySection({
               title={
                 <LinkButton
                   aria-label={t('View all activity')}
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-                    query: {
-                      ...location.query,
-                      cursor: undefined,
-                    },
-                  }}
+                  to={activityLink}
                   size="xs"
                   analyticsEventKey="issue_details.activity_expanded"
                   analyticsEventName="Issue Details: Activity Expanded"
@@ -339,6 +386,18 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
 `;
 
-const NoteWrapper = styled('div')`
+const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
   ${textStyles}
+  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+`;
+
+const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
+  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+`;
+
+const CommentsLink = styled(Link)`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+  color: ${p => p.theme.subText};
 `;

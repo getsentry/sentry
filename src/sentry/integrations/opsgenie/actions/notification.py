@@ -6,7 +6,11 @@ from typing import cast
 import sentry_sdk
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
-from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY, OpsgeniePriority
+from sentry.integrations.opsgenie.client import (
+    OPSGENIE_DEFAULT_PRIORITY,
+    OpsgenieClient,
+    OpsgeniePriority,
+)
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
 from sentry.rules.actions import IntegrationEventAction
@@ -17,7 +21,6 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 
 class OpsgenieNotifyTeamAction(IntegrationEventAction):
     id = "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction"
-    form_cls = OpsgenieNotifyTeamForm
     label = (
         "Send a notification to Opsgenie account {account} and team {team} with {priority} priority"
     )
@@ -65,18 +68,21 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         def send_notification(event, futures):
             installation = integration.get_installation(self.project.organization_id)
             try:
-                client = installation.get_keyring_client(self.get_option("team"))
+                client: OpsgenieClient = installation.get_keyring_client(self.get_option("team"))
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 return
             try:
                 rules = [f.rule for f in futures]
-                resp = client.send_notification(
+                payload = client.build_issue_alert_payload(
                     data=event,
-                    priority=priority,
                     rules=rules,
+                    event=event,
+                    group=event.group,
+                    priority=priority,
                     notification_uuid=notification_uuid,
                 )
+                resp = client.send_notification(data=payload)
             except ApiError as e:
                 logger.info(
                     "rule.fail.opsgenie_notification",
@@ -127,8 +133,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             account=self.get_integration_name(), team=team_name, priority=priority
         )
 
-    def get_form_instance(self):
-        return self.form_cls(
+    def get_form_instance(self) -> OpsgenieNotifyTeamForm:
+        return OpsgenieNotifyTeamForm(
             self.data,
             org_id=self.project.organization_id,
             integrations=self.get_integrations(),

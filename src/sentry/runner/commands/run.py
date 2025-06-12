@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import signal
+import time
 from multiprocessing import cpu_count
 from typing import Any
 
 import click
 from django.utils import autoreload
 
+import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -237,14 +240,81 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 
 
 @run.command()
-@click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
+@click.option(
+    "--redis-cluster",
+    help="The rediscluster name to store run state in.",
+    default="default",
+)
+@log_options()
+@configuration
+def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
+    """
+    Run a scheduler for taskworkers
+
+    All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
+    """
+    from django.conf import settings
+
+    from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
+    from sentry.utils.redis import redis_clusters
+
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
+
+    run_storage = RunStorage(redis_clusters.get(redis_cluster))
+
+    with managed_bgtasks(role="taskworker-scheduler"):
+        runner = ScheduleRunner(taskregistry, run_storage)
+        enabled_schedules = set(options.get("taskworker.scheduler.rollout", []))
+        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            if key in enabled_schedules:
+                runner.add(key, schedule_data)
+
+        runner.log_startup()
+        while True:
+            sleep_time = runner.tick()
+            time.sleep(sleep_time)
+
+
+@run.command()
+@click.option(
+    "--rpc-host",
+    help="The hostname for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
+    default="127.0.0.1:50051",
+)
+@click.option(
+    "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
+)
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
-    "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
+    "--max-child-task-count",
+    help="Number of tasks child processes execute before being restart",
+    default=taskworker_constants.DEFAULT_CHILD_TASK_COUNT,
 )
-@click.option("--concurrency", help="Number of child worker processes to create.", default=1)
+@click.option("--concurrency", help="Number of child processes to create.", default=1)
 @click.option(
-    "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
+    "--namespace", help="The dedicated task namespace that this worker processes", default=None
+)
+@click.option(
+    "--result-queue-maxsize",
+    help="Size of multiprocessing queue for child process results",
+    default=taskworker_constants.DEFAULT_WORKER_QUEUE_SIZE,
+)
+@click.option(
+    "--child-tasks-queue-maxsize",
+    help="Size of multiprocessing queue for pending tasks for child processes",
+    default=taskworker_constants.DEFAULT_WORKER_QUEUE_SIZE,
+)
+@click.option(
+    "--rebalance-after",
+    help="The number of tasks to process before choosing a new broker instance. Requires num-brokers > 1",
+    default=taskworker_constants.DEFAULT_REBALANCE_AFTER,
+)
+@click.option(
+    "--processing-pool-name",
+    help="The name of the processing pool being used",
+    default="unknown",
 )
 @log_options()
 @configuration
@@ -252,6 +322,7 @@ def taskworker(**options: Any) -> None:
     """
     Run a taskworker worker
     """
+    os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
     if options["autoreload"]:
         autoreload.run_with_reloader(run_taskworker, **options)
     else:
@@ -259,7 +330,16 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
-    rpc_host: str, max_task_count: int, namespace: str | None, concurrency: int, **options: Any
+    rpc_host: str,
+    num_brokers: int | None,
+    max_child_task_count: int,
+    namespace: str | None,
+    concurrency: int,
+    child_tasks_queue_maxsize: int,
+    result_queue_maxsize: int,
+    rebalance_after: int,
+    processing_pool_name: str,
+    **options: Any,
 ) -> None:
     """
     taskworker factory that can be reloaded
@@ -269,9 +349,14 @@ def run_taskworker(
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
             rpc_host=rpc_host,
-            max_task_count=max_task_count,
+            num_brokers=num_brokers,
+            max_child_task_count=max_child_task_count,
             namespace=namespace,
             concurrency=concurrency,
+            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+            result_queue_maxsize=result_queue_maxsize,
+            rebalance_after=rebalance_after,
+            processing_pool_name=processing_pool_name,
             **options,
         )
         exitcode = worker.start()
@@ -308,7 +393,25 @@ def run_taskworker(
     "--bootstrap-servers",
     type=str,
     help="The bootstrap servers to use for the kafka topic",
-    required=True,
+    default="127.0.0.1:9092",
+)
+@click.option(
+    "--kafka-topic",
+    type=str,
+    help="The kafka topic to use for the task",
+    default=None,
+)
+@click.option(
+    "--namespace",
+    type=str,
+    help="The namespace that the task is registered in",
+    default=None,
+)
+@click.option(
+    "--extra-arg-bytes",
+    type=int,
+    help="Generater random args of specified size in bytes",
+    default=None,
 )
 def taskbroker_send_tasks(
     task_function_path: str,
@@ -316,21 +419,39 @@ def taskbroker_send_tasks(
     kwargs: str,
     repeat: int,
     bootstrap_servers: str,
+    kafka_topic: str,
+    namespace: str,
+    extra_arg_bytes: int | None,
 ) -> None:
+    from sentry import options
     from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
     KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+    if kafka_topic and namespace:
+        options.set("taskworker.route.overrides", {namespace: kafka_topic})
+
     try:
         func = import_string(task_function_path)
     except Exception as e:
         click.echo(f"Error: {e}")
         raise click.Abort()
+
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
 
-    for _ in range(repeat):
+    if extra_arg_bytes is not None:
+        extra_padding_arg = "".join(
+            [chr(ord("a") + random.randint(0, ord("z") - ord("a"))) for _ in range(extra_arg_bytes)]
+        )
+        task_args.append(extra_padding_arg)
+
+    checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
+    for i in range(repeat):
         func.delay(*task_args, **task_kwargs)
+        if i in checkmarks:
+            click.echo(message=f"{int((i / repeat) * 100)}% complete")
+
     click.echo(message=f"Successfully sent {repeat} messages.")
 
 
@@ -364,6 +485,15 @@ def cron(**options: Any) -> None:
         )
 
     from sentry.celery import app
+
+    old_schedule = app.conf.CELERYBEAT_SCHEDULE
+    new_schedule = {}
+    task_schedules = set(options.get("taskworker.scheduler.rollout", []))
+    for key, schedule_data in old_schedule.items():
+        if key not in task_schedules:
+            new_schedule[key] = schedule_data
+
+    app.conf.update(CELERYBEAT_SCHEDULE=new_schedule)
 
     with managed_bgtasks(role="cron"):
         app.Beat(
@@ -426,14 +556,14 @@ def cron(**options: Any) -> None:
 )
 @click.option(
     "--enable-dlq/--disable-dlq",
-    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    help="Enable dlq to route invalid messages to the dlq topic. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
     default=True,
 )
 @click.option(
     "--stale-threshold-sec",
-    type=click.IntRange(min=60),
-    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+    type=click.IntRange(min=120),
+    help="Enable backlog queue to route stale messages to the blq topic.",
 )
 @click.option(
     "--log-level",
@@ -451,9 +581,24 @@ def cron(**options: Any) -> None:
         "offsets mean data-loss.\n\n"
     ),
 )
+@click.option(
+    "--max-dlq-buffer-length",
+    type=int,
+    help="The maximum number of messages to buffer in the dlq before dropping messages. Defaults to unbounded.",
+)
+@click.option(
+    "--quantized-rebalance-delay-secs",
+    type=int,
+    default=None,
+    help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
+)
 @configuration
 def basic_consumer(
-    consumer_name: str, consumer_args: tuple[str, ...], topic: str | None, **options: Any
+    consumer_name: str,
+    consumer_args: tuple[str, ...],
+    topic: str | None,
+    quantized_rebalance_delay_secs: int | None,
+    **options: Any,
 ) -> None:
     """
     Launch a "new-style" consumer based on its "consumer name".
@@ -485,7 +630,12 @@ def basic_consumer(
     initialize_arroyo_main()
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
-    run_processor_with_signals(processor, consumer_name)
+
+    # for backwards compat: should eventually be removed
+    if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
+        quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
+
+    run_processor_with_signals(processor, quantized_rebalance_delay_secs)
 
 
 @run.command("dev-consumer")

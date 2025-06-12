@@ -2,8 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/button';
-import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
+import {Button} from 'sentry/components/core/button';
 import FormContext from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
@@ -16,15 +15,15 @@ type FormProps = {
   extraButton?: React.ReactNode;
   footerClass?: string;
   hideErrors?: boolean;
-  initialData?: object;
+  initialData?: Record<PropertyKey, unknown>;
   onCancel?: () => void;
   onSubmit?: (
-    data: object,
-    onSubmitSuccess: (data: object) => void,
-    onSubmitError: (error: object) => void
+    data: Record<PropertyKey, unknown>,
+    onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void,
+    onSubmitError: (error: Record<PropertyKey, unknown>) => void
   ) => void;
-  onSubmitError?: (error: object) => void;
-  onSubmitSuccess?: (data: object) => void;
+  onSubmitError?: (error: Record<PropertyKey, unknown>) => void;
+  onSubmitSuccess?: (data: Record<PropertyKey, unknown>) => void;
   requireChanges?: boolean;
   resetOnError?: boolean;
   submitDisabled?: boolean;
@@ -33,13 +32,13 @@ type FormProps = {
 
 type FormClassState = {
   data: any;
-  errors: {non_field_errors?: object[]} & object;
-  initialData: object;
+  errors: {non_field_errors?: Array<Record<PropertyKey, unknown>>} & Record<
+    PropertyKey,
+    string
+  >;
+  initialData: Record<PropertyKey, unknown>;
   state: FormState;
 };
-
-// Re-export for compatibility alias.
-export type Context = FormContextData;
 
 class Form<
   Props extends FormProps = FormProps,
@@ -59,8 +58,8 @@ class Form<
     ),
   };
 
-  constructor(props: Props, context: Context) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
     this.state = {
       data: {...this.props.initialData},
       errors: {},
@@ -88,11 +87,11 @@ class Form<
     this.props.onSubmit(this.state.data, this.onSubmitSuccess, this.onSubmitError);
   };
 
-  onSubmitSuccess = (data: object) => {
+  onSubmitSuccess = (data: Record<PropertyKey, unknown>) => {
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: {...this.state.data, ...(data || {})},
+      initialData: {...this.state.data, ...data},
     });
     this.props.onSubmitSuccess?.(data);
   };
@@ -132,7 +131,7 @@ class Form<
     const nonFieldErrors = this.state.errors?.non_field_errors;
 
     return (
-      <FormContext.Provider value={this.getContext()}>
+      <FormContext value={this.getContext()}>
         <StyledForm
           onSubmit={this.onSubmit}
           className={this.props.className}
@@ -182,7 +181,7 @@ class Form<
             {this.props.extraButton}
           </div>
         </StyledForm>
-      </FormContext.Provider>
+      </FormContext>
     );
   }
 }

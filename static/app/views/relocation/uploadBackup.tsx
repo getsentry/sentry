@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Well from 'sentry/components/well';
 import {IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,10 +19,10 @@ import type {StepProps} from './types';
 type UploadWellProps = {
   centered: boolean;
   draggedOver: boolean;
-  onDragEnter: Function;
-  onDragLeave: Function;
-  onDragOver: Function;
-  onDrop: Function;
+  onDragEnter: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDragOver: (e: React.DragEvent | DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
 };
 
 const DEFAULT_ERROR_MSG = t(
@@ -45,7 +45,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const user = useUser();
 
-  const handleDragEnter = (event: any) => {
+  const handleDragEnter = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(dragCounter + 1);
   };
@@ -54,7 +54,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
     setDragCounter(dragCounter - 1);
   };
 
-  const handleDrop = (event: any) => {
+  const handleDrop = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(0);
 
@@ -180,8 +180,6 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   );
 }
 
-export default UploadBackup;
-
 const StyledUploadIcon = styled(IconUpload)`
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
@@ -199,7 +197,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
@@ -234,7 +232,7 @@ const FinishedWell = styled(Well)`
     font-size: 14px;
   }
   a:hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 

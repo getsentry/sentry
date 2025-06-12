@@ -2,7 +2,7 @@ import type React from 'react';
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {InputGroup} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
@@ -12,17 +12,16 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {traceAnalytics} from '../traceAnalytics';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {TraceReducer} from '../traceState';
-import type {TraceSearchState} from '../traceState/traceSearch';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceReducer} from 'sentry/views/performance/newTraceDetails/traceState';
+import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 import {
   useTraceState,
   useTraceStateDispatch,
   useTraceStateEmitter,
-} from '../traceState/traceStateProvider';
+} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 interface TraceSearchInputProps {
   onTraceSearch: (
@@ -239,9 +238,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             traceState.search.query && !traceState.search.results?.length
               ? t('no results')
               : traceState.search.query
-                ? (traceState.search.resultIteratorIndex !== null
-                    ? traceState.search.resultIteratorIndex + 1
-                    : '-') + `/${traceState.search.results?.length ?? 0}`
+                ? (traceState.search.resultIteratorIndex === null
+                    ? '-'
+                    : traceState.search.resultIteratorIndex + 1) +
+                  `/${traceState.search.results?.length ?? 0}`
                 : ''
           }`}
         </StyledTrailingText>

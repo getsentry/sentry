@@ -14,16 +14,48 @@ import type {
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
+  TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY,
   TraceViewSources,
-} from '../newTraceDetails/traceHeader/breadcrumbs';
+} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
+
+function getBaseTraceUrl(
+  organization: Organization,
+  source?: TraceViewSources,
+  view?: DomainView
+) {
+  const routesMap = prefersStackedNav(organization)
+    ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
+    : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
+
+  if (source === TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY) {
+    return normalizeUrl(
+      `/organizations/${organization.slug}/${
+        view
+          ? getTransactionSummaryBaseUrl(organization, view, true)
+          : routesMap.performance_transaction_summary
+      }`
+    );
+  }
+
+  return normalizeUrl(
+    `/organizations/${organization.slug}/${
+      view
+        ? getPerformanceBaseUrl(organization.slug, view, true)
+        : source && source in routesMap
+          ? routesMap[source]
+          : routesMap.traces
+    }`
+  );
+}
 
 export function getTraceDetailsUrl({
   organization,
@@ -35,7 +67,7 @@ export function getTraceDetailsUrl({
   targetId,
   demo,
   location,
-  source = TraceViewSources.TRACES,
+  source,
   view,
 }: {
   // @TODO add a type for dateSelection
@@ -53,11 +85,7 @@ export function getTraceDetailsUrl({
   timestamp?: string | number;
   view?: DomainView;
 }): LocationDescriptorObject {
-  const baseUrl = view
-    ? getPerformanceBaseUrl(organization.slug, view)
-    : normalizeUrl(
-        `/organizations/${organization.slug}/${TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]}`
-      );
+  const baseUrl = getBaseTraceUrl(organization, source, view);
   const queryParams: Record<string, string | number | undefined | DateString | string[]> =
     {
       ...location.query,
@@ -78,6 +106,7 @@ export function getTraceDetailsUrl({
       const path: TraceTree.NodePath[] = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
       queryParams.node = path;
     }
+
     return {
       pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
       query: {
@@ -212,7 +241,7 @@ export function shortenErrorTitle(title: string): string {
   return title.split(':')[0]!;
 }
 
-export function isRootTransaction(trace: TraceFullDetailed): boolean {
-  // Root transactions has no parent_span_id
-  return trace.parent_span_id === null;
+export function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
 }

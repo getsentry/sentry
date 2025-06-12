@@ -6,10 +6,12 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-
-import type {SourceSuggestion} from '../../types';
-import {SourceSuggestionType} from '../../types';
-import {binarySuggestions, unarySuggestions} from '../../utils';
+import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
+import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  binarySuggestions,
+  unarySuggestions,
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 
@@ -28,7 +30,7 @@ type Props = {
 
 type State = {
   activeSuggestion: number;
-  fieldValues: (SourceSuggestion | SourceSuggestion[])[];
+  fieldValues: Array<SourceSuggestion | SourceSuggestion[]>;
   help: string;
   hideCaret: boolean;
   showSuggestions: boolean;
@@ -103,8 +105,8 @@ class SourceField extends Component<Props, State> {
     return filteredSuggestions;
   }
 
-  // @ts-ignore TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
-  getNewSuggestions(fieldValues: (SourceSuggestion | SourceSuggestion[])[]) {
+  // @ts-expect-error TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
+  getNewSuggestions(fieldValues: Array<SourceSuggestion | SourceSuggestion[]>) {
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
     const penultimateFieldValue = fieldValues[fieldValues.length - 2]!;
 
@@ -168,12 +170,11 @@ class SourceField extends Component<Props, State> {
   }
 
   loadFieldValues(newValue: string) {
-    const fieldValues: (SourceSuggestion | SourceSuggestion[])[] = [];
+    const fieldValues: Array<SourceSuggestion | SourceSuggestion[]> = [];
 
     const splittedValue = newValue.split(' ');
 
-    for (const splittedValueIndex in splittedValue) {
-      const value = splittedValue[splittedValueIndex]!;
+    for (const value of splittedValue) {
       const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
       if (
@@ -240,8 +241,7 @@ class SourceField extends Component<Props, State> {
     const {fieldValues} = this.state;
     const newValue: string[] = [];
 
-    for (const index in fieldValues) {
-      const fieldValue = fieldValues[index]!;
+    for (const fieldValue of fieldValues) {
       if (Array.isArray(fieldValue)) {
         if (fieldValue[0]?.value || fieldValue[1]?.value) {
           newValue.push(`${fieldValue[0]?.value ?? ''}${fieldValue[1]?.value ?? ''}`);
@@ -256,8 +256,8 @@ class SourceField extends Component<Props, State> {
 
   getNewFieldValues(
     suggestion: SourceSuggestion
-  ): (SourceSuggestion | SourceSuggestion[])[] {
-    const fieldValues = [...this.state.fieldValues]!;
+  ): Array<SourceSuggestion | SourceSuggestion[]> {
+    const fieldValues = [...this.state.fieldValues];
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
     if (!defined(lastFieldValue)) {
@@ -296,7 +296,7 @@ class SourceField extends Component<Props, State> {
       return;
     }
 
-    const isMaybeRegExp = RegExp('^/.*/g?$').test(value);
+    const isMaybeRegExp = new RegExp('^/.*/g?$').test(value);
 
     if (help) {
       if (!isMaybeRegExp) {
@@ -500,7 +500,7 @@ const Suggestion = styled('li')<{active: boolean}>`
 const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   line-height: 1.2;
 `;
 

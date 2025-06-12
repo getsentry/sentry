@@ -1,8 +1,9 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,10 +59,10 @@ interface CodeSnippetProps {
    */
   onTabClick?: (tab: string) => void;
   selectedTab?: string;
-  tabs?: {
+  tabs?: Array<{
     label: string;
     value: string;
-  }[];
+  }>;
 }
 
 export function CodeSnippet({
@@ -88,7 +89,7 @@ export function CodeSnippet({
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
     if (linesToHighlight) {
-      // @ts-ignore TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
+      // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
       import('prismjs/plugins/line-highlight/prism-line-highlight');
     }
   }, [linesToHighlight]);
@@ -225,20 +226,20 @@ const Header = styled('div')<{isSolid: boolean}>`
 
   ${p =>
     p.isSolid
-      ? `
-      padding: 0 ${space(0.5)};
-      border-bottom: solid 1px ${p.theme.innerBorder};
-    `
-      : `
-      justify-content: flex-end;
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: max-content;
-      height: max-content;
-      max-height: 100%;
-      padding: ${space(0.5)};
-    `}
+      ? css`
+          padding: 0 ${space(0.5)};
+          border-bottom: solid 1px ${p.theme.innerBorder};
+        `
+      : css`
+          justify-content: flex-end;
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: max-content;
+          height: max-content;
+          max-height: 100%;
+          padding: ${space(0.5)};
+        `}
 `;
 
 const FileName = styled('span')`

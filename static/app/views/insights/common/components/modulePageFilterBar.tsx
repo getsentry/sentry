@@ -1,6 +1,7 @@
 import {type ComponentProps, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
@@ -9,7 +10,6 @@ import {
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SECOND} from 'sentry/utils/formatters';
@@ -96,21 +96,31 @@ export function ModulePageFilterBar({
 
   return (
     <Fragment>
-      <PageFilterBar condensed>
-        <Tooltip
-          title={CHANGE_PROJECT_TEXT}
-          forceVisible
-          position="bottom-start"
-          disabled={!showTooltip}
-        >
-          {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
+      <Tooltip
+        title={CHANGE_PROJECT_TEXT}
+        forceVisible
+        position="bottom-start"
+        disabled={!showTooltip}
+      >
+        {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
           otherwise two clicks are required because of some rerendering/event propogation issues into the children */}
-          <div style={{width: '100px', position: 'absolute', height: '100%'}} />
-        </Tooltip>
-        {!disableProjectFilter && <ProjectPageFilter onChange={onProjectChange} />}
-        <EnvironmentPageFilter />
-        <DatePageFilter {...dateFilterProps} />
-      </PageFilterBar>
+        <div
+          style={{
+            position: 'absolute',
+            width: '100px',
+            height: '36px' /* default button height */,
+          }}
+        />
+      </Tooltip>
+      {/* Requires an extra div, else the pagefilterbar will grow to fill the height
+      of the readout ribbon which results in buttons being very large. */}
+      <div>
+        <PageFilterBar condensed>
+          {!disableProjectFilter && <ProjectPageFilter onChange={onProjectChange} />}
+          <EnvironmentPageFilter />
+          <DatePageFilter {...dateFilterProps} />
+        </PageFilterBar>
+      </div>
       {hasDataWithSelectedProjects && extraFilters}
     </Fragment>
   );
@@ -134,7 +144,7 @@ const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
 `;
 
-export const UpsellFooterHook = HookOrDefault({
+const UpsellFooterHook = HookOrDefault({
   hookName: 'component:insights-date-range-query-limit-footer',
   defaultComponent: () => undefined,
 });

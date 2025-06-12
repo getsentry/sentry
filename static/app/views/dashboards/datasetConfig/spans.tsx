@@ -6,6 +6,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -13,14 +14,18 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  NO_ARGUMENT_SPAN_AGGREGATES,
+} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -30,16 +35,17 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -56,25 +62,61 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  acc[aggregate] = {
-    isSortable: true,
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['number', 'string'], // Need to keep the string type for unknown values before tags are resolved
-        defaultValue: 'span.duration',
-        required: true,
-      },
-    ],
-  };
-  return acc;
-}, {});
+const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
+  (acc, aggregate) => {
+    if (aggregate === AggregationKey.COUNT) {
+      acc[AggregationKey.COUNT] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['number'],
+            defaultValue: 'span.duration',
+            required: true,
+          },
+        ],
+      };
+    } else if (aggregate === AggregationKey.COUNT_UNIQUE) {
+      acc[AggregationKey.COUNT_UNIQUE] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['string'],
+            defaultValue: 'span.op',
+            required: true,
+          },
+        ],
+      };
+    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
+      acc[aggregate] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [],
+      };
+    } else {
+      acc[aggregate] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['number', 'string'], // Need to keep the string type for unknown values before tags are resolved
+            defaultValue: 'span.duration',
+            required: true,
+          },
+        ],
+      };
+    }
+    return acc;
+  },
+  {} as Record<AggregationKey, Aggregation>
+);
 
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
@@ -108,7 +150,8 @@ export const SpansConfig: DatasetConfig<
     limit?: number,
     cursor?: string,
     referrer?: string,
-    _mepSetting?: MEPState | null
+    _mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => {
     return getEventsRequest(
       api,
@@ -117,13 +160,15 @@ export const SpansConfig: DatasetConfig<
       pageFilters,
       limit,
       cursor,
-      referrer
+      referrer,
+      undefined,
+      undefined,
+      samplingMode
     );
   },
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
-  filterTableOptions,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
@@ -163,7 +208,7 @@ function getPrimaryFieldOptions(
   return {...baseFieldOptions, ...spanTags};
 }
 
-function filterTableOptions(option: FieldValueOption) {
+function _isNotNumericTag(option: FieldValueOption) {
   // Filter out numeric tags from primary options, they only show up in
   // the parameter fields for aggregate functions
   if ('dataType' in option.value.meta) {
@@ -172,15 +217,29 @@ function filterTableOptions(option: FieldValueOption) {
   return true;
 }
 
-function filterAggregateParams(option: FieldValueOption) {
+function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
   // Allow for unknown values to be used for aggregate functions
   // This supports showing the tag value even if it's not in the current
   // set of tags.
   if ('unknown' in option.value.meta && option.value.meta.unknown) {
     return true;
   }
+
+  if (
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function[0] === AggregationKey.COUNT
+  ) {
+    return option.value.meta.name === 'span.duration';
+  }
+
+  const expectedDataType =
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
+      ? 'string'
+      : 'number';
+
   if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType === 'number';
+    return option.value.meta.dataType === expectedDataType;
   }
   return true;
 }
@@ -200,7 +259,8 @@ function getEventsRequest(
   cursor?: string,
   referrer?: string,
   _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras
+  queryExtras?: DiscoverQueryExtras,
+  samplingMode?: SamplingMode
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
@@ -210,7 +270,6 @@ function getEventsRequest(
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
-    useRpc: '1',
     ...queryExtras,
   };
 
@@ -218,12 +277,18 @@ function getEventsRequest(
     params.sort = toArray(query.orderby);
   }
 
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  eventView.query = `${eventView.query} !transaction.span_id:00`;
+
   return doDiscoverQuery<EventsTableData>(
     api,
     url,
     {
       ...eventView.generateQueryStringObject(),
       ...params,
+      ...(samplingMode ? {sampling: samplingMode} : {}),
     },
     // Tries events request up to 3 times on rate limit
     {
@@ -250,7 +315,7 @@ function getGroupByFieldOptions(
   // The only options that should be returned as valid group by options
   // are string tags
   const filterGroupByOptions = (option: FieldValueOption) =>
-    filterTableOptions(option) && !yAxisFilter(option);
+    _isNotNumericTag(option) && !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }
@@ -263,7 +328,8 @@ function getSeriesRequest(
   pageFilters: PageFilters,
   _onDemandControlContext?: OnDemandControlContext,
   referrer?: string,
-  _mepSetting?: MEPState | null
+  _mepSetting?: MEPState | null,
+  samplingMode?: SamplingMode
 ) {
   const requestData = getSeriesRequestData(
     widget,
@@ -274,13 +340,20 @@ function getSeriesRequest(
     referrer
   );
 
-  requestData.useRpc = true;
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  requestData.query = `${requestData.query} !transaction.span_id:00`;
+
+  if (samplingMode) {
+    requestData.sampling = samplingMode;
+  }
 
   return doEventsRequest<true>(api, requestData);
 }
 
 // Filters the primary options in the sort by selector
-export function filterSeriesSortOptions(columns: Set<string>) {
+function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (option.value.kind === FieldValueKind.FUNCTION) {
       return true;

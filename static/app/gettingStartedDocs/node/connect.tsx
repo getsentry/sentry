@@ -11,11 +11,11 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -138,8 +138,8 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding(),
 };
 
 export default docs;

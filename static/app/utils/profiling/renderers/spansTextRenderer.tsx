@@ -1,6 +1,7 @@
 import type {mat3} from 'gl-matrix';
 
 import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   computeHighlightedBounds,
   ELLIPSIS,
@@ -11,10 +12,8 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-
-import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import type {Rect} from '../speedscope';
-import {findRangeBinarySearch, trimTextCenter} from '../speedscope';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+import {findRangeBinarySearch, trimTextCenter} from 'sentry/utils/profiling/speedscope';
 
 class SpansTextRenderer extends TextRenderer {
   spanChart: SpanChart;
@@ -51,9 +50,7 @@ class SpansTextRenderer extends TextRenderer {
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;
-    const HIGHLIGHT_BACKGROUND_COLOR = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
-      ', '
-    )})`;
+    const HIGHLIGHT_BACKGROUND_COLOR = this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR;
     const HAS_SEARCH_RESULTS = flamegraphSearchResults.size > 0;
     const TEXT_Y_POSITION = FONT_SIZE / 2 - BASELINE_OFFSET;
 
@@ -145,8 +142,7 @@ class SpansTextRenderer extends TextRenderer {
         if (frameResults) {
           this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
 
-          for (let i = 0; i < frameResults.match.length; i++) {
-            const match = frameResults.match[i]!;
+          for (const match of frameResults.match) {
             const highlightedBounds = computeHighlightedBounds(match, trim);
 
             const frontMatter = trim.text.slice(0, highlightedBounds[0]);

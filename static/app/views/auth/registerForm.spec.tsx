@@ -46,7 +46,9 @@ describe('Register', function () {
       },
     });
 
-    render(<RegisterForm authConfig={emptyAuthConfig} />);
+    render(<RegisterForm authConfig={emptyAuthConfig} />, {
+      deprecatedRouterMocks: true,
+    });
     await doLogin(mockRequest);
 
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
@@ -69,7 +71,10 @@ describe('Register', function () {
       },
     });
 
-    render(<RegisterForm authConfig={emptyAuthConfig} />, {router});
+    render(<RegisterForm authConfig={emptyAuthConfig} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     await doLogin(mockRequest);
 
     await waitFor(() => expect(ConfigStore.get('user')).toEqual(userObject));

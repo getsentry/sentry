@@ -9,9 +9,9 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 
-export type ListCache = {
+type ListCache = {
   pageParams: unknown[];
-  pages: ApiResult<FeedbackIssueListItem[]>[];
+  pages: Array<ApiResult<FeedbackIssueListItem[]>>;
 };
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
@@ -26,7 +26,7 @@ export default function useFeedbackCache() {
 
   const updateCachedQueryKey = useCallback(
     (queryKey: ApiQueryKey, payload: Partial<FeedbackIssue>) => {
-      setApiQueryData(queryClient, queryKey, (feedbackIssue: FeedbackIssue) =>
+      setApiQueryData<FeedbackIssue>(queryClient, queryKey, feedbackIssue =>
         feedbackIssue ? {...feedbackIssue, ...payload} : feedbackIssue
       );
     },

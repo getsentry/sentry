@@ -1,10 +1,10 @@
 import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';

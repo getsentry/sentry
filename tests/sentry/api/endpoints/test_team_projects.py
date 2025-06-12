@@ -1,14 +1,13 @@
 from unittest import TestCase, mock
 from unittest.mock import Mock, patch
 
-from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.signals import alert_rule_created
+from sentry.signals import alert_rule_created, project_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -67,6 +66,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.slug == "bar"
         assert project.platform == "python"
         assert project.teams.first() == self.team
+        assert response.data["teams"] is not None
+        assert response.data["teams"][0]["id"] == str(self.team.id)
 
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
@@ -161,25 +162,64 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         test_org = self.create_organization(flags=256)
         test_team = self.create_team(organization=test_org)
 
+        # org member cannot create project when they are not a team admin of the team
         test_member = self.create_user(is_superuser=False)
-        self.create_member(user=test_member, organization=test_org, role="admin", teams=[test_team])
+        self.create_member(
+            user=test_member,
+            organization=test_org,
+            role="member",
+            team_roles=[(test_team, "contributor")],
+        )
         self.login_as(user=test_member)
-        response = self.get_error_response(
+        self.get_error_response(
             test_org.slug,
             test_team.slug,
             **self.data,
             status_code=403,
         )
-        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
 
+        # org member can create project when they are a team admin of the team
+        test_team_admin = self.create_user(is_superuser=False)
+        self.create_member(
+            user=test_team_admin,
+            organization=test_org,
+            role="member",
+            team_roles=[(test_team, "admin")],
+        )
+        self.login_as(user=test_team_admin)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            status_code=201,
+            name="test",
+            slug="test-1",
+            platform="python",
+        )
+
+        # org admin can create project
+        test_admin = self.create_user(is_superuser=False)
+        self.create_member(user=test_admin, organization=test_org, role="admin", teams=[test_team])
+        self.login_as(user=test_admin)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            status_code=201,
+            name="test",
+            slug="test-2",
+            platform="python",
+        )
+
+        # org manager can create project
         test_manager = self.create_user(is_superuser=False)
         self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
         self.login_as(user=test_manager)
         self.get_success_response(
             test_org.slug,
             test_team.slug,
-            **self.data,
             status_code=201,
+            name="test",
+            slug="test-3",
+            platform="python",
         )
 
     def test_default_inbound_filters(self):
@@ -326,8 +366,74 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert "electron" not in symbol_sources
 
+    def test_builtin_symbol_sources_unity(self):
+        """
+        Test that project option for builtin symbol sources contains relevant buckets
+        when creating a Unity project, but uses defaults for other platforms.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="unity-app",
+            slug="unity-app",
+            platform="unity",
+            status_code=201,
+        )
+
+        unity_project = Project.objects.get(id=response.data["id"])
+        assert unity_project.platform == "unity"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=unity_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["unity", "nvidia", "ubuntu"]
+
+    def test_builtin_symbol_sources_unreal(self):
+        """
+        Test that project option for builtin symbol sources contains relevant buckets
+        when creating a Unreal project, but uses defaults for other platforms.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="unreal-app",
+            slug="unreal-app",
+            platform="unreal",
+            status_code=201,
+        )
+
+        unreal_project = Project.objects.get(id=response.data["id"])
+        assert unreal_project.platform == "unreal"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=unreal_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["nvidia", "ubuntu"]
+
+    def test_builtin_symbol_sources_godot(self):
+        """
+        Test that project option for builtin symbol sources contains relevant buckets
+        when creating a Godot project, but uses defaults for other platforms.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="godot-app",
+            slug="godot-app",
+            platform="godot",
+            status_code=201,
+        )
+
+        godot_project = Project.objects.get(id=response.data["id"])
+        assert godot_project.platform == "godot"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=godot_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["nvidia", "ubuntu"]
+
     @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
     def test_create_project_with_origin(self, create_audit_entry):
+        signal_handler = Mock()
+        project_created.connect(signal_handler)
+
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -351,3 +457,41 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
                 "origin": "ui",
             },
         )
+
+        # Verify origin is passed to project_created signal
+        assert signal_handler.call_count == 1
+        assert signal_handler.call_args[1]["origin"] == "ui"
+        project_created.disconnect(signal_handler)
+
+    def test_project_inherits_autofix_tuning_from_org_option_set(self):
+        self.organization.update_option("sentry:default_autofix_automation_tuning", "medium")
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="Project Medium Tuning",
+            slug="project-medium-tuning",
+            platform="python",
+            status_code=201,
+        )
+        project = Project.objects.get(id=response.data["id"])
+        autofix_tuning = ProjectOption.objects.get_value(
+            project=project, key="sentry:default_autofix_automation_tuning"
+        )
+        assert autofix_tuning == "medium"
+
+    def test_project_autofix_tuning_none_if_org_option_not_set_in_db(self):
+        # Ensure the option is not set for this specific organization,
+        self.organization.delete_option("sentry:default_autofix_automation_tuning")
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="Project Tuning Default",
+            slug="project-tuning-default",
+            platform="python",
+            status_code=201,
+        )
+        project = Project.objects.get(id=response.data["id"])
+        autofix_tuning = ProjectOption.objects.get_value(
+            project=project, key="sentry:default_autofix_automation_tuning"
+        )
+        assert autofix_tuning is None

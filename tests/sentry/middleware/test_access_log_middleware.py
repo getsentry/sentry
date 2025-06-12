@@ -4,12 +4,13 @@ from urllib.parse import unquote
 import pytest
 from django.test import override_settings
 from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.api.endpoints.internal.rpc import InternalRpcServiceEndpoint
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
@@ -19,7 +20,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request):
         return Response({"ok": True})
@@ -200,7 +201,6 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 
     def test_access_log_success(self):
         self._caplog.set_level(logging.INFO, logger="sentry")
-        token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.login_as(user=self.create_user())
@@ -209,6 +209,16 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         tested_log = self.get_tested_log()
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
+
+    def test_with_subdomain_redirect(self):
+        # the subdomain middleware is in between this and the access log middelware
+        # meaning if a request is rejected between those then it will not have `auth`
+        # set up properly
+        # this previously logged an error to sentry
+        resp = self.get_response(extra_headers={"HTTP_HOST": "invalid_domain.testserver"})
+        assert resp.status_code == 302
+        records = [record for record in self._caplog.records if record.levelno == logging.ERROR]
+        assert not records  # no errors should occur
 
 
 @all_silo_test

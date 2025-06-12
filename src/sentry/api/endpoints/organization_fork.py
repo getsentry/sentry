@@ -11,16 +11,16 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.relocations.index import (
-    get_autopause_value,
-    validate_relocation_uniqueness,
-)
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.organization import OrganizationStatus
-from sentry.models.relocation import Relocation
-from sentry.tasks.relocation import uploading_start
+from sentry.relocation.api.endpoints.index import (
+    get_autopause_value,
+    validate_relocation_uniqueness,
+)
+from sentry.relocation.models.relocation import Relocation
+from sentry.relocation.tasks.process import uploading_start
 from sentry.types.region import get_local_region
 from sentry.utils.db import atomic_transaction
 
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class OrganizationForkEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -69,6 +69,9 @@ class OrganizationForkEndpoint(Endpoint):
         """
 
         logger.info("relocations.fork.post.start", extra={"caller": request.user.id})
+
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         org_mapping = (
             organization_mapping_service.get(organization_id=organization_id_or_slug)
@@ -147,7 +150,7 @@ class OrganizationForkEndpoint(Endpoint):
         # duplicate from the foreign region.
         provenance = Relocation.Provenance.SAAS_TO_SAAS
         with atomic_transaction(using=(router.db_for_write(Relocation))):
-            new_relocation: Relocation = Relocation.objects.create(
+            new_relocation = Relocation.objects.create(
                 creator_id=request.user.id,
                 owner_id=owner.id,
                 step=Relocation.Step.UPLOADING.value,

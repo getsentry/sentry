@@ -153,20 +153,14 @@ describe('makeUndoableReducer', () => {
     const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
       action.type === 'add' ? state + 1 : state - 1;
 
-    const {result} = renderHook(
-      (args: Parameters<typeof useReducer>) => useReducer(args[0], args[1]),
-      {
-        initialProps: [
-          makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})),
-          {
-            previous: undefined,
-            current: {
-              simple: 0,
-            },
-            next: undefined,
-          },
-        ],
-      }
+    const {result} = renderHook(() =>
+      useReducer(makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})), {
+        previous: undefined,
+        current: {
+          simple: 0,
+        },
+        next: undefined,
+      })
     );
 
     act(() => result.current[1]({type: 'add'}));
@@ -184,20 +178,14 @@ describe('makeUndoableReducer', () => {
       math: (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
         action.type === 'add' ? state + 1 : state - 1,
     });
-    const {result} = renderHook(
-      (args: Parameters<typeof useReducer>) => useReducer(args[0], args[1]),
-      {
-        initialProps: [
-          makeUndoableReducer(combinedReducers),
-          {
-            previous: undefined,
-            current: {
-              math: 0,
-            },
-            next: undefined,
-          },
-        ],
-      }
+    const {result} = renderHook(() =>
+      useReducer(makeUndoableReducer(combinedReducers), {
+        previous: undefined,
+        current: {
+          math: 0,
+        },
+        next: undefined,
+      })
     );
 
     act(() => result.current[1]({type: 'add'}));

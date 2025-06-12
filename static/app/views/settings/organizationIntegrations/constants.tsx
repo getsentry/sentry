@@ -1,9 +1,9 @@
-export const INSTALLED = 'Installed' as const;
-export const NOT_INSTALLED = 'Not Installed' as const;
-export const PENDING = 'Pending' as const;
-export const DISABLED = 'Disabled' as const;
-export const PENDING_DELETION = 'Pending Deletion' as const;
-export const LEARN_MORE = 'Learn More' as const;
+export const INSTALLED = 'Installed';
+export const NOT_INSTALLED = 'Not Installed';
+export const PENDING = 'Pending';
+export const DISABLED = 'Disabled';
+export const PENDING_DELETION = 'Pending Deletion';
+const LEARN_MORE = 'Learn More';
 
 export const COLORS = {
   [INSTALLED]: 'success',
@@ -20,9 +20,7 @@ export const COLORS = {
  * Sentry-apps which read popularity from the db.
  */
 
-export const POPULARITY_WEIGHT: {
-  [key: string]: number;
-} = {
+export const POPULARITY_WEIGHT: Record<string, number> = {
   // First-party-integrations
   slack: 50,
   github: 20,
@@ -48,7 +46,6 @@ export const POPULARITY_WEIGHT: {
   twilio: 8,
   pushover: 5,
   redmine: 5,
-  phabricator: 5,
   opsgenie: 5,
   victorops: 5,
   sessionstack: 5,

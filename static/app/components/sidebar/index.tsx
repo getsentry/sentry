@@ -1,29 +1,32 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Chevron} from 'sentry/components/chevron';
-import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
+import {LegacyProfilingOnboardingSidebar} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+  SIDEBAR_SEMI_COLLAPSED_WIDTH,
+} from 'sentry/components/sidebar/constants';
 import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
-import {isDone} from 'sentry/components/sidebar/utils';
 import {
+  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconLightning,
   IconMegaphone,
   IconProject,
   IconReleases,
@@ -31,9 +34,7 @@ import {
   IconSettings,
   IconSiren,
   IconStats,
-  IconSupport,
   IconTelescope,
-  IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -43,17 +44,20 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import theme from 'sentry/utils/theme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {
+  AGENTS_LANDING_SUB_PATH,
+  AGENTS_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/agents/settings';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -74,10 +78,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
-import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
+import {OptInBanner} from 'sentry/views/nav/optInBanner';
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
@@ -88,10 +89,6 @@ import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
 
-function activatePanel(panel: SidebarPanelKey) {
-  SidebarPanelStore.activatePanel(panel);
-}
-
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
@@ -100,60 +97,23 @@ function hidePanel(hash?: string) {
   SidebarPanelStore.hidePanel(hash);
 }
 
-function useOpenOnboardingSidebar(organization?: Organization) {
-  const onboardingContext = useContext(OnboardingContext);
-  const {projects: project} = useProjects();
-  const location = useLocation();
-
-  const openOnboardingSidebar = (() => {
-    if (location?.hash === '#welcome') {
-      if (organization && !isDemoModeEnabled()) {
-        const tasks = getMergedTasks({
-          organization,
-          projects: project,
-          onboardingContext,
-        });
-
-        const allDisplayedTasks = tasks.filter(task => task.display);
-        const doneTasks = allDisplayedTasks.filter(isDone);
-
-        return !(doneTasks.length >= allDisplayedTasks.length);
-      }
-      return true;
-    }
-    return false;
-  })();
-
-  useEffect(() => {
-    if (openOnboardingSidebar) {
-      activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
-    }
-  }, [openOnboardingSidebar]);
-}
-
 function Sidebar() {
+  const theme = useTheme();
   const location = useLocation();
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const collapsed = hasNewNav ? true : !!preferences.collapsed;
+  const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   // Panel determines whether to highlight
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-    hasNewNav,
-  };
+  const sidebarItemProps = {orientation, collapsed, hasPanel, organization};
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
     return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
@@ -163,8 +123,6 @@ function Sidebar() {
   const isExcludedOrg = () => {
     return HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
   };
-
-  useOpenOnboardingSidebar();
 
   const toggleCollapse = useCallback(() => {
     if (collapsed) {
@@ -206,20 +164,7 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  // Add sidebar hasNewNav classname to body
-  useEffect(() => {
-    const bcl = document.body.classList;
-
-    if (hasNewNav) {
-      bcl.add('hasNewNav');
-    } else {
-      bcl.remove('hasNewNav');
-    }
-
-    return () => bcl.remove('hasNewNav');
-  }, [hasNewNav]);
-
-  const sidebarAnchor = isDemoModeEnabled() ? (
+  const sidebarAnchor = isDemoModeActive() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
@@ -246,7 +191,6 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/issues/`}
       search="?referrer=sidebar"
       id="issues"
-      hasNewNav={hasNewNav}
     />
   );
 
@@ -268,7 +212,7 @@ function Sidebar() {
   );
 
   const traces = hasOrganization && (
-    <Feature features="performance-trace-explorer">
+    <Feature features={['performance-trace-explorer', 'performance-view']}>
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
@@ -279,22 +223,15 @@ function Sidebar() {
     </Feature>
   );
 
-  const performance = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:performance-sidebar-item"
-      features="performance-view"
-      organization={organization}
-    >
+  const logs = hasOrganization && (
+    <Feature features="ourlogs-enabled">
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconLightning />}
-        label={
-          <GuideAnchor target="performance">
-            {hasNewNav ? 'Perf.' : t('Performance')}
-          </GuideAnchor>
-        }
-        to={`${getPerformanceBaseUrl(organization.slug)}/`}
-        id="performance"
+        label={<GuideAnchor target="logs">{t('Logs')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/logs/`}
+        id="ourlogs"
+        icon={<SubitemDot collapsed />}
+        isNew
       />
     </Feature>
   );
@@ -309,25 +246,12 @@ function Sidebar() {
     />
   );
 
-  const userFeedback = hasOrganization && (
-    <Feature features="old-user-feedback" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconSupport />}
-        label={t('User Feedback')}
-        to={`/organizations/${organization.slug}/user-feedback/`}
-        id="user-feedback"
-      />
-    </Feature>
-  );
-
   const feedback = hasOrganization && (
     <Feature features="user-feedback-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
         label={t('User Feedback')}
-        variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
       />
@@ -339,18 +263,8 @@ function Sidebar() {
       {...sidebarItemProps}
       icon={<IconSiren />}
       label={t('Alerts')}
-      to={`/organizations/${organization.slug}/alerts/rules/`}
+      to={makeAlertsPathname({path: '/rules/', organization})}
       id="alerts"
-    />
-  );
-
-  const monitors = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconTimer />}
-      label={t('Crons')}
-      to={`/organizations/${organization.slug}/crons/`}
-      id="crons"
     />
   );
 
@@ -371,23 +285,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-
-  const metrics = hasOrganization && hasCustomMetrics(organization) && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<SubitemDot collapsed />}
-      label={t('Metrics')}
-      to={metricsPath}
-      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
-      id="metrics"
-      badgeTitle={t(
-        'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
-      )}
-      isBeta
-    />
-  );
-
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -399,7 +296,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={hasNewNav ? 'Dash.' : t('Dashboards')}
+        label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
@@ -452,6 +349,7 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
+        active={location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)}
         exact={!shouldAccordionFloat}
       >
         <SidebarItem
@@ -475,13 +373,42 @@ function Sidebar() {
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
+        <AgentInsightsFeature
+          organization={organization}
+          renderDisabled={() => (
+            <SidebarItem
+              {...sidebarItemProps}
+              label={AI_SIDEBAR_LABEL}
+              to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AI_LANDING_SUB_PATH]}/`}
+              id="performance-domains-ai"
+              icon={<SubitemDot collapsed />}
+            />
+          )}
+        >
+          <SidebarItem
+            {...sidebarItemProps}
+            label={AGENTS_SIDEBAR_LABEL}
+            to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AGENTS_LANDING_SUB_PATH]}/`}
+            id="performance-domains-agents"
+            icon={<SubitemDot collapsed />}
+          />
+        </AgentInsightsFeature>
         <SidebarItem
           {...sidebarItemProps}
-          label={AI_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`}
-          id="performance-domains-ai"
+          label={t('Crons')}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/crons/`}
+          id="performance-crons"
           icon={<SubitemDot collapsed />}
         />
+        <Feature features={['uptime']} organization={organization}>
+          <SidebarItem
+            {...sidebarItemProps}
+            label={t('Uptime')}
+            to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/uptime/`}
+            id="performance-uptime"
+            icon={<SubitemDot collapsed />}
+          />
+        </Feature>
       </SidebarAccordion>
     </Feature>
   );
@@ -497,7 +424,7 @@ function Sidebar() {
       exact={!shouldAccordionFloat}
     >
       {traces}
-      {metrics}
+      {logs}
       {profiling}
       {replays}
       {discover}
@@ -505,45 +432,37 @@ function Sidebar() {
   );
 
   return (
-    <SidebarWrapper
-      aria-label={t('Primary Navigation')}
-      collapsed={collapsed}
-      hasNewNav={hasNewNav}
-    >
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <ExpandedContextProvider>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
-            hasNewNav={hasNewNav}
           >
-            <SidebarDropdown
-              orientation={orientation}
-              collapsed={hasNewNav || collapsed}
-            />
+            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
-              <Hook name="component:superuser-warning" organization={organization} />
+              <SuperuserBadgeContainer>
+                <Hook name="component:superuser-warning" organization={organization} />
+              </SuperuserBadgeContainer>
             )}
           </DropdownSidebarSection>
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
-                <SidebarSection hasNewNav={hasNewNav}>
+                <SidebarSection>
                   {issues}
                   {projects}
                 </SidebarSection>
 
                 {!isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarSection>
                       {explore}
                       {performanceDomains}
                     </SidebarSection>
 
-                    <SidebarSection hasNewNav={hasNewNav}>
-                      {performance}
+                    <SidebarSection>
                       {feedback}
-                      {monitors}
                       {alerts}
                       {dashboards}
                       {releases}
@@ -553,17 +472,16 @@ function Sidebar() {
 
                 {isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarSection>
                       {alerts}
                       {discover}
                       {dashboards}
                       {releases}
-                      {userFeedback}
                     </SidebarSection>
                   </Fragment>
                 )}
 
-                <SidebarSection hasNewNav={hasNewNav}>
+                <SidebarSection>
                   {stats}
                   {settings}
                 </SidebarSection>
@@ -573,7 +491,7 @@ function Sidebar() {
         </SidebarSectionGroupPrimary>
 
         {hasOrganization && (
-          <SidebarSectionGroup hasNewNav={hasNewNav}>
+          <SidebarSectionGroup>
             {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
@@ -599,19 +517,14 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <ProfilingOnboardingSidebar
+            <LegacyProfilingOnboardingSidebar
               currentPanel={activePanel}
               onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <MetricsOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
+
+            <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
@@ -620,9 +533,15 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
-              {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]!({
+            <SidebarSection centeredItems={horizontal}>
+              <OptInBanner
+                collapsed={collapsed || horizontal}
+                organization={organization}
+              />
+              <ChonkOptInBanner collapsed={collapsed || horizontal} />
+
+              {HookStore.get('sidebar:try-business').length > 0 &&
+                HookStore.get('sidebar:try-business')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,
@@ -634,29 +553,35 @@ function Sidebar() {
                 hidePanel={hidePanel}
                 organization={organization}
               />
-              <Broadcasts
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
-                hidePanel={hidePanel}
-              />
-              <ServiceIncidents
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
-                hidePanel={hidePanel}
-              />
+              {!isDemoModeActive() && (
+                <Fragment>
+                  <Broadcasts
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                    hidePanel={hidePanel}
+                  />
+                  <ServiceIncidents
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                    hidePanel={hidePanel}
+                  />
+                </Fragment>
+              )}
             </SidebarSection>
 
-            {!horizontal && !hasNewNav && (
-              <SidebarSection hasNewNav={hasNewNav}>
+            {!horizontal && (
+              <SidebarSection>
                 <SidebarCollapseItem
                   id="collapse"
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
+                  icon={
+                    <IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />
+                  }
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={toggleCollapse}
                 />
@@ -671,7 +596,7 @@ function Sidebar() {
 
 export default Sidebar;
 
-const responsiveFlex = css`
+const responsiveFlex = (theme: Theme) => css`
   display: flex;
   flex-direction: column;
 
@@ -681,50 +606,49 @@ const responsiveFlex = css`
 `;
 
 export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
-  background: ${p => p.theme.sidebarGradient};
-  color: ${p => p.theme.sidebar.color};
+  background: ${p => p.theme.sidebar.gradient};
+  /* @TODO(jonasbadalic): This was a one off color defined in the theme */
+  color: #9586a5;
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p =>
-    p.theme.sidebar[
-      p.hasNewNav
-        ? 'semiCollapsedWidth'
-        : p.collapsed
-          ? 'collapsedWidth'
-          : 'expandedWidth'
-    ]};
+    p.hasNewNav
+      ? SIDEBAR_SEMI_COLLAPSED_WIDTH
+      : p.collapsed
+        ? SIDEBAR_COLLAPSED_WIDTH
+        : SIDEBAR_EXPANDED_WIDTH};
   position: fixed;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: 0;
   left: 0;
   bottom: 0;
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
-  border-right: solid 1px ${p => p.theme.sidebarBorder};
-  ${responsiveFlex};
+  border-right: solid 1px ${p => p.theme.sidebar.border};
+  ${p => responsiveFlex(p.theme)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     top: 0;
     left: 0;
     right: 0;
-    height: ${p => p.theme.sidebar.mobileHeight};
+    height: ${SIDEBAR_MOBILE_HEIGHT};
     bottom: auto;
     width: auto;
     padding: 0 ${space(1)};
     align-items: center;
     border-right: none;
-    border-bottom: solid 1px ${p => p.theme.sidebarBorder};
+    border-bottom: solid 1px ${p => p.theme.sidebar.border};
   }
 `;
 
 const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
   ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
   min-width: 0;
@@ -745,14 +669,15 @@ const PrimaryItems = styled('div')`
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
 
-  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
-    ${p => p.theme.sidebar.scrollbarColorTrack};
-  scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
+  scrollbar-color: ${p =>
+    `${p.theme.sidebar.scrollbarThumbColor} ${p.theme.sidebar.scrollbarColorTrack}`};
+  scrollbar-width: thin;
 
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
-    border-bottom: 1px solid ${p => p.theme.sidebarBorder};
+    border-bottom: 1px solid ${p => p.theme.sidebar.border};
     padding-bottom: ${space(1)};
-    box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
+    box-shadow: ${p =>
+      p.theme.isChonk ? 'none' : 'rgba(0, 0, 0, 0.15) 0px -10px 10px inset'};
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: hidden;
@@ -760,10 +685,11 @@ const PrimaryItems = styled('div')`
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.sidebarBorder};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
-    box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
+    border-right: none;
+    box-shadow: ${p =>
+      p.theme.isChonk ? 'none' : 'rgba(0, 0, 0, 0.15) -10px 0px 10px inset'};
     ::-webkit-scrollbar {
       display: none;
     }
@@ -831,7 +757,7 @@ const DropdownSidebarSection = styled(SidebarSection)<{
         position: absolute;
         inset: 0 ${space(1)};
         border-radius: ${p.theme.borderRadius};
-        background: ${p.theme.superuserSidebar};
+        background: ${p.theme.sidebar.superuser};
       }
     `}
   ${p => p.hasNewNav && `align-items: center;`}
@@ -839,6 +765,17 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -5px;
+  right: 5px;
+
+  /* Hiding on smaller screens because it looks misplaced */
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

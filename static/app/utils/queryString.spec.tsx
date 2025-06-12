@@ -61,6 +61,11 @@ describe('appendTagCondition', function () {
     expect(result).toBe('color:"id:red"');
   });
 
+  it('wraps values with a backslash', function () {
+    const result = utils.appendTagCondition(null, 'color', 'id\\red');
+    expect(result).toBe('color:"id\\red"');
+  });
+
   it('handles user tag values', function () {
     let result = utils.appendTagCondition('', 'user', 'something');
     expect(result).toBe('user:something');
@@ -115,7 +120,7 @@ describe('decodeScalar()', function () {
 
   it('handles falsey values', function () {
     expect(utils.decodeScalar(undefined)).toBeUndefined();
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeScalar(false)).toBeUndefined();
     expect(utils.decodeScalar('')).toBeUndefined();
   });
@@ -140,7 +145,7 @@ describe('decodeList()', function () {
 
   it('handles falsey values', function () {
     expect(utils.decodeList(undefined)).toEqual([]);
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeList(false)).toEqual([]);
     expect(utils.decodeList('')).toEqual([]);
   });
@@ -165,7 +170,7 @@ describe('decodeInteger()', function () {
 
   it('handles falsey values', function () {
     expect(utils.decodeInteger(undefined, 2020)).toBe(2020);
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeInteger(false, 2020)).toBe(2020);
     expect(utils.decodeInteger('', 2020)).toBe(2020);
   });

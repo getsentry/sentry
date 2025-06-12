@@ -174,8 +174,8 @@ class OrganizationEventsEndpointTest(APITestCase):
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == constants.TIMEOUT_ERROR_MESSAGE
+        assert response.status_code == 429, response.content
+        assert response.data["detail"] == constants.RATE_LIMIT_ERROR_MESSAGE
 
         mock_snql_query.side_effect = QueryExecutionError("test")
 

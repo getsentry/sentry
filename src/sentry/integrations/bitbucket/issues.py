@@ -1,15 +1,27 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, NoReturn
 
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.group import Group
-from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
+from sentry.organizations.services.organization.service import organization_service
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+
+# Generated based on the response from the Bitbucket API
+# Example: {"type": "error", "error": {"message": "Repository has no issue tracker."}}
+BITBUCKET_HALT_ERROR_CODES = ["Repository has no issue tracker."]
+
 
 ISSUE_TYPES = (
     ("bug", "Bug"),
@@ -37,15 +49,25 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
-        fields = super().get_create_issue_config(group, user, **kwargs)
+        if group:
+            fields = super().get_create_issue_config(group, user, **kwargs)
+            org = group.organization
+        else:
+            fields = []
+            org_context = organization_service.get_organization_by_id(
+                id=self.organization_id, include_projects=False, include_teams=False
+            )
+            if not org_context:
+                raise IntegrationFormError({"repo": "Organization not found"})
+            org = org_context.organization
+
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
-        org = group.organization
         autocomplete_url = reverse(
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
         )
@@ -117,6 +139,12 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
                 ),
             },
         ]
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        if isinstance(exc, ApiError) and exc.json:
+            if (message := exc.json.get("error", {}).get("message")) in BITBUCKET_HALT_ERROR_CODES:
+                raise IntegrationInstallationConfigurationError(message)
+        super().raise_error(exc, identity)
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()

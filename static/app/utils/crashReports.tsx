@@ -27,7 +27,7 @@ export enum SettingScope {
   PROJECT = 1,
 }
 export function getStoreCrashReportsValues(settingScope: SettingScope) {
-  const values: (number | null)[] = [
+  const values: Array<number | null> = [
     0, // disabled
     1, // limited per issue
     5,

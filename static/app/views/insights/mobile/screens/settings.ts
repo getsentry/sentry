@@ -1,14 +1,19 @@
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 
-export const MODULE_TITLE = t('Mobile Screens');
-// TBD, existing screen load modules uses 'screens' already
-export const BASE_URL = 'mobile-screens';
+export const MODULE_TITLE = t('Mobile Vitals');
 
-export const MODULE_DESCRIPTION = t("Improve your application's responsiveness.");
+export const BASE_URL = 'mobile-vitals';
 
-export const MODULE_FEATURE = t('insights-mobile-screens-module');
+export const MODULE_DESCRIPTION = t(
+  'Get insights into key performance metrics of your mobile app.'
+);
 
-export const DATA_TYPE = t('Mobile Screens');
-export const DATA_TYPE_PLURAL = t('Mobile Screens');
+export const MODULE_FEATURE = t('insights-addon-modules');
+
+export const DATA_TYPE = t('Mobile Vitals');
+export const DATA_TYPE_PLURAL = t('Mobile Vitals');
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/mobile/';
+
+export const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};

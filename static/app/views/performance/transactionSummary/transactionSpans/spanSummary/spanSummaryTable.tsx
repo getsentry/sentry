@@ -1,14 +1,15 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -39,14 +40,13 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
 
-import Tab from '../../tabs';
-
 type DataRowKeys =
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.TRANSACTION_ID
@@ -54,7 +54,7 @@ type DataRowKeys =
   | SpanIndexedField.PROJECT;
 
 type ColumnKeys =
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_DURATION;
 
@@ -64,7 +64,7 @@ type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -125,7 +125,7 @@ export default function SpanSummaryTable(props: Props) {
   } = useSpansIndexed(
     {
       fields: [
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRANSACTION_ID,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_DURATION,
@@ -253,7 +253,7 @@ export default function SpanSummaryTable(props: Props) {
               }),
             // This is now caught by noUncheckedIndexedAccess, ignoring for now as
             // it seems related to some nasty grid editable generic.
-            // @ts-ignore TS(2769): No overload matches this call.
+            // @ts-expect-error TS(2769): No overload matches this call.
             renderBodyCell: renderBodyCell(
               location,
               organization,
@@ -271,8 +271,9 @@ export default function SpanSummaryTable(props: Props) {
 function renderBodyCell(
   location: Location,
   organization: Organization,
-  spanOp: string = '',
-  isTxnDurationDataLoading: boolean
+  spanOp = '',
+  isTxnDurationDataLoading: boolean,
+  theme: Theme
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     const {timestamp, span_id, trace, project} = dataRow;
@@ -307,7 +308,7 @@ function renderBodyCell(
       );
     }
 
-    if (column.key === SpanIndexedField.ID) {
+    if (column.key === SpanIndexedField.SPAN_ID) {
       if (!defined(span_id)) {
         return null;
       }
@@ -334,7 +335,7 @@ function renderBodyCell(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    const rendered = fieldRenderer(dataRow, {location, organization});
+    const rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     return rendered;
   };
@@ -350,7 +351,7 @@ const EmptySpanDurationBar = styled('div')`
   background-color: ${p => p.theme.gray100};
   padding-left: ${space(1)};
 
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-variant-numeric: tabular-nums;
   line-height: 1;

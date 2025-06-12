@@ -64,6 +64,7 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
+  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   eventProcessing?: {
@@ -81,6 +82,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
   securityToken?: string;
   securityTokenHeader?: string;
+  seerScannerAutomation?: boolean;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
@@ -89,6 +91,7 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
+  tempestFetchDumps?: boolean;
   tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
@@ -98,7 +101,7 @@ export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 // Response from project_keys endpoints.
 export type ProjectKey = {
   browserSdk: {
-    choices: [key: string, value: string][];
+    choices: Array<[key: string, value: string]>;
   };
   browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
@@ -164,6 +167,7 @@ export type PlatformKey =
   | 'c'
   | 'capacitor'
   | 'cfml'
+  | 'clojure'
   | 'cocoa'
   | 'cocoa-objc'
   | 'cocoa-swift'
@@ -197,6 +201,7 @@ export type PlatformKey =
   | 'go-iris'
   | 'go-martini'
   | 'go-negroni'
+  | 'godot'
   | 'groovy'
   | 'ionic'
   | 'java'
@@ -227,6 +232,7 @@ export type PlatformKey =
   | 'javascript-solidstart'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
+  | 'javascript-tanstackstart-react'
   | 'javascript-vue'
   | 'kotlin'
   | 'minidump'
@@ -239,6 +245,8 @@ export type PlatformKey =
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
+  | 'node-cloudflare-pages'
+  | 'node-cloudflare-workers'
   | 'node-connect'
   | 'node-express'
   | 'node-fastify'
@@ -293,6 +301,7 @@ export type PlatformKey =
   | 'ruby-rack'
   | 'ruby-rails'
   | 'rust'
+  | 'scala'
   | 'swift'
   | 'switt'
   | 'unity'

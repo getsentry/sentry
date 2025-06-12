@@ -6,6 +6,8 @@ from enum import StrEnum
 from types import TracebackType
 from typing import Any, Self
 
+import sentry_sdk
+
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -106,6 +108,9 @@ class EventLifecycle:
         self._state: EventLifecycleOutcome | None = None
         self._extra = dict(self.payload.get_extras())
 
+    def get_state(self) -> EventLifecycleOutcome | None:
+        return self._state
+
     def add_extra(self, name: str, value: Any) -> None:
         """Add a value to logged "extra" data.
 
@@ -113,7 +118,7 @@ class EventLifecycle:
         """
         self._extra[name] = value
 
-    def add_extras(self, extras: Mapping[str, int | str]) -> None:
+    def add_extras(self, extras: Mapping[str, Any]) -> None:
         """Add multiple values to logged "extra" data."""
         self._extra.update(extras)
 
@@ -132,6 +137,8 @@ class EventLifecycle:
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
+        sentry_sdk.set_tags(tags)
+
         extra = dict(self._extra)
         extra.update(tags)
         log_params: dict[str, Any] = {
@@ -139,7 +146,11 @@ class EventLifecycle:
         }
 
         if isinstance(outcome_reason, BaseException):
+            # (iamrajjoshi): Log the full exception and the repr of the exception
+            # This is an experiment to dogfood Sentry logs
+            #  Logs are paid by bytes, we save money by mking optimizations like this - we should try to dogfood from a similar perspective
             log_params["exc_info"] = outcome_reason
+            log_params["extra"]["exception_summary"] = repr(outcome_reason)
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
 
@@ -178,6 +189,10 @@ class EventLifecycle:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
 
+        Calling it means that the feature is broken and requires immediate attention.
+
+        An error will be reported to Sentry.
+
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
         on an exception.
@@ -196,6 +211,8 @@ class EventLifecycle:
         self, halt_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
     ) -> None:
         """Record that the event halted in an ambiguous state.
+
+        It will be logged to GCP but no Sentry error will be reported.
 
         This method can be called in response to a sufficiently ambiguous exception
         or other error condition, where it may have been caused by a user error or
@@ -254,8 +271,9 @@ class IntegrationPipelineViewType(StrEnum):
     TOKEN_EXCHANGE = "token_exchange"
 
     # GitHub
-    OAUTH_LOGIN = "oauth_loging"
+    OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
+    ORGANIZATION_SELECTION = "organization_selection"
 
     # Bitbucket
     VERIFY_INSTALLATION = "verify_installation"
@@ -266,6 +284,23 @@ class IntegrationPipelineViewType(StrEnum):
 
     # Azure DevOps
     ACCOUNT_CONFIG = "account_config"
+
+    # Jira Server
+    WEBHOOK_CREATION = "webhook_creation"
+
+
+class IntegrationPipelineErrorReason(StrEnum):
+    # OAuth identity
+    TOKEN_EXCHANGE_ERROR = "token_exchange_error"
+    TOKEN_EXCHANGE_MISMATCHED_STATE = "token_exchange_mismatched_state"
+
+
+class IntegrationPipelineHaltReason(StrEnum):
+    # OAuth identity
+    NO_CODE_PROVIDED = "no_code_provided"
+
+    # VSTS
+    NO_ACCOUNTS = "no_accounts"
 
 
 @dataclass

@@ -11,7 +11,7 @@ import {
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -65,6 +65,9 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPErrorNode,
+  isEAPSpanNode,
+  isEAPTraceNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -142,8 +145,10 @@ export function Trace({
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
 
-  const treePromiseStatusRef =
-    useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
+  const treePromiseStatusRef = useRef<Map<
+    TraceTreeNode<TraceTree.NodeValue>,
+    'loading' | 'error' | 'success'
+  > | null>(null);
 
   if (!treePromiseStatusRef.current) {
     treePromiseStatusRef.current = new Map();
@@ -413,14 +418,14 @@ export function Trace({
           ? trace.indicators.map((indicator, i) => {
               const status =
                 indicator.score === undefined
-                  ? 'none'
+                  ? 'None'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
-              const webvital = indicator.label.toLowerCase() as WebVitals;
+              const vital = indicator.type as WebVitals;
 
               const defaultFormatter = (value: number) =>
                 getFormattedDuration(value / 1000);
               const formatter =
-                WEB_VITALS_METERS_CONFIG[webvital]?.formatter ?? defaultFormatter;
+                WEB_VITALS_METERS_CONFIG[vital]?.formatter ?? defaultFormatter;
 
               return (
                 <Fragment key={i}>
@@ -432,9 +437,10 @@ export function Trace({
                     <Tooltip
                       title={
                         <div>
-                          {WEB_VITAL_DETAILS[`measurements.${webvital}`]?.name}
+                          {VITAL_DETAILS[`measurements.${vital}`]?.name}
                           <br />
-                          {formatter(indicator.measurement.value)} - {status}
+                          {formatter(indicator.measurement.value)}
+                          {status !== 'None' && ` - ${status}`}
                         </div>
                       }
                     >
@@ -484,6 +490,7 @@ export function Trace({
       <div
         ref={setScrollContainer}
         data-test-id="trace-virtualized-list-scroll-container"
+        id="trace-waterfall"
       >
         <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
         <div className="TraceRow Hidden">
@@ -556,7 +563,7 @@ function RenderTraceRow(props: {
 
   const registerSpanArrowRef = useCallback(
     (ref: any) => {
-      props.manager.registerArrowRef(ref, node.space!, virtualized_index);
+      props.manager.registerArrowRef(ref, node.space, virtualized_index);
     },
     [props.manager, node, virtualized_index]
   );
@@ -581,14 +588,14 @@ function RenderTraceRow(props: {
         organization: props.organization,
       });
       e.stopPropagation();
-      props.manager.onZoomIntoSpace(node.space!);
+      props.manager.onZoomIntoSpace(node.space);
     },
     [node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
     (_e: React.MouseEvent) => {
-      props.manager.onBringRowIntoView(node.space!);
+      props.manager.onBringRowIntoView(node.space);
     },
     [node.space, props.manager]
   );
@@ -656,7 +663,7 @@ function RenderTraceRow(props: {
     return <TraceTransactionRow {...rowProps} node={node} />;
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return <TraceSpanRow {...rowProps} node={node} />;
   }
 
@@ -668,11 +675,11 @@ function RenderTraceRow(props: {
     return <TraceAutogroupedRow {...rowProps} node={node} />;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
-  if (isTraceNode(node)) {
+  if (isTraceNode(node) || isEAPTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
   }
 
@@ -840,6 +847,9 @@ const TraceStylingWrapper = styled('div')`
     overflow-x: auto;
     overscroll-behavior: none;
     will-change: transform;
+    z-index: 10;
+    display: flex;
+    align-items: center;
 
     .TraceScrollbarScroller {
       height: 1px;
@@ -934,6 +944,19 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
+    &.None {
+      color: ${p => p.theme.subText};
+      border: 1px solid ${p => p.theme.border};
+
+      &.light {
+        background-color: rgb(245 245 245);
+      }
+
+      &.dark {
+        background-color: rgb(60 59 59);
+      }
+    }
+
     &.Meh {
       color: ${p => p.theme.yellow400};
       border: 1px solid ${p => p.theme.yellow300};
@@ -991,6 +1014,15 @@ const TraceStylingWrapper = styled('div')`
             to bottom,
             transparent 0 4px,
             ${p => p.theme.red300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
+      &.None {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.subText} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1079,7 +1111,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: #a5752c;
         --pattern-even: ${p => p.theme.yellow300};
       }
-      &.performance_issue {
+      &.occurence {
         --pattern-odd: #063690;
         --pattern-even: ${p => p.theme.blue300};
       }
@@ -1120,7 +1152,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: #a5752c;
         --pattern-even: ${p => p.theme.yellow300};
       }
-      &.performance_issue {
+      &.occurence {
         --pattern-odd: #063690;
         --pattern-even: ${p => p.theme.blue300};
       }
@@ -1159,9 +1191,9 @@ const TraceStylingWrapper = styled('div')`
     font-size: ${p => p.theme.fontSizeSmall};
     transform: translateZ(0);
 
-    --row-background-odd: ${p => p.theme.translucentSurface100};
-    --row-background-hover: ${p => p.theme.translucentSurface100};
-    --row-background-focused: ${p => p.theme.translucentSurface200};
+    --row-background-odd: ${p => p.theme.backgroundSecondary};
+    --row-background-hover: ${p => p.theme.backgroundTertiary};
+    --row-background-focused: ${p => p.theme.backgroundTertiary};
     --row-outline: ${p => p.theme.blue300};
     --row-children-button-border-color: ${p => p.theme.border};
 
@@ -1175,7 +1207,7 @@ const TraceStylingWrapper = styled('div')`
     }
     &.error,
     &.fatal,
-    &.performance_issue {
+    &.occurence {
       color: ${p => p.theme.errorText};
       --autogrouped: ${p => p.theme.error};
       --row-children-button-border-color: ${p => p.theme.error};
@@ -1226,8 +1258,8 @@ const TraceStylingWrapper = styled('div')`
       &.fatal {
         background-color: var(--error);
       }
-      &.performance_issue {
-        background-color: var(--performance-issue);
+      &.occurence {
+        background-color: var(--occurence);
       }
       &.default {
         background-color: var(--default);
@@ -1251,7 +1283,7 @@ const TraceStylingWrapper = styled('div')`
 
       &.info,
       &.warning,
-      &.performance_issue,
+      &.occurence,
       &.default,
       &.unknown {
         svg {
@@ -1300,16 +1332,6 @@ const TraceStylingWrapper = styled('div')`
       background-size: 25.5px 17px;
     }
 
-    .TracePerformanceIssue {
-      position: absolute;
-      top: 0;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      background-color: var(--performance-issue);
-      height: 16px;
-    }
-
     .TraceRightColumn.Odd {
       background-color: var(--row-background-odd);
     }
@@ -1319,10 +1341,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.blue200} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue200} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue300} !important;
       }
     }
 
@@ -1507,7 +1529,7 @@ const TraceStylingWrapper = styled('div')`
     display: inline-block;
     transform-origin: left center;
     font-size: ${p => p.theme.fontSizeExtraSmall};
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
@@ -1683,10 +1705,10 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceEmDash {
     margin-left: 4px;
-    margin-right: 4px;
   }
 
   .TraceDescription {
+    margin-left: 4px;
     white-space: nowrap;
   }
 `;

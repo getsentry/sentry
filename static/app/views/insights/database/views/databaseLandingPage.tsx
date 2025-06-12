@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -14,8 +14,12 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import DatabaseLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget';
+import DatabaseLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget';
+import {useDatabaseLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingChartFilter';
+import {useDatabaseLandingDurationQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery';
+import {useDatabaseLandingThroughputQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -33,21 +37,18 @@ import {
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from '../../common/views/spans/types';
-
 export function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const hasModuleData = useHasFirstSpan(moduleName);
+  const {search, enabled} = useDatabaseLandingChartFilter();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
-  const spanDescription = decodeScalar(location.query?.['span.description'], '');
+  const spanDescription =
+    decodeScalar(location.query?.['sentry.normalized_description'], '') ||
+    decodeScalar(location.query?.['span.description'], '');
   const spanAction = decodeScalar(location.query?.['span.action']);
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
@@ -59,7 +60,7 @@ export function DatabaseLandingPage() {
 
   const system = systemQueryParam ?? selectedSystem;
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
     sort = DEFAULT_SORT;
   }
@@ -76,24 +77,17 @@ export function DatabaseLandingPage() {
       ...location,
       query: {
         ...location.query,
-        'span.description': newQuery === '' ? undefined : newQuery,
+        'sentry.normalized_description': newQuery === '' ? undefined : newQuery,
         [QueryParameterNames.SPANS_CURSOR]: undefined,
       },
     });
-  };
-
-  const chartFilters = {
-    ...BASE_FILTERS,
-    'span.action': spanAction,
-    'span.domain': spanDomain,
-    'span.system': system,
   };
 
   const tableFilters = {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
-    'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'sentry.normalized_description': spanDescription ? `*${spanDescription}*` : undefined,
     'span.system': system,
   };
 
@@ -105,12 +99,11 @@ export function DatabaseLandingPage() {
       fields: [
         'project.id',
         'span.group',
-        'span.description',
+        'sentry.normalized_description',
         'span.action',
-        'spm()',
+        'epm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
-        'time_spent_percentage()',
       ],
       sorts: [sort],
       limit: LIMIT,
@@ -119,31 +112,11 @@ export function DatabaseLandingPage() {
     'api.starfish.use-span-list'
   );
 
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['spm()'],
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isPending: isThroughputDataLoading, data: throughputData} =
+    useDatabaseLandingThroughputQuery({search, enabled});
 
-  const {
-    isPending: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isPending: isDurationDataLoading, data: durationData} =
+    useDatabaseLandingDurationQuery({search, enabled});
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isPending;
@@ -153,7 +126,7 @@ export function DatabaseLandingPage() {
     durationData[`${selectedAggregate}(span.self_time)`].data?.some(
       ({value}) => value > 0
     ) ||
-    throughputData['spm()'].data?.some(({value}) => value > 0);
+    throughputData['epm()'].data?.some(({value}) => value > 0);
 
   return (
     <React.Fragment>
@@ -178,21 +151,11 @@ export function DatabaseLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.DB}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('db')}
-                    series={[throughputData['spm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <DatabaseLandingThroughputChartWidget />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getDurationChartTitle('db')}
-                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
-                    isLoading={isDurationDataLoading}
-                    error={durationError}
-                  />
+                  <DatabaseLandingDurationChartWidget />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
@@ -220,19 +183,21 @@ export function DatabaseLandingPage() {
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 
 function AlertBanner(props: any) {
   return (
     <ModuleLayout.Full>
-      <Alert {...props} type="info" showIcon />
+      <Alert.Container>
+        <Alert {...props} type="info" showIcon />
+      </Alert.Container>
     </ModuleLayout.Full>
   );
 }
 
-const LIMIT: number = 25;
+const LIMIT = 25;
 
 function PageWithProviders() {
   return (

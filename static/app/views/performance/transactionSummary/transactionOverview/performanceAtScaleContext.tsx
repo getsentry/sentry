@@ -11,7 +11,7 @@ type TransactionListTableData =
     }
   | undefined;
 
-export type PerformanceAtScaleContextProps = {
+type PerformanceAtScaleContextProps = {
   metricsSeriesDataEmpty: boolean | undefined;
   setMetricsSeriesDataEmpty: (data: boolean | undefined) => void;
   setTransactionListTableData: (data: TransactionListTableData) => void;
@@ -84,7 +84,7 @@ export function PerformanceAtScaleContextProvider({children}: ProviderProps) {
   ]);
 
   return (
-    <PerformanceAtScaleContext.Provider
+    <PerformanceAtScaleContext
       value={{
         metricsSeriesDataEmpty,
         setMetricsSeriesDataEmpty,
@@ -93,6 +93,6 @@ export function PerformanceAtScaleContextProvider({children}: ProviderProps) {
       }}
     >
       {children}
-    </PerformanceAtScaleContext.Provider>
+    </PerformanceAtScaleContext>
   );
 }

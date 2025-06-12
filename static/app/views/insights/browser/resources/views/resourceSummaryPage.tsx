@@ -74,34 +74,32 @@ function ResourceSummary() {
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
         `sum(${SPAN_SELF_TIME})`,
-        'spm()',
+        'epm()',
         SPAN_OP,
         SPAN_DESCRIPTION,
-        'time_spent_percentage()',
         'project.id',
       ],
     },
     Referrer.RESOURCE_SUMMARY_METRICS_RIBBON
   );
   const spanMetrics = selectedSpanOp
-    ? data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {}
-    : data[0] ?? {};
+    ? [data.find(item => item[SPAN_OP] === selectedSpanOp)]
+    : data;
 
   const uniqueSpanOps = new Set(data.map(item => item[SPAN_OP]));
 
   const isImage =
     filters[SPAN_OP] === ResourceSpanOps.IMAGE ||
     IMAGE_FILE_EXTENSIONS.includes(
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
+      spanMetrics?.[0]?.[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
     ) ||
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
 
   return (
     <React.Fragment>
       <FrontendHeader
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
         breadcrumbs={[
           {
@@ -126,22 +124,20 @@ function ResourceSummary() {
                   </ToolRibbon>
                   <ResourceInfo
                     isLoading={isPending}
-                    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
-                    avgDecodedContentLength={
-                      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
+                    avgContentLength={
+                      spanMetrics?.[0]?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`] ?? 0
                     }
-                    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
-                    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
-                    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    throughput={spanMetrics['spm()']}
-                    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
-                    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
+                    avgDecodedContentLength={
+                      spanMetrics?.[0]?.[
+                        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`
+                      ] ?? 0
+                    }
+                    avgTransferSize={
+                      spanMetrics?.[0]?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`] ?? 0
+                    }
+                    avgDuration={spanMetrics?.[0]?.[`avg(${SPAN_SELF_TIME})`] ?? 0}
+                    throughput={spanMetrics?.[0]?.[`epm()`] ?? 0}
+                    timeSpentTotal={spanMetrics?.[0]?.[`sum(${SPAN_SELF_TIME})`] ?? 0}
                   />
                 </HeaderContainer>
               </ModuleLayout.Full>
@@ -155,7 +151,7 @@ function ResourceSummary() {
                 </ModuleLayout.Full>
               )}
 
-              <ResourceSummaryCharts groupId={groupId!} />
+              <ResourceSummaryCharts />
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />

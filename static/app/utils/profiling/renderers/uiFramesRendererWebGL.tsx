@@ -188,7 +188,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
 
     // initialize uniforms
     for (const uniform in this.uniforms) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.uniforms[uniform] = getUniform(this.ctx, this.program, uniform);
     }
 
@@ -229,7 +229,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     this.ctx.useProgram(this.program);
   }
 
-  getColorForFrame(type: 'frozen' | 'slow'): [number, number, number, number] {
+  getColorForFrame(type: 'frozen' | 'slow') {
     if (type === 'frozen') {
       return this.theme.COLORS.UI_FRAME_COLOR_FROZEN;
     }

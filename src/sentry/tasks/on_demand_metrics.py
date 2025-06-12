@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -28,6 +29,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import performance_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
@@ -47,6 +50,10 @@ DASHBOARD_QUERY_PERIOD = "1h"
 
 def _get_widget_processing_batch_key() -> str:
     return "on-demand-metrics:widgets:currently-processing-batch"
+
+
+def _get_project_for_query_cache_key(organization: Organization) -> str:
+    return f"on-demand-project-spec:{organization.id}"
 
 
 def get_field_cardinality_cache_key(
@@ -86,6 +93,11 @@ class HighCardinalityWidgetException(Exception):
     soft_time_limit=60,
     time_limit=120,
     expires=180,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        expires=180,
+        processing_deadline_duration=120,
+    ),
 )
 def schedule_on_demand_check() -> None:
     """
@@ -179,8 +191,13 @@ def schedule_on_demand_check() -> None:
     soft_time_limit=60,
     time_limit=120,
     expires=180,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        expires=180,
+        processing_deadline_duration=120,
+    ),
 )
-def process_widget_specs(widget_query_ids: list[int], *args: object, **kwargs: object) -> None:
+def process_widget_specs(widget_query_ids: list[int], **kwargs: Any) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
@@ -249,9 +266,16 @@ def _get_widget_on_demand_specs(
     """
     Saves on-demand state for a widget query.
     """
-    # This can just be the first project we find, since spec hashes should not be project
-    # dependent. If spec hashes become project dependent then this may need to change.
-    project_for_query = Project.objects.filter(organization=organization).first()
+    project_for_query = cache.get(_get_project_for_query_cache_key(organization), None)
+    if not cache.has_key(_get_project_for_query_cache_key(organization)):
+        # This can just be the first project we find, since spec hashes should not be project
+        # dependent. If spec hashes become project dependent then this may need to change.
+        project_for_query = Project.objects.filter(organization=organization).first()
+        cache.set(
+            _get_project_for_query_cache_key(organization),
+            project_for_query,
+            timeout=_COLUMN_CARDINALITY_TTL,
+        )
 
     if not project_for_query:
         return []

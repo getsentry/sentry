@@ -1,3 +1,5 @@
+import logging
+
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,19 +10,18 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.coreapi import APIError
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
-from sentry.sentry_apps.api.bases.sentryapps import (
-    SentryAppBaseEndpoint,
-    add_integration_platform_metric_tag,
-)
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppComponentSerializer
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
+
+logger = logging.getLogger("sentry.sentry_apps.components")
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -39,7 +40,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             queryset=sentry_app.components.all(),
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, errors=[], serializer=SentryAppComponentSerializer()
+                x, request.user, errors={}, serializer=SentryAppComponentSerializer()
             ),
         )
 
@@ -51,7 +52,6 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @add_integration_platform_metric_tag
     def get(
         self,
         request: Request,
@@ -59,7 +59,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
     ) -> Response:
         components = []
-        errors = []
+        errors = {}
 
         with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
             with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
@@ -80,11 +80,26 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                     with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
-                        except APIError:
-                            errors.append(str(component.uuid))
+
+                        except (SentryAppIntegratorError, SentryAppError) as e:
+                            errors[str(component.uuid)] = e.to_public_dict()
+
+                        except Exception as e:
+                            error_id = sentry_sdk.capture_exception(e)
+                            logger.info(
+                                "component-preparation-error",
+                                exc_info=e,
+                                extra={
+                                    "component_uuid": component.uuid,
+                                    "sentry_app": install.sentry_app.slug,
+                                    "installation_uuid": install.uuid,
+                                },
+                            )
+                            errors[str(component.uuid)] = {
+                                "detail": f"Something went wrong while trying to link issue for component: {str(component.uuid)}. Sentry error ID: {error_id}"
+                            }
 
                         components.append(component)
-
         return self.paginate(
             request=request,
             queryset=components,

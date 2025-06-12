@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectReplays from 'sentry/views/settings/project/projectReplays';
 
 describe('ProjectReplays', function () {
-  const {routerProps, organization, project, router} = initializeOrg();
+  const {routerProps, organization, project} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -25,10 +25,7 @@ describe('ProjectReplays', function () {
 
   it('can toggle rage click issue creation', async function () {
     render(
-      <ProjectReplays {...routerProps} organization={organization} project={project} />,
-      {
-        router,
-      }
+      <ProjectReplays {...routerProps} organization={organization} project={project} />
     );
 
     const mock = MockApiClient.addMockResponse({

@@ -73,7 +73,7 @@ function defaultOrInitializer<S>(
 ): S {
   if (typeof defaultValueOrInitializeFn === 'function') {
     // https://github.com/microsoft/TypeScript/issues/37663#issuecomment-759728342
-    // @ts-ignore TS(2349): This expression is not callable.
+    // @ts-expect-error TS(2349): This expression is not callable.
     return defaultValueOrInitializeFn(value, rawValue);
   }
   return value === undefined ? defaultValueOrInitializeFn : (value as S);
@@ -150,7 +150,7 @@ export function useLocalStorageState<S>(
           // should be storing functions in state...
           // Not critical and we dont want to block anything after this, so fire microtask
           // and allow this to eventually be in sync.
-          // @ts-ignore TS(2349): This expression is not callable.
+          // @ts-expect-error TS(2349): This expression is not callable.
           const newlyComputedValue = newValue(p);
           scheduleMicroTask(() => {
             localStorageWrapper.setItem(key, stringifyForStorage(newlyComputedValue));

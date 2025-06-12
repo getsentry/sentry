@@ -28,8 +28,9 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_columns import SPAN_DEFINITIONS, translate_internal_to_public_alias
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
@@ -40,7 +41,7 @@ from sentry.utils import snuba_rpc
 
 
 def as_tag_key(name: str, type: Literal["string", "number"]):
-    key = translate_internal_to_public_alias(name, type)
+    key = translate_internal_to_public_alias(name, type, SupportedTraceItemType.SPANS)
 
     if key is not None:
         name = key
@@ -69,7 +70,6 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
         ["spans", "spansIndexed"], required=False, default="spansIndexed"
     )
     type = serializers.ChoiceField(["string", "number"], required=False)
-    process = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         if attrs["dataset"] == "spans" and attrs.get("type") is None:
@@ -79,8 +79,6 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -131,11 +129,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             paginator = ChainPaginator(
                 [
                     [
-                        (
-                            as_tag_key(attribute.name, serialized["type"])
-                            if serialized["process"]
-                            else TagKey(attribute.name)
-                        )
+                        as_tag_key(attribute.name, serialized["type"])
                         for attribute in rpc_response.attributes
                         if attribute.name
                     ],
@@ -191,8 +185,6 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 
 @region_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user

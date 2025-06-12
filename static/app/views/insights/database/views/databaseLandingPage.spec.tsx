@@ -1,18 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {DatabaseLandingPage} from 'sentry/views/insights/database/views/databaseLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
@@ -20,35 +20,24 @@ describe('DatabaseLandingPage', function () {
   let spanListRequestMock: jest.Mock;
   let spanChartsRequestMock: jest.Mock;
 
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [ProjectFixture({hasInsightsDb: true})],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
+  ProjectsStore.loadInitialData([
+    ProjectFixture({hasInsightsDb: true, firstTransactionEvent: true}),
+  ]);
 
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -58,6 +47,14 @@ describe('DatabaseLandingPage', function () {
     state: undefined,
     action: 'PUSH',
     key: '',
+  });
+
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 
   beforeEach(function () {
@@ -101,11 +98,11 @@ describe('DatabaseLandingPage', function () {
         data: [
           {
             'span.group': '271536360c0b6f89',
-            'span.description': 'SELECT * FROM users',
+            'sentry.normalized_description': 'SELECT * FROM users',
           },
           {
             'span.group': '360c0b6f89271536',
-            'span.description': 'SELECT * FROM organizations',
+            'sentry.normalized_description': 'SELECT * FROM organizations',
           },
         ],
       },
@@ -115,7 +112,7 @@ describe('DatabaseLandingPage', function () {
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        'spm()': {
+        'epm()': {
           data: [
             [1699907700, [{count: 7810.2}]],
             [1699908000, [{count: 1216.8}]],
@@ -132,7 +129,7 @@ describe('DatabaseLandingPage', function () {
   it('fetches module data', async function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -150,11 +147,12 @@ describe('DatabaseLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:db has:span.description',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          query:
+            'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
+          referrer: 'api.insights.database.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -176,8 +174,9 @@ describe('DatabaseLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:db has:span.description',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          query:
+            'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
+          referrer: 'api.insights.database.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -196,18 +195,18 @@ describe('DatabaseLandingPage', function () {
           field: [
             'project.id',
             'span.group',
-            'span.description',
+            'sentry.normalized_description',
             'span.action',
-            'spm()',
+            'epm()',
             'avg(span.self_time)',
             'sum(span.self_time)',
-            'time_spent_percentage()',
           ],
           per_page: 25,
           project: [],
-          query: 'span.module:db has:span.description',
+          query:
+            'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
           referrer: 'api.starfish.use-span-list',
-          sort: '-time_spent_percentage()',
+          sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
       })
@@ -219,7 +218,7 @@ describe('DatabaseLandingPage', function () {
   it('renders a list of queries', async function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -246,7 +245,7 @@ describe('DatabaseLandingPage', function () {
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -267,11 +266,11 @@ describe('DatabaseLandingPage', function () {
           per_page: 50,
           project: [],
           query:
-            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+            'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
+          referrer: 'api.insights.database.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -294,8 +293,8 @@ describe('DatabaseLandingPage', function () {
           per_page: 50,
           project: [],
           query:
-            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+            'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
+          referrer: 'api.insights.database.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -314,19 +313,18 @@ describe('DatabaseLandingPage', function () {
           field: [
             'project.id',
             'span.group',
-            'span.description',
+            'sentry.normalized_description',
             'span.action',
-            'spm()',
+            'epm()',
             'avg(span.self_time)',
             'sum(span.self_time)',
-            'time_spent_percentage()',
           ],
           per_page: 25,
           project: [],
           query:
-            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+            'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.starfish.use-span-list',
-          sort: '-time_spent_percentage()',
+          sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
       })
@@ -349,7 +347,7 @@ describe('DatabaseLandingPage', function () {
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -373,7 +371,7 @@ describe('DatabaseLandingPage', function () {
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

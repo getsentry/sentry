@@ -11,6 +11,7 @@ class Span(TypedDict):
     trace_id: str
     parent_span_id: str
     span_id: str
+    is_segment: NotRequired[bool]
     start_timestamp: float
     timestamp: float
     same_process_as_parent: bool
@@ -19,6 +20,7 @@ class Span(TypedDict):
     fingerprint: Sequence[str] | None
     tags: Any | None
     data: Any | None
+    sentry_tags: NotRequired[dict[str, str]]
     hash: NotRequired[str]
 
 
@@ -38,7 +40,7 @@ class SpanGroupingStrategy:
 
     def execute(self, event_data: Any) -> dict[str, str]:
         spans = event_data.get("spans", [])
-        span_groups = {span["span_id"]: self.get_span_group(span) for span in spans}
+        span_groups = {span["span_id"]: self.get_embedded_span_group(span) for span in spans}
 
         # make sure to get the group id for the transaction root span
         span_id = event_data["contexts"]["trace"]["span_id"]
@@ -46,12 +48,27 @@ class SpanGroupingStrategy:
 
         return span_groups
 
+    def execute_standalone(self, spans: list[Any]) -> dict[str, str]:
+        return {span["span_id"]: self.get_standalone_span_group(span) for span in spans}
+
+    def get_standalone_span_group(self, span: Span) -> str:
+        # Treat the segment span like get_transaction_span_group for backwards
+        # compatibility with transaction events, but fall back to default
+        # fingerprinting if the span doesn't have a transaction.
+        sentry_tags = span.get("sentry_tags") or {}
+        if span.get("is_segment") and sentry_tags.get("transaction") is not None:
+            result = Hash()
+            result.update(sentry_tags["transaction"])
+            return result.hexdigest()
+        else:
+            return self.get_embedded_span_group(span)
+
     def get_transaction_span_group(self, event_data: Any) -> str:
         result = Hash()
         result.update(event_data["transaction"])
         return result.hexdigest()
 
-    def get_span_group(self, span: Span) -> str:
+    def get_embedded_span_group(self, span: Span) -> str:
         fingerprints = span.get("fingerprint") or ["{{ default }}"]
 
         result = Hash()

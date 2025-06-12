@@ -1,46 +1,69 @@
 import styled from '@emotion/styled';
 
+import EditableText from 'sentry/components/editableText';
+import FormField from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface WorkflowEngineEditLayoutProps {
+interface WorkflowEngineEditLayoutProps {
   /**
    * The main content for this page
    * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
    */
   children: React.ReactNode;
+  onTitleChange?: (title: string) => void;
 }
 
 /**
  * Precomposed full-width layout for Automations / Monitors edit pages.
  */
-function EditLayout({children}: WorkflowEngineEditLayoutProps) {
-  const title = useDocumentTitle();
+function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
   return (
     <Layout.Page>
-      <StyledHeader>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
-          <Layout.Title>{title}</Layout.Title>
+          <Layout.Title>
+            <FormField
+              name="title"
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              onChange={onTitleChange}
+            >
+              {({onChange, value}) => (
+                <EditableText
+                  isDisabled={false}
+                  value={value || ''}
+                  onChange={newValue => {
+                    onChange(newValue, {
+                      target: {
+                        value: newValue,
+                      },
+                    });
+                  }}
+                  errorMessage={t('Please set a title')}
+                  placeholder={t('New Monitor')}
+                />
+              )}
+            </FormField>
+          </Layout.Title>
         </Layout.HeaderContent>
         <ActionsFromContext />
-      </StyledHeader>
+      </Layout.Header>
       <Body>{children}</Body>
     </Layout.Page>
   );
 }
 
-const StyledHeader = styled(Layout.Header)`
-  background: ${p => p.theme.background};
-`;
-
 const Body = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(3)};
+  flex-grow: 1;
 `;
 
 const ChartContainer = styled('div')`

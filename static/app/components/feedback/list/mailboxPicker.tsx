@@ -1,9 +1,9 @@
-import Badge from 'sentry/components/badge/badge';
 import {Flex} from 'sentry/components/container/flex';
+import {Badge} from 'sentry/components/core/badge';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -35,7 +35,7 @@ export default function MailboxPicker({onChange, value}: Props) {
         onChange={onChange}
       >
         {filteredMailboxes.map(c => {
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const count = data?.[c.key];
           const display = count && count >= 100 ? '99+' : count;
           const title =
@@ -45,7 +45,7 @@ export default function MailboxPicker({onChange, value}: Props) {
               <Tooltip disabled={!count} title={title}>
                 <Flex align="center">
                   {c.label}
-                  {display ? <Badge type="gray" text={display} /> : null}
+                  {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>
               </Tooltip>
             </SegmentedControl.Item>

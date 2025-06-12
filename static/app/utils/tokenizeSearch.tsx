@@ -1,11 +1,14 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-export const ALLOWED_WILDCARD_FIELDS = [
+const ALLOWED_WILDCARD_FIELDS = [
   'span.description',
   'span.domain',
   'span.status_code',
+  'log.body',
+  'sentry.normalized_description',
+  'transaction',
 ];
-export const EMPTY_OPTION_VALUE = '(empty)' as const;
+export const EMPTY_OPTION_VALUE = '(empty)';
 
 export enum TokenType {
   OPERATOR = 0,
@@ -13,7 +16,7 @@ export enum TokenType {
   FREE_TEXT = 2,
 }
 
-export type Token = {
+type Token = {
   type: TokenType;
   value: string;
   key?: string;
@@ -50,9 +53,9 @@ export class MutableSearch {
    * @param params
    * @returns {MutableSearch}
    */
-  static fromQueryObject(params: {
-    [key: string]: string[] | string | number | undefined;
-  }): MutableSearch {
+  static fromQueryObject(
+    params: Record<string, string[] | string | number | undefined>
+  ): MutableSearch {
     const query = new MutableSearch('');
 
     Object.entries(params).forEach(([key, value]) => {
@@ -155,7 +158,17 @@ export class MutableSearch {
         case TokenType.FILTER:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
-          } else if (/[\s\(\)\\"]/g.test(token.value)) {
+          } else if (
+            // Don't quote if it's already a properly formatted bracket expression
+            /^\[.*\]$/.test(token.value) ||
+            // Don't quote if it's already properly quoted
+            /^".*"$/.test(token.value)
+          ) {
+            formattedTokens.push(`${token.key}:${token.value}`);
+          } else if (
+            // Quote if contains spaces, parens, or quotes
+            /[\s\(\)\\"]/g.test(token.value)
+          ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(`${token.key}:${token.value}`);
@@ -256,6 +269,10 @@ export class MutableSearch {
 
   getFilterKeys() {
     return Object.keys(this.filters);
+  }
+
+  getTokenKeys() {
+    return this.tokens.map(t => t.key);
   }
 
   hasFilter(key: string): boolean {
@@ -461,7 +478,27 @@ function isSpace(s: string) {
  * both sides of the split as strings.
  */
 function parseFilter(filter: string) {
-  const idx = filter.indexOf(':');
+  let idx = 0;
+  let quoted = false;
+
+  // look for the first `:` that is not in quotes
+  for (; idx < filter.length; idx++) {
+    const c = filter[idx];
+
+    if (c === '"') {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (c === ':' && !quoted) {
+      const key = removeSurroundingQuotes(filter.slice(0, idx));
+      const value = removeSurroundingQuotes(filter.slice(idx + 1));
+      return [key, value];
+    }
+  }
+
+  // something went wrong, fallback to the naive approach of spliting the filter
+  idx = filter.indexOf(':');
   const key = removeSurroundingQuotes(filter.slice(0, idx));
   const value = removeSurroundingQuotes(filter.slice(idx + 1));
 

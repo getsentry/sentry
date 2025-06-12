@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,7 +10,7 @@ import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleF
 
 type Props = {
   children: React.ReactNode;
-  button?: JSX.Element;
+  button?: React.JSX.Element;
   className?: string;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
@@ -75,7 +75,10 @@ const SubtitleContainer = styled('div')`
 `;
 
 const ChartLabel = styled('div')`
-  ${p => p.theme.text.cardTitle}
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const PanelBody = styled('div')`

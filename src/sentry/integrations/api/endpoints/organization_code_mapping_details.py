@@ -25,8 +25,8 @@ from .organization_code_mappings import (
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
@@ -45,9 +45,14 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404
 
+        if request.data.get("projectId"):
+            kwargs["new_project"] = super().get_project(
+                kwargs["organization"], request.data.get("projectId")
+            )
+
         return (args, kwargs)
 
-    def put(self, request: Request, config_id, organization, config) -> Response:
+    def put(self, request: Request, config_id, organization, config, new_project) -> Response:
         """
         Update a repository project path config
         ``````````````````
@@ -61,7 +66,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
-        if not request.access.has_project_access(config.project):
+        if not request.access.has_projects_access([config.project, new_project]):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:

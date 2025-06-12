@@ -26,10 +26,9 @@ import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
-
-import {DisplayModes} from '../projectCharts';
 
 import ProjectSessionsAnrRequest from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
@@ -216,7 +215,7 @@ class Chart extends Component<ChartProps, ChartState> {
     type: 'legendselectchanged';
   }> = ({selected}) => {
     const seriesSelection = Object.keys(selected).reduce((state, key) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       state[key] = selected[key];
       return state;
     }, {});

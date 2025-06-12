@@ -1,8 +1,12 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+from jsonschema import ValidationError
+
 from sentry.models.environment import Environment
 from sentry.models.release import Release
+from sentry.rules.age import AgeComparisonType
 from sentry.rules.filters.latest_adopted_release_filter import (
     LatestAdoptedReleaseFilter,
     get_first_last_release_for_group_cache_key,
@@ -10,13 +14,12 @@ from sentry.rules.filters.latest_adopted_release_filter import (
 from sentry.search.utils import LatestReleaseOrders
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
 class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_ADOPTED_RELEASE
-    rule_cls = LatestAdoptedReleaseFilter
     payload = {
         "id": LatestAdoptedReleaseFilter.id,
         "oldest_or_newest": "oldest",
@@ -59,11 +62,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             adopted=self.now,
         )
 
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -87,30 +86,46 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+    def test_json_schema(self):
+        self.dc.comparison.update({"age_comparison": AgeComparisonType.OLDER})
+        self.dc.save()
+
+        self.dc.comparison.update({"age_comparison": "new"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"release_age_type": "new"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"environment": 123})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
     def test_semver(self):
         # Test no release
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": self.group_event}))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event))
 
         group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_2}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
 
         # Check that the group cache invalidation works by adding an older release to the first group
         self.create_group_release(group=self.group, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.group_event}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.group_event))
 
         # Check that the project cache invalidation works by adding a newer release to the project
         group_4, group_event_4 = self.create_new_group_event("group4")
         self.create_group_release(group=group_4, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": group_event_4}))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event_4))
 
         self.create_release(
             project=self.event.group.project,
@@ -119,20 +134,20 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             environments=[self.prod_env],
             adopted=self.now - timedelta(days=2),
         )
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_4}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_4))
 
     def test_date(self):
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": self.group_event}))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event))
 
         group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_2}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
 
     def test_oldest_older(self):
         self.dc.update(
@@ -144,18 +159,18 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.group_event}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.group_event))
 
         group_2, group_event_2 = self.create_new_group_event("group2")
 
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": group_event_2}))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
 
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
 
     def test_newest_newer(self):
         self.dc.update(
@@ -167,18 +182,18 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": self.group_event}))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event))
 
         group_2, group_event_2 = self.create_new_group_event("group2")
 
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": group_event_2}))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
 
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
 
     def test_newest_older(self):
         self.dc.update(
@@ -190,16 +205,16 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.create_group_release(group=self.event.group, release=self.newest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.event}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event))
 
         group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_2}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
 
     def test_caching(self):
         cache_key = get_first_last_release_for_group_cache_key(
@@ -208,7 +223,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         assert cache.get(cache_key) is None
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
         assert cache.get(cache_key) is not None
 
         # ensure we clear the cache after creating a new release
@@ -217,36 +232,38 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
         assert cache.get(cache_key) is None
 
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
         assert cache.get(cache_key) is not None
 
         # ensure we clear the cache when a release is deleted
         oldest_group_release.delete()
         assert cache.get(cache_key) is None
 
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
     def test_release_does_not_exist(self, mock_get_first_last_release):
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
         "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
         return_value=None,
     )
     def test_latest_release_for_env_does_not_exist(self, mock_get_latest_release_for_env):
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
-        "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_env",
+        "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_event",
         return_value=None,
     )
-    def test_first_last_release_for_env_does_not_exist(self, mock_get_first_last_release_for_env):
-        self.assert_does_not_pass(self.dc, self.job)
+    def test_first_last_release_for_event_does_not_exist(
+        self, mock_get_first_last_release_for_event
+    ):
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
         "sentry.models.environment.Environment.get_for_organization_id",
         side_effect=Environment.DoesNotExist,
     )
     def test_environment_does_not_exist(self, mock_get_env):
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

@@ -2,16 +2,6 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-export const SubHeading = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.textColor};
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
 export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
@@ -50,13 +40,19 @@ export const ChartControls = styled('div')`
 `;
 
 // Header element for charts within panels.
+// @TODO(jonasbadalic) This should be a title component and not a div
 export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
-  ${p => p.theme.text.cardTitle};
+
   color: ${p => p.theme.headingColor};
   align-items: center;
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 // Header element for charts within panels

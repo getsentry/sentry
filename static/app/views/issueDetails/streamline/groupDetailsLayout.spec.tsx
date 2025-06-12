@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -7,9 +8,15 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 import {GroupDetailsLayout} from './groupDetailsLayout';
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupDetailsLayout', () => {
   const organization = OrganizationFixture();
@@ -81,12 +88,19 @@ describe('GroupDetailsLayout', () => {
       body: {committers: []},
     });
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: false,
+          userHasAcknowledged: false,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
     });
   });
 

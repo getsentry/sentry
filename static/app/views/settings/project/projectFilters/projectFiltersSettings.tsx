@@ -12,11 +12,12 @@ import iconSafari from 'sentry-logos/logo-safari.svg';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
-import FieldLabel from 'sentry/components/forms/fieldGroup/fieldLabel';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -30,7 +31,6 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Switch from 'sentry/components/switchButton';
 import filterGroups, {
   customFilterFields,
   getOptionsData,
@@ -296,14 +296,14 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         <FilterGrid>
           {Object.keys(LEGACY_BROWSER_SUBFILTERS)
             .filter(key => {
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
                 return true;
               }
               return this.state.subfilters.has(key);
             })
             .map(key => {
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
               return (
                 <FilterGridItem key={key}>
@@ -314,13 +314,13 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                   </div>
                   <Switch
                     aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                    isActive={this.state.subfilters.has(key)}
-                    isDisabled={disabled}
+                    checked={this.state.subfilters.has(key)}
+                    disabled={disabled}
                     css={css`
                       flex-shrink: 0;
                       margin-left: 6;
                     `}
-                    toggle={this.handleToggleSubfilters.bind(this, key)}
+                    onChange={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
                   />
                 </FilterGridItem>
@@ -462,7 +462,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                 const fieldProps = {
                   name: filter.id,
                   disabled: !hasAccess,
-                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   ...filterDescriptions[filter.id],
                 };
 
@@ -480,7 +480,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       onFieldChange={(name, value) => {
                         trackAnalytics('settings.inbound_filter_updated', {
                           organization,
-                          project_id: parseInt(project.id as string, 10),
+                          project_id: parseInt(project.id, 10),
                           filter: name,
                           new_state:
                             filter.id === 'legacy-browsers' && value instanceof Set
@@ -491,16 +491,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         });
                       }}
                     >
-                      {filter.id !== 'legacy-browsers' ? (
-                        <FieldFromConfig
-                          key={filter.id}
-                          getData={data => ({active: data[filter.id]})}
-                          field={{
-                            type: 'boolean',
-                            ...fieldProps,
-                          }}
-                        />
-                      ) : (
+                      {filter.id === 'legacy-browsers' ? (
                         <FormField
                           inline={false}
                           {...fieldProps}
@@ -519,6 +510,15 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                             />
                           )}
                         </FormField>
+                      ) : (
+                        <FieldFromConfig
+                          key={filter.id}
+                          getData={data => ({active: data[filter.id]})}
+                          field={{
+                            type: 'boolean',
+                            ...fieldProps,
+                          }}
+                        />
                       )}
                     </NestedForm>
                   </PanelItem>
@@ -536,7 +536,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });
@@ -578,7 +578,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });

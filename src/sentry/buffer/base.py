@@ -8,6 +8,8 @@ from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils.services import Service
 
+BufferField = models.Model | str | int
+
 
 class Buffer(Service):
     """
@@ -50,14 +52,10 @@ class Buffer(Service):
         """
         return {col: 0 for col in columns}
 
-    def get_hash(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> dict[str, str]:
+    def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
         return {}
 
-    def get_hash_length(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> int:
+    def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         raise NotImplementedError
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
@@ -69,7 +67,7 @@ class Buffer(Service):
     def push_to_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         field: str,
         value: str,
     ) -> None:
@@ -78,7 +76,7 @@ class Buffer(Service):
     def push_to_hash_bulk(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         data: dict[str, str],
     ) -> None:
         raise NotImplementedError
@@ -86,7 +84,7 @@ class Buffer(Service):
     def delete_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         fields: list[str],
     ) -> None:
         return None
@@ -98,7 +96,7 @@ class Buffer(Service):
         self,
         model: type[models.Model],
         columns: dict[str, int],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
@@ -123,9 +121,14 @@ class Buffer(Service):
         in cases where we need to do additional processing before writing to the database and opt to do
         it in a `buffer_incr_complete` receiver.
         """
+        if extra:
+            for key, value in extra.items():
+                if isinstance(value, datetime):
+                    extra[key] = value.isoformat()
+
         process_incr.apply_async(
             kwargs={
-                "model": model,
+                "model_name": f"{model._meta.app_label}.{model._meta.model_name}",
                 "columns": columns,
                 "filters": filters,
                 "extra": extra,
@@ -142,13 +145,18 @@ class Buffer(Service):
 
     def process(
         self,
-        model: type[models.Model],
-        columns: dict[str, int],
-        filters: dict[str, Any],
+        model: type[models.Model] | None,
+        columns: dict[str, int] | None,
+        filters: dict[str, Any] | None,
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
         from sentry.models.group import Group
+
+        if not columns:
+            columns = {}
+        if not filters:
+            filters = {}
 
         created = False
 
@@ -156,8 +164,13 @@ class Buffer(Service):
             update_kwargs: dict[str, Expression] = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
+                # Because of the group.update() below, we need to parse
+                # datetime strings back into datetime objects. This ensures that
+                # the cache data contains the correct type.
+                for key in ("last_seen", "first_seen"):
+                    if key in extra and isinstance(extra[key], str):
+                        extra[key] = datetime.fromisoformat(extra[key])
                 update_kwargs.update(extra)
-
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
@@ -174,7 +187,7 @@ class Buffer(Service):
                 else:
                     group.update(using=None, **update_kwargs)
                 created = False
-            else:
+            elif model:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(

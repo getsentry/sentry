@@ -11,12 +11,11 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-
-import {getDatasetConfig} from '../datasetConfig/base';
-import type {Widget} from '../types';
-import {WidgetType} from '../types';
-import {ISSUE_FIELDS} from '../widgetBuilder/issueWidget/fields';
+import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 
 type Props = {
   loading: boolean;

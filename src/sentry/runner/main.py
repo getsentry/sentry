@@ -44,6 +44,7 @@ for cmd in map(
         "sentry.runner.commands.config.config",
         "sentry.runner.commands.configoptions.configoptions",
         "sentry.runner.commands.createflag.createflag",
+        "sentry.runner.commands.createflag.createissueflag",
         "sentry.runner.commands.createuser.createuser",
         "sentry.runner.commands.devserver.devserver",
         "sentry.runner.commands.django.django",
@@ -134,7 +135,8 @@ def main() -> None:
             func(**kwargs)
         except Exception as e:
             # This reports errors sentry-devservices
-            with sentry_sdk.init(dsn=os.environ["SENTRY_DEVSERVICES_DSN"]):
+            with sentry_sdk.new_scope() as scope:
+                scope.set_client(sentry_sdk.Client(dsn=os.environ["SENTRY_DEVSERVICES_DSN"]))
                 if os.environ.get("USER"):
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)

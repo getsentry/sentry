@@ -1,12 +1,7 @@
-import type {
-  TraceError,
-  TracePerformanceIssue,
-} from 'sentry/utils/performance/quickTrace/types';
-
 import type {TraceTree} from './traceModels/traceTree';
 
 interface EventTypeIconProps {
-  event: TracePerformanceIssue | TraceError | TraceTree.Profile;
+  event: TraceTree.TraceIssue | TraceTree.Profile;
 }
 
 function EventTypeIcon(props: EventTypeIconProps) {

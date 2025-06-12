@@ -1,37 +1,7 @@
 from requests.exceptions import HTTPError
 
 from sentry.http import build_session
-from sentry.utils import json
-
-
-class ApiError(Exception):
-    code = None
-    json = None
-    xml = None
-
-    def __init__(self, text, code=None):
-        if code is not None:
-            self.code = code
-        self.text = text
-        # TODO(dcramer): pull in XML support from Jira
-        if text:
-            try:
-                self.json = json.loads(text)
-            except (json.JSONDecodeError, ValueError):
-                self.json = None
-        else:
-            self.json = None
-        super().__init__(text[:128])
-
-    @classmethod
-    def from_response(cls, response):
-        if response.status_code == 401:
-            return ApiUnauthorized(response.text)
-        return cls(response.text, response.status_code)
-
-
-class ApiUnauthorized(ApiError):
-    code = 401
+from sentry.shared_integrations.exceptions import ApiError
 
 
 class GitHubClient:

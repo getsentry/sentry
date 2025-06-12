@@ -6,12 +6,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import useProjects from 'sentry/utils/useProjects';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
-jest.mock('sentry/utils/useProjects');
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
@@ -19,16 +18,7 @@ describe('Breadcrumbs', () => {
   beforeEach(() => {
     const project = ProjectFixture({platform: 'javascript'});
 
-    jest.mocked(useProjects).mockReturnValue({
-      fetchError: null,
-      fetching: false,
-      hasMore: false,
-      initiallyLoaded: false,
-      onSearch: () => Promise.resolve(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      projects: [project],
-    });
+    ProjectsStore.loadInitialData([project]);
 
     props = {
       organization: OrganizationFixture(),
@@ -219,7 +209,7 @@ describe('Breadcrumbs', () => {
 
       expect(screen.getByText('/settings/')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/project-slug:abcdabcdabcdabcdabcdabcdabcdabcd/?referrer=breadcrumbs'
+        '/organizations/org-slug/insights/backend/project-slug:abcdabcdabcdabcdabcdabcdabcdabcd/?referrer=breadcrumbs'
       );
     });
   });

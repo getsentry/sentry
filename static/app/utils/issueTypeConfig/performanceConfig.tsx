@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const performanceConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -23,14 +24,22 @@ const performanceConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
-    attachments: {enabled: false},
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: true},
+      tagsTab: {enabled: true},
+    },
     autofix: false,
     mergedIssues: {enabled: false},
-    replays: {enabled: true},
     similarIssues: {enabled: false},
     stacktrace: {enabled: false},
     spanEvidence: {enabled: true},
-    userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
     evidence: null,
     usesIssuePlatform: true,
@@ -105,7 +114,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
     resources: {
       description: t(
-        "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence above, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
+        "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence section, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
       ),
       links: [
         {
@@ -132,7 +141,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: {
     resources: {
       description: t(
-        "HTTP/1.1 can cause overhead, with long request queue times in the browser due to max connection limits. In the Span Evidence above, we've identified the extent of the wait time and spans affected by request queueing. To learn more about how to fix HTTP Overhead, check out these resources:"
+        "HTTP/1.1 can cause overhead, with long request queue times in the browser due to max connection limits. In the Span Evidence section, we've identified the extent of the wait time and spans affected by request queueing. To learn more about how to fix HTTP Overhead, check out these resources:"
       ),
       links: [
         {
@@ -194,17 +203,6 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
-  [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
-    discover: {enabled: false},
-    regression: {enabled: true},
-    replays: {enabled: false},
-    performanceDurationRegression: {enabled: true},
-    stats: {enabled: false},
-    tags: {enabled: false},
-    tagsTab: {enabled: false},
-    // We show the regression summary instead
-    spanEvidence: {enabled: false},
-  },
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
     actions: {
       archiveUntilOccurrence: {
@@ -231,13 +229,22 @@ const performanceConfig: IssueCategoryConfigMapping = {
       },
       share: {enabled: true},
     },
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: false},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     discover: {enabled: false},
     regression: {enabled: true},
     performanceDurationRegression: {enabled: true},
-    replays: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
-    tagsTab: {enabled: false},
     // We show the regression summary instead
     spanEvidence: {enabled: false},
   },
@@ -311,32 +318,6 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
-  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: {
-    resources: {
-      description: t(
-        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
-      ),
-      links: [
-        {
-          text: t('Frame Drop'),
-          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
-        },
-      ],
-      linksByPlatform: {},
-    },
-  },
-  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
-    discover: {enabled: false},
-    events: {enabled: false},
-    regression: {enabled: true},
-    profilingDurationRegression: {enabled: true},
-    replays: {enabled: false},
-    // We show the regression summary instead
-    spanEvidence: {enabled: false},
-    stats: {enabled: false},
-    tags: {enabled: false},
-    tagsTab: {enabled: false},
-  },
   [IssueType.PROFILE_FUNCTION_REGRESSION]: {
     actions: {
       archiveUntilOccurrence: {
@@ -363,16 +344,24 @@ const performanceConfig: IssueCategoryConfigMapping = {
       },
       share: {enabled: true},
     },
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: false},
+      openPeriods: {enabled: false},
+      uptimeChecks: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     discover: {enabled: false},
-    events: {enabled: false},
     regression: {enabled: true},
     profilingDurationRegression: {enabled: true},
-    replays: {enabled: false},
     stats: {enabled: false},
     // We show the regression summary instead
     spanEvidence: {enabled: false},
     tags: {enabled: false},
-    tagsTab: {enabled: false},
   },
 };
 

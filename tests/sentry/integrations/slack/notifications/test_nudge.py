@@ -7,6 +7,7 @@ from sentry.notifications.notifications.integration_nudge import (
     IntegrationNudgeNotification,
 )
 from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.types.actor import Actor
 
 SEED = 0
 
@@ -16,7 +17,7 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
     def test_nudge_block(self):
         notification = IntegrationNudgeNotification(
             self.organization,
-            recipient=self.user,
+            recipient=Actor.from_object(self.user),
             provider=ExternalProviders.SLACK,
             seed=SEED,
         )
@@ -34,5 +35,7 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
         assert blocks[1]["elements"][0]["value"] == "all_slack"
 
         # Slack requires callback_id to handle enablement
-        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
-        assert callback_id == {"enable_notifications": True}
+        context_params = orjson.loads(
+            orjson.loads(self.mock_post.call_args.kwargs["blocks"])[0]["block_id"]
+        )
+        assert context_params == {"enable_notifications": True}

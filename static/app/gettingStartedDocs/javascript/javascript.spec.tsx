@@ -17,15 +17,17 @@ describe('javascript onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
     expect(
-      screen.getByText(
+      screen.queryAllByText(
         textWithMarkupMatcher(/import \* as Sentry from "@sentry\/browser"/)
       )
-    ).toBeInTheDocument();
+    ).not.toHaveLength(0);
   });
 
   it('displays sample rates by default', () => {

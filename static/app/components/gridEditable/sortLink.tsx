@@ -15,6 +15,7 @@ type Props = {
   generateSortLink: () => LocationDescriptorObject | undefined;
   title: React.ReactNode;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  preventScrollReset?: boolean;
   replace?: boolean;
 };
 
@@ -26,6 +27,7 @@ function SortLink({
   onClick,
   direction,
   replace,
+  preventScrollReset,
 }: Props) {
   const target = generateSortLink();
   const navigate = useNavigate();
@@ -34,20 +36,25 @@ function SortLink({
     return <StyledNonLink align={align}>{title}</StyledNonLink>;
   }
 
-  const arrow = !direction ? null : (
+  const arrow = direction ? (
     <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
-  );
+  ) : null;
 
   const handleOnClick: React.MouseEventHandler<HTMLAnchorElement> = e => {
     if (replace) {
       e.preventDefault();
-      navigate(target, {replace: true});
+      navigate(target, {replace: true, preventScrollReset});
     }
     onClick?.(e);
   };
 
   return (
-    <StyledLink align={align} to={target} onClick={handleOnClick}>
+    <StyledLink
+      align={align}
+      to={target}
+      onClick={handleOnClick}
+      preventScrollReset={preventScrollReset}
+    >
       {title} {arrow}
     </StyledLink>
   );
@@ -59,7 +66,7 @@ type StyledLinkProps = LinkProps & {align: Alignments};
 const StyledLink = styled((props: StyledLinkProps) => {
   // but prior to this style of destructure-omitting it, it was being omitted
   // with lodash.omit. I mean keeping it omitted here just in case.
-  // @ts-ignore TS(2339): Property 'css' does not exist on type 'StyledLinkP... Remove this comment to see the full error message
+  // @ts-expect-error TS(2339): Property 'css' does not exist on type 'StyledLinkP... Remove this comment to see the full error message
   const {align: _align, css: _css, ...forwardProps} = props;
   return <Link {...forwardProps} />;
 })`

@@ -135,8 +135,9 @@ async function fetchProjects(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
-    hasMore = paginationObject?.next!?.results || paginationObject?.previous!?.results;
-    nextCursor = paginationObject?.next!?.cursor;
+    hasMore =
+      (paginationObject?.next?.results || paginationObject?.previous?.results) ?? null;
+    nextCursor = paginationObject?.next?.cursor ?? null;
   }
 
   return {results: data, hasMore, nextCursor};
@@ -157,7 +158,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
   const organization = useOrganization({allowNull: true});
   const store = useLegacyStore(ProjectsStore);
 
-  const orgId = propOrgId ?? organization?.slug ?? organization?.slug;
+  const orgId = propOrgId ?? organization?.slug;
 
   const storeSlugs = new Set(store.projects.map(t => t.slug));
   const slugsToLoad = slugs?.filter(slug => !storeSlugs.has(slug)) ?? [];

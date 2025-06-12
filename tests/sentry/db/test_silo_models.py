@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.db.models import Model
 
 from sentry.api.serializers.base import registry
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import (
     validate_models_have_silos,
     validate_no_cross_silo_deletions,
@@ -22,6 +23,7 @@ def test_silo_foreign_keys():
         raise ValueError(f"fk_exemptions includes non conflicting relation {unused!r}")
 
 
+@django_db_all
 def test_cross_silo_deletions():
     validate_no_cross_silo_deletions(fk_exemptions)
 

@@ -30,6 +30,7 @@ register(
 )
 
 register(key="sentry:grouping_enhancements", default="")
+register(key="sentry:derived_grouping_enhancements", default="")
 
 # server side fingerprinting defaults.
 register(key="sentry:fingerprinting_rules", default="")
@@ -53,6 +54,7 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
+    # TODO(lforst): Make v9 loader default
     epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x"},
 )
 
@@ -121,6 +123,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "http_overhead_detection_enabled": True,
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
+    "database_query_injection_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -183,11 +186,23 @@ register(
 # The available loader SDK versions
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["8.x", "7.x"]},
+    epoch_defaults={1: ["9.x", "8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["9.x", "8.x", "7.x"]},
 )
 
 # Dynamic sampling rate in project-level "manual" configuration mode
 register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 
+# Dynamic sampling minimum sample rate
+register(key="sentry:dynamic_sampling_minimum_sample_rate", default=False)
+
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
+
+# Should tempest fetch dumps for this project
+register(key="sentry:tempest_fetch_dumps", default=False)
+
+# Should autofix run automatically on new issues
+register(key="sentry:autofix_automation_tuning", default="off")
+
+# Should seer scanner run automatically on new issues
+register(key="sentry:seer_scanner_automation", default=True)

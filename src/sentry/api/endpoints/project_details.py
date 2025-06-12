@@ -38,7 +38,11 @@ from sentry.datascrubbing import validate_pii_config_update, validate_pii_select
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    has_dynamic_sampling_minimum_sample_rate,
+)
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -114,12 +118,12 @@ class ProjectMemberSerializer(serializers.Serializer):
         "safeFields",
         "storeCrashReports",
         "relayPiiConfig",
-        "relayCustomMetricCardinalityLimit",
         "builtinSymbolSources",
         "symbolSources",
         "scrubIPAddresses",
         "groupingConfig",
         "groupingEnhancements",
+        "derivedGroupingEnhancements",
         "fingerprintingRules",
         "secondaryGroupingConfig",
         "secondaryGroupingExpiry",
@@ -128,11 +132,11 @@ class ProjectMemberSerializer(serializers.Serializer):
         "copy_from_project",
         "targetSampleRate",
         "dynamicSamplingBiases",
-        "performanceIssueCreationRate",
-        "performanceIssueCreationThroughPlatform",
-        "performanceIssueSendToPlatform",
-        "uptimeAutodetection",
+        "dynamicSamplingMinimumSampleRate",
         "tempestFetchScreenshots",
+        "tempestFetchDumps",
+        "autofixAutomationTuning",
+        "seerScannerAutomation",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -206,7 +210,6 @@ E.g. `['release', 'environment']`""",
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    relayCustomMetricCardinalityLimit = serializers.IntegerField(required=False, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
@@ -223,11 +226,13 @@ E.g. `['release', 'environment']`""",
     copy_from_project = serializers.IntegerField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
-    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
-    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    uptimeAutodetection = serializers.BooleanField(required=False)
+    dynamicSamplingMinimumSampleRate = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
+    tempestFetchDumps = serializers.BooleanField(required=False)
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "super_low", "low", "medium", "high", "always"], required=False
+    )
+    seerScannerAutomation = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -281,22 +286,6 @@ E.g. `['release', 'environment']`""",
     def validate_relayPiiConfig(self, value):
         organization = self.context["project"].organization
         return validate_pii_config_update(organization, value)
-
-    def validate_relayCustomMetricCardinalityLimit(self, value):
-        if value is None:
-            return value
-
-        if value < 0:
-            raise serializers.ValidationError("Cardinality limit must be a non-negative integer.")
-
-        # Value is stored as uint32 in relay
-        # TODO: find a way to share this constant between relay and sentry
-        if value > 4_294_967_295:
-            raise serializers.ValidationError(
-                "Cardinality limit must be smaller or equal to 4,294,967,295."
-            )
-
-        return value
 
     def validate_builtinSymbolSources(self, value):
         if not value:
@@ -366,7 +355,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_config_string(value)
+            Enhancements.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -453,12 +442,52 @@ E.g. `['release', 'environment']`""",
 
         return value
 
+    def validate_dynamicSamplingMinimumSampleRate(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_dynamic_sampling_minimum_sample_rate(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the dynamic sampling minimum sample rate feature enabled."
+            )
+        return value
+
     def validate_tempestFetchScreenshots(self, value):
         organization = self.context["project"].organization
         actor = self.context["request"].user
         if not has_tempest_access(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
+            )
+        return value
+
+    def validate_tempestFetchDumps(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_tempest_access(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the tempest feature enabled."
+            )
+        return value
+
+    def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_seerScannerAutomation(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
             )
         return value
 
@@ -562,6 +591,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (
@@ -709,25 +740,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:relay_pii_config"] = (
                     result["relayPiiConfig"].strip() or None
                 )
-        if "relayCustomMetricCardinalityLimit" in result:
-            limit = result.get("relayCustomMetricCardinalityLimit")
-            cardinality_limits = []
-            if limit is not None:
-                # For now we only allow setting a single limit
-                # TODO: validate this with rust validator
-                cardinality_limits = [
-                    {
-                        "limit": {
-                            "id": "project-override-custom",
-                            "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                            "limit": limit,
-                            "namespace": "custom",
-                            "scope": "name",
-                        }
-                    }
-                ]
-            if project.update_option("relay.cardinality-limiter.limits", cardinality_limits):
-                changed_proj_settings["relay.cardinality-limiter.limits"] = cardinality_limits
         if result.get("builtinSymbolSources") is not None:
             if project.update_option(
                 "sentry:builtin_symbol_sources", result["builtinSymbolSources"]
@@ -770,6 +782,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
                 ]
+        if result.get("tempestFetchDumps") is not None:
+            if project.update_option("sentry:tempest_fetch_dumps", result["tempestFetchDumps"]):
+                changed_proj_settings["sentry:tempest_fetch_dumps"] = result["tempestFetchDumps"]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
@@ -783,10 +798,29 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
                 ]
+        if result.get("dynamicSamplingMinimumSampleRate") is not None:
+            if project.update_option(
+                "sentry:dynamic_sampling_minimum_sample_rate",
+                result["dynamicSamplingMinimumSampleRate"],
+            ):
+                changed_proj_settings["sentry:dynamic_sampling_minimum_sample_rate"] = result[
+                    "dynamicSamplingMinimumSampleRate"
+                ]
 
-        if result.get("uptimeAutodetection") is not None:
-            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
-                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
+        if result.get("autofixAutomationTuning") is not None:
+            if project.update_option(
+                "sentry:autofix_automation_tuning", result["autofixAutomationTuning"]
+            ):
+                changed_proj_settings["sentry:autofix_automation_tuning"] = result[
+                    "autofixAutomationTuning"
+                ]
+        if result.get("seerScannerAutomation") is not None:
+            if project.update_option(
+                "sentry:seer_scanner_automation", result["seerScannerAutomation"]
+            ):
+                changed_proj_settings["sentry:seer_scanner_automation"] = result[
+                    "seerScannerAutomation"
+                ]
 
         if has_elevated_scopes:
             options = result.get("options", {})

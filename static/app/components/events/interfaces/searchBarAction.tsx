@@ -1,7 +1,11 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
@@ -11,9 +15,9 @@ type Props = {
   placeholder: string;
   query: string;
   className?: string;
-  filterOptions?: SelectOptionOrSection<string>[];
-  filterSelections?: SelectOption<string>[];
-  onFilterChange?: (options: SelectOption<string>[]) => void;
+  filterOptions?: Array<SelectOptionOrSection<string>>;
+  filterSelections?: Array<SelectOption<string>>;
+  onFilterChange?: (options: Array<SelectOption<string>>) => void;
 };
 
 function SearchBarAction({
@@ -86,14 +90,14 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
 
   ${p =>
     p.blendWithFilter &&
-    `
+    css`
       input {
-        border-radius: ${p.theme.borderRadiusRight};
+        border-radius: 0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0;
         border-left-width: 0;
       }
     `}
 `;
 
 const StyledTrigger = styled(DropdownButton)`
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;

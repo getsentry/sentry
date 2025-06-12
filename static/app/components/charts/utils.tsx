@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -14,13 +13,15 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
+
+const {error, fmt} = Sentry.logger;
 
 // In minutes
 export const SIXTY_DAYS = 86400;
@@ -30,7 +31,9 @@ export const ONE_WEEK = 10080;
 export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
+const THREE_HOURS = 180;
 export const ONE_HOUR = 60;
+export const FIVE_MINUTES = 5;
 
 /**
  * If there are more releases than this number we hide "Releases" series by default
@@ -42,7 +45,7 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 export function truncationFormatter(
   value: string,
   truncate: number | boolean | undefined,
-  escaped: boolean = true
+  escaped = true
 ): string {
   // Whitespace characters such as newlines and tabs can
   // mess up the formatting in legends where it's part of
@@ -78,11 +81,8 @@ export function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
-export function useShortInterval(datetimeObj: DateTimeObject): boolean {
-  return computeShortInterval(datetimeObj);
-}
 
-export type GranularityStep = [timeDiff: number, interval: string];
+type GranularityStep = [timeDiff: number, interval: string];
 
 export class GranularityLadder {
   steps: GranularityStep[];
@@ -102,12 +102,9 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['invalid-duration-for-interval']);
-        Sentry.captureException(
-          new Error('Invalid duration supplied to interval function')
-        );
-      });
+      error(
+        fmt`Invalid duration supplied to interval function. (minutes: ${String(minutes)})`
+      );
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }
@@ -120,7 +117,15 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues';
+export type Fidelity =
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'metrics'
+  | 'issues'
+  | 'spans'
+  | 'spans-low'
+  | 'issues-metrics';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -131,8 +136,17 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
     issues: issuesFidelityLadder,
+    spans: spansFidelityLadder,
+    'spans-low': spansLowFidelityLadder,
+    'issues-metrics': issuesMetricsFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
+
+const issuesMetricsFidelityLadder = new GranularityLadder([
+  [ONE_WEEK, '86400000'], // 24h
+  [SIX_HOURS, '3600000'], // 1h
+  [0, '300000'], // 5m
+]);
 
 const highFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '4h'],
@@ -177,8 +191,32 @@ const issuesFidelityLadder = new GranularityLadder([
   [FORTY_EIGHT_HOURS, '1h'],
   [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
+  [THREE_HOURS, '2m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
+]);
+
+const spansFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '30m'],
+  [TWENTY_FOUR_HOURS, '15m'],
+  [SIX_HOURS, '15m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
+
+const spansLowFidelityLadder = new GranularityLadder([
+  [THIRTY_DAYS, '1d'],
+  [TWO_WEEKS, '12h'],
+  [ONE_WEEK, '4h'],
+  [FORTY_EIGHT_HOURS, '2h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '10m'],
+  [0, '5m'],
 ]);
 
 /**
@@ -253,6 +291,9 @@ export function getSeriesSelection(
   );
 }
 
+/**
+ * @deprecated Prefer `isEventsStats`
+ */
 function isSingleSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
@@ -263,6 +304,9 @@ function isSingleSeriesStats(
   );
 }
 
+/**
+ * @deprecated Prefer `isMultiSeriesEventsStats`
+ */
 export function isMultiSeriesStats(
   data:
     | MultiSeriesEventsStats
@@ -309,7 +353,7 @@ const DEFAULT_GEO_DATA = {
   data: [],
 };
 export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
-  if (!tableResults || !tableResults.length) {
+  if (!tableResults?.length) {
     return DEFAULT_GEO_DATA;
   }
 
@@ -317,7 +361,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
 
   const {data} = tableResult;
 
-  if (!data || !data.length) {
+  if (!data?.length) {
     return DEFAULT_GEO_DATA;
   }
 
@@ -330,7 +374,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   }
 
   return {
-    title: tableResult!.title ?? '',
+    title: tableResult.title ?? '',
     data: data.map(row => {
       return {
         name: row['geo.country_code'] as string,
@@ -344,7 +388,7 @@ export const getPreviousSeriesName = (seriesName: string) => {
   return `previous ${seriesName}`;
 };
 
-function formatList(items: (string | number | undefined)[]) {
+function formatList(items: Array<string | number | undefined>) {
   const filteredItems = items.filter((item): item is string | number => !!item);
 
   return oxfordizeArray(filteredItems.map(item => item.toString()));
@@ -358,12 +402,12 @@ export function computeEchartsAriaLabels(
     ? series.filter(s => s && !!s.data && s.data.length > 0)
     : [series];
 
-  const dateFormat = computeShortInterval({
+  const isShortInterval = computeShortInterval({
     start: filteredSeries[0]?.data?.[0][0],
     end: filteredSeries[0]?.data?.slice(-1)[0][0],
-  })
-    ? `MMMM D, h:mm A`
-    : 'MMMM Do';
+  });
+
+  const dateFormat = isShortInterval ? getFormat({timeZone: true}) : 'MMMM Do';
 
   function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {
@@ -439,15 +483,6 @@ export function computeEchartsAriaLabels(
     enabled: true,
     label: {description: [title].concat(seriesDescriptions).join('. ')},
   };
-}
-
-export function useEchartsAriaLabels(
-  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
-  isGroupedByDate: boolean
-) {
-  return useMemo(() => {
-    return computeEchartsAriaLabels({series, useUTC}, isGroupedByDate);
-  }, [series, useUTC, isGroupedByDate]);
 }
 
 export function isEmptySeries(series: Series) {

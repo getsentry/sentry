@@ -10,13 +10,13 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
@@ -52,7 +52,7 @@ export default function FeedbackList() {
     loadMoreRows,
     hits,
   } = useFetchInfiniteListData<FeedbackIssueListItem>({
-    queryKey: listQueryKey ?? [''],
+    queryKey: listQueryKey ?? ['infinite', ''],
     uniqueField: 'id',
     enabled: Boolean(listQueryKey),
   });
@@ -78,14 +78,8 @@ export default function FeedbackList() {
     }
 
     return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={0}
-        key={key}
-        parent={parent}
-        rowIndex={index}
-      >
-        <ErrorBoundary mini>
+      <ErrorBoundary mini key={key}>
+        <CellMeasurer cache={cache} columnIndex={0} parent={parent} rowIndex={index}>
           <FeedbackListItem
             feedbackItem={item}
             isSelected={checkboxState.isSelected(item.id)}
@@ -94,8 +88,8 @@ export default function FeedbackList() {
             }}
             style={style}
           />
-        </ErrorBoundary>
-      </CellMeasurer>
+        </CellMeasurer>
+      </ErrorBoundary>
     );
   };
 
@@ -127,7 +121,6 @@ export default function FeedbackList() {
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
                   ref={e => {
-                    // @ts-ignore TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
                     listRef.current = e;
                     registerChild(e);
                   }}

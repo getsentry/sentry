@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
 import socket
 from collections.abc import Mapping
 from hashlib import sha256
@@ -18,7 +19,7 @@ from requests.adapters import Retry
 from sentry import options
 from sentry.http import build_session
 from sentry.net.http import SafeSession
-from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
+from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_DIRECT_LOCATION_HEADER,
@@ -88,7 +89,7 @@ class RegionSiloClient(BaseApiClient):
     access_modes = [SiloMode.CONTROL]
 
     metrics_prefix = "silo_client.region"
-    log_path = "sentry.silo.client.region"
+    logger = logging.getLogger("sentry.silo.client.region")
     silo_client_name = "region"
 
     def __init__(self, region: Region, retry: bool = False) -> None:
@@ -154,7 +155,7 @@ class RegionSiloClient(BaseApiClient):
         json: bool = True,
         raw_response: bool = False,
         prefix_hash: str | None = None,
-    ) -> BaseApiResponseX:
+    ) -> Any:
         """
         Sends a request to the region silo.
         If prefix_hash is provided, the request will be retries up to REQUEST_ATTEMPTS_LIMIT times.

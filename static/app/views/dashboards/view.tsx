@@ -3,7 +3,7 @@ import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -13,7 +13,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
@@ -31,18 +31,19 @@ const ALLOWED_PARAMS = [
   'statsPeriod',
 ];
 
-type Props = RouteComponentProps<
-  {dashboardId: string; orgId: string; widgetId?: number},
-  {}
-> & {
+type Props = RouteComponentProps<{
+  dashboardId: string;
+  orgId: string;
+  widgetId?: number | string;
+}> & {
   children: React.ReactNode;
-  organization: Organization;
 };
 
 function ViewEditDashboard(props: Props) {
   const api = useApi();
+  const organization = useOrganization();
 
-  const {organization, params, location} = props;
+  const {params, location} = props;
   const dashboardId = params.dashboardId;
   const orgSlug = organization.slug;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
@@ -69,12 +70,7 @@ function ViewEditDashboard(props: Props) {
 
   return (
     <DashboardBasicFeature organization={organization}>
-      <OrgDashboards
-        api={api}
-        location={location}
-        params={params}
-        organization={organization}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
@@ -82,6 +78,8 @@ function ViewEditDashboard(props: Props) {
             <ErrorBoundary>
               <DashboardDetail
                 {...props}
+                key={dashboard.id}
+                organization={organization}
                 initialState={dashboardInitialState}
                 dashboard={dashboard}
                 dashboards={dashboards}
@@ -99,7 +97,7 @@ function ViewEditDashboard(props: Props) {
   );
 }
 
-export default withOrganization(ViewEditDashboard);
+export default ViewEditDashboard;
 
 type FeatureProps = {
   children: React.ReactNode;
@@ -109,7 +107,9 @@ type FeatureProps = {
 export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (
     <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
     </Layout.Page>
   );
 

@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
 
 from sentry.api.bases.organization import (
     NoProjects,
@@ -40,6 +41,7 @@ from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
+from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 class MockSuperUser:
@@ -86,8 +88,8 @@ class PermissionBaseTestCase(TestCase):
         )
         drf_request = drf_request_from_request(request)
         result_with_obj = perm.has_permission(
-            request=drf_request, view=None
-        ) and perm.has_object_permission(request=drf_request, view=None, organization=obj)
+            drf_request, APIView()
+        ) and perm.has_object_permission(drf_request, APIView(), obj)
         if result_with_org_rpc is not None:
             return bool(result_with_obj and result_with_org_rpc and result_with_org_context_rpc)
         return result_with_obj
@@ -167,6 +169,97 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         self.create_member(user=user, organization=self.org, role="member")
         with pytest.raises(SuperuserRequired):
             assert self.has_object_perm("GET", self.org, user=user)
+
+    def test_org_requires_2fa_for_user_auth_token_request(self):
+        self.org_require_2fa()
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="owner")
+        token = self.create_user_auth_token(user)
+
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="GET"))
+        permission = self.permission_cls()
+
+        with pytest.raises(TwoFactorRequired), assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
+
+    def test_member_limit_error_for_user_auth_token_request(self):
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role="member",
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+        token = self.create_user_auth_token(user)
+
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="GET"))
+        permission = self.permission_cls()
+
+        with pytest.raises(MemberDisabledOverLimit) as excinfo:
+            permission.determine_access(request=request, organization=self.org)
+
+        assert excinfo.value.detail == {
+            "detail": {
+                "code": "member-disabled-over-limit",
+                "message": "Organization over member limit",
+                "extra": {"next": f"/organizations/{self.org.slug}/disabled-member/"},
+            }
+        }
+
+    def test_org_does_not_require_2fa_for_user_auth_token_request_if_no_membership(self):
+        # make sure that 2FA requirement is not visible to the outsiders
+        self.org_require_2fa()
+
+        other_org = self.create_organization()
+        user = self.create_user()
+        self.create_member(user=user, organization=other_org, role="owner")
+        token = self.create_user_auth_token(user)
+
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="GET"))
+        permission = self.permission_cls()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
+
+    def test_sentryapp_passes_2fa(self):
+        self.org_require_2fa()
+        internal_sentry_app = self.create_internal_integration(
+            name="My Internal App",
+            organization=self.org,
+            scopes=["org:admin"],
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_sentry_app
+        )
+
+        request = drf_request_from_request(
+            self.make_request(user=internal_sentry_app.proxy_user, auth=token, method="GET")
+        )
+        permission = self.permission_cls()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
+
+    def test_org_auth_token_passes_2fa(self):
+        self.org_require_2fa()
+
+        self.token = "sntrys_abc123_xyz"
+        self.org_auth_token = self.create_org_auth_token(
+            name="Test Token 1",
+            token_hashed=hash_token(self.token),
+            organization_id=self.org.id,
+            token_last_characters="xyz",
+            scope_list=[],
+            date_last_used=None,
+        )
+
+        request = drf_request_from_request(
+            self.make_request(auth=self.org_auth_token, method="GET")
+        )
+        permission = self.permission_cls()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
 
     def test_member_limit_error(self):
         user = self.create_user()
@@ -280,7 +373,7 @@ class BaseOrganizationEndpointTest(TestCase):
             user = self.user
         request.user = user
         request.auth = None
-        request.access = from_request(request, self.org)
+        request.access = from_request(drf_request_from_request(request), self.org)
         return request
 
 

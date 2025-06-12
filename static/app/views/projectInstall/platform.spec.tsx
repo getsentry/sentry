@@ -13,7 +13,7 @@ type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
   platform: string;
 };
 
-function mockProjectApiResponses(projects: (Project | ProjectWithBadPlatform)[]) {
+function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatform>) {
   MockApiClient.addMockResponse({
     method: 'GET',
     url: '/organizations/org-slug/projects/',
@@ -39,6 +39,12 @@ function mockProjectApiResponses(projects: (Project | ProjectWithBadPlatform)[])
   });
 
   MockApiClient.addMockResponse({
+    method: 'GET',
+    url: '/projects/org-slug/project-slug/overview/',
+    body: projects,
+  });
+
+  MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
     body: [ProjectKeysFixture()[0]],
@@ -47,6 +53,11 @@ function mockProjectApiResponses(projects: (Project | ProjectWithBadPlatform)[])
   MockApiClient.addMockResponse({
     url: `/projects/org-slug/project-slug/keys/${ProjectKeysFixture()[0]!.public}/`,
     method: 'PUT',
+    body: {},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sdks/`,
     body: {},
   });
 }
@@ -58,7 +69,7 @@ describe('ProjectInstallPlatform', function () {
   });
 
   it('should render NotFound if no matching integration/platform', async function () {
-    const {organization, routerProps, project, router} = initializeOrg({
+    const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
           projectId: ProjectFixture().slug,
@@ -71,14 +82,12 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={undefined}
         currentPlatformKey={'lua' as PlatformKey}
         project={project}
       />,
       {
         organization,
-        router,
       }
     );
 
@@ -110,7 +119,6 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={platform}
         project={project}
         currentPlatformKey={platform.id}
@@ -128,7 +136,7 @@ describe('ProjectInstallPlatform', function () {
   it('should not render performance/session replay buttons for errors only self-hosted', async function () {
     const project = ProjectFixture({platform: 'javascript'});
 
-    const {routerProps, router} = initializeOrg({
+    const {routerProps} = initializeOrg({
       router: {
         params: {
           projectId: project.slug,
@@ -153,13 +161,9 @@ describe('ProjectInstallPlatform', function () {
       <ProjectInstallPlatform
         {...routerProps}
         project={project}
-        loading={false}
         platform={platform}
         currentPlatformKey={platform.id}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     expect(

@@ -20,7 +20,7 @@ from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_loc
 # IMPORTANT:
 #
 # This test suite requires Symbolicator in order to run correctly.
-# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `devservices up --mode=symbolicator`
 #
 # If you are using a local instance of Symbolicator, you need to
 # either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,

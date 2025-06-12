@@ -30,15 +30,15 @@ type ThroughputDataRow<K extends string> = RawDataRow<K> & {
 
 interface EventRegressionTableProps<K extends string> {
   causeType: 'duration' | 'throughput';
-  columns: GridColumnOrder<K>[];
-  data: (DurationDataRow<K> | ThroughputDataRow<K>)[];
+  columns: Array<GridColumnOrder<K>>;
+  data: Array<DurationDataRow<K> | ThroughputDataRow<K>>;
   isError: boolean;
   isLoading: boolean;
   options: Record<
     string,
     {
       defaultValue?: React.ReactNode;
-      // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
+      // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
       link?: (any) =>
         | {
             target: LocationDescriptor;
@@ -182,6 +182,6 @@ const ChangeContainer = styled(NumberContainer)<{
   change: 'positive' | 'neutral' | 'negative';
 }>`
   ${p => p.change === 'positive' && `color: ${p.theme.red300};`}
-  ${p => p.change === 'neutral' && `color: ${p.theme.gray300};`}
+  ${p => p.change === 'neutral' && `color: ${p.theme.subText};`}
   ${p => p.change === 'negative' && `color: ${p.theme.green300};`}
 `;

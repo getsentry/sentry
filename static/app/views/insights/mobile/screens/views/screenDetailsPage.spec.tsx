@@ -1,23 +1,20 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ScreenDetailsPage} from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
+import ScreenDetailsPage from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 describe('ScreenDetailsPage', function () {
   const organization = OrganizationFixture({
-    features: [
-      'insights-addon-modules',
-      'insights-mobile-screens-module',
-      'starfish-mobile-ui-module',
-    ],
+    features: ['insights-addon-modules'],
   });
   const project = ProjectFixture();
 
@@ -25,7 +22,7 @@ describe('ScreenDetailsPage', function () {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals/details',
     query: {
       project: project.id,
       transaction: 'HomeActivity',
@@ -34,22 +31,20 @@ describe('ScreenDetailsPage', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   describe('Tabs', function () {
     beforeEach(() => {
@@ -76,7 +71,7 @@ describe('ScreenDetailsPage', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
+        pathname: '/organizations/org-slug/performance/mobile/mobile-vitals/details',
         query: {
           project: project.id,
         },

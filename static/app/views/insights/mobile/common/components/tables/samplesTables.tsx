@@ -1,8 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -32,7 +32,7 @@ export interface SpanOperationTableProps {
 }
 
 interface SamplesTablesProps {
-  EventSamples: React.ComponentType<EventSamplesProps>;
+  EventSamples: React.ComponentType<EventSamplesProps> | undefined;
   SpanOperationTable: React.ComponentType<SpanOperationTableProps>;
   transactionName: string;
 }
@@ -50,22 +50,26 @@ export function SamplesTables({
       return (
         <EventSplitContainer>
           <ErrorBoundary mini>
-            <EventSamples
-              cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-              sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-              release={primaryRelease}
-              transaction={transactionName}
-              footerAlignedPagination
-            />
+            {EventSamples && (
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                release={primaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            )}
           </ErrorBoundary>
           <ErrorBoundary mini>
-            <EventSamples
-              cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-              sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-              release={secondaryRelease}
-              transaction={transactionName}
-              footerAlignedPagination
-            />
+            {EventSamples && (
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                release={secondaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            )}
           </ErrorBoundary>
         </EventSplitContainer>
       );
@@ -103,18 +107,20 @@ export function SamplesTables({
           <DeviceClassSelector size="md" clearSpansTableCursor />
           <SubregionSelector />
         </FiltersContainer>
-        <SegmentedControl
-          onChange={value => setSampleType(value)}
-          defaultValue={SPANS}
-          label={t('Sample Type Selection')}
-        >
-          <SegmentedControl.Item key={SPANS} aria-label={t('By Spans')}>
-            {t('By Spans')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key={EVENT} aria-label={t('By Event')}>
-            {t('By Event')}
-          </SegmentedControl.Item>
-        </SegmentedControl>
+        {EventSamples && (
+          <SegmentedControl
+            onChange={value => setSampleType(value)}
+            value={sampleType}
+            label={t('Sample Type Selection')}
+          >
+            <SegmentedControl.Item key={SPANS} aria-label={t('By Spans')}>
+              {t('By Spans')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key={EVENT} aria-label={t('By Event')}>
+              {t('By Event')}
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        )}
       </Controls>
       {content}
     </div>

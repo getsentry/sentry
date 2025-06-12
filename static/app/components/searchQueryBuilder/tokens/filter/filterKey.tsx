@@ -5,6 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {FilterKeyCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyCombobox';
@@ -15,9 +16,10 @@ import type {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 type FilterKeyProps = {
   item: Node<ParseResultToken>;
@@ -28,7 +30,8 @@ type FilterKeyProps = {
 
 export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {disabled} = useSearchQueryBuilder();
+  const {disabled, getFieldDefinition} = useSearchQueryBuilder();
+  const fieldDefinition = getFieldDefinition(token.key.text);
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -58,18 +61,22 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
   }
 
   return (
-    <KeyButton
-      aria-label={t('Edit key for filter: %s', getKeyName(token.key))}
-      onClick={() => {
-        setIsEditing(true);
-        onActiveChange(true);
-      }}
-      disabled={disabled}
-      {...filterButtonProps}
-    >
-      <InteractionStateLayer />
-      {token.key.text}
-    </KeyButton>
+    <Tooltip title={fieldDefinition?.desc} skipWrapper>
+      <KeyButton
+        aria-label={t('Edit key for filter: %s', getKeyName(token.key))}
+        onClick={() => {
+          setIsEditing(true);
+          onActiveChange(true);
+        }}
+        disabled={disabled}
+        title="hello"
+        {...filterButtonProps}
+      >
+        <InteractionStateLayer />
+        {/* Filter keys have no expected format, so we attempt to split by whitespace, dash, colon, and underscores. */}
+        {middleEllipsis(getKeyLabel(token.key), 40, /[\s-_:]/)}
+      </KeyButton>
+    </Tooltip>
   );
 }
 

@@ -1,4 +1,7 @@
-from typing import Any
+from __future__ import annotations
+
+from dataclasses import replace
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -6,14 +9,25 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
+
+
+class WorkflowManager(BaseManager["Workflow"]):
+    def get_queryset(self) -> BaseQuerySet[Workflow]:
+        return (
+            super()
+            .get_queryset()
+            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+        )
 
 
 @region_silo_model
@@ -24,36 +38,45 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=200)
+
+    objects: ClassVar[WorkflowManager] = WorkflowManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+
+    name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
 
-    # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
-    when_condition_group = FlexibleForeignKey("workflow_engine.DataConditionGroup", null=True)
+    # The workflow's status - used for tracking deletion state
+    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
-    environment = FlexibleForeignKey("sentry.Environment", null=True)
+    # Required as the 'when' condition for the workflow, this evaluates states emitted from the detectors
+    when_condition_group = FlexibleForeignKey(
+        "workflow_engine.DataConditionGroup", null=True, blank=True
+    )
 
-    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
+
+    created_by_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
+    )
 
     DEFAULT_FREQUENCY = 30
 
-    @property
-    def config_schema(self) -> dict[str, Any]:
-        return {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "Workflow Schema",
-            "type": "object",
-            "properties": {
-                "frequency": {
-                    "description": "How often the workflow should fire for a Group (minutes)",
-                    "type": "integer",
-                    "minimum": 0,
-                },
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Workflow Schema",
+        "type": "object",
+        "properties": {
+            "frequency": {
+                "description": "How often the workflow should fire for a Group (minutes)",
+                "type": "integer",
+                "minimum": 0,
             },
-            "additionalProperties": False,
-        }
+        },
+        "additionalProperties": False,
+    }
 
     __repr__ = sane_repr("name", "organization_id")
 
@@ -61,23 +84,29 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         app_label = "workflow_engine"
         db_table = "workflow_engine_workflow"
 
-        constraints = [
-            models.UniqueConstraint(
-                fields=["name", "organization"], name="unique_workflow_name_per_org"
-            )
-        ]
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {"name": self.name}
 
-    def evaluate_trigger_conditions(self, job: WorkflowJob) -> bool:
+    def evaluate_trigger_conditions(
+        self, event_data: WorkflowEventData
+    ) -> tuple[bool, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
-        if self.when_condition_group is None:
-            return True
+        # TODO - investigate circular import issue
+        from sentry.workflow_engine.processors.data_condition_group import (
+            process_data_condition_group,
+        )
 
-        job["workflow"] = self
-        evaluation, _ = evaluate_condition_group(self.when_condition_group, job)
-        return evaluation
+        if self.when_condition_group_id is None:
+            return True, []
+
+        workflow_event_data = replace(event_data, workflow_env=self.environment)
+        group_evaluation, remaining_conditions = process_data_condition_group(
+            self.when_condition_group_id, workflow_event_data
+        )
+        return group_evaluation.logic_result, remaining_conditions
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

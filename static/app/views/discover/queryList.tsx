@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -23,6 +23,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {
@@ -43,7 +44,6 @@ import {
 type Props = {
   api: Client;
   location: Location;
-  onQueryChange: () => void;
   organization: Organization;
   pageLinks: string;
   renderPrebuilt: boolean;
@@ -62,7 +62,7 @@ class QueryList extends Component<Props> {
   }
 
   handleDeleteQuery = (eventView: EventView) => {
-    const {api, organization, onQueryChange, location, savedQueries} = this.props;
+    const {api, organization, location, savedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       if (savedQueries.length === 1 && location.query.cursor) {
@@ -70,20 +70,17 @@ class QueryList extends Component<Props> {
           pathname: location.pathname,
           query: {...location.query, cursor: undefined},
         });
-      } else {
-        onQueryChange();
       }
     });
   };
 
   handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    const {api, location, organization, onQueryChange} = this.props;
+    const {api, location, organization} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
-      onQueryChange();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
@@ -149,11 +146,7 @@ class QueryList extends Component<Props> {
     const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
-      const newQuery = organization.features.includes(
-        'performance-discover-dataset-selector'
-      )
-        ? (getSavedQueryWithDataset(view) as NewQuery)
-        : view;
+      const newQuery = getSavedQueryWithDataset(view) as NewQuery;
       const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
       // if a search is performed on the list of queries, we filter
@@ -173,7 +166,7 @@ class QueryList extends Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? view.queryDataset : undefined
       );
@@ -191,11 +184,12 @@ class QueryList extends Component<Props> {
               yAxis: view?.yAxis,
               router,
               widgetType: hasDatasetSelector(organization)
-                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                     getSavedQueryDataset(organization, location, newQuery)
                   ]
                 : undefined,
+              source: DashboardWidgetSource.DISCOVERV2,
             }),
         },
         {
@@ -256,11 +250,7 @@ class QueryList extends Component<Props> {
     }
 
     return savedQueries.map((query, index) => {
-      const savedQuery = organization.features.includes(
-        'performance-discover-dataset-selector'
-      )
-        ? (getSavedQueryWithDataset(query) as SavedQuery)
-        : query;
+      const savedQuery = getSavedQueryWithDataset(query) as SavedQuery;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
@@ -268,7 +258,7 @@ class QueryList extends Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = eventView.getResultsViewShortUrlTarget(organization.slug);
+      const to = eventView.getResultsViewShortUrlTarget(organization);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
@@ -287,11 +277,12 @@ class QueryList extends Component<Props> {
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,
                     router,
                     widgetType: hasDatasetSelector(organization)
-                      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                           getSavedQueryDataset(organization, location, savedQuery)
                         ]
                       : undefined,
+                    source: DashboardWidgetSource.DISCOVERV2,
                   }),
               },
             ]

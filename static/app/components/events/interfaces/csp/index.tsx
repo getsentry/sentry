@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -50,13 +50,13 @@ export function Csp({data, event}: Props) {
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
   const cleanData =
-    data.original_policy !== 'string'
-      ? data
-      : {
+    data.original_policy === 'string'
+      ? {
           ...data,
           // Hide the report-uri since this is redundant and silly
           original_policy: data.original_policy.replace(/(;\s+)?report-uri [^;]+/, ''),
-        };
+        }
+      : data;
 
   const actions = (
     <SegmentedControl aria-label={t('View')} size="xs" value={view} onChange={setView}>

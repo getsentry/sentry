@@ -1,10 +1,12 @@
 import type {mat3, vec2} from 'gl-matrix';
 
-import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {
+  ColorChannels,
+  FlamegraphTheme,
+} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {upperBound} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
-
-import {upperBound} from '../gl/utils';
 
 export type UIFramesRendererConstructor = new (
   canvas: HTMLCanvasElement,
@@ -68,9 +70,7 @@ export abstract class UIFramesRenderer {
     return null;
   }
 
-  getColorForFrame(
-    type: UIFrames['frames'][0]['type']
-  ): [number, number, number, number] {
+  getColorForFrame(type: UIFrames['frames'][0]['type']): ColorChannels {
     if (type === 'frozen') {
       return this.theme.COLORS.UI_FRAME_COLOR_FROZEN;
     }

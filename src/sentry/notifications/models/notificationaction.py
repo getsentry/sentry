@@ -86,6 +86,8 @@ class ActionTarget(FlexibleIntEnum):
     TEAM = 2
     # The target_identifier is an id from the SentryApp model in Sentry
     SENTRY_APP = 3
+    # There is no target_identifier, but we want to send notifications to the issue owners
+    ISSUE_OWNERS = 4
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -94,6 +96,7 @@ class ActionTarget(FlexibleIntEnum):
             (cls.USER.value, "user"),
             (cls.TEAM.value, "team"),
             (cls.SENTRY_APP.value, "sentry_app"),
+            (cls.ISSUE_OWNERS.value, "issue_owners"),
         )
 
 

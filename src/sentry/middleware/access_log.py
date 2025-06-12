@@ -4,7 +4,6 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 from django.conf import settings
 from django.utils.encoding import force_str
@@ -30,22 +29,21 @@ class _AccessLogMetaData:
         return time.time() - self.request_start_time
 
 
-RequestAuth = Any
-
-
-def _get_request_auth(request: Request) -> RequestAuth | None:
+def _get_request_auth(request: Request) -> AuthenticatedToken | None:
     if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
         return None
+    # may not be present if request was rejected by a middleware between this
+    # and the auth middleware
     return getattr(request, "auth", None)
 
 
-def _get_token_name(auth: RequestAuth) -> str | None:
-    if not auth:
+def _get_token_name(auth: AuthenticatedToken | None) -> str | None:
+    if auth is None:
         return None
-    if isinstance(auth, AuthenticatedToken):
+    elif isinstance(auth, AuthenticatedToken):
         return auth.kind
-    token_class = getattr(auth, "__class__", None)
-    return token_class.__name__ if token_class else None
+    else:
+        raise AssertionError(f"unreachable: {auth}")
 
 
 def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:

@@ -16,6 +16,7 @@ from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     get_query_hash,
 )
+from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
@@ -135,3 +136,24 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_with_invalid_key_id(self, mock_record_event: MagicMock):
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(
+                HTTP_AUTHORIZATION="JWT "
+                + self._jwt_token("RS256", RS256_KEY, headers={"kid": "fake-kid"})
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_halt_metric(
+            mock_record_event,
+            "JWT contained invalid key_id (kid)",
+        )

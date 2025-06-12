@@ -1,5 +1,5 @@
 from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,6 +25,9 @@ class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
         """
         Send an email requesting a project be created
         """
+
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = OrganizationRequestProjectCreationSerializer(data=request.data)
         if not serializer.is_valid():

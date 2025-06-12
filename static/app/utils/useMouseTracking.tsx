@@ -5,11 +5,16 @@ import * as Sentry from '@sentry/react';
 type CallbackArgs = {height: number; left: number; top: number; width: number};
 
 type Opts<T extends Element> = {
-  elem: RefObject<T>;
+  elem: RefObject<T | null>;
   onPositionChange: (args: undefined | CallbackArgs) => void;
 } & DOMAttributes<T>;
 
-class AbortError extends Error {}
+class AbortError extends Error {
+  constructor() {
+    super();
+    this.name = 'AbortError';
+  }
+}
 
 /**
  * Replacement for `elem.getBoundingClientRect()` which is too laggy for onPositionChange

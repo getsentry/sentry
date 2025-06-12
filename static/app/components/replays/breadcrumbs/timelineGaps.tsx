@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -18,7 +18,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
   const organization = useOrganization();
 
   const gaps = useMemo(() => {
-    const ranges: {left: string; width: string}[] = [];
+    const ranges: Array<{left: string; width: string}> = [];
     let previousVideoEnd = startTimestampMs;
 
     // create gap in timeline when there is a gap between video events larger than 1.1s

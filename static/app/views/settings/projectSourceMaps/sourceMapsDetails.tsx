@@ -1,9 +1,11 @@
 import {Fragment, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -11,7 +13,6 @@ import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -78,7 +79,7 @@ function ArtifactsTableRow({
             'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
             {
               downloadRole,
-              orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+              orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
               settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
             }
           )}
@@ -99,10 +100,7 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = RouteComponentProps<
-  {bundleId: string; orgId: string; projectId: string},
-  {}
-> & {
+type Props = RouteComponentProps<{bundleId: string; orgId: string; projectId: string}> & {
   project: Project;
 };
 
@@ -223,8 +221,8 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
         }
         isEmpty={
           (isDebugIdBundle
-            ? debugIdBundlesArtifactsData?.files ?? []
-            : artifactsData ?? []
+            ? (debugIdBundlesArtifactsData?.files ?? [])
+            : (artifactsData ?? [])
           ).length === 0
         }
         isLoading={isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading}
@@ -284,12 +282,14 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
                       </TimeWrapper>
-                      <StyledTag
-                        type={data.dist ? 'info' : undefined}
-                        tooltipText={data.dist ? undefined : t('No distribution set')}
+                      <Tooltip
+                        title={data.dist ? undefined : t('No distribution set')}
+                        skipWrapper
                       >
-                        {data.dist ?? t('none')}
-                      </StyledTag>
+                        <StyledTag type={data.dist ? 'info' : undefined}>
+                          {data.dist ?? t('none')}
+                        </StyledTag>
+                      </Tooltip>
                     </TimeAndDistWrapper>
                   }
                 />
@@ -299,8 +299,8 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       <Pagination
         pageLinks={
           isDebugIdBundle
-            ? debugIdBundlesArtifactsHeaders?.('Link') ?? ''
-            : artifactsHeaders?.('Link') ?? ''
+            ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
+            : (artifactsHeaders?.('Link') ?? '')
         }
       />
     </Fragment>
@@ -314,10 +314,10 @@ const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
     );
   ${p =>
     p.hasTypeColumn &&
-    `
-  grid-template-columns:
-    minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
-    minmax(74px, max-content);
+    css`
+      grid-template-columns:
+        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+        minmax(74px, max-content);
     `}
 `;
 

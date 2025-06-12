@@ -5,10 +5,10 @@ from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
+from rest_framework import status
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.classifications import IntegrationClassification
@@ -64,7 +64,7 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="lol",
         )
         response = self.run_parser(request)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert (
             response.reason_phrase == "The customer needs to set a Secret Token in their webhook."
         )
@@ -81,7 +81,7 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         response = self.run_parser(request)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.reason_phrase == "The customer's Secret Token is malformed."
         assert_no_webhook_payloads()
 
@@ -106,7 +106,7 @@ class GitlabRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
@@ -126,7 +126,7 @@ class GitlabRequestParserTest(TestCase):
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -183,7 +183,7 @@ class GitlabRequestParserTest(TestCase):
             response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -209,7 +209,7 @@ class GitlabRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -244,11 +244,10 @@ class GitlabRequestParserTest(TestCase):
         integration = self.get_integration()
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
 
-        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(

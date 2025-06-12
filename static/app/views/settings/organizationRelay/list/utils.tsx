@@ -20,10 +20,3 @@ export function getRelaysByPublicKey(relays: Relay[], relayActivities: RelayActi
     return relaysByPublicKey;
   }, {});
 }
-
-/**
- * Returns a short publicKey with only 20 characters
- */
-export function getShortPublicKey(publicKey: Relay['publicKey']) {
-  return publicKey.substring(0, 20);
-}

@@ -1,11 +1,11 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
+from unittest import TestCase
 from unittest.mock import Mock, patch
 
 import orjson
 import pytest
-from dateutil.parser import parse as parse_datetime
 from django.core.serializers import serialize
 from django.db import models
 
@@ -25,7 +25,6 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.fields.uuid import UUIDField
-from sentry.testutils.cases import TestCase
 
 FAKE_EMAIL = "test@fake.com"
 FAKE_NAME = "Fake Name"
@@ -140,8 +139,8 @@ class SanitizationUnitTests(TestCase):
         assert isinstance(s0["uuid"], str)
 
         # Confirm sanitization.
-        assert parse_datetime(f0["date_added"]) < s0["date_added"]
-        assert parse_datetime(f0["date_updated"]) < s0["date_updated"]
+        assert datetime.fromisoformat(f0["date_added"]) < s0["date_added"]
+        assert datetime.fromisoformat(f0["date_updated"]) < s0["date_updated"]
         assert f0["email"] != s0["email"]
         assert f0["name"] != s0["name"]
         assert f0["slug"] != s0["slug"]

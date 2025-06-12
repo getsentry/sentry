@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {
   IconClock,
   IconCursorArrow,
@@ -13,9 +13,9 @@ import {
   IconSentry,
   IconSort,
 } from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('Timeline (Updated 06/17/24)', story => {
+export default Storybook.story('Timeline', story => {
   story('Usage', () => (
     <CodeSnippet language="js">
       import Timeline from 'sentry/components/timeline';

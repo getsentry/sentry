@@ -36,55 +36,52 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     // Error monitoring shall be checked and disabled by default
-    expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Error Monitoring'}));
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Error Monitoring'}));
     expect(
       await screen.findByText(/Let's admit it, we all have errors/)
     ).toBeInTheDocument();
 
     // Try to uncheck error monitoring
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Error Monitoring'}));
-    await waitFor(() => expect(router.push).not.toHaveBeenCalled());
+    await userEvent.click(screen.getByRole('presentation', {name: 'Error Monitoring'}));
+    expect(router.push).not.toHaveBeenCalled();
 
     // Tracing shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeEnabled();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeEnabled();
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Tracing'}));
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Tracing'}));
     expect(
       await screen.findByText(/Automatic performance issue detection/)
     ).toBeInTheDocument();
 
     // Uncheck tracing
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Tracing'}));
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: undefined,
-        query: {product: [ProductSolution.SESSION_REPLAY]},
-      })
-    );
+    await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
+    expect(router.replace).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {product: [ProductSolution.SESSION_REPLAY]},
+    });
 
     // Session replay shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeEnabled();
+    expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeEnabled();
 
     // Uncheck sesseion replay
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: undefined,
-        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-      })
-    );
+    await userEvent.click(screen.getByRole('presentation', {name: 'Session Replay'}));
+    expect(router.replace).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+    });
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Session Replay'}));
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Session Replay'}));
     expect(
       await screen.findByText(/Video-like reproductions of user sessions/)
     ).toBeInTheDocument();
@@ -114,13 +111,14 @@ describe('Onboarding Product Selection', function () {
       />,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
 
     // Tracing shall be unchecked and disabled by default
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).not.toBeChecked();
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Tracing'}));
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeDisabled();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).not.toBeChecked();
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Tracing'}));
 
     // A tooltip with explanation why the option is disabled shall be displayed on hover
     expect(
@@ -128,13 +126,13 @@ describe('Onboarding Product Selection', function () {
         disabledProducts[ProductSolution.PERFORMANCE_MONITORING].reason
       )
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Tracing'}));
+    await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
 
     // Try to uncheck tracing
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
   });
 
-  it('does not render Session Replay', async function () {
+  it('does not render Session Replay if not available for the platform', function () {
     platformProductAvailability['javascript-react'] = [
       ProductSolution.PERFORMANCE_MONITORING,
     ];
@@ -150,25 +148,17 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(
-      screen.queryByRole('checkbox', {name: 'Session Replay'})
+      screen.queryByRole('presentation', {name: 'Session Replay'})
     ).not.toBeInTheDocument();
 
-    // router.replace is called to remove session-replay from query
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            product: [ProductSolution.PERFORMANCE_MONITORING],
-          }),
-        })
-      )
-    );
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('render Profiling', async function () {
+  it('does render Profiling if available for the platform', function () {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -180,20 +170,12 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="python-django" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
-    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
+    expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeInTheDocument();
 
-    // router.replace is called to add profiling from query
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-          }),
-        })
-      )
-    );
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('renders with non-errors features disabled for errors only self-hosted', function () {
@@ -215,13 +197,30 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
-    expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeEnabled();
+    expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeDisabled();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeDisabled();
+    expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeDisabled();
+  });
 
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
+  it('does not select any products by default', function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {},
+        },
+        params: {},
+      },
+    });
 
-    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
+    render(<ProductSelection organization={organization} platform="python" />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
+
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('triggers onChange callback', async function () {
@@ -244,10 +243,31 @@ describe('Onboarding Product Selection', function () {
       />,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Profiling'}));
+    await userEvent.click(screen.getByRole('presentation', {name: 'Profiling'}));
     expect(handleChange).toHaveBeenCalledWith(['performance-monitoring', 'profiling']);
+  });
+
+  it('does not overwrite URL products if others are present', function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: ['invalid-product', ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
+
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
+
+    expect(router.replace).not.toHaveBeenCalled();
   });
 });

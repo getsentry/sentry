@@ -12,12 +12,14 @@ import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-que
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
 import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
+import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insights-session-health-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
@@ -27,6 +29,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
@@ -34,15 +37,14 @@ import {
   MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import PerformanceOnboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-export function ModulesOnboarding({
-  children,
-  moduleName,
-}: {
+type ModuleOnboardingProps = {
   children: React.ReactNode;
   moduleName: ModuleName;
-}) {
+};
+
+export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {reloadProjects} = useProjects();
@@ -61,7 +63,7 @@ export function ModulesOnboarding({
   if (onboardingProject) {
     return (
       <ModuleLayout.Full>
-        <PerformanceOnboarding organization={organization} project={onboardingProject} />
+        <LegacyOnboarding organization={organization} project={onboardingProject} />
       </ModuleLayout.Full>
     );
   }
@@ -77,8 +79,15 @@ export function ModulesOnboarding({
   return children;
 }
 
-function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+  const {view} = useDomainViewFilters();
+  const docLink =
+    typeof MODULE_PRODUCT_DOC_LINKS[moduleName] === 'string'
+      ? MODULE_PRODUCT_DOC_LINKS[moduleName]
+      : view && MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        ? MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        : '';
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
@@ -105,11 +114,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
             <PerfImage src={emptyStateImg} />
           </Sidebar>
         </SplitMainContent>
-        <LinkButton
-          priority="primary"
-          external
-          href={MODULE_PRODUCT_DOC_LINKS[moduleName]}
-        >
+        <LinkButton priority="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
       </Container>
@@ -119,8 +124,13 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
 
 type ModulePreviewProps = {moduleName: ModuleName};
 
+function getSDKName(sdk: PlatformKey) {
+  const currentPlatform = platforms.find(p => p.id === sdk);
+  return currentPlatform?.name;
+}
+
 function ModulePreview({moduleName}: ModulePreviewProps) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
@@ -132,7 +142,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
             {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
-              <Tooltip title={startCase(sdk)} key={sdk} position="top">
+              <Tooltip title={getSDKName(sdk) ?? startCase(sdk)} key={sdk} position="top">
                 <SupportedSdkIconContainer
                   onMouseOver={() => setHoveredIcon(sdk)}
                   onMouseOut={() => setHoveredIcon(null)}
@@ -210,7 +220,7 @@ const SupportedSdkContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SupportedSdkList = styled('div')`
@@ -272,7 +282,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   ai: {
-    heading: t('Find out what your LLM model is actually saying'),
+    heading: t('Find out what your LLM is actually saying'),
     description: tct(
       'Get insights into critical [dataType] metrics, like token usage, to monitor and fix issues with AI pipelines.',
       {
@@ -297,7 +307,13 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: llmPreviewImg,
     supportedSdks: ['python'],
   },
-  // Mobile UI is not released yet
+  agents: {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -305,9 +321,8 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
-  // Mobile Screens is not released yet
-  'mobile-screens': {
-    heading: t('Mobile Screens'),
+  'mobile-vitals': {
+    heading: t('Mobile Vitals'),
     description: t('Explore mobile app metrics.'),
     valuePropDescription: '',
     valuePropPoints: [],
@@ -482,20 +497,36 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-  // XXX(epurkhiser): Crons does not use the insights onboarding component.
-  crons: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
-  },
-  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
-  uptime: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
+  sessions: {
+    heading: t(`Get insights about your application's session health`),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+      t('Comparing adoption rates across different releases.'),
+      t('Visualizing user adoption over time.'),
+    ],
+    imageSrc: sessionHealthPreviewImg,
+    supportedSdks: [
+      'android',
+      'flutter',
+      'apple-ios',
+      'javascript',
+      'electron',
+      'native',
+      'php',
+      'python',
+      'react-native',
+      'dotnet',
+      'rust',
+      'unity',
+    ], // this techncially isn't the full list - we support JS browser & node but it seems like too many SDKs to list here
   },
 };

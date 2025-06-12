@@ -17,7 +17,7 @@ describe('useRouteAnalyticsEventNames', function () {
       eventName: string,
       extraContext?: Record<string, any>
     ) => (
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           setDisableRouteAnalytics: jest.fn(),
           setRouteAnalyticsParams: jest.fn(),
@@ -28,7 +28,7 @@ describe('useRouteAnalyticsEventNames', function () {
         }}
       >
         <TestComponent {...{eventKey, eventName}} />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
     const {rerender} = render(getComponent('a', 'b'));
     expect(setEventNames).toHaveBeenCalledWith('a', 'b');

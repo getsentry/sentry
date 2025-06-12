@@ -12,9 +12,7 @@ import {createDefinedContext} from './utils';
 
 type QueryObject = {
   includeAllArgs: boolean | undefined;
-  query: {
-    [k: string]: any;
-  };
+  query: Record<string, any>;
 }; // TODO(k-fish): Fix to ensure exact types for all requests. Simplified type for now, need to pull this in from events file.
 
 export type Transform = (data: any, queryDefinition: BatchQueryDefinition) => any;
@@ -55,24 +53,19 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   const mergeMap: MergeMap = {};
 
   keys.forEach(key => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const query = collectedQueries[key];
     mergeMap[mergeKey(query)] = mergeMap[mergeKey(query)] || [];
     mergeMap[mergeKey(query)]!.push(query);
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     delete collectedQueries[key];
   });
 
   return mergeMap;
 }
 
-function requestFunction(api: Client, path: string, queryObject: QueryObject) {
-  return api.requestPromise(path, queryObject);
-}
-
 function _handleUnmergeableQuery(queryDefinition: BatchQueryDefinition) {
-  const result = requestFunction(
-    queryDefinition.api,
+  const result = queryDefinition.api.requestPromise(
     queryDefinition.path,
     queryDefinition.requestQueryObject
   );
@@ -130,8 +123,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
     requestQueryObject.query[batchProperty] = batchValues;
 
     queriesSent++;
-    const requestPromise = requestFunction(
-      exampleDefinition!.api,
+    const requestPromise = exampleDefinition!.api.requestPromise(
       exampleDefinition!.path,
       requestQueryObject
     );
@@ -273,13 +265,13 @@ export function QueryBatchNode(props: {
   };
 
   return (
-    <BatchNodeContext.Provider
+    <BatchNodeContext
       value={{
         id,
         batchProperty,
       }}
     >
       {children({queryBatching})}
-    </BatchNodeContext.Provider>
+    </BatchNodeContext>
   );
 }

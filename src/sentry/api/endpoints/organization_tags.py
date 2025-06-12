@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import clamp_date_range, handle_query_errors
 from sentry.snuba.dataset import Dataset
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 
 
 @region_silo_endpoint
@@ -53,7 +53,16 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                         ),
                     )
 
-                results = tagstore.backend.get_tag_keys_for_projects(
+                # Flags are stored on the same table as tags but on a different column. Ideally
+                # both could be queried in a single request. But at present we're not sure if we
+                # want to treat tags and flags as the same or different and in which context.
+                use_flag_backend = request.GET.get("useFlagsBackend") == "1"
+                if use_flag_backend:
+                    backend = tagstore.flag_backend
+                else:
+                    backend = tagstore.backend
+
+                results = backend.get_tag_keys_for_projects(
                     filter_params["project_id"],
                     filter_params.get("environment"),
                     start,
@@ -74,6 +83,6 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     format_grouped_length(len(results), [1, 10, 50, 100]),
                 )
                 sentry_sdk.set_tag("dataset_queried", dataset.value)
-                set_measurement("custom_tags.count", len(results))
+                set_span_attribute("custom_tags.count", len(results))
 
         return Response(serialize(results, request.user))

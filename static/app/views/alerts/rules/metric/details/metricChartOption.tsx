@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import color from 'color';
 import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
@@ -5,18 +6,15 @@ import moment from 'moment-timezone';
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
-import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
@@ -29,13 +27,8 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
-
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return moment(date).format(format);
 }
 
 function createStatusAreaSeries(
@@ -45,7 +38,7 @@ function createStatusAreaSeries(
   yPosition: number
 ): AreaChartSeries {
   return {
-    seriesName: '',
+    seriesName: 'Status Area',
     type: 'line',
     markLine: MarkLine({
       silent: true,
@@ -111,7 +104,7 @@ function createIncidentSeries(
       data: [
         {
           xAxis: incidentTimestamp,
-          // @ts-ignore TS(2322): Type '{ xAxis: number; onClick: () => void | undef... Remove this comment to see the full error message
+          // @ts-expect-error TS(2322): Type '{ xAxis: number; onClick: () => void | undef... Remove this comment to see the full error message
           onClick: () => handleIncidentClick?.(incident),
         },
       ],
@@ -156,16 +149,19 @@ type MetricChartOption = {
   warningDuration: number;
 };
 
-export function getMetricAlertChartOption({
-  timeseriesData,
-  rule,
-  seriesName,
-  incidents,
-  selectedIncident,
-  handleIncidentClick,
-  showWaitingForData,
-  anomalies,
-}: MetricChartData): MetricChartOption {
+export function getMetricAlertChartOption(
+  {
+    timeseriesData,
+    rule,
+    seriesName,
+    incidents,
+    selectedIncident,
+    handleIncidentClick,
+    showWaitingForData,
+    anomalies,
+  }: MetricChartData,
+  theme: Theme
+): MetricChartOption {
   let criticalTrigger: Trigger | undefined;
   let warningTrigger: Trigger | undefined;
 
@@ -181,14 +177,12 @@ export function getMetricAlertChartOption({
     }
   }
 
-  const series: AreaChartSeries[] = timeseriesData.map(s => ({
-    ...s,
-    seriesName: s.seriesName && formatMRIField(s.seriesName),
-  }));
+  const series: AreaChartSeries[] = timeseriesData.map(s => s);
   const areaSeries: AreaChartSeries[] = [];
+  const colors = theme.chart.getColorPalette(0);
   // Ensure series data appears below incident/mark lines
   series[0]!.z = 1;
-  series[0]!.color = CHART_PALETTE[0][0];
+  series[0]!.color = colors[0];
 
   const dataArr = timeseriesData[0]!.data;
 
@@ -218,9 +212,9 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
-  const startDate = new Date(dataArr[0]!?.name);
-  const endDate =
-    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]!?.name) : new Date();
+  const startDate = new Date(dataArr[0]?.name!);
+
+  const endDate = dataArr.length > 1 ? new Date(dataArr.at(-1)!.name) : new Date();
   const firstPoint = startDate.getTime();
   const lastPoint = endDate.getTime();
   const totalDuration = lastPoint - firstPoint;
@@ -234,8 +228,8 @@ export function getMetricAlertChartOption({
 
   if (showWaitingForData) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
-    const startTime = new Date(dataArr[startIndex]!?.name).getTime();
-    const endTime = new Date(dataArr[endIndex]!?.name).getTime();
+    const startTime = new Date(dataArr[startIndex]?.name!).getTime();
+    const endTime = new Date(dataArr[endIndex]?.name!).getTime();
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
@@ -261,14 +255,14 @@ export function getMetricAlertChartOption({
               new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime()
           );
 
-        const incidentEnd = incident.dateClosed ?? new Date().getTime();
+        const incidentEnd = incident.dateClosed ?? Date.now();
 
         const timeWindowMs = rule.timeWindow * 60 * 1000;
         const incidentColor =
           warningTrigger &&
-          !statusChanges.find(({value}) => Number(value) === IncidentStatus.CRITICAL)
-            ? theme.yellow300
-            : theme.red300;
+          statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
+            ? theme.red300
+            : theme.yellow300;
 
         const incidentStartDate = new Date(incident.dateStarted).getTime();
         const incidentCloseDate = incident.dateClosed
@@ -361,7 +355,7 @@ export function getMetricAlertChartOption({
       });
   }
   if (anomalies) {
-    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate}));
+    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate, theme}));
   }
   let maxThresholdValue = 0;
   if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {
@@ -452,7 +446,7 @@ export function transformSessionResponseToSeries(
       data: getCrashFreeRateSeries(
         response?.groups,
         response?.intervals,
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         SESSION_AGGREGATE_TO_FIELD[aggregate]
       ),
     },

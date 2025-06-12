@@ -1,0 +1,30 @@
+---
+created: '2025-02-19T15:23:47.253902+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "message"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "message"
+  }
+}
+---
+contributing variants:
+  default*
+    hash: "5738610e83ae31822805f0f3e687fc97"
+    contributing component: message
+    component:
+      default*
+        message*
+          "Message for scoped event"

@@ -9,7 +9,7 @@ import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtuali
 
 import type {VirtualizedState} from './useVirtualizedTreeReducer';
 
-export function updateGhostRow({
+function updateGhostRow({
   element,
   selectedNodeIndex,
   rowHeight,
@@ -41,7 +41,7 @@ export function updateGhostRow({
 
 export function markRowAsHovered(
   hoveredRowKey: VirtualizedTreeRenderedRow<any>['key'] | null,
-  renderedItems: VirtualizedTreeRenderedRow<any>[],
+  renderedItems: Array<VirtualizedTreeRenderedRow<any>>,
   {
     rowHeight,
     scrollTop,
@@ -80,7 +80,7 @@ export function markRowAsHovered(
 
 export function markRowAsClicked(
   clickedRowKey: VirtualizedTreeRenderedRow<any>['key'] | null,
-  renderedItems: VirtualizedTreeRenderedRow<any>[],
+  renderedItems: Array<VirtualizedTreeRenderedRow<any>>,
   {
     rowHeight,
     scrollTop,
@@ -124,7 +124,7 @@ type AnimationTimeoutId = {
 };
 
 export function requestAnimationTimeout(
-  callback: Function,
+  callback: () => void,
   delay: number
 ): AnimationTimeoutId {
   let start: any;
@@ -156,14 +156,14 @@ export function cancelAnimationTimeout(frame: AnimationTimeoutId) {
   window.cancelAnimationFrame(frame.id);
 }
 
-export function findOptimisticStartIndex<T extends TreeLike>({
+function findOptimisticStartIndex<T extends TreeLike>({
   items,
   overscroll,
   rowHeight,
   scrollTop,
   viewport,
 }: {
-  items: VirtualizedTreeNode<T>[];
+  items: Array<VirtualizedTreeNode<T>>;
   overscroll: number;
   rowHeight: number;
   scrollTop: number;
@@ -189,7 +189,7 @@ export function findRenderedItems<T extends TreeLike>({
   scrollHeight,
   scrollTop,
 }: {
-  items: VirtualizedTreeNode<T>[];
+  items: Array<VirtualizedTreeNode<T>>;
   overscroll: NonNullable<UseVirtualizedTreeProps<T>['overscroll']>;
   rowHeight: UseVirtualizedTreeProps<T>['rowHeight'];
   scrollHeight: VirtualizedState<T>['scrollHeight'];
@@ -198,7 +198,7 @@ export function findRenderedItems<T extends TreeLike>({
   // This is overscroll height for single direction, when computing the total,
   // we need to multiply this by 2 because we overscroll in both directions.
   const OVERSCROLL_HEIGHT = overscroll * rowHeight;
-  const renderedRows: VirtualizedTreeRenderedRow<T>[] = [];
+  const renderedRows: Array<VirtualizedTreeRenderedRow<T>> = [];
 
   // Clamp viewport to scrollHeight bounds [0, length * rowHeight] because some browsers may fire
   // scrollTop with negative values when the user scrolls up past the top of the list (overscroll behavior)

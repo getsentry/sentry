@@ -1,8 +1,6 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -12,6 +10,8 @@ import {
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
@@ -21,20 +21,20 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
-import {CronServiceIncidents} from 'sentry/views/monitors/components/serviceIncidents';
-import type {MonitorBucket} from 'sentry/views/monitors/types';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {ResolutionSelector} from 'sentry/views/insights/crons/components/overviewTimeline/resolutionSelector';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import {
   checkInStatusPrecedent,
   statusToText,
   tickStyle,
-} from 'sentry/views/monitors/utils';
-import {selectCheckInData} from 'sentry/views/monitors/utils/selectCheckInData';
+} from 'sentry/views/insights/crons/utils';
+import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
+import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
   event: Event;
@@ -57,26 +57,12 @@ export function CronTimelineSection({event, organization, project}: Props) {
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
-  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isPending} = useApiQuery<Record<string, MonitorBucket[]>>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          until: Math.floor(end.getTime() / 1000),
-          since: Math.floor(start.getTime() / 1000),
-          monitor: monitorId,
-          resolution: `${rollup}s`,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: !!monitorId && timelineWidth > 0,
-    }
-  );
+  const {data: monitorStats, isPending} = useMonitorStats({
+    timeWindowConfig,
+    monitors: [monitorId ?? ''],
+    enabled: monitorId !== undefined,
+  });
 
   if (!monitorId) {
     return null;
@@ -92,7 +78,10 @@ export function CronTimelineSection({event, organization, project}: Props) {
         size="xs"
         icon={<IconOpen />}
         to={{
-          pathname: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${monitorSlug}/details/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/crons/${project.slug}/${monitorSlug}/details/`,
+            organization,
+          }),
           query: {environment},
         }}
       >
@@ -118,6 +107,8 @@ export function CronTimelineSection({event, organization, project}: Props) {
           additionalUi={
             !isPending && <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
           }
+          cursorOverlayAnchor="top"
+          cursorOverlayAnchorOffset={10}
         />
         {monitorStats && !isPending ? (
           <Fragment>

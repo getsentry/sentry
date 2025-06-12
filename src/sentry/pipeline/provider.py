@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
+
+from sentry.db.models.base import Model
+from sentry.pipeline.store import PipelineSessionStore
 
 if TYPE_CHECKING:
     from sentry.pipeline import Pipeline
     from sentry.pipeline.views.base import PipelineView
 
 
-class PipelineProvider(abc.ABC):
+class PipelineProvider[M: Model, S: PipelineSessionStore](abc.ABC):
     """
     A class implementing the PipelineProvider interface provides the pipeline
     views that the Pipeline will traverse through.
@@ -31,7 +34,7 @@ class PipelineProvider(abc.ABC):
         """A human readable name (e.g. 'Slack')."""
 
     @abc.abstractmethod
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[M, S] | Callable[[], PipelineView[M, S]]]:
         """
         Returns a list of instantiated views which implement the PipelineView
         interface. Each view will be dispatched in order.
@@ -46,7 +49,7 @@ class PipelineProvider(abc.ABC):
         """
         self.config.update(config)
 
-    def set_pipeline(self, pipeline: Pipeline) -> None:
+    def set_pipeline(self, pipeline: Pipeline[M, S]) -> None:
         """
         Used by the pipeline to give the provider access to the executing pipeline.
         """

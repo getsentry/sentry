@@ -5,7 +5,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
@@ -21,8 +20,7 @@ import {
   vitalNameFromLocation,
 } from './vitalDetail/utils';
 
-export const DEFAULT_STATS_PERIOD = '7d';
-export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
+export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
 export const COLUMN_TITLES = [
@@ -47,13 +45,6 @@ export const USER_MISERY_TOOLTIP = tct(
 );
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
-
-export const getDefaultStatsPeriod = (organization: Organization) => {
-  if (organization.features.includes('performance-landing-page-stats-period')) {
-    return '14d';
-  }
-  return DEFAULT_STATS_PERIOD;
-};
 
 export enum PerformanceTerm {
   TPM = 'tpm',
@@ -85,262 +76,6 @@ export enum PerformanceTerm {
   MOST_TIME_CONSUMING_RESOURCES = 'mostTimeConsumingResources',
   MOST_TIME_CONSUMING_DOMAINS = 'mostTimeConsumingDomains',
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highestCacheMissRateTransactions',
-}
-
-export type TooltipOption = SelectValue<string> & {
-  tooltip: string;
-};
-
-export function getAxisOptions(organization: Organization): TooltipOption[] {
-  return [
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APDEX),
-      value: 'apdex()',
-      label: t('Apdex'),
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
-      value: 'tpm()',
-      label: t('Transactions Per Minute'),
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
-      value: 'failure_rate()',
-      label: t('Failure Rate'),
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P50),
-      value: 'p50()',
-      label: t('p50 Duration'),
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P95),
-      value: 'p95()',
-      label: t('p95 Duration'),
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P99),
-      value: 'p99()',
-      label: t('p99 Duration'),
-    },
-  ];
-}
-
-export type AxisOption = TooltipOption & {
-  field: string;
-  label: string;
-  backupOption?: AxisOption;
-  isDistribution?: boolean;
-  isLeftDefault?: boolean;
-  isRightDefault?: boolean;
-};
-
-export function getFrontendAxisOptions(organization: Organization): AxisOption[] {
-  return [
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.LCP),
-      value: `p75(lcp)`,
-      label: t('LCP p75'),
-      field: 'p75(measurements.lcp)',
-      isLeftDefault: true,
-      backupOption: {
-        tooltip: getTermHelp(organization, PerformanceTerm.FCP),
-        value: `p75(fcp)`,
-        label: t('FCP p75'),
-        field: 'p75(measurements.fcp)',
-      },
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-      value: 'lcp_distribution',
-      label: t('LCP Distribution'),
-      field: 'measurements.lcp',
-      isDistribution: true,
-      isRightDefault: true,
-      backupOption: {
-        tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-        value: 'fcp_distribution',
-        label: t('FCP Distribution'),
-        field: 'measurements.fcp',
-        isDistribution: true,
-      },
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
-      value: 'tpm()',
-      label: t('Transactions Per Minute'),
-      field: 'tpm()',
-    },
-  ];
-}
-
-export function getFrontendOtherAxisOptions(organization: Organization): AxisOption[] {
-  return [
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P50),
-      value: `p50()`,
-      label: t('Duration p50'),
-      field: 'p50(transaction.duration)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P75),
-      value: `p75()`,
-      label: t('Duration p75'),
-      field: 'p75(transaction.duration)',
-      isLeftDefault: true,
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P95),
-      value: `p95()`,
-      label: t('Duration p95'),
-      field: 'p95(transaction.duration)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-      value: 'duration_distribution',
-      label: t('Duration Distribution'),
-      field: 'transaction.duration',
-      isDistribution: true,
-      isRightDefault: true,
-    },
-  ];
-}
-
-export function getBackendAxisOptions(organization: Organization): AxisOption[] {
-  return [
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P50),
-      value: `p50()`,
-      label: t('Duration p50'),
-      field: 'p50(transaction.duration)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P75),
-      value: `p75()`,
-      label: t('Duration p75'),
-      field: 'p75(transaction.duration)',
-      isLeftDefault: true,
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P95),
-      value: `p95()`,
-      label: t('Duration p95'),
-      field: 'p95(transaction.duration)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.P99),
-      value: `p99()`,
-      label: t('Duration p99'),
-      field: 'p99(transaction.duration)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
-      value: 'tpm()',
-      label: t('Transactions Per Minute'),
-      field: 'tpm()',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
-      value: 'failure_rate()',
-      label: t('Failure Rate'),
-      field: 'failure_rate()',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-      value: 'duration_distribution',
-      label: t('Duration Distribution'),
-      field: 'transaction.duration',
-      isDistribution: true,
-      isRightDefault: true,
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APDEX),
-      value: 'apdex()',
-      label: t('Apdex'),
-      field: 'apdex()',
-    },
-  ];
-}
-
-export function getMobileAxisOptions(organization: Organization): AxisOption[] {
-  return [
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
-      value: `p50(measurements.app_start_cold)`,
-      label: t('Cold Start Duration p50'),
-      field: 'p50(measurements.app_start_cold)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
-      value: `p75(measurements.app_start_cold)`,
-      label: t('Cold Start Duration p75'),
-      field: 'p75(measurements.app_start_cold)',
-      isLeftDefault: true,
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
-      value: `p95(measurements.app_start_cold)`,
-      label: t('Cold Start Duration p95'),
-      field: 'p95(measurements.app_start_cold)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
-      value: `p99(measurements.app_start_cold)`,
-      label: t('Cold Start Duration p99'),
-      field: 'p99(measurements.app_start_cold)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-      value: 'app_start_cold_distribution',
-      label: t('Cold Start Distribution'),
-      field: 'measurements.app_start_cold',
-      isDistribution: true,
-      isRightDefault: true,
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
-      value: `p50(measurements.app_start_warm)`,
-      label: t('Warm Start Duration p50'),
-      field: 'p50(measurements.app_start_warm)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
-      value: `p75(measurements.app_start_warm)`,
-      label: t('Warm Start Duration p75'),
-      field: 'p75(measurements.app_start_warm)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
-      value: `p95(measurements.app_start_warm)`,
-      label: t('Warm Start Duration p95'),
-      field: 'p95(measurements.app_start_warm)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
-      value: `p99(measurements.app_start_warm)`,
-      label: t('Warm Start Duration p99'),
-      field: 'p99(measurements.app_start_warm)',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-      value: 'app_start_warm_distribution',
-      label: t('Warm Start Distribution'),
-      field: 'measurements.app_start_warm',
-      isDistribution: true,
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
-      value: 'tpm()',
-      label: t('Transactions Per Minute'),
-      field: 'tpm()',
-    },
-    {
-      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
-      value: 'failure_rate()',
-      label: t('Failure Rate'),
-      field: 'failure_rate()',
-    },
-  ];
 }
 
 type TermFormatter = (organization: Organization) => string;
@@ -479,12 +214,12 @@ export function generateGenericPerformanceEventView(
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
+    savedQuery.range = DEFAULT_STATS_PERIOD;
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -499,7 +234,7 @@ export function generateGenericPerformanceEventView(
     // be present in location and will not be determined based on the project type
     const trendParameter = getCurrentTrendParameter(location, [], []);
     if (
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       WEB_VITAL_DETAILS[trendParameter.column] &&
       !organization.features.includes('performance-new-trends')
     ) {
@@ -513,7 +248,7 @@ export function generateGenericPerformanceEventView(
 export function generateBackendPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
-  organization: Organization
+  useEap = false
 ): EventView {
   const {query} = location;
 
@@ -537,18 +272,18 @@ export function generateBackendPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction',
+    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
+    savedQuery.range = DEFAULT_STATS_PERIOD;
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -557,7 +292,11 @@ export function generateBackendPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  if (useEap) {
+    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
+  } else {
+    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  }
 
   return eventView;
 }
@@ -567,7 +306,8 @@ export function generateMobilePerformanceEventView(
   projects: Project[],
   genericEventView: EventView,
   withStaticFilters: boolean,
-  organization: Organization
+  organization: Organization,
+  useEap = false
 ): EventView {
   const {query} = location;
 
@@ -604,18 +344,18 @@ export function generateMobilePerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction',
+    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
     projects: [],
     fields: [...fields, 'count_unique(user)', 'count_miserable(user)', 'user_misery()'],
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
+    savedQuery.range = DEFAULT_STATS_PERIOD;
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -624,15 +364,18 @@ export function generateMobilePerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  if (useEap) {
+    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
+  } else {
+    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  }
 
   return eventView;
 }
 
 function generateFrontendPageloadPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean,
-  organization: Organization
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -660,12 +403,12 @@ function generateFrontendPageloadPerformanceEventView(
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
+    savedQuery.range = DEFAULT_STATS_PERIOD;
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -683,7 +426,7 @@ function generateFrontendPageloadPerformanceEventView(
 export function generateFrontendOtherPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
-  organization: Organization
+  useEap = false
 ): EventView {
   const {query} = location;
 
@@ -705,18 +448,18 @@ export function generateFrontendOtherPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction',
+    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
+    savedQuery.range = DEFAULT_STATS_PERIOD;
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -725,7 +468,11 @@ export function generateFrontendOtherPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  if (useEap) {
+    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
+  } else {
+    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  }
 
   return eventView;
 }
@@ -748,23 +495,11 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(
-        location,
-        withStaticFilters,
-        organization
-      );
+      return generateFrontendPageloadPerformanceEventView(location, withStaticFilters);
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(
-        location,
-        withStaticFilters,
-        organization
-      );
+      return generateFrontendOtherPerformanceEventView(location, withStaticFilters);
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(
-        location,
-        withStaticFilters,
-        organization
-      );
+      return generateBackendPerformanceEventView(location, withStaticFilters);
     case LandingDisplayField.MOBILE:
       return generateMobilePerformanceEventView(
         location,
@@ -778,10 +513,7 @@ export function generatePerformanceEventView(
   }
 }
 
-export function generatePerformanceVitalDetailView(
-  location: Location,
-  organization: Organization
-): EventView {
+export function generatePerformanceVitalDetailView(location: Location): EventView {
   const {query} = location;
 
   const vitalName = vitalNameFromLocation(location);
@@ -809,7 +541,7 @@ export function generatePerformanceVitalDetailView(
   };
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
+    savedQuery.range = DEFAULT_STATS_PERIOD;
   }
   savedQuery.orderby = decodeScalar(query.sort, '-count');
 

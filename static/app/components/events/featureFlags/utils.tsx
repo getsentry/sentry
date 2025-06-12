@@ -6,22 +6,29 @@ export enum OrderBy {
   OLDEST = 'oldest',
   A_TO_Z = 'a-z',
   Z_TO_A = 'z-a',
+  HIGH_TO_LOW = 'high to low',
+  LOW_TO_HIGH = 'low to high',
 }
 
 export enum SortBy {
   EVAL_ORDER = 'eval',
   ALPHABETICAL = 'alphabetical',
+  SUSPICION = 'suspicion',
+  DISTRIBUTION = 'distribution',
 }
 
-export const getSelectionType = (selection: string) => {
+export const getSelectionType = (selection: string): SortBy => {
   switch (selection) {
+    case OrderBy.HIGH_TO_LOW:
+    case OrderBy.LOW_TO_HIGH:
+      return SortBy.DISTRIBUTION;
     case OrderBy.A_TO_Z:
     case OrderBy.Z_TO_A:
-      return 'alphabetical';
+      return SortBy.ALPHABETICAL;
     case OrderBy.OLDEST:
     case OrderBy.NEWEST:
     default:
-      return 'eval';
+      return SortBy.EVAL_ORDER;
   }
 };
 
@@ -43,14 +50,27 @@ const getSortByLabel = (sort: string) => {
   switch (sort) {
     case SortBy.ALPHABETICAL:
       return t('Alphabetical');
+    case SortBy.DISTRIBUTION:
+      return t('Distribution');
+    case SortBy.SUSPICION:
+      return t('Suspiciousness');
     case SortBy.EVAL_ORDER:
     default:
       return t('Evaluation Order');
   }
 };
 
-export const getDefaultOrderBy = (sortBy: SortBy) => {
-  return sortBy === SortBy.EVAL_ORDER ? OrderBy.NEWEST : OrderBy.A_TO_Z;
+export const getDefaultOrderBy = (sortBy: SortBy): OrderBy => {
+  switch (sortBy) {
+    case SortBy.DISTRIBUTION:
+    case SortBy.SUSPICION:
+      return OrderBy.HIGH_TO_LOW;
+    case SortBy.EVAL_ORDER:
+      return OrderBy.NEWEST;
+    case SortBy.ALPHABETICAL:
+    default:
+      return OrderBy.A_TO_Z;
+  }
 };
 
 export const SORT_BY_OPTIONS = [
@@ -88,7 +108,7 @@ export const enum FlagControlOptions {
   SORT = 'sort',
 }
 
-export const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
   return [...flags].sort((a, b) => {
     return a.item.key.localeCompare(b.item.key);
   });
@@ -113,24 +133,29 @@ export const sortedFlags = ({
   }
 };
 
-export enum ProviderOptions {
+// Supported Feature Flag Providers. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
+export enum WebhookProviderEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
-  GENERIC = 'Generic',
+  STATSIG = 'Statsig',
   UNLEASH = 'Unleash',
+  GENERIC = 'Generic',
 }
 
-export enum IntegrationOptions {
+// Supported Feature Flag SDKs. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
+export enum SdkProviderEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',
-  GENERIC = 'Generic',
+  STATSIG = 'Statsig',
   UNLEASH = 'Unleash',
+  GENERIC = 'Generic',
 }
 
-export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string | undefined> = {
-  [ProviderOptions.LAUNCHDARKLY]:
-    'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
-  [ProviderOptions.UNLEASH]:
-    'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
-  [ProviderOptions.GENERIC]:
+export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<WebhookProviderEnum, string> = {
+  [WebhookProviderEnum.GENERIC]:
     'https://docs.sentry.io/organization/integrations/feature-flag/generic/#set-up-change-tracking',
+  [WebhookProviderEnum.LAUNCHDARKLY]:
+    'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
+  [WebhookProviderEnum.STATSIG]: 'https://console.statsig.com/integrations', // Expecting this to redirect to /<proj-id>/integrations
+  [WebhookProviderEnum.UNLEASH]:
+    'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
 };

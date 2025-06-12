@@ -2,8 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -17,7 +17,7 @@ type Props = {
   hasSimilarityEmbeddingsFeature: boolean;
   onMerge: () => void;
   groupId?: string;
-  itemsWouldGroup?: {id: string; shouldBeGrouped: string | undefined}[] | undefined;
+  itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
   organization?: Organization;
   project?: Project;
 };

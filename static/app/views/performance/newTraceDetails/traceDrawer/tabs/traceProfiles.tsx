@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -6,7 +6,6 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
@@ -14,18 +13,14 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {
+  isEAPSpanNode,
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-import {isSpanNode, isTransactionNode} from '../../traceGuards';
-import {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
-
-export function TraceProfiles({
-  tree,
-  onScrollToNode,
-}: {
-  onScrollToNode: (node: TraceTreeNode<any>) => void;
-  tree: TraceTree;
-}) {
+export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
   const organization = useOrganization();
 
@@ -49,10 +44,7 @@ export function TraceProfiles({
       if ('profiler_id' in profile) {
         traceAnalytics.trackViewContinuousProfile(organization);
       } else {
-        trackAnalytics('profiling_views.go_to_flamegraph', {
-          organization,
-          source: 'performance.trace_view',
-        });
+        traceAnalytics.trackViewTransactionProfile(organization);
       }
     },
     [organization]
@@ -85,7 +77,7 @@ export function TraceProfiles({
         const link =
           'profiler_id' in profile
             ? generateContinuousProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 profilerId: profile.profiler_id,
                 start: new Date(node.space[0]).toISOString(),
                 end: new Date(node.space[0] + node.space[1]).toISOString(),
@@ -93,7 +85,7 @@ export function TraceProfiles({
                 query,
               })
             : generateProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 projectSlug: node.metadata.project_slug as string,
                 profileId: profile.profile_id,
                 query,
@@ -103,17 +95,18 @@ export function TraceProfiles({
           'profiler_id' in profile ? profile.profiler_id : profile.profile_id;
 
         if (isTransactionNode(node)) {
+          const event = (
+            <Fragment>
+              <PlatformIcon
+                platform={projectLookup[node.value.project_slug] ?? 'default'}
+              />
+              <span>{node.value['transaction.op']}</span> —{' '}
+              <span>{node.value.transaction}</span>
+            </Fragment>
+          );
           return (
             <ProfilesTableRow key={index}>
-              <div>
-                <a onClick={() => onScrollToNode(node)}>
-                  <PlatformIcon
-                    platform={projectLookup[node.value.project_slug] ?? 'default'}
-                  />
-                  <span>{node.value['transaction.op']}</span> —{' '}
-                  <span>{node.value.transaction}</span>
-                </a>
-              </div>
+              <div>{event}</div>
               <div>
                 <Link to={link} onClick={() => onProfileLinkClick(profile)}>
                   {profileOrProfilerId.substring(0, 8)}
@@ -122,21 +115,29 @@ export function TraceProfiles({
             </ProfilesTableRow>
           );
         }
-        if (isSpanNode(node)) {
+        if (isSpanNode(node) || isEAPSpanNode(node)) {
+          const spanId =
+            'span_id' in node.value ? node.value.span_id : node.value.event_id;
+          const event = (
+            <Fragment>
+              {node.value.project_slug && (
+                <PlatformIcon
+                  platform={projectLookup[node.value.project_slug] ?? 'default'}
+                />
+              )}
+              <span>{node.value.op ?? '<unknown>'}</span> —{' '}
+              <span className="TraceDescription" title={node.value.description}>
+                {node.value.description
+                  ? node.value.description.length > 100
+                    ? node.value.description.slice(0, 100).trim() + '\u2026'
+                    : node.value.description
+                  : (spanId ?? 'unknown')}
+              </span>
+            </Fragment>
+          );
           return (
             <ProfilesTableRow key={index}>
-              <div>
-                <a onClick={() => onScrollToNode(node)}>
-                  <span>{node.value.op ?? '<unknown>'}</span> —{' '}
-                  <span className="TraceDescription" title={node.value.description}>
-                    {!node.value.description
-                      ? node.value.span_id ?? 'unknown'
-                      : node.value.description.length > 100
-                        ? node.value.description.slice(0, 100).trim() + '\u2026'
-                        : node.value.description}
-                  </span>
-                </a>
-              </div>
+              <div>{event}</div>
               <div>
                 <Link to={link} onClick={() => onProfileLinkClick(profile)}>
                   {profileOrProfilerId.substring(0, 8)}
@@ -152,14 +153,12 @@ export function TraceProfiles({
 }
 
 const ProfilesTable = styled('div')`
-  margin-top: ${space(1)};
   display: grid !important;
   grid-template-columns: 1fr min-content;
   grid-template-rows: auto;
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 
   > div {
     white-space: nowrap;
@@ -191,7 +190,9 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:first-child {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.background};
+    border-top-left-radius: ${p => p.theme.borderRadius};
+    border-top-right-radius: ${p => p.theme.borderRadius};
   }
 
   &:not(:last-child) {
@@ -204,5 +205,4 @@ const ProfilesTableTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
   padding: 0 ${space(0.5)};
-  background-color: ${p => p.theme.backgroundSecondary};
 `;

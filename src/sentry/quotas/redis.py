@@ -7,7 +7,6 @@ import rb
 import sentry_sdk
 from rediscluster import RedisCluster
 
-from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -73,30 +72,6 @@ class RedisQuota(Quota):
             key.project = project
 
         results = [*self.get_abuse_quotas(project.organization)]
-
-        # If the organization belongs to the disabled list, we want to stop ingesting custom metrics.
-        if project.organization.id in (options.get("custom-metrics-ingestion-disabled-orgs") or ()):
-            results.append(
-                QuotaConfig(
-                    limit=0,
-                    scope=QuotaScope.ORGANIZATION,
-                    categories=[DataCategory.METRIC_BUCKET],
-                    reason_code="custom_metrics_ingestion_disabled",
-                    namespace="custom",
-                )
-            )
-
-        # If the project belongs to the disabled list, we want to stop ingesting custom metrics.
-        if project.id in (options.get("custom-metrics-ingestion-disabled-projects") or ()):
-            results.append(
-                QuotaConfig(
-                    limit=0,
-                    scope=QuotaScope.PROJECT,
-                    categories=[DataCategory.METRIC_BUCKET],
-                    reason_code="custom_metrics_ingestion_disabled",
-                    namespace="custom",
-                )
-            )
 
         with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
             span.set_tag("project.id", project.id)

@@ -1,14 +1,12 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
-
-import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 
 interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
   desynced: boolean;
@@ -17,17 +15,20 @@ interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'v
   value: string[];
 }
 
-function BaseEnvironmentPageFilterTrigger(
-  {value, environments, ready, desynced, ...props}: EnvironmentPageFilterTriggerProps,
-  forwardedRef: React.ForwardedRef<HTMLButtonElement>
-) {
+export function EnvironmentPageFilterTrigger({
+  value,
+  environments,
+  ready,
+  desynced,
+  ...props
+}: EnvironmentPageFilterTriggerProps) {
   const isAllEnvironmentsSelected =
     value.length === 0 || environments.every(env => value.includes(env));
 
   // Show 2 environments only if the combined string's length does not exceed 25.
   // Otherwise show only 1 environment.
   const envsToShow =
-    value[0]!?.length + value[1]!?.length <= 23 ? value.slice(0, 2) : value.slice(0, 1);
+    value[0]?.length! + value[1]?.length! <= 23 ? value.slice(0, 2) : value.slice(0, 1);
 
   // e.g. "production, staging"
   const enumeratedLabel = envsToShow.map(env => trimSlug(env, 25)).join(', ');
@@ -38,21 +39,17 @@ function BaseEnvironmentPageFilterTrigger(
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
 
   return (
-    <DropdownButton
-      {...props}
-      ref={forwardedRef}
-      data-test-id="page-filter-environment-selector"
-    >
+    <DropdownButton {...props} data-test-id="page-filter-environment-selector">
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
-      {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
+      {remainingCount > 0 && (
+        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+      )}
     </DropdownButton>
   );
 }
-
-export const EnvironmentPageFilterTrigger = forwardRef(BaseEnvironmentPageFilterTrigger);
 
 const TriggerLabelWrap = styled('span')`
   position: relative;

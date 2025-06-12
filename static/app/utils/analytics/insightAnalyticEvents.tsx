@@ -1,4 +1,5 @@
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 export type InsightEventParameters = {
   'insight.app_start.select_start_type': {type: string};
@@ -7,7 +8,7 @@ export type InsightEventParameters = {
   'insight.app_start.spans.toggle_sample_type': {type: string};
   'insight.asset.filter_by_blocking': {filter: string};
   // Don't specify filter because page filter are arbitrary values
-  'insight.asset.filter_by_page': {};
+  'insight.asset.filter_by_page': Record<string, unknown>;
   'insight.asset.filter_by_type': {filter: string};
   'insight.general.chart_zoom': {chart_name: string; source: string};
   'insight.general.create_alert': {
@@ -21,11 +22,8 @@ export type InsightEventParameters = {
   'insight.general.select_domain_value': {source: string};
   'insight.general.select_region_value': {regions: string[]};
   'insight.general.table_paginate': {direction: string; source: string};
-  'insight.general.table_sort': {
-    direction: string;
-    field: string;
-    source: string;
-  };
+  'insight.general.table_sort': {direction: string; field: string; source: string};
+  'insight.page_loads.agents': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.ai': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.app_start': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.assets': {has_ever_sent_data: boolean; view: DomainView};
@@ -38,18 +36,28 @@ export type InsightEventParameters = {
   'insight.page_loads.vital': {has_ever_sent_data: boolean; view: DomainView};
   'insight.screen_load.spans.filter_by_device_class': {filter: string};
   'insight.screen_load.spans.filter_by_operation': {filter: string};
-  'insight.vital.overview.open_full_waterfall': {};
-  'insight.vital.overview.open_transaction_summary': {};
+  'insight.vital.overview.open_full_waterfall': Record<string, unknown>;
+  'insight.vital.overview.open_transaction_summary': Record<string, unknown>;
   'insight.vital.overview.toggle_data_type': {type: string};
   'insight.vital.overview.toggle_tab': {tab: string};
   'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
+  'insights.eap.toggle': {
+    isEapEnabled: boolean;
+    page: ModuleName | 'overview';
+    view: DomainView | undefined;
+  };
+  'insights.open_in_explore': {organization: string; referrer: string};
+  'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
+  'insights.session_health_tour.dismissed': Record<string, unknown>;
 };
 
 export type InsightEventKey = keyof InsightEventParameters;
 
 export const insightEventMap: Record<InsightEventKey, string | null> = {
+  'insights.page_loads.overview': 'Insights: Overview Page Load',
   'insight.page_loads.ai': 'Insights: AI Page Load',
+  'insight.page_loads.agents': 'Insights: Agents Page Load',
   'insight.page_loads.app_start': 'Insights: App Start Page Load',
   'insight.page_loads.assets': 'Insights: Assets Page Load',
   'insight.page_loads.cache': 'Insights: Cache Page Load',
@@ -89,4 +97,7 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.vital.select_browser_value': 'Insights: Web Vitals - filter by browser type',
   'insight.general.select_region_value': 'Insights: Select value in region selector',
   'insight.general.create_alert': 'Insights: Create Alert clicked',
+  'insights.session_health_tour.dismissed': 'Insights: Session Health Tour Dismissed',
+  'insights.eap.toggle': 'Insights: EAP Toggle',
+  'insights.open_in_explore': 'Insights: Open in Explore',
 };

@@ -1,27 +1,28 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
+import {getMessage, isGroup, isTombstone} from 'sentry/utils/events';
+import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import EventTitleError from './eventTitleError';
 
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
-  organization: Organization;
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
@@ -32,13 +33,50 @@ interface EventOrGroupHeaderProps {
   source?: string;
 }
 
+function usePreloadGroupOnHover({
+  groupId,
+  disabled,
+  organization,
+}: {
+  disabled: boolean;
+  groupId: string;
+  organization: Organization;
+}) {
+  const queryClient = useQueryClient();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const {selection} = usePageFilters();
+
+  const {hoverProps} = useHover({
+    onHoverStart: () => {
+      timeoutRef.current = setTimeout(() => {
+        queryClient.prefetchQuery({
+          queryKey: makeFetchGroupQueryKey({
+            groupId,
+            organizationSlug: organization.slug,
+            environments: selection.environments,
+          }),
+          queryFn: fetchDataQuery,
+          staleTime: 30_000,
+        });
+      }, 300);
+    },
+    onHoverEnd: () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    },
+    isDisabled: disabled,
+  });
+
+  return hoverProps;
+}
+
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
 function EventOrGroupHeader({
   data,
   index,
-  organization,
   query,
   onClick,
   hideIcons,
@@ -46,11 +84,16 @@ function EventOrGroupHeader({
   source,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
+  const organization = useOrganization();
 
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+  const preloadHoverProps = usePreloadGroupOnHover({
+    groupId: data.id,
+    disabled: isTombstone(data) || !isGroup(data),
+    organization,
+  });
 
   function getTitleChildren() {
-    const {isBookmarked, hasSeen} = data as Group;
+    const {isBookmarked} = data as Group;
     return (
       <Fragment>
         {!hideIcons && isBookmarked && (
@@ -58,14 +101,8 @@ function EventOrGroupHeader({
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <ErrorBoundary customComponent={<EventTitleError />} mini>
-          <StyledEventOrGroupTitle
-            data={data}
-            // hasSeen is undefined for GroupTombstone
-            hasSeen={hasSeen === undefined ? true : hasSeen}
-            withStackTracePreview
-            query={query}
-          />
+        <ErrorBoundary customComponent={() => <EventTitleError />} mini>
+          <StyledEventOrGroupTitle data={data} withStackTracePreview query={query} />
         </ErrorBoundary>
       </Fragment>
     );
@@ -94,54 +131,34 @@ function EventOrGroupHeader({
       query,
     });
 
-    if (hasNewLayout) {
-      return (
-        <NewTitleWithLink
-          {...commonEleProps}
-          to={to}
-          onClick={onClick}
-          data-issue-title-link
-        >
-          {getTitleChildren()}
-        </NewTitleWithLink>
-      );
-    }
-
     return (
-      <TitleWithLink {...commonEleProps} to={to} onClick={onClick}>
+      <TitleWithLink
+        {...commonEleProps}
+        {...preloadHoverProps}
+        to={to}
+        onClick={onClick}
+        data-issue-title-link
+      >
         {getTitleChildren()}
       </TitleWithLink>
     );
   }
 
-  const eventLocation = getLocation(data);
-
   return (
     <div data-test-id="event-issue-header">
-      <Title extraMargin={hasNewLayout}>{getTitle()}</Title>
-      {eventLocation && !hasNewLayout ? <Location>{eventLocation}</Location> : null}
-      {!hasNewLayout ? (
-        <StyledEventMessage
-          data={data}
-          level={'level' in data ? data.level : undefined}
-          message={getMessage(data)}
-          type={data.type}
-          levelIndicatorSize="9px"
-        />
-      ) : null}
+      <Title>{getTitle()}</Title>
+      <StyledEventMessage
+        data={data}
+        level={'level' in data ? data.level : undefined}
+        message={getMessage(data)}
+        type={data.type}
+      />
     </div>
   );
 }
 
-const truncateStyles = css`
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const Title = styled('div')<{extraMargin: boolean}>`
-  margin-bottom: ${p => (p.extraMargin ? space(0.75) : space(0.25))};
+const Title = styled('div')`
+  margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeLarge};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
@@ -151,32 +168,8 @@ const Title = styled('div')<{extraMargin: boolean}>`
   }
 `;
 
-const LocationWrapper = styled('div')`
-  ${truncateStyles};
-  margin: 0 0 5px;
-  direction: rtl;
-  text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-  span {
-    direction: ltr;
-  }
-`;
-
-function Location(props: any) {
-  const {children, ...rest} = props;
-  return (
-    <LocationWrapper {...rest}>
-      {tct('in [location]', {
-        location: <span>{children}</span>,
-      })}
-    </LocationWrapper>
-  );
-}
-
 const StyledEventMessage = styled(EventMessage)`
   margin: 0 0 5px;
-  gap: ${space(0.5)};
   font-size: inherit;
 `;
 
@@ -185,12 +178,7 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const TitleWithLink = styled(GlobalSelectionLink)`
-  display: inline-flex;
-  align-items: center;
-`;
-
-const NewTitleWithLink = styled(GlobalSelectionLink)`
+const TitleWithLink = styled(Link)`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 
@@ -203,10 +191,8 @@ const TitleWithoutLink = styled('span')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-export default withOrganization(EventOrGroupHeader);
+export default EventOrGroupHeader;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
-  hasSeen: boolean;
-}>`
-  font-weight: ${p => (p.hasSeen ? 400 : 600)};
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

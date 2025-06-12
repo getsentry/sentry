@@ -27,8 +27,8 @@ interface ImageForAddressProps {
 
 interface HiddenFrameIndicesProps {
   data: StacktraceType;
-  frameCountMap: {[frameIndex: number]: number};
-  toggleFrameMap: {[frameIndex: number]: boolean};
+  frameCountMap: Record<number, number>;
+  toggleFrameMap: Record<number, boolean>;
 }
 
 export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
@@ -63,7 +63,7 @@ export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   );
 }
 
-export function getRepeatedFrameIndices(data: StacktraceType) {
+function getRepeatedFrameIndices(data: StacktraceType) {
   const repeats: number[] = [];
   (data.frames ?? []).forEach((frame, frameIdx) => {
     const nextFrame = (data.frames ?? [])[frameIdx + 1];
@@ -84,7 +84,7 @@ export function getHiddenFrameIndices({
   const repeatedIndeces = getRepeatedFrameIndices(data);
   let hiddenFrameIndices: number[] = [];
   Object.keys(toggleFrameMap)
-    // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     .filter(frameIndex => toggleFrameMap[frameIndex] === true)
     .forEach(indexString => {
       const index = parseInt(indexString, 10);
@@ -113,9 +113,9 @@ export function getLastFrameIndex(frames: Frame[]) {
     })
     .filter(frame => frame !== undefined);
 
-  return !inAppFrameIndexes.length
-    ? frames.length - 1
-    : inAppFrameIndexes[inAppFrameIndexes.length - 1];
+  return inAppFrameIndexes.length
+    ? inAppFrameIndexes[inAppFrameIndexes.length - 1]
+    : frames.length - 1;
 }
 
 // TODO(dcramer): support cookies
@@ -154,7 +154,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
       case 'application/x-www-form-urlencoded':
         result +=
           ' \\\n --data "' +
-          escapeBashString(qs.stringify(data.data as {[key: string]: any})) +
+          escapeBashString(qs.stringify(data.data as Record<string, any>)) +
           '"';
         break;
 
@@ -174,7 +174,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 }
 
 export function stringifyQueryList(
-  query: string | ([key: string, value: string] | null)[]
+  query: string | Array<[key: string, value: string] | null>
 ) {
   if (typeof query === 'string') {
     return query;
@@ -225,12 +225,12 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
  */
 export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
   return Object.keys(obj)
-    .reduce<[string, string][]>((out, k) => {
+    .reduce<Array<[string, string]>>((out, k) => {
       const val = obj[k];
       return out.concat(
         Array.isArray(val)
           ? val.map(v => [k, v]) // key has multiple values (array)
-          : ([[k, val]] as [string, string][]) // key has single value
+          : ([[k, val]] as Array<[string, string]>) // key has single value
       );
     }, [])
     .sort(function ([keyA, valA], [keyB, valB]) {

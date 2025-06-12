@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import IntEnum
 
 from sentry.conf.types.kafka_definition import Topic
@@ -35,6 +35,8 @@ class Outcome(IntEnum):
 
 outcomes_publisher: KafkaPublisher | None = None
 billing_publisher: KafkaPublisher | None = None
+
+LATE_OUTCOME_THRESHOLD = timedelta(days=1)
 
 
 def track_outcome(
@@ -95,7 +97,8 @@ def track_outcome(
             )
         publisher = outcomes_publisher
 
-    timestamp = timestamp or to_datetime(time.time())
+    now = to_datetime(time.time())
+    timestamp = timestamp or now
 
     # Send billing outcomes to a dedicated topic.
     topic_name = (
@@ -119,6 +122,18 @@ def track_outcome(
             }
         ),
     )
+
+    if now - timestamp.replace(tzinfo=now.tzinfo) > LATE_OUTCOME_THRESHOLD:
+        metrics.incr(
+            "events.outcomes.late",
+            skip_internal=True,
+            tags={
+                "outcome": outcome.name.lower(),
+                "reason": reason,
+                "category": category.api_name() if category is not None else "null",
+                "topic": topic_name,
+            },
+        )
 
     metrics.incr(
         "events.outcomes",

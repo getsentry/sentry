@@ -3,7 +3,7 @@ import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import TraceDetailsContent from 'sentry/views/performance/traceDetails/content';
 
 const SAMPLE_ERROR_DATA = {
@@ -44,7 +44,9 @@ describe('TraceDetailsContent', () => {
         projects: 1,
         transactions: 0,
         performance_issues: 1,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       };
 
       render(
@@ -92,7 +94,9 @@ describe('TraceDetailsContent', () => {
         projects: 1,
         transactions: 0,
         performance_issues: 0,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       };
 
       render(

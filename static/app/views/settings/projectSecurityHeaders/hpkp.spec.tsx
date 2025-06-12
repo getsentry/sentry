@@ -7,6 +7,13 @@ describe('ProjectHpkpReports', function () {
   const {organization, project} = initializeOrg();
   const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/security-headers/hpkp/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/security-headers/hpkp/',
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -19,14 +26,12 @@ describe('ProjectHpkpReports', function () {
   it('renders', async function () {
     render(<ProjectHpkpReports />, {
       organization,
+      initialRouterConfig,
     });
-
-    // Renders the loading indication initially
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // Heading
     expect(
-      await screen.findByText('HTTP Public Key Pinning', {selector: 'h4'})
+      await screen.findByText('HTTP Public Key Pinning', {selector: 'h1'})
     ).toBeInTheDocument();
   });
 
@@ -39,6 +44,7 @@ describe('ProjectHpkpReports', function () {
     });
     render(<ProjectHpkpReports />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(

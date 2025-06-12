@@ -1,8 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -50,7 +50,7 @@ function OnCallServiceForm({
     return Object.keys(Integrations).map<MenuItemProps>(integrationId => {
       // Get the name of the integration for the integrationId from the first
       // AvailableNotificationAction element in the array
-      // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
       const integrationName = Integrations[integrationId][0].action.integrationName;
       return {
         key: integrationName,

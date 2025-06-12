@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
-import Panel from 'sentry/components/panels/panel';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -65,11 +64,6 @@ export const TraceViewContainer = styled('div')`
   border-bottom-right-radius: 3px;
 `;
 
-export const TracePanel = styled(Panel)`
-  height: 100%;
-  overflow: auto;
-`;
-
 export const ProjectBadgeContainer = styled('span')`
   margin-right: ${space(0.75)};
   display: flex;
@@ -100,7 +94,6 @@ export function Tags({
     return null;
   }
 
-  const orgSlug = organization.slug;
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   return (
@@ -114,7 +107,7 @@ export function Tags({
 
             if (isTraceTransaction(event)) {
               const route = transactionSummaryRouteWithQuery({
-                orgSlug,
+                organization,
                 transaction: event.transaction,
                 projectID: String(event.project_id),
                 query: {
@@ -134,7 +127,7 @@ export function Tags({
 
             return (
               <EventTagsPill
-                key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+                key={defined(tag.key) ? tag.key : `tag-pill-${index}`}
                 tag={tag}
                 projectSlug={event.project_slug}
                 projectId={event.project_id.toString()}

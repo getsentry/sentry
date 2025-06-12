@@ -5,11 +5,7 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {useKeyboardNavigation} from './useKeyboardNavigation';
 
-export function computeBestContextMenuPosition(
-  mouse: Rect,
-  container: Rect,
-  target: Rect
-) {
+function computeBestContextMenuPosition(mouse: Rect, container: Rect, target: Rect) {
   const maxY = Math.floor(container.height - target.height);
   const minY = container.top;
 

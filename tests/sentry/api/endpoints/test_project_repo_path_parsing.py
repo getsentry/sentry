@@ -1,22 +1,35 @@
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User as SentryUser
 
 
 class BaseStacktraceLinkTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization(owner=self.user, name="blap")
         self.project = self.create_project(
             name="foo", organization=self.org, teams=[self.create_team(organization=self.org)]
         )
 
-    def make_post(self, source_url, stack_path, project=None, user=None):
+    def make_post(
+        self,
+        source_url: str,
+        stack_path: str,
+        module: str | None = None,
+        abs_path: str | None = None,
+        platform: str | None = None,
+        project: Project | None = None,
+        user: SentryUser | None = None,
+    ) -> Response:
         self.login_as(user=user or self.user)
         if not project:
             project = self.project
+        assert project is not None
 
         url = reverse(
             "sentry-api-0-project-repo-path-parsing",
@@ -26,11 +39,20 @@ class BaseStacktraceLinkTest(APITestCase):
             },
         )
 
-        return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
+        return self.client.post(
+            url,
+            data={
+                "sourceUrl": source_url,
+                "stackPath": stack_path,
+                "module": module,
+                "absPath": abs_path,
+                "platform": platform,
+            },
+        )
 
 
 class PathMappingSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration, self.oi = self.create_provider_integration_for(
             self.organization,
@@ -48,7 +70,7 @@ class PathMappingSerializerTest(TestCase):
             url="https://github.com/getsentry/sentry",
         )
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         serializer = PathMappingSerializer(
             context={"organization_id": self.organization.id},
             data={
@@ -61,7 +83,7 @@ class PathMappingSerializerTest(TestCase):
         assert serializer.data["stack_path"] == "/random.py"
         assert serializer.data["source_url"] == "https://github.com/getsentry/sentry/blob/random.py"
 
-    def test_window_stack_path(self):
+    def test_window_stack_path(self) -> None:
         serializer = PathMappingSerializer(
             context={"organization_id": self.organization.id},
             data={
@@ -73,7 +95,7 @@ class PathMappingSerializerTest(TestCase):
         assert serializer.data["stack_path"] == "C:\\duck.py"
         assert serializer.data["source_url"] == "https://github.com/getsentry/sentry/blob/duck.py"
 
-    def test_wrong_file(self):
+    def test_wrong_file(self) -> None:
         serializer = PathMappingSerializer(
             context={"organization_id": self.organization.id},
             data={
@@ -88,7 +110,7 @@ class PathMappingSerializerTest(TestCase):
             == "Source code URL points to a different file than the stack trace"
         )
 
-    def test_no_integration(self):
+    def test_no_integration(self) -> None:
         new_org = self.create_organization()
         serializer = PathMappingSerializer(
             context={"organization_id": new_org.id},
@@ -101,7 +123,7 @@ class PathMappingSerializerTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors["sourceUrl"][0] == "Could not find integration"
 
-    def test_no_repo(self):
+    def test_no_repo(self) -> None:
         new_org = self.create_organization()
         self.integration, self.oi = self.create_provider_integration_for(
             new_org,
@@ -123,7 +145,7 @@ class PathMappingSerializerTest(TestCase):
 
 
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration, self.oi = self.create_provider_integration_for(
@@ -151,14 +173,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             url="https://github.com/getsentry/getsentry",
         )
 
-    def test_bad_source_url(self):
+    def test_bad_source_url(self) -> None:
         source_url = "github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Enter a valid URL."]}
 
-    def test_wrong_file(self):
+    def test_wrong_file(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_releases.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -167,7 +189,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "sourceUrl": ["Source code URL points to a different file than the stack trace"]
         }
 
-    def test_no_integration(self):
+    def test_no_integration(self) -> None:
         # create the integration but don't install it
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_provider_integration(
@@ -182,14 +204,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find integration"]}
 
-    def test_no_repo(self):
+    def test_no_repo(self) -> None:
         source_url = "https://github.com/getsentry/snuba/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -204,7 +226,29 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "master",
         }
 
-    def test_short_path(self):
+    def test_java_path(self) -> None:
+        src_file = "src/com/example/foo/Bar.kt"
+        source_url = f"https://github.com/getsentry/sentry/blob/master/{src_file}"
+        filename = "Bar.kt"  # The filename in Java does not contain the package name
+        resp = self.make_post(
+            source_url,
+            filename,
+            module="com.example.foo.Bar",  # The module misses the extension
+            abs_path="Bar.kt",  # abs_path includes the extension
+            platform="java",
+        )
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "defaultBranch": "master",
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "sourceRoot": "src/com/example/foo/",
+            "stackRoot": "com/example/foo/",
+        }
+
+    def test_short_path(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/main/project_stacktrace_link.py"
         stack_path = "sentry/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -218,7 +262,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "main",
         }
 
-    def test_long_root(self):
+    def test_long_root(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "stuff/hey/here/sentry/api/endpoints/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -232,7 +276,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "master",
         }
 
-    def test_member_can_access(self):
+    def test_member_can_access(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "stuff/hey/here/sentry/api/endpoints/project_stacktrace_link.py"
         member = self.create_user("hernando@life.com")
@@ -240,7 +284,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         resp = self.make_post(source_url, stack_path, user=member)
         assert resp.status_code == 200, resp.content
 
-    def test_backslash_short_path(self):
+    def test_backslash_short_path(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/main/project_stacktrace_link.py"
         stack_path = "C:\\sentry\\project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -254,7 +298,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "main",
         }
 
-    def test_backslash_long_path(self):
+    def test_backslash_long_path(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/main/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "C:\\potatos\\and\\prs\\sentry\\api\\endpoints\\project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -270,7 +314,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
 
 
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -291,7 +335,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             url="https://gitlab.com/getsentry/sentry",
         )
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -306,7 +350,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "defaultBranch": "master",
         }
 
-    def test_skips_null_repo_url(self):
+    def test_skips_null_repo_url(self) -> None:
         self.repo.update(url=None)
         source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"

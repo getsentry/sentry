@@ -1,8 +1,8 @@
-import type {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-export type DirectionX = 'left' | 'right';
-export type DirectionY = 'up' | 'down';
-export type Direction = DirectionY | DirectionX;
+type DirectionX = 'left' | 'right';
+type DirectionY = 'up' | 'down';
+type Direction = DirectionY | DirectionX;
 /**
  * selectNearestFrame walks a FlamegraphFrame tree the direction specified and returns the nearest
  * FlamegraphFrame relative to the starting node.
@@ -121,7 +121,7 @@ function getSibling(frame: FlamegraphFrame, directionX: DirectionX) {
   const indexOfFrame = parent.children.indexOf(frame);
   // this should never happen, it would make our data structure invalid
   if (indexOfFrame === -1) {
-    throw Error('frame.parent.children does not include current frame');
+    throw new Error('frame.parent.children does not include current frame');
   }
 
   if (directionX === 'right') {
@@ -153,7 +153,7 @@ const keyDirectionMap: Record<string, Direction> = {
 export function handleFlamegraphKeyboardNavigation(
   evt: KeyboardEvent,
   currentFrame: FlamegraphFrame | undefined,
-  inverted: boolean = false
+  inverted = false
 ) {
   if (!currentFrame) {
     return null;

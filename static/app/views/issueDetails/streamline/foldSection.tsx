@@ -1,13 +1,14 @@
 import {
   type CSSProperties,
-  forwardRef,
   Fragment,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -15,14 +16,21 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function getFoldSectionKey(key: SectionKey) {
-  return `'issue-details-fold-section-collapse:${key}`;
+  // Original key had a typo, this will migrate existing keys to the correct key
+  const localStorageValue = localStorage.getItem(
+    `'issue-details-fold-section-collapse:${key}`
+  );
+  if (localStorageValue) {
+    localStorage.removeItem(`'issue-details-fold-section-collapse:${key}`);
+    localStorage.setItem(`issue-details-fold-section-collapse:${key}`, localStorageValue);
+  }
+  return `issue-details-fold-section-collapse:${key}`;
 }
 
 export interface FoldSectionProps {
@@ -38,6 +46,10 @@ export interface FoldSectionProps {
   actions?: React.ReactNode;
   className?: string;
   /**
+   * Disable persisting collapse state to localStorage
+   */
+  disableCollapsePersistence?: boolean;
+  /**
    * Should this section be initially open, gets overridden by user preferences
    */
   initialCollapse?: boolean;
@@ -45,28 +57,54 @@ export interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  ref?: React.Ref<HTMLElement>;
   style?: CSSProperties;
 }
 
-export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
-  {
-    children,
-    title,
-    actions,
-    sectionKey,
-    initialCollapse = false,
-    preventCollapse = false,
-  },
-  forwardedRef
-) {
+function useOptionalLocalStorageState(
+  key: SectionKey,
+  initialState: boolean,
+  disablePersistence: boolean
+): [boolean, (value: boolean) => void] {
+  const [localState, setLocalState] = useState(initialState);
+  const [persistedState, setPersistedState] = useSyncedLocalStorageState(
+    getFoldSectionKey(key),
+    initialState
+  );
+
+  return disablePersistence
+    ? [localState, setLocalState]
+    : [persistedState, setPersistedState];
+}
+
+export function FoldSection({
+  ref,
+  children,
+  title,
+  actions,
+  sectionKey,
+  className,
+  initialCollapse = false,
+  preventCollapse = false,
+  disableCollapsePersistence = false,
+}: FoldSectionProps) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
-  // Does not control open/close state. Controls what state is persisted to local storage
-  const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
-    getFoldSectionKey(sectionKey),
-    initialCollapse
+
+  const [isCollapsed, setIsCollapsed] = useOptionalLocalStorageState(
+    sectionKey,
+    initialCollapse,
+    disableCollapsePersistence
   );
+
   const hasAttemptedScroll = useRef(false);
+
+  // If the section is prevented from collapsing, we need to update the local storage state and open
+  useEffect(() => {
+    if (preventCollapse) {
+      setIsCollapsed(false);
+    }
+  }, [preventCollapse, setIsCollapsed]);
 
   const scrollToSection = useCallback(
     (element: HTMLElement | null) => {
@@ -97,10 +135,11 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       dispatch({
         type: 'UPDATE_EVENT_SECTION',
         key: sectionKey,
-        config: {initialCollapse},
+        // If the section is prevented from collapsing, we don't want to persist the initial collapse state
+        config: {initialCollapse: preventCollapse ? false : initialCollapse},
       });
     }
-  }, [sectionData, dispatch, sectionKey, initialCollapse]);
+  }, [sectionData, dispatch, sectionKey, initialCollapse, preventCollapse]);
 
   // This controls disabling the InteractionStateLayer when hovering over action items. We don't
   // want selecting an action to appear as though it'll fold/unfold the section.
@@ -122,14 +161,18 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   );
   const labelPrefix = isCollapsed ? t('View') : t('Collapse');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
+  // XXX: We should eventually only use titles as string, or explicitly pass them to stay accessible
+  const titleLabel = typeof title === 'string' ? title : sectionKey;
 
   return (
     <Fragment>
       <Section
-        ref={mergeRefs([forwardedRef, scrollToSection])}
+        ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
+        aria-label={titleLabel}
+        className={className}
       >
         <SectionExpander
           preventCollapse={preventCollapse}
@@ -142,7 +185,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
             hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
-          <TitleWithActions>
+          <TitleWithActions preventCollapse={preventCollapse}>
             <TitleWrapper>{title}</TitleWrapper>
             {!isCollapsed && (
               <div
@@ -167,7 +210,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       <SectionDivider />
     </Fragment>
   );
-});
+}
 
 export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};
@@ -175,6 +218,11 @@ export const SectionDivider = styled('hr')`
   &:last-child {
     display: none;
   }
+`;
+
+export const SidebarFoldSection = styled(FoldSection)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: -${space(1)};
 `;
 
 const Section = styled('section')<{scrollMargin: number}>`
@@ -205,13 +253,13 @@ const TitleWrapper = styled('div')`
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`
   color: ${p => p.theme.subText};
   line-height: 0;
-  visibility: ${p => (p.preventCollapse ? 'hidden' : 'initial')};
+  display: ${p => (p.preventCollapse ? 'none' : 'block')};
 `;
 
-const TitleWithActions = styled('div')`
+const TitleWithActions = styled('div')<{preventCollapse: boolean}>`
   display: grid;
   grid-template-columns: 1fr auto;
-  margin-right: 8px;
+  margin-right: ${p => (p.preventCollapse ? 0 : space(1))};
   align-items: center;
   /* Usually the actions are buttons, this height allows actions appearing after opening the
   details section to not expand the summary */

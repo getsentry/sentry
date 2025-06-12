@@ -19,7 +19,6 @@ from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     ReferrerOptions,
-    TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
     has_too_many_contributing_frames,
@@ -93,11 +92,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             ):
                 grouping_info = get_grouping_info_from_variants(variants)
                 try:
-                    stacktrace_string = get_stacktrace_string(
-                        grouping_info, platform=latest_event.platform
-                    )
-                except TooManyOnlySystemFramesException:
-                    pass
+                    stacktrace_string = get_stacktrace_string(grouping_info)
                 except Exception:
                     logger.exception("Unexpected exception in stacktrace string formatting")
 
@@ -124,8 +119,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if request.GET.get("useReranking"):
             similar_issues_params["use_reranking"] = request.GET["useReranking"] == "true"
 
-        extra: dict[str, Any] = dict(similar_issues_params.copy())
-        logger.info("Similar issues embeddings parameters", extra=extra)
+        logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
         results = get_similarity_data_from_seer(similar_issues_params)
 

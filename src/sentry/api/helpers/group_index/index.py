@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -12,7 +12,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
-from sentry.api.event_search import SearchFilter
+from sentry.api.event_search import AggregateFilter, SearchFilter
+from sentry.api.helpers.environments import get_environment
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
@@ -20,6 +21,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -44,15 +46,16 @@ advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = 
 ]
 
 DEFAULT_QUERY = "is:unresolved issue.priority:[high, medium]"
+TAXONOMY_DEFAULT_QUERY = "is:unresolved"
 
 
 def parse_and_convert_issue_search_query(
     query: str,
     organization: Organization,
     projects: Sequence[Project],
-    environments: Sequence[Environment],
+    environments: Sequence[Environment] | None,
     user: User | AnonymousUser,
-) -> Sequence[SearchFilter]:
+) -> Sequence[SearchFilter | AggregateFilter]:
     try:
         search_filters = convert_query_values(
             parse_search_query(query), projects, user, environments
@@ -69,8 +72,11 @@ def build_query_params_from_request(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment] | None,
-) -> MutableMapping[str, Any]:
-    query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
+) -> dict[str, Any]:
+    query_kwargs: dict[str, Any] = {
+        "projects": projects,
+        "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION),
+    }
 
     limit = request.GET.get("limit")
     if limit:
@@ -82,14 +88,18 @@ def build_query_params_from_request(
     # TODO: proper pagination support
     if request.GET.get("cursor"):
         try:
-            query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
+            query_kwargs["cursor"] = Cursor.from_string(request.GET["cursor"])
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
 
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
     if query is None:
-        query = DEFAULT_QUERY
+        query = (
+            TAXONOMY_DEFAULT_QUERY
+            if features.has("organizations:issue-taxonomy", organization)
+            else DEFAULT_QUERY
+        )
 
     query = query.strip()
 
@@ -101,11 +111,12 @@ def build_query_params_from_request(
             if selected_view_id:
                 default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
             else:
-                default_view = GroupSearchView.objects.filter(
+                first_starred_view = GroupSearchViewStarred.objects.filter(
                     organization=organization,
                     user_id=request.user.id,
                     position=0,
                 ).first()
+                default_view = first_starred_view.group_search_view if first_starred_view else None
 
             if default_view:
                 query_kwargs["sort_by"] = default_view.query_sort
@@ -155,7 +166,7 @@ def build_query_params_from_request(
 
 def validate_search_filter_permissions(
     organization: Organization,
-    search_filters: Sequence[SearchFilter],
+    search_filters: Sequence[AggregateFilter | SearchFilter],
     user: User | AnonymousUser,
 ) -> None:
     """
@@ -173,7 +184,7 @@ def validate_search_filter_permissions(
 
     for search_filter in search_filters:
         for feature_condition, feature_name in advanced_search_features:
-            if feature_condition(search_filter):
+            if isinstance(search_filter, SearchFilter) and feature_condition(search_filter):
                 advanced_search_feature_gated.send_robust(
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
@@ -256,20 +267,19 @@ def calculate_stats_period(
 
 
 def prep_search(
-    cls: Any,
     request: Request,
     project: Project,
-    extra_query_kwargs: Mapping[str, Any] | None = None,
-) -> tuple[CursorResult[Group], Mapping[str, Any]]:
+    extra_query_kwargs: dict[str, Any] | None = None,
+) -> tuple[CursorResult[Group], dict[str, Any]]:
     try:
-        environment = cls._get_environment_from_request(request, project.organization_id)
+        environment = get_environment(request, project.organization_id)
     except Environment.DoesNotExist:
         result = CursorResult[Group](
             [], Cursor(0, 0, 0), Cursor(0, 0, 0), hits=0, max_hits=SEARCH_MAX_HITS
         )
-        query_kwargs: MutableMapping[str, Any] = {}
+        query_kwargs: dict[str, Any] = {}
     else:
-        environments = [environment] if environment is not None else environment
+        environments = [environment] if environment is not None else None
         query_kwargs = build_query_params_from_request(
             request, project.organization, [project], environments
         )
@@ -286,43 +296,26 @@ def prep_search(
 def get_first_last_release(
     request: Request,
     group: Group,
-) -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None]:
-    first_release = group.get_first_release()
-    if first_release is not None:
-        last_release = group.get_last_release()
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    first_release_s = group.get_first_release()
+    if first_release_s is not None:
+        last_release_s = group.get_last_release()
     else:
-        last_release = None
+        last_release_s = None
 
-    if first_release is not None and last_release is not None:
-        first_release, last_release = get_first_last_release_info(
-            request, group, [first_release, last_release]
+    if first_release_s is not None and last_release_s is not None:
+        first_release, last_release = serialize_releases(
+            request, group, [first_release_s, last_release_s]
         )
-    elif first_release is not None:
-        first_release = get_release_info(request, group, first_release)
-    elif last_release is not None:
-        last_release = get_release_info(request, group, last_release)
-
-    return first_release, last_release
-
-
-def get_release_info(request: Request, group: Group, version: str) -> Mapping[str, Any]:
-    try:
-        release = Release.objects.get(
-            projects=group.project,
-            organization_id=group.project.organization_id,
-            version=version,
-        )
-    except Release.DoesNotExist:
-        release = {"version": version}
-
-    return serialize(release, request.user)
+        return first_release, last_release
+    elif first_release_s is not None:
+        (first_release,) = serialize_releases(request, group, [first_release_s])
+        return (first_release, None)
+    else:
+        return None, None
 
 
-def get_first_last_release_info(
-    request: Request,
-    group: Group,
-    versions: Sequence[str],
-) -> Sequence[Mapping[str, Any]]:
+def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
     releases = {
         release.version: release
         for release in Release.objects.filter(

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:35.210768+00:00'
+created: '2025-02-26T00:33:37.643566+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -38,7 +38,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame
             function (function name is not used if module or filename are available)
               "__99+[Something else]_block_invoke_2"
           frame

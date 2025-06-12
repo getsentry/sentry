@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -15,7 +16,6 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,16 +23,16 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
-
+import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
+import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
 import {
   ADOPTION_STAGE_LABELS,
   displayCrashFreePercent,
   getReleaseNewIssuesUrl,
   getReleaseUnhandledIssuesUrl,
   isMobileRelease,
-} from '../../utils';
-import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import type {ReleasesRequestRenderProps} from '../releasesRequest';
+} from 'sentry/views/releases/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {
   AdoptionColumn,
@@ -101,9 +101,7 @@ function ReleaseCardProjectRow({
   const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
 
   const adoptionStage =
-    showReleaseAdoptionStages &&
-    adoptionStages?.[project.slug] &&
-    adoptionStages?.[project.slug]!.stage;
+    showReleaseAdoptionStages && adoptionStages?.[project.slug]?.stage;
 
   const adoptionStageLabel =
     get24hCountByProject && adoptionStage && isMobileRelease(project.platform)
@@ -123,7 +121,10 @@ function ReleaseCardProjectRow({
               <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
                 <Link
                   to={{
-                    pathname: `/organizations/${organization.slug}/releases/`,
+                    pathname: makeReleasesPathname({
+                      organization,
+                      path: '/',
+                    }),
                     query: {
                       ...location.query,
                       query: `release.stage:${adoptionStage}`,
@@ -215,9 +216,10 @@ function ReleaseCardProjectRow({
             <LinkButton
               size="xs"
               to={{
-                pathname: `/organizations/${
-                  organization.slug
-                }/releases/${encodeURIComponent(releaseVersion)}/`,
+                pathname: makeReleasesPathname({
+                  organization,
+                  path: `/${encodeURIComponent(releaseVersion)}/`,
+                }),
                 query: {
                   ...extractSelectionParameters(location.query),
                   project: project.id,

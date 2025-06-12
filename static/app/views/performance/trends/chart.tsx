@@ -22,9 +22,8 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import type {ViewProps} from 'sentry/views/performance/types';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
-
-import type {ViewProps} from '../types';
 
 import type {
   NormalizedTrendsTransaction,
@@ -36,8 +35,8 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getUnselectedSeries,
+  makeTrendToColorMapping,
   transformEventStatsSmoothed,
-  trendToColor,
 } from './utils';
 
 type Props = ViewProps & {
@@ -122,8 +121,10 @@ export function Chart({
   const derivedTrendChangeType = organization.features.includes('performance-new-trends')
     ? transaction?.change
     : trendChangeType;
+
+  const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
 
   const events =
@@ -151,7 +152,7 @@ export function Chart({
   const seriesSelection = decodeList(
     location.query[getUnselectedSeries(trendChangeType)]
   ).reduce((selection, metric) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     selection[metric] = false;
     return selection;
   }, {});
@@ -263,5 +264,3 @@ export function Chart({
     </ChartZoom>
   );
 }
-
-export default Chart;

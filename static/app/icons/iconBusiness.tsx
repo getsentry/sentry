@@ -1,31 +1,47 @@
-import {forwardRef, useMemo} from 'react';
+import {useMemo} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {IconLightning} from 'sentry/icons/iconLightning';
 import {uniqueId} from 'sentry/utils/guid';
 
-import type {SVGIconProps} from './svgIcon';
-import {SvgIcon} from './svgIcon';
+import {SvgIcon, type SVGIconProps} from './svgIcon';
 
-type WrappedProps = {
-  forwardedRef: React.Ref<SVGSVGElement>;
-} & Props;
+// @TODO(jonasbadalic) does this need dark mode?
+const businessIconColors = ['#EA5BC2', '#6148CE'] as const;
 
-function IconBusinessComponent({
+interface BusinessIconProps extends SVGIconProps {
+  /**
+   * Renders a pink purple gradient on the icon
+   */
+  gradient?: boolean;
+
+  /**
+   * Adds an animated shine to the icon
+   */
+  withShine?: boolean;
+}
+
+/**
+ * @deprecated Use IconLightning instead, this icon will be removed in new UI.
+ */
+function IconBusiness({
   gradient = false,
   withShine = false,
-  forwardedRef,
   ...props
-}: WrappedProps) {
+}: BusinessIconProps) {
   const theme = useTheme();
-
   const uid = useMemo(() => uniqueId(), []);
   const maskId = `icon-business-mask-${uid}`;
   const gradientId = `icon-business-gradient-${uid}`;
   const shineId = `icon-business-shine-${uid}`;
 
+  if (theme.isChonk) {
+    return <IconLightning {...props} />;
+  }
+
   return (
-    <SvgIcon {...props} ref={forwardedRef}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       <mask id={maskId}>
         <path
           fill="white"
@@ -33,8 +49,8 @@ function IconBusinessComponent({
         />
       </mask>
       <linearGradient id={gradientId}>
-        <stop offset="0%" stopColor={theme.businessIconColors[0]} />
-        <stop offset="100%" stopColor={theme.businessIconColors[1]} />
+        <stop offset="0%" stopColor={businessIconColors[0]} />
+        <stop offset="100%" stopColor={businessIconColors[1]} />
       </linearGradient>
       <linearGradient id={shineId} gradientTransform="rotate(35)">
         <stop offset="0%" stopColor="rgba(255, 255, 255, 0)" />
@@ -56,24 +72,6 @@ function IconBusinessComponent({
     </SvgIcon>
   );
 }
-
-interface Props extends SVGIconProps {
-  /**
-   * Renders a pink purple gradient on the icon
-   */
-  gradient?: boolean;
-
-  /**
-   * Adds an animated shine to the icon
-   */
-  withShine?: boolean;
-}
-
-const IconBusiness = forwardRef<SVGSVGElement, Props>((props, ref) => (
-  <IconBusinessComponent {...props} forwardedRef={ref} />
-));
-
-IconBusiness.displayName = 'IconBusiness';
 
 const shine = keyframes`
   0% {

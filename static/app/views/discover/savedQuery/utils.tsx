@@ -22,6 +22,7 @@ import {
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
@@ -33,7 +34,7 @@ export function handleCreateQuery(
   yAxis: string[],
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
-  isNewQuery: boolean = true
+  isNewQuery = true
 ): Promise<SavedQuery> {
   const payload = eventView.toNewQuery();
   payload.yAxis = yAxis;
@@ -198,8 +199,16 @@ export function handleUpdateHomepageQuery(
       addSuccessMessage(t('Saved as Discover default'));
       return savedQuery;
     })
-    .catch(() => {
-      addErrorMessage(t('Unable to set query as Discover default'));
+    .catch((e: RequestError) => {
+      let errorMessage = t('Unable to set query as Discover default');
+
+      if ('responseJSON' in e) {
+        const response = e.responseJSON;
+        if (response?.non_field_errors && Array.isArray(response.non_field_errors)) {
+          errorMessage = response.non_field_errors[0];
+        }
+      }
+      addErrorMessage(errorMessage);
     });
 }
 
@@ -282,9 +291,9 @@ export function getSavedQueryDataset(
   return SavedQueryDatasets.DISCOVER;
 }
 
-export function getSavedQueryWithDataset(
-  savedQuery?: SavedQuery | NewQuery
-): SavedQuery | NewQuery | undefined {
+export function getSavedQueryWithDataset<T extends SavedQuery | NewQuery>(
+  savedQuery?: T
+): T | undefined {
   if (!savedQuery) {
     return undefined;
   }

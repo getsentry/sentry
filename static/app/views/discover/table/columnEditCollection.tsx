@@ -1,19 +1,18 @@
-import {Component, createRef, Fragment, useMemo} from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css} from '@emotion/react';
+import {css, type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Input from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -23,17 +22,13 @@ import {
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
-import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
-import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {UserSelectValues} from 'sentry/utils/userselect';
 import {setBodyUserSelect} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-
-import type {generateFieldOptions} from '../utils';
+import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {FieldValueOption} from './queryField';
 import {QueryField} from './queryField';
@@ -48,6 +43,7 @@ type Props = {
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
   organization: Organization;
+  theme: Theme;
   className?: string;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
@@ -95,7 +91,7 @@ class ColumnEditCollection extends Component<Props, State> {
       portal.style.position = 'absolute';
       portal.style.top = '0';
       portal.style.left = '0';
-      portal.style.zIndex = String(theme.zIndex.modal);
+      portal.style.zIndex = String(this.props.theme.zIndex.modal);
 
       this.portal = portal;
 
@@ -452,7 +448,7 @@ class ColumnEditCollection extends Component<Props, State> {
       filterPrimaryOptions,
       noFieldsMessage,
       showAliasField,
-      source,
+      // source,
       isOnDemandWidget,
     } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
@@ -499,42 +495,21 @@ class ColumnEditCollection extends Component<Props, State> {
           ) : singleColumn && showAliasField ? null : (
             <span />
           )}
-          {source === WidgetType.METRICS && !this.isFixedMetricsColumn(i) ? (
-            <MetricTagQueryField
-              mri={
-                columns[0]!.kind === FieldValueKind.FUNCTION
-                  ? columns[0]!.function[1]
-                  : // We should never get here because the first column should always be function for metrics
-                    undefined
-              }
-              gridColumns={gridColumns}
-              fieldValue={col}
-              onChange={value => this.handleUpdateColumn(i, value)}
-              error={this.state.error.get(i)}
-              takeFocus={i === this.props.columns.length - 1}
-              otherColumns={columns}
-              shouldRenderTag
-              disabled={disabled}
-              noFieldsMessage={noFieldsMessage}
-              skipParameterPlaceholder={showAliasField}
-            />
-          ) : (
-            <QueryField
-              fieldOptions={fieldOptions}
-              gridColumns={gridColumns}
-              fieldValue={col}
-              onChange={value => this.handleUpdateColumn(i, value)}
-              error={this.state.error.get(i)}
-              takeFocus={i === this.props.columns.length - 1}
-              otherColumns={columns}
-              shouldRenderTag
-              disabled={disabled}
-              filterPrimaryOptions={filterPrimaryOptions}
-              filterAggregateParameters={filterAggregateParameters}
-              noFieldsMessage={noFieldsMessage}
-              skipParameterPlaceholder={showAliasField}
-            />
-          )}
+          <QueryField
+            fieldOptions={fieldOptions}
+            gridColumns={gridColumns}
+            fieldValue={col}
+            onChange={value => this.handleUpdateColumn(i, value)}
+            error={this.state.error.get(i)}
+            takeFocus={i === this.props.columns.length - 1}
+            otherColumns={columns}
+            shouldRenderTag
+            disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters}
+            noFieldsMessage={noFieldsMessage}
+            skipParameterPlaceholder={showAliasField}
+          />
           {showAliasField && (
             <AliasField singleColumn={singleColumn}>
               <AliasInput
@@ -607,9 +582,9 @@ class ColumnEditCollection extends Component<Props, State> {
                 return 2;
               }
               const operation =
-                // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
-              if (!operation || !operation.parameters) {
+              if (!operation?.parameters) {
                 // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
                 return 3;
               }
@@ -693,39 +668,6 @@ class ColumnEditCollection extends Component<Props, State> {
   }
 }
 
-interface MetricTagQueryFieldProps
-  extends Omit<React.ComponentProps<typeof QueryField>, 'fieldOptions'> {
-  mri?: string;
-}
-
-const EMPTY_ARRAY: any = [];
-function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
-  const {projects} = usePageFilters().selection;
-  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, {projects});
-
-  const fieldOptions = useMemo(() => {
-    return data.reduce(
-      // @ts-ignore TS(7006): Parameter 'acc' implicitly has an 'any' type.
-      (acc, tag) => {
-        acc[`tag:${tag.key}`] = {
-          label: tag.key,
-          value: {
-            kind: FieldValueKind.TAG,
-            meta: {
-              dataType: 'string',
-              name: tag.key,
-            },
-          },
-        };
-        return acc;
-      },
-      {} as Record<string, FieldValueOption>
-    );
-  }, [data]);
-
-  return <QueryField fieldOptions={fieldOptions} {...props} />;
-}
-
 function OnDemandEquationsWarning() {
   return (
     <OnDemandContainer>
@@ -804,7 +746,7 @@ const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const Heading = styled('div')<{gridColumns: number}>`
@@ -839,11 +781,12 @@ const AliasField = styled('div')<{singleColumn: boolean}>`
 
 const RemoveButton = styled(Button)`
   margin-left: ${space(1)};
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
-export default ColumnEditCollection;
+const ColumnEditCollectionWithTheme = withTheme(ColumnEditCollection);
+export {ColumnEditCollectionWithTheme as ColumnEditCollection};

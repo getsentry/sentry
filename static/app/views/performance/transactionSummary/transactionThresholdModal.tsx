@@ -7,11 +7,11 @@ import set from 'lodash/set';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,7 +29,7 @@ export enum TransactionThresholdMetric {
   LARGEST_CONTENTFUL_PAINT = 'lcp',
 }
 
-export const METRIC_CHOICES = [
+const METRIC_CHOICES = [
   {label: t('Transaction Duration'), value: 'duration'},
   {label: t('Largest Contentful Paint'), value: 'lcp'},
 ];
@@ -189,7 +189,7 @@ class TransactionThresholdModal extends Component<Props, State> {
           stacked
           required
         >
-          <SelectControl
+          <Select
             required
             options={METRIC_CHOICES.slice()}
             name="responseMetric"
@@ -215,7 +215,6 @@ class TransactionThresholdModal extends Component<Props, State> {
           <Input
             type="number"
             name="threshold"
-            required
             pattern="[0-9]*(\.[0-9]*)?"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               this.handleFieldChange('threshold')(event.target.value);
@@ -237,7 +236,7 @@ class TransactionThresholdModal extends Component<Props, State> {
     const summaryView = eventView.clone();
     summaryView.query = summaryView.getQueryWithAdditionalConditions();
     const target = transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transactionName,
       query: summaryView.generateQueryStringObject(),
       projectID: project?.id,

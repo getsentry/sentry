@@ -13,6 +13,7 @@ from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentityProvider
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -131,7 +132,7 @@ class DiscordRequest:
         token = self._data.get("token")
         if not token or not application_id:
             return None
-        return f"https://discord.com/api/v10/webhooks/{application_id}/{token}"
+        return f"{DISCORD_BASE_URL}/webhooks/{application_id}/{token}"
 
     def _get_context(self):
         context = integration_service.get_integration_identity_context(

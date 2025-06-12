@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
@@ -16,7 +17,6 @@ import {
   AlertRuleSensitivity,
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
-import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
@@ -31,19 +31,25 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization: any, project: any, router: any, location: any, anomalies: any;
-  // create wrapper
-  const createWrapper = (props: any) =>
+  let organization: any, project: any, location: any, anomalies: any;
+  function Component(props: any) {
+    const theme = useTheme();
+    return <RuleFormContainer theme={theme} {...props} />;
+  }
+  function createWrapper(props: any) {
     render(
-      <RuleFormContainer
+      <Component
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         location={location}
         project={project}
         {...props}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
+  }
 
   beforeEach(() => {
     const initialData = initializeOrg({
@@ -53,7 +59,6 @@ describe('Incident Rules Form', () => {
     project = initialData.project;
     location = initialData.router.location;
     ProjectsStore.loadInitialData([project]);
-    router = initialData.router;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
@@ -77,6 +82,10 @@ describe('Incident Rules Form', () => {
       body: {count: 5},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {},
     });
@@ -94,14 +103,6 @@ describe('Incident Rules Form', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics-estimation-stats/',
       body: EventsStatsFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/meta/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/tags/',
-      body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -132,7 +133,7 @@ describe('Incident Rules Form', () => {
       project.access = [];
       createWrapper({rule});
 
-      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
@@ -142,7 +143,7 @@ describe('Incident Rules Form', () => {
       createWrapper({rule});
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
 
     it('renders time window', async () => {
@@ -157,7 +158,7 @@ describe('Incident Rules Form', () => {
       createWrapper({rule});
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
   });
 
@@ -416,6 +417,57 @@ describe('Incident Rules Form', () => {
       );
       expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
+
+    it('switches to failure rate with eap data with the right feature flag', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'visibility-explore-view',
+        'performance-transaction-deprecation-alerts',
+      ];
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: [],
+          aggregate: 'count(span.duration)',
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        },
+      });
+
+      await userEvent.click(screen.getAllByText('Throughput')[1]!);
+      await userEvent.click(await screen.findByText('Failure Rate'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'failure_rate()',
+            alertType: 'trace_item_failure_rate',
+            comparisonDelta: null,
+            dataset: 'events_analytics_platform',
+            detectionType: 'static',
+            environment: null,
+            eventTypes: ['trace_item_span'],
+            id: undefined,
+            name: 'My Incident Rule',
+            owner: undefined,
+            projectId: '2',
+            projects: ['project-slug'],
+            query: '',
+            queryType: 1,
+            resolveThreshold: 36,
+            status: 0,
+            thresholdPeriod: 1,
+            thresholdType: 0,
+            timeWindow: 60,
+          }),
+        })
+      );
+    });
   });
 
   describe('Editing a rule', () => {
@@ -475,7 +527,6 @@ describe('Incident Rules Form', () => {
 
       const queryInput = await screen.findByTestId('query-builder-input');
       await userEvent.type(queryInput, 'has:http.url');
-      await userEvent.type(queryInput, '{enter}');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 

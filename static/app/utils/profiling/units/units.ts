@@ -63,11 +63,11 @@ export function makeFormatTo(
   from: ProfilingFormatterUnit | string,
   to: ProfilingFormatterUnit | string
 ) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (durationMappings[from] === undefined) {
     throw new Error(`Cannot format unit ${from}, duration mapping is not defined`);
   }
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (durationMappings[to] === undefined) {
     throw new Error(`Cannot format unit ${from}, duration mapping is not defined`);
   }
@@ -85,9 +85,9 @@ export function formatTo(
   from: ProfilingFormatterUnit | string,
   to: ProfilingFormatterUnit | string
 ) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const fromMultiplier = Math.log10(durationMappings[from]);
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const toMultiplier = Math.log10(durationMappings[to]);
   const value = v * Math.pow(10, fromMultiplier - toMultiplier);
   return value;
@@ -102,9 +102,9 @@ const format = (v: number, abbrev: string, precision: number) => {
 
 export function makeFormatter(
   from: ProfilingFormatterUnit | string,
-  precision: number = 2
+  precision = 2
 ): (value: number) => string {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const multiplier = durationMappings[from];
 
   if (multiplier === undefined) {
@@ -190,7 +190,7 @@ function pad(n: number, slots: number) {
 }
 
 export function makeTimelineFormatter(from: ProfilingFormatterUnit | string) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const multiplier = durationMappings[from];
 
   if (multiplier === undefined) {

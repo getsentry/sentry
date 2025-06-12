@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
-import Timeline from 'sentry/components/timeline';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Timeline} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -81,6 +81,7 @@ export default function BreadcrumbsTimeline({
       <Timestamp>
         <Tooltip
           title={<DateTime date={timeDate} format={`ll - ${absoluteFormat} (z)`} />}
+          isHoverable
         >
           {isValidDate(startTimeDate) ? (
             <Duration

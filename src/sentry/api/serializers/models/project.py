@@ -25,6 +25,7 @@ from sentry.digests import backend as digests
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     has_dynamic_sampling,
+    has_dynamic_sampling_minimum_sample_rate,
     is_project_mode_sampling,
 )
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
@@ -84,7 +85,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "alert-filters",
     "servicehooks",
     "similarity-embeddings",
-    "similarity-embeddings-delete-by-hash",
 }
 
 
@@ -267,7 +267,6 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: list[str]
     hasAccess: bool
-    hasCustomMetrics: bool
     hasFeedbacks: bool
     hasFlags: bool
     hasMinifiedStackTrace: bool
@@ -534,7 +533,6 @@ class ProjectSerializer(Serializer):
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "access": attrs["access"],
             "hasAccess": attrs["has_access"],
-            "hasCustomMetrics": bool(obj.flags.has_custom_metrics),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
@@ -788,7 +786,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasReplays=bool(obj.flags.has_replays),
             hasFeedbacks=bool(obj.flags.has_feedbacks),
             hasNewFeedbacks=bool(obj.flags.has_new_feedbacks),
-            hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             # whether first span has been sent for each insight module
@@ -936,6 +933,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
     groupingConfig: str
+    derivedGroupingEnhancements: str
     groupingEnhancements: str
     groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
@@ -947,14 +945,16 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     processingIssues: int
     defaultEnvironment: str | None
     relayPiiConfig: str | None
-    relayCustomMetricCardinalityLimit: int | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
+    dynamicSamplingMinimumSampleRate: bool
     eventProcessing: dict[str, bool]
     symbolSources: str
-    uptimeAutodetection: NotRequired[bool]
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
+    tempestFetchDumps: NotRequired[bool]
+    autofixAutomationTuning: NotRequired[str]
+    seerScannerAutomation: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1009,6 +1009,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         sample_rate = None
+
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
                 sample_rate = obj.get_option("sentry:target_sample_rate")
@@ -1020,7 +1021,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-
         data: DetailedProjectResponse = {
             **base,
             "latestRelease": attrs["latest_release"],
@@ -1066,6 +1066,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "groupingEnhancementsBase": self.get_value_with_default(
                 attrs, "sentry:grouping_enhancements_base"
             ),
+            "derivedGroupingEnhancements": self.get_value_with_default(
+                attrs, "sentry:derived_grouping_enhancements"
+            ),
             "secondaryGroupingExpiry": self.get_value_with_default(
                 attrs, "sentry:secondary_grouping_expiry"
             ),
@@ -1089,39 +1092,40 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "processingIssues": attrs["processing_issues"],
             "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-            "relayCustomMetricCardinalityLimit": self.get_custom_metric_cardinality_limit(attrs),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
             ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),
+            "dynamicSamplingMinimumSampleRate": self.get_value_with_default(
+                attrs, "sentry:dynamic_sampling_minimum_sample_rate"
+            ),
             "eventProcessing": {
                 "symbolicationDegraded": False,
             },
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
+            "autofixAutomationTuning": self.get_value_with_default(
+                attrs, "sentry:autofix_automation_tuning"
+            ),
+            "seerScannerAutomation": self.get_value_with_default(
+                attrs, "sentry:seer_scanner_automation"
+            ),
         }
-
-        if features.has("organizations:uptime-settings", obj.organization):
-            data["uptimeAutodetection"] = bool(
-                attrs["options"].get("sentry:uptime_autodetection", True)
-            )
 
         if has_tempest_access(obj.organization, user):
             data["tempestFetchScreenshots"] = attrs["options"].get(
                 "sentry:tempest_fetch_screenshots", False
             )
+            data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
+
+        if has_dynamic_sampling_minimum_sample_rate(obj.organization, user):
+            data["dynamicSamplingMinimumSampleRate"] = bool(
+                obj.get_option("sentry:dynamic_sampling_minimum_sample_rate")
+            )
 
         return data
-
-    def get_custom_metric_cardinality_limit(self, attrs):
-        cardinalityLimits = attrs["options"].get("relay.cardinality-limiter.limits", [])
-        for limit in cardinalityLimits or ():
-            if limit.get("limit", {}).get("id") == "project-override-custom":
-                return limit.get("limit", {}).get("limit", None)
-
-        return None
 
     def format_options(self, attrs: Mapping[str, Any]) -> dict[str, Any]:
         options = attrs["options"]

@@ -9,23 +9,6 @@ class ActionPriority:
     UNKNOWN = 4
 
 
-sourcemap_sdks = [
-    "sentry.javascript.astro",
-    "sentry.javascript.browser",
-    "sentry.javascript.node",
-    "sentry.javascript.react",
-    "sentry.javascript.angular",
-    "sentry.javascript.angular-ivy",
-    "sentry.javascript.ember",
-    "sentry.javascript.gatsby",
-    "sentry.javascript.vue",
-    "sentry.javascript.nextjs",
-    "sentry.javascript.remix",
-    "sentry.javascript.svelte",
-    "sentry.javascript.sveltekit",
-    "sentry.javascript.react-native",
-]
-
 fileNameBlocklist = ["@webkit-masked-url"]
 
 priority_ranking = {
@@ -87,48 +70,3 @@ deprecated_event_errors = [
     EventError.JS_NO_COLUMN,
     EventError.TOO_LARGE_FOR_CACHE,
 ]
-
-
-# These checks mirror what we do in the front end in getUniqueFilesFromException
-def find_debug_frames(event):
-    debug_frames = []
-    exceptions = event.interfaces["exception"].values
-    seen_filenames = []
-
-    for exception_idx, exception in enumerate(exceptions):
-        for frame_idx, frame in enumerate(exception.stacktrace.frames):
-            if (
-                frame.in_app
-                and is_frame_filename_valid(frame)
-                and frame.lineno
-                and frame.filename not in seen_filenames
-            ):
-                debug_frames.append((frame_idx, exception_idx))
-                seen_filenames.append(frame.filename)
-
-    return debug_frames
-
-
-def get_file_extension(filename):
-    segments = filename.split(".")
-    if len(segments) > 1:
-        return segments[-1]
-    return None
-
-
-def is_frame_filename_valid(frame):
-    filename = frame.abs_path
-    if not filename:
-        return False
-    try:
-        filename = filename.split("/")[-1]
-    except Exception:
-        pass
-
-    if frame.filename == "<anonymous>" and frame.in_app:
-        return False
-    elif frame.function in fileNameBlocklist:
-        return False
-    elif filename and not get_file_extension(filename):
-        return False
-    return True

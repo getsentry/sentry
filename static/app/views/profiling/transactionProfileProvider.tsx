@@ -38,7 +38,7 @@ export default function ProfileAndTransactionProvider(
 
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
-    projectSlug!,
+    projectSlug,
     profile.type === 'resolved' ? getTransactionId(profile.data) : null
   );
 
@@ -50,7 +50,7 @@ export default function ProfileAndTransactionProvider(
       profile={profile}
       setProfile={setProfile}
     >
-      <ProfileTransactionContext.Provider value={profileTransaction}>
+      <ProfileTransactionContext value={profileTransaction}>
         <ProfileHeader
           eventId={params.eventId!}
           projectId={projectSlug}
@@ -59,7 +59,7 @@ export default function ProfileAndTransactionProvider(
           }
         />
         {props.children}
-      </ProfileTransactionContext.Provider>
+      </ProfileTransactionContext>
     </TransactionProfileProvider>
   );
 }

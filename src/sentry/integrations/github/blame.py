@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 from django.utils.datastructures import OrderedSet
-from isodate import parse_datetime
 
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -126,7 +125,7 @@ def extract_commits_from_blame_response(
     files: Sequence[SourceLineInfo],
     file_path_mapping: FilePathMapping,
     extra: dict[str, str | int | None],
-) -> Sequence[FileBlameInfo]:
+) -> list[FileBlameInfo]:
     """
     Using the file path mapping that generated the initial GraphQL query,
     this function extracts all commits from the response and maps each one
@@ -199,6 +198,9 @@ def _get_matching_file_blame(
     Generates a FileBlameInfo object for the given file. Searches the given blame range
     and validates that the commit is valid before creating the FileBlameInfo object.
     """
+    if file.lineno is None:
+        return None
+
     matching_blame_range = next(
         iter([r for r in blame_ranges if r["startingLine"] <= file.lineno <= r["endingLine"]]),
         None,
@@ -242,7 +244,7 @@ def _get_matching_file_blame(
         return None
 
     try:
-        committed_date = parse_datetime(committed_date_str).astimezone(timezone.utc)
+        committed_date = datetime.fromisoformat(committed_date_str).astimezone(timezone.utc)
     except Exception:
         logger.exception(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",

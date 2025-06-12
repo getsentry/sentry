@@ -1,7 +1,8 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Polarity} from 'sentry/components/percentChange';
-import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -9,24 +10,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
+import {NON_FINITE_NUMBER_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
-  Meta,
-  TableData,
+  TabularRow,
+  TabularValueType,
+  TabularValueUnit,
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {X_GUTTER, Y_GUTTER} from '../common/settings';
-
+import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-export interface BigNumberWidgetVisualizationProps {
+interface BigNumberWidgetVisualizationProps {
   field: string;
   value: number | string;
   maximumValue?: number;
-  meta?: Meta;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number | string;
   thresholds?: Thresholds;
+  type?: TabularValueType;
+  unit?: TabularValueUnit;
 }
 
 export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
@@ -36,19 +39,33 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     previousPeriodValue,
     maximumValue = Number.MAX_VALUE,
     preferredPolarity,
-    meta,
+    type,
+    unit,
   } = props;
+
+  const theme = useTheme();
+
+  if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
+    throw new Error(NON_FINITE_NUMBER_MESSAGE);
+  }
 
   const location = useLocation();
   const organization = useOrganization();
 
-  // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldRenderer = meta
-    ? getFieldRenderer(field, meta as MetaType, false)
-    : (renderableValue: any) => renderableValue.toString();
+  // Create old-school renderer meta, so we can pass it to field renderers
+  const rendererMeta: MetaType = {
+    fields: {
+      [field]: type ?? undefined,
+    },
+  };
 
-  const unit = meta?.units?.[field];
-  const type = meta?.fields?.[field];
+  if (unit) {
+    rendererMeta.units = {
+      [field]: unit,
+    };
+  }
+
+  const fieldRenderer = getFieldRenderer(field, rendererMeta, false);
 
   const baggage = {
     location,
@@ -65,7 +82,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
             {
               [field]: value,
             },
-            baggage
+            {...baggage, theme}
           )}
         </NumberAndDifferenceContainer>
       </Wrapper>
@@ -108,7 +125,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               {
                 [field]: clampedValue,
               },
-              baggage
+              {...baggage, theme}
             )}
           </Tooltip>
         </NumberContainerOverride>
@@ -123,8 +140,8 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               previousPeriodValue={previousPeriodValue}
               field={field}
               preferredPolarity={preferredPolarity}
-              renderer={(previousDatum: TableData[number]) =>
-                fieldRenderer(previousDatum, baggage)
+              renderer={(previousDatum: TabularRow) =>
+                fieldRenderer(previousDatum, {...baggage, theme})
               }
             />
           )}
@@ -135,15 +152,26 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
 function Wrapper({children}: any) {
   return (
-    <AutoResizeParent>
-      <AutoSizedText>{children}</AutoSizedText>
-    </AutoResizeParent>
+    <GrowingWrapper>
+      <AutoResizeParent>
+        <AutoSizedText>{children}</AutoSizedText>
+      </AutoResizeParent>
+    </GrowingWrapper>
   );
 }
 
+// Takes up 100% of the parent. If within flex context, grows to fill.
+// Otherwise, takes up 100% horizontally and vertically
+const GrowingWrapper = styled('div')`
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+`;
+
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  inset: 0;
 
   color: ${p => p.theme.headingColor};
 
@@ -171,3 +199,12 @@ const NumberContainerOverride = styled('div')`
     white-space: nowrap;
   }
 `;
+
+const LoadingPlaceholder = styled('span')`
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+BigNumberWidgetVisualization.LoadingPlaceholder = function () {
+  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+};

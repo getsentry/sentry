@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.conf import settings
 
 from sentry.api.serializers import serialize
@@ -40,9 +38,14 @@ class TeamSerializerTest(TestCase):
         user = self.create_user(username="foo")
         other_user = self.create_user(username="bar")
         third_user = self.create_user(username="baz")
+        # Inactive users are not included in the member count
+        inactive_user = self.create_user(username="qux", is_active=False)
 
         organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization, members=[user, other_user, third_user])
+        team = self.create_team(
+            organization=organization,
+            members=[user, other_user, third_user, inactive_user],
+        )
 
         result = serialize(team, user)
         assert result["memberCount"] == 3
@@ -227,7 +230,7 @@ class TeamSerializerTest(TestCase):
         req.user = user
         req.superuser.set_logged_in(req.user)
 
-        with mock.patch.object(env, "request", req):
+        with env.active_request(req):
             result = serialize(team, user)
             assert result["access"] == TEAM_ADMIN["scopes"]
             assert result["hasAccess"] is True

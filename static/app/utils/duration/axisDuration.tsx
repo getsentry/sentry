@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
+import {categorizeDuration} from 'sentry/utils/discover/categorizeDuration';
 import {DAY, HOUR, MINUTE, SECOND, WEEK} from 'sentry/utils/formatters';
-
-import {categorizeDuration} from '../discover/categorizeDuration';
 
 /**
  * Specialized duration formatting for axis labels.
@@ -34,8 +33,9 @@ export function axisDuration(milliseconds: number, durationUnit?: number): strin
       const label = (milliseconds / SECOND).toFixed(0);
       return t('%ss', label);
     }
-    default:
+    default: {
       const label = milliseconds.toFixed(0);
       return t('%sms', label);
+    }
   }
 }

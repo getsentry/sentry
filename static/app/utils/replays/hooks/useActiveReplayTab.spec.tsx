@@ -5,7 +5,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
-function mockLocation(query: string = '') {
+function mockLocation(query = '') {
   window.location.search = qs.stringify({query});
 }
 

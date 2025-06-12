@@ -22,7 +22,7 @@ repos:
       - id: pyupgrade
         name: pyupgrade
         entry: pyupgrade
-        args: ['--py312-plus']
+        args: ['--py313-plus']
         language: system
         types: [python]
       # Configuration for black exists in pyproject.toml,
@@ -79,7 +79,7 @@ repos:
         files: ^requirements-getsentry-overrides\.txt$
       - id: check-mypy-bypass
         name: do not bypass the type checker
-        entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
+        entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
         language: pygrep
         types: [python]
       - id: sort-stronger-mypy-list
@@ -108,17 +108,11 @@ repos:
       # additional_dependencies does not install a flattened dependency tree which is needed by,
       # for example, our eslint setup.
 
-      - id: biome
-        name: biome (javascript, typescript, json)
-        language: system
-        files: \.(jsx?|tsx?|css)$
-        entry: ./node_modules/.bin/biome check --log-level=error --write --files-ignore-unknown=true --no-errors-on-unmatched
-
       - id: eslint
         name: eslint
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
-        entry: ./node_modules/.bin/eslint --quiet --fix
+        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/eslint --quiet --fix
 
       - id: stylelint
         name: stylelint
@@ -127,10 +121,9 @@ repos:
         entry: ./node_modules/.bin/stylelint --quiet
 
       - id: prettier
-        name: prettier (yaml, markdown, ts, tsx, js, jsx, css)
+        name: prettier
         language: system
-        # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
-        types_or: [yaml, markdown, ts, tsx, javascript, jsx, css]
+        types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown]
         entry: ./node_modules/.bin/prettier --log-level=error --write
         # https://pre-commit.com/#regular-expressions
         exclude: |
@@ -149,6 +142,14 @@ repos:
             |static/app/utils/profiling/profile/formats/node/trace\.json
             |static/app/utils/profiling/profile/formats/typescript/trace\.json
           )$
+
+      - id: knip
+        name: knip
+        language: system
+        files: \.(ts|js|tsx|jsx|mjs)$
+        pass_filenames: false
+        stages: [pre-push]
+        entry: bash -c 'if [ -n "${SENTRY_KNIP_PRE_PUSH:-}" ]; then exec ./node_modules/.bin/knip; fi' --
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0

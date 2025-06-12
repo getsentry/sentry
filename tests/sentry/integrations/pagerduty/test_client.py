@@ -6,6 +6,7 @@ import responses
 from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
+from sentry.integrations.pagerduty.client import PagerdutySeverity, build_pagerduty_event_payload
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric
@@ -35,7 +36,7 @@ class PagerDutyClientTest(APITestCase):
 
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -113,7 +114,13 @@ class PagerDutyClientTest(APITestCase):
         )
 
         client = self.installation.get_keyring_client(self.service["id"])
-        client.send_trigger(self.event, severity="default")
+        data = build_pagerduty_event_payload(
+            routing_key=self.integration_key,
+            event=self.event,
+            notification_uuid=None,
+            severity=PagerdutySeverity("default"),
+        )
+        client.send_trigger(data=data)
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
@@ -122,11 +129,12 @@ class PagerDutyClientTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "pagerduty"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "pagerduty", "status": 200},
-            )
+            ),
         ]
         assert self.metrics.incr.mock_calls == calls
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
@@ -167,7 +175,13 @@ class PagerDutyClientTest(APITestCase):
         )
 
         client = self.installation.get_keyring_client(self.service["id"])
-        client.send_trigger(self.event, severity="info")
+        data = build_pagerduty_event_payload(
+            routing_key=self.integration_key,
+            event=self.event,
+            notification_uuid=None,
+            severity=PagerdutySeverity("info"),
+        )
+        client.send_trigger(data=data)
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
@@ -176,10 +190,11 @@ class PagerDutyClientTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "pagerduty"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "pagerduty", "status": 200},
-            )
+            ),
         ]
         assert self.metrics.incr.mock_calls == calls

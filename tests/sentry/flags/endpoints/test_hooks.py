@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.flags.models import (
     ACTION_MAP,
     CREATED_BY_TYPE_MAP,
+    PROVIDER_MAP,
     FlagAuditLogModel,
     FlagWebHookSigningSecretModel,
 )
@@ -23,7 +24,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-audit-log": True}
+        return {}
 
     def test_generic_post_create(self, mock_incr):
         request_data = {
@@ -86,6 +87,94 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
             assert FlagAuditLogModel.objects.count() == 1
 
+    def test_statsig_post_verification(self, mock_incr):
+        request_data = {"data": {"event": "url_verification", "verification_code": "123"}}
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")), request_data
+            )
+            assert response.status_code == 200, response.content
+            assert response.json() == {"verification_code": "123"}
+            assert FlagAuditLogModel.objects.count() == 0
+
+    def test_statsig_post_create(self, mock_incr):
+        request_data = {
+            "data": [
+                {
+                    "user": {"name": "johndoe", "email": "john@sentry.io"},
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "projectName": "sentry",
+                        "projectID": "1",
+                        "type": "Gate",
+                        "name": "gate1",
+                        "description": "Updated Config Conditions\n    - Added rule Rule 1",
+                        "environments": "development,staging,production",
+                        "action": "updated",
+                        "tags": [],
+                        "targetApps": [],
+                    },
+                },
+            ]
+        }
+
+        secret = "webhook-Xk9pL8NQaR5Ym2cx7vHnWtBj4M3f6qyZdC12mnspk8"
+
+        FlagWebHookSigningSecretModel.objects.create(
+            organization=self.organization,
+            provider="statsig",
+            secret=secret,
+        )
+
+        request_timestamp = "1739400185400"  # ms timestamp of the webhook request
+        signature_basestring = f"v0:{request_timestamp}:{json.dumps(request_data)}".encode()
+        signature = "v0=" + hmac_sha256_hex_digest(key=secret, message=signature_basestring)
+        headers = {
+            "X-Statsig-Signature": signature,
+            "X-Statsig-Request-Timestamp": request_timestamp,
+        }
+
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")),
+                request_data,
+                headers=headers,
+            )
+            assert response.status_code == 200, response.content
+            mock_incr.assert_any_call(
+                "feature_flags.audit_log_event_posted", tags={"provider": "statsig"}
+            )
+            assert FlagAuditLogModel.objects.count() == 1
+
+    def test_statsig_post_unauthorized(self, mock_incr):
+        request_data = {
+            "data": [
+                {
+                    "user": {"name": "johndoe", "email": "john@sentry.io"},
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "projectName": "sentry",
+                        "projectID": "1",
+                        "type": "Gate",
+                        "name": "gate1",
+                        "description": "Updated Config Conditions\n    - Added rule Rule 1",
+                        "environments": "development,staging,production",
+                        "action": "updated",
+                        "tags": [],
+                        "targetApps": [],
+                    },
+                },
+            ]
+        }
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")), request_data
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
+
     def test_launchdarkly_post_create(self, mock_incr):
         request_data = LD_REQUEST
         signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())
@@ -115,6 +204,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.created_by == "michelle@example.com"
         assert flag.created_by_type == CREATED_BY_TYPE_MAP["email"]
         assert flag.organization_id == self.organization.id
+        assert flag.provider == PROVIDER_MAP["launchdarkly"]
         assert flag.tags is not None
         assert flag.tags["description"] == "flag was created"
 
@@ -143,12 +233,6 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             response = self.client.post(url, {})
             assert response.status_code == 404
             assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
-
-    def test_post_disabled(self, mock_incr):
-        response = self.client.post(self.url, data={})
-        assert response.status_code == 404
-        assert response.content == b'"Not enabled."'
-        assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
     def test_post_missing_signature(self, mock_incr):
         with self.feature(self.features):

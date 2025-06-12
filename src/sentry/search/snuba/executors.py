@@ -160,7 +160,7 @@ def get_search_filter(
         # <, <=, >, >=
         if search_filter.key.name == name and search_filter.operator.startswith(operator):
             val = search_filter.value.raw_value
-            found_val = comparator(val, found_val) if found_val else val
+            found_val = comparator(val, found_val) if found_val else val  # type: ignore[type-var]  # SearchFilter is an unsound union
     return found_val
 
 
@@ -334,7 +334,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         get_sample: bool,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-    ) -> SnubaQueryParams:
+    ) -> SnubaQueryParams | None:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
         """
@@ -475,7 +475,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         for gc in group_categories:
             try:
-                query_params_for_categories[gc] = self._prepare_params_for_category(
+                query_params = self._prepare_params_for_category(
                     gc,
                     query_partial,
                     organization,
@@ -494,12 +494,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
-
-        query_params_for_categories = {
-            gc: query_params
-            for gc, query_params in query_params_for_categories.items()
-            if query_params is not None
-        }
+            else:
+                if query_params is not None:
+                    query_params_for_categories[gc] = query_params
 
         try:
             bulk_query_results = bulk_raw_query(
@@ -1303,15 +1300,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         Returns the suggested lookup for a search filter.
         """
         attr_entity = self.entities["attrs"]
-        users = filter(lambda x: isinstance(x, RpcUser), search_filter.value.raw_value)
+        users = [x for x in search_filter.value.raw_value if isinstance(x, RpcUser)]
         user_ids = [user.id for user in users]
-        teams = filter(lambda x: isinstance(x, Team), search_filter.value.raw_value)
+        teams = [x for x in search_filter.value.raw_value if isinstance(x, Team)]
         team_ids = [team.id for team in teams]
 
         operator = Op.NOT_IN if search_filter.is_negation else Op.IN
         null_check_operator = Op.IS_NULL if search_filter.is_negation else Op.IS_NOT_NULL
 
-        conditions = []
+        conditions: list[Condition] = []
         if user_ids:
             suspect_commit_user = Condition(
                 Column("owner_suspect_commit_user_id", attr_entity), operator, user_ids
@@ -1572,20 +1569,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 organization=projects[0].organization_id, version__in=versions
             ).values_list("version", "id")
         }
-
-        for version in versions:
-            if version not in releases:
-                # TODO: This is mostly around for legacy reasons - we should probably just
-                # raise a validation here an inform the user that they passed an invalid
-                # release
-                releases[None] = -1
-                # We only need to find the first non-existent release here
-                break
+        # TODO: This is mostly around for legacy reasons - we should probably just
+        # raise a validation here an inform the user that they passed an invalid
+        # release
+        condition_values = list(releases.values())
+        if any(version not in releases for version in versions):
+            condition_values.append(-1)
 
         return Condition(
-            Column("group_first_release", self.entities["attrs"]),
-            Op.IN,
-            list(releases.values()),
+            Column("group_first_release", self.entities["attrs"]), Op.IN, condition_values
         )
 
     ISSUE_FIELD_NAME = "group_id"

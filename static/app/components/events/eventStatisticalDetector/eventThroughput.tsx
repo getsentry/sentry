@@ -308,7 +308,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
       const timestamp = curr[0];
       const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
       const prev = acc[acc.length - 1];
-      const value = curr[1]![0]!.count;
+      const value = curr[1][0]!.count;
 
       if (prev?.timestamp === bucket) {
         prev.value += value;
@@ -348,12 +348,10 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
 
 function isValidRegressionEvent(event: Event, group: Group): boolean {
   switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       const evidenceData = event.occurrence?.evidenceData;
       return defined(evidenceData?.transaction) && defined(evidenceData?.breakpoint);
     }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
     case IssueType.PROFILE_FUNCTION_REGRESSION: {
       const evidenceData = event.occurrence?.evidenceData;
       return defined(evidenceData?.fingerprint) && defined(evidenceData?.breakpoint);
@@ -365,10 +363,8 @@ function isValidRegressionEvent(event: Event, group: Group): boolean {
 
 function getStatsType(group: Group): 'transactions' | 'functions' | null {
   switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION:
       return 'transactions';
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
     case IssueType.PROFILE_FUNCTION_REGRESSION:
       return 'functions';
     default:
@@ -386,5 +382,5 @@ const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
       ? p.theme.red300
       : p.change === 'decrease'
         ? p.theme.green300
-        : p.theme.gray300};
+        : p.theme.subText};
 `;

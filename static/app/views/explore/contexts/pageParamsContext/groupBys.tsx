@@ -6,7 +6,7 @@ import {decodeList} from 'sentry/utils/queryString';
 export const UNGROUPED = '';
 
 export function defaultGroupBys(): string[] {
-  return [UNGROUPED];
+  return [''];
 }
 
 export function getGroupBysFromLocation(location: Location): string[] {
@@ -16,16 +16,12 @@ export function getGroupBysFromLocation(location: Location): string[] {
     return rawGroupBys;
   }
 
-  return defaultGroupBys();
-}
-
-export function updateLocationWithGroupBys(
-  location: Location,
-  groupBys: string[] | null | undefined
-) {
-  if (defined(groupBys)) {
-    location.query.groupBy = groupBys;
-  } else if (groupBys === null) {
-    delete location.query.groupBy;
+  // If the param is defined by has empty string for value
+  // we're still getting back the empty list. This special
+  // cases it and ensures we permit the empty group by.
+  if (defined(location.query.groupBy)) {
+    return [''];
   }
+
+  return defaultGroupBys();
 }

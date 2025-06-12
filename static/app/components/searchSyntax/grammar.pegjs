@@ -220,27 +220,68 @@ text_filter
 
 // Filter keys
 key
-  = value:[a-zA-Z0-9_.-]+ {
-      return tc.tokenKeySimple(value.join(''), false);
+  = key:[a-zA-Z0-9_.-]+ {
+      return tc.tokenKeySimple(key.join(''), false);
+    }
+
+escaped_key
+  = key:[a-zA-Z0-9_.:-]+ {
+      return tc.tokenKeySimple(key.join(''), false);
     }
 
 quoted_key
-  = '"' key:[a-zA-Z0-9_.:-]+ '"' {
-      return tc.tokenKeySimple(key.join(''), true);
+  = '"' key:escaped_key '"' {
+      return tc.tokenKeySimple(key.value, true);
     }
 
+explicit_flag_key_unquoted
+  = prefix:"flags" open_bracket key:escaped_key closed_bracket {
+      return tc.tokenKeyExplicitFlag(prefix, key);
+    }
+
+explicit_flag_key_quoted
+  = prefix:"flags" open_bracket key:quoted_key closed_bracket {
+      return tc.tokenKeyExplicitFlag(prefix, key);
+    }
+
+explicit_flag_key = explicit_flag_key_unquoted / explicit_flag_key_quoted
+
+explicit_string_flag_key_unquoted
+  = prefix:"flags" open_bracket key:escaped_key spaces comma spaces 'string' closed_bracket {
+      return tc.tokenKeyExplicitStringFlag(prefix, key)
+    }
+
+explicit_string_flag_key_quoted
+  = prefix:"flags" open_bracket key:quoted_key spaces comma spaces 'string' closed_bracket {
+      return tc.tokenKeyExplicitStringFlag(prefix, key)
+    }
+
+explicit_string_flag_key = explicit_string_flag_key_unquoted / explicit_string_flag_key_quoted
+
+explicit_number_flag_key_unquoted
+  = prefix:"flags" open_bracket key:escaped_key spaces comma spaces 'number' closed_bracket {
+      return tc.tokenKeyExplicitNumberFlag(prefix, key)
+    }
+
+explicit_number_flag_key_quoted
+  = prefix:"flags" open_bracket key:quoted_key spaces comma spaces 'number' closed_bracket {
+      return tc.tokenKeyExplicitNumberFlag(prefix, key)
+    }
+
+explicit_number_flag_key = explicit_number_flag_key_unquoted / explicit_number_flag_key_quoted
+
 explicit_tag_key
-  = prefix:"tags" open_bracket key:search_key closed_bracket {
+  = prefix:"tags" open_bracket key:escaped_key closed_bracket {
       return tc.tokenKeyExplicitTag(prefix, key);
     }
 
 explicit_string_tag_key
-  = prefix:"tags" open_bracket key:search_key spaces comma spaces 'string' closed_bracket {
+  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'string' closed_bracket {
       return tc.tokenKeyExplicitStringTag(prefix, key)
     }
 
 explicit_number_tag_key
-  = prefix:"tags" open_bracket key:search_key spaces comma spaces 'number' closed_bracket {
+  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'number' closed_bracket {
       return tc.tokenKeyExplicitNumberTag(prefix, key)
     }
 
@@ -256,7 +297,7 @@ function_args
     }
 
 aggregate_param
-  = quoted_aggregate_param / raw_aggregate_param
+  = explicit_tag_aggregate_param / quoted_aggregate_param / raw_aggregate_param
 
 raw_aggregate_param
   = param:[^()\t\n, \"]+ {
@@ -268,11 +309,16 @@ quoted_aggregate_param
       return tc.tokenKeyAggregateParam(`"${param.join('')}"`, true);
     }
 
+explicit_tag_aggregate_param
+  = key:(explicit_tag_key / explicit_string_tag_key / explicit_number_tag_key) {
+      return tc.tokenKeyAggregateParam(key.text, false);
+    }
+
 search_key
-  = explicit_number_tag_key / key / quoted_key
+  = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
 
 text_key
-  = explicit_tag_key / explicit_string_tag_key / search_key
+  = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 
 // Filter values
 

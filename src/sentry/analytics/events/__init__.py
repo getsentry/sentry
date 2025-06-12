@@ -19,7 +19,6 @@ from .eventuser_equality_check import *  # noqa: F401,F403
 from .eventuser_snuba_for_projects import *  # noqa: F401,F403
 from .eventuser_snuba_query import *  # noqa: F401,F403
 from .first_cron_checkin_sent import *  # noqa: F401,F403
-from .first_custom_metric_sent import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
 from .first_feedback_sent import *  # noqa: F401,F403
 from .first_flag_sent import *  # noqa: F401,F403
@@ -72,6 +71,7 @@ from .organization_joined import *  # noqa: F401,F403
 from .plugin_enabled import *  # noqa: F401,F403
 from .project_created import *  # noqa: F401,F403
 from .project_issue_searched import *  # noqa: F401,F403
+from .project_transferred import *  # noqa: F401,F403
 from .quick_trace_connected_services import *  # noqa: F401,F403
 from .release_created import *  # noqa: F401,F403
 from .release_get_previous_commits import *  # noqa: F401,F403

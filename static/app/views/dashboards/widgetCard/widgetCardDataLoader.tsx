@@ -7,10 +7,9 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
-
-import type {DashboardFilters, Widget} from '../types';
-import {WidgetType} from '../types';
 
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
@@ -20,7 +19,10 @@ type Results = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
+  isSampled?: boolean | null;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -32,6 +34,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
+  onDataFetchStart?: () => void;
   onDataFetched?: (
     results: Pick<
       Results,
@@ -41,6 +44,7 @@ type Props = {
       | 'timeseriesResultsTypes'
       | 'totalIssuesCount'
       | 'confidence'
+      | 'sampleCount'
     >
   ) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
@@ -55,6 +59,7 @@ export function WidgetCardDataLoader({
   tableItemLimit,
   onDataFetched,
   onWidgetSplitDecision,
+  onDataFetchStart,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -69,6 +74,7 @@ export function WidgetCardDataLoader({
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {({tableResults, errorMessage, loading}) => (
           <Fragment>{children({tableResults, errorMessage, loading})}</Fragment>
@@ -84,9 +90,10 @@ export function WidgetCardDataLoader({
         organization={organization}
         widget={widget}
         selection={selection}
-        limit={widget.limit ?? tableItemLimit}
+        limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
@@ -101,12 +108,12 @@ export function WidgetCardDataLoader({
     return (
       <SpansWidgetQueries
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </SpansWidgetQueries>
@@ -121,6 +128,7 @@ export function WidgetCardDataLoader({
       selection={selection}
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
+      onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
       onWidgetSplitDecision={onWidgetSplitDecision}
     >

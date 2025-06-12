@@ -1,11 +1,11 @@
-import useExternalIssueDataFeedback from 'sentry/components/feedback/list/useHasLinkedIssues';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import useHasLinkedIssues from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,
   PluginActionComponent,
   PluginIssueComponent,
   SentryAppIssueComponent,
 } from 'sentry/components/group/externalIssuesList/types';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -20,6 +20,12 @@ interface Props {
 }
 
 function getPluginNames(pluginIssue: PluginIssueComponent | PluginActionComponent) {
+  if (Array.isArray(pluginIssue.props.plugin)) {
+    return {
+      name: pluginIssue.props.plugin[0],
+      icon: '',
+    };
+  }
   return {
     name: pluginIssue.props.plugin.name ?? '',
     icon: pluginIssue.props.plugin.slug ?? '',
@@ -48,7 +54,7 @@ function getAppIntegrationNames(integrationIssue: SentryAppIssueComponent) {
 }
 
 export default function IssueTrackingSignals({group}: Props) {
-  const {linkedIssues} = useExternalIssueDataFeedback({
+  const {linkedIssues} = useHasLinkedIssues({
     group,
     event: {} as Event,
     project: group.project,
@@ -75,7 +81,7 @@ export default function IssueTrackingSignals({group}: Props) {
     'plugin-actions': getPluginNames,
     'integration-issue': getIntegrationNames,
     'sentry-app-issue': getAppIntegrationNames,
-    // @ts-ignore TS(2551): Property 'plugin-action' does not exist on type '{... Remove this comment to see the full error message
+    // @ts-expect-error TS(2551): Property 'plugin-action' does not exist on type '{... Remove this comment to see the full error message
   }[issue.type](issue) ?? {name: '', icon: undefined};
 
   return (

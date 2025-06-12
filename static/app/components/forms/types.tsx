@@ -1,6 +1,5 @@
-import type {createFilter} from 'react-select';
-
-import type {AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/core/alert';
+import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type FormModel from 'sentry/components/forms/model';
@@ -42,9 +41,9 @@ interface BaseField {
   'aria-label'?: string;
   autosize?: boolean;
   choices?:
-    | ((props: {[key: string]: any}) => void)
-    | readonly Readonly<[number | string, React.ReactNode]>[];
-  confirm?: {[key: string]: React.ReactNode};
+    | ((props: Record<string, any>) => void)
+    | ReadonlyArray<Readonly<[number | string, React.ReactNode]>>;
+  confirm?: Record<string, React.ReactNode | boolean>;
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: React.ReactNode | ((props: any) => React.ReactNode);
@@ -55,8 +54,8 @@ interface BaseField {
    * Function to format the value displayed in the undo toast. May also be
    * specified as false to disable showing the changed fields in the toast.
    */
-  formatMessageValue?: Function | false;
-  getData?: (data: object) => object;
+  formatMessageValue?: boolean | ((props: any) => React.ReactNode);
+  getData?: (data: Record<PropertyKey, unknown>) => Record<PropertyKey, unknown>;
   getValue?: (value: FieldValue) => any;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
   hideLabel?: boolean;
@@ -105,7 +104,7 @@ interface BaseField {
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
 
-export interface CustomType {
+interface CustomType {
   Component: (arg: BaseField) => React.ReactElement;
   type: 'custom';
 }
@@ -119,11 +118,11 @@ type InputType = {type: 'string' | 'secret'} & {
 type SelectControlType = {type: 'choice' | 'select'} & {
   allowClear?: boolean;
   // for new select
-  defaultOptions?: {label: string; value: any}[] | boolean;
+  defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   multiple?: boolean;
   noOptionsMessage?: () => string;
-  options?: SelectValue<any>[];
+  options?: Array<SelectValue<any>>;
 };
 
 type TextareaType = {type: 'textarea'} & {
@@ -154,7 +153,7 @@ export interface TableType {
   /**
    * An object with of column labels (headers) for the table.
    */
-  columnLabels: object;
+  columnLabels: Record<PropertyKey, React.ReactNode>;
   type: 'table';
   /**
    * The confirmation message before a a row is deleted
@@ -167,7 +166,7 @@ export interface TableType {
 export type ProjectMapperType = {
   iconType: string;
   mappedDropdown: {
-    items: {label: string; url: string; value: string | number}[];
+    items: Array<{label: string; url: string; value: string | number}>;
     placeholder: string;
   };
   nextButton: {
@@ -176,26 +175,26 @@ export type ProjectMapperType = {
     // url comes from the `next` parameter in the QS
     description?: string;
   };
-  sentryProjects: (AvatarProject & {id: number; name: string})[];
+  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   type: 'project_mapper';
 };
 
-export type ChoiceMapperType = {
+type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
 
 // selects a sentry project with avatars
-export type SentryProjectSelectorType = {
+type SentryProjectSelectorType = {
   projects: Project[];
   type: 'sentry_project_selector';
   avatarSize?: number;
 };
 
-export type SentryOrganizationRoleSelectorType = {
+type SentryOrganizationRoleSelectorType = {
   type: 'sentry_organization_role_selector';
 };
 
-export type SelectAsyncType = {
+type SelectAsyncType = {
   type: 'select_async';
 } & SelectAsyncFieldProps;
 
@@ -218,7 +217,7 @@ export type Field = (
 ) &
   BaseField;
 
-export type FieldObject = Field | Function;
+export type FieldObject = Field | (() => React.ReactNode);
 
 export type JsonFormObject = {
   fields: FieldObject[];

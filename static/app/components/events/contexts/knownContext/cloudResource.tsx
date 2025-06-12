@@ -49,15 +49,16 @@ export function getCloudResourceContextData({
           subject: t('Account ID'),
           value: data[CloudResourceContextKeys.CLOUD_ACCOUNT_ID],
         };
-      case CloudResourceContextKeys.CLOUD_PROVIDER:
+      case CloudResourceContextKeys.CLOUD_PROVIDER: {
         const provider = data[CloudResourceContextKeys.CLOUD_PROVIDER];
         return {
           key: ctxKey,
           subject: t('Provider'),
           value:
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             provider && CLOUD_PROVIDERS[provider] ? CLOUD_PROVIDERS[provider] : provider,
         };
+      }
       case CloudResourceContextKeys.CLOUD_PLATFORM:
         return {
           key: ctxKey,

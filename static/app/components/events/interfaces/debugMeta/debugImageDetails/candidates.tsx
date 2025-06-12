@@ -4,8 +4,9 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -16,8 +17,6 @@ import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-
-import SearchBarAction from '../../searchBarAction';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
@@ -43,8 +42,8 @@ type Props = {
 };
 
 type State = {
-  filterOptions: SelectSection<string>[];
-  filterSelections: SelectOption<string>[];
+  filterOptions: Array<SelectSection<string>>;
+  filterSelections: Array<SelectOption<string>>;
   filteredCandidatesByFilter: ImageCandidates;
   filteredCandidatesBySearch: ImageCandidates;
   searchTerm: string;
@@ -106,6 +105,7 @@ class Candidates extends Component<Props, State> {
           return false;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         if (!defined(info) || !String(info).trim()) {
           return false;
         }
@@ -156,7 +156,7 @@ class Candidates extends Component<Props, State> {
   }
 
   getFilterOptions(candidates: ImageCandidates) {
-    const filterOptions: SelectSection<string>[] = [];
+    const filterOptions: Array<SelectSection<string>> = [];
 
     const candidateStatus = [
       ...new Set(candidates.map(candidate => candidate.download.status)),
@@ -194,7 +194,7 @@ class Candidates extends Component<Props, State> {
 
   getFilteredCandidatedByFilter(
     candidates: ImageCandidates,
-    filterOptions: SelectOption<string>[]
+    filterOptions: Array<SelectOption<string>>
   ) {
     const checkedStatusOptions = new Set(
       filterOptions
@@ -264,7 +264,7 @@ class Candidates extends Component<Props, State> {
     this.setState({searchTerm});
   };
 
-  handleChangeFilter = (filterSelections: SelectOption<string>[]) => {
+  handleChangeFilter = (filterSelections: Array<SelectOption<string>>) => {
     const {filteredCandidatesBySearch} = this.state;
     const filteredCandidatesByFilter = this.getFilteredCandidatedByFilter(
       filteredCandidatesBySearch,

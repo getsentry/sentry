@@ -11,16 +11,27 @@ import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from google.protobuf.message import Message as ProtobufMessage
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
 )
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest, GetTraceResponse
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesRequest, GetTracesResponse
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
     TraceItemAttributeValuesResponse,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
+    TraceItemDetailsRequest,
+    TraceItemDetailsResponse,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    TraceItemStatsRequest,
+    TraceItemStatsResponse,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
@@ -48,7 +59,7 @@ class MultiRpcResponse:
     timeseries_response: list[TimeSeriesResponse]
 
 
-def log_snuba_info(content):
+def log_snuba_info(content: str) -> None:
     if SNUBA_INFO_FILE:
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
@@ -80,6 +91,14 @@ def timeseries_rpc(requests: list[TimeSeriesRequest]) -> list[TimeSeriesResponse
     return _make_rpc_requests(timeseries_requests=requests).timeseries_response
 
 
+def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
+    resp = _make_rpc_request("EndpointGetTrace", "v1", referrer=request.meta.referrer, req=request)
+    response = GetTraceResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+@sentry_sdk.trace
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
@@ -103,8 +122,8 @@ def _make_rpc_requests(
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
         _make_rpc_request,
-        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
-        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
+        thread_isolation_scope=sentry_sdk.get_isolation_scope(),
+        thread_current_scope=sentry_sdk.get_current_scope(),
     )
     response = [
         result
@@ -144,6 +163,32 @@ def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttribu
 def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
     resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
     response = TraceItemAttributeValuesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def get_traces_rpc(req: GetTracesRequest) -> GetTracesResponse:
+    resp = _make_rpc_request("EndpointGetTraces", "v1", req.meta.referrer, req)
+    response = GetTracesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
+    resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
+    response = TraceItemStatsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResponse:
+    """
+    An RPC which requests all of the details about a specific trace item.
+    For example, you might say "give me all of the attributes for the log with id 1234" or
+    "give me all of the attributes for the span with id 12345 and trace_id 34567"
+    """
+    resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req)
+    response = TraceItemDetailsResponse()
     response.ParseFromString(resp.data)
     return response
 
@@ -193,6 +238,7 @@ def rpc(
     return resp
 
 
+@sentry_sdk.trace
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,
@@ -202,14 +248,12 @@ def _make_rpc_request(
     thread_current_scope: sentry_sdk.Scope | None = None,
 ) -> BaseHTTPResponse:
     thread_isolation_scope = (
-        sentry_sdk.Scope.get_isolation_scope()
+        sentry_sdk.get_isolation_scope()
         if thread_isolation_scope is None
         else thread_isolation_scope
     )
     thread_current_scope = (
-        sentry_sdk.Scope.get_current_scope()
-        if thread_current_scope is None
-        else thread_current_scope
+        sentry_sdk.get_current_scope() if thread_current_scope is None else thread_current_scope
     )
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson
@@ -242,6 +286,8 @@ def _make_rpc_request(
                     error.ParseFromString(http_resp.data)
                     if SNUBA_INFO:
                         log_snuba_info(f"{referrer}.error:\n{error}")
+                    if http_resp.status == 404:
+                        raise NotFound() from SnubaRPCError(error)
                     raise SnubaRPCError(error)
                 return http_resp
 

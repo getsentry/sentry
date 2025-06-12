@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 from urllib.parse import urlencode
 
+import sentry_sdk
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ValidationError
 
@@ -12,15 +14,18 @@ from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline_types import IntegrationPipelineViewT
 from sentry.integrations.services.integration import integration_service
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
+from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -57,19 +62,26 @@ INSTALL_NOTICE_TEXT = _(
 )
 
 
-external_install = {
-    "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
-    "buttonText": _("Vercel Marketplace"),
-    "noticeText": _(INSTALL_NOTICE_TEXT),
-}
-
-
 configure_integration = {"title": _("Connect Your Projects")}
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
 
-metadata = IntegrationMetadata(
+
+class VercelIntegrationMetadata(IntegrationMetadata):
+    def asdict(self):
+        metadata = super().asdict()
+        # We have to calculate this here since fetching options at the module level causes us to skip the cache.
+        metadata["aspects"]["externalInstall"] = {
+            "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
+            "buttonText": _("Vercel Marketplace"),
+            "noticeText": INSTALL_NOTICE_TEXT,
+        }
+
+        return metadata
+
+
+metadata = VercelIntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
     author="The Sentry Team",
@@ -77,7 +89,6 @@ metadata = IntegrationMetadata(
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Vercel%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
     aspects={
-        "externalInstall": external_install,
         "configure_integration": configure_integration,
     },
 )
@@ -87,6 +98,58 @@ internal_integration_overview = (
     " integration. It is needed to provide the token used to create a release. If this integration is "
     "deleted, your Vercel integration will stop working!"
 )
+
+
+class VercelEnvVarDefinition(TypedDict):
+    type: str
+    value: str | None
+    target: list[str]
+
+
+def get_env_var_map(
+    organization: RpcOrganization,
+    project: RpcProject,
+    project_dsn: str,
+    auth_token: str | None,
+    framework: str,
+) -> dict[str, VercelEnvVarDefinition]:
+    """
+    Returns a dictionary of environment variables to be set in Vercel for a given project.
+    """
+
+    is_next_js = framework == "nextjs"
+    dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
+    return {
+        "SENTRY_ORG": {
+            "type": "encrypted",
+            "value": organization.slug,
+            "target": ["production", "preview"],
+        },
+        "SENTRY_PROJECT": {
+            "type": "encrypted",
+            "value": project.slug,
+            "target": ["production", "preview"],
+        },
+        dsn_env_name: {
+            "type": "encrypted",
+            "value": project_dsn,
+            "target": [
+                "production",
+                "preview",
+                "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
+            ],
+        },
+        "SENTRY_AUTH_TOKEN": {
+            "type": "encrypted",
+            "value": auth_token,
+            "target": ["production", "preview"],
+        },
+        "VERCEL_GIT_COMMIT_SHA": {
+            "type": "system",
+            "value": "VERCEL_GIT_COMMIT_SHA",
+            "target": ["production", "preview"],
+        },
+    }
 
 
 class VercelIntegration(IntegrationInstallation):
@@ -209,50 +272,27 @@ class VercelIntegration(IntegrationInstallation):
                 )
 
             sentry_project_dsn = enabled_dsn.dsn_public
-
             vercel_project = vercel_client.get_project(vercel_project_id)
-
-            is_next_js = vercel_project.get("framework") == "nextjs"
-            dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
-
             sentry_auth_token = SentryAppInstallationToken.objects.get_token(
                 sentry_project.organization_id,
                 "vercel",
             )
 
-            env_var_map = {
-                "SENTRY_ORG": {
-                    "type": "encrypted",
-                    "value": self.organization.slug,
-                    "target": ["production", "preview"],
-                },
-                "SENTRY_PROJECT": {
-                    "type": "encrypted",
-                    "value": sentry_project.slug,
-                    "target": ["production", "preview"],
-                },
-                dsn_env_name: {
-                    "type": "encrypted",
-                    "value": sentry_project_dsn,
-                    "target": [
-                        "production",
-                        "preview",
-                        "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
-                    ],
-                },
-                "SENTRY_AUTH_TOKEN": {
-                    "type": "encrypted",
-                    "value": sentry_auth_token,
-                    "target": ["production", "preview"],
-                },
-                "VERCEL_GIT_COMMIT_SHA": {
-                    "type": "system",
-                    "value": "VERCEL_GIT_COMMIT_SHA",
-                    "target": ["production", "preview"],
-                },
-            }
+            env_var_map = get_env_var_map(
+                organization=self.organization,
+                project=sentry_project,
+                project_dsn=sentry_project_dsn,
+                auth_token=sentry_auth_token,
+                framework=vercel_project.get("framework"),
+            )
 
             for env_var, details in env_var_map.items():
+                # We are logging a message because we potentially have a weird bug where auth tokens disappear from vercel
+                if env_var == "SENTRY_AUTH_TOKEN" and details["value"] is None:
+                    sentry_sdk.capture_message(
+                        "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
+                    )
+
                 self.create_env_var(
                     vercel_client,
                     vercel_project_id,
@@ -262,10 +302,12 @@ class VercelIntegration(IntegrationInstallation):
                     details["target"],
                 )
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def create_env_var(self, client, vercel_project_id, key, value, type, target):
         data = {
@@ -321,20 +363,21 @@ class VercelIntegrationProvider(IntegrationProvider):
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
     oauth_redirect_url = "/extensions/vercel/configure/"
+    # feature flag handler is in getsentry
+    requires_feature_flag = True
 
-    def get_pipeline_views(self):
-        identity_pipeline_config = {"redirect_url": absolute_uri(self.oauth_redirect_url)}
-
-        identity_pipeline_view = NestedPipelineView(
+    def _identity_pipeline_view(self) -> IntegrationPipelineViewT:
+        return NestedPipelineView(
             bind_key="identity",
             provider_key=self.key,
             pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
+            config={"redirect_url": absolute_uri(self.oauth_redirect_url)},
         )
 
-        return [identity_pipeline_view]
+    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
+        return [self._identity_pipeline_view()]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
         access_token = data["access_token"]
         team_id = data.get("team_id")
@@ -351,7 +394,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             user = client.get_user()
             name = user.get("name") or user["username"]
 
-        integration = {
+        return {
             "name": name,
             "external_id": external_id,
             "metadata": {
@@ -362,13 +405,12 @@ class VercelIntegrationProvider(IntegrationProvider):
             "post_install_data": {"user_id": state["user_id"]},
         }
 
-        return integration
-
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         # check if we have an Vercel internal installation already
         if SentryAppInstallationForProvider.objects.filter(

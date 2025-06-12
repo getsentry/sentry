@@ -11,9 +11,10 @@ import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 interface Props {
   onClose: SearchBarProps['onClose'];
   widgetQuery: WidgetQuery;
+  portalTarget?: HTMLElement | null;
 }
 
-function IssuesSearchBar({onClose, widgetQuery}: Props) {
+function IssuesSearchBar({onClose, widgetQuery, portalTarget}: Props) {
   const organization = useOrganization();
   const onChange = useCallback<NonNullable<SearchQueryBuilderProps['onChange']>>(
     (query, state) => {
@@ -29,6 +30,7 @@ function IssuesSearchBar({onClose, widgetQuery}: Props) {
       initialQuery={widgetQuery.conditions || ''}
       onChange={onChange}
       placeholder={t('Search for issues, status, assigned, and more')}
+      portalTarget={portalTarget}
     />
   );
 }

@@ -1,4 +1,4 @@
-import type {Router} from '@remix-run/router/dist/router';
+import type {Router} from '@remix-run/router';
 import * as Sentry from '@sentry/react';
 import type {History} from 'history';
 
@@ -7,7 +7,7 @@ import {
   locationDescriptorToTo,
 } from './reactRouter6Compat/location';
 
-const historyMethods: (keyof History)[] = [
+const historyMethods: Array<keyof History> = [
   'listenBefore',
   'listen',
   'transitionTo',
@@ -70,7 +70,13 @@ export function DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router: Router) {
   // functions to keep things working
   const compat6BrowserHistory: History = {
     push: to => router.navigate(locationDescriptorToTo(to)),
-    replace: to => router.navigate(locationDescriptorToTo(to), {replace: true}),
+    replace: to =>
+      router.navigate(locationDescriptorToTo(to), {
+        replace: true,
+        // Note that useNavigate replace does not automatically prevent scroll reset
+        // Here we're replicating the behavior of react router 3
+        preventScrollReset: true,
+      }),
     go: n => router.navigate(n),
     goBack: () => router.navigate(-1),
     goForward: () => router.navigate(1),

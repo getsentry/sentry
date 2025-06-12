@@ -1,27 +1,28 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
-import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
+import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
 import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{filterType: string; projectId: string}, {}>;
+} & RouteComponentProps<{filterType: string; projectId: string}>;
 
 function ProjectFilters(props: Props) {
-  const {organization, project, params} = props;
+  const {project, params} = props;
   const {projectId, filterType} = params;
   if (!project) {
     return null;
@@ -39,24 +40,30 @@ function ProjectFilters(props: Props) {
         )}
       </TextBlock>
 
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <div>
-        <ProjectFiltersChart project={project} organization={organization} />
+        <ProjectFiltersChart project={project} />
 
         {features.has('discard-groups') && (
-          <NavTabs underlined style={{paddingTop: '30px'}}>
-            <li className={filterType === 'data-filters' ? 'active' : ''}>
-              <Link to={recreateRoute('data-filters/', {...props, stepBack: -1})}>
-                {t('Data Filters')}
-              </Link>
-            </li>
-            <li className={filterType === 'discarded-groups' ? 'active' : ''}>
-              <Link to={recreateRoute('discarded-groups/', {...props, stepBack: -1})}>
-                {t('Discarded Issues')}
-              </Link>
-            </li>
-          </NavTabs>
+          <TabsContainer>
+            <Tabs value={filterType}>
+              <TabList>
+                <TabList.Item
+                  key="data-filters"
+                  to={recreateRoute('data-filters/', {...props, stepBack: -1})}
+                >
+                  {t('Data Filters')}
+                </TabList.Item>
+                <TabList.Item
+                  key="discarded-groups"
+                  to={recreateRoute('discarded-groups/', {...props, stepBack: -1})}
+                >
+                  {t('Discarded Issues')}
+                </TabList.Item>
+              </TabList>
+            </Tabs>
+          </TabsContainer>
         )}
 
         {filterType === 'discarded-groups' ? (
@@ -68,5 +75,9 @@ function ProjectFilters(props: Props) {
     </Fragment>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default ProjectFilters;

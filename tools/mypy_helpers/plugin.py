@@ -6,7 +6,7 @@ from collections.abc import Callable
 from mypy.build import PRI_MYPY
 from mypy.errorcodes import ATTR_DEFINED
 from mypy.messages import format_type
-from mypy.nodes import ARG_POS, MypyFile, TypeInfo
+from mypy.nodes import ARG_POS, MDEF, MypyFile, SymbolTableNode, TypeInfo, Var
 from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
@@ -127,6 +127,29 @@ def _adjust_request_members(ctx: ClassDefContext) -> None:
         add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
 
 
+def _add_name_to_info(ti: TypeInfo, name: str, tp: Type) -> None:
+    node = Var(name, tp)
+    node.info = ti
+    node._fullname = f"{ti.fullname}.{name}"
+
+    ti.names[name] = SymbolTableNode(MDEF, node, plugin_generated=True)
+
+
+def _adjust_http_response_members(ctx: ClassDefContext) -> None:
+    # there isn't a good plugin point for HttpResponseBase so we add it here?
+    if ctx.cls.name == "HttpResponse":
+        dict_str_list_str = ctx.api.named_type(
+            "builtins.dict",
+            [
+                ctx.api.named_type("builtins.str"),
+                ctx.api.named_type("builtins.list", [ctx.api.named_type("builtins.str")]),
+            ],
+        )
+        base = ctx.cls.info.bases[0].type
+        assert base.name == "HttpResponseBase", base.name
+        _add_name_to_info(base, "_csp_replace", dict_str_list_str)
+
+
 def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type:
     # we use `Any` as the `__getattr__` return value
     # allow existing attributes to be returned as normal if they are not `Any`
@@ -162,6 +185,8 @@ class SentryMypyPlugin(Plugin):
             return _adjust_http_request_members
         elif fullname == "django.http.request.HttpRequest":
             return _adjust_request_members
+        elif fullname == "django.http.response.HttpResponseBase":
+            return _adjust_http_response_members
         else:
             return None
 

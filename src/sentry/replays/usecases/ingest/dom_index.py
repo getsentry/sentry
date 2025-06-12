@@ -8,6 +8,8 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
+import sentry_sdk
+
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
@@ -47,6 +49,7 @@ ReplayActionsEventPayloadClick = TypedDict(
 
 
 class ReplayActionsEventPayload(TypedDict):
+    environment: str
     clicks: list[ReplayActionsEventPayloadClick]
     replay_id: str
     type: Literal["replay_actions"]
@@ -61,27 +64,13 @@ class ReplayActionsEvent(TypedDict):
     type: Literal["replay_event"]
 
 
-def parse_and_emit_replay_actions(
-    project: Project,
-    replay_id: str,
-    retention_days: int,
-    segment_data: list[dict[str, Any]],
-    replay_event: dict[str, Any] | None,
-    org_id: int | None = None,
-) -> None:
-    with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
-        message = parse_replay_actions(
-            project, replay_id, retention_days, segment_data, replay_event, org_id=org_id
-        )
-        if message is not None:
-            emit_replay_actions(message)
-
-
+@sentry_sdk.trace
 def emit_replay_actions(action: ReplayActionsEvent) -> None:
     publisher = _initialize_publisher()
     publisher.publish("ingest-replay-events", json.dumps(action))
 
 
+@sentry_sdk.trace
 def parse_replay_actions(
     project: Project,
     replay_id: str,
@@ -95,7 +84,8 @@ def parse_replay_actions(
     if len(actions) == 0:
         return None
 
-    payload = create_replay_actions_payload(replay_id, actions)
+    environment = replay_event.get("environment") if replay_event else None
+    payload = create_replay_actions_payload(replay_id, actions, environment=environment)
     return create_replay_actions_event(replay_id, project.id, retention_days, payload)
 
 
@@ -118,8 +108,10 @@ def create_replay_actions_event(
 def create_replay_actions_payload(
     replay_id: str,
     clicks: list[ReplayActionsEventPayloadClick],
+    environment: str | None,
 ) -> ReplayActionsEventPayload:
     return {
+        "environment": environment or "",
         "type": "replay_actions",
         "replay_id": replay_id,
         "clicks": clicks,

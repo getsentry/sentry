@@ -42,6 +42,9 @@ export enum Token {
   LOGIC_GROUP = 'logicGroup',
   LOGIC_BOOLEAN = 'logicBoolean',
   KEY_SIMPLE = 'keySimple',
+  KEY_EXPLICIT_FLAG = 'keyExplicitFlag',
+  KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
+  KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
@@ -108,6 +111,33 @@ export enum FilterType {
   IS = 'is',
 }
 
+/**
+ * The type of wildcard based off of positions of asterisks in the token value.
+ * These can be used to determine the type of wildcard operator used in the token value,
+ * and include the following:
+ *
+ * - `leading` (ends with): The value is prefixed with `*` e.g. `*value`
+ * - `trailing` (starts with): The value is suffixed with `*` e.g. `value*`
+ * - `surrounded` (contains): The value is prefixed and suffixed with `*` e.g. `*value*`
+ */
+export enum WildcardPositions {
+  /**
+   * The value is leads with `*`, e.g. `*value`, i.e. the user is searching for values
+   * that end with `<value>`.
+   */
+  LEADING = 'leading',
+  /**
+   * The value is trails with `*`, e.g. `value*`, i.e. the user is searching for values
+   * that start with `<value>`.
+   */
+  TRAILING = 'trailing',
+  /**
+   * The value is lead and trailed with `*`, e.g. `*value*`, i.e. the user is
+   * searching for values that contain `<value>`.
+   */
+  SURROUNDED = 'surrounded',
+}
+
 export const allOperators = [
   TermOperator.DEFAULT,
   TermOperator.GREATER_THAN_EQUAL,
@@ -133,6 +163,8 @@ const textKeys = [
   Token.KEY_SIMPLE,
   Token.KEY_EXPLICIT_TAG,
   Token.KEY_EXPLICIT_STRING_TAG,
+  Token.KEY_EXPLICIT_FLAG,
+  Token.KEY_EXPLICIT_STRING_FLAG,
 ] as const;
 
 /**
@@ -383,7 +415,9 @@ export class TokenConverter {
     isNumeric: (key: string) =>
       this.config.numericKeys.has(key) ||
       isMeasurement(key) ||
-      isSpanOperationBreakdownField(key),
+      isSpanOperationBreakdownField(key) ||
+      this.keyValidation.isDuration(key) ||
+      this.keyValidation.isSize(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -457,11 +491,11 @@ export class TokenConverter {
   });
 
   tokenLogicGroup = (
-    inner: (
+    inner: Array<
       | ReturnType<TokenConverter['tokenLogicBoolean']>
       | ReturnType<TokenConverter['tokenFilter']>
       | ReturnType<TokenConverter['tokenFreeText']>
-    )[]
+    >
   ) => ({
     ...this.defaultTokenFields,
     type: Token.LOGIC_GROUP as const,
@@ -480,6 +514,36 @@ export class TokenConverter {
     type: Token.KEY_SIMPLE as const,
     value,
     quoted,
+  });
+
+  tokenKeyExplicitFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitStringFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_STRING_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitNumberFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_NUMBER_FLAG as const,
+    prefix,
+    key,
   });
 
   tokenKeyExplicitTag = (
@@ -535,7 +599,7 @@ export class TokenConverter {
 
   tokenKeyAggregateArgs = (
     arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
-    args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
+    args: Array<ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>>
   ) => {
     return {
       ...this.defaultTokenFields,
@@ -546,9 +610,9 @@ export class TokenConverter {
 
   tokenValueIso8601Date = (
     value: string,
-    date: (string | string[])[],
-    time?: (string | string[] | string[][])[],
-    tz?: (string | string[])[]
+    date: Array<string | string[]>,
+    time?: Array<string | string[] | string[][]>,
+    tz?: Array<string | string[]>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
@@ -643,7 +707,7 @@ export class TokenConverter {
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueNumber']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueNumber']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_NUMBER_LIST as const,
@@ -652,7 +716,7 @@ export class TokenConverter {
 
   tokenValueTextList = (
     item1: ReturnType<TokenConverter['tokenValueText']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueText']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_TEXT_LIST as const,
@@ -660,11 +724,27 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
+    // we want to ignore setting the wildcard if the value is only asterisks because the
+    // value is solely matching anything and we don't want to consider it to be any of
+    // our new operators
+    const valueSet = new Set(value);
+    const onlyAsterisks = valueSet.size === 1 && valueSet.has('*');
+
+    let wildcard: WildcardPositions | false = false;
+    if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
+      wildcard = WildcardPositions.SURROUNDED;
+    } else if (!onlyAsterisks && value.endsWith('*')) {
+      wildcard = WildcardPositions.TRAILING;
+    } else if (!onlyAsterisks && value.startsWith('*')) {
+      wildcard = WildcardPositions.LEADING;
+    }
+
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
+      wildcard,
     };
   };
 
@@ -803,6 +883,9 @@ export class TokenConverter {
         Token.KEY_AGGREGATE,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
+        Token.KEY_EXPLICIT_FLAG,
+        Token.KEY_EXPLICIT_NUMBER_FLAG,
+        Token.KEY_EXPLICIT_STRING_FLAG,
       ].includes(key.type)
     ) {
       return null;
@@ -812,9 +895,12 @@ export class TokenConverter {
       key as TokenResult<
         | Token.KEY_SIMPLE
         | Token.KEY_EXPLICIT_TAG
+        | Token.KEY_EXPLICIT_FLAG
         | Token.KEY_AGGREGATE
         | Token.KEY_EXPLICIT_NUMBER_TAG
+        | Token.KEY_EXPLICIT_NUMBER_FLAG
         | Token.KEY_EXPLICIT_STRING_TAG
+        | Token.KEY_EXPLICIT_STRING_FLAG
       >
     );
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
@@ -878,7 +964,9 @@ export class TokenConverter {
     // Explicit tag keys will always be treated as text filters
     if (
       key.type === Token.KEY_EXPLICIT_TAG ||
-      key.type === Token.KEY_EXPLICIT_STRING_TAG
+      key.type === Token.KEY_EXPLICIT_STRING_TAG ||
+      key.type === Token.KEY_EXPLICIT_FLAG ||
+      key.type === Token.KEY_EXPLICIT_STRING_FLAG
     ) {
       return this.checkInvalidTextValue(value);
     }
@@ -985,7 +1073,7 @@ export class TokenConverter {
 
     if (
       this.config.disallowWildcard &&
-      // @ts-ignore TS(2531): Object is possibly 'null'.
+      // @ts-expect-error TS(2531): Object is possibly 'null'.
       items.some(item => item.value.value.includes('*'))
     ) {
       return {
@@ -1025,7 +1113,7 @@ function parseRelativeDate(
   input: string,
   {sign, unit}: {sign: '-' | '+'; unit: string}
 ): {value: Date} {
-  let date = new Date().getTime();
+  let date = Date.now();
   const number = numeric(input);
 
   if (isNaN(date)) {
@@ -1375,6 +1463,7 @@ export const defaultConfig: SearchConfig = {
     'error.unhandled',
     'stack.in_app',
     'team_key_transaction',
+    'symbolicated_in_app',
   ]),
   sizeKeys: new Set([]),
   disallowedLogicalOperators: new Set(),
@@ -1460,7 +1549,7 @@ export function joinQuery(
   leadingSpace?: boolean,
   additionalSpaceBetween?: boolean
 ): string {
-  if (!parsedTerms || !parsedTerms.length) {
+  if (!parsedTerms?.length) {
     return '';
   }
 

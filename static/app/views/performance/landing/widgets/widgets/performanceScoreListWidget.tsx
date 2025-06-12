@@ -3,40 +3,38 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
+import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/formatTimeSeriesResultsToChartData';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import {
-  Badge,
-  PerformanceBadge,
-} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useProjectWebVitalsScoresTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
-import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {
   GrowLink,
   RightAlignedCell,
   Subtitle,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import type {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import type {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
-import type {PerformanceWidgetProps, WidgetDataResult} from '../types';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import type {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import type {transformEventsRequestToStackedArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToStackedBars';
+import type {
+  PerformanceWidgetProps,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -44,10 +42,10 @@ type DataType = {
 };
 
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, InteractiveTitle} = props;
-  const theme = useTheme();
 
   const {data: projectScoresData, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
@@ -63,13 +61,10 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
 
   const order = ORDER;
 
-  const weightedTimeseriesData = applyStaticWeightsToTimeseries(
-    props.organization,
-    timeseriesData
-  );
+  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
   const getAreaChart = () => {
-    const segmentColors = (theme.charts.getColorPalette(3) ?? []).slice(0, 5);
+    const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
     return (
       <Chart
         stacked
@@ -100,12 +95,10 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const getHeaders = () =>
     transactionWebVitals.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
-      const scoreCount = projectScoresData?.data?.[0]?.[
+      const scoreCount = projectScoresData?.[0]?.[
         'count_scores(measurements.score.total)'
       ] as number;
-      const opportunity = scoreCount
-        ? ((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100
-        : 0;
+      const opportunity = scoreCount ? (listItem.opportunity ?? 0) * 100 : 0;
       return (
         <Fragment key={i}>
           <GrowLink
@@ -130,9 +123,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                 }
                 isHoverable
               >
-                <PerformanceBadgeWrapper>
-                  <PerformanceBadge score={listItem.totalScore} />
-                </PerformanceBadgeWrapper>
+                <PerformanceBadge score={listItem.totalScore} />
               </Tooltip>
             )}
             {isProjectScoresLoading ? (
@@ -256,11 +247,5 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   &,
   .loading-message {
     margin: 0;
-  }
-`;
-
-const PerformanceBadgeWrapper = styled('span')`
-  ${Badge} {
-    text-decoration: underline dotted;
   }
 `;

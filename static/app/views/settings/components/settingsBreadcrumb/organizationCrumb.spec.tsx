@@ -8,13 +8,13 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
 
 import {OrganizationCrumb} from './organizationCrumb';
-import type {RouteWithName} from './types';
+import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
 jest.unmock('sentry/utils/recreateRoute');
 
 describe('OrganizationCrumb', function () {
   let initialData: Config;
-  const {organization, project, router, routerProps} = initializeOrg();
+  const {organization, project, routerProps} = initializeOrg();
   const organizations = [
     organization,
     OrganizationFixture({
@@ -28,7 +28,6 @@ describe('OrganizationCrumb', function () {
     OrganizationsStore.load(organizations);
 
     initialData = ConfigStore.getState();
-    jest.mocked(window.location.assign).mockReset();
   });
 
   const switchOrganization = async () => {
@@ -36,13 +35,8 @@ describe('OrganizationCrumb', function () {
     await userEvent.click(screen.getAllByRole('option')[1]!);
   };
 
-  const renderComponent = (
-    props: Partial<
-      Pick<React.ComponentProps<typeof OrganizationCrumb>, 'route' | 'routes' | 'params'>
-    >
-  ) =>
-    render(<OrganizationCrumb {...routerProps} params={{}} {...props} />, {
-      router,
+  const renderComponent = (props: Omit<SettingsBreadcrumbProps, 'isLast'>) =>
+    render(<OrganizationCrumb {...routerProps} {...props} isLast={false} />, {
       organization,
     });
 
@@ -51,6 +45,7 @@ describe('OrganizationCrumb', function () {
   });
 
   it('switches organizations on settings index', async function () {
+    const route = {name: 'Organizations', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
       {},
@@ -58,17 +53,19 @@ describe('OrganizationCrumb', function () {
       {},
       {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/'},
+      route,
     ];
-    const route = routes[6];
 
-    renderComponent({routes, route});
+    const result = renderComponent({routes, route});
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/'});
+    expect(result.router.location).toMatchObject({
+      pathname: '/settings/org-slug2/',
+    });
   });
 
   it('switches organizations while on API Keys Details route', async function () {
+    const route = {name: 'Organizations', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
       {},
@@ -76,20 +73,23 @@ describe('OrganizationCrumb', function () {
       {},
       {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/'},
+      route,
       {},
       {path: 'api-keys/', name: 'API Key'},
       {path: ':apiKey/', name: 'API Key Details'},
     ];
-    const route = routes[6];
 
-    renderComponent({routes, route});
+    const result = renderComponent({routes, route});
+
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/api-keys/'});
+    expect(result.router.location).toMatchObject({
+      pathname: '/settings/org-slug2/api-keys/',
+    });
   });
 
   it('switches organizations while on API Keys List route', async function () {
+    const route = {name: 'Organizations', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
       {},
@@ -97,38 +97,46 @@ describe('OrganizationCrumb', function () {
       {},
       {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/'},
+      route,
       {},
       {path: 'api-keys/', name: 'API Key'},
     ];
-    const route = routes[6];
 
-    renderComponent({routes, route});
+    const result = renderComponent({routes, route});
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/api-keys/'});
+    expect(result.router.location).toMatchObject({
+      pathname: '/settings/org-slug2/api-keys/',
+    });
   });
 
   it('switches organizations while in Project Client Keys Details route', async function () {
+    const route = {name: 'Organization', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organization', path: ':orgId/'},
+      route,
       {name: 'Project', path: 'projects/:projectId/'},
       {path: 'keys/', name: 'Client Keys'},
       {path: ':keyId/', name: 'Details'},
     ];
 
-    const route = routes[2];
+    const result = render(
+      <OrganizationCrumb {...routerProps} route={route} routes={routes} isLast={false} />,
+      {
+        organization,
 
-    renderComponent({
-      params: {projectId: project.slug},
-      routes,
-      route,
-    });
+        initialRouterConfig: {
+          location: {pathname: `/projects/${project.slug}/`},
+          route: '/projects/:projectId/',
+        },
+      }
+    );
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/'});
+    expect(result.router.location).toMatchObject({
+      pathname: '/settings/org-slug2/',
+    });
   });
 
   it('switches organizations for child route with customer domains', async function () {
@@ -139,6 +147,7 @@ describe('OrganizationCrumb', function () {
     });
     ConfigStore.set('features', new Set(['system:multi-region']));
 
+    const route = {name: 'Organizations', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
       {},
@@ -146,11 +155,10 @@ describe('OrganizationCrumb', function () {
       {},
       {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/'},
+      route,
       {},
       {path: 'api-keys/', name: 'API Key'},
     ];
-    const route = routes[6];
     const orgs = [
       organization,
       OrganizationFixture({

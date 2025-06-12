@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
@@ -26,10 +27,10 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {HTTPSnippet} from './httpSnippet';
@@ -44,6 +45,8 @@ interface Props {
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
+const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
+
 const MINUTE = 60;
 
 const VALID_INTERVALS_SEC = [
@@ -54,6 +57,10 @@ const VALID_INTERVALS_SEC = [
   MINUTE * 30,
   MINUTE * 60,
 ];
+
+function methodHasBody(model: FormModel) {
+  return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
+}
 
 function getFormDataFromRule(rule: UptimeRule) {
   return {
@@ -94,7 +101,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   useEffect(
     () =>
       autorun(() => {
-        const projectSlug = formModel.getValue('projectSlug');
+        const projectSlug = formModel.getValue<string>('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
@@ -102,9 +109,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
         function onSubmitSuccess(response: any) {
           navigate(
-            normalizeUrl(
-              `/organizations/${organization.slug}/alerts/rules/uptime/${projectSlug}/${response.id}/details/`
-            )
+            makeAlertsPathname({
+              path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
+              organization,
+            })
           );
         }
         formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
@@ -113,7 +121,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           setEnvironments(selectedProject.environments);
         }
       }),
-    [formModel, navigate, organization.slug, projects, rule]
+    [formModel, navigate, organization, projects, rule]
   );
 
   return (
@@ -123,6 +131,11 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      onPreSubmit={() => {
+        if (!methodHasBody(formModel)) {
+          formModel.setValue('body', null);
+        }
+      }}
       extraButton={
         rule && handleDelete ? (
           <Confirm
@@ -154,7 +167,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="projectSlug"
             label={t('Project')}
             placeholder={t('Choose Project')}
-            hideLabel
             projects={projects}
             valueIsSlug
             inline={false}
@@ -166,7 +178,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="environment"
             label={t('Environment')}
             placeholder={t('Select an environment')}
-            hideLabel
+            noOptionsMessage={() => t('Start typing to create an environment')}
             onCreateOption={(env: any) => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
@@ -194,6 +206,25 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               label={t('Interval')}
               defaultValue={60}
               flexibleControlStateSize
+              showHelpInTooltip={{isHoverable: true}}
+              help={({model}) =>
+                tct(
+                  'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                    ),
+                    interval: (
+                      <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
+                    ),
+                    expectedFailureInterval: (
+                      <strong>
+                        {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
+                      </strong>
+                    ),
+                  }
+                )
+              }
               required
             />
             <RangeField
@@ -236,9 +267,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <TextareaField
               name="body"
               label={t('Body')}
-              visible={({model}: any) =>
-                !['GET', 'HEAD'].includes(model.getValue('method'))
-              }
+              visible={({model}: any) => methodHasBody(model)}
               rows={4}
               maxRows={15}
               autosize
@@ -261,13 +290,25 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
             />
           </ConfigurationPanel>
+          <Alert.Container>
+            <Alert type="muted" showIcon>
+              {tct(
+                'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
           <Observer>
             {() => (
               <HTTPSnippet
                 url={formModel.getValue('url')}
                 method={formModel.getValue('method')}
                 headers={formModel.getValue('headers')}
-                body={formModel.getValue('body')}
+                body={methodHasBody(formModel) ? formModel.getValue('body') : null}
                 traceSampling={formModel.getValue('traceSampling')}
               />
             )}
@@ -283,7 +324,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <TextField
             name="name"
             label={t('Uptime rule name')}
-            hideLabel
             placeholder={t('Uptime rule name')}
             inline={false}
             flexibleControlStateSize
@@ -293,7 +333,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            hideLabel
             menuPlacement="auto"
             inline={false}
             flexibleControlStateSize

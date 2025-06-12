@@ -39,7 +39,7 @@ kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 class MsTeamsWebhookTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -473,27 +473,13 @@ class MsTeamsWebhookTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "msteams", "status": 200},
             ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-        ]
+        ] * 4
         assert self.metrics.incr.mock_calls == calls
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

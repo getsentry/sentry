@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
@@ -13,6 +13,11 @@ from sentry.models.avatars import ControlAvatarBase
 
 if TYPE_CHECKING:
     from sentry.sentry_apps.models.sentry_app import SentryApp
+
+
+class SentryAppAvatarPhotoTypes(StrEnum):
+    ICON = "icon"
+    LOGO = "logo"
 
 
 class SentryAppAvatarTypes(Enum):
@@ -53,8 +58,8 @@ class SentryAppAvatar(ControlAvatarBase):
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
+    # color: True = Logo, False = Icon
     color = models.BooleanField(default=False)
-    # e.g. issue linking logos will not have color
 
     class Meta:
         app_label = "sentry"
@@ -65,3 +70,6 @@ class SentryAppAvatar(ControlAvatarBase):
     def get_cache_key(self, size):
         color_identifier = "color" if self.color else "simple"
         return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"
+
+    def get_avatar_photo_type(self):
+        return SentryAppAvatarPhotoTypes.LOGO if self.color else SentryAppAvatarPhotoTypes.ICON

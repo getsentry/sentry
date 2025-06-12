@@ -8,7 +8,7 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Opts {
   frames: undefined | ReplayFrame[];
-  ref: RefObject<ReactVirtualizedList>;
+  ref: RefObject<ReactVirtualizedList | null>;
 }
 
 function useScrollToCurrentItem({frames, ref}: Opts) {

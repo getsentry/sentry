@@ -178,7 +178,7 @@ STATUS_WITHOUT_SUBSTATUS = {
 }
 
 # Statuses that can be queried/searched for
-STATUS_QUERY_CHOICES: Mapping[str, int] = {
+STATUS_QUERY_CHOICES: dict[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
@@ -445,6 +445,7 @@ class GroupManager(BaseManager["Group"]):
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models.activity import Activity
+        from sentry.models.groupopenperiod import update_group_open_period
 
         modified_groups_list = []
         selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
@@ -456,10 +457,17 @@ class GroupManager(BaseManager["Group"]):
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
 
+        # Track the resolved groups that are being unresolved and need to have their open period reopened
+        should_reopen_open_period = {
+            group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
+        }
+        resolved_at = timezone.now()
         updated_priority = {}
         for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            if status == GroupStatus.RESOLVED:
+                group.resolved_at = resolved_at
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
                 if priority and group.priority != priority:
@@ -468,10 +476,12 @@ class GroupManager(BaseManager["Group"]):
 
             modified_groups_list.append(group)
 
-        Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
+        Group.objects.bulk_update(
+            modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
+        )
 
         for group in modified_groups_list:
-            Activity.objects.create_group_activity(
+            activity = Activity.objects.create_group_activity(
                 group,
                 activity_type,
                 data=activity_data,
@@ -491,6 +501,21 @@ class GroupManager(BaseManager["Group"]):
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
+            # The open period is only updated when a group is resolved or reopened. We don't want to
+            # update the open period when a group transitions between different substatuses within UNRESOLVED.
+            if status == GroupStatus.RESOLVED:
+                update_group_open_period(
+                    group=group,
+                    new_status=GroupStatus.RESOLVED,
+                    resolution_time=activity.datetime,
+                    resolution_activity=activity,
+                )
+            elif status == GroupStatus.UNRESOLVED and should_reopen_open_period[group.id]:
+                update_group_open_period(
+                    group=group,
+                    new_status=GroupStatus.UNRESOLVED,
+                )
+
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
             raise Group.DoesNotExist
@@ -505,9 +530,13 @@ class GroupManager(BaseManager["Group"]):
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
-        assigned_groups = GroupAssignee.objects.filter(
-            Q(team=team) | Q(user_id__in=user_ids)
-        ).values_list("group_id", flat=True)
+
+        assigned_groups = (
+            GroupAssignee.objects.filter(team=team)
+            .union(GroupAssignee.objects.filter(user_id__in=user_ids))
+            .values_list("group_id", flat=True)
+        )
+
         return self.filter(
             project__in=project_list,
             id__in=assigned_groups,
@@ -586,9 +615,13 @@ class Group(Model):
         blank=True, null=True
     )
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=DEFAULT_TYPE_ID, db_index=True)
-    priority = models.PositiveSmallIntegerField(null=True)
+    type = BoundedPositiveIntegerField(
+        default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True
+    )
+    priority = models.PositiveIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
+    seer_fixability_score = models.FloatField(null=True)
+    seer_autofix_last_triggered = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
@@ -610,10 +643,7 @@ class Group(Model):
             models.Index(fields=("status", "substatus", "first_seen")),
             models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
-        unique_together = (
-            ("project", "short_id"),
-            ("project", "id"),
-        )
+        unique_together = (("project", "short_id"),)
 
     __repr__ = sane_repr("project_id")
 
@@ -734,7 +764,7 @@ class Group(Model):
             data_source=data_source,
         )
 
-        has_replays = counts.get(self.id, 0) > 0  # type: ignore[call-overload]
+        has_replays = counts.get(self.id, 0) > 0
         # need to refactor counts so that the type of the key returned in the dict is always a str
         # for typing
         metrics.incr(
@@ -763,7 +793,9 @@ class Group(Model):
                     status = GroupStatus.UNRESOLVED
 
         if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
-            return GroupStatus.RESOLVED
+            # Only auto-resolve if this group type has auto-resolve enabled
+            if self.issue_type.enable_auto_resolve:
+                return GroupStatus.RESOLVED
         return status
 
     def get_share_id(self):
@@ -924,7 +956,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self) -> Mapping[str, Any]:
+    def get_event_metadata(self) -> dict[str, Any]:
         """
         Return the metadata of this issue.
 
@@ -1027,6 +1059,10 @@ class Group(Model):
     @property
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
+
+    @property
+    def issue_category_v2(self):
+        return GroupCategory(self.issue_type.category_v2)
 
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)

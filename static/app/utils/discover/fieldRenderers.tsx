@@ -1,9 +1,12 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
-import {Button} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -17,7 +20,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -51,20 +53,22 @@ import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-
-import {decodeScalar} from '../queryString';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
 
 import ArrayValue from './arrayValue';
 import {
@@ -80,13 +84,13 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
-
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
 export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
+  theme: Theme;
   eventView?: EventView;
   projectSlug?: string;
   unit?: string;
@@ -126,10 +130,8 @@ type FieldFormatters = {
   string: FieldFormatter;
 };
 
-export type FieldTypes = keyof FieldFormatters;
-
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
@@ -238,7 +240,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         <NumberContainer>
           {typeof data[field] === 'number' ? (
             <Duration
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               seconds={(data[field] * ((unit && DURATION_UNITS[unit]) ?? 1)) / 1000}
               fixedDigits={2}
               abbreviation
@@ -366,21 +368,25 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  adoption_stage: SpecialField;
   'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
   device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
+  [SpanFields.IS_STARRED_TRANSACTION]: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
+  'performance_score(measurements.score.total)': SpecialField;
   'profile.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
   'span.description': SpecialField;
   'span.status_code': SpecialField;
+  span_id: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -457,7 +463,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   minidump: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
-      const attachments: (IssueAttachment & {url: string})[] = data.attachments;
+      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
       const minidump = attachments.find(
         attachment => attachment.type === 'event.minidump'
@@ -489,6 +495,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  span_id: {
+    sortField: 'span_id',
+    renderFunc: data => {
+      const id: string | unknown = data?.span_id;
       if (typeof id !== 'string') {
         return null;
       }
@@ -635,7 +652,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   user: {
     sortField: 'user',
     renderFunc: data => {
-      if (data.user) {
+      if (data.user?.split) {
         const [key, value] = data.user.split(':');
         const userObj = {
           id: '',
@@ -644,7 +661,7 @@ const SPECIAL_FIELDS: SpecialFields = {
           username: '',
           ip_address: '',
         };
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         userObj[key] = value;
 
         const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
@@ -701,6 +718,19 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{emptyValue}</Container>;
     },
   },
+  adoption_stage: {
+    sortField: 'adoption_stage',
+    renderFunc: data => {
+      const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
+      return data.adoption_stage && label ? (
+        <Tooltip title={label.tooltipTitle} isHoverable>
+          <Tag type={label.type}>{label.name}</Tag>
+        </Tooltip>
+      ) : (
+        <Container>{emptyValue}</Container>
+      );
+    },
+  },
   release: {
     sortField: 'release',
     renderFunc: (data, {organization}) =>
@@ -733,6 +763,16 @@ const SPECIAL_FIELDS: SpecialFields = {
         </Container>
       );
     },
+  },
+  [SpanFields.IS_STARRED_TRANSACTION]: {
+    sortField: null,
+    renderFunc: data => (
+      <StarredSegmentCell
+        projectSlug={data.project}
+        segmentName={data.transaction}
+        isStarred={data.is_starred_transaction}
+      />
+    ),
   },
   team_key_transaction: {
     sortField: null,
@@ -789,6 +829,20 @@ const SPECIAL_FIELDS: SpecialFields = {
       </Container>
     ),
   },
+  'performance_score(measurements.score.total)': {
+    sortField: 'performance_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['performance_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>
+          <PerformanceBadge score={Math.round(score * 100)} />
+        </RightAlignedContainer>
+      );
+    },
+  },
 };
 
 type SpecialFunctionFieldRenderer = (
@@ -826,7 +880,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const projectThresholdConfig = 'project_threshold_config';
-    let countMiserableUserField: string = '';
+    let countMiserableUserField = '';
 
     let miseryLimit: number | undefined = parseInt(
       userMiseryField.split('(').pop()?.slice(0, -1) || '',
@@ -874,7 +928,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
   },
   time_spent_percentage: fieldName => data => {
     const parsedFunction = parseFunction(fieldName);
-    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    let column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    // TODO - remove with eap, in eap this function only has one arg
+    if (parsedFunction?.arguments?.[0] === SpanMetricsField.SPAN_DURATION) {
+      column = SpanMetricsField.SPAN_DURATION;
+    }
     return (
       <TimeSpentCell
         percentage={data[fieldName]}
@@ -907,7 +965,7 @@ export function getSortField(
 
   for (const alias in AGGREGATIONS) {
     if (field.startsWith(alias)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return AGGREGATIONS[alias].isSortable ? field : null;
     }
   }
@@ -928,7 +986,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView}: RenderFunctionBaggage,
+  {location, organization, eventView, theme}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};
@@ -991,7 +1049,7 @@ export const spanOperationRelativeBreakdownRenderer = (
             >
               <RectangleRelativeOpsBreakdown
                 style={{
-                  backgroundColor: pickBarColor(operationName),
+                  backgroundColor: pickBarColor(operationName, theme),
                   cursor: enableOnClick ? 'pointer' : 'default',
                 }}
                 onClick={event => {
@@ -1064,10 +1122,10 @@ const StyledProjectBadge = styled(ProjectBadge)`
 export function getFieldRenderer(
   field: string,
   meta: MetaType,
-  isAlias: boolean = true
+  isAlias = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
@@ -1080,42 +1138,13 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
-  }
-  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
-}
-
-type FieldTypeFormatterRenderFunctionPartial = (
-  data: EventData,
-  baggage?: RenderFunctionBaggage
-) => React.ReactNode;
-
-/**
- * Get the field renderer for the named field only based on its type from the given
- * metadata.
- *
- * @param {String} field name
- * @param {object} metadata mapping.
- * @param {boolean} isAlias convert the name with getAggregateAlias
- * @returns {Function}
- */
-export function getFieldFormatter(
-  field: string,
-  meta: MetaType,
-  isAlias: boolean = true
-): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName] || meta.fields?.[fieldName];
-
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);

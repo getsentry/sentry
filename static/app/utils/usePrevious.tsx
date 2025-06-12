@@ -8,14 +8,16 @@ import {useEffect, useRef} from 'react';
  * @returns 'ref.current' and therefore should not be used as a dependency of useEffect.
  * Mutable values like 'ref.current' are not valid dependencies of useEffect because changing them does not re-render the component.
  */
-function usePrevious<T>(value: T): T {
+function usePrevious<T>(value: T, skipUpdate?: boolean): T {
   // The ref object is a generic container whose current property is mutable ...
   // ... and can hold any value, similar to an instance property on a class
   const ref = useRef<T>(value);
   // Store current value in ref
   useEffect(() => {
-    ref.current = value;
-  }, [value]); // Only re-run if value changes
+    if (!skipUpdate) {
+      ref.current = value;
+    }
+  }, [value, skipUpdate]); // Only re-run if value changes
   // Return previous value (happens before update in useEffect above)
   return ref.current;
 }

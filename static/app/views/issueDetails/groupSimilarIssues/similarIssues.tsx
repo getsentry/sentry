@@ -39,7 +39,7 @@ function GroupSimilarIssues() {
         <SimilarStackTrace project={project} />
       </Feature>
       <Feature features="related-issues">
-        <GroupRelatedIssues />
+        <GroupRelatedIssues group={group} />
       </Feature>
     </Fragment>
   );

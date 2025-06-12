@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SingleSelectProps} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -187,37 +187,39 @@ export function TimeRangeSelector({
   });
 
   const getOptions = useCallback(
-    (items: Item[]): SelectOption<string>[] => {
-      // Return the default options if there's nothing in search
-      if (!search) {
-        return items.map(item => {
-          if (item.value === 'absolute') {
-            return {
-              value: item.value,
-              // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
-              // TODO: Remove SelectorItemLabel & OptionLabel
-              label: <OptionLabel>{item.label}</OptionLabel>,
-              details:
-                start && end ? (
-                  <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
-                ) : null,
-              trailingItems: ({isFocused, isSelected}) => (
-                <IconArrow
-                  direction="right"
-                  size="xs"
-                  color={isFocused || isSelected ? undefined : 'subText'}
-                />
-              ),
-              textValue: item.searchKey,
-            };
-          }
-
+    (items: Item[]): Array<SelectOption<string>> => {
+      const makeOption = (item: Item): SelectOption<string> => {
+        if (item.value === 'absolute') {
           return {
             value: item.value,
+            // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
+            // TODO: Remove SelectorItemLabel & OptionLabel
             label: <OptionLabel>{item.label}</OptionLabel>,
+            details:
+              start && end ? (
+                <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
+              ) : null,
+            trailingItems: ({isFocused, isSelected}) => (
+              <IconArrow
+                direction="right"
+                size="xs"
+                color={isFocused || isSelected ? undefined : 'subText'}
+              />
+            ),
             textValue: item.searchKey,
           };
-        });
+        }
+
+        return {
+          value: item.value,
+          label: <OptionLabel>{item.label}</OptionLabel>,
+          textValue: item.searchKey,
+        };
+      };
+
+      // Return the default options if there's nothing in search
+      if (!search) {
+        return items.map(makeOption);
       }
 
       const filteredItems = disallowArbitraryRelativeRanges
@@ -229,11 +231,7 @@ export function TimeRangeSelector({
             maxDateRange,
           });
 
-      return filteredItems.map<SelectOption<string>>(item => ({
-        value: item.value,
-        label: item.label,
-        textValue: item.searchKey,
-      }));
+      return filteredItems.map(makeOption);
     },
     [
       start,
@@ -298,8 +296,15 @@ export function TimeRangeSelector({
   );
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
+
+  const restrictedDefaultPeriods = Object.fromEntries(
+    Object.entries(DEFAULT_RELATIVE_PERIODS).filter(
+      ([period]) => parsePeriodToHours(period) <= maxPickableDays * 24
+    )
+  );
+
   const defaultRelativePeriods = {
-    ...DEFAULT_RELATIVE_PERIODS,
+    ...restrictedDefaultPeriods,
     ...arbitraryRelativePeriods,
   };
   return (
@@ -312,7 +317,7 @@ export function TimeRangeSelector({
               defaultOptions: DEFAULT_RELATIVE_PERIODS,
               arbitraryOptions: arbitraryRelativePeriods,
             })
-          : relativeOptions ?? defaultRelativePeriods
+          : (relativeOptions ?? defaultRelativePeriods)
       )}
       handleSelectRelative={value => handleChange({value})}
     >
@@ -326,14 +331,21 @@ export function TimeRangeSelector({
             setSearch(s);
           }}
           searchPlaceholder={
-            searchPlaceholder ?? disallowArbitraryRelativeRanges
+            (searchPlaceholder ?? disallowArbitraryRelativeRanges)
               ? t('Search…')
               : t('Custom range: 2h, 4d, 8w…')
           }
           options={getOptions(items)}
           hideOptions={showAbsoluteSelector}
-          value={start && end ? ABSOLUTE_OPTION_VALUE : relative ?? ''}
-          onChange={handleChange}
+          value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
+          onChange={option => {
+            const item = items.find(i => i.value === option.value);
+            if (item?.onClick) {
+              item.onClick();
+            } else {
+              handleChange(option);
+            }
+          }}
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
           onClose={() => {
@@ -346,10 +358,9 @@ export function TimeRangeSelector({
           trigger={
             trigger ??
             ((triggerProps, isOpen) => {
-              const relativeSummary =
-                items.findIndex(item => item.value === relative) > -1
-                  ? relative?.toUpperCase()
-                  : t('Invalid Period');
+              const relativeSummary = items.some(item => item.value === relative)
+                ? relative?.toUpperCase()
+                : t('Invalid Period');
               const defaultLabel =
                 start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
@@ -371,7 +382,7 @@ export function TimeRangeSelector({
               );
             })
           }
-          menuWidth={showAbsoluteSelector ? undefined : menuWidth ?? '16rem'}
+          menuWidth={showAbsoluteSelector ? undefined : (menuWidth ?? '16rem')}
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>

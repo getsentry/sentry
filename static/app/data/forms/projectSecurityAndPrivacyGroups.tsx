@@ -21,7 +21,7 @@ const hasOrgOverride = ({
 }: {
   name: string;
   organization: Organization;
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
 }) => organization[name];
 
 function hasProjectWriteAndOrgOverride({
@@ -67,8 +67,8 @@ const formGroups: JsonFormObject[] = [
     title: t('Security & Privacy'),
     fields: [
       {
-        disabled: hasProjectWriteAndOrgOverride,
-        disabledReason: projectWriteAndOrgOverrideDisabledReason,
+        // The project settings cannot be overridden by the organization settings.
+        // This field is only disabled if the user does not have permission to edit.
         name: 'storeCrashReports',
         type: 'select',
         label: t('Store Minidumps As Attachments'),

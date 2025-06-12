@@ -3,12 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicatorActions from 'sentry/actionCreators/indicator';
+import * as formIndicatorActions from 'sentry/components/forms/formIndicators';
 import Indicators from 'sentry/components/indicators';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/components/forms/formIndicators');
 jest.mock('sentry/utils/regions');
 
 describe('OrganizationSettingsForm', function () {
@@ -51,7 +51,10 @@ describe('OrganizationSettingsForm', function () {
 
     const input = screen.getByRole('textbox', {name: 'Display Name'});
 
-    const saveOnBlur = jest.spyOn(indicatorActions, 'saveOnBlurUndoMessage');
+    const undoableFormChangeMessage = jest.spyOn(
+      formIndicatorActions,
+      'addUndoableFormChangeMessage'
+    );
 
     await userEvent.clear(input);
     await userEvent.type(input, 'New Name');
@@ -67,7 +70,7 @@ describe('OrganizationSettingsForm', function () {
       })
     );
 
-    expect(saveOnBlur).toHaveBeenCalledWith(
+    expect(undoableFormChangeMessage).toHaveBeenCalledWith(
       {
         new: 'New Name',
         old: 'Organization Name',
@@ -76,7 +79,7 @@ describe('OrganizationSettingsForm', function () {
       'name'
     );
 
-    const model = saveOnBlur.mock.calls[0]![1];
+    const model = undoableFormChangeMessage.mock.calls[0]![1];
 
     // Test "undo" call undo directly
     expect(model.getValue('name')).toBe('New Name');
@@ -85,7 +88,7 @@ describe('OrganizationSettingsForm', function () {
     });
     expect(model.getValue('name')).toBe('Organization Name');
 
-    // `saveOnBlurUndoMessage` saves the new field, so reimplement this
+    // `addUndoableFormChangeMessage` saves the new field, so reimplement this
     act(() => {
       model.saveField('name', 'Organization Name');
     });
@@ -172,40 +175,55 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('can toggle hideAiFeatures setting', async function () {
-    putMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      method: 'PUT',
-      body: {...organization, hideAiFeatures: true},
-    });
-
+  it('can toggle "Show Generative AI Features"', async function () {
+    // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
+    const hiddenAiOrg = OrganizationFixture({hideAiFeatures: true});
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: false})}
+        initialData={OrganizationFixture()}
         onSave={onSave}
       />,
-      {
-        organization: {
-          ...organization,
-          features: ['autofix'],
-        },
-      }
+      {organization: hiddenAiOrg}
     );
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+    });
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Hide AI Features'}));
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Show Generative AI Features',
+    });
 
-    expect(putMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/',
-      expect.objectContaining({
-        data: {
-          hideAiFeatures: true,
-        },
-      })
-    );
+    // Inverted from hideAiFeatures
+    expect(checkbox).not.toBeChecked();
+
+    // Click to uncheck (disable Seer -> hideAiFeatures = true)
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          data: {hideAiFeatures: false},
+        })
+      );
+    });
+
+    // Inverted from hideAiFeatures
+    expect(checkbox).toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {hideAiFeatures: true}})
+      );
+    });
   });
 
-  it('disables hideAiFeatures toggle and shows tooltip for DE region', function () {
+  it('shows hideAiFeatures togglefor DE region', function () {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -227,7 +245,7 @@ describe('OrganizationSettingsForm', function () {
       }
     );
 
-    const toggle = screen.getByRole('checkbox', {name: 'Hide AI Features'});
-    expect(toggle).toBeDisabled();
+    const toggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
+    expect(toggle).toBeEnabled();
   });
 });

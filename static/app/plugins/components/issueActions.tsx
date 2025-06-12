@@ -56,8 +56,8 @@ type State = {
 } & PluginComponentBase['state'];
 
 class IssueActions extends PluginComponentBase<Props, State> {
-  constructor(props: Props, context: any) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
 
     this.createIssue = this.onSave.bind(this, this.createIssue.bind(this));
     this.linkIssue = this.onSave.bind(this, this.linkIssue.bind(this));
@@ -270,7 +270,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         success: data => {
           const createFormData = {};
           data.forEach((field: any) => {
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             createFormData[field.name] = field.default;
           });
           this.setState(
@@ -290,7 +290,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         success: data => {
           const linkFormData = {};
           data.forEach((field: any) => {
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             linkFormData[field.name] = field.default;
           });
           this.setState(
@@ -369,7 +369,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
 
     // only works with one impacted field
     const impactedField = fieldList.find(({depends}) => {
-      if (!depends || !depends.length) {
+      if (!depends?.length) {
         return false;
       }
       // must be dependent on the field we just set
@@ -378,11 +378,11 @@ class IssueActions extends PluginComponentBase<Props, State> {
 
     if (impactedField) {
       // if every dependent field is set, then search
-      if (!impactedField.depends?.some(dependentField => !formData[dependentField])) {
-        callback = () => this.loadOptionsForDependentField(impactedField);
-      } else {
+      if (impactedField.depends?.some(dependentField => !formData[dependentField])) {
         // otherwise reset the options
         callback = () => this.resetOptionsOfDependentField(impactedField);
+      } else {
+        callback = () => this.loadOptionsForDependentField(impactedField);
       }
     }
     this.setState(prevState => ({...prevState, [formDataKey]: formData}), callback);
@@ -508,7 +508,13 @@ class IssueActions extends PluginComponentBase<Props, State> {
     if (error.error_type === 'config') {
       return (
         <div className="alert alert-block">
-          {!error.has_auth_configured ? (
+          {error.has_auth_configured ? (
+            <p>
+              You still need to{' '}
+              <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you
+              can use it.
+            </p>
+          ) : (
             <div>
               <p>
                 {'Your server administrator will need to configure authentication with '}
@@ -524,12 +530,6 @@ class IssueActions extends PluginComponentBase<Props, State> {
                 ))}
               </ul>
             </div>
-          ) : (
-            <p>
-              You still need to{' '}
-              <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you
-              can use it.
-            </p>
           )}
         </div>
       );

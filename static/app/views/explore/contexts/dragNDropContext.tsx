@@ -12,27 +12,40 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import {type Column, useDragNDropColumns} from '../hooks/useDragNDropColumns';
+import {
+  type Column,
+  useDragNDropColumns,
+} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
-interface DragNDropContextProps {
+interface DragNDropContextProps<T> {
   children: (props: {
     deleteColumnAtIndex: (i: number) => void;
-    editableColumns: Column[];
-    insertColumn: () => void;
-    updateColumnAtIndex: (i: number, column: string) => void;
+    editableColumns: Array<Column<T>>;
+    insertColumn: (column?: T) => void;
+    updateColumnAtIndex: (i: number, column: T) => void;
   }) => React.ReactNode;
-  columns: string[];
-  setColumns: (columns: string[]) => void;
+  columns: T[];
+  defaultColumn: () => T;
+  setColumns: (columns: T[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
 }
 
-export function DragNDropContext({columns, setColumns, children}: DragNDropContextProps) {
+export function DragNDropContext<T>({
+  columns,
+  defaultColumn,
+  setColumns,
+  children,
+}: DragNDropContextProps<T>) {
   const {
     editableColumns,
     insertColumn,
     updateColumnAtIndex,
     deleteColumnAtIndex,
     onDragEnd,
-  } = useDragNDropColumns({columns, setColumns});
+  } = useDragNDropColumns({
+    columns,
+    defaultColumn,
+    setColumns,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),

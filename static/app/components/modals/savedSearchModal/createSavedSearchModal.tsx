@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
@@ -20,15 +20,15 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
 }
 
 function validateSortOption({sort}: {sort?: string}) {
-  const sortOptions = [
+  const sortOptions: string[] = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
-  if (sortOptions.find(option => option === sort)) {
-    return sort as string;
+  if (sort && sortOptions.includes(sort)) {
+    return sort;
   }
 
   return IssueSortOptions.DATE;
@@ -110,7 +110,11 @@ export function CreateSavedSearchModal({
       </Header>
 
       <Body>
-        {error && <Alert type="error">{error}</Alert>}
+        {error && (
+          <Alert.Container>
+            <Alert type="error">{error}</Alert>
+          </Alert.Container>
+        )}
         <SavedSearchModalContent organization={organization} />
       </Body>
     </Form>

@@ -1,11 +1,13 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,27 +20,31 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/issueDetailsEventNavigation';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-const TabName: Partial<Record<Tab, string>> = {
-  [Tab.DETAILS]: t('Events'),
-  [Tab.EVENTS]: t('Events'),
-  [Tab.REPLAYS]: t('Replays'),
-  [Tab.ATTACHMENTS]: t('Attachments'),
-  [Tab.USER_FEEDBACK]: t('Feedback'),
-};
-
 interface IssueEventNavigationProps {
   event: Event | undefined;
   group: Group;
 }
+
+const LIST_VIEW_TABS = new Set([
+  Tab.EVENTS,
+  Tab.OPEN_PERIODS,
+  Tab.CHECK_INS,
+  Tab.UPTIME_CHECKS,
+]);
 
 export function IssueEventNavigation({event, group}: IssueEventNavigationProps) {
   const organization = useOrganization();
@@ -47,14 +53,16 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const eventView = useIssueDetailsEventView({group});
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   const hideDropdownButton =
-    !issueTypeConfig.attachments.enabled &&
-    !issueTypeConfig.userFeedback.enabled &&
-    !issueTypeConfig.replays.enabled;
+    !issueTypeConfig.pages.attachments.enabled &&
+    !issueTypeConfig.pages.userFeedback.enabled &&
+    !issueTypeConfig.pages.replays.enabled;
 
   const discoverUrl = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
@@ -77,6 +85,16 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
+  const TabName: Partial<Record<Tab, string>> = {
+    [Tab.DETAILS]: issueTypeConfig.customCopy.eventUnits,
+    [Tab.EVENTS]: issueTypeConfig.customCopy.eventUnits,
+    [Tab.REPLAYS]: t('Replays'),
+    [Tab.ATTACHMENTS]: t('Attachments'),
+    [Tab.USER_FEEDBACK]: t('Feedback'),
+  };
+
+  const isListView = LIST_VIEW_TABS.has(currentTab);
+
   return (
     <EventNavigationWrapper role="navigation">
       <LargeDropdownButtonWrapper>
@@ -84,8 +102,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           onAction={key => {
             trackAnalytics('issue_details.issue_content_selected', {
               organization,
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              content: TabName[key],
+              content: TabName[key as keyof typeof TabName]!,
             });
           }}
           items={[
@@ -100,6 +117,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                hash: undefined,
               },
             },
             {
@@ -118,8 +136,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+                hash: undefined,
               },
-              hidden: !issueTypeConfig.replays.enabled,
+              hidden: !issueTypeConfig.pages.replays.enabled,
             },
             {
               key: Tab.ATTACHMENTS,
@@ -135,8 +154,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+                hash: undefined,
               },
-              hidden: !issueTypeConfig.attachments.enabled,
+              hidden: !issueTypeConfig.pages.attachments.enabled,
             },
             {
               key: Tab.USER_FEEDBACK,
@@ -149,8 +169,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
+                hash: undefined,
               },
-              hidden: !issueTypeConfig.userFeedback.enabled,
+              hidden: !issueTypeConfig.pages.userFeedback.enabled,
             },
           ]}
           offset={[-2, 1]}
@@ -178,49 +199,102 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         />
         <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
-      <NavigationWrapper>
-        {currentTab === Tab.DETAILS && (
-          <Fragment>
-            <IssueDetailsEventNavigation event={event} group={group} />
-            <LinkButton
-              to={{
-                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                query: location.query,
-              }}
-              size="xs"
-              analyticsEventKey="issue_details.all_events_clicked"
-              analyticsEventName="Issue Details: All Events Clicked"
-            >
-              {issueTypeConfig.customCopy.allEvents || t('All Events')}
-            </LinkButton>
-          </Fragment>
+      <TourElement<IssueDetailsTour>
+        tourContext={IssueDetailsTourContext}
+        id={IssueDetailsTour.NAVIGATION}
+        title={t('Compare different examples')}
+        description={t(
+          'You can quickly navigate between different examples in this issue to find their similarities (and differences).'
         )}
-
-        {currentTab === Tab.EVENTS && (
-          <ButtonBar gap={1}>
-            <LinkButton
-              to={discoverUrl}
-              aria-label={t('Open in Discover')}
-              size="xs"
-              icon={<IconTelescope />}
-              analyticsEventKey="issue_details.discover_clicked"
-              analyticsEventName="Issue Details: Discover Clicked"
-            >
-              {t('Discover')}
-            </LinkButton>
-            <LinkButton
-              to={{
-                pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
-                query: {...location.query, cursor: undefined},
-              }}
-              aria-label={t('Return to event details')}
-              size="xs"
-            >
-              {t('Close')}
-            </LinkButton>
-          </ButtonBar>
-        )}
-      </NavigationWrapper>
+      >
+        <NavigationWrapper>
+          {currentTab === Tab.DETAILS && (
+            <Fragment>
+              <IssueDetailsEventNavigation event={event} group={group} />
+              {issueTypeConfig.pages.events.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                    query: location.query,
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.all_events_clicked"
+                  analyticsEventName="Issue Details: All Events Clicked"
+                >
+                  {isSmallScreen
+                    ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                    : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                </LinkButton>
+              )}
+              {issueTypeConfig.pages.openPeriods.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
+                    query: location.query,
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.all_open_periods_clicked"
+                  analyticsEventName="Issue Details: All Open Periods Clicked"
+                >
+                  {isSmallScreen ? t('More Open Periods') : t('View More Open Periods')}
+                </LinkButton>
+              )}
+              {issueTypeConfig.pages.checkIns.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                    query: location.query,
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.all_checks_ins_clicked"
+                  analyticsEventName="Issue Details: All Checks-Ins Clicked"
+                >
+                  {isSmallScreen ? t('More Check-Ins') : t('View More Check-Ins')}
+                </LinkButton>
+              )}
+              {issueTypeConfig.pages.uptimeChecks.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
+                    query: location.query,
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                  analyticsEventName="Issue Details: All Uptime Checks Clicked"
+                >
+                  {isSmallScreen ? t('More Uptime Checks') : t('View More Uptime Checks')}
+                </LinkButton>
+              )}
+            </Fragment>
+          )}
+          {isListView && (
+            <ButtonBar gap={1}>
+              {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
+                <LinkButton
+                  to={discoverUrl}
+                  aria-label={t('Open in Discover')}
+                  size="xs"
+                  icon={<IconTelescope />}
+                  analyticsEventKey="issue_details.discover_clicked"
+                  analyticsEventName="Issue Details: Discover Clicked"
+                >
+                  {t('Open in Discover')}
+                </LinkButton>
+              )}
+              <LinkButton
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                  query: {...location.query, cursor: undefined},
+                }}
+                aria-label={t('Return to event details')}
+                size="xs"
+              >
+                {t('Close')}
+              </LinkButton>
+            </ButtonBar>
+          )}
+        </NavigationWrapper>
+      </TourElement>
     </EventNavigationWrapper>
   );
 }

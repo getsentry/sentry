@@ -1,6 +1,7 @@
 import type {ResponseMeta} from 'sentry/api';
 import type {Config} from 'sentry/types/system';
 import {extractSlug} from 'sentry/utils/extractSlug';
+import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 
 const BOOTSTRAP_URL = '/api/client-config/';
 
@@ -75,8 +76,9 @@ async function promiseRequest(url: string) {
 }
 
 function preloadOrganizationData(config: Config) {
-  if (!config.user) {
-    // Don't send requests if there is no logged in user.
+  const preloadData = shouldPreloadData(config);
+
+  if (!preloadData) {
     return;
   }
   let slug = config.lastOrganization;
@@ -116,7 +118,7 @@ function preloadOrganizationData(config: Config) {
     );
     preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
   } catch (e) {
-    // eslint-disable-next-line
+    // eslint-disable-next-line no-console
     console.error(e);
   }
 }

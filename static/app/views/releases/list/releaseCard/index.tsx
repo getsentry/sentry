@@ -3,25 +3,31 @@ import styled from '@emotion/styled';
 import color from 'color';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
+import moment from 'moment-timezone';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-
-import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import type {ReleasesRequestRenderProps} from '../releasesRequest';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
+import {useUser} from 'sentry/utils/useUser';
+import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
+import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
+import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';
@@ -70,6 +76,11 @@ function ReleaseCard({
   getHealthData,
   showReleaseAdoptionStages,
 }: Props) {
+  const user = useUser();
+  const options = user ? user.options : null;
+
+  const finalizeRelease = useFinalizeRelease();
+
   const {
     version,
     commitCount,
@@ -111,33 +122,97 @@ function ReleaseCard({
         <ReleaseInfoHeader>
           <GlobalSelectionLink
             to={{
-              pathname: `/organizations/${
-                organization.slug
-              }/releases/${encodeURIComponent(version)}/`,
+              pathname: makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(version)}/`,
+              }),
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
-            <GuideAnchor
+            <DemoTourElement
+              id={DemoTourStep.RELEASES_DETAILS}
               disabled={!isTopRelease || projectsToShow.length > 1}
-              target="release_version"
+              title={t('Release-specific trends')}
+              description={t(
+                'Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.'
+              )}
+              position="bottom-start"
             >
               <VersionWrapper>
                 <StyledVersion version={version} tooltipRawVersion anchor={false} />
               </VersionWrapper>
-            </GuideAnchor>
+            </DemoTourElement>
           </GlobalSelectionLink>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />
           )}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
-          {versionInfo?.package && (
-            <PackageName>
-              <TextOverflow ellipsisDirection="left">{versionInfo.package}</TextOverflow>
-            </PackageName>
-          )}
-          <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
-          {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
+          <ReleaseInfoSubheaderUpper>
+            <PackageContainer>
+              <PackageName>
+                {versionInfo?.package && (
+                  <TextOverflow ellipsisDirection="right">
+                    {versionInfo.package}
+                  </TextOverflow>
+                )}
+              </PackageName>
+              <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+              {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
+              &nbsp;
+            </PackageContainer>
+            <FinalizeWrapper>
+              {release.dateReleased ? (
+                <Tooltip
+                  isHoverable
+                  title={tct('This release was finalized on [date]. [docs:Read More].', {
+                    date: moment(release.dateReleased).format(
+                      options?.clock24Hours
+                        ? 'MMMM D, YYYY HH:mm z'
+                        : 'MMMM D, YYYY h:mm A z'
+                    ),
+                    docs: (
+                      <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
+                    ),
+                  })}
+                >
+                  <Tag type="success" icon={<IconCheckmark />} />
+                </Tooltip>
+              ) : (
+                <Tooltip
+                  isHoverable
+                  title={tct(
+                    'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
+                    {
+                      date: moment(release.firstEvent ?? release.dateCreated).format(
+                        options?.clock24Hours
+                          ? 'MMMM D, YYYY HH:mm z'
+                          : 'MMMM D, YYYY h:mm A z'
+                      ),
+                      br: <br />,
+                      code: <code />,
+                      docs: (
+                        <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
+                      ),
+                    }
+                  )}
+                >
+                  <Button
+                    size="xs"
+                    onClick={() =>
+                      finalizeRelease.mutate([release], {
+                        onSettled() {
+                          window.location.reload();
+                        },
+                      })
+                    }
+                  >
+                    {t('Finalize')}
+                  </Button>
+                </Tooltip>
+              )}
+            </FinalizeWrapper>
+          </ReleaseInfoSubheaderUpper>
         </ReleaseInfoSubheader>
       </ReleaseInfo>
 
@@ -216,7 +291,7 @@ function ReleaseCard({
   );
 }
 
-export const VersionWrapper = styled('div')`
+const VersionWrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
@@ -236,7 +311,10 @@ const StyledPanel = styled(Panel)<{reloading: number}>`
 
 const ReleaseInfo = styled('div')`
   padding: ${space(1.5)} ${space(2)};
-  flex-shrink: 0;
+  flex-shrink: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     border-right: 1px solid ${p => p.theme.border};
@@ -246,17 +324,49 @@ const ReleaseInfo = styled('div')`
   }
 `;
 
-export const ReleaseInfoSubheader = styled('div')`
+const ReleaseInfoSubheader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray400};
+  flex-grow: 1;
 `;
 
-export const PackageName = styled('div')`
+const ReleaseInfoSubheaderUpper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  flex: initial;
+  flex-grow: 1;
+  height: 100%;
+`;
+const FinalizeWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  flex: initial;
+  position: relative;
+  width: 80px;
+  margin-left: auto;
+
+  & > * {
+    position: absolute;
+    right: 0;
+  }
+`;
+
+const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+  max-width: 100%;
+`;
+
+const PackageContainer = styled('div')`
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  margin-right: ${space(1)};
 `;
 
 const ReleaseProjects = styled('div')`
@@ -269,7 +379,7 @@ const ReleaseProjects = styled('div')`
   }
 `;
 
-export const ReleaseInfoHeader = styled('div')`
+const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
@@ -412,7 +522,7 @@ const HiddenProjectsMessage = styled('div')`
   overflow: hidden;
   height: 24px;
   line-height: 24px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   @media (max-width: ${p => p.theme.breakpoints.medium}) {

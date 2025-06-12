@@ -1,4 +1,3 @@
-import type {VFC} from 'react';
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -8,8 +7,10 @@ import isEqual from 'lodash/isEqual';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {
   BooleanOperator,
@@ -54,9 +55,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-
-import type {MenuItemProps} from '../dropdownMenu';
-import {DropdownMenu} from '../dropdownMenu';
 
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
@@ -167,7 +165,7 @@ const pickParserOptions = (props: Props) => {
   } satisfies Partial<SearchConfig>;
 };
 
-export type ActionProps = {
+type ActionProps = {
   api: Client;
   /**
    * The organization
@@ -183,12 +181,15 @@ export type ActionProps = {
   savedSearchType?: SavedSearchType;
 };
 
-export type ActionBarItem = {
+type ActionBarItem = {
   /**
    * Name of the action
    */
   key: string;
-  makeAction: (props: ActionProps) => {Button: VFC; menuItem: MenuItemProps};
+  makeAction: (props: ActionProps) => {
+    Button: React.ComponentType<any>;
+    menuItem: MenuItemProps;
+  };
 };
 
 type DefaultProps = {
@@ -297,7 +298,7 @@ type Props = WithRouterProps &
      * A function that returns a warning message for a given filter key
      * will only show a render a warning if the value is truthy
      */
-    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
+    // @ts-expect-error TS(7006): Parameter 'key' implicitly has an 'any' type.
     getFilterWarning?: (key) => React.ReactNode;
     /**
      * List user's recent searches
@@ -360,7 +361,11 @@ type Props = WithRouterProps &
     /**
      * Get a list of tag values for the passed tag
      */
-    onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+    onGetTagValues?: (
+      tag: Tag,
+      query: string,
+      params: Record<PropertyKey, unknown>
+    ) => Promise<string[]>;
     /**
      * Called on key down
      */
@@ -517,7 +522,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   get initialQuery() {
     const {query, defaultQuery} = this.props;
-    return query !== null ? addSpace(query) : defaultQuery ?? '';
+    return query === null ? (defaultQuery ?? '') : addSpace(query);
   }
 
   makeQueryState(query: string) {
@@ -644,7 +649,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   }
 
-  moveToNextToken = (filterTokens: TokenResult<Token.FILTER>[]) => {
+  moveToNextToken = (filterTokens: Array<TokenResult<Token.FILTER>>) => {
     const token = this.cursorToken;
 
     if (this.searchInput.current && filterTokens.length > 0) {
@@ -652,7 +657,8 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
       let offset = filterTokens[0]!.location.end.offset;
       if (token) {
-        const tokenIndex = filterTokens.findIndex(tok => tok === token);
+        // @ts-expect-error: Mismatched types
+        const tokenIndex = filterTokens.indexOf(token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
           offset = filterTokens[tokenIndex + 1]!.location.end.offset;
         }
@@ -671,7 +677,8 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const hasExecCommand = typeof document.execCommand === 'function';
 
     if (token && filterTokens.length > 0) {
-      const index = filterTokens.findIndex(tok => tok === token) ?? -1;
+      // @ts-expect-error: Mismatched types
+      const index = filterTokens.indexOf(token) ?? -1;
       const newQuery =
         // We trim to remove any remaining spaces
         query.slice(0, token.location.start.offset).trim() +
@@ -1229,9 +1236,9 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     };
   }
 
-  get filterTokens(): TokenResult<Token.FILTER>[] {
+  get filterTokens(): Array<TokenResult<Token.FILTER>> {
     return (this.state.parsedQuery?.filter(tok => tok.type === Token.FILTER) ??
-      []) as TokenResult<Token.FILTER>[];
+      []) as Array<TokenResult<Token.FILTER>>;
   }
 
   /**
@@ -1251,11 +1258,11 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
       tree: parsedQuery,
       noResultValue: null,
       visitorTest: ({token, returnResult, skipToken}) =>
-        !matchedTokens.includes(token.type)
-          ? null
-          : isWithinToken(token, cursor)
+        matchedTokens.includes(token.type)
+          ? isWithinToken(token, cursor)
             ? returnResult(token)
-            : skipToken,
+            : skipToken
+          : null,
     });
   }
 
@@ -1457,7 +1464,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const project = location?.query ? location.query.projectId : undefined;
 
     const url = `/organizations/${organization.slug}/releases/`;
-    const fetchQuery: {[key: string]: string | number} = {
+    const fetchQuery: Record<string, string | number> = {
       per_page: MAX_AUTOCOMPLETE_RELEASES,
     };
 
@@ -1507,9 +1514,9 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
     // filter existing items immediately, until API can return
     // with actual tag value results
-    const filteredSearchGroups = !preparedQuery
-      ? this.state.searchGroups
-      : this.state.searchGroups.filter(item => item.value?.includes(preparedQuery));
+    const filteredSearchGroups = preparedQuery
+      ? this.state.searchGroups.filter(item => item.value?.includes(preparedQuery))
+      : this.state.searchGroups;
 
     this.setState({
       searchTerm: query,
@@ -1569,7 +1576,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   showDefaultSearches = async () => {
     const {query} = this.state;
-    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
+    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems;
 
     // Always clear searchTerm on showing default state.
     this.setState({searchTerm: ''});
@@ -2102,13 +2109,13 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
         <InputWrapper>
           <Highlight>
-            {parsedQuery !== null ? (
+            {parsedQuery === null ? (
+              query
+            ) : (
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={this.state.showDropdown ? cursor : -1}
               />
-            ) : (
-              query
             )}
           </Highlight>
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
@@ -2218,7 +2225,7 @@ export type {Props as SmartSearchBarProps};
 export {DeprecatedSmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
-  min-height: ${p => p.theme.form.md.height}px;
+  min-height: ${p => p.theme.form.md.height};
   border: ${p =>
     p.inputHasFocus ? `1px solid ${p.theme.focusBorder}` : `1px solid ${p.theme.border}`};
   box-shadow: ${p =>
@@ -2244,14 +2251,14 @@ const SearchIconContainer = styled('div')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SearchLabel = styled('label')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const InputWrapper = styled('div')`

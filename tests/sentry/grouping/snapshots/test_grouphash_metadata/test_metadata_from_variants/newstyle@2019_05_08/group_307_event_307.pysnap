@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:12.963369+00:00'
+created: '2025-02-26T00:31:52.856942+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -33,15 +33,15 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "thread_start"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_pthread_start"
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "__dynamic_cast"

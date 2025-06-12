@@ -1,10 +1,10 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -25,14 +25,14 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-
-import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
-import {eventViewFromWidget} from '../utils';
-import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
 import {
@@ -43,29 +43,26 @@ import {
   getTimeseriesSortOptions,
   renderEventIdAsLinkable,
   renderTraceAsLinkable,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count_unique(user)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count_unique(user)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count_unique(user)',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
+  function: ['count_unique', 'user', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 
-export type SeriesWithOrdering = [order: number, series: Series];
-
 export const ErrorsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
@@ -130,7 +127,7 @@ function getEventsTableFieldOptions(
     aggregations: Object.keys(aggregates)
       .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
       .reduce((obj, key) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         obj[key] = aggregates[key];
         return obj;
       }, {}),
@@ -138,11 +135,7 @@ function getEventsTableFieldOptions(
   });
 }
 
-export function getCustomEventsFieldRenderer(
-  field: string,
-  meta: MetaType,
-  widget?: Widget
-) {
+function getCustomEventsFieldRenderer(field: string, meta: MetaType, widget?: Widget) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -154,7 +147,7 @@ export function getCustomEventsFieldRenderer(
   return getFieldRenderer(field, meta, false);
 }
 
-export function getEventsRequest(
+function getEventsRequest(
   api: Client,
   query: WidgetQuery,
   organization: Organization,
@@ -195,7 +188,7 @@ export function getEventsRequest(
 }
 
 // The y-axis options are a strict set of available aggregates
-export function filterYAxisOptions(_displayType: DisplayType) {
+function filterYAxisOptions(_displayType: DisplayType) {
   return (option: FieldValueOption) => {
     return ERRORS_AGGREGATION_FUNCTIONS.includes(
       option.value.meta.name as AggregationKey

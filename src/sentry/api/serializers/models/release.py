@@ -25,6 +25,8 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -111,7 +113,13 @@ def _expose_current_project_meta(current_project_meta):
     return rv
 
 
-def _get_authors_metadata(item_list, user):
+class _AuthorList(TypedDict):
+    authors: list[Author]
+
+
+def _get_authors_metadata(
+    item_list: list[Release], user: User | RpcUser | AnonymousUser
+) -> dict[Release, _AuthorList]:
     """
     Returns a dictionary of release_id => authors metadata,
     where each commit metadata dict contains an array of
@@ -126,7 +134,8 @@ def _get_authors_metadata(item_list, user):
     """
     author_ids = set()
     for obj in item_list:
-        author_ids.update(obj.authors)
+        if obj.authors is not None:
+            author_ids.update(obj.authors)
 
     if author_ids:
         authors = list(CommitAuthor.objects.filter(id__in=author_ids))
@@ -144,18 +153,17 @@ def _get_authors_metadata(item_list, user):
     else:
         users_by_author = {}
 
-    result = {}
+    result: dict[Release, _AuthorList] = {}
     for item in item_list:
         item_authors = []
         seen_authors = set()
-        for user in (users_by_author.get(a) for a in item.authors):
-            if user and user["email"] not in seen_authors:
-                seen_authors.add(user["email"])
-                item_authors.append(user)
+        if item.authors is not None:
+            for user_resp in (users_by_author.get(a) for a in item.authors):
+                if user_resp and user_resp["email"] not in seen_authors:
+                    seen_authors.add(user_resp["email"])
+                    item_authors.append(user_resp)
 
-        result[item] = {
-            "authors": item_authors,
-        }
+        result[item] = {"authors": item_authors}
     return result
 
 
@@ -212,20 +220,24 @@ def _get_last_deploy_metadata(item_list, user):
     return result
 
 
-def _user_to_author_cache_key(organization_id, author):
+def _user_to_author_cache_key(organization_id: int, author: CommitAuthor) -> str:
     author_hash = md5_text(author.email.lower()).hexdigest()
     return f"get_users_for_authors:{organization_id}:{author_hash}"
 
 
 class NonMappableUser(TypedDict):
-    name: str
+    name: str | None
     email: str
 
 
 Author = Union[UserSerializerResponse, NonMappableUser]
 
 
-def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, Author]:
+def get_users_for_authors(
+    organization_id: int,
+    authors: list[CommitAuthor],
+    user: User | AnonymousUser | RpcUser | None = None,
+) -> Mapping[str, Author]:
     """
     Returns a dictionary of author_id => user, if a Sentry
     user object exists for that email. If there is no matching

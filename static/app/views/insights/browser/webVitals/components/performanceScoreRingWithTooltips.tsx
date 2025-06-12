@@ -6,7 +6,6 @@ import type {Location} from 'history';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMouseTracking from 'sentry/utils/useMouseTracking';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,7 +16,6 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
@@ -27,8 +25,14 @@ type Coordinates = {
   y: number;
 };
 
-type WebVitalsLabelCoordinates = {
-  [p in WebVitals]?: Coordinates;
+type WebVitalsLabelCoordinates = Partial<Record<WebVitals, Coordinates>>;
+
+type ProjectData = {
+  'p75(measurements.cls)': number;
+  'p75(measurements.fcp)': number;
+  'p75(measurements.inp)': number;
+  'p75(measurements.lcp)': number;
+  'p75(measurements.ttfb)': number;
 };
 
 type Props = {
@@ -39,11 +43,11 @@ type Props = {
   text: React.ReactNode;
   width: number;
   barWidth?: number;
+  differenceToPreviousPeriod?: ProjectScore;
   hideWebVitalLabels?: boolean;
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
-  labelWidthPadding?: number;
-  projectData?: TableData;
+  projectData?: ProjectData[];
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
@@ -58,7 +62,8 @@ type WebVitalLabelProps = {
   onHover: (webVital: WebVitals) => void;
   onUnHover: () => void;
   webVital: WebVitals;
-  projectData?: TableData;
+  differenceToPreviousPeriod?: ProjectScore;
+  projectData?: ProjectData[];
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
 };
 
@@ -71,17 +76,19 @@ function WebVitalLabel({
   webVitalLabelCoordinates,
   inPerformanceWidget,
   projectData,
+  differenceToPreviousPeriod,
 }: WebVitalLabelProps) {
   const moduleURL = useModuleURL('vital');
   const xOffset = webVitalLabelCoordinates?.[webVital]?.x ?? 0;
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
-      ? Math.round((projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100) /
-        100
+      ? Math.round((projectData?.[0]?.['p75(measurements.cls)'] as number) * 100) / 100
       : getFormattedDuration(
-          (projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
+          (projectData?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
         );
+
+  const diffValue = differenceToPreviousPeriod?.[`${webVital}Score`];
 
   return (
     <Link
@@ -104,12 +111,22 @@ function WebVitalLabel({
         {webVital}
       </ProgressRingText>
       {inPerformanceWidget && (
-        <ProgressRingSubText
-          x={coordinates.x + xOffset + (webVital === 'cls' ? 2 : 0)}
-          y={coordinates.y + yOffset + 15}
-        >
+        <ProgressRingSubText x={coordinates.x + xOffset} y={coordinates.y + yOffset + 15}>
           {webvitalInfo}
         </ProgressRingSubText>
+      )}
+      {inPerformanceWidget && diffValue !== undefined && (
+        <ProgressRingDiffSubText
+          value={diffValue}
+          x={coordinates.x + xOffset}
+          y={coordinates.y + yOffset + 30}
+        >
+          {diffValue > 0
+            ? `+${diffValue.toFixed(1)}%`
+            : diffValue < 0
+              ? `${diffValue.toFixed(1)}%`
+              : '-'}
+        </ProgressRingDiffSubText>
       )}
     </Link>
   );
@@ -123,6 +140,7 @@ function PerformanceScoreRingWithTooltips({
   width,
   height,
   text,
+  differenceToPreviousPeriod,
   webVitalLabelCoordinates,
   barWidth = 16,
   hideWebVitalLabels = false,
@@ -130,7 +148,6 @@ function PerformanceScoreRingWithTooltips({
   size = 140,
   x = 40,
   y = 25,
-  labelWidthPadding = 28,
   labelHeightPadding = 14,
   radiusPadding = 4,
 }: Props) {
@@ -163,11 +180,7 @@ function PerformanceScoreRingWithTooltips({
     });
   }
 
-  const weights = organization.features.includes(
-    'performance-vitals-handle-missing-webvitals'
-  )
-    ? getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]))
-    : PERFORMANCE_SCORE_WEIGHTS;
+  const weights = getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]));
 
   const commonWebVitalLabelProps = {
     organization,
@@ -177,6 +190,7 @@ function PerformanceScoreRingWithTooltips({
     projectData,
     onHover: (webVital: WebVitals) => setLabelHovered(webVital),
     onUnHover: () => setLabelHovered(null),
+    differenceToPreviousPeriod,
   };
 
   const coordinates = calculateLabelCoordinates(
@@ -185,7 +199,6 @@ function PerformanceScoreRingWithTooltips({
     y,
     barWidth,
     weights,
-    labelWidthPadding,
     labelHeightPadding,
     radiusPadding
   );
@@ -222,7 +235,7 @@ function PerformanceScoreRingWithTooltips({
           <Fragment>
             {Object.keys(weights).map((key, index) => {
               const webVital = key as WebVitals;
-              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               if (weights[key] > 0 && coordinates[webVital] !== undefined) {
                 return (
                   <WebVitalLabel
@@ -294,16 +307,13 @@ function calculateLabelCoordinates(
   x: number,
   y: number,
   barWidth: number,
-  weights: {
-    [key in WebVitals]: number;
-  },
-  labelWidthPadding: number,
+  weights: Record<WebVitals, number>,
   labelHeightPadding: number,
   radiusPadding: number
 ) {
   const radius = size / 2 + barWidth + radiusPadding;
   const center = {
-    x: x + size / 2 - labelWidthPadding / 2,
+    x: x + size / 2,
     y: y + size / 2 + labelHeightPadding / 2,
   };
   const sumMaxValues = Object.values(weights).reduce((acc, val) => acc + val, 0);
@@ -321,12 +331,11 @@ function calculateLabelCoordinates(
     return {x: segmentX, y: segmentY};
   });
 
-  const results: {[key in WebVitals]?: {x: number; y: number}} = {};
+  const results: Partial<Record<WebVitals, {x: number; y: number}>> = {};
   Object.keys(weights).forEach((key, index) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     results[key] = {
-      // Padding hack for now since ttfb label is longer than the others
-      x: coordinates[index]!.x + (key === 'ttfb' ? -12 : 0),
+      x: coordinates[index]!.x,
       y: coordinates[index]!.y,
     };
   });
@@ -340,11 +349,18 @@ const ProgressRingText = styled('text')<{isLink?: boolean}>`
   fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.textColor)};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
+  text-anchor: middle;
 `;
 
 const ProgressRingSubText = styled('text')`
   font-size: ${p => p.theme.fontSizeSmall};
   fill: ${p => p.theme.subText};
+  text-anchor: middle;
+`;
+
+const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
+  fill: ${p =>
+    p.value < 0 ? p.theme.green300 : p.value > 0 ? p.theme.red300 : p.theme.subText};
 `;
 
 // Hover element on mouse
@@ -352,7 +368,7 @@ const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
   background: ${p => p.theme.backgroundElevated};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
   padding: ${space(1)} ${space(2)};
   width: 200px;
@@ -400,7 +416,7 @@ const TooltipRow = styled('div')`
 `;
 
 const TooltipValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export default PerformanceScoreRingWithTooltips;

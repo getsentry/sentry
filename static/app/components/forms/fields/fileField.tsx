@@ -2,10 +2,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {t} from 'sentry/locale';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
@@ -82,6 +82,8 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
               name={name}
               accept={accept?.join(', ')}
               onChange={e => handleFile(model, name, onChange, e)}
+              // Do not forward required to `input` to avoid default browser behavior
+              required={undefined}
             />
             {!hideControlState && (
               <InputGroup.TrailingItems disablePointerEvents>

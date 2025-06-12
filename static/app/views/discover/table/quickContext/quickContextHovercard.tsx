@@ -21,7 +21,7 @@ import ReleaseContext from './releaseContext';
 import {NoContextWrapper} from './styles';
 import {ContextType} from './utils';
 
-const HOVER_DELAY: number = 400;
+const HOVER_DELAY = 400;
 
 function getHoverBody(
   dataRow: EventData,
@@ -178,6 +178,7 @@ const StyledHovercard = styled(Hovercard)`
   ${Body} {
     padding: 0;
   }
+  overflow: hidden;
   min-width: max-content;
 `;
 

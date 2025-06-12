@@ -27,6 +27,8 @@ class NotificationDefaultTest(APITestCase):
                 "quotaMonitorSeats": "always",
                 "quotaSpans": "always",
                 "quotaProfileDuration": "always",
+                "quotaProfileDurationUI": "always",
+                "quotaSeerBudget": "always",
                 "reports": "always",
                 "spikeProtection": "always",
                 "workflow": "subscribe_only",

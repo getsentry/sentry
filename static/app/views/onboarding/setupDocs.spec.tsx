@@ -12,7 +12,6 @@ import {
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
@@ -85,12 +84,13 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project as OnboardingRecentCreatedProject}
+          recentCreatedProject={project}
         />
       </OnboardingContextProvider>,
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -133,12 +133,13 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project as OnboardingRecentCreatedProject}
+          recentCreatedProject={project}
         />
       </OnboardingContextProvider>,
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -189,12 +190,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -243,12 +245,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -293,12 +296,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -343,12 +347,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -412,12 +417,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -446,7 +452,7 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Session Replay'}));
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);
 
       expect(updateLoaderMock).toHaveBeenLastCalledWith(
@@ -496,12 +502,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 

@@ -36,7 +36,7 @@ export const COL_WIDTH_MINIMUM = 90;
 // - K is a key of T/
 //   - columnKey should have the same set of values as K
 
-type ObjectKey = React.ReactText;
+type ObjectKey = string | number;
 
 export type GridColumn<K = ObjectKey> = {
   key: K;
@@ -45,6 +45,7 @@ export type GridColumn<K = ObjectKey> = {
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
+  tooltip?: React.ReactNode;
 };
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
@@ -56,15 +57,15 @@ export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
 /**
  * Store state at the start of "resize" action
  */
-export type ColResizeMetadata = {
+type ColResizeMetadata = {
   columnIndex: number; // Column being resized
   columnWidth: number; // Column width at start of resizing
   cursorX: number; // X-coordinate of cursor on window
 };
 
 type GridEditableProps<DataRow, ColumnKey> = {
-  columnOrder: GridColumnOrder<ColumnKey>[];
-  columnSortBy: GridColumnSortBy<ColumnKey>[];
+  columnOrder: Array<GridColumnOrder<ColumnKey>>;
+  columnSortBy: Array<GridColumnSortBy<ColumnKey>>;
   data: DataRow[];
 
   /**
@@ -114,6 +115,12 @@ type GridEditableProps<DataRow, ColumnKey> = {
   onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
 
+  /**
+   * Whether columns in the grid can be resized.
+   *
+   * @default true
+   */
+  resizable?: boolean;
   scrollable?: boolean;
   stickyHeader?: boolean;
   /**
@@ -133,7 +140,7 @@ type GridEditableState = {
 };
 
 class GridEditable<
-  DataRow extends {[key: string]: any},
+  DataRow extends Record<string, any>,
   ColumnKey extends ObjectKey,
 > extends Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   // Static methods do not allow the use of generics bounded to the parent class
@@ -169,9 +176,7 @@ class GridEditable<
 
   private refGrid = createRef<HTMLTableElement>();
   private resizeMetadata?: ColResizeMetadata;
-  private resizeWindowLifecycleEvents: {
-    [eventName: string]: any[];
-  } = {
+  private resizeWindowLifecycleEvents: Record<string, any[]> = {
     mousemove: [],
     mouseup: [],
   };
@@ -196,13 +201,13 @@ class GridEditable<
     const onResizeColumn = this.props.grid.onResizeColumn;
     if (onResizeColumn) {
       onResizeColumn(i, {
-        ...nextColumnOrder[i]!,
+        ...nextColumnOrder[i],
         width: COL_WIDTH_UNDEFINED,
       });
     }
   };
 
-  onResizeMouseDown = (e: React.MouseEvent, i: number = -1) => {
+  onResizeMouseDown = (e: React.MouseEvent, i = -1) => {
     e.stopPropagation();
 
     // Block right-click and other funky stuff
@@ -211,7 +216,7 @@ class GridEditable<
     }
 
     // <GridResizer> is nested 1 level down from <GridHeadCell>
-    const cell = e.currentTarget!.parentElement;
+    const cell = e.currentTarget.parentElement;
     if (!cell) {
       return;
     }
@@ -316,7 +321,15 @@ class GridEditable<
   }
 
   renderGridHead() {
-    const {error, isLoading, columnOrder, grid, data, stickyHeader} = this.props;
+    const {
+      error,
+      isLoading,
+      columnOrder,
+      grid,
+      data,
+      stickyHeader,
+      resizable = true,
+    } = this.props;
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
@@ -344,7 +357,7 @@ class GridEditable<
               sticky={stickyHeader}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-              {i !== numColumn - 1 && (
+              {i !== numColumn - 1 && resizable && (
                 <GridResizer
                   dataRows={!error && !isLoading && data ? data.length : 0}
                   onMouseDown={e => this.onResizeMouseDown(e, i)}
@@ -402,7 +415,7 @@ class GridEditable<
           <GridBodyCell data-test-id="grid-body-cell" key={`${col.key}${i}`}>
             {grid.renderBodyCell
               ? grid.renderBodyCell(col, dataRow, row, i)
-              : dataRow[col.key]}
+              : dataRow[col.key as string]}
           </GridBodyCell>
         ))}
       </GridRow>
@@ -465,7 +478,7 @@ class GridEditable<
               )}
             </Header>
           )}
-          <Body style={bodyStyle}>
+          <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
             <Grid
               aria-label={ariaLabel}
               data-test-id="grid-editable"

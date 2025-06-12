@@ -1,16 +1,18 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button, LinkButton} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {space} from 'sentry/styles/space';
 
 interface FooterWithButtonsProps {
   buttonText: string;
   disabled?: boolean;
-  formFields?: {name: string; value: any}[];
+  formFields?: Array<{name: string; value: any}>;
   formProps?: React.FormHTMLAttributes<HTMLFormElement>;
   href?: string;
-  onClick?: ButtonProps['onClick'];
+  onClick?: ButtonProps['onClick'] | LinkButtonProps['onClick'];
 }
 
 export default function FooterWithButtons({
@@ -26,13 +28,13 @@ export default function FooterWithButtons({
     disabled,
     onClick,
     children: buttonText,
-  } satisfies Partial<ButtonProps>;
+  };
 
   const button =
-    href !== undefined ? (
-      <LinkButton href={href} {...buttonProps} />
+    href === undefined ? (
+      <Button type="submit" {...(buttonProps as ButtonProps)} />
     ) : (
-      <Button type="submit" {...buttonProps} />
+      <LinkButton href={href} {...(buttonProps as LinkButtonProps)} />
     );
 
   // We use a form post here to replicate what we do with standard HTML views

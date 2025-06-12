@@ -3,16 +3,17 @@ from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_id
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.models.environment import Environment
 from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
-class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
+class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -54,7 +55,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         elif stat == "generated":
             stat_model = TSDBModel.project
             try:
-                query_kwargs["environment_id"] = self._get_environment_id_from_request(
+                query_kwargs["environment_id"] = get_environment_id(
                     request, project.organization_id
                 )
             except Environment.DoesNotExist:

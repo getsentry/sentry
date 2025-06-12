@@ -1,4 +1,6 @@
-from sentry.lang.native.utils import get_os_from_event, is_minidump_event
+from unittest.mock import patch
+
+from sentry.lang.native.utils import Backoff, get_os_from_event, is_minidump_event
 
 
 def test_get_os_from_event():
@@ -31,3 +33,33 @@ def test_is_minidump():
     assert not is_minidump_event({"exception": {"values": []}})
     assert not is_minidump_event({"exception": {"values": None}})
     assert not is_minidump_event({"exception": None})
+
+
+@patch("time.sleep")
+def test_backoff(mock_sleep):
+    backoff = Backoff(0.1, 5)
+
+    for _ in range(3):
+        backoff.reset()
+        mock_sleep.assert_not_called()
+
+        backoff.sleep_failure()  # 0 second sleep
+        mock_sleep.assert_not_called()
+
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(0.1)
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(0.2)
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(0.4)
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(0.8)
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(1.6)
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(3.2)
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(5)
+        backoff.sleep_failure()
+        mock_sleep.assert_called_with(5)
+        mock_sleep.reset_mock()

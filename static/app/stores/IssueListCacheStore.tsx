@@ -39,6 +39,7 @@ const CACHE_EXPIRATION = 30 * 1000;
 interface IssueListCacheStoreDefinition
   extends StrictStoreDefinition<IssueListCacheState | null> {
   getFromCache(params: LooseParamsType): IssueListCache | null;
+  markGroupAsSeen(groupId: string): void;
   reset(): void;
   save(params: LooseParamsType, data: IssueListCache): void;
 }
@@ -74,6 +75,13 @@ const storeConfig: IssueListCacheStoreDefinition = {
 
   getState() {
     return this.state;
+  },
+
+  markGroupAsSeen(groupId: string) {
+    const matchingGroup = this.state?.cache.groups.find(group => group.id === groupId);
+    if (matchingGroup) {
+      matchingGroup.hasSeen = true;
+    }
   },
 };
 

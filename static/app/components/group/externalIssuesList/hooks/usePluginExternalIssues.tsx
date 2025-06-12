@@ -2,14 +2,27 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openPluginActionModal} from 'sentry/components/group/pluginActions';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
+import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {uniqueId} from 'sentry/utils/guid';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {GroupIntegrationIssueResult} from './types';
 
+type LinkedIssueResponse = {
+  id: string;
+  issue_url: string;
+  label: string;
+  link: string;
+};
+
+/**
+ * Formats plugin issues into external issue actions
+ * Example plugin: Trello
+ */
 export function usePluginExternalIssues({
   group,
   project,
@@ -22,8 +35,7 @@ export function usePluginExternalIssues({
 
   const result: GroupIntegrationIssueResult = {integrations: [], linkedIssues: []};
 
-  const combinedPlugins = [...group.pluginIssues, ...group.pluginActions];
-  for (const plugin of combinedPlugins) {
+  for (const plugin of group.pluginIssues) {
     const displayIcon = getIntegrationIcon(plugin.id, 'sm');
     const displayName = plugin.name || plugin.title;
     if (plugin.issue) {
@@ -39,12 +51,17 @@ export function usePluginExternalIssues({
             // Remove issue from plugin
             issue: null,
           };
+          const newPluginIssues = group.pluginIssues.filter(p => p.id !== plugin.id);
+          newPluginIssues.push(newPlugin);
 
           const endpoint = `/issues/${group.id}/plugins/${plugin.slug}/unlink/`;
           api.request(endpoint, {
             success: () => {
               plugins.load(newPlugin, () => {
                 addSuccessMessage(t('Successfully unlinked issue.'));
+              });
+              GroupStore.onUpdateSuccess(uniqueId(), [group.id], {
+                pluginIssues: newPluginIssues,
               });
             },
             error: () => {
@@ -70,7 +87,7 @@ export function usePluginExternalIssues({
                   project,
                   organization,
                   // Is passed to both modal onClose and onSuccess which is a bit goofy
-                  onModalClose: (data?: any | string) => {
+                  onModalClose: (data?: LinkedIssueResponse | string) => {
                     // String could be one of 'close-button', 'backdrop-click', 'escape-key'
                     if (!data || typeof data === 'string') {
                       return;
@@ -87,6 +104,10 @@ export function usePluginExternalIssues({
                     plugins.load(updatedPlugin, () => {
                       addSuccessMessage(t('Successfully linked issue.'));
                     });
+                    // Add linked issue to group
+                    GroupStore.onUpdateSuccess(uniqueId(), [group.id], {
+                      pluginIssues: [...group.pluginIssues, updatedPlugin],
+                    });
                   },
                 });
               });
@@ -95,6 +116,24 @@ export function usePluginExternalIssues({
         ],
       });
     }
+  }
+
+  for (const [title, action] of group.pluginActions) {
+    result.integrations.push({
+      key: `${title}-${action}`,
+      displayName: title,
+      displayIcon: getIntegrationIcon(title, 'sm'),
+      actions: [
+        {
+          id: `${title}-${action}`,
+          name: action,
+          href: action,
+          onClick: () => {
+            // Do nothing
+          },
+        },
+      ],
+    });
   }
 
   return result;

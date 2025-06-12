@@ -5,7 +5,8 @@ from django.views.generic import View
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.utils import get_generic_data, get_group_settings_link, get_rules
+from sentry.notifications.utils import get_generic_data
+from sentry.notifications.utils.links import get_group_settings_link, get_rules
 from sentry.utils import json
 
 from .mail import COMMIT_EXAMPLE, MailPreview, make_feedback_issue

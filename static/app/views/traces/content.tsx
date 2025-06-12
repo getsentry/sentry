@@ -1,8 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Alert} from 'sentry/components/core/alert';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -18,7 +17,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ExploreContent} from 'sentry/views/explore/content';
+import {ExploreContent} from 'sentry/views/explore/spans/content';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
 import {usePageParams} from './hooks/usePageParams';
@@ -78,9 +77,8 @@ function Content() {
 
   const handleClearSearch = useCallback(
     (searchIndex: number) => {
-      const newQueries = [...queries];
       // TODO: do we need to return false when `newQueries[searchIndex] === undefined`?
-      delete newQueries[searchIndex];
+      const newQueries = queries.toSpliced(searchIndex, 1);
       browserHistory.push({
         ...location,
         query: {
@@ -124,7 +122,6 @@ function Content() {
                       'Traces lets you search for individual spans that make up a trace, linked by a trace id.'
                     )}
                   />
-                  <FeatureBadge type="beta" />
                 </Layout.Title>
                 <FeedbackWidgetButton />
               </HeaderContentBar>
@@ -138,9 +135,9 @@ function Content() {
                 <DatePageFilter defaultPeriod="2h" />
               </PageFilterBar>
               {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
-                <StyledAlert type="error" showIcon>
+                <Alert type="error" showIcon>
                   {tracesQuery.error?.responseJSON?.detail}
-                </StyledAlert>
+                </Alert>
               ) : null}
               <TracesSearchBar
                 queries={queries}
@@ -177,8 +174,4 @@ const LayoutMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;

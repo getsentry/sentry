@@ -13,6 +13,7 @@ import {
 import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -125,8 +126,9 @@ const ALLOWED_ANON_PAGES = [
 /**
  * Return true if we should skip calling the normal error handler
  */
-const globalErrorHandlers: ((resp: ResponseMeta, options: RequestOptions) => boolean)[] =
-  [];
+const globalErrorHandlers: Array<
+  (resp: ResponseMeta, options: RequestOptions) => boolean
+> = [];
 
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {
@@ -169,8 +171,10 @@ export const initApiClientErrorHandling = () =>
       return true;
     }
 
-    // Otherwise, the user has become unauthenticated. Send them to auth
-    Cookies.set('session_expired', '1');
+    if (!isDemoModeActive()) {
+      // Demo user can occasionally get 401s back. Otherwise, the user has become unauthenticated. Send them to auth
+      Cookies.set('session_expired', '1');
+    }
 
     if (EXPERIMENTAL_SPA) {
       browserHistory.replace('/auth/login/');
@@ -213,6 +217,7 @@ function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions)
 /**
  * Check if the API response says project has been renamed.  If so, redirect
  * user to new project slug
+ * @public used in __mocks__/api.tsx with jest.requireActual
  */
 // TODO(ts): refine this type later
 export function hasProjectBeenRenamed(response: ResponseMeta) {
@@ -341,7 +346,7 @@ export class Client {
   wrapCallback<T extends any[]>(
     id: string,
     func: FunctionCallback<T> | undefined,
-    cleanup: boolean = false
+    cleanup = false
   ) {
     return (...args: T) => {
       const req = this.activeRequests[id];
@@ -356,7 +361,7 @@ export class Client {
 
       // Check if API response is a 302 -- means project slug was renamed and user
       // needs to be redirected
-      // @ts-ignore TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
+      // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       if (hasProjectBeenRenamed(...args)) {
         return undefined;
       }
@@ -505,7 +510,7 @@ export class Client {
         : undefined;
 
     // GET requests may not have a body
-    const body = method !== 'GET' ? data : undefined;
+    const body = method === 'GET' ? undefined : data;
 
     const requestHeaders = new Headers({...this.headers, ...options.headers});
 
@@ -624,10 +629,9 @@ export class Client {
               });
             }
 
-            const shouldSkipErrorHandler =
-              globalErrorHandlers
-                .map(handler => handler(responseMeta, options))
-                .filter(Boolean).length > 0;
+            const shouldSkipErrorHandler = globalErrorHandlers
+              .map(handler => handler(responseMeta, options))
+              .some(Boolean);
 
             if (!shouldSkipErrorHandler) {
               errorHandler(responseMeta, statusText, errorReason);
@@ -726,7 +730,7 @@ export function resolveHostname(path: string, hostname?: string): string {
     hostname = '';
   }
 
-  // When running as yarn dev-ui we can't spread requests across domains because
+  // When running as pnpm dev-ui we can't spread requests across domains because
   // of CORS. Instead we extract the subdomain from the hostname
   // and prepend the URL with `/region/$name` so that webpack-devserver proxy
   // can route requests to the regions.

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -23,8 +23,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
-
-import type {SetStateAction} from '../types';
+import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 
 import OpsFilter from './opsFilter';
 import SuspectSpansTable from './suspectSpansTable';
@@ -68,11 +67,11 @@ function SpansContent(props: Props) {
   const handleChange = useCallback(
     (key: string) => {
       return function (value: string | undefined) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 
@@ -206,11 +205,11 @@ function SpansContentV2(props: Props) {
   const handleChange = useCallback(
     (key: string) => {
       return function (value: string | undefined) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 

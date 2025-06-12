@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import Link from 'sentry/components/links/link';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
@@ -45,7 +45,7 @@ function LimitExceededMessage({
   }
 
   const target = traceEventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );

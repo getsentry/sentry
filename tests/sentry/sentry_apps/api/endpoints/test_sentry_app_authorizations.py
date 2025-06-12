@@ -23,14 +23,14 @@ class TestSentryAppAuthorizations(APITestCase):
         self.sentry_app = self.create_sentry_app(
             name="nulldb",
             organization=self.create_organization(),
-            scopes=("org:read",),
+            scopes=["org:read"],
             webhook_url="http://example.com",
         )
 
         self.other_sentry_app = self.create_sentry_app(
             name="slowdb",
             organization=self.create_organization(),
-            scopes=(),
+            scopes=[],
             webhook_url="http://example.com",
         )
 
@@ -100,12 +100,12 @@ class TestSentryAppAuthorizations(APITestCase):
         )
 
     def test_invalid_grant(self):
-        self.get_error_response(code="123", status_code=403)
+        self.get_error_response(code="123", status_code=401)
 
     def test_expired_grant(self):
         self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
-        response = self.get_error_response(status_code=403)
-        assert response.data["error"] == "Grant has already expired"
+        response = self.get_error_response(status_code=401)
+        assert response.data["detail"] == "Grant has already expired"
 
     def test_request_with_exchanged_access_token(self):
         response = self.get_response()

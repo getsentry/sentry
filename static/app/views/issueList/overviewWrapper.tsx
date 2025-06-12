@@ -1,18 +1,36 @@
+import {DEFAULT_QUERY, TAXONOMY_DEFAULT_QUERY} from 'sentry/constants';
+import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import IssueListOverviewFc from 'sentry/views/issueList/overviewFc';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
-type OverviewWrapperProps = RouteComponentProps<{}, {searchId?: string}>;
+type OverviewWrapperProps = RouteComponentProps<
+  Record<PropertyKey, string | undefined>,
+  {searchId?: string}
+>;
 
-// This is a temporary wrapper to allow us to migrate to the refactored issue stream component.
-// Remove once feature flag is retired.
 export function OverviewWrapper(props: OverviewWrapperProps) {
+  const shouldFetchOnMount = !defined(props.location.query.new);
+  const prefersStackedNav = usePrefersStackedNav();
   const organization = useOrganization();
 
-  if (organization.features.includes('issue-stream-functional-refactor')) {
-    return <IssueListOverviewFc {...props} />;
-  }
+  const title = prefersStackedNav ? t('Feed') : t('Issues');
 
-  return <IssueListOverview {...props} />;
+  const defaultQuery = organization.features.includes('issue-taxonomy')
+    ? TAXONOMY_DEFAULT_QUERY
+    : DEFAULT_QUERY;
+
+  return (
+    <IssueListContainer title={title}>
+      <IssueListOverview
+        {...props}
+        shouldFetchOnMount={shouldFetchOnMount}
+        title={title}
+        initialQuery={defaultQuery}
+      />
+    </IssueListContainer>
+  );
 }

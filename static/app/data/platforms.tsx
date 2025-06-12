@@ -104,7 +104,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'dotnet-maui',
-    name: 'Multi-platform App UI (MAUI)',
+    name: '.NET MAUI',
     type: 'framework',
     language: 'dotnet',
     link: 'https://docs.sentry.io/platforms/dotnet/guides/maui/',
@@ -220,6 +220,13 @@ export const platforms: PlatformIntegration[] = [
     id: 'go-negroni',
     name: 'Negroni',
     language: 'go',
+  },
+  {
+    link: 'https://docs.sentry.io/platforms/godot/',
+    type: 'framework',
+    id: 'godot',
+    name: 'Godot',
+    language: 'godot',
   },
   {
     id: 'ionic',
@@ -348,6 +355,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/',
   },
   {
+    id: 'javascript-tanstackstart-react',
+    name: 'TanStack Start React',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/',
+  },
+  {
     id: 'javascript-vue',
     name: 'Vue',
     type: 'framework',
@@ -416,6 +430,20 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/azure-functions/',
+  },
+  {
+    id: 'node-cloudflare-pages',
+    name: 'Cloudflare Pages',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/',
+  },
+  {
+    id: 'node-cloudflare-workers',
+    name: 'Cloudflare Workers',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/',
   },
   {
     id: 'node-connect',

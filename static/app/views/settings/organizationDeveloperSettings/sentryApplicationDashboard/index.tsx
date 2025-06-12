@@ -24,17 +24,15 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import RequestLog from './requestLog';
 
 type Interactions = {
-  componentInteractions: {
-    [key: string]: [number, number][];
-  };
-  views: [number, number][];
+  componentInteractions: Record<string, Array<[number, number]>>;
+  views: Array<[number, number]>;
 };
 
 type Stats = {
-  installStats: [number, number][];
+  installStats: Array<[number, number]>;
   totalInstalls: number;
   totalUninstalls: number;
-  uninstallStats: [number, number][];
+  uninstallStats: Array<[number, number]>;
 };
 
 function SentryApplicationDashboard() {
@@ -42,7 +40,7 @@ function SentryApplicationDashboard() {
   const {appSlug} = useParams<{appSlug: string}>();
 
   // Default time range for now: 90 days ago to now
-  const now = Math.floor(new Date().getTime() / 1000);
+  const now = Math.floor(Date.now() / 1000);
   const ninety_days_ago = 3600 * 24 * 90;
 
   const {
@@ -230,9 +228,7 @@ function SentryApplicationDashboard() {
 export default SentryApplicationDashboard;
 
 type InteractionsChartProps = {
-  data: {
-    [key: string]: [number, number][];
-  };
+  data: Record<string, Array<[number, number]>>;
 };
 function InteractionsChart({data}: InteractionsChartProps) {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(

@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_id
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -14,7 +15,7 @@ from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
-class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
+class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {
         # Deprecated APIs remain private until removed
         "GET": ApiPublishStatus.PRIVATE,
@@ -52,12 +53,12 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
             team_list = Team.objects.get_for_user(organization=organization, user=request.user)
 
             project_ids = request.GET.getlist("projectID")
+            project_list = []
             if not project_ids:
-                project_list = []
                 for team in team_list:
                     project_list.extend(Project.objects.get_for_user(team=team, user=request.user))
             else:
-                project_list = Project.objects.filter(teams__in=team_list, id__in=project_ids)
+                project_list.extend(Project.objects.filter(teams__in=team_list, id__in=project_ids))
             keys = list({p.id for p in project_list})
         else:
             raise ValueError("Invalid group: %s" % group)
@@ -91,15 +92,14 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
             if group == "project":
                 stat_model = TSDBModel.project
                 try:
-                    query_kwargs["environment_id"] = self._get_environment_id_from_request(
-                        request, organization.id
-                    )
+                    query_kwargs["environment_id"] = get_environment_id(request, organization.id)
                 except Environment.DoesNotExist:
                     raise ResourceDoesNotExist
 
         if stat_model is None:
             raise ValueError(f"Invalid group: {group}, stat: {stat}")
-        data = tsdb.get_range(
+        data: dict[int, list[tuple[int, int]]] | list[tuple[int, int]]
+        data = tsdb.backend.get_range(
             model=stat_model,
             keys=keys,
             **self._parse_args(request, **query_kwargs),

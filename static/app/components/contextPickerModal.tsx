@@ -1,11 +1,11 @@
 import {Component, type Dispatch, Fragment, type SetStateAction, useState} from 'react';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import type {StylesConfig} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -22,7 +22,8 @@ import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type SharedProps = ModalRenderProps & {
   /**
@@ -128,8 +129,8 @@ class ContextPickerModal extends Component<Props> {
   // i.e. When there is only 1 org and no project is needed or
   // there is only 1 org and only 1 project (which should be rare)
   navigateIfFinish = (
-    organizations: {slug: string}[],
-    projects: {slug: string}[],
+    organizations: Array<{slug: string}>,
+    projects: Array<{slug: string}>,
     latestOrg = this.props.organization
   ) => {
     const {needProject, onFinish, nextPath, integrationConfigs} = this.props;
@@ -266,9 +267,11 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderProjectSelectOrMessage() {
-    const {organization, projects, allowAllProjectsSelection} = this.props;
+    const {projects, allowAllProjectsSelection} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
+
+    const {organization} = OrganizationStore.getState();
 
     const projectOptions = [
       {
@@ -289,12 +292,14 @@ class ContextPickerModal extends Component<Props> {
       },
     ];
 
-    if (!projects.length) {
+    if (!projects.length && organization) {
       return (
         <div>
           {tct('You have no projects. Click [link] to make one.', {
             link: (
-              <Link to={`/organizations/${organization}/projects/new/`}>{t('here')}</Link>
+              <Link to={makeProjectsPathname({path: '/new/', organization})}>
+                {t('here')}
+              </Link>
             ),
           })}
         </div>
@@ -461,7 +466,7 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
       projects={[]}
       loading
       organizations={organizations}
-      organization={selectedOrgSlug!}
+      organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={[]}
     />
@@ -498,14 +503,14 @@ function ConfigUrlContainer(
       projects={[]}
       loading={isPending}
       organizations={organizations}
-      organization={selectedOrgSlug!}
+      organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={data}
     />
   );
 }
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   margin-top: ${space(1)};
 `;
 

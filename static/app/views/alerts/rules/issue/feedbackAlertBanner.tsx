@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
@@ -17,7 +17,7 @@ export default function FeedbackAlertBanner({
 }) {
   const organization = useOrganization();
   const filterSet = filters?.filter(r => r.id === IssueAlertFilterType.ISSUE_CATEGORY);
-  if (!filterSet || !filterSet.length) {
+  if (!filterSet?.length) {
     return null;
   }
   const filterFeedback = filterSet.find(f => f.value === '6'); // category: feedback

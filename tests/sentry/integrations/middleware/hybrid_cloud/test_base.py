@@ -10,8 +10,11 @@ from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.middleware.metrics import MiddlewareHaltReason
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.types.region import Region, RegionCategory
 
@@ -20,6 +23,11 @@ def error_regions(region: Region, invalid_region_names: Iterable[str]):
     if region.name in invalid_region_names:
         raise SiloLimit.AvailabilityError("Region is offline!")
     return region.name
+
+
+class ExampleRequestParser(BaseRequestParser):
+    provider = "test_provider"
+    webhook_identifier = WebhookProviderIdentifier.SLACK
 
 
 class BaseRequestParserTest(TestCase):
@@ -32,7 +40,7 @@ class BaseRequestParserTest(TestCase):
 
     def setUp(self):
         self.request = self.factory.get("/extensions/slack/webhook/")
-        self.parser = BaseRequestParser(self.request, self.response_handler)
+        self.parser = ExampleRequestParser(self.request, self.response_handler)
 
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_fails_in_monolith_mode(self):
@@ -91,7 +99,9 @@ class BaseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_response_from_webhookpayload_creation(self):
         with pytest.raises(AttributeError):
-            self.parser.get_response_from_webhookpayload(regions=self.region_config)
+            BaseRequestParser(self.request, self.response_handler).get_response_from_webhookpayload(
+                regions=self.region_config
+            )
 
         class MockParser(BaseRequestParser):
             webhook_identifier = WebhookProviderIdentifier.SLACK
@@ -124,7 +134,7 @@ class BaseRequestParserTest(TestCase):
             status=ObjectStatus.ACTIVE,
         )
 
-        parser = BaseRequestParser(self.request, self.response_handler)
+        parser = ExampleRequestParser(self.request, self.response_handler)
         organizations = parser.get_organizations_from_integration(integration)
 
         assert len(organizations) == 2
@@ -148,7 +158,33 @@ class BaseRequestParserTest(TestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        parser = BaseRequestParser(self.request, self.response_handler)
+        parser = ExampleRequestParser(self.request, self.response_handler)
         organizations = parser.get_organizations_from_integration(integration)
         assert len(organizations) == 1
         assert organizations[0].id == self.organization.id
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_organizations_from_integration_missing_integration(self, mock_record):
+        parser = ExampleRequestParser(self.request, self.response_handler)
+        with pytest.raises(Integration.DoesNotExist):
+            parser.get_organizations_from_integration()
+
+        assert mock_record.call_count == 2
+        assert_failure_metric(mock_record, Integration.DoesNotExist())
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_organizations_from_integration_missing_org_integration(self, mock_record):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="test_provider",
+            external_id="test_external_id",
+            oi_params={"status": ObjectStatus.DISABLED},
+        )
+        parser = ExampleRequestParser(self.request, self.response_handler)
+        organizations = parser.get_organizations_from_integration(integration)
+        assert len(organizations) == 0
+
+        assert mock_record.call_count == 2
+        assert_halt_metric(mock_record, MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST)

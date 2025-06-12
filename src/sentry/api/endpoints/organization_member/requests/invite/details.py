@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +17,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.users.models.user import User
 from sentry.utils.audit import get_api_key_for_audit_log
 
 from ... import get_allowed_org_roles, save_team_assignments
@@ -55,11 +58,13 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request: Request,
+        request_user: User,
         organization: Organization,
-        member_id: int | str,
+        member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
+        if member_id == "me":  # not supported for invites!
+            raise OrganizationMember.DoesNotExist()
         try:
             return OrganizationMember.objects.get_member_invite_query(member_id).get(
                 organization=organization
@@ -130,7 +135,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         if "approve" in request.data:
             allowed_roles = get_allowed_org_roles(request, organization)
 
-            serializer = ApproveInviteRequestSerializer(
+            approve_serializer = ApproveInviteRequestSerializer(
                 data=request.data,
                 context={
                     "request": request,
@@ -140,10 +145,10 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
                 },
             )
 
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if not approve_serializer.is_valid():
+                return Response(approve_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            result = serializer.validated_data
+            result = approve_serializer.validated_data
 
             if result.get("approve") and not member.invite_approved:
                 api_key = get_api_key_for_audit_log(request)

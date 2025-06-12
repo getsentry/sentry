@@ -1,0 +1,106 @@
+import styled from '@emotion/styled';
+
+import SelectMembers from 'sentry/components/selectMembers';
+import TeamSelector from 'sentry/components/teamSelector';
+import AutomationBuilderSelectField, {
+  selectControlStyles,
+} from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {t, tct} from 'sentry/locale';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import useUserFromId from 'sentry/utils/useUserFromId';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+
+enum TargetType {
+  UNASSIGNED = 'Unassigned',
+  TEAM = 'Team',
+  MEMBER = 'Member',
+}
+
+const TARGET_TYPE_CHOICES = [
+  {value: TargetType.UNASSIGNED, label: 'No One'},
+  {value: TargetType.TEAM, label: 'Team'},
+  {value: TargetType.MEMBER, label: 'Member'},
+];
+
+export function AssignedToDetails({condition}: {condition: DataCondition}) {
+  const {target_type, target_identifier} = condition.comparison;
+
+  if (target_type === TargetType.TEAM) {
+    return <AssignedToTeam teamId={String(target_identifier)} />;
+  }
+  if (target_type === TargetType.MEMBER) {
+    return <AssignedToMember memberId={target_identifier} />;
+  }
+  return tct('Issue is unassigned', {});
+}
+
+function AssignedToTeam({teamId}: {teamId: string}) {
+  const {teams} = useTeamsById({ids: [teamId]});
+  const team = teams.find(tm => tm.id === teamId);
+  return t('Issue is assigned to team %s', `#${team?.slug ?? 'unknown'}`);
+}
+
+function AssignedToMember({memberId}: {memberId: number}) {
+  const {data: user} = useUserFromId({id: memberId});
+  return t('Issue is assigned to member %s', `${user?.email ?? 'unknown'}`);
+}
+
+export function AssignedToNode() {
+  return tct('Issue is assigned to [targetType] [identifier]', {
+    targetType: <TargetTypeField />,
+    identifier: <IdentifierField />,
+  });
+}
+
+function TargetTypeField() {
+  const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  return (
+    <AutomationBuilderSelectField
+      name={`${condition_id}.comparison.targetType`}
+      value={condition.comparison.targetType}
+      options={TARGET_TYPE_CHOICES}
+      onChange={(value: string) => onUpdate({targetType: value, targetIdentifier: ''})}
+    />
+  );
+}
+
+function IdentifierField() {
+  const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const organization = useOrganization();
+
+  if (condition.comparison.targetType === TargetType.TEAM) {
+    return (
+      <SelectWrapper>
+        <TeamSelector
+          name={`${condition_id}.data.targetIdentifier`}
+          value={condition.comparison.targetIdentifier}
+          onChange={(value: any) => onUpdate({targetIdentifier: value})}
+          useId
+          styles={selectControlStyles}
+        />
+      </SelectWrapper>
+    );
+  }
+
+  if (condition.comparison.targetType === TargetType.MEMBER) {
+    return (
+      <SelectWrapper>
+        <SelectMembers
+          organization={organization}
+          key={`${condition_id}.data.targetIdentifier`}
+          value={condition.comparison.targetIdentifier}
+          onChange={(value: any) => onUpdate({targetIdentifier: value.actor.id})}
+          styles={selectControlStyles}
+        />
+      </SelectWrapper>
+    );
+  }
+
+  return null;
+}
+
+const SelectWrapper = styled('div')`
+  width: 200px;
+`;

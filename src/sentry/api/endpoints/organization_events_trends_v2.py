@@ -13,6 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.performance_issues.detectors.utils import escape_transaction
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
@@ -21,7 +22,6 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.iterators import chunked
-from sentry.utils.performance_issues.detectors.utils import escape_transaction
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,6 @@ DEFAULT_TOP_EVENTS_LIMIT = 45
 MAX_TOP_EVENTS_LIMIT = 1000
 EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
-ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
 
 DEFAULT_RATE_LIMIT = 15
 DEFAULT_RATE_LIMIT_WINDOW = 1
@@ -65,7 +64,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ),
         }
     }
-    snuba_methods = ["GET"]
 
     def has_feature(self, organization, request):
         return features.has(

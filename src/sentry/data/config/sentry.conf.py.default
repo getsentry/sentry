@@ -4,8 +4,6 @@ from sentry.conf.server import *
 
 import os.path
 
-CONF_ROOT = os.path.dirname(__file__)
-
 DATABASES = {
     'default': {
         'ENGINE': 'sentry.db.postgres',
@@ -18,10 +16,6 @@ DATABASES = {
         'ATOMIC_REQUESTS': False,
     }
 }
-
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = True
 
 # If you're expecting any kind of real traffic on Sentry, we highly recommend
 # configuring the CACHES and Redis settings

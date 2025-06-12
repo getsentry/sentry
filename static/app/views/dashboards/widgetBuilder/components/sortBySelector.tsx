@@ -1,19 +1,24 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SortBySelectors} from 'sentry/views/dashboards/widgetBuilder/buildSteps/sortByStep/sortBySelectors';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   getResultsLimit,
@@ -25,12 +30,15 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
   const widget = convertBuilderStateToWidget(state);
+  const organization = useOrganization();
+  const source = useDashboardWidgetSource();
+  const isEditing = useIsEditingWidget();
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
   let tags: TagCollection = useTags();
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
   if (state.dataset === WidgetType.SPANS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
@@ -63,10 +71,7 @@ function WidgetBuilderSortBySelector() {
       return;
     }
     if (state.limit > maxLimit) {
-      dispatch({
-        type: BuilderStateAction.SET_LIMIT,
-        payload: maxLimit,
-      });
+      dispatch({type: BuilderStateAction.SET_LIMIT, payload: maxLimit});
     }
   }, [state.limit, maxLimit, dispatch]);
 
@@ -86,6 +91,7 @@ function WidgetBuilderSortBySelector() {
       <Tooltip
         title={disableSortReason}
         disabled={!(disableSortDirection && disableSort)}
+        skipWrapper
       >
         <FieldGroup
           inline={false}
@@ -98,7 +104,7 @@ function WidgetBuilderSortBySelector() {
               disabled={disableSortDirection && disableSort}
               name="resultsLimit"
               menuPlacement="auto"
-              options={[...Array(maxLimit).keys()].map(resultLimit => {
+              options={[...new Array(maxLimit).keys()].map(resultLimit => {
                 const value = resultLimit + 1;
                 return {
                   label: tn('Limit to %s result', 'Limit to %s results', value),
@@ -107,10 +113,7 @@ function WidgetBuilderSortBySelector() {
               })}
               value={state.limit}
               onChange={(option: SelectValue<number>) => {
-                dispatch({
-                  type: BuilderStateAction.SET_LIMIT,
-                  payload: option.value,
-                });
+                dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
               }}
             />
           )}
@@ -127,12 +130,21 @@ function WidgetBuilderSortBySelector() {
                 state.sort?.[0]?.kind === 'asc'
                   ? SortDirection.LOW_TO_HIGH
                   : SortDirection.HIGH_TO_LOW,
-              sortBy: state.sort?.length ? state.sort?.[0]!?.field : '',
+              sortBy: state.sort?.length ? state.sort.at(0)!.field : '',
             }}
             onChange={({sortDirection, sortBy}) => {
               const newSortDirection =
                 sortDirection === SortDirection.HIGH_TO_LOW ? 'desc' : 'asc';
               handleSortByChange(sortBy, newSortDirection);
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'sortBy.update',
+                from: source,
+                new_widget: !isEditing,
+                value: '',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
             }}
             tags={tags}
           />
@@ -144,6 +156,6 @@ function WidgetBuilderSortBySelector() {
 
 export default WidgetBuilderSortBySelector;
 
-const ResultsLimitSelector = styled(SelectControl)`
+const ResultsLimitSelector = styled(Select)`
   margin-bottom: ${space(1)};
 `;

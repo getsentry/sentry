@@ -5,7 +5,7 @@ from django.core import mail
 from django.db import models
 from django.urls import reverse
 
-from sentry import audit_log, auth
+from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.dummy import (
@@ -13,7 +13,6 @@ from sentry.auth.providers.dummy import (
     DummySAML2Provider,
     dummy_provider_config,
 )
-from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
 from sentry.models.auditlogentry import AuditLogEntry
@@ -170,10 +169,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             assert not getattr(member.flags, "sso:invalid")
 
     def create_org_and_auth_provider(self, provider_name="dummy"):
-        if provider_name == "Fly.io":
-            auth.register("Fly.io", FlyOAuth2Provider)
-            self.addCleanup(auth.unregister, "Fly.io", FlyOAuth2Provider)
-
         self.user.update(is_managed=True)
         with assume_test_silo_mode(SiloMode.REGION):
             organization = self.create_organization(name="foo", owner=self.user)
@@ -328,7 +323,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     @with_feature("organizations:sso-basic")
     def test_disable_partner_provider(self):
-        organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
+        organization, auth_provider = self.create_org_and_auth_provider("fly")
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
         assert AuthProvider.objects.filter(organization_id=organization.id).exists()
@@ -725,6 +720,7 @@ dummy_generic_provider_config = {
 
 class DummyGenericSAML2Provider(GenericSAML2Provider):
     name = "saml2_generic_dummy"
+    key = "saml2_generic_dummy"
 
 
 @control_silo_test

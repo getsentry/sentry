@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -25,14 +26,18 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import Filter, {
+  filterToSearchConditions,
+} from 'sentry/views/performance/transactionSummary/filter';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
-
-import type {SpanOperationBreakdownFilter} from '../filter';
-import Filter, {filterToSearchConditions} from '../filter';
-import type {SetStateAction} from '../types';
 
 import EventsTable from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
@@ -54,7 +59,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-export const TRANSACTIONS_LIST_TITLES: readonly string[] = [
+const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('event id'),
   t('user'),
   t('operation duration'),
@@ -76,6 +81,7 @@ function EventsContent(props: Props) {
     projects,
   } = props;
   const routes = useRoutes();
+  const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
 
   const {eventView, titles} = useMemo(() => {
@@ -156,19 +162,32 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
+  const table = shouldUseOTelFriendlyUI ? (
+    <OverviewSpansTable
+      eventView={eventView}
+      totalValues={null}
+      transactionName={transactionName}
+    />
+  ) : (
+    <EventsTable
+      theme={theme}
+      eventView={eventView}
+      organization={organization}
+      routes={routes}
+      location={location}
+      setError={setError}
+      columnTitles={titles}
+      transactionName={transactionName}
+      domainViewFilters={domainViewFilters}
+    />
+  );
+
   return (
     <Layout.Main fullWidth>
       <Search {...props} eventView={eventView} />
-      <EventsTable
-        eventView={eventView}
-        organization={organization}
-        routes={routes}
-        location={location}
-        setError={setError}
-        columnTitles={titles}
-        transactionName={transactionName}
-        domainViewFilters={domainViewFilters}
-      />
+      {table}
     </Layout.Main>
   );
 }
@@ -183,13 +202,14 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
+    transactionName,
   } = props;
 
   const navigate = useNavigate();
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 
@@ -216,14 +236,19 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   return (
     <FilterActions>
-      <Filter
-        organization={organization}
-        currentFilter={spanOperationBreakdownFilter}
-        onChangeFilter={onChangeSpanOperationBreakdownFilter}
-      />
+      {shouldUseOTelFriendlyUI ? (
+        <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+      ) : (
+        <Filter
+          organization={organization}
+          currentFilter={spanOperationBreakdownFilter}
+          onChangeFilter={onChangeSpanOperationBreakdownFilter}
+        />
+      )}
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
@@ -247,7 +272,7 @@ function Search(props: Props) {
       />
       <LinkButton
         to={eventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}

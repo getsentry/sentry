@@ -4,12 +4,13 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
@@ -19,7 +20,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   OnDemandExtractionState,
   type ValidateWidgetResponse,
+  type WidgetType,
 } from 'sentry/views/dashboards/types';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
@@ -36,6 +40,7 @@ interface Props {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
   style?: React.CSSProperties;
+  widgetType?: WidgetType;
 }
 
 export function GroupBySelector({
@@ -44,8 +49,13 @@ export function GroupBySelector({
   onChange,
   validatedWidgetResponse,
   style,
+  widgetType,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const organization = useOrganization();
+  const source = useDashboardWidgetSource();
+  const isEditing = useIsEditingWidget();
+  const builderVersion = WidgetBuilderVersion.SLIDEOUT;
 
   function handleAdd() {
     const newColumns =
@@ -53,6 +63,15 @@ export function GroupBySelector({
         ? [{...EMPTY_FIELD}, {...EMPTY_FIELD}]
         : [...columns, {...EMPTY_FIELD}];
     onChange(newColumns);
+    trackAnalytics('dashboards_views.widget_builder.change', {
+      builder_version: builderVersion,
+      field: 'groupBy.add',
+      from: source,
+      new_widget: !isEditing,
+      value: '',
+      widget_type: widgetType ?? '',
+      organization,
+    });
   }
 
   function handleSelect(value: QueryFieldValue, index?: number) {
@@ -63,12 +82,30 @@ export function GroupBySelector({
       newColumns[index] = value;
     }
     onChange(newColumns);
+    trackAnalytics('dashboards_views.widget_builder.change', {
+      builder_version: builderVersion,
+      field: 'groupBy.update',
+      from: source,
+      new_widget: !isEditing,
+      value: '',
+      widget_type: widgetType ?? '',
+      organization,
+    });
   }
 
   function handleRemove(index: number) {
     const newColumns = [...columns];
     newColumns.splice(index, 1);
     onChange(newColumns);
+    trackAnalytics('dashboards_views.widget_builder.change', {
+      builder_version: builderVersion,
+      field: 'groupBy.delete',
+      from: source,
+      new_widget: !isEditing,
+      value: '',
+      widget_type: widgetType ?? '',
+      organization,
+    });
   }
 
   const hasOnlySingleColumnWithValue =
@@ -87,9 +124,7 @@ export function GroupBySelector({
     }>(
       (acc, key) => {
         const value = fieldOptions[key]!;
-        const optionInColumnsIndex = columnFieldsAsString.findIndex(
-          column => column === value!.value.meta.name
-        );
+        const optionInColumnsIndex = columnFieldsAsString.indexOf(value.value.meta.name);
         if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
           return acc;
@@ -189,9 +224,9 @@ export function GroupBySelector({
         )}
       </StyledField>
       {columns.length < GROUP_BY_LIMIT && (
-        <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
-          {t('Add Group')}
-        </AddGroupButton>
+        <Button size="sm" priority="link" onClick={handleAdd} aria-label={t('Add Group')}>
+          {t('+ Add Group')}
+        </Button>
       )}
     </Fragment>
   );
@@ -218,10 +253,6 @@ function FieldValidationErrors(props: {
 
 const StyledField = styled(FieldGroup)`
   padding-bottom: ${space(1)};
-`;
-
-const AddGroupButton = styled(Button)`
-  width: min-content;
 `;
 
 const SortableQueryFields = styled('div')`

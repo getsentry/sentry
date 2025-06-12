@@ -1,3 +1,4 @@
+from operator import itemgetter
 from unittest import mock
 from uuid import uuid4
 
@@ -21,7 +22,10 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -59,11 +63,17 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         ]:
             response = self.do_request(features=features)
             assert response.status_code == 200, response.data
-            assert response.data == [
-                {"key": "bar", "name": "Bar"},
-                {"key": "baz", "name": "Baz"},
-                {"key": "foo", "name": "Foo"},
-            ]
+            assert sorted(
+                response.data,
+                key=itemgetter("key"),
+            ) == sorted(
+                [
+                    {"key": "bar", "name": "Bar"},
+                    {"key": "baz", "name": "Baz"},
+                    {"key": "foo", "name": "Foo"},
+                ],
+                key=itemgetter("key"),
+            )
 
 
 class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
@@ -81,7 +91,10 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
 
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -109,77 +122,26 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "string"}
+                features=features,
+                query={"dataset": "spans", "type": "string", "process": 1},
             )
             assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-
-    def test_tags_list_str_processed(self):
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                tags={tag: tag},
-                is_eap=self.is_eap,
+            assert sorted(
+                response.data,
+                key=itemgetter("key"),
+            ) == sorted(
+                [
+                    {"key": "bar", "name": "bar"},
+                    {"key": "baz", "name": "baz"},
+                    {"key": "foo", "name": "foo"},
+                    {"key": "span.description", "name": "span.description"},
+                    {"key": "transaction", "name": "transaction"},
+                    {"key": "project", "name": "project"},
+                ],
+                key=itemgetter("key"),
             )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "string", "process": 1}
-            )
-            assert response.status_code == 200, response.data
-            assert response.data == [
-                {"key": "bar", "name": "bar"},
-                {"key": "baz", "name": "baz"},
-                {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
-                {"key": "transaction", "name": "transaction"},
-                {"key": "project", "name": "project"},
-            ]
 
     def test_tags_list_nums(self):
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                measurements={tag: 0},
-                is_eap=self.is_eap,
-            )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "number"}
-            )
-            assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-
-    def test_tags_list_nums_processed(self):
         for tag in [
             "foo",
             "bar",
@@ -210,7 +172,8 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "number", "process": 1}
+                features=features,
+                query={"dataset": "spans", "type": "number", "process": 1},
             )
             assert response.status_code == 200, response.data
             assert response.data == [
@@ -250,7 +213,10 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             return self.client.get(
                 reverse(
                     self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "key": key,
+                    },
                 ),
                 query,
                 format="json",
@@ -886,7 +852,10 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
             return self.client.get(
                 reverse(
                     self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "key": key,
+                    },
                 ),
                 query,
                 format="json",

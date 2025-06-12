@@ -11,8 +11,11 @@ from rest_framework.exceptions import ValidationError
 from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
+from sentry.issues.ownership.grammar import (
+    convert_codeowners_syntax,
+    create_schema_from_issue_owners,
+)
 from sentry.models.organization import Organization
-from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -30,9 +33,9 @@ class ProjectCodeOwners(Model):
         "sentry.RepositoryProjectPathConfig", unique=True, on_delete=models.PROTECT
     )
     # raw ⇒ original CODEOWNERS file.
-    raw = models.TextField(null=True)
+    raw = models.TextField()
     # schema ⇒ transformed into IssueOwner syntax
-    schema = JSONField(null=True)
+    schema = JSONField()
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 

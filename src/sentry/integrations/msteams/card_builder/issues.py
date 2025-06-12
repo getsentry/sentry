@@ -25,12 +25,12 @@ from sentry.integrations.msteams.card_builder.block import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 
-from ..utils import ACTION_TYPE
 from .base import MSTeamsMessageBuilder
 from .block import (
     ActionType,
@@ -129,7 +129,12 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         image_column = create_footer_logo_block()
 
-        text = build_footer(self.group, project, self.rules, MSTEAMS_URL_FORMAT)
+        text = build_footer(
+            group=self.group,
+            project=project,
+            url_format=MSTEAMS_URL_FORMAT,
+            rules=self.rules,
+        )
 
         text_column = create_footer_column_block(create_footer_text_block(text))
 

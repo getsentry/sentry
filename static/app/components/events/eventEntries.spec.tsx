@@ -54,14 +54,15 @@ describe('EventEntries', function () {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByTestId(/event-section/)).toHaveLength(4); //  event tags + 2 entries + event grouping
+      expect(screen.getAllByRole('button', {name: /Section/i})).toHaveLength(4);
     });
 
-    const sections = screen.getAllByTestId(/event-section/);
+    const sections = screen.getAllByRole('button', {name: /Section/i});
 
     // Replay should be after message but before images loaded
     expect(sections[0]).toHaveTextContent(/message/i);
     expect(sections[1]).toHaveTextContent(/replay/i);
     expect(sections[2]).toHaveTextContent(/images loaded/i);
+    expect(sections[3]).toHaveTextContent(/event grouping/i);
   });
 });

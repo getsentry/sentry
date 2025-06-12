@@ -33,7 +33,6 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
-import type {Series as MetricSeries} from 'sentry/components/metrics/chart/types';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -52,12 +51,11 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
-type PairOfMetricSeries = [MetricSeries[], MetricSeries[]];
+type PairOfSeries = [Series[], Series[]];
 
 export enum ChartType {
   BAR = 0,
@@ -65,7 +63,11 @@ export enum ChartType {
   AREA = 2,
 }
 
-export interface ChartRenderingProps {
+export function isChartType(value: any): value is ChartType {
+  return typeof value === 'number' && Object.values(ChartType).includes(value as any);
+}
+
+interface ChartRenderingProps {
   height: number;
   isFullscreen: boolean;
 }
@@ -84,7 +86,6 @@ type Props = {
   disableXAxis?: boolean;
   durationUnit?: number;
   error?: Error | null;
-  forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxis?: boolean;
@@ -105,10 +106,11 @@ type Props = {
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
   rateUnit?: RateUnit;
+  ref?: RefObject<ReactEchartsRef>;
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: {count: number; interval: string}[];
+  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
 
@@ -136,7 +138,7 @@ function Chart({
   onMouseOver,
   onMouseOut,
   onHighlight,
-  forwardedRef,
+  ref,
   chartGroup,
   tooltipFormatterOptions = {},
   error,
@@ -156,14 +158,14 @@ function Chart({
   const isLegendVisible = renderingContext?.isFullscreen ?? showLegend;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
-  const chartRef = forwardedRef || defaultRef;
+  const chartRef = ref || defaultRef;
 
   const echartsInstance = chartRef?.current?.getEchartsInstance?.();
   if (echartsInstance && !echartsInstance.group) {
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4) ?? [];
+  const colors = chartColors ?? theme.chart.getColorPalette(4);
 
   const durationOnly =
     aggregateOutputFormat === 'duration' ||
@@ -227,10 +229,10 @@ function Chart({
   let incompleteSeries: Series[] = [];
 
   const bucketSize =
-    new Date(series[0]!?.data[1]!?.name).getTime() -
-    new Date(series[0]!?.data[0]!?.name).getTime();
+    new Date(series[0]?.data[1]?.name!).getTime() -
+    new Date(series[0]?.data[0]?.name!).getTime();
   const lastBucketTimestamp = new Date(
-    series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name
+    series[0]?.data?.[series[0]?.data?.length - 1]?.name!
   ).getTime();
   const ingestionBuckets = useMemo(() => {
     if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
@@ -241,14 +243,8 @@ function Chart({
 
   // TODO: Support bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
-    const metricChartType =
-      type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
     const seriesToShow = series.map(serie => {
-      const ingestionSeries = createIngestionSeries(
-        serie as MetricSeries,
-        ingestionBuckets,
-        metricChartType
-      );
+      const ingestionSeries = createIngestionSeries(serie, ingestionBuckets, type);
       // this helper causes all the incomplete series to stack, here we remove the stacking
       if (!stacked) {
         for (const s of ingestionSeries) {
@@ -258,8 +254,8 @@ function Chart({
       return ingestionSeries;
     });
 
-    [series, incompleteSeries] = seriesToShow.reduce<PairOfMetricSeries>(
-      (acc: PairOfMetricSeries, serie: MetricSeries[], index: number) => {
+    [series, incompleteSeries] = seriesToShow.reduce<PairOfSeries>(
+      (acc: PairOfSeries, serie: Series[], index: number) => {
         const [trimmed, incomplete] = acc;
         const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
 
@@ -269,9 +265,9 @@ function Chart({
             ...incomplete,
             ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
           ],
-        ] as PairOfMetricSeries;
+        ] as PairOfSeries;
       },
-      [[], []] as PairOfMetricSeries
+      [[], []] as PairOfSeries
     );
   }
 
@@ -320,16 +316,16 @@ function Chart({
       const uniqueSeries = new Set<string>();
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
@@ -507,7 +503,7 @@ function Chart({
 
     return (
       <AreaChart
-        forwardedRef={chartRef}
+        ref={chartRef}
         height={height}
         {...zoomRenderProps}
         series={[...series, ...incompleteSeries, ...(releaseSeries ?? [])]}
@@ -596,8 +592,8 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
-    for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i]!.data.map(point => point.value)) as number;
+    for (const serie of data) {
+      maxValue += max(serie.data.map(point => point.value)) as number;
     }
   } else {
     maxValue = computeMax(data);
@@ -656,7 +652,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

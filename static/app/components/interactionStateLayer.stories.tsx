@@ -1,29 +1,28 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 import Panel from './panels/panel';
-import JSXNode from './stories/jsxNode';
-import SideBySide from './stories/sideBySide';
 import InteractionStateLayer from './interactionStateLayer';
 
-export default storyBook(InteractionStateLayer, story => {
+export default Storybook.story('InteractionStateLayer', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="InteractionStateLayer" /> is a visual component that adds a
-          visible hover and active state. <JSXNode name="InteractionStateLayer" />. It
-          uses opacity to manage the visual state, which is more mindful of contrast
-          requirements. Our own components (e.g., <code>Button</code>,{' '}
-          <code>Checkbox</code>, etc.) use <JSXNode name="InteractionStateLayer" /> under
-          the hood. Here is an example of a <JSXNode name="Panel" /> with an interaction
-          state, and one without:
+          <Storybook.JSXNode name="InteractionStateLayer" /> is a visual component that
+          adds a visible hover and active state.{' '}
+          <Storybook.JSXNode name="InteractionStateLayer" />. It uses opacity to manage
+          the visual state, which is more mindful of contrast requirements. Our own
+          components (e.g., <code>Button</code>, <code>Checkbox</code>, etc.) use{' '}
+          <Storybook.JSXNode name="InteractionStateLayer" /> under the hood. Here is an
+          example of a <Storybook.JSXNode name="Panel" /> with an interaction state, and
+          one without:
         </p>
 
-        <SideBySide>
+        <Storybook.SideBySide>
           <StyledPanel tabIndex={1}>
             <InteractionStateLayer />
             <Activity />
@@ -32,7 +31,7 @@ export default storyBook(InteractionStateLayer, story => {
           <StyledPanel tabIndex={1}>
             <Activity />
           </StyledPanel>
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -40,9 +39,9 @@ export default storyBook(InteractionStateLayer, story => {
   story('Manual State', () => {
     return (
       <p>
-        <JSXNode name="InteractionStateLayer" /> uses normal CSS selectors for hover and
-        focus to add the visual effect. If this is not suitable, you can manually set the{' '}
-        <code>isHovered</code> and <code>isPressed</code> props.
+        <Storybook.JSXNode name="InteractionStateLayer" /> uses normal CSS selectors for
+        hover and focus to add the visual effect. If this is not suitable, you can
+        manually set the <code>isHovered</code> and <code>isPressed</code> props.
       </p>
     );
   });

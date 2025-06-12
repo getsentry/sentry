@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -17,16 +18,17 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import {
-  useEAPSpans,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Column = GridColumnHeader<
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.USER
@@ -34,7 +36,7 @@ type Column = GridColumnHeader<
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -56,34 +58,35 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_ID,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.TIMESTAMP,
 ];
 
 type ValidSort = Sort & {
   field:
-    | SpanIndexedField.ID
+    | SpanIndexedField.SPAN_ID
     | SpanIndexedField.SPAN_DURATION
     | SpanIndexedField.TIMESTAMP;
 };
 
-export function isAValidSort(sort: Sort): sort is ValidSort {
+function isAValidSort(sort: Sort): sort is ValidSort {
   return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
 }
 
 interface Props {
   groupId: string;
-  useEAP: boolean;
   referrer?: string;
 }
-export function PipelineSpansTable({groupId, useEAP}: Props) {
+export function PipelineSpansTable({groupId}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
+  const {view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
     sort = {field: SpanIndexedField.TIMESTAMP, kind: 'desc'};
   }
@@ -98,55 +101,31 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
       limit: 30,
       sorts: [sort],
       fields: [
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRACE,
         SpanIndexedField.SPAN_DURATION,
-        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.TRANSACTION_SPAN_ID,
         SpanIndexedField.USER,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.PROJECT,
       ],
       search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
-      enabled: !useEAP,
     },
     'api.ai-pipelines.view'
   );
 
-  const {
-    data: eapData,
-    meta: eapMeta,
-    error: eapError,
-    isPending: eapPending,
-  } = useEAPSpans(
-    {
-      limit: 30,
-      sorts: [sort],
-      fields: [
-        SpanIndexedField.ID,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.SPAN_DURATION,
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.USER,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.PROJECT,
-      ],
-      search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
-      enabled: useEAP,
-    },
-    'api.ai-pipelines.view'
-  );
-  const data = (useEAP ? eapData : rawData) ?? [];
-  const meta = (useEAP ? eapMeta : rawMeta) as EventsMetaType;
+  const data = rawData ?? [];
+  const meta = rawMeta;
 
   return (
     <VisuallyCompleteWithData
       id="PipelineSpansTable"
       hasData={data.length > 0}
-      isLoading={useEAP ? eapPending : isPending}
+      isLoading={isPending}
     >
       <GridEditable
-        isLoading={useEAP ? eapPending : isPending}
-        error={useEAP ? eapError : error}
+        isLoading={isPending}
+        error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[
@@ -164,7 +143,16 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, groupId),
+            renderBodyCell(
+              column,
+              row,
+              meta,
+              location,
+              organization,
+              groupId,
+              view,
+              theme
+            ),
         }}
       />
     </VisuallyCompleteWithData>
@@ -177,20 +165,22 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
-  groupId: string
+  groupId: string,
+  view: DomainView | undefined,
+  theme: Theme
 ) {
-  if (column.key === SpanIndexedField.ID) {
-    if (!row[SpanIndexedField.ID]) {
+  if (column.key === SpanIndexedField.SPAN_ID) {
+    if (!row[SpanIndexedField.SPAN_ID]) {
       return <span>(unknown)</span>;
     }
     if (!row[SpanIndexedField.TRACE]) {
-      return <span>{row[SpanIndexedField.ID]}</span>;
+      return <span>{row[SpanIndexedField.SPAN_ID]}</span>;
     }
     return (
       <Link
         to={generateLinkToEventInTraceView({
           organization,
-          eventId: row[SpanIndexedField.TRANSACTION_ID],
+          targetId: row[SpanIndexedField.TRANSACTION_SPAN_ID],
           projectSlug: row[SpanIndexedField.PROJECT],
           traceSlug: row[SpanIndexedField.TRACE],
           timestamp: row[SpanIndexedField.TIMESTAMP],
@@ -202,11 +192,12 @@ function renderBodyCell(
             },
           },
           eventView: EventView.fromLocation(location),
-          spanId: row[SpanIndexedField.ID],
+          spanId: row[SpanIndexedField.SPAN_ID],
           source: TraceViewSources.LLM_MODULE,
+          view,
         })}
       >
-        {row[SpanIndexedField.ID]}
+        {row[SpanIndexedField.SPAN_ID]}
       </Link>
     );
   }
@@ -221,6 +212,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 
   return rendered;

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -18,10 +19,12 @@ import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-import theme from 'sentry/utils/theme';
-
-import type {ViewProps} from '../../../types';
-import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';
+import {
+  filterToColor,
+  filterToField,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import {decodeHistogramZoom, ZOOM_END, ZOOM_START} from './utils';
 
@@ -56,6 +59,7 @@ function Content({
   queryExtras,
   totalCount,
 }: Props) {
+  const theme = useTheme();
   const [zoomError, setZoomError] = useState(false);
 
   function handleMouseOver() {
@@ -85,8 +89,8 @@ function Content({
 
     const colors =
       currentFilter === SpanOperationBreakdownFilter.NONE
-        ? theme.charts.getColorPalette(1)
-        : [filterToColor(currentFilter)];
+        ? theme.chart.getColorPalette(1)
+        : [filterToColor(currentFilter, theme)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
@@ -94,7 +98,13 @@ function Content({
       formatter(series: any) {
         const seriesData = toArray(series);
         let contents: string[] = [];
-        if (!zoomError) {
+        if (zoomError) {
+          contents = [
+            '<div class="tooltip-series tooltip-series-solo">',
+            t('Target zoom region too small'),
+            '</div>',
+          ];
+        } else {
           // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
           contents = seriesData.map(item => {
             const label = t('Transactions');
@@ -108,12 +118,6 @@ function Content({
           });
           const seriesLabel = seriesData[0].value[0];
           contents.push(`<div class="tooltip-footer">${seriesLabel}</div>`);
-        } else {
-          contents = [
-            '<div class="tooltip-series tooltip-series-solo">',
-            t('Target zoom region too small'),
-            '</div>',
-          ];
         }
         contents.push('<div class="tooltip-arrow"></div>');
         return contents.join('');

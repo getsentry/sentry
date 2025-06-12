@@ -1,15 +1,15 @@
-import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
+import {useContext, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import {inputStyles} from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   SearchQueryBuilderContext,
-  type SearchQueryBuilderContextData,
+  SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
@@ -18,21 +18,14 @@ import {
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
-import {
-  parseQueryBuilderValue,
-  queryIsValid,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import usePrevious from 'sentry/utils/usePrevious';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -47,6 +40,7 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  autoFocus?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -88,6 +82,13 @@ export interface SearchQueryBuilderProps {
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   /**
+   * This is used when a user types in a search key and submits the token.
+   * The submission happens when the user types a colon or presses enter.
+   * When this happens, this function is used to map the user input to a
+   * known column.
+   */
+  getSuggestedFilterKey?: (key: string) => string | null;
+  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
@@ -102,11 +103,22 @@ export interface SearchQueryBuilderProps {
    */
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
+  /**
+   * If provided, will render the combobox popovers into the given element.
+   * This is useful when the search query builder is rendered as a child of an
+   * element that has CSS styling that prevents popovers from overflowing, e.g.
+   * a scrollable container.
+   */
+  portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
   /**
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
+  /**
+   * When true, will trigger the `onSearch` callback when the query changes.
+   */
+  searchOnChange?: boolean;
   /**
    * When true, will display a visual indicator when there are unsaved changes.
    * This search is considered unsubmitted when query !== initialQuery.
@@ -126,11 +138,7 @@ function SearchIndicator({
   initialQuery?: string;
   showUnsubmittedIndicator?: boolean;
 }) {
-  const {size, query} = useSearchQueryBuilder();
-
-  if (size === 'small') {
-    return null;
-  }
+  const {query} = useSearchQueryBuilder();
 
   const unSubmittedChanges = query !== initialQuery;
   const showIndicator = showUnsubmittedIndicator && unSubmittedChanges;
@@ -148,202 +156,121 @@ function SearchIndicator({
   );
 }
 
-const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
-  ({trailingItems = null}, ref) => {
-    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+function ActionButtons({
+  ref,
+  trailingItems = null,
+}: {
+  ref?: React.Ref<HTMLDivElement>;
+  trailingItems?: React.ReactNode;
+}) {
+  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
-    if (disabled) {
-      return null;
-    }
-
-    return (
-      <ButtonsWrapper ref={ref}>
-        {trailingItems}
-        {query === '' ? null : (
-          <ActionButton
-            aria-label={t('Clear search query')}
-            size="zero"
-            icon={<IconClose />}
-            borderless
-            onClick={() => {
-              dispatch({type: 'CLEAR'});
-              handleSearch('');
-            }}
-          />
-        )}
-      </ButtonsWrapper>
-    );
+  if (disabled) {
+    return null;
   }
-);
 
-export function SearchQueryBuilder({
+  return (
+    <ButtonsWrapper ref={ref}>
+      {trailingItems}
+      {query === '' ? null : (
+        <ActionButton
+          aria-label={t('Clear search query')}
+          size="zero"
+          icon={<IconClose />}
+          borderless
+          onClick={() => {
+            dispatch({type: 'CLEAR'});
+            handleSearch('');
+          }}
+        />
+      )}
+    </ButtonsWrapper>
+  );
+}
+
+function SearchQueryBuilderUI({
+  autoFocus,
   className,
   disabled = false,
-  disallowLogicalOperators,
-  disallowFreeText,
-  disallowUnsupportedFilters,
-  disallowWildcard,
-  invalidMessages,
   label,
   initialQuery,
-  fieldDefinitionGetter = getFieldDefinition,
-  filterKeys,
-  filterKeyMenuWidth = 360,
-  filterKeySections,
-  getTagValues,
-  onChange,
-  onSearch,
   onBlur,
-  placeholder,
   queryInterface = QueryInterfaceType.TOKENIZED,
-  recentSearches,
-  searchSource,
   showUnsubmittedIndicator,
   trailingItems,
-  getFilterTokenWarning,
+  onChange,
+  searchOnChange,
 }: SearchQueryBuilderProps) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const actionBarRef = useRef<HTMLDivElement>(null);
-  const {state, dispatch} = useQueryBuilderState({
-    initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
-    disabled,
-  });
+  const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
+    useSearchQueryBuilder();
 
-  const parsedQuery = useMemo(
-    () =>
-      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
-        getFilterTokenWarning,
-        disallowFreeText,
-        disallowLogicalOperators,
-        disallowUnsupportedFilters,
-        disallowWildcard,
-        filterKeys,
-        invalidMessages,
-      }),
-    [
-      state.query,
-      fieldDefinitionGetter,
-      disallowFreeText,
-      disallowLogicalOperators,
-      disallowUnsupportedFilters,
-      disallowWildcard,
-      filterKeys,
-      invalidMessages,
-      getFilterTokenWarning,
-    ]
-  );
-
+  useOnChange({onChange, searchOnChange});
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
 
-  const previousQuery = usePrevious(state.query);
-  useEffectAfterFirstRender(() => {
-    if (previousQuery !== state.query) {
-      onChange?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
-    }
-  }, [onChange, state.query, previousQuery, parsedQuery]);
-
-  const handleSearch = useHandleSearch({
-    parsedQuery,
-    recentSearches,
-    searchSource,
-    onSearch,
-  });
-  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
-  const size = searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
-
-  const contextValue = useMemo((): SearchQueryBuilderContextData => {
-    return {
-      ...state,
-      disabled,
-      disallowFreeText: Boolean(disallowFreeText),
-      disallowWildcard: Boolean(disallowWildcard),
-      parsedQuery,
-      filterKeySections: filterKeySections ?? [],
-      filterKeyMenuWidth,
-      filterKeys,
-      getTagValues,
-      getFieldDefinition: fieldDefinitionGetter,
-      dispatch,
-      wrapperRef,
-      handleSearch,
-      placeholder,
-      recentSearches,
-      searchSource,
-      size,
-    };
-  }, [
-    state,
-    disabled,
-    disallowFreeText,
-    disallowWildcard,
-    parsedQuery,
-    filterKeySections,
-    filterKeyMenuWidth,
-    filterKeys,
-    getTagValues,
-    fieldDefinitionGetter,
-    dispatch,
-    handleSearch,
-    placeholder,
-    recentSearches,
-    searchSource,
-    size,
-  ]);
 
   return (
-    <SearchQueryBuilderContext.Provider value={contextValue}>
-      <Wrapper
-        className={className}
-        onBlur={() =>
-          onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
-        }
-        ref={wrapperRef}
-        aria-disabled={disabled}
-        data-test-id="search-query-builder"
-      >
-        <PanelProvider>
-          <SearchIndicator
-            initialQuery={initialQuery}
-            showUnsubmittedIndicator={showUnsubmittedIndicator}
+    <Wrapper
+      className={className}
+      onBlur={() =>
+        onBlur?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
+      }
+      ref={wrapperRef as React.RefObject<HTMLInputElement>}
+      aria-disabled={disabled}
+      data-test-id="search-query-builder"
+    >
+      <PanelProvider>
+        <SearchIndicator
+          initialQuery={initialQuery}
+          showUnsubmittedIndicator={showUnsubmittedIndicator && !searchOnChange}
+        />
+        {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
+          <PlainTextQueryInput label={label} />
+        ) : (
+          <TokenizedQueryGrid
+            autoFocus={autoFocus || false}
+            label={label}
+            actionBarWidth={actionBarWidth}
           />
-          {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
-            <PlainTextQueryInput label={label} />
-          ) : (
-            <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
-          )}
-          {size !== 'small' && (
-            <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
-          )}
-        </PanelProvider>
-      </Wrapper>
-    </SearchQueryBuilderContext.Provider>
+        )}
+        {size !== 'small' && (
+          <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
+        )}
+      </PanelProvider>
+    </Wrapper>
   );
 }
 
-const Wrapper = styled('div')`
-  ${inputStyles}
-  min-height: 38px;
+export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
+  const contextValue = useContext(SearchQueryBuilderContext);
+
+  if (contextValue) {
+    return <SearchQueryBuilderUI {...props} />;
+  }
+  return (
+    <SearchQueryBuilderProvider {...props}>
+      <SearchQueryBuilderUI {...props} />
+    </SearchQueryBuilderProvider>
+  );
+}
+
+const Wrapper = styled(Input.withComponent('div'))`
+  min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;
   width: 100%;
   position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: text;
-
-  :focus-within {
-    border: 1px solid ${p => p.theme.focusBorder};
-    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
-  }
 `;
 
 const ButtonsWrapper = styled('div')`
   position: absolute;
   right: 9px;
-  top: 9px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -356,7 +283,7 @@ const ActionButton = styled(Button)`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${space(1.5)};
-  top: ${space(0.75)};
+  top: ${p => (p.theme.isChonk ? space(0.75) : space(1))};
 `;
 
 const SearchIcon = styled(IconSearch)`

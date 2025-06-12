@@ -16,7 +16,7 @@ export default Terminal;
 const StyledCodeSnippet = styled(CodeSnippet)`
   padding-left: ${space(2)};
   &:before {
-    content: '\u0024';
+    content: '\0024';
     position: absolute;
     padding-top: ${space(1)};
     color: var(--prism-comment);

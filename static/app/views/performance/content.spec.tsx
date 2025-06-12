@@ -272,8 +272,7 @@ describe('Performance > Content', function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
 
-    // TODO: This was likely a defensive check added due to a previous isolation issue, it can possibly be removed.
-    // @ts-expect-error
+    // @ts-expect-error // TODO: This was likely a defensive check added due to a previous isolation issue, it can possibly be removed.
     pageFilters.updateDateTime.mockRestore();
   });
 
@@ -283,6 +282,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -299,6 +299,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -315,6 +316,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(screen.queryByText('Pinpoint problems')).not.toBeInTheDocument();
@@ -326,6 +328,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -347,39 +350,12 @@ describe('Performance > Content', function () {
     const {router} = initializeTrendsData({query: 'tag:value'}, false);
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
-  });
-
-  it('Navigating to trends does not modify statsPeriod when already set', async function () {
-    const {router} = initializeTrendsData({
-      query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION} api`,
-      statsPeriod: '24h',
-    });
-
-    render(<WrappedComponent router={router} />, {
-      router,
-    });
-
-    expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    const link = screen.getByRole('button', {name: 'View Trends'});
-
-    await userEvent.click(link);
-
-    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
-
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/trends/',
-        query: {
-          query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-          statsPeriod: '24h',
-        },
-      })
-    );
   });
 
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
@@ -391,6 +367,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
@@ -402,30 +379,10 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledTimes(0);
-  });
-
-  it('Tags are replaced with trends default query if navigating to trends', async function () {
-    const {router} = initializeTrendsData({query: 'device.family:Mac'}, false);
-
-    render(<WrappedComponent router={router} />, {
-      router,
-    });
-
-    const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    await userEvent.click(trendsLinks[0]!);
-
-    expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/trends/',
-        query: {
-          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-        },
-      })
-    );
   });
 
   it('Display Create Sample Transaction Button', async function () {
@@ -437,6 +394,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();

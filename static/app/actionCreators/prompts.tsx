@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
@@ -52,7 +52,7 @@ type PromptCheckParams = {
 /**
  * Raw response data from the endpoint
  */
-export type PromptResponseItem = {
+type PromptResponseItem = {
   /**
    * Time since dismissed
    */
@@ -64,7 +64,7 @@ export type PromptResponseItem = {
 };
 export type PromptResponse = {
   data?: PromptResponseItem;
-  features?: {[key: string]: PromptResponseItem};
+  features?: Record<string, PromptResponseItem>;
 };
 
 /**
@@ -135,6 +135,152 @@ export function usePromptsCheck(
   );
 }
 
+/**
+ * Get the status of many prompts in a single query
+ */
+export function usePrompts({
+  features,
+  organization,
+  projectId,
+  daysToSnooze,
+  options,
+  isDismissed = promptIsDismissed,
+}: {
+  features: string[];
+  organization: Organization | null;
+  daysToSnooze?: number;
+  isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
+  options?: Partial<UseApiQueryOptions<PromptResponse>>;
+  projectId?: string;
+}) {
+  const api = useApi({persistInFlight: true});
+  const prompts = usePromptsCheck({feature: features, organization, projectId}, options);
+  const queryClient = useQueryClient();
+  const isPromptDismissed: Record<string, boolean> = useMemo(() => {
+    if (prompts.isSuccess) {
+      return features.reduce(
+        (acc, feature) => {
+          const prompt = prompts.data.features?.[feature];
+          acc[feature] = isDismissed(
+            {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
+            daysToSnooze
+          );
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
+    }
+    return {};
+  }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze, isDismissed]);
+
+  const dismissPrompt = useCallback(
+    (feature: string) => {
+      if (!organization) {
+        return;
+      }
+      promptsUpdate(api, {
+        organization,
+        projectId,
+        feature,
+        status: 'dismissed',
+      });
+
+      // Update cached query data
+      // Will set prompt to dismissed
+      setApiQueryData<PromptResponse>(
+        queryClient,
+        makePromptsCheckQueryKey({
+          organization,
+          feature: features,
+          projectId,
+        }),
+        existingData => {
+          const dismissedTs = Date.now() / 1000;
+          return {
+            data: {dismissed_ts: dismissedTs},
+            features: {...existingData?.features, [feature]: {dismissed_ts: dismissedTs}},
+          };
+        }
+      );
+    },
+    [api, organization, projectId, queryClient, features]
+  );
+
+  const snoozePrompt = useCallback(
+    (feature: string) => {
+      if (!organization) {
+        return;
+      }
+      promptsUpdate(api, {
+        organization,
+        projectId,
+        feature,
+        status: 'snoozed',
+      });
+
+      // Update cached query data
+      // Will set prompt to snoozed
+      setApiQueryData<PromptResponse>(
+        queryClient,
+        makePromptsCheckQueryKey({
+          organization,
+          feature: features,
+          projectId,
+        }),
+        existingData => {
+          const snoozedTs = Date.now() / 1000;
+          return {
+            data: {snoozed_ts: snoozedTs},
+            features: {...existingData?.features, [feature]: {snoozed_ts: snoozedTs}},
+          };
+        }
+      );
+    },
+    [api, organization, projectId, queryClient, features]
+  );
+
+  const showPrompt = useCallback(
+    (feature: string) => {
+      if (!organization) {
+        return;
+      }
+      promptsUpdate(api, {
+        organization,
+        projectId,
+        feature,
+        status: 'visible',
+      });
+
+      // Update cached query data
+      // Will clear the status/timestamps of a prompt that is dismissed or snoozed
+      setApiQueryData<PromptResponse>(
+        queryClient,
+        makePromptsCheckQueryKey({
+          organization,
+          feature: features,
+          projectId,
+        }),
+        existingData => {
+          return {
+            data: {},
+            features: {...existingData?.features, [feature]: {}},
+          };
+        }
+      );
+    },
+    [api, organization, projectId, queryClient, features]
+  );
+
+  return {
+    isLoading: prompts.isPending,
+    isError: prompts.isError,
+    isPromptDismissed,
+    dismissPrompt,
+    snoozePrompt,
+    showPrompt,
+  };
+}
+
 export function usePrompt({
   feature,
   organization,
@@ -166,6 +312,7 @@ export function usePrompt({
     if (!organization) {
       return;
     }
+
     promptsUpdate(api, {
       organization,
       projectId,
@@ -183,10 +330,10 @@ export function usePrompt({
         projectId,
       }),
       () => {
-        const dimissedTs = new Date().getTime() / 1000;
+        const dismissedTs = Date.now() / 1000;
         return {
-          data: {dismissed_ts: dimissedTs},
-          features: {[feature]: {dismissed_ts: dimissedTs}},
+          data: {dismissed_ts: dismissedTs},
+          features: {[feature]: {dismissed_ts: dismissedTs}},
         };
       }
     );
@@ -213,7 +360,7 @@ export function usePrompt({
         projectId,
       }),
       () => {
-        const snoozedTs = new Date().getTime() / 1000;
+        const snoozedTs = Date.now() / 1000;
         return {
           data: {snoozed_ts: snoozedTs},
           features: {[feature]: {snoozed_ts: snoozedTs}},
@@ -271,7 +418,7 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
     organization: OrganizationSummary;
     projectId?: string;
   }
-): Promise<{[key in T[number]]: PromptData}> {
+): Promise<Record<T[number], PromptData>> {
   const query = {
     feature: features,
     organization_id: params.organization.id,
@@ -283,9 +430,9 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   });
   const responseFeatures = response?.features;
 
-  const result: {[key in T[number]]?: PromptData} = {};
+  const result: Partial<Record<T[number], PromptData>> = {};
   if (!responseFeatures) {
-    return result as {[key in T[number]]: PromptData};
+    return result as Record<T[number], PromptData>;
   }
   for (const featureName of features) {
     const item = responseFeatures[featureName];
@@ -298,5 +445,5 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
       (result as any)[featureName] = null;
     }
   }
-  return result as {[key in T[number]]: PromptData};
+  return result as Record<T[number], PromptData>;
 }

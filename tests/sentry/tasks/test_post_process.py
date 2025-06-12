@@ -21,15 +21,15 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
+from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceP95EndpointRegressionGroupType,
-    ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
@@ -48,7 +48,6 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
@@ -219,6 +218,12 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
         data.setdefault("platform", "javascript")
         return self.store_event(data=data, project_id=project_id or self.project.id)
 
+    def _generate_node_data(self, filename: str) -> dict[str, Any]:
+        return {
+            "stacktrace": {"frames": [{"filename": f"src/{filename}.py", "in_app": True}]},
+            "platform": "python",
+        }
+
     def _call_post_process_group(self, event: Event) -> None:
         self.call_post_process_group(
             is_new=True,
@@ -236,8 +241,8 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
-        for platform in SUPPORTED_LANGUAGES:
-            event = self._create_event({"platform": platform})
+        for platform in get_supported_platforms():
+            event = self._create_event(self._generate_node_data("foo"))
             self._call_post_process_group(event)
 
             assert mock_derive_code_mappings.delay.call_count == 1
@@ -245,10 +250,10 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_only_maps_a_given_project_once_per_hour(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event = self._create_event({"fingerprint": ["themaiseymasieydog"]}, dogs_project.id)
-        charlie_event = self._create_event({"fingerprint": ["charliebear"]}, dogs_project.id)
-        cory_event = self._create_event({"fingerprint": ["thenudge"]}, dogs_project.id)
-        bodhi_event = self._create_event({"fingerprint": ["theescapeartist"]}, dogs_project.id)
+        maisey_event = self._create_event(self._generate_node_data("themaiseydog"), dogs_project.id)
+        charlie_event = self._create_event(self._generate_node_data("charliebear"), dogs_project.id)
+        cory_event = self._create_event(self._generate_node_data("thenudge"), dogs_project.id)
+        bodhi_event = self._create_event(self._generate_node_data("escapeartist"), dogs_project.id)
 
         self._call_post_process_group(maisey_event)
         assert mock_derive_code_mappings.delay.call_count == 1
@@ -270,10 +275,14 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_only_maps_a_given_issue_once_per_day(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event1 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
-        maisey_event2 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
-        maisey_event3 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
-        maisey_event4 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
+        data = {
+            "stacktrace": {"frames": [{"filename": "src/app/example.py", "in_app": True}]},
+            "platform": "python",
+        }
+        maisey_event1 = self._create_event(data, dogs_project.id)
+        maisey_event2 = self._create_event(data, dogs_project.id)
+        maisey_event3 = self._create_event(data, dogs_project.id)
+        maisey_event4 = self._create_event(data, dogs_project.id)
         # because of the fingerprint, the events should always end up in the same group,
         # but the rest of the test is bogus if they aren't, so let's be sure
         assert maisey_event1.group_id == maisey_event2.group_id
@@ -300,9 +309,13 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_skipping_an_issue_doesnt_mark_it_processed(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event = self._create_event({"fingerprint": ["themaiseymasieydog"]}, dogs_project.id)
-        charlie_event1 = self._create_event({"fingerprint": ["charliebear"]}, dogs_project.id)
-        charlie_event2 = self._create_event({"fingerprint": ["charliebear"]}, dogs_project.id)
+        maisey_event = self._create_event(self._generate_node_data("themaiseydog"), dogs_project.id)
+        charlie_event1 = self._create_event(
+            self._generate_node_data("charliebear"), dogs_project.id
+        )
+        charlie_event2 = self._create_event(
+            self._generate_node_data("charliebear"), dogs_project.id
+        )
         # because of the fingerprint, the two Charlie events should always end up in the same group,
         # but the rest of the test is bogus if they aren't, so let's be sure
         assert charlie_event1.group_id == charlie_event2.group_id
@@ -505,7 +518,10 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id, event=EventMatcher(event)
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -534,7 +550,10 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id, event=EventMatcher(event)
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -809,6 +828,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
+            "assigneeName": self.user.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
             "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),
@@ -1690,7 +1710,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
+    @patch("sentry.issues.escalating.escalating.is_escalating", return_value=(True, 0))
     def test_forecast_in_activity(self, mock_is_escalating):
         """
         Test that the forecast is added to the activity for escalating issues that were
@@ -1717,7 +1737,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             data={"event_id": event.event_id, "forecast": 0},
         ).exists()
 
-    @patch("sentry.issues.escalating.is_escalating")
+    @patch("sentry.issues.escalating.escalating.is_escalating")
     def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
         """
         Test that we skip checking escalation in the process_snoozes job if the group is less than
@@ -2203,7 +2223,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         )
         event.group = Group.objects.get(id=group.id)
 
-        with patch("sentry.issues.issue_velocity.calculate_threshold", return_value=9):
+        with patch("sentry.issues.escalating.issue_velocity.calculate_threshold", return_value=9):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2216,7 +2236,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.ESCALATING
         assert group.priority == PriorityLevel.MEDIUM
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2236,7 +2256,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
         assert group.priority == PriorityLevel.HIGH
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2260,7 +2280,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
         assert group.priority == PriorityLevel.LOW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_locked(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2280,7 +2300,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_already_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2310,7 +2330,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.ESCALATING
         assert group.priority == PriorityLevel.MEDIUM
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_does_not_escalate_non_new_substatus(self, mock_run_post_process_job, mock_threshold):
         for substatus, status in GROUP_SUBSTATUS_TO_STATUS_MAP.items():
@@ -2338,7 +2358,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             group.refresh_from_db()
             assert group.substatus == substatus
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=8)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=8)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_no_escalation_less_than_floor(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2358,7 +2378,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_not_escalated_less_than_an_hour(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2378,7 +2398,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=0)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=0)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_zero_escalation_rate(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2455,6 +2475,125 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
         self.assert_not_called_with(mock_safe_execute)
 
 
+class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_with_features(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_called_once_with(event.group.id)
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_without_org_feature(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_without_proj_feature(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=False,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_without_seer_enabled(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_without_scanner_on(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        self.project.update_option("sentry:seer_scanner_automation", False)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2463,6 +2602,7 @@ class PostProcessGroupErrorTest(
     DeriveCodeMappingsProcessGroupTestMixin,
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
+    KickOffSeerAutomationTestMixin,
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
@@ -2494,7 +2634,7 @@ class PostProcessGroupErrorTest(
             cache_key=cache_key,
             group_id=event.group_id,
             project_id=event.project_id,
-            eventstream_type=EventStreamEventType.Error,
+            eventstream_type=EventStreamEventType.Error.value,
         )
         return cache_key
 
@@ -2550,6 +2690,7 @@ class PostProcessGroupPerformanceTest(
     SnoozeTestMixin,
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
+    KickOffSeerAutomationTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
@@ -2569,7 +2710,7 @@ class PostProcessGroupPerformanceTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
         return cache_key
 
@@ -2609,7 +2750,7 @@ class PostProcessGroupPerformanceTest(
             group_id=event.group_id,
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Error,
+            eventstream_type=EventStreamEventType.Error.value,
         )
 
         assert event_processed_signal_mock.call_count == 0
@@ -2655,7 +2796,7 @@ class PostProcessGroupAggregateEventTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
         return cache_key
 
@@ -2668,6 +2809,7 @@ class PostProcessGroupGenericTest(
     InboxTestMixin,
     RuleProcessorTestMixin,
     SnoozeTestMixin,
+    KickOffSeerAutomationTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         data["type"] = "generic"
@@ -2686,17 +2828,16 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(ProfileFileIOGroupType.build_post_process_group_feature_name()):
-            post_process_group(
-                is_new=is_new,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                cache_key=None,
-                group_id=event.group_id,
-                occurrence_id=event.occurrence.id,
-                project_id=event.group.project_id,
-                eventstream_type=EventStreamEventType.Generic,
-            )
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=None,
+            group_id=event.group_id,
+            occurrence_id=event.occurrence.id,
+            project_id=event.group.project_id,
+            eventstream_type=EventStreamEventType.Generic.value,
+        )
         return cache_key
 
     def test_issueless(self):
@@ -2802,7 +2943,7 @@ class PostProcessGroupFeedbackTest(
 
         evidence_data = {
             "Test": 123,
-            "source": feedback_type.value,
+            "source": feedback_type.value if feedback_type else None,
         }
         evidence_display = [
             {"name": "hi", "value": "bye", "important": True},
@@ -2850,7 +2991,7 @@ class PostProcessGroupFeedbackTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
         return cache_key
 
@@ -3003,6 +3144,34 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    def test_logs_if_source_missing(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=None,
+        )
+        mock_process_func = Mock()
+        mock_logger = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            with patch("sentry.tasks.post_process.logger", mock_logger):
+                self.call_post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    event=event,
+                    cache_key="total_rubbish",
+                )
+
+        assert mock_process_func.call_count == 0
+        assert mock_logger.error.call_count == 1
+
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
@@ -3018,4 +3187,24 @@ class PostProcessGroupFeedbackTest(
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
     def test_processing_cache_cleared_with_commits(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze_with_buffers(self):
+        pass
+
+    @pytest.mark.skip(reason="auto resolve is disabled for feedback issues")
+    def test_group_inbox_regression(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_forecast_in_activity(self):
+        pass
+
+    @pytest.mark.skip(reason="regression is disabled for feedback issues")
+    def test_group_last_seen_buffer(self):
         pass

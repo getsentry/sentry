@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import orjson
@@ -31,7 +31,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
-    QUERY_TYPE_VALID_DATASETS,
     STRING_TO_ACTION_TARGET_TYPE,
     AlertRuleSerializer,
     AlertRuleTriggerActionSerializer,
@@ -48,6 +47,7 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.snuba_query_validator import QUERY_TYPE_VALID_DATASETS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -156,19 +156,18 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.environment == env_1
 
     def test_time_window(self):
         self.run_fail_validation_test(
-            {"timeWindow": "a"}, {"timeWindow": ["A valid integer is required."]}
+            {"time_window": "a"}, {"timeWindow": ["A valid integer is required."]}
         )
         self.run_fail_validation_test(
-            {"timeWindow": 1441},
+            {"time_window": 1441},
             {"timeWindow": ["Ensure this value is less than or equal to 1440."]},
         )
         self.run_fail_validation_test(
-            {"timeWindow": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
+            {"time_window": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
         )
 
     def test_dataset(self):
@@ -218,13 +217,12 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         with self.feature("organizations:mep-rollout-flag"):
             base_params = self.valid_params.copy()
             base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
-            base_params["eventTypes"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            base_params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
             base_params["dataset"] = Dataset.PerformanceMetrics.value
             base_params["query"] = ""
             serializer = AlertRuleSerializer(context=self.context, data=base_params)
             assert serializer.is_valid(), serializer.errors
             alert_rule = serializer.save()
-            assert alert_rule.snuba_query is not None
             assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
             assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
@@ -259,7 +257,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.aggregate == aggregate
 
         aggregate = "sum(measurements.fp)"
@@ -269,7 +266,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.aggregate == aggregate
 
     def test_alert_rule_resolved_invalid(self):
@@ -291,7 +287,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.dataset == Dataset.Transactions.value
         assert alert_rule.snuba_query.aggregate == "count()"
 
@@ -305,7 +300,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params["triggers"].pop()
         serializer = AlertRuleSerializer(context=self.context, data=params)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         trigger = alert_rule.alertruletrigger_set.filter(label="critical").get()
         assert trigger.alert_threshold == alert_threshold
 
@@ -431,15 +426,15 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         actions = [
             {
                 "type": "slack",
-                "targetIdentifier": "my-channel",
-                "targetType": "specific",
+                "target_identifier": "my-channel",
+                "target_type": "specific",
                 "integration": self.integration.id,
             }
         ]
         self.run_fail_validation_test(
             {
-                "thresholdType": AlertRuleThresholdType.ABOVE.value,
-                "resolveThreshold": 2,
+                "threshold_type": AlertRuleThresholdType.ABOVE.value,
+                "resolve_threshold": 2,
                 "triggers": [
                     {
                         "label": "critical",
@@ -459,8 +454,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
         self.run_fail_validation_test(
             {
-                "thresholdType": AlertRuleThresholdType.BELOW.value,
-                "resolveThreshold": 0,
+                "threshold_type": AlertRuleThresholdType.BELOW.value,
+                "resolve_threshold": 0,
                 "triggers": [
                     {
                         "label": "critical",
@@ -551,7 +546,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid()
         serializer.save()
         alert_rule = AlertRule.objects.get(name="Aun1qu3n4m3")
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_invalid_metric_field(self):
@@ -576,9 +570,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             % [item.value for item in AlertRuleThresholdType]
         ]
         self.run_fail_validation_test(
-            {"thresholdType": "a"}, {"thresholdType": ["A valid integer is required."]}
+            {"threshold_type": "a"}, {"thresholdType": ["A valid integer is required."]}
         )
-        self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
+        self.run_fail_validation_test({"threshold_type": 50}, {"thresholdType": invalid_values})
 
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -660,7 +654,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query is not None
         assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
         params["event_types"] = [SnubaQueryEventType.EventType.ERROR.name.lower()]
         serializer = AlertRuleSerializer(
@@ -668,7 +661,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query is not None
         assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_unsupported_query(self):
@@ -712,14 +704,14 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         base_params.update({"owner": f"team:{self.team.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
         base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         # Reload user for actor
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
@@ -744,19 +736,18 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     def test_comparison_delta_above(self):
         params = self.valid_params.copy()
         params["comparison_delta"] = 60
-        params["resolveThreshold"] = 10
+        params["resolve_threshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
         params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.comparison_delta == 60 * 60
         assert alert_rule.resolve_threshold == 110
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 150
         assert triggers["warning"].alert_threshold == 140
-        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
         )
@@ -765,34 +756,32 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params = self.valid_params.copy()
         params["threshold_type"] = AlertRuleThresholdType.BELOW.value
         params["comparison_delta"] = 60
-        params["resolveThreshold"] = 10
+        params["resolve_threshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
         params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.comparison_delta == 60 * 60
         assert alert_rule.resolve_threshold == 90
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 50
         assert triggers["warning"].alert_threshold == 60
-        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
         )
 
         params["comparison_delta"] = None
-        params["resolveThreshold"] = 100
+        params["resolve_threshold"] = 100
         params["triggers"][0]["alertThreshold"] = 40
         params["triggers"][1]["alertThreshold"] = 50
         serializer = AlertRuleSerializer(
             context=self.context, instance=alert_rule, data=params, partial=True
         )
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.comparison_delta is None
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
@@ -825,7 +814,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "status:unresolved"
 
     def test_http_response_rate(self):
@@ -838,7 +826,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
             assert serializer.is_valid(), serializer.errors
             alert_rule = serializer.save()
-            assert alert_rule.snuba_query is not None
             assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
             assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
 
@@ -852,7 +839,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
             assert serializer.is_valid(), serializer.errors
             alert_rule = serializer.save()
-            assert alert_rule.snuba_query is not None
             assert alert_rule.snuba_query.query == "has:measurements.score.total"
             assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
 
@@ -922,8 +908,8 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type.EMAIL
             ).slug,
-            "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
-            "target_identifier": "test@test.com",
+            "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
+            "target_identifier": self.user.id,
         }
 
     @cached_property
@@ -967,6 +953,15 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         assert not serializer.is_valid()
         assert serializer.errors == errors
 
+    def test_simple(self):
+        serializer = AlertRuleTriggerActionSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid()
+        assert serializer.validated_data["type"] == AlertRuleTriggerAction.Type.EMAIL.value
+        assert (
+            serializer.validated_data["target_type"] == AlertRuleTriggerAction.TargetType.USER.value
+        )
+        assert serializer.validated_data["target_identifier"] == str(self.user.id)
+
     def test_validation_no_params(self):
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data={})
         assert not serializer.is_valid()
@@ -987,7 +982,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             "Invalid targetType, valid values are [%s]"
             % ", ".join(STRING_TO_ACTION_TARGET_TYPE.keys())
         ]
-        self.run_fail_validation_test({"targetType": 50}, {"targetType": invalid_values})
+        self.run_fail_validation_test({"target_type": 50}, {"targetType": invalid_values})
 
     def test_user_perms(self):
         self.run_fail_validation_test(
@@ -1012,7 +1007,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.MSTEAMS
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "priority": "P1",
@@ -1028,7 +1023,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.PAGERDUTY
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "priority": "P1",
@@ -1047,7 +1042,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.OPSGENIE
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "priority": "critical",
@@ -1104,10 +1099,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.DISCORD
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
             },
             {"integration": ["Integration must be provided for discord"]},
         )
@@ -1128,10 +1123,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
             },
             {"integration": ["Integration must be provided for slack"]},
         )
@@ -1142,10 +1137,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
                 "integration": str(self.integration.id),
             }
         )
@@ -1165,10 +1160,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "merp",
+                "target_identifier": "merp",
                 "integration": str(self.integration.id),
             }
         )
@@ -1199,10 +1194,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "merp",
+                "target_identifier": "merp",
                 "integration": str(self.integration.id),
             }
         )
@@ -1233,10 +1228,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
                 "integration": str(self.integration.id),
             }
         )

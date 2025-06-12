@@ -102,7 +102,7 @@ function SeenInfo({
 }
 
 const dateTimeCss = (p: any) => css`
-  color: ${p.theme.gray300};
+  color: ${p.theme.subText};
   font-size: ${p.theme.fontSizeMedium};
   display: flex;
   justify-content: center;

@@ -1,4 +1,6 @@
 import {Fragment, useMemo} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import {
   rawSpanKeys,
@@ -16,15 +18,15 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
-} from '../../../../traceDrawer/details/styles';
-import {isSpanNode} from '../../../../traceGuards';
-import {TraceTree} from '../../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {isSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -37,8 +39,8 @@ const SIZE_DATA_KEYS = [
 ];
 
 function partitionSizes(data: RawSpanType['data']): {
-  nonSizeKeys: {[key: string]: unknown};
-  sizeKeys: {[key: string]: number};
+  nonSizeKeys: Record<string, unknown>;
+  sizeKeys: Record<string, number>;
 } {
   if (!data) {
     return {
@@ -92,7 +94,7 @@ function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
   ];
 }
 
-export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
+export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>, theme: Theme) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
@@ -101,7 +103,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
   const unknownKeys = Object.keys(span).filter(key => {
     return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
   });
-  const timingKeys = getSpanSubTimings(span) ?? [];
+  const timingKeys = getSpanSubTimings(span, theme) ?? [];
   const aggregateMeasurements: SectionCardKeyValueList =
     getSpanAggregateMeasurements(node);
 
@@ -116,7 +118,9 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
 }
 
 export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+  const theme = useTheme();
   const span = node.value;
+  const projectIds = node.event?.projectID;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
     value => value === 0
@@ -125,7 +129,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
   });
 
-  const timingKeys = getSpanSubTimings(span) ?? [];
+  const timingKeys = getSpanSubTimings(span, theme) ?? [];
   const items: SectionCardKeyValueList = [];
 
   const aggregateMeasurements: SectionCardKeyValueList = useMemo(() => {
@@ -159,6 +163,15 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
           {value >= 1024 && <span>{` (${value} B)`}</span>}
         </Fragment>
       ),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={key}
+          rowValue={value}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
   Object.entries(nonSizeKeys).forEach(([key, value]) => {
@@ -167,6 +180,15 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         key,
         subject: key,
         value: value as string | number,
+        actionButton: (
+          <TraceDrawerComponents.KeyValueAction
+            rowKey={key}
+            rowValue={value as string | number}
+            kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+            projectIds={projectIds}
+          />
+        ),
+        actionButtonAlwaysVisible: true,
       });
     }
   });
@@ -175,6 +197,15 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       key,
       subject: key,
       value: (span as any)[key],
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={key}
+          rowValue={(span as any)[key]}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
   timingKeys.forEach(timing => {
@@ -188,6 +219,15 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         </TraceDrawerComponents.FlexBox>
       ),
       value: getPerformanceDuration(Number(timing.duration) * 1000),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={timing.name}
+          rowValue={getPerformanceDuration(Number(timing.duration) * 1000)}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
 

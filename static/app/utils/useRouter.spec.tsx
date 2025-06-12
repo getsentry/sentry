@@ -23,9 +23,9 @@ describe('useRouter', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
     expect(actualRouter).toEqual(routeContext.router);
   });

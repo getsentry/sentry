@@ -1,17 +1,22 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import {
+  SavedSearchType,
+  type Tag,
+  type TagCollection,
+  type TagValue,
+} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -23,21 +28,30 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
+
   const issueFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
     ['key']
   ).map(tag => tag.key);
+
   const eventFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
     ['key']
   ).map(tag => tag.key);
+
   const eventTags = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.TAG),
     ['totalValues', 'key'],
     ['desc', 'asc']
   ).map(tag => tag.key);
 
-  return [
+  const eventFeatureFlags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.FEATURE_FLAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+
+  const sections = [
     {
       value: FieldKind.ISSUE_FIELD,
       label: t('Issues'),
@@ -54,6 +68,16 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       children: eventTags,
     },
   ];
+
+  if (eventFeatureFlags.length > 0) {
+    sections.push({
+      value: FieldKind.FEATURE_FLAG,
+      label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
+      children: eventFeatureFlags,
+    });
+  }
+
+  return sections;
 };
 
 interface Props extends Partial<SearchQueryBuilderProps> {
@@ -72,9 +96,9 @@ function IssueListSearchBar({
   const {selection: pageFilters} = usePageFilters();
   const filterKeys = useIssueListFilterKeys();
 
+  // Fetches the unique values seen for a tag key and query string. Result is sorted by count.
   const tagValueLoader = useCallback(
-    async (key: string, search: string) => {
-      const orgSlug = organization.slug;
+    async (key: string, search: string): Promise<TagValue[]> => {
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
         start: pageFilters.datetime.start
@@ -88,13 +112,43 @@ function IssueListSearchBar({
 
       const fetchTagValuesPayload = {
         api,
-        orgSlug,
+        orgSlug: organization.slug,
         tagKey: key,
         search,
         projectIds,
         endpointParams,
         sort: '-count' as const,
       };
+
+      // For now feature flags are treated like tags, but the api query is slightly different.
+      if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
+        return await fetchFeatureFlagValues({
+          ...fetchTagValuesPayload,
+          organization,
+        });
+      }
+
+      if (key === FieldKey.FIRST_RELEASE) {
+        const includeLatest = 'latest'.startsWith(search.toLowerCase());
+        return [
+          ...(includeLatest
+            ? [
+                {
+                  count: 1,
+                  firstSeen: '2021-01-01',
+                  lastSeen: '2021-01-01',
+                  name: 'latest',
+                  value: 'latest',
+                } as TagValue,
+              ]
+            : []),
+          ...(await fetchTagValues({
+            ...fetchTagValuesPayload,
+            tagKey: 'release',
+            dataset: Dataset.ERRORS,
+          })),
+        ];
+      }
 
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
         fetchTagValues({
@@ -115,7 +169,8 @@ function IssueListSearchBar({
     },
     [
       api,
-      organization.slug,
+      filterKeys,
+      organization,
       pageFilters.datetime.end,
       pageFilters.datetime.period,
       pageFilters.datetime.start,
@@ -142,6 +197,7 @@ function IssueListSearchBar({
       disallowLogicalOperators
       showUnsubmittedIndicator
       searchSource={searchSource}
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       {...props}
     />
   );

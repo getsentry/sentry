@@ -1,16 +1,17 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge/badge';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Badge} from 'sentry/components/core/badge';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
-import {TabList, Tabs} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -68,7 +69,7 @@ function IssueListHeaderTabContent({
     >
       {name}{' '}
       {count > 0 && (
-        <Badge>
+        <Badge type="default">
           <QueryCount hideParens count={count} max={hasMore ? TAB_MAX_COUNT : 1000} />
         </Badge>
       )}
@@ -121,14 +122,16 @@ function IssueListHeader({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <IssueListSetAsDefault {...{sort, query, organization}} />
-          <Button
-            size="sm"
-            data-test-id="real-time"
-            title={realtimeTitle}
-            aria-label={realtimeTitle}
-            icon={realtimeActive ? <IconPause /> : <IconPlay />}
-            onClick={() => onRealtimeChange(!realtimeActive)}
-          />
+          <DisableInDemoMode>
+            <Button
+              size="sm"
+              data-test-id="real-time"
+              title={realtimeTitle}
+              aria-label={realtimeTitle}
+              icon={realtimeActive ? <IconPause /> : <IconPlay />}
+              onClick={() => onRealtimeChange(!realtimeActive)}
+            />
+          </DisableInDemoMode>
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
@@ -163,9 +166,9 @@ function IssueListHeader({
                       tooltipTitle={tooltipTitle}
                       tooltipHoverable={tooltipHoverable}
                       name={queryName}
-                      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       count={queryCounts[tabQuery]?.count}
-                      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       hasMore={queryCounts[tabQuery]?.hasMore}
                     />
                   </GuideAnchor>

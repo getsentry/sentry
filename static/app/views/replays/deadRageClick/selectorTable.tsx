@@ -5,27 +5,23 @@ import type {Location} from 'history';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
+import useQueryBasedSorting from 'sentry/components/gridEditable/useQueryBasedSorting';
 import Link from 'sentry/components/links/link';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
-import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
-import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
-
-export interface UrlState {
-  widths: string[];
-}
 
 export function transformSelectorQuery(selector: string) {
   return selector
@@ -36,7 +32,7 @@ export function transformSelectorQuery(selector: string) {
     .replaceAll('*', '\\*');
 }
 interface Props {
-  clickCountColumns: {key: string; name: string}[];
+  clickCountColumns: Array<{key: string; name: string}>;
   clickCountSortable: boolean;
   data: DeadRageSelectorItem[];
   isError: boolean;
@@ -45,7 +41,7 @@ interface Props {
   title?: ReactNode;
 }
 
-const BASE_COLUMNS: GridColumnOrder<string>[] = [
+const BASE_COLUMNS: Array<GridColumnOrder<string>> = [
   {key: 'project_id', name: 'project'},
   {key: 'element', name: 'element'},
   {key: 'dom_element', name: 'selector'},
@@ -182,12 +178,17 @@ export function SelectorLink({
     </TooltipContainer>
   );
 
+  const pathname = makeReplaysPathname({
+    path: '/',
+    organization,
+  });
+
   return (
     <StyledTextOverflow>
       <WiderHovercard position="right" body={hovercardContent}>
-        <Link
+        <StyledLink
           to={{
-            pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+            pathname,
             query: {
               ...location.query,
               query: selectorQuery,
@@ -197,7 +198,7 @@ export function SelectorLink({
           }}
         >
           <TextOverflow>{value}</TextOverflow>
-        </Link>
+        </StyledLink>
       </WiderHovercard>
     </StyledTextOverflow>
   );
@@ -221,6 +222,10 @@ const ClickCount = styled(TextOverflow)`
   gap: ${space(0.75)};
   align-items: center;
   justify-content: start;
+`;
+
+const StyledLink = styled(Link)`
+  min-width: 0;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`

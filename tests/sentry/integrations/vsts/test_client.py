@@ -13,12 +13,14 @@ from django.test import override_settings
 from responses import matchers
 
 from fixtures.vsts import VstsIntegrationTestCase
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts.client import VstsApiClient
 from sentry.integrations.vsts.integration import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -29,7 +31,7 @@ from sentry.users.models.identity import Identity, IdentityProvider
 class VstsApiClientTest(VstsIntegrationTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def test_refreshes_expired_token(self):
@@ -210,32 +212,13 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "vsts"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "vsts", "status": 200},
             ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-        ]
+        ] * 5
         assert self.metrics.incr.mock_calls == calls
 
     @responses.activate
@@ -273,6 +256,36 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert getattr(resp, "status_code") == 200
 
     @responses.activate
+    @mock.patch(
+        "sentry.integrations.vsts.client.VstsApiClient.check_file",
+        side_effect=ApiUnauthorized(text="Unauthorized"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_check_file_unauthorized(self, mock_record_event, mock_check_file):
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        path = "src/sentry/integrations/vsts/client.py"
+        version = "master"
+
+        installation.check_file(repo, path, version)
+
+        assert_halt_metric(mock_record_event, ApiUnauthorized("Unauthorized"))
+
+    @responses.activate
     def test_check_no_file(self):
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
@@ -300,6 +313,35 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         with pytest.raises(ApiError):
             client.check_file(repo, path, version)
+
+    @responses.activate
+    def test_get_file(self):
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        client = installation.get_client()
+
+        path = "README.md"
+        version = "master"
+        url = f"https://myvstsaccount.visualstudio.com/project-name/_apis/git/repositories/{repo.name}/items?path={path}&api-version=7.0&versionDescriptor.version={version}&download=true"
+
+        responses.add(method=responses.GET, url=url, body="Hello, world!")
+
+        resp = client.get_file(repo, path, version)
+        assert resp == "Hello, world!"
 
     @responses.activate
     def test_get_stacktrace_link(self):
@@ -333,6 +375,50 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert (
             source_url
             == f"https://MyVSTSAccount.visualstudio.com/project-name/_git/{repo.name}?path={quote_plus(path)}&version=GB{version}"
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.vsts.client.VstsApiClient.check_file",
+        side_effect=ApiError(
+            text='{"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}'
+        ),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link_identity_deleted(self, mock_record, mock_check_file):
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        path = "/src/sentry/integrations/vsts/client.py"
+        version = "master"
+        url = f"https://myvstsaccount.visualstudio.com/project-name/_apis/git/repositories/{repo.name}/items?path={path.lstrip('/')}&api-version=7.0&versionDescriptor.version={version}"
+
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json={"text": 200},
+        )
+
+        source_url = installation.get_stacktrace_link(repo, path, "master", version)
+        assert source_url is None
+        halt = mock_record.mock_calls[-2]
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert (
+            halt.args[1].text
+            == '{"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}'
         )
 
 

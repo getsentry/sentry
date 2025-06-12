@@ -49,7 +49,7 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
         renamedEventView.name = nextQueryName;
 
         browserHistory.push(
-          normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization.slug))
+          normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization))
         );
       }
     );

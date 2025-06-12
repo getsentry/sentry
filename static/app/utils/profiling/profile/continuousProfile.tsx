@@ -1,8 +1,7 @@
 import {defined} from 'sentry/utils';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import type {Frame} from 'sentry/utils/profiling/frame';
 import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
-
-import {CallTreeNode} from '../callTreeNode';
-import type {Frame} from '../frame';
 
 import {Profile} from './profile';
 import {sortProfileSamples} from './utils';
@@ -70,9 +69,7 @@ export class ContinuousProfile extends Profile {
     let frame: Frame | null = null;
     const resolvedStack: Frame[] = new Array(256); // stack size limit
 
-    for (let i = 0; i < samples.length; i++) {
-      const sample = samples[i]!;
-
+    for (const sample of samples) {
       const stack = chunk.stacks[sample.stack_id];
       let size = 0;
 
@@ -205,8 +202,7 @@ export function minTimestampInChunk(
 ): number {
   let timestamp: number | null = null;
 
-  for (let i = 0; i < chunk.samples.length; i++) {
-    const sample = chunk.samples[i]!;
+  for (const sample of chunk.samples) {
     if (!defined(timestamp) || timestamp > sample.timestamp) {
       timestamp = sample.timestamp;
     }

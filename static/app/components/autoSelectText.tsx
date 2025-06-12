@@ -1,4 +1,4 @@
-import {forwardRef, useImperativeHandle, useRef} from 'react';
+import {useImperativeHandle, useRef} from 'react';
 import classNames from 'classnames';
 
 import {selectText} from 'sentry/utils/selectText';
@@ -6,6 +6,7 @@ import {selectText} from 'sentry/utils/selectText';
 type Props = {
   children: React.ReactNode;
   className?: string;
+  ref?: React.Ref<AutoSelectHandle>;
   style?: React.CSSProperties;
 };
 
@@ -13,15 +14,12 @@ type AutoSelectHandle = {
   selectText: () => void;
 };
 
-function AutoSelectText(
-  {children, className, ...props}: Props,
-  forwardedRef: React.Ref<AutoSelectHandle>
-) {
+function AutoSelectText({children, className, ref, ...props}: Props) {
   const element = useRef<HTMLSpanElement>(null);
 
   // We need to expose a selectText method to parent components
   // and need an imperative ref handle.
-  useImperativeHandle(forwardedRef, () => ({
+  useImperativeHandle(ref, () => ({
     selectText: () => handleClick(),
   }));
 
@@ -47,4 +45,4 @@ function AutoSelectText(
   );
 }
 
-export default forwardRef(AutoSelectText);
+export default AutoSelectText;

@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -13,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -29,10 +27,9 @@ import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetail
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import ReprocessingProgress from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
-
-import ReprocessingProgress from '../reprocessingProgress';
 import {
   getEventEnvironment,
   getGroupMostRecentActivity,
@@ -40,7 +37,7 @@ import {
   ReprocessingStatus,
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
-} from '../utils';
+} from 'sentry/views/issueDetails/utils';
 
 function GroupEventDetails() {
   const navigate = useNavigate();
@@ -95,9 +92,9 @@ function GroupEventDetails() {
       params.eventId &&
       !['latest', 'oldest'].includes(params.eventId)
     ) {
+      const environment = getEventEnvironment(prevEvent);
       const shouldRedirect =
-        environments.length > 0 &&
-        !environments.find(env => env === getEventEnvironment(prevEvent as Event));
+        environments.length > 0 && (!environment || !environments.includes(environment));
 
       if (shouldRedirect) {
         navigate(
@@ -222,7 +219,7 @@ function GroupEventDetails() {
                 {renderContent()}
               </MainLayoutComponent>
               {hasStreamlinedUI ? null : (
-                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                <StyledLayoutSide>
                   <GroupSidebar
                     organization={organization}
                     project={project}
@@ -265,22 +262,15 @@ const StyledLayoutMain = styled(Layout.Main)`
   }
 `;
 
-const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
-  ${p =>
-    p.hasStreamlinedUi
-      ? css`
-          padding: ${space(1.5)} ${space(2)};
-        `
-      : css`
-          padding: ${space(3)} ${space(2)} ${space(3)};
-
-          @media (min-width: ${p.theme.breakpoints.large}) {
-            padding-right: ${space(4)};
-          }
-        `}
+const StyledLayoutSide = styled(Layout.Side)`
+  padding: ${space(3)} ${space(2)} ${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-left: ${p => (p.hasStreamlinedUi ? space(0.5) : 0)};
+    padding-right: ${space(4)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    padding-left: 0;
   }
 `;
 

@@ -3,12 +3,14 @@ import {useCallback} from 'react';
 import {bulkDelete} from 'sentry/actionCreators/group';
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
+import useRefetchFeedbackList from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
@@ -17,6 +19,8 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   });
   const navigate = useNavigate();
   const {query: locationQuery} = useLocation();
+
+  const {refetchFeedbackList} = useRefetchFeedbackList();
 
   return useCallback(() => {
     openConfirmModal({
@@ -31,9 +35,13 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
           },
           {
             complete: () => {
+              refetchFeedbackList();
               navigate(
                 normalizeUrl({
-                  pathname: `/organizations/${organization.slug}/feedback/`,
+                  pathname: makeFeedbackPathname({
+                    path: '/',
+                    organization,
+                  }),
                   query: {
                     mailbox: locationQuery.mailbox,
                     project: locationQuery.project,
@@ -49,5 +57,16 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
       message: t('Deleting feedbacks is permanent. Are you sure you wish to continue?'),
       confirmText: t('Delete'),
     });
-  }, [api, feedbackIds, locationQuery, navigate, organization.slug, projectId]);
+  }, [
+    api,
+    feedbackIds,
+    locationQuery.mailbox,
+    locationQuery.project,
+    locationQuery.query,
+    locationQuery.statsPeriod,
+    navigate,
+    organization,
+    projectId,
+    refetchFeedbackList,
+  ]);
 };

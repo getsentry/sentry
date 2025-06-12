@@ -6,12 +6,12 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
-import {LinkButton} from 'sentry/components/button';
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,15 +32,14 @@ import {
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {VitalBar} from 'sentry/views/performance/landing/vitalsCards';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-
-import {VitalBar} from '../../landing/vitalsCards';
 import {
   VitalState,
   vitalStateColors,
   webVitalMeh,
   webVitalPoor,
-} from '../../vitalDetail/utils';
+} from 'sentry/views/performance/vitalDetail/utils';
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
@@ -212,7 +211,7 @@ class VitalCard extends Component<Props, State> {
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
               .withSorts([{kind: 'desc', field: column}])
-              .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+              .getPerformanceTransactionEventsViewUrlTarget(organization, {
                 showTransactions:
                   dataFilter === 'all'
                     ? EventsDisplayFilterName.P100
@@ -245,7 +244,7 @@ class VitalCard extends Component<Props, State> {
       }
 
       const refPixelRect =
-        refDataRect === null ? null : asPixelRect(chartRef, refDataRect!);
+        refDataRect === null ? null : asPixelRect(chartRef, refDataRect);
       if (refPixelRect !== null && !isEqual(refPixelRect, this.state.refPixelRect)) {
         this.setState({refPixelRect});
       }
@@ -385,9 +384,9 @@ class VitalCard extends Component<Props, State> {
   }
 
   getVitalsColor(vital: WebVital, value: number) {
-    // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+    // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const poorThreshold = webVitalPoor[vital];
-    // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+    // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const mehThreshold = webVitalMeh[vital];
 
     if (value >= poorThreshold) {
@@ -418,7 +417,7 @@ class VitalCard extends Component<Props, State> {
         y: 0,
       },
       this.state.refDataRect!,
-      this.state.refPixelRect!
+      this.state.refPixelRect
     );
     if (thresholdPixelBottom === null) {
       return null;
@@ -431,7 +430,7 @@ class VitalCard extends Component<Props, State> {
         y: Math.max(...chartData.map(data => data.count)) || 1,
       },
       this.state.refDataRect!,
-      this.state.refPixelRect!
+      this.state.refPixelRect
     );
     if (thresholdPixelTop === null) {
       return null;

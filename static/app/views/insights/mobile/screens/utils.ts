@@ -2,15 +2,16 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
-  if (metric.value === undefined) {
+  if (metric.value === undefined || metric.value === null) {
     return '-';
   }
   if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {
     const seconds =
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       (metric.value * ((metric.unit && DURATION_UNITS[metric.unit]) ?? 1)) / 1000;
     return getDuration(seconds, 2, true);
   }
@@ -34,7 +35,7 @@ const formatMetricValue = (metric: MetricValue, field?: string | undefined): str
   return String(metric.value);
 };
 
-// maps to PERFORMANCE_SCORE_COLORS keys
+// maps to PerformanceScoreColor keys
 export enum PerformanceScore {
   GOOD = 'good',
   NEEDS_IMPROVEMENT = 'needsImprovement',
@@ -49,17 +50,23 @@ export type VitalStatus = {
   value: MetricValue | undefined;
 };
 
-export type VitalItem = {
-  dataset: DiscoverDatasets;
+type GenericVitalItem<
+  T extends DiscoverDatasets.SPANS_METRICS | DiscoverDatasets.METRICS,
+> = {
+  dataset: T;
   description: string;
   docs: React.ReactNode;
-  field: string;
+  field: T extends DiscoverDatasets.SPANS_METRICS ? SpanMetricsProperty : MetricsProperty;
   getStatus: (value: MetricValue, field?: string | undefined) => VitalStatus;
   platformDocLinks: Record<string, string>;
   sdkDocLinks: Record<string, string>;
   setup: React.ReactNode | undefined;
   title: string;
 };
+
+export type VitalItem =
+  | GenericVitalItem<DiscoverDatasets.METRICS>
+  | GenericVitalItem<DiscoverDatasets.SPANS_METRICS>;
 
 export type MetricValue = {
   // the field type if defined, e.g. duration
@@ -84,7 +91,7 @@ export function getColdAppStartPerformance(metric: MetricValue): VitalStatus {
   let status = PerformanceScore.NONE;
 
   if (typeof metric.value === 'number' && metric.unit) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const durationMs = metric.value * DURATION_UNITS[metric.unit];
 
     // TODO should be platform dependant
@@ -112,7 +119,7 @@ export function getWarmAppStartPerformance(metric: MetricValue): VitalStatus {
   let status = PerformanceScore.NONE;
 
   if (typeof metric.value === 'number' && metric.unit) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const durationMs = metric.value * DURATION_UNITS[metric.unit];
 
     // TODO should be platform dependant

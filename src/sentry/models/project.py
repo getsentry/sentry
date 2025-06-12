@@ -20,7 +20,6 @@ from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -31,6 +30,11 @@ from sentry.db.models import (
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.db.pending_deletion import (
+    delete_pending_deletion_option,
+    rename_on_pending_deletion,
+    reset_pending_deletion_field_names,
+)
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
@@ -52,8 +56,6 @@ if TYPE_CHECKING:
     from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.users.models.user import User
 
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
-
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
 # - Please keep this list organized alphabetically.
@@ -64,8 +66,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "apple-macos",
     "bun",
     "capacitor",
-    "cloudflare-pages",
-    "cloudflare-workers",
     "cordova",
     "dart",
     "deno",
@@ -91,6 +91,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "go-iris",
     "go-martini",
     "go-negroni",
+    "godot",
     "ionic",
     "java",
     "java-log4j2",
@@ -109,6 +110,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-tanstackstart-react",
     "javascript-nuxt",
     "javascript-vue",
     "kotlin",
@@ -119,6 +121,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node",
     "node-awslambda",
     "node-azurefunctions",
+    "node-cloudflare-pages",
+    "node-cloudflare-workers",
     "node-connect",
     "node-express",
     "node-fastify",
@@ -221,7 +225,7 @@ class ProjectManager(BaseManager["Project"]):
 
 @snowflake_id_model
 @region_silo_model
-class Project(Model, PendingDeletionMixin):
+class Project(Model):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -231,7 +235,7 @@ class Project(Model, PendingDeletionMixin):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = SentrySlugField(null=True, max_length=PROJECT_SLUG_MAX_LENGTH)
+    slug = SentrySlugField(max_length=PROJECT_SLUG_MAX_LENGTH)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
@@ -252,6 +256,9 @@ class Project(Model, PendingDeletionMixin):
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
     template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
+
+    # external_id for the projects managed/provisioned through the 3rd party
+    external_id = models.CharField(max_length=256, null=True)
 
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
@@ -347,11 +354,9 @@ class Project(Model, PendingDeletionMixin):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_project"
-        unique_together = (("organization", "slug"),)
+        unique_together = (("organization", "slug"), ("organization", "external_id"))
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
-
-    _rename_fields_on_pending_delete = frozenset(["slug"])
 
     def __str__(self):
         return f"{self.name} ({self.slug})"
@@ -367,21 +372,8 @@ class Project(Model, PendingDeletionMixin):
             span.set_data("project_slug", self.slug)
             return Counter.increment(self, delta)
 
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            lock = locks.get(
-                f"slug:project:{self.organization_id}", duration=5, name="project_slug"
-            )
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(
-                    self,
-                    self.name,
-                    organization=self.organization,
-                    reserved=RESERVED_PROJECT_SLUGS,
-                    max_length=50,
-                )
-
-        if SENTRY_USE_SNOWFLAKE:
+    def _save_project(self, *args, **kwargs):
+        if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
@@ -390,6 +382,25 @@ class Project(Model, PendingDeletionMixin):
             )
         else:
             super().save(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if getattr(self, "id", None) is not None:
+            # no need to acquire lock if we're updating an existing project
+            self._save_project(*args, **kwargs)
+            return
+
+        # when project is created, we need to acquire a lock to ensure that the generated slug is unique
+        lock = locks.get(f"slug:project:{self.organization_id}", duration=5, name="project_slug")
+        with TimedRetryPolicy(10)(lock.acquire):
+            if not self.slug:
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS,
+                    max_length=50,
+                )
+            self._save_project(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"
@@ -742,5 +753,21 @@ class Project(Model, PendingDeletionMixin):
 
         return old_pk
 
+    # pending deletion implementation
+    _pending_fields = ("slug",)
 
-pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
+    def rename_on_pending_deletion(self) -> None:
+        rename_on_pending_deletion(self.organization_id, self, self._pending_fields)
+
+    def reset_pending_deletion_field_names(self) -> bool:
+        return reset_pending_deletion_field_names(self.organization_id, self, self._pending_fields)
+
+    def delete_pending_deletion_option(self) -> None:
+        delete_pending_deletion_option(self.organization_id, self)
+
+
+pre_delete.connect(
+    lambda instance, **k: instance.delete_pending_deletion_option(),
+    sender=Project,
+    weak=False,
+)

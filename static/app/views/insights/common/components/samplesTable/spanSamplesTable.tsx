@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,11 +61,11 @@ type SpanTableRow = {
   op: string;
   trace: string;
   transaction: {
-    'project.name': string;
+    project: string;
+    'span.duration': number;
     timestamp: string;
-    'transaction.duration': number;
   };
-  'transaction.id': string;
+  'transaction.span_id': string;
 } & SpanSample;
 
 type Props = {
@@ -97,7 +97,7 @@ export function SpanSamplesTable({
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
 
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  function renderHeadCell(column: SamplesTableColumnHeader): React.ReactNode {
     if (
       column.key === 'p95_comparison' ||
       column.key === 'avg_comparison' ||
@@ -114,62 +114,69 @@ export function SpanSamplesTable({
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
-  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
+  function renderBodyCell(
+    column: SamplesTableColumnHeader,
+    row: SpanTableRow
+  ): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
-        <Link
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+        <OverflowEllipsisTextContainer>
+          <Link
+            to={generateLinkToEventInTraceView({
+              targetId: row['transaction.span_id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
+              organization,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row['transaction.id'].slice(0, 8)}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row['transaction.span_id'].slice(0, 8)}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
     if (column.key === 'span_id') {
       return (
-        <Link
-          onClick={() =>
-            trackAnalytics('performance_views.sample_spans.span_clicked', {
+        <OverflowEllipsisTextContainer>
+          <Link
+            onClick={() =>
+              trackAnalytics('performance_views.sample_spans.span_clicked', {
+                organization,
+                source: moduleName,
+              })
+            }
+            to={generateLinkToEventInTraceView({
+              targetId: row['transaction.span_id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
               organization,
-              source: moduleName,
-            })
-          }
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row.span_id}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row.span_id}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
@@ -179,7 +186,7 @@ export function SpanSamplesTable({
     }
 
     if (column.key === SPAN_DESCRIPTION) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return <FilenameCell url={row[SPAN_DESCRIPTION]} />;
     }
 
@@ -217,7 +224,7 @@ export function SpanSamplesTable({
       );
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <span>{row[column.key]}</span>;
   }
 

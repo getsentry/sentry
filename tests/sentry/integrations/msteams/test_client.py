@@ -8,6 +8,7 @@ from django.test import override_settings
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -25,7 +26,7 @@ from tests.sentry.integrations.test_helpers import add_control_silo_proxy_respon
 class MsTeamsClientTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -83,6 +84,15 @@ class MsTeamsClientTest(TestCase):
             }
 
     @responses.activate
+    def test_token_refreshes_with_integration_not_found(self):
+        self.integration.delete()
+        with patch("time.time") as mock_time:
+            mock_time.return_value = self.expires_at
+            # accessing the property should refresh the token
+            with pytest.raises(IntegrationError):
+                self.msteams_client.access_token
+
+    @responses.activate
     def test_no_token_refresh(self):
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at - 100
@@ -116,6 +126,8 @@ class MsTeamsClientTest(TestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
@@ -152,6 +164,8 @@ class MsTeamsClientTest(TestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,

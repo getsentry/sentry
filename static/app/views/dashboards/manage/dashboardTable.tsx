@@ -13,9 +13,9 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -29,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
@@ -37,8 +38,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
-
-import {cloneDashboard} from '../utils';
+import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 type Props = {
   api: Client;
@@ -79,6 +79,7 @@ function FavoriteButton({
   dashboardId,
   onDashboardsChange,
 }: FavoriteButtonProps) {
+  const queryClient = useQueryClient();
   const [favorited, setFavorited] = useState(isFavorited);
   return (
     <Button
@@ -96,7 +97,13 @@ function FavoriteButton({
       onClick={async () => {
         try {
           setFavorited(!favorited);
-          await updateDashboardFavorite(api, organization.slug, dashboardId, !favorited);
+          await updateDashboardFavorite(
+            api,
+            queryClient,
+            organization.slug,
+            dashboardId,
+            !favorited
+          );
           onDashboardsChange();
           trackAnalytics('dashboards_manage.toggle_favorite', {
             organization,
@@ -120,7 +127,7 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder: GridColumnOrder<ResponseKeys>[] = [
+  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
@@ -174,7 +181,7 @@ function DashboardTable({
     if (column.key in SortKeys) {
       const urlSort = decodeScalar(location.query.sort, 'mydashboards');
       const isCurrentSort =
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
       const sortDirection =
         !isCurrentSort || column.key === 'createdBy'
@@ -192,11 +199,11 @@ function DashboardTable({
           generateSortLink={() => {
             const newSort = isCurrentSort
               ? sortDirection === 'asc'
-                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SortKeys[column.key].desc
-                : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SortKeys[column.key].asc
-              : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 SortKeys[column.key].asc;
             return {
               ...location,
@@ -324,7 +331,7 @@ function DashboardTable({
       );
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <span>{dataRow[column.key]}</span>;
   };
 
@@ -332,7 +339,7 @@ function DashboardTable({
     <GridEditable
       data={dashboards ?? []}
       // necessary for edit access dropdown
-      bodyStyle={{overflow: 'visible'}}
+      bodyStyle={{overflow: 'scroll'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -340,9 +347,6 @@ function DashboardTable({
         renderHeadCell: column => renderHeadCell(column),
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
-          if (!organization.features.includes('dashboards-favourite')) {
-            return [];
-          }
           const favoriteColumn = {
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
@@ -362,9 +366,7 @@ function DashboardTable({
           }
           return [renderBodyCell(favoriteColumn, dataRow) as any];
         },
-        prependColumnWidths: organization.features.includes('dashboards-favourite')
-          ? ['max-content']
-          : [],
+        prependColumnWidths: ['max-content'],
       }}
       isLoading={isLoading}
       emptyMessage={

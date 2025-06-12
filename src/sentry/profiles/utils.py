@@ -9,16 +9,13 @@ import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
-from parsimonious.exceptions import ParseError
 from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
-from sentry.api.event_search import SearchFilter, parse_search_query
-from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.enhancer import Enhancements, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, list[Any]]
@@ -93,6 +90,7 @@ def get_from_profiling_service(
     params: dict[Any, Any] | None = None,
     headers: dict[Any, Any] | None = None,
     json_data: Any = None,
+    metric: tuple[str, dict[str, str]] | None = None,
 ) -> VroomResponse:
     kwargs: dict[str, Any] = {"headers": {}}
     if params:
@@ -115,7 +113,11 @@ def get_from_profiling_service(
         )
         with sentry_sdk.start_span(op="json.dumps"):
             data = json.dumps(json_data).encode("utf-8")
-        set_measurement("payload.size", len(data), unit="byte")
+        set_span_attribute("payload.size", len(data))
+        if metric:
+            metric_name, metric_tags = metric
+            metrics.distribution(metric_name, len(data), tags=metric_tags)
+
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
     return _profiling_pool.urlopen(
         method,
@@ -156,28 +158,6 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> dict[str, str]:
-    try:
-        parsed_terms = parse_search_query(query)
-    except ParseError as e:
-        raise InvalidSearchQuery(f"Parse error: {e}")
-
-    profile_filters: dict[str, str] = {}
-
-    for term in parsed_terms:
-        if not isinstance(term, SearchFilter):
-            raise InvalidSearchQuery("Invalid query: Unknown filter")
-        if term.operator != "=":  # only support equality filters
-            raise InvalidSearchQuery("Invalid query: Illegal operator")
-        if term.key.name not in PROFILE_FILTERS:
-            raise InvalidSearchQuery(f"Invalid query: {term.key.name} is not supported")
-        if term.key.name in profile_filters and term.value.value != profile_filters[term.key.name]:
-            raise InvalidSearchQuery(f"Invalid query: Multiple filters for {term.key.name}")
-        profile_filters[term.key.name] = term.value.value
-
-    return profile_filters
-
-
 # This support applying a subset of stack trace rules to the profile (matchers and actions).
 #
 # Matchers allowed:
@@ -195,9 +175,9 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
     profiling_rules = keep_profiling_rules(rules_config)
     if profiling_rules == "":
         return
-    enhancements = Enhancements.from_config_string(profiling_rules)
+    enhancements = Enhancements.from_rules_text(profiling_rules, referrer="profiling")
     if "version" in profile:
-        enhancements.apply_modifications_to_frame(
+        enhancements.apply_category_and_updated_in_app_to_frames(
             profile["profile"]["frames"], profile["platform"], {}
         )
     elif profile["platform"] == "android":
@@ -209,6 +189,6 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
             method["function"] = method.get("name", "")
             method["abs_path"] = method.get("source_file", "")
             method["module"] = method.get("class_name", "")
-        enhancements.apply_modifications_to_frame(
+        enhancements.apply_category_and_updated_in_app_to_frames(
             profile["profile"]["methods"], profile["platform"], {}
         )

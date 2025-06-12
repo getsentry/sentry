@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -97,7 +97,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * extraShort:
    *   Like short but uses very short units (h, m, s)
    *
-   * NOTE: shot and extraShort do NOT currently support times in the future.
+   * NOTE: short and extraShort do NOT currently support times in the future.
    *
    * @default human
    */
@@ -121,7 +121,7 @@ function TimeSince({
   ...props
 }: Props) {
   const user = useUser();
-  const tickerRef = useRef<number | undefined>();
+  const tickerRef = useRef<number | undefined>(undefined);
 
   const computeRelativeDate = useCallback(
     () => getRelativeDate(date, suffix, prefix, unitStyle),
@@ -164,7 +164,7 @@ function TimeSince({
     fixed: options?.clock24Hours
       ? 'November 3, 2020 08:57 UTC'
       : 'November 3, 2020 8:58 AM UTC',
-    value: moment.tz(dateObj, options?.timezone ?? '').format(format),
+    value: moment(dateObj).format(format),
   });
 
   return (
@@ -200,7 +200,7 @@ function getRelativeDate(
   const momentDate = moment(getDateObj(currentDateTime));
   const isFuture = momentDate.isAfter(moment());
 
-  let deltaText: string = '';
+  let deltaText = '';
 
   if (unitStyle === 'human') {
     // Moment provides a nice human relative date that uses "a few" for various units

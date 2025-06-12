@@ -1,5 +1,5 @@
+import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -37,7 +37,7 @@ type Props = {
 };
 
 function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDatasets) {
-  let modifiedQuery: boolean = false;
+  let modifiedQuery = false;
   let to = eventView.clone();
   const allowedAggregations = Object.keys(getAggregations(toDataset));
   let newColumns: QueryFieldValue[] = [];
@@ -87,8 +87,7 @@ function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDa
 
   const remainingSearchFilter = search.formatString();
 
-  for (let index = 0; index < denylistedFields.length; index++) {
-    const element = denylistedFields[index]!;
+  for (const element of denylistedFields) {
     if (remainingSearchFilter.includes(element)) {
       search.removeFilter(element);
       modifiedQuery = true;
@@ -139,7 +138,7 @@ export function DatasetSelectorTabs(props: Props) {
             : DiscoverDatasets.TRANSACTIONS
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage
         );
         navigate({
@@ -152,7 +151,7 @@ export function DatasetSelectorTabs(props: Props) {
         });
       }}
     >
-      <TabList variant="filled" hideBorder>
+      <TabList hideBorder>
         {options.map(option => (
           <TabList.Item key={option.value}>{option.label}</TabList.Item>
         ))}

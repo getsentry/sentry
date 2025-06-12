@@ -9,11 +9,13 @@ from sentry.snuba import (
     issue_platform,
     metrics_enhanced_performance,
     metrics_performance,
+    ourlogs,
     profiles,
-    spans_eap,
     spans_indexed,
     spans_metrics,
+    spans_rpc,
     transactions,
+    uptime_checks,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 
@@ -24,10 +26,12 @@ DATASET_OPTIONS = {
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
+    "ourlogs": ourlogs,
+    "uptimeChecks": uptime_checks,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "spans": spans_eap,
+    "spans": spans_rpc,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     "transactions": transactions,
@@ -85,6 +89,7 @@ ERROR_ONLY_FIELDS = [
     "stack.package",
     "stack.resource",
     "stack.stack_level",
+    "symbolicated_in_app",
 ]
 
 

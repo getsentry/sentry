@@ -4,8 +4,7 @@ from unittest import mock
 from django.utils import timezone
 from pytest import raises
 
-from sentry.buffer.base import Buffer
-from sentry.db import models
+from sentry.buffer.base import Buffer, BufferField
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -23,11 +22,17 @@ class BufferTest(TestCase):
 
     @mock.patch("sentry.buffer.base.process_incr")
     def test_incr_delays_task(self, process_incr):
-        model = mock.Mock()
+        model = Group
         columns = {"times_seen": 1}
-        filters: dict[str, models.Model | str | int] = {"id": 1}
+        filters: dict[str, BufferField] = {"id": 1}
         self.buf.incr(model, columns, filters)
-        kwargs = dict(model=model, columns=columns, filters=filters, extra=None, signal_only=None)
+        kwargs = dict(
+            model_name="sentry.group",
+            columns=columns,
+            filters=filters,
+            extra=None,
+            signal_only=None,
+        )
         process_incr.apply_async.assert_called_once_with(kwargs=kwargs, headers=mock.ANY)
 
     def test_process_saves_data(self):
@@ -49,9 +54,9 @@ class BufferTest(TestCase):
         filters = {"id": group.id, "project_id": 1}
         the_date = timezone.now() + timedelta(days=5)
         self.buf.process(Group, columns, filters, {"last_seen": the_date})
-        group_ = Group.objects.get(id=group.id)
-        assert group_.times_seen == group.times_seen + 1
-        assert group_.last_seen == the_date
+        reload = Group.objects.get(id=group.id)
+        assert reload.times_seen == group.times_seen + 1
+        assert reload.last_seen == the_date
 
     def test_increments_when_null(self):
         org = Organization.objects.create(slug="test-org")

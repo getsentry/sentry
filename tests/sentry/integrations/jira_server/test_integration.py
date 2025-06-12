@@ -11,13 +11,15 @@ from django.urls import reverse
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
@@ -353,10 +355,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             ]
             # After ignoring "customfield_10200", it no longer shows up
             assert self.installation.org_integration is not None
-            self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.installation.org_integration.id,
                 config={"issues_ignored_fields": ["customfield_10200"]},
             )
+            assert org_integration is not None
+            self.installation.org_integration = org_integration
             fields = self.installation.get_create_issue_config(group, self.user)
             field_names = [field["name"] for field in fields]
             assert field_names == [
@@ -392,10 +396,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         assert group is not None
 
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(
@@ -425,10 +431,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         group = event.group
         assert group is not None
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
@@ -454,10 +462,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         group = event.group
         assert group is not None
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
@@ -495,10 +505,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         group = event.group
         assert group is not None
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             mock_get_issue_fields_return_value = orjson.loads(
@@ -540,10 +552,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         label_default = "hi"
 
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
@@ -784,7 +798,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         assert assign_issue_response.request.body == b'{"name": "Alive Tofu"}'
 
     @responses.activate
-    def test_sync_assignee_outbound_no_email(self):
+    def test_sync_assignee_outbound_no_emails_for_multiple_users(self):
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         external_issue = ExternalIssue.objects.create(
@@ -795,12 +809,222 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/user/assignable/search",
-            json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
+            json=[
+                {"accountId": "deadbeef123", "displayName": "Dead Beef", "name": "Beef"},
+                {
+                    "accountId": "alicetofu",
+                    "displayName": "Alice Tofu",
+                    "name": "Alice Tofu",
+                },
+            ],
         )
-        self.installation.sync_assignee_outbound(external_issue, user)
+
+        with pytest.raises(IntegrationError) as e:
+            self.installation.sync_assignee_outbound(external_issue, user)
+        assert str(e.value) == "Failed to assign user to Jira Server issue"
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_sync_assignee_outbound_user_email_empty(self):
+        user = serialize_rpc_user(self.create_user(email=""))
+        issue_id = "APP-123"
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.installation.model.id,
+            key=issue_id,
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/user/assignable/search",
+            json=[
+                {"accountId": "deadbeef123", "displayName": "Dead Beef", "name": "Beef"},
+                {
+                    "accountId": "alicetofu",
+                    "displayName": "Alice Tofu",
+                    "name": "Alice Tofu",
+                },
+            ],
+        )
+
+        with pytest.raises(AssertionError) as e:
+            self.installation.sync_assignee_outbound(external_issue, user)
+        assert str(e.value) == "Expected a valid user email, received falsy value"
+
+        # No sync made as jira users don't have email addresses
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
+    def test_sync_assignee_outbound_unauthorized(self, mock_assign_issue):
+        mock_assign_issue.side_effect = ApiUnauthorized("Oops, unauthorized")
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.installation.model.id,
+            key=issue_id,
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/user/assignable/search",
+            json=[
+                {
+                    "accountId": "deadbeef123",
+                    "displayName": "Dead Beef",
+                    "emailAddress": "bob@example.com",
+                }
+            ],
+        )
+        with pytest.raises(IntegrationError) as exc_info:
+            self.installation.sync_assignee_outbound(
+                external_issue=external_issue, user=user, assign=True
+            )
+
+        assert str(exc_info.value) == "Insufficient permissions to assign user to Jira Server issue"
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
+    def test_sync_assignee_outbound_api_error(self, mock_assign_issue):
+        mock_assign_issue.side_effect = ApiError("API Error occurred")
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.installation.model.id,
+            key=issue_id,
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/user/assignable/search",
+            json=[
+                {
+                    "accountId": "deadbeef123",
+                    "displayName": "Dead Beef",
+                    "username": "bob@example.com",
+                }
+            ],
+        )
+        with pytest.raises(IntegrationError) as exc_info:
+            self.installation.sync_assignee_outbound(
+                external_issue=external_issue, user=user, assign=True
+            )
+
+        assert str(exc_info.value) == "Failed to assign user to Jira Server issue"
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_multiple_actors(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=rpc_user.id,
+            external_name="jira_user_1",
+        )
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=rpc_user.id,
+            external_name="jira_user_2",
+        )
+
+        with self.assertLogs(
+            logger="sentry.integrations.jira_server", level="WARNING"
+        ) as log_context:
+            result = self.installation._get_matching_jira_server_user_by_external_actor(
+                client=self.installation.get_client(),
+                external_issue_key="APP-123",
+                user=rpc_user,
+                integration_id=self.integration.id,
+            )
+
+        assert result is None
+        assert "jira_server.user_external_actor.multiple_actors" in log_context.output[0]
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_no_actor(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        result = self.installation._get_matching_jira_server_user_by_external_actor(
+            client=self.installation.get_client(),
+            external_issue_key="APP-123",
+            user=rpc_user,
+            integration_id=self.integration.id,
+        )
+
+        mock_search_users_for_issue.return_value = [
+            {
+                "name": "jirauser",
+                "displayName": "Jira User",
+                "emailAddress": "some_email@example.com",
+            }
+        ]
+
+        assert result is None
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_no_matching_jira_user(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=rpc_user.id,
+            external_name="nonexistent_user",
+        )
+
+        mock_search_users_for_issue.return_value = []
+
+        result = self.installation._get_matching_jira_server_user_by_external_actor(
+            client=self.installation.get_client(),
+            external_issue_key="APP-123",
+            user=rpc_user,
+            integration_id=self.integration.id,
+        )
+
+        assert result is None
+        mock_search_users_for_issue.assert_called_once_with("APP-123", "nonexistent_user")
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_matching_user(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=rpc_user.id,
+            external_name="JiraUser",
+        )
+
+        mock_jira_user = {
+            "name": "jirauser",
+            "displayName": "Jira User",
+            "emailAddress": "some_other_email@example.com",
+        }
+
+        # Tests case where a username query matches multiple users,
+        # we expect an exact match on the name
+        mock_search_users_for_issue.return_value = [
+            {"name": "other_user", "displayName": "Other User"},
+            mock_jira_user,
+            {"name": "another_user", "displayName": "Another User"},
+        ]
+
+        result = self.installation._get_matching_jira_server_user_by_external_actor(
+            client=self.installation.get_client(),
+            external_issue_key="APP-123",
+            user=rpc_user,
+            integration_id=self.integration.id,
+        )
+
+        assert result == mock_jira_user
+        mock_search_users_for_issue.assert_called_once_with("APP-123", "JiraUser")
 
     def test_get_config_data(self):
         integration = self.create_integration(

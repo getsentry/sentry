@@ -27,6 +27,7 @@ from sentry.monitors.models import Monitor
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.users.models.user import User
@@ -151,11 +152,15 @@ class AlertRuleSerializer(Serializer):
 
                     action["sentryAppInstallationUuid"] = rpc_install.uuid
 
-                    component = prepare_ui_component(
-                        rpc_install,
-                        rpc_component,
-                        None,
-                        action.get("settings"),
+                    component = (
+                        prepare_ui_component(
+                            rpc_install,
+                            rpc_component,
+                            None,
+                            action.get("settings"),
+                        )
+                        if rpc_component
+                        else None
                     )
                     if component is None:
                         errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})
@@ -250,20 +255,18 @@ class AlertRuleSerializer(Serializer):
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
-        assert obj.snuba_query is not None
         env = obj.snuba_query.environment
         allow_mri = features.has(
-            "organizations:custom-metrics",
-            obj.organization,
-            actor=user,
-        ) or features.has(
             "organizations:insights-alerts",
             obj.organization,
             actor=user,
         )
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(
-            obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
+            obj.snuba_query.aggregate,
+            reverse=True,
+            allow_mri=allow_mri,
+            allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
         )
 
         data: AlertRuleSerializerResponse = {

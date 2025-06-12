@@ -212,3 +212,28 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_simple_flags(self):
+        group_a = self.store_event(
+            data={
+                "timestamp": before_now(seconds=500).isoformat(),
+                "fingerprint": ["group-a"],
+                "contexts": {"flags": {"values": [{"flag": "flag", "result": True}]}},
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-a"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_response(query="is:unresolved flags[flag]:true", groups=[group_a.id])
+        response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
+
+        assert response.status_code == 200
+        assert len(response_data) == 1
+        assert int(response_data[0]["id"]) == group_a.id
+        assert response_data[0]["count"] == "2"
+        assert response_data[0]["filtered"]["count"] == "1"
+        assert response_data[0]["lifetime"]["count"] == "1"

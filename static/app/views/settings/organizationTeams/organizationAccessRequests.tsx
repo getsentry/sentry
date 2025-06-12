@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -83,7 +83,7 @@ class OrganizationAccessRequests extends Component<Props, State> {
     const {requestList} = this.props;
     const {accessRequestBusy} = this.state;
 
-    if (!requestList || !requestList.length) {
+    if (!requestList?.length) {
       return null;
     }
 

@@ -23,16 +23,14 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/onboardingTasks');
+
 jest.mock('sentry/actionCreators/indicator', () => ({
   addSuccessMessage: jest.fn(),
   addErrorMessage: jest.fn(),
@@ -51,7 +49,7 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const projectAlertRuleDetailsRoutes: PlainRoute<any>[] = [
+const projectAlertRuleDetailsRoutes: Array<PlainRoute<any>> = [
   {
     path: '/',
   },
@@ -109,7 +107,11 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {router, organization}
+    {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    }
   );
 
   return {
@@ -171,7 +173,7 @@ describe('IssueRuleEditor', function () {
         projects: [{access: []}],
       });
 
-      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
@@ -182,7 +184,7 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
 
     it('is enabled with project-level alerts:write', async () => {
@@ -192,7 +194,31 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
+    });
+
+    it('allows test notifications', async () => {
+      const {organization, project} = createWrapper();
+      const mockTestNotification = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/rule-actions/`,
+        method: 'POST',
+        body: {},
+      });
+      await userEvent.click(screen.getByText('Send Test Notification'));
+      expect(mockTestNotification).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/rule-actions/`,
+        expect.objectContaining({
+          data: {
+            actions: [
+              {
+                id: 'sentry.rules.actions.notify_event.NotifyEventAction',
+                name: 'Send a notification (for all legacy integrations)',
+              },
+            ],
+            name: 'My alert rule',
+          },
+        })
+      );
     });
   });
 
@@ -226,7 +252,7 @@ describe('IssueRuleEditor', function () {
         body: {},
       });
       const {router} = createWrapper();
-      renderGlobalModal({router});
+      renderGlobalModal({router, deprecatedRouterMocks: true});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -306,15 +332,6 @@ describe('IssueRuleEditor', function () {
           data: expect.objectContaining({environment: '__all_environments__'}),
         })
       );
-      expect(metric.startSpan).toHaveBeenCalledTimes(1);
-      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-    });
-
-    it('updates the alert onboarding task', async function () {
-      createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
-
-      await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startSpan).toHaveBeenCalledTimes(1);
       expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
@@ -412,10 +429,10 @@ describe('IssueRuleEditor', function () {
         projects: [ProjectFixture({environments: ['production', 'staging']})],
       });
 
-      // Add the adopted release filter
+      // Add the release filter
       await selectEvent.select(
         screen.getByText('Add optional filter...'),
-        /The {oldest_or_newest} adopted release associated/
+        /The {oldest_or_newest} release associated/
       );
 
       const filtersContainer = await screen.findByTestId('rule-filters');
@@ -460,9 +477,9 @@ describe('IssueRuleEditor', function () {
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-      });
+      expect(router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+      );
     });
 
     it('pending status keeps loading true', async function () {

@@ -1,4 +1,4 @@
-import {GroupIntegration} from 'sentry/types/integrations';
+import type {GroupIntegration} from 'sentry/types/integrations';
 
 export function GitHubIntegrationFixture(
   params: Partial<GroupIntegration> = {}

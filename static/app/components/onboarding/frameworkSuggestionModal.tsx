@@ -1,18 +1,20 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {useIsCreatingProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import Radio from 'sentry/components/radio';
 import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -112,13 +114,13 @@ export const languageDescriptions: Partial<Record<PlatformKey, string>> = {
   ),
 };
 
-type Props = ModalRenderProps & {
+interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onConfigure: (selectedFramework: OnboardingSelectedSDK) => void;
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
   newOrg?: boolean;
-};
+}
 
 export function FrameworkSuggestionModal({
   Body,
@@ -130,7 +132,9 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-}: Props) {
+}: FrameworkSuggestionModalProps) {
+  const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
+
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
   >(selectedPlatform);
@@ -225,6 +229,19 @@ export function FrameworkSuggestionModal({
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg]);
 
+  const handleClick = useCallback(() => {
+    if (selectedFramework?.key === selectedPlatform.key) {
+      handleSkip();
+    } else {
+      handleConfigure();
+    }
+  }, [handleSkip, handleConfigure, selectedFramework, selectedPlatform]);
+
+  const debounceHandleClick = useMemo(
+    () => debounce(handleClick, 2000, {leading: true, trailing: false}),
+    [handleClick]
+  );
+
   const listEntries: PlatformIntegration[] = [
     ...topFrameworksOrdered,
     ...otherFrameworksSortedAlphabetically,
@@ -275,7 +292,7 @@ export function FrameworkSuggestionModal({
                       }
                     >
                       <RadioBox
-                        radioSize="small"
+                        size="sm"
                         checked={selectedFramework?.key === platform.id}
                         readOnly
                       />
@@ -292,9 +309,8 @@ export function FrameworkSuggestionModal({
       <Footer>
         <Button
           priority="primary"
-          onClick={
-            selectedFramework?.key === selectedPlatform.key ? handleSkip : handleConfigure
-          }
+          onClick={debounceHandleClick}
+          busy={isCreatingProjectAndRules}
         >
           {t('Configure SDK')}
         </Button>
@@ -356,7 +372,7 @@ const TopFrameworkIcon = styled(PlatformIcon, {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const TopFrameworksImageWrapper = styled('div')`

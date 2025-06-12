@@ -1,35 +1,14 @@
-import {uuid4} from '@sentry/utils';
+import {uuid4} from '@sentry/core';
 
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import type {
-  TracePerformanceIssue,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTraceNode,
+  isEAPSpanNode,
   isTransactionNode,
-} from '../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
-import {ParentAutogroupNode} from './parentAutogroupNode';
-import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import type {TraceTree} from './traceTree';
 import type {TraceTreeNode} from './traceTreeNode';
-
-export function makeEvent(
-  overrides: Partial<Event> = {},
-  spans: TraceTree.Span[] = []
-): Event {
-  return {
-    entries: [{type: EntryType.SPANS, data: spans}],
-    ...overrides,
-  } as Event;
-}
 
 export function makeTrace(
   overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
@@ -39,6 +18,26 @@ export function makeTrace(
     orphan_errors: [],
     ...overrides,
   } as TraceSplitResults<TraceTree.Transaction>;
+}
+
+export function makeEAPTrace(overrides: Partial<TraceTree.EAPTrace>): TraceTree.EAPTrace {
+  return (overrides ?? [
+    makeEAPSpan({
+      event_id: 'eap-span-1',
+      start_timestamp: 1,
+      end_timestamp: 3,
+      is_transaction: true,
+      children: [
+        makeEAPSpan({
+          event_id: 'eap-span-2',
+          start_timestamp: 2,
+          end_timestamp: 3,
+          is_transaction: false,
+          children: [],
+        }),
+      ],
+    }),
+  ]) as TraceTree.EAPTrace;
 }
 
 export function makeTransaction(
@@ -71,6 +70,62 @@ export function makeSpan(overrides: Partial<TraceTree.Span> = {}): TraceTree.Spa
   };
 }
 
+export function makeEAPSpan(
+  overrides: Partial<TraceTree.EAPSpan> = {}
+): TraceTree.EAPSpan {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    op: 'span.op',
+    description: 'span.description',
+    start_timestamp: 0,
+    end_timestamp: 10,
+    is_transaction: false,
+    project_id: 1,
+    project_slug: 'project_slug',
+    transaction: 'span.transaction',
+    parent_span_id: null,
+    children: [],
+    errors: [],
+    measurements: {},
+    duration: 10,
+    ...overrides,
+  } as TraceTree.EAPSpan;
+}
+
+export function makeEAPError(
+  overrides: Partial<TraceTree.EAPError> = {}
+): TraceTree.EAPError {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    description: 'Test Error',
+    start_timestamp: 0,
+    project_id: 1,
+    project_slug: 'project_slug',
+    level: 'error',
+    event_type: 'error',
+    issue_id: 1,
+    transaction: 'test error transaction',
+    ...overrides,
+  } as TraceTree.EAPError;
+}
+
+export function makeEAPOccurrence(
+  overrides: Partial<TraceTree.EAPOccurrence> = {}
+): TraceTree.EAPOccurrence {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    description: 'Test Occurence',
+    start_timestamp: 0,
+    project_id: 1,
+    project_slug: 'project_slug',
+    transaction: 'occurence.transaction',
+    event_type: 'occurrence',
+    issue_id: 1,
+    level: 'info',
+    ...overrides,
+  };
+}
+
 export function makeTraceError(
   overrides: Partial<TraceTree.TraceError> = {}
 ): TraceTree.TraceError {
@@ -78,14 +133,15 @@ export function makeTraceError(
     title: 'MaybeEncodingError: Error sending result',
     level: 'error',
     event_type: 'error',
+    message: 'error message',
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
 }
 
 export function makeTracePerformanceIssue(
-  overrides: Partial<TracePerformanceIssue> = {}
-): TracePerformanceIssue {
+  overrides: Partial<TraceTree.TracePerformanceIssue> = {}
+): TraceTree.TracePerformanceIssue {
   return {
     culprit: 'code',
     end: new Date().toISOString(),
@@ -95,19 +151,7 @@ export function makeTracePerformanceIssue(
     type: 0,
     issue_short_id: 'issue short id',
     ...overrides,
-  } as TracePerformanceIssue;
-}
-
-export function makeTraceMetaQueryResults(
-  overrides: Partial<TraceMetaQueryResults> = {}
-): TraceMetaQueryResults {
-  return {
-    data: undefined,
-    errors: [],
-    isLoading: false,
-    status: 'idle',
-    ...overrides,
-  } as TraceMetaQueryResults;
+  } as TraceTree.TracePerformanceIssue;
 }
 
 export function makeEventTransaction(
@@ -145,22 +189,6 @@ export function makeSiblingAutogroup(
   } as TraceTree.SiblingAutogroup;
 }
 
-export function assertSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.Span> {
-  if (!isSpanNode(node)) {
-    throw new Error('node is not a span');
-  }
-}
-
-export function assertTraceNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.Trace> {
-  if (!isTraceNode(node)) {
-    throw new Error('node is not a trace');
-  }
-}
-
 export function assertTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue> | null
 ): asserts node is TraceTreeNode<TraceTree.Transaction> {
@@ -169,43 +197,11 @@ export function assertTransactionNode(
   }
 }
 
-export function assertMissingInstrumentationNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
-  if (!isMissingInstrumentationNode(node)) {
-    throw new Error('node is not a missing instrumentation node');
-  }
-}
-
-export function assertTraceErrorNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.TraceError> {
-  if (!isTraceErrorNode(node)) {
-    throw new Error('node is not a trace error node');
-  }
-}
-
-export function assertAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is ParentAutogroupNode | SiblingAutogroupNode {
-  if (!isAutogroupedNode(node)) {
-    throw new Error('node is not a autogrouped node');
-  }
-}
-
-export function assertParentAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is ParentAutogroupNode {
-  if (!(node instanceof ParentAutogroupNode)) {
-    throw new Error('node is not a parent autogrouped node');
-  }
-}
-
-export function assertSiblingAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is ParentAutogroupNode {
-  if (!(node instanceof SiblingAutogroupNode)) {
-    throw new Error('node is not a parent node');
+export function assertEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue> | null
+): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
+  if (!node || !isEAPSpanNode(node)) {
+    throw new Error('node is not a eap span');
   }
 }
 

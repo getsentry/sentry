@@ -16,8 +16,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
-import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -34,18 +32,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
 });`;
 
-const getMetricsConfigureSnippet = (params: Params) => `
-import * as Sentry from '@sentry/electron/main';
-
-// main process init
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Only needed for SDK versions < 8.0.0
-  // _experiments: {
-  //   metricsAggregator: true,
-  // },
-});`;
-
 const getInstallConfig = () => [
   {
     code: [
@@ -60,6 +46,12 @@ const getInstallConfig = () => [
         value: 'yarn',
         language: 'bash',
         code: 'yarn add @sentry/electron',
+      },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/electron',
       },
     ],
   },
@@ -171,95 +163,6 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const customMetricsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [code:4.17.0] of [code:@sentry/electron].',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'With the default snippet in place, there is no need for any further configuration.'
-      ),
-      configurations: [
-        {
-          code: getMetricsConfigureSnippet(params),
-          language: 'javascript',
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: metricTagsExplanation,
-        },
-        {
-          description: t('Try out these examples:'),
-          code: [
-            {
-              label: 'Counter',
-              value: 'counter',
-              language: 'javascript',
-              code: exampleSnippets.javascript.counter,
-            },
-            {
-              label: 'Distribution',
-              value: 'distribution',
-              language: 'javascript',
-              code: exampleSnippets.javascript.distribution,
-            },
-            {
-              label: 'Set',
-              value: 'set',
-              language: 'javascript',
-              code: exampleSnippets.javascript.set,
-            },
-            {
-              label: 'Gauge',
-              value: 'gauge',
-              language: 'javascript',
-              code: exampleSnippets.javascript.gauge,
-            },
-          ],
-        },
-        {
-          description: t(
-            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/electron/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-};
-
 const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
@@ -358,7 +261,6 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding,
   crashReportOnboarding,
 };
 

@@ -71,7 +71,7 @@ function initializeData({
 function TestComponent({
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
-  router: InjectedRouter<Record<string, string>, any>;
+  router: InjectedRouter;
 }) {
   if (!props.organization) {
     throw new Error('Missing organization');
@@ -90,8 +90,6 @@ function TestComponent({
 describe('Performance > TransactionSummary', function () {
   let eventStatsMock: jest.Mock;
   beforeEach(function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
     // Small screen size will hide search bar trailing items like warning icon
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
@@ -522,6 +520,17 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {
+        count: 0,
+      },
+    });
+
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
@@ -530,8 +539,7 @@ describe('Performance > TransactionSummary', function () {
     ProjectsStore.reset();
     jest.clearAllMocks();
 
-    // Cleanup clientWidth mock
-    // @ts-expect-error
+    // @ts-expect-error Cleanup clientWidth mock
     delete HTMLElement.prototype.clientWidth;
   });
 
@@ -548,6 +556,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -588,7 +597,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    it('renders feature flagged UI elements', function () {
+    it('renders feature flagged UI elements', async function () {
       const {organization, router} = initializeData({
         features: ['incidents'],
       });
@@ -602,11 +611,14 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
       // Ensure create alert from discover is shown with metric alerts
-      expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Create Alert'})
+      ).toBeInTheDocument();
     });
 
     it('renders Web Vitals widget', async function () {
@@ -627,6 +639,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -655,6 +668,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -722,7 +736,11 @@ describe('Performance > TransactionSummary', function () {
           router={router}
           location={router.location}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       renderGlobalModal();
@@ -734,11 +752,11 @@ describe('Performance > TransactionSummary', function () {
 
       await userEvent.click(firstProjectOption);
       expect(spy).toHaveBeenCalledWith(
-        '/organizations/org-slug/performance/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1'
+        '/organizations/org-slug/insights/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1'
       );
     });
 
-    it('fetches transaction threshold', function () {
+    it('fetches transaction threshold', async function () {
       const {organization, router} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -768,8 +786,11 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
+
+      expect(await screen.findByText('Transaction Summary')).toBeInTheDocument();
 
       expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
       expect(getProjectThresholdMock).not.toHaveBeenCalled();
@@ -802,6 +823,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -823,6 +845,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -862,6 +885,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -894,6 +918,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -933,6 +958,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -975,6 +1001,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1008,6 +1035,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1033,6 +1061,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1051,6 +1080,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1080,6 +1110,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1141,6 +1172,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1190,6 +1222,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1246,6 +1279,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1329,6 +1363,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 

@@ -1,4 +1,4 @@
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -24,12 +24,12 @@ export function useSystemSelectorOptions() {
     'api.starfish.database-system-selector'
   );
 
-  const options: SelectOption<string>[] = [];
+  const options: Array<SelectOption<string>> = [];
   data.forEach(entry => {
     const system = entry['span.system'];
     if (system) {
       const textValue =
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
       const supportedSystemSet: Set<string> = new Set(
@@ -43,7 +43,7 @@ export function useSystemSelectorOptions() {
   });
 
   // Edge case: Invalid DB system was retrieved from localStorage
-  if (!options.find(option => selectedSystem === option.value) && options.length > 0) {
+  if (!options.some(option => selectedSystem === option.value) && options.length > 0) {
     setSelectedSystem(options[0]!.value);
   }
 

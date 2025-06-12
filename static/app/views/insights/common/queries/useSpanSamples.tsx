@@ -1,18 +1,19 @@
-import moment from 'moment-timezone';
-import * as qs from 'query-string';
-
-import {useQuery} from 'sentry/utils/queryClient';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {DATE_FORMAT} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanIndexedFieldTypes,
+  SpanIndexedProperty,
+  SpanIndexedResponse,
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
@@ -20,10 +21,11 @@ import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
-type Options = {
+type Options<Fields extends NonDefaultSpanSampleFields[]> = {
   groupId: string;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: Fields;
+  referrer?: string;
   release?: string;
   spanSearch?: MutableSearch;
   subregions?: SubregionCode[];
@@ -33,19 +35,32 @@ type Options = {
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
   | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.PROFILE_ID
   | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanIndexedField.TRACE
 >;
 
-export const useSpanSamples = (options: Options) => {
+export type DefaultSpanSampleFields =
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TRANSACTION_SPAN_ID
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.SPAN_ID
+  | SpanIndexedField.PROFILE_ID
+  | SpanIndexedField.SPAN_SELF_TIME;
+
+export type NonDefaultSpanSampleFields = Exclude<
+  SpanIndexedProperty,
+  DefaultSpanSampleFields
+>;
+
+export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
+  options: Options<Fields>
+) => {
   const organization = useOrganization();
-  const url = `/api/0/organizations/${organization.slug}/spans-samples/`;
-  const api = useApi();
   const pageFilter = usePageFilters();
   const {
     groupId,
@@ -53,12 +68,13 @@ export const useSpanSamples = (options: Options) => {
     transactionMethod,
     release,
     spanSearch,
-    additionalFields,
     subregions,
+    additionalFields = [],
   } = options;
   const location = useLocation();
+  const useEap = useInsightsEap();
 
-  const query = spanSearch !== undefined ? spanSearch.copy() : new MutableSearch([]);
+  const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
   query.addFilterValue('transaction', transactionName);
 
@@ -78,11 +94,11 @@ export const useSpanSamples = (options: Options) => {
 
   if (subregions) {
     query.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const dateCondtions = getDateConditions(pageFilter.selection);
+  const dateConditions = getDateConditions(pageFilter.selection);
 
   const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {
@@ -95,51 +111,51 @@ export const useSpanSamples = (options: Options) => {
     'api.starfish.sidebar-span-metrics'
   );
 
-  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
+  const min = 0;
+  const max = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
-  const queryString = query.formatString();
+  type DataRow = Pick<
+    SpanIndexedResponse,
+    Fields[number] | DefaultSpanSampleFields // These fields are returned by default
+  >;
 
-  const result = useQuery<SpanSample[]>({
-    queryKey: [
-      'span-samples',
-      groupId,
-      transactionName,
-      dateCondtions.statsPeriod,
-      dateCondtions.start,
-      dateCondtions.end,
-      queryString,
-      subregions?.join(','),
-      additionalFields?.join(','),
-    ],
-    queryFn: async () => {
-      const {data} = await api.requestPromise(
-        `${url}?${qs.stringify({
-          ...dateCondtions,
-          ...{utc: location.query.utc},
-          lowerBound: 0,
-          firstBound: maxYValue * (1 / 3),
-          secondBound: maxYValue * (2 / 3),
-          upperBound: maxYValue,
+  return useApiQuery<{
+    data: DataRow[];
+    meta: EventsMetaType;
+  }>(
+    [
+      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      {
+        query: {
+          query: query.formatString(),
           project: pageFilter.selection.projects,
-          query: queryString,
-          ...(additionalFields?.length ? {additionalFields} : {}),
-        })}`
-      );
-      return data
-        ?.map((d: SpanSample) => ({
-          ...d,
-          timestamp: moment(d.timestamp).format(DATE_FORMAT),
-        }))
-        .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]);
-    },
-    refetchOnWindowFocus: false,
-    enabled,
-    initialData: [],
-  });
-
-  return {...result, isEnabled: enabled};
+          ...dateConditions,
+          ...{utc: location.query.utc},
+          environment: pageFilter.selection.environments,
+          lowerBound: min,
+          firstBound: max * (1 / 3),
+          secondBound: max * (2 / 3),
+          upperBound: max,
+          additionalFields: [
+            SpanIndexedField.ID,
+            SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
+            ...additionalFields,
+          ],
+          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
+          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
+          sort: `-${SPAN_SELF_TIME}`,
+        },
+      },
+    ],
+    {
+      enabled,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
 };

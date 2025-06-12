@@ -10,11 +10,11 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStepRails,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getRubyMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -29,7 +29,11 @@ const generatorSnippet = 'bin/rails generate sentry';
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
   config.dsn = '${params.dsn.public}'
-  config.breadcrumbs_logger = [:active_support_logger, :http_logger]${
+  config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+
+  # Add data like request headers and IP for users,
+  # see https://docs.sentry.io/platforms/ruby/data-management/data-collected/ for more info
+  config.send_default_pii = true${
     params.isPerformanceSelected
       ? `
 
@@ -199,10 +203,10 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getRubyMetricsOnboarding(),
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: getRubyProfilingOnboarding({frameworkPackage: 'sentry-rails'}),
 };
 
 export default docs;

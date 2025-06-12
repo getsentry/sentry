@@ -1,4 +1,4 @@
-import {useLayoutEffect, useState} from 'react';
+import {useLayoutEffect} from 'react';
 import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -38,7 +38,7 @@ export function initializeFlamegraphRenderer(
     let r: FlamegraphRenderer | UIFramesRenderer | null = null;
     try {
       // type, even though they are.
-      // @ts-ignore TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
+      // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       r = new renderer(...constructorArgs);
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -185,9 +185,9 @@ function onResize(entries: ResizeObserverEntry[]) {
         width = entry.contentBoxSize[0].inlineSize;
         height = entry.contentBoxSize[0].blockSize;
       } else {
-        // @ts-ignore TS(2339): Property 'inlineSize' does not exist on type 'read... Remove this comment to see the full error message
+        // @ts-expect-error TS(2339): Property 'inlineSize' does not exist on type 'read... Remove this comment to see the full error message
         width = entry.contentBoxSize.inlineSize;
-        // @ts-ignore TS(2339): Property 'blockSize' does not exist on type 'reado... Remove this comment to see the full error message
+        // @ts-expect-error TS(2339): Property 'blockSize' does not exist on type 'reado... Remove this comment to see the full error message
         height = entry.contentBoxSize.blockSize;
       }
     } else {
@@ -362,11 +362,11 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
 
   if (high === 1) {
     return getValue
-      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         getValue(values[0]) < target
         ? 1
         : 0
-      : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         values[0].start < target
         ? 1
         : 0;
@@ -374,7 +374,7 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const value = getValue ? getValue(values[mid]) : values[mid].start;
 
     if (value < target) {
@@ -568,7 +568,7 @@ export function computeHighlightedBounds(
     return [bounds[0] - trim.length + 1, bounds[1] - trim.length + 1];
   }
 
-  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${trim}`);
+  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${JSON.stringify(trim)}`);
 }
 
 // Utility function to allow zooming into frames using a specific strategy. Supports
@@ -695,8 +695,8 @@ export function getTranslationMatrixFromPhysicalSpace(
   deltaY: number,
   view: CanvasView<any>,
   canvas: FlamegraphCanvas,
-  multiplierX: number = 0.8,
-  multiplierY: number = 1
+  multiplierX = 0.8,
+  multiplierY = 1
 ) {
   const physicalDelta = vec2.fromValues(deltaX * multiplierX, deltaY * multiplierY);
   const physicalToConfig = mat3.invert(
@@ -821,28 +821,21 @@ export function getMinimapCanvasCursor(
 }
 
 export function useResizeCanvasObserver(
-  canvases: (HTMLCanvasElement | null)[],
+  canvases: Array<HTMLCanvasElement | null>,
   canvasPoolManager: CanvasPoolManager,
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null
-): Rect {
-  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-
+) {
   useLayoutEffect(() => {
     if (!canvas || !canvases.length) {
       return undefined;
     }
 
-    if (canvases.some(c => c === null)) {
+    if (canvases.includes(null)) {
       return undefined;
     }
 
-    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
-      // We cannot use the resize observer's reported rect because it does not report x
-      // coordinate that is required to do edge detection.
-      const rect = entries[0]!.target.getBoundingClientRect();
-      setCanvasBounds(new Rect(rect.x, rect.y, rect.width, rect.height));
-
+    const observer = watchForResize(canvases as HTMLCanvasElement[], () => {
       canvas.initPhysicalSpace();
       if (view) {
         view.resizeConfigSpace(canvas);
@@ -854,6 +847,4 @@ export function useResizeCanvasObserver(
       observer.disconnect();
     };
   }, [canvases, canvas, view, canvasPoolManager]);
-
-  return bounds;
 }

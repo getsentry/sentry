@@ -1,20 +1,26 @@
 import * as Sentry from '@sentry/react';
 
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getTourTask, isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {
+  getDemoGuides,
+  getTourTask,
+  updateDemoWalkthroughTask,
+} from 'sentry/utils/demoMode/guides';
 
 import {demoEndModal} from './modal';
-import {updateOnboardingTask} from './onboardingTasks';
 
 const api = new Client();
 
 export async function fetchGuides() {
   try {
+    if (isDemoModeActive()) {
+      GuideStore.fetchSucceeded(getDemoGuides());
+      return;
+    }
     const data = await api.requestPromise('/assistant/');
     GuideStore.fetchSucceeded(data);
   } catch (err) {
@@ -40,10 +46,6 @@ export function setForceHide(forceHide: boolean) {
   GuideStore.setForceHide(forceHide);
 }
 
-export function toStep(step: number) {
-  GuideStore.toStep(step);
-}
-
 export function closeGuide(dismissed?: boolean) {
   GuideStore.closeGuide(dismissed);
 }
@@ -53,27 +55,23 @@ export function dismissGuide(guide: string, step: number, orgId: string | null) 
   closeGuide(true);
 }
 
-export function recordFinish(
-  guide: string,
-  orgId: string | null,
-  orgSlug: string | null,
-  org: Organization | null
-) {
-  api.requestPromise('/assistant/', {
-    method: 'PUT',
-    data: {
-      guide,
-      status: 'viewed',
-    },
-  });
+export function recordFinish(guide: string, orgId: string | null) {
+  if (!isDemoModeActive()) {
+    api.requestPromise('/assistant/', {
+      method: 'PUT',
+      data: {
+        guide,
+        status: 'viewed',
+      },
+    });
+  }
 
   const tourTask = getTourTask(guide);
 
-  if (isDemoModeEnabled() && tourTask && org) {
+  if (isDemoModeActive() && tourTask) {
     const {tour, task} = tourTask;
-    updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
-    fetchOrganizationDetails(api, org.slug, true, false);
-    demoEndModal({tour, orgSlug});
+    updateDemoWalkthroughTask({task, status: 'complete', completionSeen: true});
+    demoEndModal({tour});
   }
 
   const user = ConfigStore.get('user');
@@ -87,14 +85,16 @@ export function recordFinish(
   });
 }
 
-export function recordDismiss(guide: string, step: number, orgId: string | null) {
-  api.requestPromise('/assistant/', {
-    method: 'PUT',
-    data: {
-      guide,
-      status: 'dismissed',
-    },
-  });
+function recordDismiss(guide: string, step: number, orgId: string | null) {
+  if (!isDemoModeActive()) {
+    api.requestPromise('/assistant/', {
+      method: 'PUT',
+      data: {
+        guide,
+        status: 'dismissed',
+      },
+    });
+  }
 
   const user = ConfigStore.get('user');
   if (!user) {

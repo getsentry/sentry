@@ -38,7 +38,7 @@ export const useSelectedSavedSearch = (): SavedSearch | null => {
             ...selectedSavedSearch,
             name: PINNED_SEARCH_NAME,
           }
-        : selectedSavedSearch ?? null,
+        : (selectedSavedSearch ?? null),
     [selectedSavedSearch]
   );
 };

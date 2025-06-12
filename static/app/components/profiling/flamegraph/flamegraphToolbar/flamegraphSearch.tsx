@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,7 @@ export function searchFrameFzf(
   return match;
 }
 
-export function searchSpanFzf(
+function searchSpanFzf(
   span: SpanChartNode,
   matches: FlamegraphSearchResults['results']['spans'],
   query: string
@@ -86,7 +86,7 @@ export function searchFrameRegExp(
   return match;
 }
 
-export function searchSpanRegExp(
+function searchSpanRegExp(
   span: SpanChartNode,
   matches: FlamegraphSearchResults['results']['spans'],
   query: string,
@@ -221,11 +221,11 @@ function sortByDepthAndStart(
 
 function sortFrameResults(
   results: FlamegraphSearchResults['results']
-): (FlamegraphFrame | SpanChartNode)[] {
+): Array<FlamegraphFrame | SpanChartNode> {
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: (SpanChartNode | FlamegraphFrame)[] = new Array(results.frames.size);
+  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.frames.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }

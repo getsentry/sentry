@@ -32,7 +32,7 @@ function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
 /**
  * Recursively finds and returns disabled items
  */
-function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
+function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   return source.reduce<string[]>((acc, cur) => {
     if (cur.disabled) {
       // If an item is disabled, then its children will be inaccessible, so we
@@ -65,6 +65,7 @@ export interface DropdownMenuProps
       | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'shouldApplyMinWidth'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -83,11 +84,11 @@ export interface DropdownMenuProps
   /**
    * Title for the current menu.
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
   /**
    * Reference to the container element that the portal should be rendered into.
    */
-  portalContainerRef?: React.RefObject<HTMLElement>;
+  portalContainerRef?: React.RefObject<HTMLElement | null>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -155,6 +156,7 @@ function DropdownMenu({
   preventOverflowOptions,
   flipOptions,
   portalContainerRef,
+  shouldApplyMinWidth,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -179,6 +181,7 @@ function DropdownMenu({
     preventOverflowOptions,
     flipOptions,
     onOpenChange,
+    shouldApplyMinWidth,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -215,7 +218,17 @@ function DropdownMenu({
     );
   }
 
-  const activeItems = useMemo(() => removeHiddenItems(items), [items]);
+  const activeItems = useMemo(
+    () =>
+      removeHiddenItems(items).map(item => {
+        return {
+          ...item,
+          // react-aria uses the href prop on item state to determine if the item is a link
+          href: item.to ?? item.externalHref,
+        };
+      }),
+    [items]
+  );
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
@@ -238,7 +251,7 @@ function DropdownMenu({
             return (
               <Section key={item.key} title={item.label} items={item.children}>
                 {sectionItem => (
-                  <Item size={size} {...sectionItem}>
+                  <Item size={size} {...sectionItem} key={sectionItem.key}>
                     {sectionItem.label}
                   </Item>
                 )}

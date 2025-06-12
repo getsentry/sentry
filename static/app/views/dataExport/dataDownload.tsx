@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -31,7 +32,7 @@ type Download = {
   dateCreated: string;
   id: number;
   query: {
-    info: object;
+    info: Record<PropertyKey, unknown>;
     type: ExportQueryType;
   };
   status: DownloadStatus;
@@ -44,7 +45,7 @@ type Download = {
   dateFinished?: string;
 };
 
-type Props = {} & RouteComponentProps<RouteParams, {}>;
+type Props = {} & RouteComponentProps<RouteParams>;
 
 function DataDownload({params: {orgId, dataExportId}}: Props) {
   const {

@@ -8,9 +8,7 @@ const IconDefaultsContext = createContext<SVGIconProps>({});
  * Use this context provider to set default values for icons.
  */
 function IconDefaultsProvider({children, ...props}: SVGIconProps) {
-  return (
-    <IconDefaultsContext.Provider value={props}>{children}</IconDefaultsContext.Provider>
-  );
+  return <IconDefaultsContext value={props}>{children}</IconDefaultsContext>;
 }
 
 /**

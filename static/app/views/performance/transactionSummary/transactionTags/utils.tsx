@@ -6,14 +6,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-export function generateTagsRoute({
-  orgSlug,
+function generateTagsRoute({
+  organization,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   view?: DomainView;
 }): string {
-  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/tags/`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/tags/`;
 }
 
 export function decodeSelectedTagKey(location: Location): string | undefined {
@@ -25,20 +25,20 @@ export function trackTagPageInteraction(organization: Organization) {
 }
 
 export function tagsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
   view?: DomainView;
 }) {
   const pathname = generateTagsRoute({
-    orgSlug,
+    organization,
     view,
   });
 
@@ -59,17 +59,17 @@ export function tagsRouteWithQuery({
 
 export function getTagSortForTagsPage(location: Location) {
   // Retrieves the tag from the same query param segment explorer uses, but removes columns that aren't supported.
-  let tagSort = decodeScalar(location.query?.tagSort) ?? '-frequency';
+  const tagSort = decodeScalar(location.query?.tagSort) ?? '-frequency';
 
-  if (['sumdelta'].find(denied => tagSort?.includes(denied))) {
-    tagSort = '-frequency';
+  if (tagSort.includes('sumdelta')) {
+    return '-frequency';
   }
 
   return tagSort;
 }
 
 // TODO(k-fish): Improve meta of backend response to return these directly
-export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) {
+export function parseHistogramBucketInfo(row: Record<string, string | number>) {
   const field = Object.keys(row).find(f => f.includes('histogram'));
   if (!field) {
     return undefined;

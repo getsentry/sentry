@@ -59,7 +59,7 @@ function EventTagsContent({
           <EventTagsValue
             tag={tag}
             meta={meta?.value?.['']}
-            streamPath={`${getTransactionSummaryBaseUrl(organization.slug)}/`}
+            streamPath={`${getTransactionSummaryBaseUrl(organization)}/`}
             locationSearch={`?${qs.stringify({
               project: projectId,
               transaction: value,

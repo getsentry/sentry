@@ -1,7 +1,6 @@
+import {Frame} from 'sentry/utils/profiling/frame';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-
-import {Frame} from '../frame';
 
 import {firstCallee, makeTestingBoilerplate} from './testUtils';
 
@@ -125,10 +124,10 @@ describe('SampledProfile', () => {
 
     const root = firstCallee(profile.callTree)!;
 
-    expect(root!.totalWeight).toBe(2);
+    expect(root.totalWeight).toBe(2);
     expect(firstCallee(root)!.totalWeight).toBe(2);
 
-    expect(root!.selfWeight).toBe(0);
+    expect(root.selfWeight).toBe(0);
     expect(firstCallee(root)!.selfWeight).toBe(2);
   });
 

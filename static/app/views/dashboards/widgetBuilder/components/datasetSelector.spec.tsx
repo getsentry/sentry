@@ -32,6 +32,7 @@ describe('DatasetSelector', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -41,7 +42,8 @@ describe('DatasetSelector', function () {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({dataset: 'issue'}),
-      })
+      }),
+      expect.anything()
     );
   });
 });

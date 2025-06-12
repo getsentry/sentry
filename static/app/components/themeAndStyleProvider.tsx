@@ -1,13 +1,14 @@
 import {Fragment, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
+import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
 
 type Props = {
   children: React.ReactNode;
@@ -28,14 +29,15 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
+  // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
-  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const theme = useThemeSwitcher();
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
+    <ThemeProvider theme={theme as Theme}>
+      <GlobalStyles isDark={config.theme === 'dark'} theme={theme as Theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>

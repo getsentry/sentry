@@ -74,9 +74,9 @@ export function RowReplayTimeIndicators() {
   return (
     <Fragment>
       <RowIndicatorBar style={{left: toPercent(currentTime / durationMs)}} />
-      {currentHoverTime !== undefined ? (
+      {currentHoverTime === undefined ? null : (
         <RowHoverIndicatorBar style={{left: toPercent(currentHoverTime / durationMs)}} />
-      ) : null}
+      )}
     </Fragment>
   );
 }

@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
-from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer
 from sentry.utils import json
 
 MAPPING_META = "mapping_meta"
@@ -67,7 +67,9 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter):
 
 
 def _update_stale_last_seen(
-    table: IndexerTable, seen_ints: set[int], new_last_seen_time: datetime.datetime | None = None
+    table: type[BaseIndexer],
+    seen_ints: set[int],
+    new_last_seen_time: datetime.datetime | None = None,
 ) -> int:
     if new_last_seen_time is None:
         new_last_seen_time = timezone.now()

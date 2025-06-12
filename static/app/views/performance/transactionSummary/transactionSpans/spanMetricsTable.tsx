@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -37,14 +39,14 @@ type DataRow = {
   [SpanMetricsField.SPAN_DESCRIPTION]: string;
   [SpanMetricsField.SPAN_GROUP]: string;
   'avg(span.duration)': number;
-  'spm()': number;
+  'epm()': number;
   'sum(span.duration)': number;
 };
 
 type ColumnKeys =
   | SpanMetricsField.SPAN_OP
   | SpanMetricsField.SPAN_DESCRIPTION
-  | 'spm()'
+  | 'epm()'
   | `avg(${SpanMetricsField.SPAN_DURATION})`
   | `sum(${SpanMetricsField.SPAN_DURATION})`;
 
@@ -62,7 +64,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: t('Throughput'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -81,7 +83,7 @@ const COLUMN_ORDER: Column[] = [
 const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
   [SpanMetricsField.SPAN_OP]: 'string',
   [SpanMetricsField.SPAN_DESCRIPTION]: 'string',
-  ['spm()']: 'rate',
+  ['epm()']: 'rate',
   [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
   [`sum(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
 };
@@ -101,6 +103,7 @@ export default function SpanMetricsTable(props: Props) {
   const location = useLocation();
   const sort = useSpansTabTableSort();
   const domainViewFilters = useDomainViewFilters();
+  const theme = useTheme();
 
   const query = useLocationQuery({
     fields: {
@@ -133,7 +136,7 @@ export default function SpanMetricsTable(props: Props) {
         SpanMetricsField.SPAN_OP,
         SpanMetricsField.SPAN_DESCRIPTION,
         SpanMetricsField.SPAN_GROUP,
-        `spm()`,
+        `epm()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
         `sum(${SpanMetricsField.SPAN_DURATION})`,
       ],
@@ -170,11 +173,12 @@ export default function SpanMetricsTable(props: Props) {
               }),
             // This is now caught by noUncheckedIndexedAccess, ignoring for now as
             // it seems related to some nasty grid editable generic.
-            // @ts-ignore TS(2769): No overload matches this call.
+            // @ts-expect-error TS(2769): No overload matches this call.
             renderBodyCell: renderBodyCell(
               location,
               organization,
               transactionName,
+              theme,
               project,
               domainViewFilters?.view
             ),
@@ -190,13 +194,14 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   transactionName: string,
+  theme: Theme,
   project?: Project,
   view?: DomainView
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     if (column.key === SpanMetricsField.SPAN_OP) {
       const target = spanDetailsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: ''},
@@ -217,7 +222,7 @@ function renderBodyCell(
       }
 
       const target = spanDetailsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: dataRow['span.group']},
@@ -233,7 +238,7 @@ function renderBodyCell(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE, false);
-    const rendered = fieldRenderer(dataRow, {location, organization});
+    const rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     return rendered;
   };

@@ -9,10 +9,10 @@ ValidationError = serializers.ValidationError
 
 @extend_schema_field(field=OpenApiTypes.STR)
 class ProjectField(serializers.Field):
-    def __init__(self, scope="project:write", id_allowed=False):
+    def __init__(self, scope="project:write", id_allowed=False, **kwags):
         self.scope = scope
         self.id_allowed = id_allowed
-        super().__init__()
+        super().__init__(**kwags)
 
     def to_representation(self, value):
         return value

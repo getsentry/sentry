@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-const FieldRequiredBadge = styled('div')`
+export const FieldRequiredBadge = styled('div')`
   display: inline-block;
   background: ${p => p.theme.red300};
   opacity: 0.6;
@@ -13,5 +13,3 @@ const FieldRequiredBadge = styled('div')`
   vertical-align: super;
   margin-left: ${space(0.5)};
 `;
-
-export default FieldRequiredBadge;

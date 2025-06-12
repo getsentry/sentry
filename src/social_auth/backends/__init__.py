@@ -535,7 +535,6 @@ class BaseOAuth2(OAuthAuth):
 
     AUTHORIZATION_URL: str
     ACCESS_TOKEN_URL: str
-    REFRESH_TOKEN_URL = None
     REVOKE_TOKEN_URL: str | None = None
     REVOKE_TOKEN_METHOD = "POST"
     RESPONSE_TYPE = "code"
@@ -658,9 +657,7 @@ class BaseOAuth2(OAuthAuth):
     @classmethod
     def refresh_token(cls, token, provider):
         params = cls.refresh_token_params(token, provider)
-        response = requests.post(
-            cls.REFRESH_TOKEN_URL or cls.ACCESS_TOKEN_URL, data=params, headers=cls.auth_headers()
-        )
+        response = requests.post(cls.ACCESS_TOKEN_URL, data=params, headers=cls.auth_headers())
         response.raise_for_status()
         return response.json()
 
@@ -728,8 +725,6 @@ def get_backends(force_load=False):
     A force_load boolean arg is also provided so that get_backend
     below can retry a requested backend that may not yet be discovered.
     """
-    global BACKENDSCACHE
-
     if not BACKENDSCACHE or force_load:
         with _import_lock:
             for auth_backend in setting("AUTHENTICATION_BACKENDS"):

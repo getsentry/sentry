@@ -11,16 +11,19 @@ from sentry import analytics, features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.issues.ownership.grammar import (
+    convert_codeowners_syntax,
+    create_schema_from_issue_owners,
+)
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
 from sentry.utils.codeowners import MAX_RAW_LENGTH
 
 from .analytics import *  # NOQA
 
 
-class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
+class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
     organization_integration_id = serializers.IntegerField(required=False)
@@ -114,9 +117,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         if "id" in validated_data:
             validated_data.pop("id")
         for key, value in validated_data.items():
-            setattr(self.instance, key, value)
-        self.instance.save()
-        return self.instance
+            setattr(instance, key, value)
+        instance.save()
+        return instance
 
 
 class ProjectCodeOwnersMixin:

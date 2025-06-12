@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sentry_sdk
-from snuba_sdk import AliasedExpression, Function
+from snuba_sdk import AliasedExpression, Column, Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -139,3 +139,30 @@ def resolve_precise_timestamp(timestamp_column: str, ms_column: str, alias: str)
         ],
         alias,
     )
+
+
+def resolve_user_display_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+    columns = ["user.email", "user.username", "user.id", "user.ip"]
+    return Function(
+        "coalesce",
+        [Function("nullif", [builder.column(column), ""]) for column in columns],
+        alias,
+    )
+
+
+def resolve_replay_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+    # pageload spans have `replayId` while standalone spans have `replay.id`
+    columns = ["replay.id", "replayId"]
+    return Function(
+        "coalesce",
+        [Function("nullif", [builder.column(column), ""]) for column in columns],
+        alias,
+    )
+
+
+def resolve_column_if_exists(builder: BaseQueryBuilder, alias: str) -> SelectType:
+    if hasattr(builder, "resolve_tag_key"):
+        hasColumn = builder.resolve_tag_key(alias)
+        if hasColumn:
+            return builder.column(alias)
+    return Column("null")

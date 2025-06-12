@@ -5,9 +5,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {Button} from 'sentry/components/button';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
@@ -17,7 +18,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
 import {MAX_FUNCTIONS} from './constants';
 import {
@@ -53,6 +54,7 @@ interface FunctionTrendsWidgetProps {
   trendType: TrendType;
   cursorName?: string;
   header?: ReactNode;
+  onDataState?: (dataState: DataState) => void;
   userQuery?: string;
   widgetHeight?: string;
 }
@@ -64,8 +66,17 @@ export function FunctionTrendsWidget({
   trendType,
   widgetHeight,
   userQuery,
+  onDataState,
 }: FunctionTrendsWidgetProps) {
   const location = useLocation();
+  const organization = useOrganization();
+
+  const analyticsSource =
+    trendType === 'regression'
+      ? 'regressed functions'
+      : trendType === 'improvement'
+        ? 'improved functions'
+        : 'function trends';
 
   const [expandedIndex, setExpandedIndex] = useState(0);
 
@@ -84,6 +95,17 @@ export function FunctionTrendsWidget({
     [cursorName]
   );
 
+  const paginationAnalyticsEvent = useCallback(
+    (direction: string) => {
+      trackAnalytics('profiling_views.landing.widget.pagination', {
+        organization,
+        direction,
+        source: analyticsSource,
+      });
+    },
+    [organization, analyticsSource]
+  );
+
   const trendsQuery = useProfileFunctionTrends({
     trendFunction,
     trendType,
@@ -100,12 +122,27 @@ export function FunctionTrendsWidget({
   const isLoading = trendsQuery.isPending;
   const isError = trendsQuery.isError;
 
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasTrends) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasTrends, isLoading, isError]);
+
   return (
     <WidgetContainer height={widgetHeight}>
       <FunctionTrendsWidgetHeader
         header={header}
         handleCursor={handleCursor}
         pageLinks={trendsQuery.getResponseHeader?.('Link') ?? null}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
         trendType={trendType}
       />
       <ContentContainer>
@@ -138,7 +175,11 @@ export function FunctionTrendsWidget({
                   trendType={trendType}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => {
-                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    trackAnalytics('profiling_views.landing.widget.function_change', {
+                      organization,
+                      source: analyticsSource,
+                    });
+                    const nextIndex = expandedIndex === i ? (i + 1) % l.length : i;
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}
@@ -156,6 +197,7 @@ interface FunctionTrendsWidgetHeaderProps {
   handleCursor: CursorHandler;
   header: ReactNode;
   pageLinks: string | null;
+  paginationAnalyticsEvent: (direction: string) => void;
   trendType: TrendType;
 }
 
@@ -163,6 +205,7 @@ function FunctionTrendsWidgetHeader({
   handleCursor,
   header,
   pageLinks,
+  paginationAnalyticsEvent,
   trendType,
 }: FunctionTrendsWidgetHeaderProps) {
   switch (trendType) {
@@ -173,7 +216,12 @@ function FunctionTrendsWidgetHeader({
             <HeaderTitleLegend>{t('Most Regressed Functions')}</HeaderTitleLegend>
           )}
           <Subtitle>{t('Functions by most regressed.')}</Subtitle>
-          <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
+          <StyledPagination
+            pageLinks={pageLinks}
+            size="xs"
+            onCursor={handleCursor}
+            paginationAnalyticsEvent={paginationAnalyticsEvent}
+          />
         </HeaderContainer>
       );
     case 'improvement':
@@ -183,7 +231,12 @@ function FunctionTrendsWidgetHeader({
             <HeaderTitleLegend>{t('Most Improved Functions')}</HeaderTitleLegend>
           )}
           <Subtitle>{t('Functions by most improved.')}</Subtitle>
-          <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
+          <StyledPagination
+            pageLinks={pageLinks}
+            size="xs"
+            onCursor={handleCursor}
+            paginationAnalyticsEvent={paginationAnalyticsEvent}
+          />
         </HeaderContainer>
       );
     default:
@@ -222,13 +275,13 @@ function FunctionTrendsEntry({
       case 'improvement':
         trackAnalytics('profiling_views.go_to_flamegraph', {
           organization,
-          source: 'profiling.function_trends.improvement',
+          source: 'profiling.landing.widget.function_trends.improvement',
         });
         break;
       case 'regression':
         trackAnalytics('profiling_views.go_to_flamegraph', {
           organization,
-          source: 'profiling.function_trends.regression',
+          source: 'profiling.landing.widget.function_trends.regression',
         });
         break;
       default:
@@ -242,11 +295,11 @@ function FunctionTrendsEntry({
     // the same bucket as the breakpoint.
 
     const beforeTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: beforeExamples[beforeExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     before = (
@@ -256,11 +309,11 @@ function FunctionTrendsEntry({
     );
 
     const afterTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: afterExamples[afterExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     after = (
@@ -324,7 +377,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       data: func.stats.data.map(([timestamp, data]) => {
         return {
           name: timestamp * 1e3,
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value: data[0].count / 1e6,
         };
       }),
@@ -496,7 +549,7 @@ const FunctionTrendsChartContainer = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: flex;
   align-items: center;
   gap: ${space(1)};

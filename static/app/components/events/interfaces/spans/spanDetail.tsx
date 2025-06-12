@@ -1,13 +1,16 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
+import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -49,9 +52,7 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {OpsDot} from '../../opsBreakdown';
-
-import * as SpanEntryContext from './context';
+import {SpanEntryContext} from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
@@ -102,6 +103,7 @@ type Props = {
 };
 
 function SpanDetail(props: Props) {
+  const theme = useTheme();
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = props.event.contexts.profile?.profile_id;
@@ -131,7 +133,7 @@ function SpanDetail(props: Props) {
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
         <StyledDiscoverButton href="#" size="xs" disabled>
-          <StyledLoadingIndicator size={12} />
+          <StyledLoadingIndicator size={16} />
         </StyledDiscoverButton>
       );
     }
@@ -179,7 +181,7 @@ function SpanDetail(props: Props) {
         data-test-id="view-child-transactions"
         size="xs"
         to={childrenEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}
@@ -220,7 +222,7 @@ function SpanDetail(props: Props) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.project_id),
@@ -276,7 +278,7 @@ function SpanDetail(props: Props) {
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             query: location.query,
             spanSlug: {op: span.op, group: span.hash},
@@ -297,11 +299,13 @@ function SpanDetail(props: Props) {
     }
 
     return (
-      <Alert type="info" showIcon system>
-        {t(
-          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon system>
+          {t(
+            'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -321,49 +325,51 @@ function SpanDetail(props: Props) {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
-        <ErrorMessageTitle>
-          {tn(
-            '%s error event or performance issue is associated with this span.',
-            '%s error events or performance issues are associated with this span.',
-            relatedErrors.length
-          )}
-        </ErrorMessageTitle>
-        <Fragment>
-          {visibleErrors.map(error => (
-            <ErrorMessageContent
-              key={error.event_id}
-              excludeLevel={isErrorPerformanceError(error)}
-            >
-              {isErrorPerformanceError(error) ? (
-                <ErrorDot level="error" />
-              ) : (
-                <Fragment>
-                  <ErrorDot level={error.level} />
-                  <ErrorLevel>{error.level}</ErrorLevel>
-                </Fragment>
-              )}
+      <Alert.Container>
+        <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'} system>
+          <ErrorMessageTitle>
+            {tn(
+              '%s error event or performance issue is associated with this span.',
+              '%s error events or performance issues are associated with this span.',
+              relatedErrors.length
+            )}
+          </ErrorMessageTitle>
+          <Fragment>
+            {visibleErrors.map(error => (
+              <ErrorMessageContent
+                key={error.event_id}
+                excludeLevel={isErrorPerformanceError(error)}
+              >
+                {isErrorPerformanceError(error) ? (
+                  <ErrorDot level="error" />
+                ) : (
+                  <Fragment>
+                    <ErrorDot level={error.level} />
+                    <ErrorLevel>{error.level}</ErrorLevel>
+                  </Fragment>
+                )}
 
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        </Fragment>
-        {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
-          <ErrorToggle size="xs" onClick={toggleErrors}>
-            {errorsOpened ? t('Show less') : t('Show more')}
-          </ErrorToggle>
-        )}
-      </Alert>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </ErrorMessageContent>
+            ))}
+          </Fragment>
+          {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
+            <ErrorToggle size="xs" onClick={toggleErrors}>
+              {errorsOpened ? t('Show less') : t('Show more')}
+            </ErrorToggle>
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
   function partitionSizes(data: any): {
-    nonSizeKeys: {[key: string]: unknown};
-    sizeKeys: {[key: string]: number};
+    nonSizeKeys: Record<string, unknown>;
+    sizeKeys: Record<string, number>;
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce(
       (keys, key) => {
@@ -395,7 +401,16 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    return <SpanProfileDetails span={span} event={event} />;
+    return (
+      <SpanProfileDetails
+        span={{
+          span_id: span.span_id,
+          start_timestamp: span.start_timestamp,
+          end_timestamp: span.timestamp,
+        }}
+        event={event}
+      />
+    );
   }
 
   function renderSpanDetails() {
@@ -431,7 +446,7 @@ function SpanDetail(props: Props) {
       value => value === 0
     );
 
-    const timingKeys = getSpanSubTimings(span) ?? [];
+    const timingKeys = getSpanSubTimings(span, theme) ?? [];
 
     return (
       <Fragment>
@@ -523,12 +538,12 @@ function SpanDetail(props: Props) {
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
               <Row title="Origin">
-                {span.origin !== undefined ? String(span.origin) : null}
+                {span.origin === undefined ? null : String(span.origin)}
               </Row>
               <Row title="Same Process as Parent">
-                {span.same_process_as_parent !== undefined
-                  ? String(span.same_process_as_parent)
-                  : null}
+                {span.same_process_as_parent === undefined
+                  ? null
+                  : String(span.same_process_as_parent)}
               </Row>
               <Row title="Span Group">
                 {defined(span.hash) ? String(span.hash) : null}
@@ -567,11 +582,11 @@ function SpanDetail(props: Props) {
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
-                !isHiddenDataKey(key) ? (
+                isHiddenDataKey(key) ? null : (
                   <Row title={key} key={key}>
                     {maybeStringify(value)}
                   </Row>
-                ) : null
+                )
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
@@ -635,7 +650,6 @@ const ValueTd = styled('td')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
   margin: 0;
 `;
 
@@ -675,10 +689,10 @@ export function Row({
   extra = null,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
 }) {
   if (!keep && !children) {
     return null;
@@ -704,8 +718,8 @@ export function Row({
   );
 }
 
-export function Tags({span}: {span: RawSpanType}) {
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+function Tags({span}: {span: RawSpanType}) {
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

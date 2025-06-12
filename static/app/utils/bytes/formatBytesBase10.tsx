@@ -1,4 +1,4 @@
-import {formatNumberWithDynamicDecimalPoints} from '../number/formatNumberWithDynamicDecimalPoints';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 
 /**
  * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
@@ -12,7 +12,7 @@ import {formatNumberWithDynamicDecimalPoints} from '../number/formatNumberWithDy
  * For storage/memory/file sizes, please take a look at formatBytesBase2
  */
 
-export function formatBytesBase10(bytes: number, u: number = 0) {
+export function formatBytesBase10(bytes: number, u = 0) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
 

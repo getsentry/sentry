@@ -5,8 +5,6 @@ import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import type {CallTreeNode} from '../callTreeNode';
-
 type FrameIndex = Record<string | number, Frame>;
 
 export function createContinuousProfileFrameIndex(
@@ -44,6 +42,51 @@ export function createContinuousProfileFrameIndex(
         symbol: frame.symbol,
         symbolAddr: frame.sym_addr,
         symbolicatorStatus: frame.status,
+      },
+      platform
+    );
+    index[++idx] = f;
+    insertionCache[frameKey] = f;
+  }
+
+  return index;
+}
+
+export function createAndroidContinuousProfileFrameIndex(
+  frames: Profiling.SentryAndroidContinuousProfileChunk['shared']['frames'],
+  platform: 'mobile' | 'node' | 'javascript' | string
+): FrameIndex {
+  const index: FrameIndex = {};
+  const insertionCache: Record<string, Frame> = {};
+  let idx = -1;
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i]!;
+    const frameKey = `${frame.file ?? ''}:${frame.name ?? 'unknown'}:${String(
+      frame.lineNumber
+    )}:${frame.instructionAddr ?? ''}`;
+
+    const existing = insertionCache[frameKey];
+    if (existing) {
+      index[++idx] = existing;
+      continue;
+    }
+
+    const f = new Frame(
+      {
+        key: i,
+        is_application: frame.is_application,
+        file: frame.file,
+        path: frame.path,
+        module: frame.module,
+        package: frame.package,
+        name: frame.name ?? 'unknown',
+        line: frame.lineNumber,
+        column: frame.colno ?? frame?.col ?? frame?.column,
+        instructionAddr: frame.instructionAddr,
+        symbol: frame.symbol,
+        symbolAddr: frame.symbolAddr,
+        symbolicatorStatus: frame.symbolicatorStatus,
       },
       platform
     );
@@ -115,14 +158,14 @@ export function createFrameIndex(
 ): FrameIndex {
   if (trace) {
     return (frames as JSSelfProfiling.Frame[]).reduce((acc, frame, index) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[index] = new Frame(
         {
           key: index,
           resource:
-            frame.resourceId !== undefined
-              ? trace.resources[frame.resourceId]
-              : undefined,
+            frame.resourceId === undefined
+              ? undefined
+              : trace.resources[frame.resourceId],
           ...frame,
         },
         'javascript'
@@ -132,7 +175,7 @@ export function createFrameIndex(
   }
 
   return (frames as Profiling.Schema['shared']['frames']).reduce((acc, frame, index) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[index] = new Frame(
       {
         key: index,
@@ -173,15 +216,13 @@ export function memoizeByReference<Arguments, Value>(
   };
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-
 export function memoizeVariadicByReference<
   T extends (...args: any[]) => V,
   V = ReturnType<T>,
->(fn: T): (...t: Arguments<T>) => V {
-  let cache: Cache<Arguments<T>, V> | null = null;
+>(fn: T): (...t: Parameters<T>) => V {
+  let cache: Cache<Parameters<T>, V> | null = null;
 
-  return function memoizeByReferenceCallback(...args: Arguments<T>): V {
+  return function memoizeByReferenceCallback(...args: Parameters<T>): V {
     // If this is the first run then eval the fn and cache the result
     if (!cache) {
       cache = {args, value: fn(...args)};
@@ -220,14 +261,6 @@ export function wrapWithSpan<T>(
   });
 }
 
-export const isSystemCall = (node: CallTreeNode): boolean => {
-  return !node.frame.is_application;
-};
-
-export const isApplicationCall = (node: CallTreeNode): boolean => {
-  return !!node.frame.is_application;
-};
-
 function indexNodeToParents(
   roots: readonly FlamegraphFrame[],
   map: Record<string, FlamegraphFrame[]>,
@@ -246,26 +279,26 @@ function indexNodeToParents(
       return;
     }
 
-    for (let i = 0; i < node.children.length; i++) {
-      indexNode(node.children[i]!, node); // iterating over non empty array
+    for (const child of node.children) {
+      indexNode(child, node);
     }
   }
 
   // Begin in each root node
-  for (let i = 0; i < roots.length; i++) {
+  for (const root of roots) {
     // If the root is a leaf node, push it to the leafs array
-    if (!roots[i]!.children?.length) {
-      leafs.push(roots[i]!);
+    if (!root.children?.length) {
+      leafs.push(root);
     }
 
     // Init the map for the root in case we havent yet
-    if (!map[roots[i]!.key]) {
-      map[roots[i]!.key] = [];
+    if (!map[root.key]) {
+      map[root.key] = [];
     }
 
     // descend down to each child and index them
-    for (let j = 0; j < roots[i]!.children.length; j++) {
-      indexNode(roots[i]!.children[j]!, roots[i]!);
+    for (const child of root.children) {
+      indexNode(child, root);
     }
   }
 }
@@ -325,7 +358,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
   frames: Readonly<Profiling.SentrySampledProfile['profile']['frames']>,
   frameFilter?: (i: number) => boolean
 ) {
-  const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
+  const frameIds = [...new Array(frames.length).keys()].sort((a, b) => {
     const frameA = frames[a]!;
     const frameB = frames[b]!;
 

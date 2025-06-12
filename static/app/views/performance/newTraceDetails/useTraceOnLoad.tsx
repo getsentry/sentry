@@ -6,48 +6,67 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isTransactionNode} from './traceGuards';
+import {isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
-// If a trace has less than 3 transactions, we automatically expand all transactions.
+// If a trace has less than 3 transactions or less than 100 spans, we automatically expand all nodes.
 // We do this as the tree is otherwise likely to be very small and not very useful.
-const AUTO_EXPAND_TRANSACTION_THRESHOLD = 3;
+const AUTO_EXPAND_TRANSACTIONS_THRESHOLD = 3;
+const AUTO_EXPAND_SPANS_THRESHOLD = 100;
 async function maybeAutoExpandTrace(
   tree: TraceTree,
   options: {
     api: Client;
     organization: Organization;
     preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-  }
+  },
+  meta: TraceMetaQueryResults
 ): Promise<TraceTree> {
-  const transactions = TraceTree.FindAll(tree.root, node => isTransactionNode(node));
-
-  if (transactions.length >= AUTO_EXPAND_TRANSACTION_THRESHOLD) {
+  if (
+    !(
+      tree.transactions_count < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
+      (meta.data?.span_count ?? 0) < AUTO_EXPAND_SPANS_THRESHOLD
+    )
+  ) {
     return tree;
   }
 
-  const promises: Promise<any>[] = [];
+  const transactions = TraceTree.FindAll(
+    tree.root,
+    node => isTransactionNode(node) || isEAPTransactionNode(node)
+  );
+  // Expand each transaction, either by zooming (if it has spans to fetch)
+  // or just expanding in place. Note that spans are always expanded by default.
+  const promises: Array<Promise<any>> = [];
   for (const transaction of transactions) {
-    promises.push(tree.zoom(transaction, true, options));
+    if (transaction.canFetch) {
+      promises.push(tree.zoom(transaction, true, options));
+    } else {
+      tree.expand(transaction, true);
+    }
   }
 
-  await Promise.allSettled(promises).catch(_e => {
-    Sentry.withScope(scope => {
-      scope.setFingerprint(['trace-auto-expand']);
-      Sentry.captureMessage('Failed to auto expand trace with low transaction count');
+  if (promises.length > 0) {
+    await Promise.allSettled(promises).catch(_e => {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-auto-expand']);
+        Sentry.captureMessage('Failed to auto expand trace with low transaction count');
+      });
     });
-  });
+  }
 
   return tree;
 }
 
 type UseTraceScrollToEventOnLoadOptions = {
+  meta: TraceMetaQueryResults;
   onTraceLoad: () => void;
   pathToNodeOrEventId: ReturnType<typeof useTraceScrollToPath>['current'];
   tree: TraceTree;
@@ -92,7 +111,7 @@ export function useTraceOnLoad(
     };
 
     // If eligible, auto-expand the trace
-    maybeAutoExpandTrace(tree, expandOptions)
+    maybeAutoExpandTrace(tree, expandOptions, options.meta)
       .then(() => {
         if (cancel) {
           return Promise.resolve();
@@ -127,7 +146,7 @@ export function useTraceOnLoad(
     return () => {
       cancel = true;
     };
-  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId]);
+  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId, options.meta]);
 
   return status;
 }
@@ -178,7 +197,7 @@ export function useTraceIssuesOnLoad(
     };
 
     const promise = options.event
-      ? IssuesTraceTree.ExpandToEvent(tree, options.event.eventID, expandOptions)
+      ? IssuesTraceTree.ExpandToEvent(tree, options.event, expandOptions)
       : Promise.resolve();
 
     promise

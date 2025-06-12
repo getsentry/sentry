@@ -1,8 +1,7 @@
 import {t} from 'sentry/locale';
+import type {Incident} from 'sentry/views/alerts/types';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
-import type {Incident} from '../../types';
 
 export enum AlertRuleThresholdType {
   ABOVE = 0,
@@ -46,6 +45,8 @@ export enum EventTypes {
   TRANSACTION = 'transaction',
   USER = 'user',
   SESSION = 'session',
+  TRACE_ITEM_SPAN = 'trace_item_span',
+  TRACE_ITEM_LOG = 'trace_item_log',
 }
 
 export enum Datasource {
@@ -131,7 +132,7 @@ export interface SavedMetricRule extends UnsavedMetricRule {
   snooze: boolean;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   /**
    * Returned with the expand=latestIncident query parameter
    */
@@ -247,7 +248,7 @@ export type MetricActionTemplate = {
   /**
    * For some available actions, we pass in the list of available targets.
    */
-  options?: {label: string; value: any}[];
+  options?: Array<{label: string; value: any}>;
 
   /**
    * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
@@ -316,7 +317,7 @@ type UnsavedAction = {
   /**
    * For some available actions, we pass in the list of available targets.
    */
-  options: {label: string; value: any}[] | null;
+  options: Array<{label: string; value: any}> | null;
   /**
    * How to identify the target. Can be email, slack channel, pagerduty service,
    * user_id, team_id, SentryApp id, etc

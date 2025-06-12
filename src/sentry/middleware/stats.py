@@ -14,11 +14,6 @@ from sentry.utils import metrics
 from . import ViewFunc, get_path, is_frontend_request
 
 
-def add_request_metric_tags(request: Request, **kwargs: Any) -> None:
-    metric_tags = getattr(request, "_metric_tags", {})
-    setattr(request, "_metric_tags", {**metric_tags, **kwargs})
-
-
 class ResponseCodeMiddleware(MiddlewareMixin):
     def process_response(self, request: Request, response: Response) -> Response:
         metrics.incr("response", instance=str(response.status_code), skip_internal=False)
@@ -42,8 +37,6 @@ class RequestTimingMiddleware(MiddlewareMixin):
         view_args: Any,
         view_kwargs: Any,
     ) -> Response | None:
-        add_request_metric_tags(request)
-
         if request.method not in self.allowed_methods:
             return None
 
@@ -70,17 +63,14 @@ class RequestTimingMiddleware(MiddlewareMixin):
             getattr(request, "rate_limit_metadata", None), "rate_limit_type", None
         )
 
-        tags = getattr(request, "_metric_tags", {})
-        tags.update(
-            {
-                "method": request.method,
-                "status_code": status_code,
-                "ui_request": is_frontend_request(request),
-                "rate_limit_type": (
-                    getattr(rate_limit_type, "value", None) if rate_limit_type else None
-                ),
-            }
-        )
+        tags = {
+            "method": request.method,
+            "status_code": status_code,
+            "ui_request": is_frontend_request(request),
+            "rate_limit_type": (
+                getattr(rate_limit_type, "value", None) if rate_limit_type else None
+            ),
+        }
         metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)
 
         start_time = getattr(request, "_start_time", None)

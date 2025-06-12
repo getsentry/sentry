@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 
 export type SuggestionItem = {
   value: string;
@@ -14,6 +14,6 @@ export type SuggestionSection = {
 };
 
 export type SuggestionSectionItem = {
-  items: SelectOptionWithKey<string>[];
+  items: Array<SelectOptionWithKey<string>>;
   sectionText: string;
 };

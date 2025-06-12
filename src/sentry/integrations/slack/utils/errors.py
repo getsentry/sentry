@@ -18,6 +18,8 @@ SLACK_SDK_ERROR_CATEGORIES = (
     CHANNEL_ARCHIVED := SlackSdkErrorCategory("is_archived"),
     MODAL_NOT_FOUND := SlackSdkErrorCategory("not_found"),
     RATE_LIMITED := SlackSdkErrorCategory("ratelimited"),
+    RESTRICTED_ACTION := SlackSdkErrorCategory("restricted_action"),
+    MESSAGE_LIMIT_EXCEEDED := SlackSdkErrorCategory("message_limit_exceeded"),
 )
 
 """
@@ -27,6 +29,9 @@ SLACK_SDK_HALT_ERROR_CATEGORIES = (
     ACCOUNT_INACTIVE,
     CHANNEL_NOT_FOUND,
     CHANNEL_ARCHIVED,
+    RATE_LIMITED,
+    RESTRICTED_ACTION,
+    MESSAGE_LIMIT_EXCEEDED,
 )
 
 _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}

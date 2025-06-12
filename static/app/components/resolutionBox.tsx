@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
@@ -10,12 +10,7 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  GroupActivity,
-  GroupActivitySetByResolvedInNextSemverRelease,
-  GroupActivitySetByResolvedInRelease,
-  ResolvedStatusDetails,
-} from 'sentry/types/group';
+import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -52,10 +47,7 @@ export function renderResolutionReason({
 
   const relevantActivity = activities.find(
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
-  ) as
-    | GroupActivitySetByResolvedInRelease
-    | GroupActivitySetByResolvedInNextSemverRelease
-    | undefined;
+  );
 
   if (statusDetails.inNextRelease) {
     // Resolved in next release has current_release_version (semver only)
@@ -157,7 +149,7 @@ function ResolutionBox(props: Props) {
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

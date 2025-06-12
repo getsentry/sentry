@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -27,7 +29,6 @@ import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
   ModuleName,
-  SpanFunction,
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
@@ -75,7 +76,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(app,span.duration)',
+    key: 'sum(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -87,7 +88,8 @@ const SORTABLE_FIELDS = [
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
-  `${SpanFunction.TIME_SPENT_PERCENTAGE}(app,span.duration)`,
+  `sum(span.duration)`,
+  'trace_status_rate(ok)',
 ] as const;
 
 type ValidSort = Sort & {
@@ -106,6 +108,7 @@ interface Props {
 }
 
 export function QueuesTable({error, destination, sort}: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -146,7 +149,7 @@ export function QueuesTable({error, destination, sort}: Props) {
               sortParameterName: QueryParameterNames.DESTINATIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
 
@@ -170,10 +173,11 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   const key = column.key;
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (row[key] === undefined) {
     return (
       <AlignRight>
@@ -187,7 +191,7 @@ function renderBodyCell(
   }
 
   if (key.startsWith('count')) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{formatAbbreviatedNumber(row[key])}</AlignRight>;
   }
 
@@ -201,14 +205,14 @@ function renderBodyCell(
     const formatter = FIELD_FORMATTERS.percentage.renderFunc;
     return (
       <AlignRight>
-        {/* @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
+        {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
         {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
       </AlignRight>
     );
   }
 
   if (!meta?.fields) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return row[column.key];
   }
 
@@ -217,6 +221,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }
 
@@ -245,5 +250,5 @@ const AlignRight = styled('span')`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

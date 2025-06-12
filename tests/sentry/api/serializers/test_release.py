@@ -23,7 +23,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 
 
@@ -131,6 +130,14 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             == current_project_meta["last_release_version"]
         )
 
+    def test_authors_is_none(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id, version="1", authors=None
+        )
+        release.add_project(self.project)
+        result = serialize(release, self.user)
+        assert result["authors"] == []
+
     def test_mobile_version(self):
         user = self.create_user()
         project = self.create_project()
@@ -203,7 +210,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -243,7 +250,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         self.create_member(user=user, organization=project.organization)
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -286,7 +293,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -323,7 +330,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit = Commit.objects.create(
@@ -352,7 +359,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author1 = CommitAuthor.objects.create(
@@ -398,6 +405,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         result = serialize(release, user)
         assert len(result["authors"]) == 1
         assert result["authors"][0]["email"] == "stebe@sentry.io"
+        assert result["newGroups"] == 1
 
     def test_with_deploy(self):
         user = self.create_user()
@@ -446,16 +454,19 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         user = self.create_user(email="chrib@sentry.io")
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
-        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        author = CommitAuthor(
+            email="chrib@sentry.io", name="Chrib", organization_id=project.organization_id
+        )
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
         assert len(users) == 1
-        assert users[str(user.id)]["email"] == user.email
+        assert users[str(author.id)]["email"] == author.email
 
     def test_get_user_for_authors_no_user(self):
-        user = User(email="notactuallyauser@sentry.io")
+        author = CommitAuthor(email="notactuallyauser@sentry.io")
         project = self.create_project()
-        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
         assert len(users) == 1
-        assert users[str(user.id)]["email"] == user.email
+        assert users[str(author.id)]["email"] == author.email
 
     @patch("sentry.api.serializers.models.release.serialize")
     def test_get_user_for_authors_caching(self, patched_serialize_base):

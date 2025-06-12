@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
 import ScreenshotsModal, {
   modalCss,

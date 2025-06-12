@@ -3,9 +3,8 @@ import type {TagCollection} from 'sentry/types/group';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-
-import type {DataSet} from '../../utils';
-import {BuildStep} from '../buildStep';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {YAxisSelector} from './yAxisSelector';
 
@@ -16,7 +15,7 @@ interface Props {
   onYAxisChange: (newFields: QueryFieldValue[], newSelectedAggregate?: number) => void;
   tags: TagCollection;
   widgetType: WidgetType;
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
   selectedAggregate?: number;
 }
 

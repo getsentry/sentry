@@ -1,4 +1,4 @@
-import logging
+from __future__ import annotations
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -6,14 +6,13 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry import features, options
+from sentry.identity.pipeline_types import IdentityPipelineProviderT, IdentityPipelineT
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineProvider
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.utils import metrics
 
@@ -21,32 +20,16 @@ from . import default_manager
 
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
-logger = logging.getLogger("sentry.identity")
 
-
-class IdentityProviderPipeline(Pipeline):
-    logger = logger
-
+class IdentityProviderPipeline(IdentityPipelineT):
     pipeline_name = "identity_provider"
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
 
-    def redirect_url(self):
-        associate_url = reverse(
-            "sentry-extension-setup",
-            kwargs={
-                # TODO(adhiraj): Remove provider_id from the callback URL, it's unused.
-                "provider_id": "default"
-            },
-        )
-
-        # Use configured redirect_url if specified for the pipeline if available
-        return self.config.get("redirect_url", associate_url)
-
     # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
-    def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
-        if kwargs.get("organization"):
-            organization: Organization | RpcOrganization = kwargs["organization"]
+    def get_provider(
+        self, provider_key: str, *, organization: RpcOrganization | None
+    ) -> IdentityPipelineProviderT:
         if provider_key == "vsts" and features.has(
             "organizations:migrate-azure-devops-integration", organization
         ):
@@ -55,7 +38,7 @@ class IdentityProviderPipeline(Pipeline):
         if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
             provider_key = "vsts_login_new"
 
-        return super().get_provider(provider_key)
+        return super().get_provider(provider_key, organization=organization)
 
     def finish_pipeline(self):
         with IntegrationPipelineViewEvent(

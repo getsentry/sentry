@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import Panel from 'sentry/components/panels/panel';
@@ -12,14 +13,15 @@ import type {VitalGroup} from 'sentry/utils/performance/vitals/types';
 import type {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
+import {makeVitalGroups, NUM_BUCKETS} from './constants';
 import VitalCard from './vitalCard';
 
 type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  results: object;
+  results: Record<PropertyKey, unknown>;
+  theme: Theme;
   dataFilter?: DataFilter;
 };
 
@@ -55,7 +57,9 @@ class VitalsPanel extends Component<Props> {
         {results => {
           const loading = zoomed ? results.isLoading : isLoading;
           const errored = zoomed ? results.error !== null : error;
-          const chartData = zoomed ? results.histograms?.[vital] ?? histogram : histogram;
+          const chartData = zoomed
+            ? (results.histograms?.[vital] ?? histogram)
+            : histogram;
           return (
             <VitalCard
               location={location}
@@ -152,7 +156,7 @@ class VitalsPanel extends Component<Props> {
     return (
       <Panel>
         <Fragment>
-          {VITAL_GROUPS.map(vitalGroup => (
+          {makeVitalGroups(this.props.theme).map(vitalGroup => (
             <Fragment key={vitalGroup.vitals.join('')}>
               {this.renderVitalGroup(vitalGroup, results)}
             </Fragment>

@@ -1,0 +1,26 @@
+---
+description: Rules and guidelines for running *.spec.tsx tests and writing React tests
+globs: *.spec.tsx
+alwaysApply: false
+---
+
+# Running *.spec.tsx tests
+
+Please run tests with command: CI=true pnpm test
+For example: CI=true pnpm test path/to/file.spec.tsx
+
+NOTE: `CI=true` runs jest in non-interactive mode.
+
+# React tests
+
+When writing React tests and using react-test-library, please use exports from 'sentry-test/reactTestingLibrary'. It re-exports from '@testing-library/react'. For example:
+
+```
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+```

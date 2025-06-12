@@ -82,8 +82,10 @@ class OrganizationSerializerTest(TestCase):
             "integrations-incident-management",
             "integrations-issue-basic",
             "integrations-issue-sync",
+            "integrations-scm-multi-org",
             "integrations-stacktrace-link",
             "integrations-ticket-rules",
+            "integrations-vercel",
             "invite-members",
             "minute-resolution-sessions",
             "new-page-filter",
@@ -97,6 +99,7 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "team-roles",
+            "uptime",
         ]
 
     @mock.patch("sentry.features.batch_has")
@@ -223,14 +226,14 @@ class OnboardingTasksSerializerTest(TestCase):
         task = OrganizationOnboardingTask.objects.create(
             organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
-            status=OnboardingTaskStatus.PENDING,
+            status=OnboardingTaskStatus.COMPLETE,
             user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
         result = serialize(task, self.user, serializer)
         assert result["task"] == "create_project"
-        assert result["status"] == "pending"
+        assert result["status"] == "complete"
         assert result["completionSeen"] == completion_seen
         assert result["data"] == {}
 
@@ -242,13 +245,13 @@ class TrustedRelaySerializer(TestCase):
         task = OrganizationOnboardingTask.objects.create(
             organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
-            status=OnboardingTaskStatus.PENDING,
+            status=OnboardingTaskStatus.COMPLETE,
             user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
         result = serialize(task, self.user, serializer)
         assert result["task"] == "create_project"
-        assert result["status"] == "pending"
+        assert result["status"] == "complete"
         assert result["completionSeen"] == completion_seen
         assert result["data"] == {}

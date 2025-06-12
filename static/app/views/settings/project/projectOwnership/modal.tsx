@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
@@ -10,6 +11,7 @@ import type {TagWithTopValues} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {uniq} from 'sentry/utils/array/uniq';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useUser} from 'sentry/utils/useUser';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
@@ -23,18 +25,13 @@ type IssueOwnershipResponse = {
   raw: string;
 };
 
-type Props = DeprecatedAsyncComponent['props'] & {
+type Props = {
   issueId: string;
   onCancel: () => void;
   organization: Organization;
   project: Project;
   eventData?: Event;
 };
-
-type State = {
-  ownership: null | IssueOwnershipResponse;
-  urlTagData: null | TagWithTopValues;
-} & DeprecatedAsyncComponent['state'];
 
 function getFrameSuggestions(eventData?: Event) {
   // pull frame data out of exception or the stacktrace
@@ -109,67 +106,78 @@ function OwnershipSuggestions({
   );
 }
 
-class ProjectOwnershipModal extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, project, issueId} = this.props;
-    return [
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-      [
-        'urlTagData',
-        `/issues/${issueId}/tags/url/`,
-        {},
-        {
-          allowError: (
-            error: any // Allow for 404s
-          ) => error.status === 404,
-        },
-      ],
-    ];
-  }
+function ProjectOwnershipModal({
+  organization,
+  project,
+  issueId,
+  eventData,
+  onCancel,
+}: Props) {
+  const {
+    data: urlTagData,
+    isPending: isUrlTagDataPending,
+    isError: isUrlTagDataError,
+    error,
+  } = useApiQuery<TagWithTopValues>([`/issues/${issueId}/tags/url/`], {staleTime: 0});
 
-  renderBody() {
-    const {ownership, urlTagData} = this.state;
-    const {eventData, organization, project, onCancel} = this.props;
-    if (!ownership) {
-      return null;
+  const {
+    data: ownership,
+    isPending: isOwnershipPending,
+    isError: isOwnershipError,
+  } = useApiQuery<IssueOwnershipResponse>(
+    [`/projects/${organization.slug}/${project.slug}/ownership/`],
+    {
+      staleTime: 0,
     }
+  );
 
-    const urls = urlTagData
-      ? urlTagData.topValues
-          .sort((a, b) => a.count - b.count)
-          .map(i => i.value)
-          .slice(0, 5)
-      : [];
-    const paths = getFrameSuggestions(eventData);
-
-    return (
-      <Fragment>
-        <Fragment>
-          <Description>
-            {tct(
-              'Assign issues based on custom rules. To learn more, [docs:read the docs].',
-              {
-                docs: (
-                  <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
-                ),
-              }
-            )}
-          </Description>
-          <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
-        </Fragment>
-        <OwnerInput
-          organization={organization}
-          project={project}
-          initialText={ownership?.raw || ''}
-          urls={urls}
-          paths={paths}
-          dateUpdated={ownership.lastUpdated}
-          onCancel={onCancel}
-          page="issue_details"
-        />
-      </Fragment>
-    );
+  if (isOwnershipPending || isUrlTagDataPending) {
+    return <LoadingIndicator />;
   }
+
+  if (isOwnershipError || (isUrlTagDataError && error.status !== 404)) {
+    return <LoadingError />;
+  }
+
+  if (!ownership) {
+    return null;
+  }
+
+  const urls = urlTagData
+    ? urlTagData.topValues
+        .sort((a, b) => a.count - b.count)
+        .map(i => i.value)
+        .slice(0, 5)
+    : [];
+  const paths = getFrameSuggestions(eventData);
+
+  return (
+    <Fragment>
+      <Fragment>
+        <Description>
+          {tct(
+            'Assign issues based on custom rules. To learn more, [docs:read the docs].',
+            {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
+              ),
+            }
+          )}
+        </Description>
+        <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
+      </Fragment>
+      <OwnerInput
+        organization={organization}
+        project={project}
+        initialText={ownership?.raw || ''}
+        urls={urls}
+        paths={paths}
+        dateUpdated={ownership.lastUpdated}
+        onCancel={onCancel}
+        page="issue_details"
+      />
+    </Fragment>
+  );
 }
 
 const Description = styled('p')`

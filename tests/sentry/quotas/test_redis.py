@@ -119,8 +119,8 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("project-abuse-quota.attachment-item-limit", 6010)
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
-        self.organization.update_option("organization-abuse-quota.custom-metric-bucket-limit", 604)
         self.organization.update_option("project-abuse-quota.span-limit", 605)
+        self.organization.update_option("project-abuse-quota.log-limit", 606)
 
         metric_abuse_limit_by_id = dict()
         for i, mabq in enumerate(build_metric_abuse_quotas()):
@@ -169,6 +169,14 @@ class RedisQuotaTest(TestCase):
         assert quotas[5].limit == 6050
         assert quotas[5].window == 10
         assert quotas[5].reason_code == "project_abuse_limit"
+
+        assert quotas[6].id == "pal"
+        assert quotas[6].scope == QuotaScope.PROJECT
+        assert quotas[6].scope_id is None
+        assert quotas[6].categories == {DataCategory.LOG_ITEM}
+        assert quotas[6].limit == 6060
+        assert quotas[6].window == 10
+        assert quotas[6].reason_code == "project_abuse_limit"
 
         expected_quotas: dict[tuple[QuotaScope, UseCaseID | None], str] = dict()
         for scope, prefix in [
@@ -278,30 +286,11 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-    def test_custom_metrics_ingestion_disabled_quota(self):
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
         self.get_organization_quota.return_value = (1000, 10)
         self.get_monitor_quota.return_value = (15, 60)
-
-        with self.options({"custom-metrics-ingestion-disabled-orgs": [self.organization.id]}):
-            quotas = self.quota.get_quotas(self.project)
-
-            assert quotas[0].scope == QuotaScope.ORGANIZATION
-            assert quotas[0].scope_id is None
-            assert quotas[0].categories == {DataCategory.METRIC_BUCKET}
-            assert quotas[0].limit == 0
-            assert quotas[0].reason_code == "custom_metrics_ingestion_disabled"
-
-        with self.options({"custom-metrics-ingestion-disabled-projects": [self.project.id]}):
-            quotas = self.quota.get_quotas(self.project)
-
-            assert quotas[0].scope == QuotaScope.PROJECT
-            assert quotas[0].scope_id is None
-            assert quotas[0].categories == {DataCategory.METRIC_BUCKET}
-            assert quotas[0].limit == 0
-            assert quotas[0].reason_code == "custom_metrics_ingestion_disabled"
 
     @pytest.fixture(autouse=True)
     def _patch_get_project_quota(self):

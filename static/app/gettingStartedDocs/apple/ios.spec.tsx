@@ -16,16 +16,28 @@ describe('apple-ios onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+  });
+
+  it('renders swift onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL_SWIFT,
+      },
+    });
+
     expect(
-      screen.getByRole('heading', {name: 'Experimental Features'})
-    ).toBeInTheDocument();
+      await screen.findAllByText(
+        textWithMarkupMatcher(/throw MyCustomError\.myFirstIssue/)
+      )
+    ).toHaveLength(1);
   });
 
   it('renders performance onboarding docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
       selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
+        installationMode: InstallationMode.MANUAL_SWIFT,
       },
     });
 
@@ -37,7 +49,7 @@ describe('apple-ios onboarding docs', function () {
   it('renders transaction profiling', async function () {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
+        installationMode: InstallationMode.MANUAL_SWIFT,
       },
     });
 
@@ -64,7 +76,7 @@ describe('apple-ios onboarding docs', function () {
       docs,
       {
         selectedOptions: {
-          installationMode: InstallationMode.MANUAL,
+          installationMode: InstallationMode.MANUAL_SWIFT,
         },
       },
       {
@@ -78,16 +90,29 @@ describe('apple-ios onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const startMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/SentrySDK.startProfiler\(\)/)
+    const sessionSampleRateElements = screen.queryAllByText(
+      textWithMarkupMatcher(/\$0\.sessionSampleRate = 1\.0/)
     );
-    expect(startMatches.length).toBeGreaterThan(0);
-    startMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(sessionSampleRateElements).toHaveLength(2);
+    sessionSampleRateElements.forEach(element => expect(element).toBeInTheDocument());
 
-    const stopMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/SentrySDK.stopProfiler\(\)/)
+    const lifecycleElements = screen.queryAllByText(
+      textWithMarkupMatcher(/\$0\.lifecycle = \.trace/)
     );
-    expect(stopMatches.length).toBeGreaterThan(0);
-    stopMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(lifecycleElements).toHaveLength(2);
+    lifecycleElements.forEach(element => expect(element).toBeInTheDocument());
+  });
+
+  it('renders manual objective-c docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL_OBJECTIVE_C,
+      },
+    });
+
+    expect(
+      await screen.findAllByText(textWithMarkupMatcher(/@import Sentry;/))
+    ).toHaveLength(1);
   });
 });

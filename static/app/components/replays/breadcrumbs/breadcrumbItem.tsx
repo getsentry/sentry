@@ -1,24 +1,28 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {isValidElement, memo, useCallback} from 'react';
+import {isValidElement, useCallback, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Timeline} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {
   ErrorFrame,
@@ -40,43 +44,98 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
 interface Props {
+  allowShowSnippet: boolean;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
   onInspectorExpanded: OnExpandCallback;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
+  onShowSnippet: () => void;
+  showSnippet: boolean;
   startTimestampMs: number;
   className?: string;
   expandPaths?: string[];
   extraction?: Extraction;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
+  updateDimensions?: () => void;
 }
 
 function BreadcrumbItem({
   className,
-  extraction,
   frame,
   expandPaths,
   onClick,
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
+  showSnippet,
   startTimestampMs,
   style,
+  ref,
+  onShowSnippet,
+  updateDimensions,
+  allowShowSnippet,
 }: Props) {
-  const {color, description, title, icon} = getFrameDetails(frame);
+  const theme = useTheme();
+  const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
+  const colorHex = theme.tokens.graphics[colorGraphicsToken];
   const {replay} = useReplayContext();
+  const organization = useOrganization();
+  const {data: extraction, isPending} = useExtractDomNodes({
+    replay,
+    frame,
+    enabled: showSnippet,
+  });
+
+  const prevExtractState = useRef(isPending);
+
+  useEffect(() => {
+    if (!updateDimensions) {
+      return;
+    }
+
+    if (isPending !== prevExtractState.current || showSnippet) {
+      prevExtractState.current = isPending;
+      updateDimensions();
+    }
+  }, [isPending, updateDimensions, showSnippet]);
+
+  const handleViewHtml = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      onShowSnippet();
+      e.preventDefault();
+      e.stopPropagation();
+      trackAnalytics('replay.view_html', {
+        organization,
+        breadcrumb_type: 'category' in frame ? frame.category : 'unknown',
+      });
+    },
+    [onShowSnippet, organization, frame]
+  );
 
   const renderDescription = useCallback(() => {
     return typeof description === 'string' ||
       (description !== undefined && isValidElement(description)) ? (
-      <Description title={description} showOnlyOnOverflow isHoverable>
-        {description}
-      </Description>
+      <DescriptionWrapper>
+        <Description title={description} showOnlyOnOverflow isHoverable>
+          {description}
+        </Description>
+
+        {allowShowSnippet &&
+          !showSnippet &&
+          frame.data?.nodeId !== undefined &&
+          (!isSpanFrame(frame) || !isWebVitalFrame(frame)) && (
+            <ViewHtmlButton priority="link" onClick={handleViewHtml} size="xs">
+              {t('View HTML')}
+            </ViewHtmlButton>
+          )}
+      </DescriptionWrapper>
     ) : (
       <Wrapper>
         <StructuredEventData
@@ -92,7 +151,15 @@ function BreadcrumbItem({
         />
       </Wrapper>
     );
-  }, [description, expandPaths, onInspectorExpanded]);
+  }, [
+    description,
+    expandPaths,
+    frame,
+    onInspectorExpanded,
+    showSnippet,
+    allowShowSnippet,
+    handleViewHtml,
+  ]);
 
   const renderComparisonButton = useCallback(() => {
     return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) && replay ? (
@@ -121,8 +188,14 @@ function BreadcrumbItem({
   ]);
 
   const renderCodeSnippet = useCallback(() => {
+    if (showSnippet && isPending) {
+      return <Placeholder height="34px" />;
+    }
+
     return (
       (!isSpanFrame(frame) || !isWebVitalFrame(frame)) &&
+      !isPending &&
+      showSnippet &&
       extraction?.html?.map(html => (
         <CodeContainer key={html}>
           <CodeSnippet language="html" hideCopyButton>
@@ -131,7 +204,7 @@ function BreadcrumbItem({
         </CodeContainer>
       ))
     );
-  }, [extraction?.html, frame]);
+  }, [frame, isPending, extraction?.html, showSnippet]);
 
   const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
@@ -141,9 +214,10 @@ function BreadcrumbItem({
 
   return (
     <StyledTimelineItem
+      ref={ref}
       icon={icon}
       title={title}
-      colorConfig={{title: color, icon: color, iconBorder: color}}
+      colorConfig={{title: colorHex, icon: colorHex, iconBorder: colorHex}}
       timestamp={
         <ReplayTimestamp>
           <TimestampButton
@@ -190,7 +264,7 @@ function WebVitalData({
 }) {
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: {[x: string]: ReactNode[]}[] = [];
+    const layoutShifts: Array<Record<string, ReactNode[]>> = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
@@ -225,12 +299,12 @@ function WebVitalData({
       layoutShifts.push({[`score ${attr.value}`]: elements});
     }
     if (layoutShifts.length) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors) {
     selectors.forEach((key, value) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData[key] = (
         <span
           key={key}
@@ -315,7 +389,10 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
         to={
           isFeedbackFrame(frame)
             ? {
-                pathname: `/organizations/${organization.slug}/feedback/`,
+                pathname: makeFeedbackPathname({
+                  path: '/',
+                  organization,
+                }),
                 query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
               }
             : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
@@ -343,6 +420,16 @@ const Description = styled(Tooltip)`
   color: ${p => p.theme.subText};
 `;
 
+const DescriptionWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  justify-content: space-between;
+`;
+
+const ViewHtmlButton = styled(Button)`
+  white-space: nowrap;
+`;
+
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
   position: relative;
@@ -350,7 +437,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};
-    .icon-wrapper {
+    .timeline-icon-wrapper {
       background: ${p => p.theme.translucentSurface200};
     }
   }
@@ -412,4 +499,4 @@ const Wrapper = styled('div')`
   }
 `;
 
-export default memo(BreadcrumbItem);
+export default BreadcrumbItem;

@@ -1,8 +1,5 @@
-import {
-  DiffFileType,
-  DiffLineType,
-  FilePatch,
-} from 'sentry/components/events/autofix/types';
+import type {FilePatch} from 'sentry/components/events/autofix/types';
+import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 
 export function AutofixDiffFilePatch(params: Partial<FilePatch> = {}): FilePatch {
   return {

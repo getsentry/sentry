@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -20,26 +21,42 @@ describe('ScreenLoadEventSamples', function () {
 
   let mockEventsRequest!: jest.Mock;
   beforeEach(function () {
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [parseInt(project.id, 10)],
         },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
-      },
-    });
+      })
+    );
     jest.mocked(useReleaseSelection).mockReturnValue({
       primaryRelease: 'com.example.vu.android@2.10.5',
       isLoading: false,
       secondaryRelease: 'com.example.vu.android@2.10.3+42',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
@@ -62,22 +79,25 @@ describe('ScreenLoadEventSamples', function () {
         meta: {
           fields: {
             profile_id: 'string',
-            'transaction.id': 'string',
+            'transaction.span_id': 'string',
             'span.duration': 'duration',
-            'project.name': 'string',
+            project: 'string',
             id: 'string',
           },
         },
         data: [
           {
             profile_id: 'profile-id',
-            'transaction.id': '76af98a3ac9d4448b894e44b1819970e',
+            'transaction.span_id': '76af98a3ac9d4448b894e44b1819970e',
             'span.duration': 131,
-            'project.name': 'sentry-cocoa',
+            project: 'sentry-cocoa',
             id: 'f0587aad3de14aeb',
           },
         ],
       },
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.starfish.mobile-startup-event-samples'}),
+      ],
     });
   });
 
@@ -103,7 +123,7 @@ describe('ScreenLoadEventSamples', function () {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '76af98a3'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/sentry-cocoa:76af98a3ac9d4448b894e44b1819970e/'
+      '/organizations/org-slug/insights/backend/sentry-cocoa:76af98a3ac9d4448b894e44b1819970e/'
     );
 
     // Profile is a button

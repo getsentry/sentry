@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -10,7 +11,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getAIRulesForCodeEditorStep,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -18,7 +22,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -30,70 +33,93 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/react";
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
 
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-        Sentry.browserTracingIntegration(),`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-          Sentry.browserProfilingIntegration(),`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-      : ''
-  }
-],${
-  params.isPerformanceSelected
-    ? `
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
       // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isProfilingSelected) {
+    dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
         // Since profilesSampleRate is relative to tracesSampleRate,
         // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
         // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
         // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0,`
-    : ''
-}${
-  params.isReplaySelected
-    ? `
-      // Session Replay
-      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-    : ''
-}
+        profilesSampleRate: 1.0`);
+  }
+
+  return dynamicParts;
+};
+
+const getIntegrations = (params: Params): string[] => {
+  const integrations = [];
+  if (params.isPerformanceSelected) {
+    integrations.push(`Sentry.browserTracingIntegration()`);
+  }
+
+  if (params.isProfilingSelected) {
+    integrations.push(`Sentry.browserProfilingIntegration()`);
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
+    );
+  }
+
+  if (params.isFeedbackSelected) {
+    integrations.push(`
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        ${getFeedbackConfigOptions(params.feedbackOptions)}
+      }),`);
+  }
+
+  return integrations;
+};
+
+const getSdkSetupSnippet = (params: Params) => {
+  const config = buildSdkConfig({
+    params,
+    staticParts: [
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
+    getIntegrations,
+    getDynamicParts,
+  });
+
+  return `
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  ${config}
 });
 
 const container = document.getElementById(“app”);
 const root = createRoot(container);
 root.render(<App />);
 `;
+};
 
 const getVerifySnippet = () => `
 return <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>;
@@ -115,6 +141,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/react',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/react',
+      },
     ],
   },
 ];
@@ -124,9 +156,12 @@ const onboarding: OnboardingConfig = {
     <Fragment>
       <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
-        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-          strong: <strong />,
-        })}
+        {tct(
+          "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+          {
+            strong: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
@@ -134,7 +169,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
         {code: <code />}
       ),
       configurations: getInstallConfig(),
@@ -156,6 +191,7 @@ const onboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params),
             },
           ],
+          additionalInfo: params.isReplaySelected ? <TracePropagationMessage /> : null,
         },
         ...(params.isProfilingSelected
           ? [getProfilingDocumentHeaderConfigurationStep()]
@@ -165,6 +201,132 @@ const onboarding: OnboardingConfig = {
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
       ...params,
+    }),
+    getAIRulesForCodeEditorStep({
+      // ATTENTION: The rules defined here must match those in the documentation (see: https://github.com/getsentry/sentry-docs/blob/master/platform-includes/llm-rules-logs/javascript.react.mdx).
+      // If you make any changes, please update the docs accordingly.
+      rules: `
+These examples should be used as guidance when configuring Sentry functionality within a project.
+
+# Error / Exception Tracking
+
+Use \`Sentry.captureException(error)\` to capture an exception and log the error in Sentry.
+Use this in try catch blocks or areas where exceptions are expected
+
+# Tracing Examples
+
+Spans should be created for meaningful actions within an applications like button clicks, API calls, and function calls
+Ensure you are creating custom spans with meaningful names and operations
+Use the \`Sentry.startSpan\` function to create a span
+Child spans can exist within a parent span
+
+## Custom Span instrumentation in component actions
+
+\`\`\`javascript
+function TestComponent() {
+  const handleTestButtonClick = () => {
+    // Create a transaction/span to measure performance
+    Sentry.startSpan(
+      {
+        op: "ui.click",
+        name: "Test Button Click",
+      },
+      (span) => {
+        const value = "some config";
+        const metric = "some metric";
+
+        // Metrics can be added to the span
+        span.setAttribute("config", value);
+        span.setAttribute("metric", metric);
+
+        doSomething();
+      },
+    );
+  };
+
+  return (
+    <button type="button" onClick={handleTestButtonClick}>
+      Test Sentry
+    </button>
+  );
+}
+\`\`\`
+
+## Custom span instrumentation in API calls
+
+\`\`\`javascript
+async function fetchUserData(userId) {
+  return Sentry.startSpan(
+    {
+      op: "http.client",
+      name: \`GET /api/users/\${userId}\`,
+    },
+    async () => {
+      const response = await fetch(\`/api/users/\${userId}\`);
+      const data = await response.json();
+      return data;
+    },
+  );
+}
+\`\`\`
+
+# Logs
+
+Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/react"\`
+Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Reference the logger using \`const { logger } = Sentry\`
+Sentry offers a consoleLoggingIntegration that can be used to log specific console error types automatically without instrumenting the individual logger calls
+
+## Configuration
+
+### Baseline
+
+\`\`\`javascript
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+
+  _experiments: {
+    enableLogs: true,
+  },
+});
+\`\`\`
+
+### Logger Integration
+
+\`\`\`javascript
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // send console.log, console.error, and console.warn calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+  ],
+});
+\`\`\`
+
+## Logger Examples
+
+\`logger.fmt\` is a template literal function that should be used to bring variables into the structured logs.
+
+\`\`\`javascript
+logger.trace("Starting database connection", { database: "users" });
+logger.debug(logger.fmt\`Cache miss for user: \${userId}\`);
+logger.info("Updated profile", { profileId: 345 });
+logger.warn("Rate limit reached for endpoint", {
+  endpoint: "/api/results/",
+  isEnterprise: false,
+});
+logger.error("Failed to process payment", {
+  orderId: "order_123",
+  amount: 99.99,
+});
+logger.fatal("Database connection pool exhausted", {
+  database: "users",
+  activeConnections: 100,
+});
+\`\`\`
+`,
     }),
   ],
   verify: () => [
@@ -210,7 +372,7 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
         {code: <code />}
       ),
       configurations: getInstallConfig(),
@@ -232,7 +394,6 @@ const replayOnboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params),
             },
           ],
-          additionalInfo: <TracePropagationMessage />,
         },
       ],
     },
@@ -311,12 +472,12 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configuration should happen as early as possible in your application's lifecycle."
-      ),
       configurations: [
         {
           language: 'javascript',
+          description: t(
+            "Configuration should happen as early as possible in your application's lifecycle."
+          ),
           code: `
 import React from "react";
 import ReactDOM from "react-dom";
@@ -341,7 +502,7 @@ ReactDOM.render(<App />, document.getElementById("root"));
 // ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 `,
           additionalInfo: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
               linkTracingOptions: (
@@ -355,6 +516,25 @@ ReactDOM.render(<App />, document.getElementById("root"));
               ),
             }
           ),
+        },
+        {
+          language: 'javascript',
+          description: tct(
+            "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" />
+              ),
+            }
+          ),
+          code: `
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]
+});
+`,
         },
       ],
     },
@@ -370,64 +550,21 @@ ReactDOM.render(<App />, document.getElementById("root"));
           ),
         }
       ),
-      configurations: [
-        {
-          description: tct(
-            'You have the option to manually construct a transaction using [link:custom instrumentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/custom-instrumentation/" />
-              ),
-            }
-          ),
-          language: 'javascript',
-          code: `
-const transaction = Sentry.startTransaction({ name: "test-transaction" });
-const span = transaction.startChild({ op: "functionX" }); // This function returns a Span
-// exampleFunctionCall();
-span.finish(); // Remember that only finished spans will be sent with the transaction
-transaction.finish(); // Finishing the transaction will send it to Sentry`,
-        },
-        {
-          description: tct(
-            'In addition, [code:@sentry/react] exports a [code:withProfiler] higher order component that can be used to capture React-related spans for specific React components:',
-            {code: <code />}
-          ),
-          language: 'javascript',
-          code: `
-import * as Sentry from "@sentry/react";
-
-function App(props) {
-  return <div />;
-}
-
-export default Sentry.withProfiler(App);
-`,
-          additionalInfo: tct(
-            'Learn more about the profiler in [link:React Component Tracking].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/features/component-tracking/" />
-              ),
-            }
-          ),
-        },
-      ],
     },
   ],
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/react/profiling/browser-profiling/',
+});
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   performanceOnboarding,
   crashReportOnboarding,
   profilingOnboarding,

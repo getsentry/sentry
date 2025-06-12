@@ -53,10 +53,10 @@ export function resolveJSSelfProfilingStack(
 
     callStack.unshift(frameIndex[stack.frameId]!);
 
-    if (stack.parentId !== undefined) {
-      stack = trace.stacks[stack.parentId];
-    } else {
+    if (stack.parentId === undefined) {
       stack = undefined;
+    } else {
+      stack = trace.stacks[stack.parentId];
     }
   }
 

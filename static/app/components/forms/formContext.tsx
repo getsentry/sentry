@@ -8,7 +8,7 @@ import type FormModel from 'sentry/components/forms/model';
  * These differ from the 'old' forms in that they use mobx observers
  * to update state and expose it via the `FormModel`
  */
-export type FormContextData = {
+type FormContextData = {
   /**
    * The default value is undefined so that FormField components
    * not within a form context boundary create MockModels based

@@ -21,7 +21,7 @@ type KnownDecoder =
 
 type GenericDecoder<T = unknown> = (query: QueryValue) => T;
 
-export type Decoder = KnownDecoder | GenericDecoder;
+type Decoder = KnownDecoder | GenericDecoder;
 
 /**
  * Select and memoize query params from location.
@@ -54,20 +54,20 @@ export default function useLocationQuery<
   Object.entries(fields).forEach(([field, decoderOrValue]) => {
     if (typeof decoderOrValue === 'function') {
       if (decoderOrValue === decodeScalar) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field], '');
       } else if (decoderOrValue === decodeBoolean) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field], false);
       } else if (decoderOrValue === decodeInteger) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field], 0);
       } else {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field]);
       }
     } else {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       forwardedFields[field] = decoderOrValue;
     }
   }, {});
@@ -80,6 +80,7 @@ export default function useLocationQuery<
       ...(forwardedFields as any),
       ...(locationFields as any),
     }),
-    [stringyForwardedFields, stringyLocationFields] // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stringyForwardedFields, stringyLocationFields]
   );
 }

@@ -1,13 +1,9 @@
 import type {Query} from 'history';
 
-import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
-import type {Group} from './group';
-import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
-import type {AvatarUser} from './user';
 
 export enum OnboardingTaskGroup {
   GETTING_STARTED = 'getting_started',
@@ -33,18 +29,6 @@ export enum OnboardingTaskKey {
   PERFORMANCE_GUIDE = 'performance_guide',
 }
 
-export type OnboardingSupplementComponentProps = {
-  task: OnboardingTask;
-  onCompleteTask?: () => void;
-};
-
-export type OnboardingCustomComponentProps = {
-  onboardingContext: OnboardingContextProps;
-  organization: Organization;
-  projects: Project[];
-  task: OnboardingTask;
-};
-
 interface OnboardingTaskDescriptorBase {
   description: string;
   /**
@@ -52,25 +36,15 @@ interface OnboardingTaskDescriptorBase {
    */
   display: boolean;
   /**
-   * A list of require task keys that must have been completed before these
-   * tasks may be completed.
-   */
-  requisites: OnboardingTaskKey[];
-  /**
    * Can this task be skipped?
    */
   skippable: boolean;
   task: OnboardingTaskKey;
   title: string;
   /**
-   * An extra component that may be rendered within the onboarding task item.
-   */
-  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
-  /**
    * The group that this task belongs to, e.g. basic and level up
    */
   group?: OnboardingTaskGroup;
-  pendingTitle?: string;
   /**
    * Joins with this task id for server-side onboarding state.
    * This allows you to create alias for exising onboarding tasks or create multiple
@@ -100,49 +74,37 @@ export type OnboardingTaskDescriptor =
   | OnboardingTypeDescriptorWithAppLink;
 
 export interface OnboardingTaskStatus {
-  status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string | boolean;
-  data?: {[key: string]: string};
+  data?: Record<string, string>;
   dateCompleted?: string;
-  user?: AvatarUser | null;
+  status?: 'skipped' | 'complete';
 }
 
 interface OnboardingTaskWithAction
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAction {
-  /**
-   * Onboarding tasks that are currently incomplete and must be completed
-   * before this task should be completed.
-   */
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithAction {}
 
 interface OnboardingTaskWithExternal
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithExternal {
-  /**
-   * Onboarding tasks that are currently incomplete and must be completed
-   * before this task should be completed.
-   */
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithExternal {}
 
 interface OnboardingTaskWithAppLink
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAppLink {
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithAppLink {}
 
 export type OnboardingTask =
   | OnboardingTaskWithAction
   | OnboardingTaskWithExternal
   | OnboardingTaskWithAppLink;
 
-export enum OnboardingProjectStatus {
-  WAITING = 'waiting',
-  PROCESSING = 'processing',
-  PROCESSED = 'processed',
+export interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'data'>> {
+  task: OnboardingTask['task'];
+  /**
+   * Marks completion seen. This differs from the OnboardingTask
+   * completionSeen type as that returns the date completion was seen.
+   */
+  completionSeen?: boolean;
 }
 
 export interface OnboardingSelectedSDK
@@ -151,13 +113,7 @@ export interface OnboardingSelectedSDK
   key: PlatformKey;
 }
 
-export type OnboardingRecentCreatedProject = Project & {
-  firstError: boolean;
-  firstTransaction: boolean;
-  hasReplays: boolean;
-  hasSessions: boolean;
-  olderThanOneHour: boolean;
-  firstIssue?: Group;
+export type OnboardingRecentCreatedProject = {
+  isProjectActive: boolean | undefined;
+  project: Project | undefined;
 };
-
-export type OnboardingPlatformDoc = {html: string; link: string};

@@ -12,10 +12,12 @@ export type Item = {
   searchKey?: string;
 } & Record<string, any>;
 
-type Items<T> = (T & {
-  hideGroupLabel?: boolean;
-  items?: T[]; // Should hide group label
-})[];
+type Items<T> = Array<
+  T & {
+    hideGroupLabel?: boolean;
+    items?: T[]; // Should hide group label
+  }
+>;
 
 export type ItemsBeforeFilter = Items<Omit<Item, 'index'>>;
 

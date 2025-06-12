@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import clamp from 'sentry/utils/number/clamp';
-
-import {traceReducerExhaustiveActionCheck} from '../traceState';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
@@ -15,15 +14,12 @@ type TracePreferencesAction =
   | {payload: number; type: 'set list width'}
   | {payload: boolean; type: 'minimize drawer'}
   | {payload: boolean; type: 'set missing instrumentation'}
-  | {payload: boolean; type: 'set autogrouping'}
-  | {payload: number; type: 'set trace context height'};
+  | {payload: boolean; type: 'set autogrouping'};
 
 type TraceDrawerPreferences = {
   layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
-  sizes: {
-    [key in TraceLayoutPreferences | 'trace context height']: number;
-  };
+  sizes: Record<TraceLayoutPreferences, number>;
 };
 
 export type TracePreferencesState = {
@@ -39,22 +35,22 @@ export type TracePreferencesState = {
   missing_instrumentation: boolean;
 };
 
+export type StoredTracePreferences = {
+  autogroup: TracePreferencesState['autogroup'];
+  drawer_layout: TraceLayoutPreferences;
+  missing_instrumentation: boolean;
+};
+
 export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
-  'drawer left': 0.33,
-  'drawer right': 0.33,
+  'drawer left': 0.4,
+  'drawer right': 0.4,
   'drawer bottom': 0.5,
-  'trace context height': 150,
 };
 
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
-    sizes: {
-      'drawer left': 0.33,
-      'drawer right': 0.33,
-      'drawer bottom': 0.5,
-      'trace context height': 150,
-    },
+    sizes: {...TRACE_DRAWER_DEFAULT_SIZES},
     layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
   autogroup: {
@@ -72,46 +68,33 @@ export function storeTraceViewPreferences(
   key: string,
   state: TracePreferencesState
 ): void {
+  const storedState: StoredTracePreferences = {
+    drawer_layout: state.layout,
+    missing_instrumentation: state.missing_instrumentation,
+    autogroup: state.autogroup,
+  };
+
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      localStorage.setItem(key, JSON.stringify(storedState));
     } catch (e) {
       Sentry.captureException(e);
     }
   });
 }
 
-function isInt(value: any): value is number {
-  return typeof value === 'number' && !isNaN(value);
-}
-
-function correctListWidth(state: TracePreferencesState): TracePreferencesState {
-  if (state.list.width < 0.1 || state.list.width > 0.9) {
-    state.list.width = 0.5;
-  }
-  return state;
-}
-
-function isPreferenceState(parsed: any): parsed is TracePreferencesState {
+function isPreferenceState(parsed: any): parsed is StoredTracePreferences {
   return (
-    parsed?.drawer &&
-    typeof parsed.drawer.minimized === 'boolean' &&
-    Array.isArray(parsed.drawer.layoutOptions) &&
-    parsed.drawer.sizes &&
-    isInt(parsed.drawer.sizes['drawer left']) &&
-    isInt(parsed.drawer.sizes['drawer right']) &&
-    isInt(parsed.drawer.sizes['drawer bottom']) &&
-    parsed.layout &&
-    typeof parsed.layout === 'string' &&
-    parsed.list &&
-    isInt(parsed.list.width)
+    'drawer_layout' in parsed &&
+    'missing_instrumentation' in parsed &&
+    'autogroup' in parsed
   );
 }
 
 function isValidAutogrouping(
-  state: TracePreferencesState
-): state is TracePreferencesState & {autogrouping: undefined} {
+  state: StoredTracePreferences
+): state is StoredTracePreferences & {autogrouping: undefined} {
   if (state.autogroup === undefined) {
     return false;
   }
@@ -125,15 +108,15 @@ function isValidAutogrouping(
 }
 
 function isValidMissingInstrumentation(
-  state: TracePreferencesState
-): state is TracePreferencesState & {missing_instrumentation: undefined} {
+  state: StoredTracePreferences
+): state is StoredTracePreferences & {missing_instrumentation: undefined} {
   if (typeof state.missing_instrumentation !== 'boolean') {
     return false;
   }
   return true;
 }
 
-export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
+function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
   const stored = localStorage.getItem(key);
 
   if (stored) {
@@ -142,8 +125,6 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
       // We need a more robust way to validate the stored preferences.
       // Since we dont have a schema validation lib, just do it manually for now.
       if (isPreferenceState(parsed)) {
-        correctListWidth(parsed);
-
         // Correct old preferences that are missing autogrouping
         if (!isValidAutogrouping(parsed)) {
           parsed.autogroup = {...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup};
@@ -160,6 +141,22 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
   }
 
   return null;
+}
+
+export function getInitialTracePreferences(
+  key: string,
+  default_state: TracePreferencesState
+): TracePreferencesState {
+  const stored = loadTraceViewPreferences(key);
+  const preferences = default_state;
+
+  if (stored) {
+    preferences.autogroup = stored.autogroup;
+    preferences.missing_instrumentation = stored.missing_instrumentation;
+    preferences.layout = stored.drawer_layout;
+  }
+
+  return preferences;
 }
 
 export function tracePreferencesReducer(
@@ -202,17 +199,6 @@ export function tracePreferencesReducer(
         ...state,
         list: {
           width: clamp(action.payload, 0.1, 0.9),
-        },
-      };
-    case 'set trace context height':
-      return {
-        ...state,
-        drawer: {
-          ...state.drawer,
-          sizes: {
-            ...state.drawer.sizes,
-            'trace context height': action.payload,
-          },
         },
       };
     default:

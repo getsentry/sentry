@@ -439,8 +439,8 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_get_distinct_counts_totals_users_with_conditions(self):
-        assert self.db.get_distinct_counts_totals_with_conditions(
+    def test_get_distinct_counts_totals_users__with_conditions(self):
+        assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             [self.proj1group1.id],
             self.now,
@@ -451,7 +451,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         ) == {
             self.proj1group1.id: 2  # 5 unique users with US tag
         }
-        assert self.db.get_distinct_counts_totals_with_conditions(
+        assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             [self.proj1group1.id],
             self.now,
@@ -462,7 +462,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         ) == {
             self.proj1group1.id: 3  # 3 unique users with EU tag
         }
-        assert self.db.get_distinct_counts_totals_with_conditions(
+        assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             [self.proj1group1.id],
             self.now,
@@ -472,7 +472,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             conditions=[("tags[region]", "=", "MARS")],
         ) == {self.proj1group1.id: 0}
         assert (
-            self.db.get_distinct_counts_totals_with_conditions(
+            self.db.get_distinct_counts_totals(
                 TSDBModel.users_affected_by_group,
                 [],
                 self.now,
@@ -836,6 +836,16 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             end=self.now + timedelta(hours=4),
             tenant_ids={"referrer": "test", "organization_id": 1},
         ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
+
+    def test_get_sums__with_conditions(self):
+        assert self.db.get_sums(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+            tenant_ids={"referrer": "test", "organization_id": 1},
+            conditions=[("tags[environment]", "=", str(self.env1.name))],
+        ) == {self.proj1group1.id: 6, self.proj1group2.id: 6}
 
     def test_get_data_or_conditions_parsed(self):
         """

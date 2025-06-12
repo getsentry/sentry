@@ -39,7 +39,8 @@ class TeamDetailsSerializer(CamelSnakeModelSerializer):
         model = Team
         fields = ("name", "slug")
 
-    def validate_slug(self, value):
+    def validate_slug(self, value: str) -> str:
+        assert self.instance is not None
         qs = Team.objects.filter(slug=value, organization=self.instance.organization).exclude(
             id=self.instance.id
         )

@@ -13,6 +13,7 @@ from sentry.issues.endpoints.group_similar_issues_embeddings import (
 )
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
@@ -182,6 +183,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(expected_seer_request_params),
             headers={"content-type": "application/json;charset=utf-8"},
         )
@@ -427,7 +429,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])
 
-    @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -436,7 +437,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_similarity_request: mock.MagicMock,
         mock_logger: mock.MagicMock,
         mock_metrics_incr: mock.MagicMock,
-        mock_seer_deletion_request: mock.MagicMock,
     ) -> None:
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
@@ -444,6 +444,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         """
         existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
         assert existing_grouphash.group_id is None
+
+        # Create metadata for the grouphash so it has a creation date
+        GroupHashMetadata.objects.get_or_create(grouphash=existing_grouphash)
 
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -476,10 +479,16 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             extra={
                 "hash": self.event.get_primary_hash(),
                 "parent_hash": "dogs are great",
+                "parent_gh_age_in_sec": mock.ANY,  # See below
                 "project_id": self.project.id,
                 "event_id": self.event.event_id,
             },
         )
+        logged_gh_age = mock_logger.warning.call_args.kwargs["extra"]["parent_gh_age_in_sec"]
+        assert isinstance(logged_gh_age, float)
+
+        # Note that unlike in the missing grouphash test below, we're not testing Seer deletion here
+        # because it only happens conditionally, behavior that's tested in `test_similar_issues.py`
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -603,6 +612,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -629,6 +639,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -658,6 +669,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -685,7 +697,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
             mock_seer_request.reset_mock()
 
-    def test_too_many_system_frames(self) -> None:
+    def test_too_many_frames(self) -> None:
         error_type = "FailedToFetchError"
         error_value = "Charlie didn't bring the ball back"
         context_line = f"raise {error_type}('{error_value}')"

@@ -659,6 +659,11 @@ urlpatterns += [
                     name="sentry-customer-domain-feature-flags-settings",
                 ),
                 re_path(
+                    r"^stats/",
+                    react_page_view,
+                    name="sentry-customer-domain-stats-settings",
+                ),
+                re_path(
                     r"^developer-settings/",
                     react_page_view,
                     name="sentry-customer-domain-developer-settings-settings",
@@ -795,6 +800,12 @@ urlpatterns += [
         react_page_view,
         name="insights",
     ),
+    # Explore
+    re_path(
+        r"^explore/",
+        react_page_view,
+        name="explore",
+    ),
     # Traces
     re_path(
         r"^traces/",
@@ -834,18 +845,6 @@ urlpatterns += [
         r"^discover/",
         react_page_view,
         name="discover",
-    ),
-    # DDM new
-    re_path(
-        r"^metrics/",
-        react_page_view,
-        name="metrics",
-    ),
-    # TODO(metrics): fade this out
-    re_path(
-        r"^ddm/",
-        react_page_view,
-        name="ddm",
     ),
     # Request to join an organization
     re_path(
@@ -1113,7 +1112,7 @@ urlpatterns += [
                     name="sentry-organization-crons",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/alerts/rules/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-cron-monitor-details",
                 ),

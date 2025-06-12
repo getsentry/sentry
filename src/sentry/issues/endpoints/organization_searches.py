@@ -21,8 +21,8 @@ from sentry.models.search_common import SearchType
 @region_silo_endpoint
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationSearchPermission,)
@@ -110,7 +110,6 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             sort=result["sort"],
             visibility=result["visibility"],
         )
-        assert saved_search.type is not None
         analytics.record(
             "organization_saved_search.created",
             search_type=SearchType(saved_search.type).name,

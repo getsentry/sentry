@@ -3,8 +3,7 @@ import {
   parseSearch,
   type SearchConfig,
 } from 'sentry/components/searchSyntax/parser';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 // Span keys
 type TransactionPrefix = 'Transaction';
@@ -33,9 +32,9 @@ const TRANSACTION_NUMERIC_KEYS: TransactionKey[] = [
 const TRANSACTION_DURATION_KEYS: TransactionKey[] = ['transaction.duration'];
 
 const TRANSACTION_DURATION_SYNTHETIC_KEYS: TransactionKey[] = [
-  // @ts-ignore TS(2322): Type '"duration"' is not assignable to type 'Trans... Remove this comment to see the full error message
+  // @ts-expect-error TS(2322): Type '"duration"' is not assignable to type 'Trans... Remove this comment to see the full error message
   'duration',
-  // @ts-ignore TS(2322): Type '"total_time"' is not assignable to type 'Tra... Remove this comment to see the full error message
+  // @ts-expect-error TS(2322): Type '"total_time"' is not assignable to type 'Tra... Remove this comment to see the full error message
   'total_time',
 ];
 
@@ -69,11 +68,11 @@ const SPAN_DURATION_KEYS: SpanKey[] = ['exclusive_time'];
 // The keys below are not real keys returned by the API, but are instead
 // mapped by the frontend to the correct keys for convenience and UX reasons
 const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = [
-  // @ts-ignore TS(2322): Type '"duration"' is not assignable to type 'SpanK... Remove this comment to see the full error message
+  // @ts-expect-error TS(2322): Type '"duration"' is not assignable to type 'SpanK... Remove this comment to see the full error message
   'duration',
-  // @ts-ignore TS(2322): Type '"total_time"' is not assignable to type 'Spa... Remove this comment to see the full error message
+  // @ts-expect-error TS(2322): Type '"total_time"' is not assignable to type 'Spa... Remove this comment to see the full error message
   'total_time',
-  // @ts-ignore TS(2322): Type '"self_time"' is not assignable to type 'Span... Remove this comment to see the full error message
+  // @ts-expect-error TS(2322): Type '"self_time"' is not assignable to type 'Span... Remove this comment to see the full error message
   'self_time',
 ];
 
@@ -119,7 +118,7 @@ const BOOLEAN_KEYS = new Set([
   ...withPrefixedPermutation('span', SPAN_BOOLEAN_KEYS),
 ]);
 
-export const TRACE_SEARCH_CONFIG: SearchConfig = {
+const TRACE_SEARCH_CONFIG: SearchConfig = {
   ...defaultConfig,
   textOperatorKeys: TEXT_KEYS,
   durationKeys: DURATION_KEYS,

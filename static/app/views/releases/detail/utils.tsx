@@ -18,9 +18,15 @@ import type {
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
-
-import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
-import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
+import {
+  getReleaseBounds,
+  getReleaseParams,
+  isMobileRelease,
+} from 'sentry/views/releases/utils';
+import {
+  commonTermsDescription,
+  SessionTerm,
+} from 'sentry/views/releases/utils/sessionTerm';
 
 type CommitsByRepository = Record<string, Commit[]>;
 
@@ -36,7 +42,6 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (!filesByRepository[repoName]!.hasOwnProperty(filename)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filesByRepository[repoName]![filename] = {
         authors: {},
         types: new Set(),
@@ -44,12 +49,10 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (author.email) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      filesByRepository[repoName]![filename].authors[author.email] = author;
+      filesByRepository[repoName]![filename]!.authors![author.email] = author;
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    filesByRepository[repoName]![filename].types.add(type);
+    filesByRepository[repoName]![filename]!.types!.add(type);
 
     return filesByRepository;
   }, {});
@@ -78,25 +81,16 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  activeRepository?: Repository;
   perPage?: number;
 };
 
-export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
+export function getQuery({location, perPage = 40}: GetQueryProps) {
   const query = {
     ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     per_page: perPage,
   };
 
-  if (!activeRepository) {
-    return query;
-  }
-
-  return {
-    ...query,
-    repo_id: activeRepository.externalId,
-    repo_name: activeRepository.name,
-  };
+  return query;
 }
 
 /**
@@ -184,7 +178,7 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
-        // @ts-ignore TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
+        // @ts-expect-error TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
         font: 'Rubik',
         fontSize: 14,
         color: theme.chartLabel,

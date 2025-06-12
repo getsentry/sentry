@@ -3,8 +3,7 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -16,7 +15,6 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -36,14 +34,15 @@ import {
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
-import {AI_SIDEBAR_LABEL} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
-
-import Onboarding from '../onboarding';
-import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
-import {getPerformanceBaseUrl, getTransactionSearchQuery} from '../utils';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {MetricsEventsDropdown} from 'sentry/views/performance/transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
+import {
+  getPerformanceBaseUrl,
+  getTransactionSearchQuery,
+} from 'sentry/views/performance/utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
 import {BackendView} from './views/backendView';
@@ -63,7 +62,6 @@ import {
 type Props = {
   eventView: EventView;
   handleSearch: (searchQuery: string, currentMEPState?: MEPState) => void;
-  handleTrendsClick: () => void;
   location: Location;
   onboardingProject: Project | undefined;
   organization: Organization;
@@ -83,16 +81,9 @@ const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
 };
 
 export function PerformanceLanding(props: Props) {
-  const {
-    organization,
-    location,
-    eventView,
-    projects,
-    handleSearch,
-    handleTrendsClick,
-    onboardingProject,
-  } = props;
-  const {setPageInfo, pageAlert} = usePageAlert();
+  const {organization, location, eventView, projects, handleSearch, onboardingProject} =
+    props;
+  const {setPageError, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
 
@@ -112,12 +103,10 @@ export function PerformanceLanding(props: Props) {
         <Link to={`${getPerformanceBaseUrl(slug, 'backend')}/`}>
           {BACKEND_SIDEBAR_LABEL}
         </Link>
-        {`, `}
+        {t(', and ')}
         <Link to={`${getPerformanceBaseUrl(slug, 'mobile')}/`}>
           {MOBILE_SIDEBAR_LABEL}
         </Link>
-        {t(', and ')}
-        <Link to={`${getPerformanceBaseUrl(slug, 'ai')}/`}>{AI_SIDEBAR_LABEL}</Link>
         {t(' performance pages. They can all be found in the Insights tab.')}
       </Fragment>
     );
@@ -134,9 +123,9 @@ export function PerformanceLanding(props: Props) {
 
   useEffect(() => {
     if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
-      setPageInfo(performanceMovingAlert);
+      setPageError(performanceMovingAlert);
     }
-  }, [pageAlert?.message, performanceMovingAlert, setPageInfo]);
+  }, [pageAlert?.message, performanceMovingAlert, setPageError]);
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -181,7 +170,7 @@ export function PerformanceLanding(props: Props) {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-  const ViewComponent = fieldToViewMap[landingDisplay!.field];
+  const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   let pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
@@ -202,7 +191,7 @@ export function PerformanceLanding(props: Props) {
   return (
     <Layout.Page data-test-id="performance-landing-v3">
       <Tabs
-        value={landingDisplay!.field}
+        value={landingDisplay.field}
         onChange={field =>
           handleLandingDisplayChange(field, location, projects, organization, eventView)
         }
@@ -220,19 +209,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            {!showOnboarding && (
-              <ButtonBar gap={1}>
-                <Button
-                  size="sm"
-                  priority="primary"
-                  data-test-id="landing-header-trends"
-                  onClick={() => handleTrendsClick()}
-                >
-                  {t('View Trends')}
-                </Button>
-                <FeedbackWidgetButton />
-              </ButtonBar>
-            )}
+            {!showOnboarding && <FeedbackWidgetButton />}
           </Layout.HeaderActions>
 
           <TabList hideBorder>
@@ -245,7 +222,7 @@ export function PerformanceLanding(props: Props) {
         <Layout.Body data-test-id="performance-landing-body">
           <Layout.Main fullWidth>
             <TabPanels>
-              <TabPanels.Item key={landingDisplay!.field}>
+              <TabPanels.Item key={landingDisplay.field}>
                 <MetricsCardinalityProvider
                   sendOutcomeAnalytics
                   organization={organization}
@@ -274,7 +251,7 @@ export function PerformanceLanding(props: Props) {
                           {showOnboarding ? (
                             <Fragment>
                               {pageFilters}
-                              <Onboarding
+                              <LegacyOnboarding
                                 organization={organization}
                                 project={onboardingProject}
                               />

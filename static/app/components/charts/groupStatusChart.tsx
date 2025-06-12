@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -9,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {
@@ -41,23 +42,56 @@ function GroupStatusChart({
   showMarkLine = false,
   showSecondaryPoints = false,
 }: Props) {
+  const theme = useTheme();
   const graphOptions = useMemo<{
     colors: [string] | undefined;
     emphasisColors: [string] | undefined;
     series: Series[];
   }>(() => {
-    if (!stats || !stats.length) {
+    if (!stats?.length) {
       return {colors: undefined, emphasisColors: undefined, series: []};
     }
     const max = Math.max(...stats.map(p => p[1]));
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
+    const marklineColor = isChonkTheme(theme) ? theme.gray300 : theme.gray200;
+    const marklineLabelColor = isChonkTheme(theme)
+      ? theme.tokens.content.muted
+      : theme.gray300;
+    const chartColor = isChonkTheme(theme) ? theme.tokens.graphics.muted : theme.gray300;
+
+    const markLine = MarkLine({
+      silent: true,
+      lineStyle: {
+        color: marklineColor,
+        type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
+        opacity: 0.6,
+        cap: 'round', // Rounded edges for the dashes
+      },
+      data: [
+        {
+          type: 'max',
+        },
+      ],
+      animation: false,
+      label: {
+        show: true,
+        position: 'end',
+        opacity: 1,
+        color: marklineLabelColor,
+        fontFamily: 'Rubik',
+        fontSize: 10,
+        formatter: `${formattedMarkLine}`,
+      },
+    });
+
+    if (showSecondaryPoints && secondaryStats?.length) {
       const series: Series[] = [
         {
           seriesName: t('Total Events'),
           data: secondaryStats.map(asChartPoint),
+          markLine: showMarkLine && max > 0 ? markLine : undefined,
         },
         {
           seriesName: t('Matching Events'),
@@ -72,37 +106,12 @@ function GroupStatusChart({
       {
         seriesName: t('Events'),
         data: stats.map(asChartPoint),
-        markLine:
-          showMarkLine && max > 0
-            ? MarkLine({
-                silent: true,
-                lineStyle: {
-                  color: theme.gray200,
-                  type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
-                  opacity: 0.6,
-                  cap: 'round', // Rounded edges for the dashes
-                },
-                data: [
-                  {
-                    type: 'max',
-                  },
-                ],
-                animation: false,
-                label: {
-                  show: true,
-                  position: 'end',
-                  opacity: 1,
-                  color: `${theme.gray300}`,
-                  fontFamily: 'Rubik',
-                  fontSize: 10,
-                  formatter: `${formattedMarkLine}`,
-                },
-              })
-            : undefined,
+        markLine: showMarkLine && max > 0 ? markLine : undefined,
       },
     ];
-    return {colors: [theme.gray300], emphasisColors: [theme.gray300], series};
-  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
+
+    return {colors: [chartColor], emphasisColors: [chartColor], series};
+  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (
     <LazyRender containerHeight={showMarkLine ? 26 : height}>
@@ -116,7 +125,7 @@ function GroupStatusChart({
               showXAxisLine
               hideZeros={hideZeros}
               markLineLabelSide="right"
-              barOpacity={0.4}
+              barOpacity={theme.isChonk ? 1 : 0.4}
               height={showMarkLine ? 36 : height}
               isGroupedByDate
               showTimeInTooltip
@@ -156,5 +165,5 @@ const ChartWrapper = styled('div')`
 
 const GraphText = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

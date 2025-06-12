@@ -1,18 +1,19 @@
 import {useCallback, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {isString} from '@sentry/utils';
+import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
+import {Tabs} from 'sentry/components/core/tabs';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -31,13 +32,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
-
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
   getTransactionName,
-} from '../utils';
+} from 'sentry/views/performance/utils';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
@@ -77,10 +77,11 @@ export type ChildProps = {
 };
 
 type Props = {
-  childComponent: (props: ChildProps) => JSX.Element;
+  childComponent: (props: ChildProps) => React.JSX.Element;
   generateEventView: (props: {
     location: Location;
     organization: Organization;
+    shouldUseOTelFriendlyUI: boolean;
     transactionName: string;
   }) => EventView;
   getDocumentTitle: (name: string) => string;
@@ -129,7 +130,7 @@ function PageLayout(props: Props) {
       }
 
       const routeQuery = {
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         projectID: projectId,
         query: location.query,
@@ -147,11 +148,9 @@ function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.AGGREGATE_WATERFALL:
-          return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             projectID: decodeScalar(location.query.project),
             query: location.query,
@@ -161,7 +160,7 @@ function PageLayout(props: Props) {
           return transactionSummaryRouteWithQuery(routeQuery);
       }
     },
-    [location.query, organization.slug, projectId, transactionName]
+    [location.query, organization, projectId, transactionName]
   );
 
   const onTabChange = useCallback(
@@ -184,12 +183,19 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
-  const eventView = generateEventView({location, transactionName, organization});
+  const eventView = generateEventView({
+    location,
+    organization,
+    transactionName,
+    shouldUseOTelFriendlyUI,
+  });
 
   if (!defined(projectId)) {
     // Using a discover query to get the projects associated
@@ -237,7 +243,7 @@ function PageLayout(props: Props) {
                 projects={selectableProjects}
                 router={router}
                 nextPath={{
-                  pathname: generateTransactionSummaryRoute({orgSlug: organization.slug}),
+                  pathname: generateTransactionSummaryRoute({organization}),
                   query: {
                     project: projectId,
                     transaction: transactionName,
@@ -328,28 +334,31 @@ function PageLayout(props: Props) {
 }
 
 export function NoAccess() {
-  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+  return (
+    <Alert.Container>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </Alert.Container>
+  );
 }
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
-  margin: 0;
 `;
 
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`
   ${p =>
     p.fillSpace &&
-    `
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
+    css`
+      display: flex;
+      flex-direction: column;
+      gap: ${space(3)};
 
-  @media (min-width: ${p.theme.breakpoints.large}) {
-    display: flex;
-    flex-direction: column;
-    gap: ${space(3)};
-  }
-  `}
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        display: flex;
+        flex-direction: column;
+        gap: ${space(3)};
+      }
+    `}
 `;
 
 export function redirectToPerformanceHomepage(
@@ -359,7 +368,7 @@ export function redirectToPerformanceHomepage(
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug),
+      pathname: getPerformanceBaseUrl(organization.slug, 'backend'),
       query: {
         ...location.query,
       },

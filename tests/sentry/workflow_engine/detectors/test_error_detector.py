@@ -23,7 +23,7 @@ class TestErrorDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": "error",
+            "detectorType": "error",
             "fingerprinting_rules": """message:"hello world 1" -> hw1 title="HW1""",
             "resolve_age": 30,
         }
@@ -43,7 +43,7 @@ class TestErrorDetectorValidator(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "error"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
         assert detector.workflow_condition_group is None
 
         # Verify audit log
@@ -51,16 +51,16 @@ class TestErrorDetectorValidator(TestCase):
             request=self.context["request"],
             organization=self.project.organization,
             target_object=detector.id,
-            event=audit_log.get_event_id("WORKFLOW_ENGINE_DETECTOR_ADD"),
+            event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
 
-    def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": "metric_alert_fire"}
+    def test_invalid_detector_type(self):
+        data = {**self.valid_data, "detectorType": "metric_issue"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
-        assert validator.errors.get("groupType") == [
-            ErrorDetail(string="Group type must be error", code="invalid")
+        assert validator.errors.get("detectorType") == [
+            ErrorDetail(string="Detector type must be error", code="invalid")
         ]
 
     def test_invalid_fingerprinting_rules(self):

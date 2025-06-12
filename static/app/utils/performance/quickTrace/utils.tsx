@@ -154,7 +154,7 @@ export function parseQuickTrace(
    * the root of the trace, this favours showing it as the parent.
    */
   const parent = current.parent_event_id
-    ? trace.find(e => e.event_id === current.parent_event_id) ?? null
+    ? (trace.find(e => e.event_id === current.parent_event_id) ?? null)
     : null;
 
   /**
@@ -325,9 +325,10 @@ export function isTraceRoot(
   return 'traceSlug' in transaction;
 }
 
-export function isTraceSplitResult<U extends object, V extends object>(
-  result: U | V
-): result is U {
+export function isTraceSplitResult<
+  U extends Record<PropertyKey, unknown>,
+  V extends readonly unknown[],
+>(result: U | V): result is U {
   return 'transactions' in result;
 }
 

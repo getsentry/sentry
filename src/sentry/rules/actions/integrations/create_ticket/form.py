@@ -3,6 +3,7 @@ from typing import Any
 from django import forms
 
 from sentry.rules.actions.integrations.base import INTEGRATION_KEY
+from sentry.utils.forms import set_field_choices
 
 
 class IntegrationNotifyServiceForm(forms.Form):
@@ -14,5 +15,4 @@ class IntegrationNotifyServiceForm(forms.Form):
         if integrations:
             self.fields[INTEGRATION_KEY].initial = integrations[0][0]
 
-        self.fields[INTEGRATION_KEY].choices = integrations
-        self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
+        set_field_choices(self.fields[INTEGRATION_KEY], integrations)

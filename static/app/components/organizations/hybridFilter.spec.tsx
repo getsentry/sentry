@@ -11,6 +11,7 @@ import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 const props = {
   searchable: true,
   multiple: true,
+  checkboxPosition: 'trailing' as const,
   options: [
     {value: 'one', label: 'Option One'},
     {value: 'two', label: 'Option Two'},

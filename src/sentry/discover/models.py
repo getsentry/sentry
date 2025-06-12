@@ -99,10 +99,14 @@ class DiscoverSavedQuery(Model):
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     is_homepage = models.BooleanField(null=True, blank=True)
     dataset = BoundedPositiveIntegerField(
-        choices=DiscoverSavedQueryTypes.as_choices(), default=DiscoverSavedQueryTypes.DISCOVER
+        choices=DiscoverSavedQueryTypes.as_choices(),
+        default=DiscoverSavedQueryTypes.DISCOVER,
+        db_default=DiscoverSavedQueryTypes.DISCOVER,
     )
     dataset_source = BoundedPositiveIntegerField(
-        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+        choices=DatasetSourcesTypes.as_choices(),
+        default=DatasetSourcesTypes.UNKNOWN.value,
+        db_default=DatasetSourcesTypes.UNKNOWN.value,
     )
 
     class Meta:
@@ -191,7 +195,7 @@ class TeamKeyTransaction(Model):
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
-    project_team = FlexibleForeignKey("sentry.ProjectTeam", null=True, db_constraint=False)
+    project_team = FlexibleForeignKey("sentry.ProjectTeam", db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
 
     # Custom Model Manager required to override post_save/post_delete method

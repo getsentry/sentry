@@ -81,7 +81,7 @@ def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
 
 
 @contextmanager
-def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None, None, None]:
+def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None]:
     """
     The context manager version of `add_global_tags` that reverts all tag
     changes upon exit.

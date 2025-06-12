@@ -1,13 +1,13 @@
-import {Fragment, useCallback, useContext, useEffect} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,6 +15,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {StepProps} from './types';
 
@@ -49,7 +50,8 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 
 function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
+  const onboardingContext = useOnboardingContext();
+  const {activateSidebar} = useOnboardingSidebar();
 
   const source = 'targeted_onboarding';
 
@@ -59,9 +61,9 @@ function TargetedOnboardingWelcome(props: StepProps) {
       source,
     });
 
-    if (onboardingContext.data.selectedSDK) {
+    if (onboardingContext.selectedPlatform) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+      onboardingContext.setSelectedPlatform(undefined);
     }
   }, [organization, onboardingContext]);
 
@@ -79,7 +81,9 @@ function TargetedOnboardingWelcome(props: StepProps) {
       organization,
       source,
     });
-  }, [organization, source]);
+
+    activateSidebar({userClicked: false, source: 'targeted_onboarding_welcome_skip'});
+  }, [organization, source, activateSidebar]);
 
   return (
     <FallingError>
@@ -161,7 +165,7 @@ const ActionItem = styled(motion.div)`
   padding: ${space(2)};
   margin-bottom: ${space(2)};
   justify-content: space-around;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-template-columns: 125px auto 125px;
@@ -197,7 +201,7 @@ const SubText = styled('span')`
 `;
 
 const SubHeaderText = styled(motion.h6)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const ButtonWrapper = styled('div')`

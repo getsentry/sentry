@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -203,7 +203,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         defaultValue: t('(unnamed span)'),
         link: (dataRow: any) => ({
           target: spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             spanSlug: {op: dataRow.operation, group: dataRow.group},
             transaction,
             projectID: project.id,

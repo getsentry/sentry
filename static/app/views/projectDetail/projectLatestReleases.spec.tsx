@@ -31,7 +31,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a list', function () {
+  it('renders a list', async function () {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -42,6 +42,12 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       />
     );
 
+    expect(screen.getByText('Latest Releases')).toBeInTheDocument();
+
+    expect(await screen.findByText('1.0.0')).toBeInTheDocument();
+    expect(screen.getByText('1.0.1')).toBeInTheDocument();
+    expect(screen.getAllByText('Mar 23, 2020 1:02 AM')).toHaveLength(2);
+
     expect(endpointMock).toHaveBeenCalledTimes(1);
     expect(endpointMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -50,12 +56,6 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       })
     );
     expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(0);
-
-    expect(screen.getByText('Latest Releases')).toBeInTheDocument();
-
-    expect(screen.getByText('1.0.0')).toBeInTheDocument();
-    expect(screen.getByText('1.0.1')).toBeInTheDocument();
-    expect(screen.getAllByText('Mar 23, 2020 1:02 AM')).toHaveLength(2);
   });
 
   it('shows the empty state', async function () {
@@ -108,7 +108,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('calls API with the right params', function () {
+  it('calls API with the right params', async function () {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -121,6 +121,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       />
     );
 
+    await screen.findByText('Latest Releases');
     expect(endpointMock).toHaveBeenCalledTimes(1);
     expect(endpointMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -130,7 +131,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     );
   });
 
-  it('does not call API if project is not stabilized yet', function () {
+  it('does not call API if project is not stabilized yet', async function () {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -143,6 +144,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       />
     );
 
+    await screen.findByText('Latest Releases');
     expect(endpointMock).toHaveBeenCalledTimes(0);
   });
 });

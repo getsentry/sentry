@@ -1,8 +1,6 @@
 import {useRef} from 'react';
-import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import {IconMegaphone} from 'sentry/icons/iconMegaphone';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
@@ -15,14 +13,12 @@ function AutofixFeedback() {
   }
 
   return (
-    <StyledButton
+    <Button
       ref={buttonRef}
-      size="zero"
-      borderless
-      icon={<IconMegaphone />}
+      size="xs"
       onClick={() =>
         openForm({
-          messagePlaceholder: t('How can we make Autofix better for you?'),
+          messagePlaceholder: t('How can we make Seer better for you?'),
           tags: {
             ['feedback.source']: 'issue_details_ai_autofix',
             ['feedback.owner']: 'ml-ai',
@@ -31,16 +27,8 @@ function AutofixFeedback() {
       }
     >
       {t('Give Feedback')}
-    </StyledButton>
+    </Button>
   );
 }
-
-const StyledButton = styled(Button)`
-  padding: 0;
-  margin: 0;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.subText};
-`;
 
 export default AutofixFeedback;

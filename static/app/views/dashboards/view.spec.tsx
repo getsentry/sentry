@@ -41,7 +41,6 @@ describe('Dashboards > ViewEditDashboard', function () {
     render(
       <ViewEditDashboard
         location={router.location}
-        organization={initialData.organization}
         router={initialData.router}
         params={{
           orgId: initialData.organization.slug,
@@ -53,7 +52,10 @@ describe('Dashboards > ViewEditDashboard', function () {
       >
         <Fragment />
       </ViewEditDashboard>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(router.replace).toHaveBeenCalledWith(

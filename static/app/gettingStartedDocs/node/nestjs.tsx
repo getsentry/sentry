@@ -13,11 +13,11 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
@@ -64,11 +64,11 @@ getError() {
 
 const getDecoratedGlobalFilter =
   () => `import { Catch, ExceptionFilter } from '@nestjs/common';
-import { WithSentry } from '@sentry/nestjs';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 
 @Catch()
 export class YourCatchAllExceptionFilter implements ExceptionFilter {
-  @WithSentry()
+  @SentryExceptionCaptured()
   catch(exception, host): void {
     // your implementation here
   }
@@ -170,7 +170,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'If you are using a global catch-all exception filter add a [code:@WithSentry()] decorator to the [code:catch()] method of this global error filter. This will report all unhandled errors to Sentry',
+            'If you are using a global catch-all exception filter add a [code:@SentryExceptionCaptured()] decorator to the [code:catch()] method of this global error filter. This will report all unhandled errors to Sentry',
             {
               code: <code />,
             }
@@ -277,17 +277,13 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: () => null,
-};
-
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
-  customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
-  profilingOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding({
+    basePackage: '@sentry/nestjs',
+  }),
 };
 
 export default docs;

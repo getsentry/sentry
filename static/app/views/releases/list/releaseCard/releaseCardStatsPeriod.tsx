@@ -42,7 +42,7 @@ function ReleaseCardStatsPeriod({location, selection}: Props) {
         }}
         selected={activePeriod === HealthStatsPeriodOption.AUTO}
       >
-        {selection.datetime.start ? t('Custom') : selection.datetime.period ?? t('14d')}
+        {selection.datetime.start ? t('Custom') : (selection.datetime.period ?? t('14d'))}
       </Period>
     </Wrapper>
   );
@@ -59,11 +59,11 @@ const Wrapper = styled('div')`
 `;
 
 const Period = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.gray400 : p.theme.gray300)};
+  color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
 
   &:hover,
   &:focus {
-    color: ${p => (p.selected ? p.theme.gray400 : p.theme.gray300)};
+    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
   }
 `;
 

@@ -1,17 +1,21 @@
 import {Fragment, useState} from 'react';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
 import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import type {TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
@@ -118,13 +122,13 @@ const getTagValues = (): Promise<string[]> => {
   });
 };
 
-export default storyBook(SearchQueryBuilder, story => {
+export default Storybook.story('SearchQueryBuilder', story => {
   story('Getting started', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="SearchQueryBuilder" /> is a component which allows you to build a
-          search query using a set of predefined filter keys and values.
+          <Storybook.JSXNode name="SearchQueryBuilder" /> is a component which allows you
+          to build a search query using a set of predefined filter keys and values.
         </p>
         <p>
           The search query, unless configured otherwise, may contain filters, logical
@@ -627,7 +631,7 @@ export default storyBook(SearchQueryBuilder, story => {
 
     const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[config] = true;
       return acc;
     }, {});
@@ -664,7 +668,7 @@ export default storyBook(SearchQueryBuilder, story => {
           red and display a tooltip with a message when focused. The invalid token
           messages can be customized using the <code>invalidMessages</code> prop. In this
           case, the unsupported tag message is modified with{' '}
-          <JSXProperty
+          <Storybook.JSXProperty
             name="invalidMessages"
             value={{[InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'foo bar baz'}}
           />
@@ -726,12 +730,112 @@ export default storyBook(SearchQueryBuilder, story => {
       <Fragment>
         <p>
           If you just need to render a formatted query outside of the search bar,{' '}
-          <JSXNode name="FormattedQuery" /> is exported for this purpose:
+          <Storybook.JSXNode name="ProvidedFormattedQuery" /> is exported for this
+          purpose:
         </p>
-        <FormattedQuery
+        <ProvidedFormattedQuery
           query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
           filterKeys={FILTER_KEYS}
         />
+      </Fragment>
+    );
+  });
+
+  story('SearchQueryBuilderProvider', () => {
+    function OpenDropdownButton() {
+      const {dispatch} = useSearchQueryBuilder();
+
+      return (
+        <Button
+          style={{marginTop: '16px'}}
+          onClick={() =>
+            dispatch({
+              type: 'UPDATE_QUERY',
+              query: 'browser.name:""',
+              focusOverride: {
+                itemKey: 'filter:0',
+                part: 'value',
+              },
+            })
+          }
+        >
+          Open Dropdown
+        </Button>
+      );
+    }
+
+    function SearchQueryBuilderExample() {
+      const props = {
+        initialQuery: 'browser.name:""',
+        filterKeys: FILTER_KEYS,
+        getTagValues,
+        searchSource: 'storybook',
+      };
+      return (
+        <SearchQueryBuilderProvider {...props}>
+          <SearchQueryBuilder {...props} />
+          <OpenDropdownButton />
+        </SearchQueryBuilderProvider>
+      );
+    }
+
+    return (
+      <Fragment>
+        <p>
+          The <Storybook.JSXNode name="SearchQueryBuilder" /> component already comes
+          pre-wrapped with the <Storybook.JSXNode name="SearchQueryBuilderProvider" />.
+          However, in the event that you need to control the inner state of the{' '}
+          <Storybook.JSXNode name="SearchQueryBuilder" />, you can wrap it in the provider
+          yourself. When passed this way, the search bar will ditch its original provider
+          and use the one you defined. The provider accepts the same props as the{' '}
+          <Storybook.JSXNode name="SearchQueryBuilder" /> component.
+        </p>
+        <p>
+          The provider will give you access to the context values within the search bar.
+          Access these values using the <code>useSearchQueryBuilder</code> hook within any
+          of the provider's child components.
+        </p>
+        <p>
+          Here is an example of a custom component that uses the provider. In this
+          implementation, clicking the button will open the dropdown for the first filter
+          with the <code>focusOverride</code> prop.
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+function OpenDropdownButton() {
+  const {dispatch} = useSearchQueryBuilder();
+
+  const handleClick = () => {
+    dispatch({
+      type: "UPDATE_QUERY",
+      query: 'browser.name:""',
+      focusOverride: {
+        // Focuses the filter with index 0
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+    })
+  }
+
+  return (
+    <Button onClick={handleClick}>
+      {'Open Dropdown'}
+    </Button>
+  );
+};
+
+function SearchQueryBuilderExample(queryBuilderProps: SearchQueryBuilderProps) {
+  return (
+    <SearchQueryBuilderProvider {...queryBuilderProps}>
+      <SearchQueryBuilder {...queryBuilderProps} />
+      <OpenDropdownButton />
+    </SearchQueryBuilderProvider>
+  )
+}
+      `}
+        </CodeSnippet>
+        <p>The following is the above code in action:</p>
+        <SearchQueryBuilderExample />
       </Fragment>
     );
   });
@@ -740,9 +844,9 @@ export default storyBook(SearchQueryBuilder, story => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="SearchQueryBuilder" /> is a replacement for{' '}
-          <JSXNode name="SmartSearchBar" />. It provides a more flexible and powerful
-          search query builder.
+          <Storybook.JSXNode name="SearchQueryBuilder" /> is a replacement for{' '}
+          <Storybook.JSXNode name="SmartSearchBar" />. It provides a more flexible and
+          powerful search query builder.
         </p>
         <p>
           Some props have been renamed:

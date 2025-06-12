@@ -7,10 +7,10 @@
 # shellcheck disable=SC2034 # Unused variables
 # shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
-POSTGRES_CONTAINER="sentry_postgres"
-USE_NEW_DEVSERVICES=${USE_NEW_DEVSERVICES:-"0"}
-if [ "$USE_NEW_DEVSERVICES" == "1" ]; then
-    POSTGRES_CONTAINER="sentry-postgres-1"
+POSTGRES_CONTAINER="sentry-postgres-1"
+USE_OLD_DEVSERVICES=${USE_OLD_DEVSERVICES:-"0"}
+if [ "$USE_OLD_DEVSERVICES" == "1" ]; then
+    POSTGRES_CONTAINER="sentry_postgres"
 fi
 
 venv_name=".venv"

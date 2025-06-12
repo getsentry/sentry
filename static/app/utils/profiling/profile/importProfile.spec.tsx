@@ -155,7 +155,7 @@ describe('importProfile', () => {
   it('throws on unrecognized profile type', () => {
     expect(() =>
       importProfile(
-        // @ts-expect-error
+        // @ts-expect-error wrong type 'unrecognized' is on purpose
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
         '',
         '',

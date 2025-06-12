@@ -22,7 +22,7 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    spans_eap,
+    ourlogs,
     spans_indexed,
     spans_metrics,
     spans_rpc,
@@ -113,6 +113,11 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_DURATION_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
+    Referrer.API_EXPLORE_COMPARE_SERIES.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_DURATION_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART.value,
 }
 
 
@@ -129,7 +134,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    sunba_methods = ["GET"]
 
     def get_features(
         self, organization: Organization, request: Request
@@ -184,8 +188,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
-
-        transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
@@ -257,7 +259,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         metrics_enhanced_performance,
                         spans_indexed,
                         spans_metrics,
-                        spans_eap,
+                        spans_rpc,
+                        ourlogs,
                         errors,
                         transactions,
                     ]
@@ -277,8 +280,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
-        use_rpc = request.GET.get("useRpc", "0") == "1"
-        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
+        use_rpc = dataset in {spans_rpc, ourlogs}
+        transform_alias_to_input_format = (
+            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
+        )
 
         def _get_event_stats(
             scoped_dataset: Any,
@@ -290,8 +295,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
-                if use_rpc and dataset == spans_eap:
-                    return spans_rpc.run_top_events_timeseries_query(
+                if use_rpc:
+                    return scoped_dataset.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
                         y_axes=query_columns,
@@ -299,11 +304,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         orderby=self.get_orderby(request),
                         limit=top_events,
                         referrer=referrer,
-                        granularity_secs=rollup,
                         config=SearchResolverConfig(
                             auto_fields=False,
-                            use_aggregate_conditions=False,
+                            use_aggregate_conditions=True,
                         ),
+                        sampling_mode=snuba_params.sampling_mode,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -323,24 +328,20 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     include_other=include_other,
                     query_source=query_source,
                     transform_alias_to_input_format=transform_alias_to_input_format,
-                    fallback_to_transactions=features.has(
-                        "organizations:performance-discover-dataset-selector",
-                        organization,
-                        actor=request.user,
-                    ),
+                    fallback_to_transactions=True,
                 )
 
-            if use_rpc and dataset == spans_eap:
-                return spans_rpc.run_timeseries_query(
+            if use_rpc:
+                return scoped_dataset.run_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
-                    granularity_secs=rollup,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
-                        use_aggregate_conditions=False,
+                        use_aggregate_conditions=True,
                     ),
+                    sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )
 
@@ -368,11 +369,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
                 transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
@@ -408,13 +405,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 try:
                     widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                     does_widget_have_split = widget.discover_widget_split is not None
-                    has_override_feature = features.has(
-                        "organizations:performance-discover-widget-split-override-save",
-                        organization,
-                        actor=request.user,
-                    )
 
-                    if does_widget_have_split and not has_override_feature:
+                    if does_widget_have_split:
                         # This is essentially cached behaviour and we skip the check
                         split_query = query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
@@ -574,6 +566,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     comparison_delta=comparison_delta,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 ),
                 status=200,
             )

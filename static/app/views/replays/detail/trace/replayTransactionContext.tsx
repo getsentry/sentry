@@ -1,12 +1,5 @@
 import type {ReactNode} from 'react';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, useCallback, useMemo, useState} from 'react';
 import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
@@ -21,10 +14,6 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {
-  getTraceRequestPayload,
-  makeEventView,
-} from 'sentry/utils/performance/quickTrace/utils';
 import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmitTimestampChanges';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,7 +37,7 @@ type InternalState = {
   orphanErrors?: TraceError[];
 };
 
-export type ExternalState = {
+type ExternalState = {
   didInit: boolean;
   errors: Error[];
   isFetching: boolean;
@@ -115,24 +104,13 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     async (dataRow: any) => {
       try {
         const {trace: traceId, timestamp} = dataRow;
-        const start = getUtcDateString(replayRecord?.started_at.getTime());
-        const end = getUtcDateString(replayRecord?.finished_at.getTime());
-        const eventView = makeEventView({start, end});
-        let payload: any;
-
-        if (organization.features.includes('replay-trace-view-v1')) {
-          payload = {
-            limit: 10000,
-            useSpans: 1,
-            timestamp,
-          };
-        } else {
-          payload = getTraceRequestPayload({eventView, location: {} as Location});
-        }
-
         const [trace, _traceResp] = await doDiscoverQuery<
           TraceSplitResults<TraceFullDetailed> | TraceFullDetailed[]
-        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, payload);
+        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, {
+          limit: 10000,
+          useSpans: 1,
+          timestamp,
+        } as any);
 
         const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
           trace,
@@ -159,7 +137,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, organization, replayRecord]
+    [api, orgSlug, organization]
   );
 
   const fetchTracesInBatches = useCallback(
@@ -249,9 +227,22 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
         cursor = parseLinkHeader(pageLinks)?.next!;
         const indexComplete = !cursor.results;
-        setState(prev => ({...prev, indexComplete}) as InternalState);
+        setState(
+          prev =>
+            ({
+              ...prev,
+              indexComplete,
+            }) as InternalState
+        );
       } catch (indexError) {
-        setState(prev => ({...prev, indexError, indexComplete: true}) as InternalState);
+        setState(
+          prev =>
+            ({
+              ...prev,
+              indexError,
+              indexComplete: true,
+            }) as InternalState
+        );
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }
@@ -260,7 +251,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const externalState = useMemo(() => internalToExternalState(state), [state]);
 
   return (
-    <TxnContext.Provider
+    <TxnContext
       value={{
         eventView: listEventView,
         fetchTransactionData,
@@ -268,7 +259,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
       }}
     >
       {children}
-    </TxnContext.Provider>
+    </TxnContext>
   );
 }
 
@@ -293,19 +284,3 @@ function internalToExternalState({
 }
 
 export default ReplayTransactionContext;
-
-export const useFetchTransactions = () => {
-  const {fetchTransactionData, state} = useContext(TxnContext);
-
-  useEffect(() => {
-    if (!state.isFetching && state.traces === undefined) {
-      fetchTransactionData();
-    }
-  }, [fetchTransactionData, state]);
-};
-
-export const useTransactionData = () => {
-  const {eventView, state} = useContext(TxnContext);
-  const data = useMemo(() => ({eventView, state}), [eventView, state]);
-  return data;
-};

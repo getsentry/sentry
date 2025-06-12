@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 import trimStart from 'lodash/trimStart';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -29,18 +28,13 @@ import {
   isAggregateField,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {
-  eventDetailsRouteWithEventView,
-  generateEventSlug,
-} from 'sentry/utils/discover/urls';
-import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
@@ -52,6 +46,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  theme: Theme;
   widget: Widget;
   eventView?: EventView;
   isFirstPage?: boolean;
@@ -101,6 +96,7 @@ export const renderIssueGridHeaderCell = ({
             order: 'desc',
           });
         }}
+        preventScrollReset
       />
     );
   };
@@ -174,6 +170,7 @@ export const renderDiscoverGridHeaderCell = ({
             order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
           });
         }}
+        preventScrollReset
       />
     );
   };
@@ -186,6 +183,7 @@ export const renderGridBodyCell = ({
   isFirstPage,
   projects,
   eventView,
+  theme,
 }: Props) =>
   function (
     column: GridColumnOrder,
@@ -200,12 +198,12 @@ export const renderGridBodyCell = ({
       case WidgetType.ISSUE:
         cell = (
           getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, ISSUE_FIELDS)
-        )(dataRow, {organization, location});
+        )(dataRow, {organization, location, theme});
         break;
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
       case WidgetType.ERRORS:
-      default:
+      default: {
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
@@ -219,6 +217,7 @@ export const renderGridBodyCell = ({
           location,
           eventView,
           unit,
+          theme,
         });
 
         const fieldName = getAggregateAlias(columnKey);
@@ -235,6 +234,7 @@ export const renderGridBodyCell = ({
           );
         }
         break;
+      }
     }
 
     if (columnKey === 'transaction' && dataRow.transaction) {
@@ -267,46 +267,6 @@ export const renderGridBodyCell = ({
         {cell}
       </Fragment>
     );
-  };
-
-export const renderPrependColumns =
-  ({location, organization, tableData, eventView}: Props & {eventView: EventView}) =>
-  (isHeader: boolean, dataRow?: any, rowIndex?: number): React.ReactNode[] => {
-    if (isHeader) {
-      return [
-        <PrependHeader key="header-event-id">
-          <SortLink
-            align="left"
-            title={t('event id')}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={() => undefined}
-          />
-        </PrependHeader>,
-      ];
-    }
-    let value = dataRow.id;
-
-    if (tableData?.meta) {
-      const fieldRenderer = getFieldRenderer('id', tableData?.meta);
-      value = fieldRenderer(dataRow, {organization, location});
-    }
-
-    const eventSlug = generateEventSlug(dataRow);
-
-    const target = eventDetailsRouteWithEventView({
-      orgSlug: organization.slug,
-      eventSlug,
-      eventView,
-    });
-
-    return [
-      <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-        <Link data-test-id="view-event" to={target}>
-          {value}
-        </Link>
-      </Tooltip>,
-    ];
   };
 
 export const renderReleaseGridHeaderCell = ({
@@ -365,34 +325,11 @@ export const renderReleaseGridHeaderCell = ({
             order: sort?.kind === 'desc' ? 'asc' : 'desc',
           });
         }}
+        preventScrollReset
       />
-    );
-  };
-
-export const renderMetricGridHeaderCell = () =>
-  function (
-    column: TableColumn<keyof TableDataRow>,
-    _columnIndex: number
-  ): React.ReactNode {
-    const align = parseField(column.name) ? 'right' : 'left';
-    const titleText = formatMRIField(column.name);
-
-    return (
-      <StyledTooltip skipWrapper showOnlyOnOverflow title={titleText}>
-        <AlignedText align={align}>{titleText}</AlignedText>
-      </StyledTooltip>
     );
   };
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
-`;
-
-const PrependHeader = styled('span')`
-  color: ${p => p.theme.subText};
-`;
-
-const AlignedText = styled('div')<{align: string}>`
-  width: 100%;
-  text-align: ${p => p.align};
 `;

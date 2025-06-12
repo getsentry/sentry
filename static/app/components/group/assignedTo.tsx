@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -6,16 +7,15 @@ import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import {Button} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import {
   type OnAssignCallback,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconSettings, IconUser} from 'sentry/icons';
+import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -33,7 +33,6 @@ import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
-
 /**
  * example: codeowners:/issues -> [['codeowners', '/issues']]
  */
@@ -51,7 +50,7 @@ type Rule = [RuleDefinition, RuleOwner[]];
 function findMatchedRules(
   rules: EventOwners['rules'],
   owner: Actor
-): Rule[0][] | undefined {
+): Array<Rule[0]> | undefined {
   if (!rules) {
     return undefined;
   }
@@ -79,7 +78,7 @@ type IssueOwner = {
   actor: Actor;
   source: 'codeowners' | 'projectOwnership' | 'suspectCommit';
   commits?: Commit[];
-  rules?: [string, string][] | null;
+  rules?: Array<[string, string]> | null;
 };
 export interface EventOwners {
   owners: Actor[];
@@ -141,7 +140,7 @@ export function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | undefined,
   assignedTo: Actor | null
-): Omit<SuggestedAssignee, 'assignee'>[] {
+): Array<Omit<SuggestedAssignee, 'assignee'>> {
   const owners: IssueOwner[] = committers.map(commiter => ({
     actor: {...commiter.author, type: 'user'},
     commits: commiter.commits,
@@ -200,6 +199,7 @@ function AssignedTo({
   onAssign,
   disableDropdown = false,
 }: AssignedToProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const api = useApi();
   const {data: eventOwners} = useIssueEventOwners({
@@ -255,9 +255,9 @@ function AssignedTo({
           <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
         </ActorWrapper>
         {!disableDropdown && (
-          <Chevron
+          <IconChevron
             data-test-id="assigned-to-chevron-icon"
-            size="large"
+            size="md"
             direction={isOpen ? 'up' : 'down'}
           />
         )}
@@ -278,6 +278,7 @@ function AssignedTo({
                   organization,
                   issueId: group.id,
                   eventData: event!,
+                  theme,
                 });
               }}
               aria-label={t('Create Ownership Rule')}
@@ -341,7 +342,5 @@ const StyledSidebarTitle = styled(SidebarSection.Title)`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  width: 24px;
-  height: 24px;
   margin: 0 !important;
 `;

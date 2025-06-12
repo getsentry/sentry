@@ -132,13 +132,17 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        sum_results = self.db.get_timeseries_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert sum_results == {1: 9, 2: 4}
 
-        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        sum_results = self.db.get_timeseries_sums(
+            TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1
+        )
         assert sum_results == {1: 4, 2: 3}
 
-        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0)
+        sum_results = self.db.get_timeseries_sums(
+            TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0
+        )
         assert sum_results == {1: 0, 2: 0}
 
         self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[0, 1, 2])
@@ -174,15 +178,17 @@ class RedisTSDBTest(TestCase):
             2: [(timestamp(dts[i]), 0) for i in range(0, 4)],
         }
 
-        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        sum_results = self.db.get_timeseries_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert sum_results == {1: 13, 2: 0}
 
         self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[0, 1, 2])
 
-        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        sum_results = self.db.get_timeseries_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert sum_results == {1: 0, 2: 0}
 
-        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        sum_results = self.db.get_timeseries_sums(
+            TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1
+        )
         assert sum_results == {1: 0, 2: 0}
 
     def test_count_distinct(self):

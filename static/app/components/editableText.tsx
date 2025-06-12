@@ -1,8 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {space} from 'sentry/styles/space';
@@ -20,6 +21,10 @@ type Props = {
   isDisabled?: boolean;
   maxLength?: number;
   name?: string;
+  /**
+   * The placeholder text to display when the input is empty.
+   */
+  placeholder?: string;
   successMessage?: React.ReactNode;
 };
 
@@ -34,6 +39,7 @@ function EditableText({
   autoSelect = false,
   className,
   'aria-label': ariaLabel,
+  placeholder,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
@@ -161,6 +167,7 @@ function EditableText({
             onChange={handleInputChange}
             onFocus={event => autoSelect && event.target.select()}
             maxLength={maxLength}
+            placeholder={placeholder}
           />
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
@@ -171,7 +178,7 @@ function EditableText({
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
-          <InnerLabel>{inputValue}</InnerLabel>
+          <InnerLabel>{inputValue || placeholder}</InnerLabel>
           {!isDisabled && <IconEdit />}
         </Label>
       )}
@@ -181,7 +188,7 @@ function EditableText({
 
 export default EditableText;
 
-export const Label = styled('div')<{isDisabled: boolean}>`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -191,13 +198,13 @@ export const Label = styled('div')<{isDisabled: boolean}>`
 
 const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
-  border-bottom: 1px dotted ${p => p.theme.gray200};
+  border-bottom: 1px dotted ${p => p.theme.border};
   line-height: 38px;
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.surface200};
   border-radius: ${p => p.theme.borderRadius};
   margin: -${space(0.5)} -${space(1)};
   padding: ${space(0.5)} ${space(1)};
@@ -231,7 +238,7 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
 
   ${p =>
     p.isDisabled &&
-    `
+    css`
       ${InnerLabel} {
         border-bottom-color: transparent;
       }

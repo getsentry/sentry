@@ -20,10 +20,12 @@ from snuba_sdk import (
 )
 
 from sentry import options
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
@@ -84,7 +86,7 @@ class FlamegraphExecutor:
         self,
         *,
         snuba_params: SnubaParams,
-        data_source: Literal["functions", "transactions", "profiles"],
+        data_source: Literal["functions", "transactions", "profiles", "spans"],
         query: str,
         fingerprint: int | None = None,
     ):
@@ -100,6 +102,8 @@ class FlamegraphExecutor:
             return self.get_profile_candidates_from_transactions()
         elif self.data_source == "profiles":
             return self.get_profile_candidates_from_profiles()
+        elif self.data_source == "spans":
+            return self.get_profile_candidates_from_spans()
 
         raise NotImplementedError
 
@@ -489,20 +493,94 @@ class FlamegraphExecutor:
         # If we still don't have any continuous profile candidates, we'll fall back to
         # directly using the continuous profiling data
         if not continuous_profile_candidates:
-            continuous_profile_candidates = [
-                {
+            total_duration = 0.0
+
+            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
+
+            for row in continuous_profile_results["data"]:
+                start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+                end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
+
+                candidate: ContinuousProfileCandidate = {
                     "project_id": row["project_id"],
                     "profiler_id": row["profiler_id"],
                     "chunk_id": row["chunk_id"],
-                    "start": str(
-                        int(datetime.fromisoformat(row["start_timestamp"]).timestamp() * 1e9)
-                    ),
-                    "end": str(int(datetime.fromisoformat(row["end_timestamp"]).timestamp() * 1e9)),
+                    "start": str(int(start * 1e9)),
+                    "end": str(int(end * 1e9)),
                 }
-                for row in continuous_profile_results["data"][:max_continuous_profile_candidates]
-            ]
+
+                continuous_profile_candidates.append(candidate)
+
+                total_duration += end - start
+
+                # can set max duration to negative to skip this check
+                if max_duration >= 0 and total_duration >= max_duration:
+                    break
 
         return {
             "transaction": transaction_profile_candidates,
             "continuous": continuous_profile_candidates,
         }
+
+    def get_profile_candidates_from_spans(self) -> ProfileCandidates:
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+        results = self.get_spans_based_candidates(query=self.query, limit=max_profiles)
+        transaction_profile_candidates: list[TransactionProfileCandidate] = [
+            {
+                "project_id": row["project.id"],
+                "profile_id": row["profile.id"],
+            }
+            for row in results["data"]
+            if row["profile.id"] is not None and row["profile.id"] != ""
+        ]
+
+        max_continuous_profile_candidates = max(
+            max_profiles - len(transaction_profile_candidates), 0
+        )
+        return {
+            "transaction": transaction_profile_candidates,
+            "continuous": self.get_chunks_for_profilers(
+                [
+                    ProfilerMeta(
+                        project_id=row["project.id"],
+                        profiler_id=row["profiler.id"],
+                        thread_id=row["thread.id"],
+                        start=row["precise.start_ts"],
+                        end=row["precise.finish_ts"],
+                    )
+                    for row in results["data"]
+                    if row["profiler.id"] is not None and row["thread.id"]
+                ],
+                max_continuous_profile_candidates,
+            ),
+        }
+
+    def get_spans_based_candidates(self, query: str | None, limit: int) -> EAPResponse:
+        # add constraints in order to fetch only spans with profiles
+        profiling_constraint = "(has:profile.id) or (has:profiler.id has:thread.id)"
+        if query is not None and len(query) > 0:
+            query = f"{query} and {profiling_constraint}"
+        else:
+            query = profiling_constraint
+        return spans_rpc.run_table_query(
+            self.snuba_params,
+            query,
+            selected_columns=[
+                "id",
+                "project.id",
+                "precise.start_ts",
+                "precise.finish_ts",
+                "profile.id",
+                "profiler.id",
+                "thread.id",
+                "timestamp",
+            ],
+            orderby=["-timestamp"],
+            offset=0,
+            limit=limit,
+            referrer=Referrer.API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH.value,
+            sampling_mode=None,
+            config=SearchResolverConfig(
+                auto_fields=True,
+            ),
+        )

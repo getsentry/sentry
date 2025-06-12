@@ -32,6 +32,7 @@ describe('TypeSelector', () => {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -44,7 +45,8 @@ describe('TypeSelector', () => {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({displayType: 'bar'}),
-      })
+      }),
+      expect.anything()
     );
   });
 
@@ -53,7 +55,11 @@ describe('TypeSelector', () => {
       <WidgetBuilderProvider>
         <TypeSelector error={{displayType: 'Please select a type'}} />
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Please select a type')).toBeInTheDocument();

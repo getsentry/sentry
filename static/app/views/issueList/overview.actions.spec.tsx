@@ -1,15 +1,12 @@
 import {Fragment} from 'react';
-import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
-import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -29,15 +26,7 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
 describe('IssueListOverview (actions)', function () {
-  const project = ProjectFixture({
-    id: '3559',
-    name: 'Foo Project',
-    slug: 'project-slug',
-    firstEvent: new Date().toISOString(),
-  });
-  const tags = TagsFixture();
   const groupStats = GroupStatsFixture();
-  const api = new MockApiClient();
   const organization = OrganizationFixture();
 
   beforeEach(function () {
@@ -95,44 +84,29 @@ describe('IssueListOverview (actions)', function () {
     TagStore.init?.();
   });
 
-  const defaultProps = {
-    api,
-    savedSearchLoading: false,
-    savedSearches: [],
-    useOrgSavedSearches: true,
-    selection: GlobalSelectionFixture(),
-    organization,
-    tags: [
-      tags.reduce((acc, tag) => {
-        // @ts-ignore TS(7053): Element implicitly has an any type because
-        acc[tag.key] = tag;
-
-        return acc;
-      }),
-    ],
-    savedSearch: null,
-    selectedSearchId: null,
-    ...RouteComponentPropsFixture<
-      {orgId: string; projectId: string},
-      {searchId?: string}
-    >({
-      location: LocationFixture({
-        query: {query: 'is:unresolved issue.priority:[high,medium]'},
-      }),
-      params: {orgId: organization.slug, projectId: project.slug, searchId: undefined},
-    }),
-  };
+  const defaultProps = RouteComponentPropsFixture();
 
   describe('status', function () {
     const group1 = GroupFixture({
       id: '1',
-      culprit: 'Group 1',
+      metadata: {
+        title: 'Group 1',
+      },
       shortId: 'JAVASCRIPT-1',
     });
     const group2 = GroupFixture({
       id: '2',
-      culprit: 'Group 2',
+      metadata: {
+        title: 'Group 2',
+      },
       shortId: 'JAVASCRIPT-2',
+    });
+    const group3 = GroupFixture({
+      id: '3',
+      metadata: {
+        title: 'Group 3',
+      },
+      shortId: 'JAVASCRIPT-3',
     });
 
     beforeEach(() => {
@@ -179,6 +153,66 @@ describe('IssueListOverview (actions)', function () {
 
       expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
       expect(screen.getByText('Group 2')).toBeInTheDocument();
+    });
+
+    it('refreshes after resolving all issues on page', async function () {
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      render(<IssueListOverview {...defaultProps} />, {
+        organization,
+
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:unresolved'},
+          },
+        },
+      });
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
+
+      expect(screen.getByText('Group 1')).toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
+
+      // After action, will refetch so need to mock that response
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group3],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+      const confirmationModal = await screen.findByRole('dialog');
+
+      expect(
+        within(confirmationModal).getByText(
+          'Are you sure you want to resolve these 2 issues?'
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(
+        within(confirmationModal).getByRole('button', {name: 'Resolve 2 selected issues'})
+      );
+
+      await waitFor(() => {
+        expect(updateIssueMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            query: expect.objectContaining({id: ['1', '2']}),
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
+          })
+        );
+      });
+
+      // After refetch, should only see group 3
+      expect(await screen.findByText('Group 3')).toBeInTheDocument();
+      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
+      expect(screen.queryByText('Group 2')).not.toBeInTheDocument();
     });
 
     it('can undo resolve action', async function () {
@@ -248,13 +282,17 @@ describe('IssueListOverview (actions)', function () {
   describe('mark reviewed', function () {
     const group1 = GroupFixture({
       id: '1',
-      culprit: 'Group 1',
+      metadata: {
+        title: 'Group 1',
+      },
       shortId: 'JAVASCRIPT-1',
       inbox: {},
     });
     const group2 = GroupFixture({
       id: '2',
-      culprit: 'Group 2',
+      metadata: {
+        title: 'Group 2',
+      },
       shortId: 'JAVASCRIPT-2',
       inbox: {},
     });
@@ -273,22 +311,17 @@ describe('IssueListOverview (actions)', function () {
         method: 'PUT',
       });
 
-      render(
-        <IssueListOverview
-          {...defaultProps}
-          {...RouteComponentPropsFixture({
-            location: LocationFixture({
-              query: {query: 'is:for_review'},
-            }),
-            params: {
-              orgId: organization.slug,
-              projectId: project.slug,
-              searchId: undefined,
-            },
-          })}
-        />,
-        {organization}
-      );
+      render(<IssueListOverview {...defaultProps} />, {
+        organization,
+
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:for_review'},
+          },
+        },
+      });
 
       const groups = await screen.findAllByTestId('group');
 
@@ -328,12 +361,16 @@ describe('IssueListOverview (actions)', function () {
     const medPriorityGroup = GroupFixture({
       id: '1',
       priority: PriorityLevel.MEDIUM,
-      culprit: 'Medium priority issue',
+      metadata: {
+        title: 'Medium priority issue',
+      },
     });
     const highPriorityGroup = GroupFixture({
       id: '2',
       priority: PriorityLevel.HIGH,
-      culprit: 'High priority issue',
+      metadata: {
+        title: 'High priority issue',
+      },
     });
 
     beforeEach(() => {
@@ -350,7 +387,9 @@ describe('IssueListOverview (actions)', function () {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {organization});
+      render(<IssueListOverview {...defaultProps} />, {
+        organization,
+      });
 
       const groups = await screen.findAllByTestId('group');
 
@@ -391,9 +430,19 @@ describe('IssueListOverview (actions)', function () {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {organization});
+      render(<IssueListOverview {...defaultProps} />, {
+        organization,
 
-      expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:unresolved issue.priority:[medium,high]'},
+          },
+        },
+      });
+
+      expect(await screen.findByText('Medium priority issue')).toBeInTheDocument();
 
       // After action, will refetch so need to mock that response
       MockApiClient.addMockResponse({
@@ -424,22 +473,17 @@ describe('IssueListOverview (actions)', function () {
         method: 'PUT',
       });
 
-      render(
-        <IssueListOverview
-          {...defaultProps}
-          {...RouteComponentPropsFixture({
-            location: LocationFixture({
-              query: {query: 'is:unresolved'},
-            }),
-            params: {
-              orgId: organization.slug,
-              projectId: project.slug,
-              searchId: undefined,
-            },
-          })}
-        />,
-        {organization}
-      );
+      render(<IssueListOverview {...defaultProps} />, {
+        organization,
+
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:unresolved issue.priority:[medium,high]'},
+          },
+        },
+      });
 
       const groups = await screen.findAllByTestId('group');
 

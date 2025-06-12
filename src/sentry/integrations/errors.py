@@ -6,9 +6,5 @@ class InvalidProviderException(Exception):
     pass
 
 
-class IntegrationMiddlewareException(Exception):
-    """
-    Exception that is raised when an error occurs in the integration middleware.
-    """
-
+class OrganizationIntegrationNotFound(Exception):
     pass

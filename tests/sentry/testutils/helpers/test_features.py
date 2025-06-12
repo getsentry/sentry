@@ -27,14 +27,14 @@ class TestTestUtilsFeatureHelper(TestCase):
                 ret = features.batch_has(
                     [
                         "organizations:advanced-search",
-                        "organizations:api-keys",
+                        "organizations:codecov-integration",
                     ],
                     organization=self.org,
                 )
                 assert ret is not None
                 results = list(ret.values())[0]
                 assert results["organizations:advanced-search"]
-                assert not results["organizations:api-keys"]
+                assert not results["organizations:codecov-integration"]
 
     def test_feature_with_rpc_organization(self):
         with self.feature({"system:multi-region": False}):

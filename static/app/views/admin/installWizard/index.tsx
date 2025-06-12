@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -11,9 +11,8 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import type {Field} from '../options';
-import {getForm, getOptionDefault, getOptionField} from '../options';
+import type {Field} from 'sentry/views/admin/options';
+import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
 export type InstallWizardProps = {
   onConfigured: () => void;
@@ -42,11 +41,13 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
 
   if (isError) {
     return (
-      <Alert type="error" showIcon>
-        {t(
-          'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {t(
+            'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -98,7 +99,7 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
         !option.field.isSet &&
         displayValue !== undefined
       ) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[optionName] = displayValue;
       }
     });

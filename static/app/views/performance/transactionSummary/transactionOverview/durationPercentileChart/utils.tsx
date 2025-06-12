@@ -9,16 +9,21 @@ const FUNCTION_FIELD_VALUE_EXTRACT_PATTERN = /(\d+)\)$/;
  * Convert a discover response into a barchart compatible series
  */
 export function transformData(
-  data: Record<string, number>[],
-  useAggregateAlias: boolean = true
+  data: Array<Record<string, number>>,
+  useAggregateAlias = true,
+  customRegex?: RegExp
 ) {
   const extractedData = Object.keys(data[0]!)
     .map((key: string) => {
-      const nameMatch = (
+      let nameMatch = (
         useAggregateAlias
           ? AGGREGATE_ALIAS_VALUE_EXTRACT_PATTERN
           : FUNCTION_FIELD_VALUE_EXTRACT_PATTERN
       ).exec(key);
+
+      if (customRegex) {
+        nameMatch = customRegex.exec(key);
+      }
       if (!nameMatch) {
         return [-1, -1];
       }

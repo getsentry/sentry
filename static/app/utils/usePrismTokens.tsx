@@ -9,7 +9,7 @@ type PrismHighlightParams = {
   language: string;
 };
 
-export type SyntaxHighlightToken = {
+type SyntaxHighlightToken = {
   children: string;
   className: string;
 };
@@ -49,7 +49,7 @@ const getPrismGrammar = (language: string) => {
 };
 
 const splitMultipleTokensByLine = (
-  tokens: (string | Prism.Token)[],
+  tokens: Array<string | Prism.Token>,
   types: Set<string> = new Set(['token'])
 ) => {
   const lines: IntermediateToken[][] = [];
@@ -112,7 +112,7 @@ const splitTokenContentByLine = (
 };
 
 export const breakTokensByLine = (
-  tokens: (string | Prism.Token)[]
+  tokens: Array<string | Prism.Token>
 ): SyntaxHighlightLine[] => {
   const lines = splitMultipleTokensByLine(tokens);
 

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
-import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -88,7 +88,7 @@ export default function BrowserTypeSelector() {
       triggerLabel={value.length === 0 ? 'All' : undefined}
       menuTitle={'Filter Browsers'}
       options={browserOptions ?? []}
-      onChange={(selectedOptions: SelectOption<string>[]) => {
+      onChange={(selectedOptions: Array<SelectOption<string>>) => {
         trackAnalytics('insight.vital.select_browser_value', {
           organization,
           browsers: selectedOptions.map(v => v.value),

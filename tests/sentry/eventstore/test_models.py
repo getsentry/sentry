@@ -13,6 +13,7 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -22,8 +23,6 @@ from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
-
-NEWSTYLE_GROUPING_CONFIG = "newstyle:2023-01-11"
 
 
 class EventTest(TestCase, PerformanceIssueTestCase):
@@ -370,15 +369,15 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             },
         }
 
-        enhancement = Enhancements.from_config_string(
+        enhancements = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
             """,
         )
         grouping_config: GroupingConfig = {
-            "enhancements": enhancement.dumps(),
-            "id": NEWSTYLE_GROUPING_CONFIG,
+            "enhancements": enhancements.base64_string,
+            "id": DEFAULT_GROUPING_CONFIG,
         }
 
         event1 = Event(
@@ -414,7 +413,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.get_hashes() == hashes
 
     def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
-        self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)
+        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
         event = Event(
             event_id="11212012123120120415201309082013",
             data={"message": "Dogs are great!"},
@@ -435,7 +434,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         default_variant = variants["default"]
 
         assert isinstance(default_variant, ComponentVariant)
-        assert default_variant.config.id == NEWSTYLE_GROUPING_CONFIG
+        assert default_variant.config.id == DEFAULT_GROUPING_CONFIG
         assert default_variant.component.id == "default"
         assert len(default_variant.component.values) == 1
         assert default_variant.component.values[0].id == "message"
@@ -599,7 +598,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             group_event.occurrence
             assert fetch_mock.call_count == 1
             # Call count should increase if we do it a second time
-            group_event.occurrence = None
+            group_event._occurrence = None
             assert group_event.occurrence == occurrence
             assert fetch_mock.call_count == 2
 

@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import Radio from 'sentry/components/radio';
+import {Radio} from 'sentry/components/core/radio';
 import {space} from 'sentry/styles/space';
 
 type RadioPanelGroupProps<C extends string> = {
   /**
    * An array of [id, name]
    */
-  choices: [C, React.ReactNode, React.ReactNode?][];
+  choices: Array<[C, React.ReactNode, React.ReactNode?]>;
   label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   value: string | null;
@@ -29,7 +29,7 @@ function RadioPanelGroup<C extends string>({
         <RadioPanel key={index}>
           <RadioLineItem role="radio" index={index} aria-checked={value === id}>
             <Radio
-              radioSize="small"
+              size="sm"
               aria-label={id}
               checked={value === id}
               onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}

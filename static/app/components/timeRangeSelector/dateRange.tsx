@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {DateRangePicker} from 'sentry/components/calendar';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,7 +19,7 @@ import {
   isValidTime,
   setDateToTime,
 } from 'sentry/utils/dates';
-import domId from 'sentry/utils/domId';
+import {domId} from 'sentry/utils/domId';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -259,7 +259,7 @@ const StyledTimePicker = styled(TimePicker)`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   display: flex;
   align-items: center;

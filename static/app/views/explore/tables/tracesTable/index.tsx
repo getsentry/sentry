@@ -2,34 +2,29 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  useExploreDataset,
-  useExploreQuery,
-  useExploreTitle,
-  useExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
-import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useExploreQuery} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {
   Description,
@@ -52,44 +47,23 @@ import {
 } from 'sentry/views/explore/tables/tracesTable/styles';
 
 interface TracesTableProps {
-  confidences: Confidence[];
   tracesTableResult: TracesTableResult;
 }
 
-export function TracesTable({confidences, tracesTableResult}: TracesTableProps) {
-  const title = useExploreTitle();
-  const dataset = useExploreDataset();
+export function TracesTable({tracesTableResult}: TracesTableProps) {
   const query = useExploreQuery();
-  const visualizes = useExploreVisualizes();
-  const organization = useOrganization();
 
   const {result} = tracesTableResult;
-
-  useAnalytics({
-    dataset,
-    resultLength: result.data?.data?.length,
-    resultMode: 'trace samples',
-    resultStatus: result.status,
-    resultMissingRoot: result.data?.data?.filter(trace => !defined(trace.name))?.length,
-    visualizes,
-    organization,
-    columns: [
-      'trace id',
-      'trace root',
-      'total spans',
-      'timeline',
-      'root duration',
-      'timestamp',
-    ],
-    userQuery: query,
-    confidences,
-    title,
-  });
 
   const {data, isPending, isError, getResponseHeader} = result;
 
   const showErrorState = !isPending && isError;
   const showEmptyState = !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
+
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'traces',
+    data?.data?.length ?? 0
+  );
 
   return (
     <Fragment>
@@ -102,7 +76,7 @@ export function TracesTable({confidences, tracesTableResult}: TracesTableProps) 
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {!query ? t('Total Spans') : t('Matching Spans')}
+            {query ? t('Matching Spans') : t('Total Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
@@ -111,7 +85,10 @@ export function TracesTable({confidences, tracesTableResult}: TracesTableProps) 
             {t('Root Duration')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Timestamp')}
+            <Header>
+              {t('Timestamp')}
+              <IconArrow size="xs" direction="down" />
+            </Header>
           </StyledPanelHeader>
           {isPending && (
             <StyledPanelItem span={6} overflow>
@@ -153,7 +130,10 @@ export function TracesTable({confidences, tracesTableResult}: TracesTableProps) 
           ))}
         </TracePanelContent>
       </StyledPanel>
-      <Pagination pageLinks={getResponseHeader?.('Link')} />
+      <Pagination
+        pageLinks={getResponseHeader?.('Link')}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }
@@ -192,8 +172,8 @@ function TraceRow({
     const leadingProjects: string[] = [];
     const trailingProjects: string[] = [];
 
-    for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i]!.project;
+    for (const breakdown of trace.breakdowns) {
+      const project = breakdown.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }
@@ -312,6 +292,11 @@ function Breakdown({trace}: {trace: TraceResult}) {
     </BreakdownPanelItem>
   );
 }
+
+const Header = styled('span')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
 
 const StyledButton = styled(Button)`
   margin-right: ${space(0.5)};

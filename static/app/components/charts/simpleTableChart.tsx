@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {PanelTableProps} from 'sentry/components/panels/panelTable';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -16,7 +17,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {
   decodeColumnOrder,
   getTargetForTransactionSummaryLink,
@@ -39,6 +40,7 @@ type Props = {
   ) => ReturnType<typeof getFieldRenderer> | null;
   loader?: PanelTableProps['loader'];
   metadata?: TableData['meta'];
+  minColumnWidth?: string;
   stickyHeaders?: boolean;
   topResultsIndicators?: number;
 };
@@ -58,9 +60,11 @@ function SimpleTableChart({
   location,
   fieldAliases,
   loader,
+  minColumnWidth,
 }: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const theme = useTheme();
   function renderRow(
     index: number,
     row: TableDataRow,
@@ -73,7 +77,7 @@ function SimpleTableChart({
         getFieldRenderer(column.key, tableMeta);
 
       const unit = tableMeta.units?.[column.key];
-      let cell = fieldRenderer(row, {organization, location, eventView, unit});
+      let cell = fieldRenderer(row, {organization, location, eventView, unit, theme});
 
       if (column.key === 'transaction' && row.transaction) {
         cell = (
@@ -111,6 +115,12 @@ function SimpleTableChart({
     <Fragment>
       {title && <h4>{title}</h4>}
       <StyledPanelTable
+        css={css`
+          grid-template-columns: repeat(
+            ${columns.length},
+            ${minColumnWidth ? `minmax(${minColumnWidth}, auto)` : 'auto'}
+          );
+        `}
         className={className}
         isLoading={loading}
         loader={loader}

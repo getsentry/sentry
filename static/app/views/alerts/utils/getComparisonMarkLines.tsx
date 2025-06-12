@@ -1,9 +1,10 @@
+import type {Theme} from '@emotion/react';
+
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {MINUTE} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
 import type {
   AlertRuleThresholdType,
   Trigger,
@@ -16,9 +17,10 @@ export const getComparisonMarkLines = (
   comparisonTimeseriesData: Series[] = [],
   timeWindow: number,
   triggers: Trigger[],
-  thresholdType: AlertRuleThresholdType
+  thresholdType: AlertRuleThresholdType,
+  theme: Theme
 ): LineChartSeries[] => {
-  const changeStatuses: {name: number | string; status: string}[] = [];
+  const changeStatuses: Array<{name: number | string; status: string}> = [];
 
   if (
     timeseriesData?.[0]?.data !== undefined &&

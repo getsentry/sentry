@@ -7,7 +7,7 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -17,16 +17,15 @@ import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
+import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
+import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetCardPanel} from 'sentry/views/dashboards/widgetCard/widgetCardPanel';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-
-import {IndexedEventsSelectionAlert} from '../../indexedEventsSelectionAlert';
-import {getDashboardFiltersFromURL} from '../../utils';
-import WidgetCard from '../../widgetCard';
-import type WidgetLegendSelectionState from '../../widgetLegendSelectionState';
-import {displayTypes} from '../utils';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 import {BuildStep} from './buildStep';
 
@@ -89,7 +88,7 @@ export function VisualizationStep({
   }, [widget, previousWidget, debounceWidget]);
 
   const displayOptions = Object.keys(displayTypes).map(value => ({
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     label: displayTypes[value],
     value,
   }));
@@ -109,7 +108,7 @@ export function VisualizationStep({
       )}
     >
       <FieldGroup error={error} inline={false} flexibleControlStateSize stacked>
-        <SelectControl
+        <Select
           name="displayType"
           options={displayOptions}
           value={displayType}

@@ -14,11 +14,11 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
-import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -37,15 +37,15 @@ export enum TransactionFilterOptions {
 }
 
 export function generateTransactionSummaryRoute({
-  orgSlug,
+  organization,
   subPath,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   subPath?: string;
   view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
-  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/${subPath ? `${subPath}/` : ''}`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
@@ -73,7 +73,7 @@ export function normalizeSearchConditionsWithTransactionName(
 }
 
 export function transactionSummaryRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
@@ -86,7 +86,7 @@ export function transactionSummaryRouteWithQuery({
   subPath,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   additionalQuery?: Record<string, string | undefined>;
@@ -100,7 +100,7 @@ export function transactionSummaryRouteWithQuery({
   view?: DomainView;
 }) {
   const pathname = generateTransactionSummaryRoute({
-    orgSlug,
+    organization,
     subPath,
     view,
   });
@@ -189,7 +189,7 @@ export function generateProfileLink() {
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
       return generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(tableRow['project.name']),
         profileId: String(profileId),
       });
@@ -213,7 +213,7 @@ export function generateProfileLink() {
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(projectSlug),
         profilerId: String(profilerId),
         start: start.toISOString(),
@@ -226,7 +226,7 @@ export function generateProfileLink() {
   };
 }
 
-export function generateReplayLink(routes: PlainRoute<any>[]) {
+export function generateReplayLink(routes: Array<PlainRoute<any>>) {
   const referrer = getRouteStringFromRoutes(routes);
 
   return (
@@ -241,9 +241,10 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: normalizeUrl(
-          `/organizations/${organization.slug}/replays/${replayId}/`
-        ),
+        pathname: makeReplaysPathname({
+          path: `/${replayId}/`,
+          organization,
+        }),
         query: {
           referrer,
         },
@@ -256,7 +257,10 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       : undefined;
 
     return {
-      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
+      pathname: makeReplaysPathname({
+        path: `/${replayId}/`,
+        organization,
+      }),
       query: {
         event_t: transactionStartTimestamp,
         referrer,
@@ -266,11 +270,16 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
 }
 
 export function getTransactionSummaryBaseUrl(
-  orgSlug: string,
+  organization: Organization,
   view?: DomainView,
-  bare: boolean = false
+  bare = false
 ) {
-  return `${getPerformanceBaseUrl(orgSlug, view, bare)}/summary`;
+  // Eventually the performance landing page will be removed, so there is no need to rely on `getPerformanceBaseUrl`
+  const url = view
+    ? `${DOMAIN_VIEW_BASE_URL}/${view}/summary`
+    : `${DOMAIN_VIEW_BASE_URL}/summary`;
+
+  return bare ? url : normalizeUrl(`/organizations/${organization.slug}/${url}`);
 }
 
 export const SidebarSpacer = styled('div')`

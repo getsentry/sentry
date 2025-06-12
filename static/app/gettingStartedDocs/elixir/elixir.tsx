@@ -62,7 +62,8 @@ end`;
 
 const getVerifySnippet = () => `
 try do
-  ThisWillError.really()
+  a = 1 / 0
+  IO.puts(a)
 rescue
   my_exception ->
     Sentry.capture_exception(my_exception, stacktrace: __STACKTRACE__)

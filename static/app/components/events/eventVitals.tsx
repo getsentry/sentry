@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -46,7 +46,7 @@ export default function EventVitals({event}: Props) {
 
 function WebVitals({event}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
 
@@ -78,7 +78,7 @@ function WebVitals({event}: Props) {
           // here but are stored using their abbreviated name `<name>`. Make sure
           // to convert it appropriately.
           const measurement = `measurements.${name}`;
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const vital = WEB_VITAL_DETAILS[measurement];
 
           return <EventVital key={name} event={event} name={name} vital={vital} />;
@@ -90,7 +90,7 @@ function WebVitals({event}: Props) {
 
 function MobileVitals({event}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     .filter(name => Boolean(MOBILE_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
 
@@ -107,7 +107,7 @@ function MobileVitals({event}: Props) {
           // here but are stored using their abbreviated name `<name>`. Make sure
           // to convert it appropriately.
           const measurement = `measurements.${name}`;
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const vital = MOBILE_VITAL_DETAILS[measurement];
 
           return <EventVital key={name} event={event} name={name} vital={vital} />;
@@ -200,4 +200,4 @@ const Value = styled('span')<{failedThreshold: boolean}>`
   ${p => p.failedThreshold && `color: ${p.theme.errorText};`}
 `;
 
-export const EventVitalContainer = styled('div')``;
+const EventVitalContainer = styled('div')``;

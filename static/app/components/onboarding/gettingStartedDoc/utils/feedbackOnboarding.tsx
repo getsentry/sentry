@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -58,16 +58,18 @@ export const getCrashReportInstallDescription = () =>
 
 export function FeedbackOnboardingWebApiBanner() {
   return (
-    <Alert type="info" showIcon>
-      {tct(
-        `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
-          ),
-        }
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type="info" showIcon>
+        {tct(
+          `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
+            ),
+          }
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

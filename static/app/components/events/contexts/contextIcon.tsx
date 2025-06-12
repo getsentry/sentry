@@ -44,6 +44,7 @@ import logoUnity from 'sentry-logos/logo-unity.svg';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
 import logoVercel from 'sentry-logos/logo-vercel.svg';
 import logoWindows from 'sentry-logos/logo-windows.svg';
+import logoXbox from 'sentry-logos/logo-xbox.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -107,6 +108,7 @@ const LOGO_MAPPING = {
   watch: logoAppleWatch,
   watchos: logoApple,
   windows: logoWindows,
+  xbox: logoXbox,
 };
 
 export const NAMES = Object.keys(LOGO_MAPPING);
@@ -138,7 +140,7 @@ export function getLogoImage(name: string) {
     return logoNvidia;
   }
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return LOGO_MAPPING[name] ?? logoUnknown;
 }
 
@@ -159,5 +161,3 @@ export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps)
 
   return <img height={size} width={size} css={extraCass} src={imageName} />;
 }
-
-export default ContextIcon;

@@ -2,7 +2,7 @@ import type React from 'react';
 import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -16,14 +16,13 @@ import type {
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
-
-import {AlertRuleComparisonType} from '../metric/types';
 
 import RuleNode from './ruleNode';
 
@@ -65,10 +64,10 @@ type Props = {
 
 const createSelectOptions = (
   actions: IssueAlertRuleActionTemplate[]
-): {
+): Array<{
   label: React.ReactNode;
   value: IssueAlertRuleActionTemplate;
-}[] => {
+}> => {
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
       const label = t('Suggested Assignees, Team, or Member');
@@ -143,7 +142,7 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
     .filter(([_, values]) => values.length)
     .map(([key, values]) => {
       return {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         label: groupLabels[key],
         options: createSelectOptions(values),
       };
@@ -212,7 +211,7 @@ class RuleNodeList extends Component<Props> {
         ...changeAlertNode,
         label: changeAlertNode.label.replace(
           '{comparisonType}',
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]
         ),
       };
@@ -325,7 +324,7 @@ class RuleNodeList extends Component<Props> {
 
 export default RuleNodeList;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   width: 100%;
 `;
 

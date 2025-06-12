@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export default function FeedbackListPage() {
@@ -42,6 +43,7 @@ export default function FeedbackListPage() {
 
   const pageFilters = usePageFilters();
   const projects = useProjects();
+  const prefersStackedNav = usePrefersStackedNav();
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -53,13 +55,12 @@ export default function FeedbackListPage() {
   );
 
   const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
-
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <FeedbackQueryKeys organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip
@@ -73,31 +74,33 @@ export default function FeedbackListPage() {
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
-              <LayoutGrid data-banner={showWhatsNewBanner}>
+              <Background>
                 {showWidgetBanner ? (
-                  <FeedbackWidgetBanner style={{gridArea: 'banner'}} />
+                  <FeedbackWidgetBanner />
                 ) : showWhatsNewBanner ? (
-                  <FeedbackWhatsNewBanner style={{gridArea: 'banner'}} />
+                  <FeedbackWhatsNewBanner />
                 ) : null}
-                <FeedbackFilters style={{gridArea: 'filters'}} />
-                {hasSetupOneFeedback || hasSlug ? (
-                  <Fragment>
-                    <Container style={{gridArea: 'list'}}>
-                      <FeedbackList />
-                    </Container>
-                    <SearchContainer>
-                      <FeedbackSearch />
-                    </SearchContainer>
-                    <Container style={{gridArea: 'details'}}>
-                      <FeedbackItemLoader />
-                    </Container>
-                  </Fragment>
-                ) : (
-                  <SetupContainer>
-                    <FeedbackSetupPanel />
-                  </SetupContainer>
-                )}
-              </LayoutGrid>
+                <LayoutGrid>
+                  <FeedbackFilters style={{gridArea: 'filters'}} />
+                  {hasSetupOneFeedback || hasSlug ? (
+                    <Fragment>
+                      <Container style={{gridArea: 'list'}}>
+                        <FeedbackList />
+                      </Container>
+                      <SearchContainer>
+                        <FeedbackSearch />
+                      </SearchContainer>
+                      <Container style={{gridArea: 'details'}}>
+                        <FeedbackItemLoader />
+                      </Container>
+                    </Fragment>
+                  ) : (
+                    <SetupContainer>
+                      <FeedbackSetupPanel />
+                    </SetupContainer>
+                  )}
+                </LayoutGrid>
+              </Background>
             </ErrorBoundary>
           </PageFiltersContainer>
         </FeedbackQueryKeys>
@@ -106,57 +109,57 @@ export default function FeedbackListPage() {
   );
 }
 
-const LayoutGrid = styled('div')`
+const Background = styled('div')`
   background: ${p => p.theme.background};
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: ${space(2)};
+`;
 
+const LayoutGrid = styled('div')`
+  overflow: hidden;
   flex-grow: 1;
 
   display: grid;
   gap: ${space(2)};
   place-items: stretch;
 
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    padding: ${space(2)} ${space(4)};
+  }
+
   grid-template-rows: max-content 1fr;
   grid-template-areas:
     'filters search'
     'list details';
 
-  &[data-banner='true'] {
-    grid-template-rows: max-content max-content 1fr;
-    grid-template-areas:
-      'banner banner'
-      'filters search'
-      'list details';
-  }
-
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
     grid-template-columns: 1fr;
     grid-template-areas:
       'filters'
       'search'
       'list'
       'details';
-
-    &[data-banner='true'] {
-      grid-template-areas:
-        'banner'
-        'filters'
-        'search'
-        'list'
-        'details';
-    }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
     grid-template-columns: minmax(1fr, 195px) 1fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
     grid-template-columns: 390px 1fr;
   }
+
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }

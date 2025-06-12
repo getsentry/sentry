@@ -194,6 +194,15 @@ describe('utils/tokenizeSearch', function () {
           ],
         },
       },
+      {
+        name: 'should handle explicit tags keys containing colons when quoted',
+        string: 'tags["foo:bar",string]:asdf',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'tags["foo:bar",string]', value: 'asdf'},
+          ],
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
@@ -498,6 +507,26 @@ describe('utils/tokenizeSearch', function () {
         name: 'should quote tags with parens and spaces',
         object: new MutableSearch(['release:4.9.0 build (0.0.01)', 'error.handled:0']),
         string: 'release:"4.9.0 build (0.0.01)" error.handled:0',
+      },
+      {
+        name: 'should not enclose the entire query in quotes if there are no spaces in brackets shorthand',
+        object: new MutableSearch(['transaction:[alpha,beta]']),
+        string: 'transaction:[alpha,beta]',
+      },
+      {
+        name: 'should not enclose the entire query in quotes if there are quotes around args',
+        object: new MutableSearch(['transaction:["alpha","beta"]']),
+        string: 'transaction:["alpha","beta"]',
+      },
+      {
+        name: 'should not enclose the entire query in quotes if some args are quoted in brackets',
+        object: new MutableSearch(['transaction:["alpha",beta]']),
+        string: 'transaction:["alpha",beta]',
+      },
+      {
+        name: 'should not enclose the entire query in quotes if there are spaces in quoted args',
+        object: new MutableSearch(['transaction:["this has a space",thisdoesnot]']),
+        string: 'transaction:["this has a space",thisdoesnot]',
       },
     ];
 

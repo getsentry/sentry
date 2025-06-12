@@ -3,30 +3,27 @@ import isEqual from 'lodash/isEqual';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {SelectValue} from 'sentry/types/core';
-import type {MetricType} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
-import {isMRIField} from 'sentry/utils/metrics/mri';
+import {
+  AGGREGATION_FIELDS,
+  AggregationKey,
+  DISCOVER_FIELDS,
+  FieldKey,
+  FieldValueType,
+  getFieldDefinition,
+  MEASUREMENT_FIELDS,
+  MobileVital,
+  prettifyTagKey,
+  SpanOpBreakdown,
+  WebVital,
+} from 'sentry/utils/fields';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
-
-import {
-  AGGREGATION_FIELDS,
-  AggregationKey,
-  DISCOVER_FIELDS,
-  FieldKey,
-  FieldKind,
-  FieldValueType,
-  getFieldDefinition,
-  MEASUREMENT_FIELDS,
-  MobileVital,
-  SpanOpBreakdown,
-  WebVital,
-} from '../fields';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
@@ -59,10 +56,7 @@ type ValidateColumnValueFunction = (data: {
   name: string;
 }) => boolean;
 
-export type ValidateColumnTypes =
-  | ColumnType[]
-  | MetricType[]
-  | ValidateColumnValueFunction;
+export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
@@ -81,7 +75,7 @@ export type AggregateParameter =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       defaultValue?: string;
       placeholder?: string;
@@ -211,23 +205,6 @@ export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
   exabyte: 1000 ** 6,
 };
 
-export const SIZE_UNIT_LABELS: Record<SizeUnit, string> = {
-  bit: 'b',
-  byte: 'B',
-  kibibyte: 'KiB',
-  kilobyte: 'KB',
-  mebibyte: 'MiB',
-  megabyte: 'MB',
-  gibibyte: 'GiB',
-  gigabyte: 'GB',
-  tebibyte: 'TiB',
-  terabyte: 'TB',
-  pebibyte: 'PiB',
-  petabyte: 'PB',
-  exbibyte: 'EiB',
-  exabyte: 'EB',
-};
-
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -252,6 +229,8 @@ export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
+
+export type DataUnit = DurationUnit | SizeUnit | RateUnit | null;
 
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
@@ -615,12 +594,12 @@ export const AGGREGATIONS = {
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
-export const ALIASES = {
+const ALIASES = {
   tpm: AggregationKey.EPM,
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
+assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
@@ -659,11 +638,6 @@ export type Aggregation = {
 };
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
-
-export type FieldTag = {
-  key: FieldKey;
-  name: FieldKey;
-};
 
 export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
@@ -709,7 +683,7 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export type MeasurementType =
+type MeasurementType =
   | FieldValueType.DURATION
   | FieldValueType.NUMBER
   | FieldValueType.INTEGER
@@ -794,7 +768,7 @@ export const TRACING_FIELDS = [
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
-export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const TRANSACTION_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
@@ -810,7 +784,7 @@ export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
   f => !TRANSACTION_ONLY_FIELDS.includes(f)
 );
 
-export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const ERROR_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.LOCATION,
   FieldKey.EVENT_TYPE,
   FieldKey.ERROR_TYPE,
@@ -849,8 +823,8 @@ export const ERRORS_AGGREGATION_FUNCTIONS = [
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
-export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
-export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   return MEASUREMENT_PATTERN.test(field);
@@ -858,7 +832,7 @@ export function isMeasurement(field: string): boolean {
 
 export function measurementType(field: string): MeasurementType {
   if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
 
@@ -908,15 +882,15 @@ function _lookback(columnText: string, j: number, str: string) {
   return columnText.substring(j - str.length, j) === str;
 }
 
-export function parseArguments(columnText: string): string[] {
+function parseArguments(columnText: string): string[] {
   const args: string[] = [];
 
   let quoted = false;
   let inTag = false;
   let escaped = false;
 
-  let i: number = 0;
-  let j: number = 0;
+  let i = 0;
+  let j = 0;
 
   while (j < columnText?.length) {
     if (!inTag && i === j && columnText[j] === '"') {
@@ -970,7 +944,7 @@ export function parseArguments(columnText: string): string[] {
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 export const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
-export const CALCULATED_FIELD_PREFIX = 'calculated|';
+const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
@@ -1025,9 +999,9 @@ export function generateAggregateFields(
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
@@ -1050,7 +1024,7 @@ export function generateAggregateFields(
   return fields.map(field => ({field})) as Field[];
 }
 
-export function isDerivedMetric(field: string): boolean {
+function isDerivedMetric(field: string): boolean {
   return field.startsWith(CALCULATED_FIELD_PREFIX);
 }
 
@@ -1141,7 +1115,7 @@ export function isAggregateFieldOrEquation(field: string): boolean {
  * Temporary hardcoded hack to enable testing derived metrics.
  * Can be removed after we get rid of getAggregateFields
  */
-export function isNumericMetrics(field: string): boolean {
+function isNumericMetrics(field: string): boolean {
   return [
     'session.crash_free_rate',
     'session.crashed',
@@ -1151,7 +1125,7 @@ export function isNumericMetrics(field: string): boolean {
   ].includes(field);
 }
 
-export function getAggregateFields(fields: string[]): string[] {
+function getAggregateFields(fields: string[]): string[] {
   return fields.filter(
     field =>
       isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field)
@@ -1231,7 +1205,7 @@ export function aggregateFunctionOutputType(
   firstArg: string | undefined
 ): AggregationOutputType | null {
   const aggregate =
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1248,7 +1222,7 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1256,9 +1230,9 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1285,7 +1259,7 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
@@ -1320,34 +1294,6 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   return null;
 }
 
-export function sessionsAggregateFunctionOutputType(
-  funcName: string,
-  firstArg: string | undefined
-): AggregationOutputType | null {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const aggregate = SESSIONS_OPERATIONS[funcName];
-
-  // Attempt to use the function's outputType.
-  if (aggregate?.outputType) {
-    return aggregate.outputType;
-  }
-
-  // If the first argument is undefined and it is not required,
-  // then we attempt to get the default value.
-  if (!firstArg && aggregate?.parameters?.[0]) {
-    if (aggregate.parameters[0].required === false) {
-      firstArg = aggregate.parameters[0].defaultValue;
-    }
-  }
-
-  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
-  }
-
-  return null;
-}
-
 /**
  * Get the multi-series chart type for an aggregate function.
  */
@@ -1363,7 +1309,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return AGGREGATIONS[result.name].multiPlotType;
 }
 
@@ -1418,9 +1364,7 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
-  if (isMRIField(columnName)) {
-    return 'right';
-  }
+
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1438,7 +1382,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricType) {
+export function isLegalYAxisType(match: ColumnType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 
@@ -1450,7 +1394,7 @@ export function getSpanOperationName(field: string): string | null {
   return null;
 }
 
-export function getColumnType(column: Column): ColumnType {
+function getColumnType(column: Column): ColumnType {
   if (column.kind === 'function') {
     const outputType = aggregateFunctionOutputType(
       column.function[0],
@@ -1485,7 +1429,7 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
 // Search categorizations for the new `SearchQueryBuilder` component.
 // Each Insights module page will have different points of interest for searching, so use these on a case-by-case basis
 
-export const TRANSACTION_FILTERS: FilterKeySection = {
+const TRANSACTION_FILTERS: FilterKeySection = {
   value: 'transaction_event_filters',
   label: 'Event',
   children: [
@@ -1501,7 +1445,7 @@ export const TRANSACTION_FILTERS: FilterKeySection = {
   ],
 };
 
-export const USER_FILTERS: FilterKeySection = {
+const USER_FILTERS: FilterKeySection = {
   value: 'user_filters',
   label: 'User',
   children: [
@@ -1514,7 +1458,7 @@ export const USER_FILTERS: FilterKeySection = {
   ],
 };
 
-export const GEO_FILTERS: FilterKeySection = {
+const GEO_FILTERS: FilterKeySection = {
   value: 'geo_filters',
   label: 'Geo',
   children: [
@@ -1525,7 +1469,7 @@ export const GEO_FILTERS: FilterKeySection = {
   ],
 };
 
-export const HTTP_FILTERS: FilterKeySection = {
+const HTTP_FILTERS: FilterKeySection = {
   value: 'http_filters',
   label: 'HTTP',
   children: [
@@ -1536,7 +1480,7 @@ export const HTTP_FILTERS: FilterKeySection = {
   ],
 };
 
-export const WEB_VITAL_FILTERS: FilterKeySection = {
+const WEB_VITAL_FILTERS: FilterKeySection = {
   value: 'web_filters',
   label: 'Web Vitals',
   children: [
@@ -1550,7 +1494,7 @@ export const WEB_VITAL_FILTERS: FilterKeySection = {
   ],
 };
 
-export const MOBILE_VITAL_FILTERS: FilterKeySection = {
+const MOBILE_VITAL_FILTERS: FilterKeySection = {
   value: 'mobile_vitals_filters',
   label: 'Mobile Vitals',
   children: [
@@ -1570,7 +1514,7 @@ export const MOBILE_VITAL_FILTERS: FilterKeySection = {
   ],
 };
 
-export const DEVICE_FILTERS: FilterKeySection = {
+const DEVICE_FILTERS: FilterKeySection = {
   value: 'device_filters',
   label: 'Device',
   children: [
@@ -1594,7 +1538,7 @@ export const DEVICE_FILTERS: FilterKeySection = {
   ],
 };
 
-export const RELEASE_FILTERS: FilterKeySection = {
+const RELEASE_FILTERS: FilterKeySection = {
   value: 'release_filters',
   label: 'Release',
   children: [
@@ -1606,23 +1550,7 @@ export const RELEASE_FILTERS: FilterKeySection = {
   ],
 };
 
-export const STACKTRACE_FILTERS: FilterKeySection = {
-  value: 'stacktrace_filters',
-  label: 'Stacktrace',
-  children: [
-    FieldKey.STACK_ABS_PATH,
-    FieldKey.STACK_COLNO,
-    FieldKey.STACK_FILENAME,
-    FieldKey.STACK_FUNCTION,
-    FieldKey.STACK_IN_APP,
-    FieldKey.STACK_LINENO,
-    FieldKey.STACK_MODULE,
-    FieldKey.STACK_PACKAGE,
-    FieldKey.STACK_STACK_LEVEL,
-  ],
-};
-
-export const ERROR_DETAIL_FILTERS: FilterKeySection = {
+const ERROR_DETAIL_FILTERS: FilterKeySection = {
   value: 'error_detail_filters',
   label: 'Error',
   children: [
@@ -1638,23 +1566,7 @@ export const ERROR_DETAIL_FILTERS: FilterKeySection = {
   ],
 };
 
-export const MISC_FILTERS: FilterKeySection = {
-  value: 'misc_filters',
-  label: 'Misc',
-  children: [FieldKey.HAS, FieldKey.DIST],
-};
-
-export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
-  value: 'transaction_event_filters',
-  label: 'Event',
-  children: [
-    ...TRANSACTION_FILTERS.children,
-    ...HTTP_FILTERS.children,
-    ...RELEASE_FILTERS.children,
-  ],
-};
-
-export const ERROR_EVENT_FILTERS: FilterKeySection = {
+const ERROR_EVENT_FILTERS: FilterKeySection = {
   value: 'error_event_filters',
   label: 'Event',
   children: [
@@ -1664,7 +1576,7 @@ export const ERROR_EVENT_FILTERS: FilterKeySection = {
   ],
 };
 
-export const COMBINED_EVENT_FILTERS: FilterKeySection = {
+const COMBINED_EVENT_FILTERS: FilterKeySection = {
   value: 'combined_event_filters',
   label: 'Event',
   children: [
@@ -1675,7 +1587,7 @@ export const COMBINED_EVENT_FILTERS: FilterKeySection = {
   ],
 };
 
-export const USER_CONTEXT_FILTERS: FilterKeySection = {
+const USER_CONTEXT_FILTERS: FilterKeySection = {
   value: 'user_context_filters',
   label: 'User',
   children: [
@@ -1685,7 +1597,7 @@ export const USER_CONTEXT_FILTERS: FilterKeySection = {
   ],
 };
 
-export const PERFORMANCE_FILTERS: FilterKeySection = {
+const PERFORMANCE_FILTERS: FilterKeySection = {
   value: 'performance_filters',
   label: 'Performance',
   children: [...WEB_VITAL_FILTERS.children, ...MOBILE_VITAL_FILTERS.children],
@@ -1713,19 +1625,15 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
-export const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
-
-export function classifyTagKey(key: string): FieldKind {
-  const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
-}
-
-export function prettifyTagKey(key: string): string {
-  const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[1] ?? key;
-}
-
 export function prettifyParsedFunction(func: ParsedFunction) {
+  // special case for `count(span.duration)` as we want to say `count(spans)`
+  if (
+    func.name === 'count' &&
+    func.arguments.length === 1 &&
+    func.arguments[0] === 'span.duration'
+  ) {
+    return 'count(spans)';
+  }
   const args = func.arguments.map(prettifyTagKey);
   return `${func.name}(${args.join(',')})`;
 }

@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
@@ -14,7 +14,6 @@ import {
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 
@@ -29,11 +28,11 @@ export interface ViewNode {
 type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
-  project: Project;
+  platform?: string;
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframeProps) {
+function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -50,9 +49,9 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     () =>
       getHierarchyDimensions(
         hierarchy,
-        ['flutter', 'dart-flutter'].includes(project?.platform ?? '')
+        ['flutter', 'dart-flutter'].includes(platform ?? '')
       ),
-    [hierarchy, project.platform]
+    [hierarchy, platform]
   );
   const nodeLookupMap = useMemo(() => {
     const map = new Map<ViewHierarchyWindow, ViewNode>();
@@ -142,19 +141,9 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
         canvas.fillStyle = theme.gray100;
         canvas.strokeStyle = theme.gray300;
 
-        for (let i = 0; i < hierarchyData.nodes.length; i++) {
-          canvas.strokeRect(
-            hierarchyData.nodes[i]!.rect.x,
-            hierarchyData.nodes[i]!.rect.y,
-            hierarchyData.nodes[i]!.rect.width,
-            hierarchyData.nodes[i]!.rect.height
-          );
-          canvas.fillRect(
-            hierarchyData.nodes[i]!.rect.x,
-            hierarchyData.nodes[i]!.rect.y,
-            hierarchyData.nodes[i]!.rect.width,
-            hierarchyData.nodes[i]!.rect.height
-          );
+        for (const node of hierarchyData.nodes) {
+          canvas.strokeRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
+          canvas.fillRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
         }
       }
     },
@@ -246,7 +235,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     };
 
     const handleZoom =
-      (direction: 'in' | 'out', scalingFactor: number = 1.1, zoomOrigin?: vec2) =>
+      (direction: 'in' | 'out', scalingFactor = 1.1, zoomOrigin?: vec2) =>
       () => {
         const newScale = direction === 'in' ? scalingFactor : 1 / scalingFactor;
 

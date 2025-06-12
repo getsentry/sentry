@@ -1,25 +1,15 @@
-import {AutofixCodebaseChangeData} from 'sentry-fixture/autofixCodebaseChangeData';
 import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixProgressItemFixture} from 'sentry-fixture/autofixProgressItem';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
-import {
-  AutofixStatus,
-  type AutofixStep,
-  AutofixStepType,
-} from 'sentry/components/events/autofix/types';
-
-jest.mock('sentry/actionCreators/indicator');
+import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/types';
 
 describe('AutofixSteps', () => {
   beforeEach(() => {
-    (addSuccessMessage as jest.Mock).mockClear();
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
   });
 
   const defaultProps = {
@@ -31,6 +21,7 @@ describe('AutofixSteps', () => {
           status: AutofixStatus.COMPLETED,
           insights: [],
           progress: [],
+          index: 0,
         }),
         AutofixStepFixture({
           id: '2',
@@ -39,140 +30,75 @@ describe('AutofixSteps', () => {
           causes: [
             {
               id: 'cause1',
-              description: 'Root cause 1',
-              title: 'cause 1',
-              code_context: [],
+              root_cause_reproduction: [
+                {
+                  title: 'step 1',
+                  code_snippet_and_analysis: 'details',
+                  is_most_important_event: true,
+                  relevant_code_file: {
+                    file_path: 'file.py',
+                    repo_name: 'owner/repo',
+                  },
+                  timeline_item_type: 'internal_code',
+                },
+              ],
             },
           ],
           selection: null,
           progress: [],
+          index: 1,
         }),
       ],
-      repositories: [],
-      created_at: '2023-01-01T00:00:00Z',
+      request: {
+        repos: [],
+      },
+      codebases: {},
+      last_triggered_at: '2023-01-01T00:00:00Z',
       run_id: '1',
       status: AutofixStatus.PROCESSING,
     }),
     groupId: 'group1',
     runId: 'run1',
-    onRetry: jest.fn(),
-  };
+  } satisfies React.ComponentProps<typeof AutofixSteps>;
 
-  it('renders steps correctly', () => {
+  it('renders steps correctly', async () => {
     render(<AutofixSteps {...defaultProps} />);
 
-    expect(screen.getByText('Root cause 1')).toBeInTheDocument();
-    expect(screen.getByText('Use suggested root cause')).toBeInTheDocument();
+    expect(await screen.findByText('step 1')).toBeInTheDocument();
   });
 
-  it('handles root cause selection', async () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/update/',
-      method: 'POST',
-      body: {},
-    });
-
-    render(<AutofixSteps {...defaultProps} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
-
-    const input = screen.getByPlaceholderText(
-      '(Optional) Provide any instructions for the fix...'
-    );
-    await userEvent.type(input, 'Custom root cause');
-    await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
-
-    await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith(
-        "Great, let's move forward with this root cause."
-      );
-    });
-  });
-
-  it('selects default root cause when input is empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/update/',
-      method: 'POST',
-      body: {},
-    });
-
-    render(<AutofixSteps {...defaultProps} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
-
-    await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith(
-        "Great, let's move forward with this root cause."
-      );
-    });
-  });
-
-  it('renders AutofixMessageBox with correct props', async () => {
-    render(<AutofixSteps {...defaultProps} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
-
-    const messageBox = screen.getByPlaceholderText(
-      '(Optional) Provide any instructions for the fix...'
-    );
-    expect(messageBox).toBeInTheDocument();
-
-    const sendButton = screen.getByRole('button', {name: 'Find a Fix'});
-    expect(sendButton).toBeInTheDocument();
-    expect(sendButton).toBeEnabled();
-  });
-
-  it('updates message box based on last step', () => {
-    const propsWithProgress = {
+  it('renders output stream when last step is processing', async () => {
+    const propsWithProcessingStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
         steps: [
-          ...(defaultProps.data.steps as AutofixStep[]),
+          ...(defaultProps.data.steps ?? []),
           AutofixStepFixture({
             id: '3',
             type: AutofixStepType.DEFAULT,
             status: AutofixStatus.PROCESSING,
             progress: [
               AutofixProgressItemFixture({
-                message: 'Log message',
+                message: 'Processing message',
                 timestamp: '2023-01-01T00:00:00Z',
               }),
             ],
             insights: [],
+            index: 2,
           }),
         ],
       },
     };
 
-    render(<AutofixSteps {...propsWithProgress} />);
+    render(<AutofixSteps {...propsWithProcessingStep} />);
+    expect(
+      await screen.findByText('Processing message', undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
+  }, 10_000);
 
-    expect(screen.getByText('Log message')).toBeInTheDocument();
-  });
-
-  it('handles iterating on changes step', async () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/setup/?check_write_access=true',
-      method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [],
-        },
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/update/',
-      method: 'POST',
-      body: {},
-    });
-
-    const changeData = AutofixCodebaseChangeData();
-    changeData.pull_request = undefined;
-
-    const propsWithChanges = {
+  it('shows error message when previous step errored', async () => {
+    const propsWithErroredStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
@@ -180,32 +106,28 @@ describe('AutofixSteps', () => {
           AutofixStepFixture({
             id: '1',
             type: AutofixStepType.DEFAULT,
-            status: AutofixStatus.COMPLETED,
+            status: AutofixStatus.ERROR,
             insights: [],
             progress: [],
             index: 0,
           }),
           AutofixStepFixture({
             id: '2',
-            type: AutofixStepType.CHANGES,
-            status: AutofixStatus.COMPLETED,
+            type: AutofixStepType.DEFAULT,
+            status: AutofixStatus.PROCESSING,
+            insights: [],
             progress: [],
-            changes: [changeData],
+            index: 1,
           }),
         ],
       },
     };
 
-    render(<AutofixSteps {...propsWithChanges} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Iterate'}));
-
-    const input = screen.getByPlaceholderText('Share helpful context or directions...');
-    await userEvent.type(input, 'Feedback on changes');
-    await userEvent.click(screen.getByRole('button', {name: 'Send'}));
-
-    await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
-    });
+    render(<AutofixSteps {...propsWithErroredStep} />);
+    expect(
+      await screen.findByText(
+        'Seer encountered an error. Restarting step from scratch...'
+      )
+    ).toBeInTheDocument();
   });
 });

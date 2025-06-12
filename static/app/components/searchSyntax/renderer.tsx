@@ -3,7 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
 import type {ParseResult, TokenResult} from './parser';
@@ -230,6 +230,9 @@ function KeyToken({
     | Token.KEY_EXPLICIT_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_FLAG
+    | Token.KEY_EXPLICIT_NUMBER_FLAG
+    | Token.KEY_EXPLICIT_STRING_FLAG
   >;
   negated?: boolean;
 }) {
@@ -323,16 +326,17 @@ const Key = styled('span')<{negated: boolean}>`
   ${filterCss};
   border-right: none;
   font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.subText};
   ${p =>
-    !p.negated
+    p.negated
       ? css`
+          border-left: none;
+          margin-left: 0;
+        `
+      : css`
           border-radius: 2px 0 0 2px;
           padding-left: 1px;
           margin-left: -2px;
-        `
-      : css`
-          border-left: none;
-          margin-left: 0;
         `};
 `;
 
@@ -382,7 +386,7 @@ const Unit = styled('span')`
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   ${p => p.invalid && `color: ${p.theme.red400}`}
 `;
 
@@ -395,11 +399,11 @@ const DateTime = styled('span')`
 `;
 
 const ListComma = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Paren = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const InList = styled('span')`

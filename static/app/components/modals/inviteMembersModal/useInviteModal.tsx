@@ -14,7 +14,7 @@ import useApi from 'sentry/utils/useApi';
 
 interface Props {
   organization: Organization;
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   source?: string;
 }
 
@@ -135,12 +135,11 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
         // Use the email error message if available. This inconsistently is
         // returned as either a list of errors for the field, or a single error.
-        const emailError =
-          !errorResponse || !errorResponse.email
-            ? false
-            : Array.isArray(errorResponse.email)
-              ? errorResponse.email[0]
-              : errorResponse.email;
+        const emailError = errorResponse?.email
+          ? Array.isArray(errorResponse.email)
+            ? errorResponse.email[0]
+            : errorResponse.email
+          : false;
 
         const orgLevelError = errorResponse?.organization;
         const error = orgLevelError || emailError || t('Could not invite user');
@@ -165,7 +164,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
     setState(prev => {
       const emails = prev.pendingInvites[0]!.emails;
       const filteredEmails = Array.from(emails).filter(
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         email => !prev.inviteStatus[email]?.sent
       );
       return {
@@ -181,7 +180,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   }, []);
 
   useEffect(() => {
-    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const statuses = Object.values<InviteStatus>(state.inviteStatus);
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
     // Don't track if no invites have been sent or invites are still sending

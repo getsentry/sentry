@@ -14,7 +14,12 @@
         },
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "hello", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "hello",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -34,7 +39,12 @@
         },
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "123", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "123",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -54,7 +64,12 @@
         },
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "2018-01-01T00:01ZZ", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "2018-01-01T00:01ZZ",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

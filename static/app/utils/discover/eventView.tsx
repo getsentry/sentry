@@ -13,7 +13,7 @@ import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import toArray from 'sentry/utils/array/toArray';
@@ -38,10 +38,16 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import type {WebVital} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {
+  getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDatasetFromLocationOrDataset,
+} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -49,9 +55,6 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-
-import type {WebVital} from '../fields';
-import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 
@@ -65,6 +68,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
@@ -83,7 +87,7 @@ export type LocationQuery = {
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
 
-const EXTERNAL_QUERY_STRING_KEYS: readonly (keyof LocationQuery)[] = [
+const EXTERNAL_QUERY_STRING_KEYS: ReadonlyArray<keyof LocationQuery> = [
   ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
 ];
@@ -144,7 +148,7 @@ export function isFieldSortable(
 
 const decodeFields = (location: Location): Field[] => {
   const {query} = location;
-  if (!query || !query.field) {
+  if (!query?.field) {
     return [];
   }
 
@@ -154,7 +158,7 @@ const decodeFields = (location: Location): Field[] => {
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
     const w = Number(widths[i]);
-    const width = !isNaN(w) ? w : COL_WIDTH_UNDEFINED;
+    const width = isNaN(w) ? COL_WIDTH_UNDEFINED : w;
 
     parsed.push({field, width});
   });
@@ -218,7 +222,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
 };
 
 export const decodeQuery = (location: Location): string => {
-  if (!location.query || !location.query.query) {
+  if (!location.query?.query) {
     return '';
   }
 
@@ -234,8 +238,8 @@ const decodeTeam = (value: string): 'myteams' | number => {
   return parseInt(value, 10);
 };
 
-const decodeTeams = (location: Location): ('myteams' | number)[] => {
-  if (!location.query || !location.query.team) {
+const decodeTeams = (location: Location): Array<'myteams' | number> => {
+  if (!location.query?.team) {
     return [];
   }
   const value = location.query.team;
@@ -245,7 +249,7 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
 };
 
 export const decodeProjects = (location: Location): number[] => {
-  if (!location.query || !location.query.project) {
+  if (!location.query?.project) {
     return [];
   }
 
@@ -277,12 +281,13 @@ export type EventViewOptions = {
   sorts: readonly Sort[];
   start: string | undefined;
   statsPeriod: string | undefined;
-  team: readonly ('myteams' | number)[];
+  team: ReadonlyArray<'myteams' | number>;
   topEvents: string | undefined;
   additionalConditions?: MutableSearch;
   dataset?: DiscoverDatasets;
   expired?: boolean;
   interval?: string;
+  multiSort?: boolean;
   utc?: string | boolean | undefined;
   yAxis?: string | string[] | undefined;
 };
@@ -293,7 +298,7 @@ class EventView {
   fields: readonly Field[];
   sorts: readonly Sort[];
   query: string;
-  team: readonly ('myteams' | number)[];
+  team: ReadonlyArray<'myteams' | number>;
   project: readonly number[];
   start: string | undefined;
   end: string | undefined;
@@ -308,6 +313,7 @@ class EventView {
   createdBy: User | undefined;
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
   dataset?: DiscoverDatasets;
+  multiSort?: boolean;
 
   constructor(props: EventViewOptions) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -333,8 +339,12 @@ class EventView {
       }
     });
 
-    const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
-    sorts = sort ? [sort] : [];
+    if (props.multiSort) {
+      sorts = sorts.filter(currentSort => sortKeys.includes(currentSort.field));
+    } else {
+      const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
+      sorts = sort ? [sort] : [];
+    }
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
@@ -474,7 +484,10 @@ class EventView {
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
-      dataset: saved.dataset,
+      dataset:
+        saved.dataset ||
+        getDatasetFromLocationOrSavedQueryDataset(undefined, saved.queryDataset),
+      multiSort: saved.multiSort,
     });
   }
 
@@ -566,9 +579,9 @@ class EventView {
     };
     const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key] ?? defaults[key];
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key] ?? defaults[key];
 
       if (!isEqual(currentValue, otherValue)) {
@@ -581,9 +594,9 @@ class EventView {
     const dateTimeKeys = ['start', 'end'];
 
     for (const key of dateTimeKeys) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key];
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key];
 
       if (currentValue && otherValue) {
@@ -692,7 +705,7 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       output[field] = undefined;
     }
 
@@ -717,9 +730,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -778,7 +791,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): TableColumn<React.ReactText>[] {
+  getColumns(): Array<TableColumn<string | number>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -812,6 +825,7 @@ class EventView {
       expired: this.expired,
       createdBy: this.createdBy,
       additionalConditions: this.additionalConditions.copy(),
+      multiSort: this.multiSort,
     });
   }
 
@@ -1069,13 +1083,13 @@ class EventView {
     return newEventView;
   }
 
-  withTeams(teams: ('myteams' | number)[]): EventView {
+  withTeams(teams: Array<'myteams' | number>): EventView {
     const newEventView = this.clone();
     newEventView.team = teams;
     return newEventView;
   }
 
-  getSorts(): TableColumnSort<React.ReactText>[] {
+  getSorts(): Array<TableColumnSort<string | number>> {
     return this.sorts.map(
       sort =>
         ({
@@ -1132,7 +1146,7 @@ class EventView {
       'interval',
     ];
     for (const key of remove) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       delete payload[key];
     }
 
@@ -1211,13 +1225,8 @@ class EventView {
           this.dataset === DiscoverDatasets.SPANS_EAP_RPC
             ? DiscoverDatasets.SPANS_EAP
             : this.dataset,
-        useRpc: this.dataset === DiscoverDatasets.SPANS_EAP_RPC ? '1' : undefined,
       }
     ) as EventQuery & LocationQuery;
-
-    if (eventQuery.useRpc !== '1') {
-      delete eventQuery.useRpc;
-    }
 
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;
@@ -1231,8 +1240,8 @@ class EventView {
   }
 
   getResultsViewUrlTarget(
-    slug: string,
-    isHomepage: boolean = false,
+    organization: Organization,
+    isHomepage = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
@@ -1241,17 +1250,23 @@ class EventView {
       query.queryDataset = queryDataset;
     }
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
+      pathname: makeDiscoverPathname({
+        path: `/${target}/`,
+        organization,
+      }),
       query,
     };
   }
 
-  getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewShortUrlTarget(organization: Organization): {
+    pathname: string;
+    query: Query;
+  } {
     const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1259,13 +1274,16 @@ class EventView {
     stringifyQueryParams(output);
 
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
-      query: cloneDeep(output as any),
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
+      query: cloneDeep(output),
     };
   }
 
   getPerformanceTransactionEventsViewUrlTarget(
-    slug: string,
+    organization: Organization,
     options: {
       breakdown?: SpanOperationBreakdownFilter;
       showTransactions?: EventsDisplayFilterName;
@@ -1285,9 +1303,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1297,7 +1315,7 @@ class EventView {
     const query = cloneDeep(output as any);
     return {
       pathname: normalizeUrl(
-        `${getTransactionSummaryBaseUrl(slug, options.view)}/events/`
+        `${getTransactionSummaryBaseUrl(organization, options.view)}/events/`
       ),
       query,
     };
@@ -1357,7 +1375,7 @@ class EventView {
     return newEventView;
   }
 
-  getYAxisOptions(): SelectValue<string>[] {
+  getYAxisOptions(): Array<SelectValue<string>> {
     // Make option set and add the default options in.
     return uniqBy(
       this.getAggregateFields()
@@ -1398,7 +1416,7 @@ class EventView {
     return defaultOption;
   }
 
-  getDisplayOptions(): SelectValue<string>[] {
+  getDisplayOptions(): Array<SelectValue<string>> {
     return DISPLAY_MODE_OPTIONS.map(item => {
       if (item.value === DisplayModes.PREVIOUS) {
         if (this.start || this.end) {
@@ -1447,7 +1465,7 @@ class EventView {
       if (selectedOption && !selectedOption.disabled) {
         return display;
       }
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       display = DISPLAY_MODE_FALLBACK_OPTIONS[display];
     }
 
@@ -1532,9 +1550,9 @@ export const isAPIPayloadSimilar = (
   }
 
   for (const key of currentKeys) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const currentValue = current[key];
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const otherValue = other[key];
     if (key === 'field') {
       if (!isFieldsSimilar(currentValue, otherValue)) {

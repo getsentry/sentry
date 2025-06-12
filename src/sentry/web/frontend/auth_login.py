@@ -19,6 +19,7 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
+from sentry.demo_mode.utils import get_demo_user, is_demo_mode_enabled, is_demo_org
 from sentry.http import get_server_hostname
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.authprovider import AuthProvider
@@ -43,7 +44,7 @@ from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView, control_silo_view
+from sentry.web.frontend.base import BaseView, control_silo_view, determine_active_organization
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -131,13 +132,11 @@ class AuthLoginView(BaseView):
 
         return response
 
-    def get_next_uri(self, request: Request) -> str:
+    def get_next_uri(self, request: HttpRequest) -> str:
         """
         Returns the next URI a user should visit in their authentication flow.
         """
-        next_uri_fallback = None
-        if request.session.get("_next") is not None:
-            next_uri_fallback = request.session.pop("_next")
+        next_uri_fallback = request.session.pop("_next", None)
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseBase:
@@ -165,15 +164,16 @@ class AuthLoginView(BaseView):
             reverse("sentry-register"),
         ]
         return (
-            request.subdomain
+            bool(request.subdomain)
             and self.org_exists(request=request)
             and request.path_info not in non_sso_urls
         )
 
-    def get_org_auth_login_redirect(self, request: Request) -> HttpResponseRedirect:
+    def get_org_auth_login_redirect(self, request: Request) -> HttpResponseBase:
         """
         Returns a redirect response that will take a user to SSO login.
         """
+        assert request.subdomain is not None
         url_prefix = generate_organization_url(org_slug=request.subdomain)
         url = absolute_uri(
             url=reverse("sentry-auth-organization", args=[request.subdomain]), url_prefix=url_prefix
@@ -189,11 +189,13 @@ class AuthLoginView(BaseView):
         context = self.get_default_context(request=request)
 
         register_form = self.initialize_register_form(request=request)
+        login_form = AuthenticationForm(request=request)
         context.update(
             {
                 "op": "register",
                 "CAN_REGISTER": True,
                 "register_form": register_form,
+                "login_form": login_form,
             }
         )
         return self.respond_login(request=request, context=context, **kwargs)
@@ -227,7 +229,9 @@ class AuthLoginView(BaseView):
             )
         else:
             assert op == "login"
-            return self.handle_login_form_submit(request=request, organization=organization)
+            return self.handle_login_form_submit(
+                request=request, organization=organization, **kwargs
+            )
 
     def redirect_post_to_sso(self, request: Request) -> HttpResponseRedirect:
         """
@@ -364,9 +368,11 @@ class AuthLoginView(BaseView):
         """
         Accepts an invite on behalf of a user and redirects them to their org login
         """
-        invite_helper.accept_invite()
+        invite_helper.accept_invite(request.user)
         org_slug = invite_helper.invite_context.organization.slug
-        self.determine_active_organization(request=request, organization_slug=org_slug)
+        self.active_organization = determine_active_organization(
+            request=request, organization_slug=org_slug
+        )
         response = self.redirect_to_org(request=request)
         remove_invite_details_from_session(request=request)
         return response
@@ -414,7 +420,7 @@ class AuthLoginView(BaseView):
 
         attempted_login = request.POST.get("username") and request.POST.get("password")
 
-        return attempted_login and ratelimiter.backend.is_limited(
+        return bool(attempted_login) and ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(value=request.POST["username"])).hexdigest()
             ),
@@ -469,7 +475,7 @@ class AuthLoginView(BaseView):
         Logs a user in and determines their active org.
         """
         login(request=request, user=user, organization_id=coerce_id_from(m=organization))
-        self.determine_active_organization(request=request)
+        self.active_organization = determine_active_organization(request=request)
 
     def refresh_organization_status(
         self, request: Request, user: User, organization: RpcOrganization
@@ -519,7 +525,7 @@ class AuthLoginView(BaseView):
         """
         return bool(has_user_registration() or request.session.get("can_register"))
 
-    def get_default_context(self, request: Request, **kwargs) -> dict:
+    def get_default_context(self, request: HttpRequest, **kwargs) -> dict:
         """
         Sets up a default context that will be injected into our login template.
         TODO: clean up unused context
@@ -536,6 +542,7 @@ class AuthLoginView(BaseView):
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
+            "show_partner_login_banner": request.GET.get("partner") is not None,
             "referrer": request.GET.get("referrer"),
         }
         default_context.update(additional_context.run_callbacks(request=request))
@@ -554,7 +561,7 @@ class AuthLoginView(BaseView):
         redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return redirect_uri
 
-    def handle_basic_auth(self, request: Request, **kwargs) -> HttpResponseBase:
+    def handle_basic_auth(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         """
         Legacy handler that handles GET and POST requests for registration and login.
         This is still here because it's used by OAuthAuthorizeView and AuthOrganizationLoginView.
@@ -562,6 +569,12 @@ class AuthLoginView(BaseView):
         """
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
+
+        if is_demo_mode_enabled() and is_demo_org(organization):
+            # Performs the auto login of a demo user to a demo org
+            user = get_demo_user()
+            self._handle_login(request, user, organization)
+            return self.redirect(get_login_redirect(request))
 
         if request.method == "GET" and request.subdomain and self.org_exists(request):
             urls = [
@@ -627,9 +640,9 @@ class AuthLoginView(BaseView):
                 )
 
             if invite_helper and invite_helper.valid_request:
-                invite_helper.accept_invite()
+                invite_helper.accept_invite(user)
                 organization_slug = invite_helper.invite_context.organization.slug
-                self.determine_active_organization(request, organization_slug)
+                self.active_organization = determine_active_organization(request, organization_slug)
                 response = self.redirect_to_org(request)
                 remove_invite_details_from_session(request)
 

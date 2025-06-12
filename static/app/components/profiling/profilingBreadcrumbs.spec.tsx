@@ -5,7 +5,7 @@ import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcr
 
 describe('Breadcrumb', function () {
   it('renders the profiling link', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
     render(
       <ProfilingBreadcrumbs
         organization={organization}
@@ -21,8 +21,7 @@ describe('Breadcrumb', function () {
             },
           },
         ]}
-      />,
-      {router}
+      />
     );
     expect(screen.getByText('Profiling')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Profiling'})).toHaveAttribute(

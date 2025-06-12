@@ -5,12 +5,12 @@ import withOrganizations from 'sentry/utils/withOrganizations';
 
 import NotificationSettings from './notificationSettings';
 
-interface NotificationSettingsControllerProps extends RouteComponentProps<{}, {}> {
+interface NotificationSettingsControllerProps extends RouteComponentProps {
   organizations: Organization[];
   organizationsLoading?: boolean;
 }
 
-export function NotificationSettingsController({
+function NotificationSettingsController({
   organizationsLoading,
 }: NotificationSettingsControllerProps) {
   if (organizationsLoading) {

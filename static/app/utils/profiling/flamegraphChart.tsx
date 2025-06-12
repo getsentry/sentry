@@ -13,14 +13,14 @@ interface Series {
   fillColor: string;
   lineColor: string;
   name: string;
-  points: {x: number; y: number}[];
+  points: Array<{x: number; y: number}>;
   type: 'line' | 'area';
 }
 
 export interface ProfileSeriesMeasurement {
   name: string;
   unit: string;
-  values: {elapsed: number; value: number}[];
+  values: Array<{elapsed: number; value: number}>;
 }
 
 function computeLabelPrecision(min: number, max: number): number {
@@ -69,12 +69,12 @@ export class FlamegraphChart {
     this.series = new Array<Series>();
     this.timelineFormatter = makeTimelineFormatter(options.timelineUnit ?? 'nanoseconds');
 
-    if (!measurements || !measurements.length) {
+    if (!measurements?.length) {
       this.formatter = makeFormatter('percent');
       this.tooltipFormatter = makeFormatter('percent');
       this.unit = 'percent';
       this.configSpace = configSpace.clone();
-      this.status = !measurements ? 'no metrics' : 'empty metrics';
+      this.status = measurements ? 'empty metrics' : 'no metrics';
       return;
     }
 

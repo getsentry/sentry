@@ -19,6 +19,7 @@ export enum DiscoverDatasets {
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
   ISSUE_PLATFORM = 'issuePlatform',
+  OURLOGS = 'ourlogs',
   SPANS_EAP = 'spans',
   SPANS_EAP_RPC = 'spansRpc',
   SPANS_INDEXED = 'spansIndexed',
@@ -54,14 +55,14 @@ export const INTERVAL_DISPLAY_MODES: string[] = [
   DisplayModes.BAR,
 ];
 
-export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
+export const DISPLAY_MODE_OPTIONS = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},
   {value: DisplayModes.DAILY, label: t('Total Daily')},
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
   {value: DisplayModes.BAR, label: t('Bar Chart')},
-];
+] satisfies Array<SelectValue<string>>;
 
 /**
  * The chain of fallback display modes to try to use when one is disabled.
@@ -92,7 +93,7 @@ export const MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES = [
   DisplayModes.BAR,
 ];
 
-export const CONDITIONS_ARGUMENTS: {value: string; label?: string}[] = [
+export const CONDITIONS_ARGUMENTS: Array<{value: string; label?: string}> = [
   {
     label: 'is equal to',
     value: 'equals',
@@ -119,7 +120,7 @@ export const CONDITIONS_ARGUMENTS: {value: string; label?: string}[] = [
   },
 ];
 
-export const WEB_VITALS_QUALITY: {value: string; label?: string}[] = [
+export const WEB_VITALS_QUALITY: Array<{value: string; label?: string}> = [
   {
     label: 'good',
     value: 'good',

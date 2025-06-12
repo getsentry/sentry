@@ -4,14 +4,18 @@ import {escapeDoubleQuotes} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
+// Create a string representation of the regex so we need to create a new regex
+// for each use to avoid carrying over state
+export const TAG_VALUE_ESCAPE_PATTERN = '[:\\s\\(\\)\\\\"]';
+
 // remove leading and trailing whitespace and remove double spaces
-export function formatQueryString(query: string): string {
+function formatQueryString(query: string): string {
   return query.trim().replace(/\s+/g, ' ');
 }
 
 export function addQueryParamsToExistingUrl(
   origUrl: string,
-  queryParams: object
+  queryParams: Record<PropertyKey, unknown>
 ): string {
   const url = safeURL(origUrl);
 
@@ -46,7 +50,10 @@ export function appendTagCondition(
       ? query
       : '';
 
-  if (typeof value === 'string' && /[:\s\(\)\\"]/g.test(value)) {
+  if (
+    typeof value === 'string' &&
+    new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(value)
+  ) {
     value = `"${escapeDoubleQuotes(value)}"`;
   }
   if (currentQuery) {

@@ -5,9 +5,8 @@ import logging
 import re
 from collections import Counter
 from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ContextLineGroupingComponent,
@@ -36,6 +35,10 @@ from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
 
 logger = logging.getLogger(__name__)
 
@@ -441,9 +444,7 @@ def _single_stacktrace_variant(
             if frame.in_app:
                 found_in_app_frame = True
             else:
-                # We have to do this here (rather than it being done in the rust enhancer) because
-                # the rust enhancer doesn't know about system vs app variants
-                frame_component.update(contributes=False, hint="non app frame")
+                frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -464,6 +465,7 @@ def _single_stacktrace_variant(
         )
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
+        variant_name,
         frame_components,
         frames_for_filtering,
         event.platform,
@@ -624,7 +626,12 @@ def chained_exception(
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
         # TODO: Except we do, as it turns out. See https://github.com/getsentry/sentry/issues/73592.
         logging.exception(
-            "Failed to filter exceptions for exception groups. Continuing with original list."
+            "Failed to filter exceptions for exception groups. Continuing with original list.",
+            extra={
+                "event_id": context.event.event_id,
+                "project_id": context.event.project.id,
+                "org_id": context.event.project.organization.id,
+            },
         )
         exceptions = all_exceptions
 
@@ -683,7 +690,7 @@ def filter_exceptions_for_exception_groups(
             children: list[SingleException] | None = None,
         ):
             self.exception = exception
-            self.children = children if children else []
+            self.children = children or []
 
     exception_tree: dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
@@ -731,12 +738,16 @@ def filter_exceptions_for_exception_groups(
             yield from get_first_path(children[0])
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    top_level_exceptions = []
     if exception_tree[0].exception:
         top_level_exceptions = sorted(
             get_top_level_exceptions(exception_tree[0].exception),
             key=lambda exception: str(exception.type),
             reverse=True,
         )
+    else:
+        # If there's no root exception, return the original list
+        return exceptions
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [
@@ -780,15 +791,13 @@ def chained_exception_variant_processor(
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("crashed")], event, context, meta
-    )
+    crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
+    thread_variants = _filtered_threads(crashed_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("current")], event, context, meta
-    )
+    current_threads = [thread for thread in interface.values if thread.get("current")]
+    thread_variants = _filtered_threads(current_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -800,9 +809,10 @@ def threads(
         "app": ThreadsGroupingComponent(
             contributes=False,
             hint=(
-                "ignored because does not contain exactly one crashing, "
-                "one current or just one thread, instead contains %s threads"
-                % len(interface.values)
+                "ignored because it contains neither a single thread nor multiple threads with "
+                "exactly one crashing or current thread; instead contains %s crashing, %s current, "
+                "and %s total threads"
+                % (len(crashed_threads), len(current_threads), len(interface.values))
             ),
         )
     }
@@ -856,10 +866,12 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     return main_exception_id
 
 
+MAIN_EXCEPTION_ID_FUNCS = [
+    react_error_with_cause,
+]
+
+
 def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
-    MAIN_EXCEPTION_ID_FUNCS = [
-        react_error_with_cause,
-    ]
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)

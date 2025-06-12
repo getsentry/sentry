@@ -79,9 +79,7 @@ export class EventedProfile extends Profile {
       const samples: CallTreeNode[] = [];
       const weights: number[] = [];
 
-      for (let i = 0; i < built.samples.length; i++) {
-        const sample = built.samples[i]!;
-
+      for (const sample of built.samples) {
         if (visited.has(sample)) {
           continue;
         }

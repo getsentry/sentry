@@ -1,11 +1,11 @@
-import {generateSentryTraceHeader} from '@sentry/utils';
+import {generateSentryTraceHeader} from '@sentry/core';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HTTPSnippet} from './httpSnippet';
 
-jest.mock('@sentry/utils', () => ({
-  ...jest.requireActual('@sentry/utils'),
+jest.mock('@sentry/core', () => ({
+  ...jest.requireActual('@sentry/core'),
   generateSentryTraceHeader: jest.fn(() => 'sentry-trace-value'),
 }));
 

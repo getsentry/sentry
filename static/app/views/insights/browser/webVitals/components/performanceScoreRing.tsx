@@ -12,7 +12,12 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
   backgroundColors: readonly string[];
   segmentColors: readonly string[];
   text: React.ReactNode;
-  values: {key: string; maxValue: number; value: number; onHoverActions?: () => void}[];
+  values: Array<{
+    key: string;
+    maxValue: number;
+    value: number;
+    onHoverActions?: () => void;
+  }>;
   /**
    * The width of the progress ring bar
    */
@@ -144,7 +149,7 @@ function PerformanceScoreRing({
         x={foreignObjectOffset}
         y={foreignObjectOffset}
       >
-        {text !== undefined ? <Text {...{textCss}}>{text}</Text> : null}
+        {text === undefined ? null : <Text {...{textCss}}>{text}</Text>}
       </foreignObject>
     </RingSvg>
   );
@@ -187,6 +192,3 @@ const RingBar = styled('circle')<{
 `;
 
 export default PerformanceScoreRing;
-
-// We export components to allow for css selectors
-export {RingBackground, RingBar, Text as RingText};

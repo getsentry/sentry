@@ -1,13 +1,17 @@
 import {createContext, useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
-  DarkFlamegraphTheme,
-  LightFlamegraphTheme,
+  makeDarkChonkFlamegraphTheme,
+  makeDarkFlamegraphTheme,
+  makeLightChonkFlamegraphTheme,
+  makeLightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
 
@@ -16,7 +20,7 @@ type FlamegraphThemeMutationCallback = (
   colorMode?: 'light' | 'dark'
 ) => FlamegraphTheme;
 
-export const FlamegraphThemeMutationContext = createContext<
+const FlamegraphThemeMutationContext = createContext<
   ((cb: FlamegraphThemeMutationCallback) => void) | null
 >(null);
 
@@ -27,8 +31,8 @@ interface FlamegraphThemeProviderProps {
 function FlamegraphThemeProvider(
   props: FlamegraphThemeProviderProps
 ): React.ReactElement {
+  const theme = useTheme();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
-
   const [mutation, setMutation] = useState<FlamegraphThemeMutationCallback | null>(null);
 
   const addModifier = useCallback((cb: FlamegraphThemeMutationCallback) => {
@@ -36,21 +40,31 @@ function FlamegraphThemeProvider(
   }, []);
 
   const activeFlamegraphTheme = useMemo(() => {
-    const flamegraphTheme =
-      colorMode === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
+    let flamegraphTheme =
+      colorMode === 'light'
+        ? makeLightFlamegraphTheme(theme)
+        : makeDarkFlamegraphTheme(theme);
+
+    if (isChonkTheme(theme)) {
+      flamegraphTheme =
+        colorMode === 'light'
+          ? makeLightChonkFlamegraphTheme(theme)
+          : makeDarkChonkFlamegraphTheme(theme);
+    }
+
     if (!mutation) {
       return flamegraphTheme;
     }
     const clonedTheme = cloneDeep(flamegraphTheme);
     return mutation(clonedTheme, colorMode);
-  }, [mutation, colorMode]);
+  }, [mutation, colorMode, theme]);
 
   return (
-    <FlamegraphThemeMutationContext.Provider value={addModifier}>
-      <FlamegraphThemeContext.Provider value={activeFlamegraphTheme}>
+    <FlamegraphThemeMutationContext value={addModifier}>
+      <FlamegraphThemeContext value={activeFlamegraphTheme}>
         {props.children}
-      </FlamegraphThemeContext.Provider>
-    </FlamegraphThemeMutationContext.Provider>
+      </FlamegraphThemeContext>
+    </FlamegraphThemeMutationContext>
   );
 }
 

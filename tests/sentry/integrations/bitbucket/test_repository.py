@@ -84,25 +84,39 @@ class BitbucketRepositoryProviderTest(TestCase):
     def test_build_repository_config(self):
         full_repo_name = "laurynsentry/helloworld"
         webhook_id = "web-hook-id"
+
+        organization = self.create_organization()
+
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/%s" % full_repo_name,
             json=REPO,
         )
+        expected_post_payload = {
+            "active": True,
+            "description": "sentry-bitbucket-repo-hook",
+            "events": ["repo:push", "pullrequest:fulfilled"],
+            "secret": "supersecret",
+            "url": f"http://testserver/extensions/bitbucket/organizations/{organization.id}/webhook/",
+        }
         responses.add(
             responses.POST,
             "https://api.bitbucket.org/2.0/repositories/%s/hooks" % full_repo_name,
             json={"uuid": webhook_id},
             status=201,
+            match=[responses.matchers.json_params_matcher(expected_post_payload)],
         )
 
-        organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
                 provider="bitbucket",
                 external_id="bitbucket_external_id",
                 name="Hello world",
-                metadata={"base_url": "https://api.bitbucket.org", "shared_secret": "23456789"},
+                metadata={
+                    "base_url": "https://api.bitbucket.org",
+                    "shared_secret": "23456789",
+                    "webhook_secret": "supersecret",
+                },
             )
             integration.add_organization(organization)
         data = {

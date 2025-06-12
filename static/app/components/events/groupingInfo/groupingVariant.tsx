@@ -1,11 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,7 +27,7 @@ interface GroupingVariantProps {
   variant: EventGroupVariant;
 }
 
-type VariantData = [string, React.ReactNode][];
+type VariantData = Array<[string, React.ReactNode]>;
 
 function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   if ('matched_rule' in variant) {
@@ -51,13 +51,15 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
         {variant.client_values}
-        <QuestionTooltip
-          size="xs"
-          position="top"
-          title={t(
-            'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
-          )}
-        />
+        {'matched_rule' in variant && ( // Only display override tooltip if overriding actually happened
+          <QuestionTooltip
+            size="xs"
+            position="top"
+            title={t(
+              'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
+            )}
+          />
+        )}
       </TextWithQuestionTooltip>,
     ]);
   }
@@ -165,7 +167,7 @@ function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantPr
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
-      case EventGroupVariantType.PERFORMANCE_PROBLEM:
+      case EventGroupVariantType.PERFORMANCE_PROBLEM: {
         const spansToHashes = Object.fromEntries(
           event.entries
             .find((c): c is EntrySpans => c.type === 'spans')
@@ -200,6 +202,7 @@ function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantPr
           [...new Set(variant.evidence?.offender_span_ids?.map(id => spansToHashes[id]))],
         ]);
         break;
+      }
       default:
         break;
     }

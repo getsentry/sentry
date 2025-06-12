@@ -38,7 +38,7 @@ export function AnrRootCause({event, organization}: Props) {
   const anrCulprit = analyzeFramesForRootCause(event);
 
   useEffect(() => {
-    if (!anrCulprit || anrCulprit.culprit === null || anrCulprit.culprit === undefined) {
+    if (!anrCulprit?.culprit) {
       return;
     }
 

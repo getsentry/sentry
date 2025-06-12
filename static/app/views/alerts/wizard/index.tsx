@@ -19,6 +19,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
@@ -36,7 +37,7 @@ type RouteParams = {
   projectId?: string;
 };
 
-type AlertWizardProps = RouteComponentProps<RouteParams, {}> & {
+type AlertWizardProps = RouteComponentProps<RouteParams> & {
   organization: Organization;
   projectId: string;
 };
@@ -57,7 +58,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
 
   function renderCreateAlertButton() {
     let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
@@ -116,15 +117,18 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
               disabled={!hasFeature}
               priority="primary"
               to={{
-                pathname: `/organizations/${organization.slug}/alerts/new/${
-                  isMetricAlert
-                    ? AlertRuleType.METRIC
-                    : alertOption === 'uptime_monitor'
-                      ? AlertRuleType.UPTIME
-                      : alertOption === 'crons_monitor'
-                        ? AlertRuleType.CRONS
-                        : AlertRuleType.ISSUE
-                }/`,
+                pathname: makeAlertsPathname({
+                  organization,
+                  path: `/new/${
+                    isMetricAlert
+                      ? AlertRuleType.METRIC
+                      : alertOption === 'uptime_monitor'
+                        ? AlertRuleType.UPTIME
+                        : alertOption === 'crons_monitor'
+                          ? AlertRuleType.CRONS
+                          : AlertRuleType.ISSUE
+                  }/`,
+                }),
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
                   project: projectSlug,
@@ -168,9 +172,9 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                       choices={options.map((alertType: any) => {
                         return [
                           alertType,
-                          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           AlertWizardAlertNames[alertType],
-                          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           AlertWizardExtraContent[alertType],
                         ];
                       })}

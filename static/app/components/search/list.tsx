@@ -23,10 +23,9 @@ interface RenderItemProps {
 type RenderItem = (props: RenderItemProps) => React.ReactNode;
 
 type Props = {
+  allLoaded: boolean;
   getItemProps: AutoCompleteOpts['getItemProps'];
-  hasAnyResults: boolean;
   highlightedIndex: number;
-  isLoading: boolean;
   registerItemCount: AutoCompleteOpts['registerItemCount'];
   registerVisibleItem: AutoCompleteOpts['registerVisibleItem'];
   resultFooter: React.ReactNode;
@@ -46,8 +45,7 @@ function defaultItemRenderer({item, highlighted, itemProps, matches}: RenderItem
 
 function List({
   dropdownClassName,
-  isLoading,
-  hasAnyResults,
+  allLoaded,
   results,
   maxResults,
   getItemProps,
@@ -64,15 +62,17 @@ function List({
     [registerItemCount, resultList.length]
   );
 
+  // Show loading indicator if we're still loading and don't have any results yet
+  const hasResults = results.length > 0;
+  const isLoading = !allLoaded && !hasResults;
+
   return (
     <DropdownBox className={dropdownClassName}>
       {isLoading ? (
         <LoadingWrapper>
-          <LoadingIndicator mini hideMessage relative />
+          <LoadingIndicator mini relative />
         </LoadingWrapper>
-      ) : !hasAnyResults ? (
-        <EmptyItem>{t('No results found')}</EmptyItem>
-      ) : (
+      ) : hasResults ? (
         resultList.map((result, index) => {
           const {item, matches, refIndex} = result;
           const highlighted = index === highlightedIndex;
@@ -89,6 +89,8 @@ function List({
 
           return <ResultRow key={`${index}-${refIndex}`} {...resultProps} />;
         })
+      ) : (
+        <EmptyItem>{t('No results found')}</EmptyItem>
       )}
       {!isLoading && resultFooter ? <ResultFooter>{resultFooter}</ResultFooter> : null}
     </DropdownBox>
@@ -136,7 +138,7 @@ export default List;
 const DropdownBox = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.modalBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   position: absolute;
   top: 36px;

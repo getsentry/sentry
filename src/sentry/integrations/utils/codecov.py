@@ -59,7 +59,7 @@ def has_codecov_integration(organization: Organization) -> tuple[bool, str | Non
         if not integration_installation:
             continue
 
-        repos = integration_installation.get_client().get_repositories()  # List[Dict[str, Any]]
+        repos = integration_installation.get_client().get_repos()
         if not repos:
             continue
 
@@ -155,6 +155,11 @@ class CodecovData(TypedDict):
 def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
     data: CodecovData = {}
     try:
+        # Check if there's an error in the outcome or if sourcePath is missing
+        if "error" in config["outcome"] or "sourcePath" not in config["outcome"]:
+            data = {"status": status.HTTP_400_BAD_REQUEST}
+            return data
+
         repo = config["repository"].name
         service = config["config"]["provider"]["key"]
         path = config["outcome"]["sourcePath"]

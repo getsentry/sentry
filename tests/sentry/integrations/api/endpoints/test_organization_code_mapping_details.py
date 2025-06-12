@@ -30,6 +30,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             teams=[self.team, self.team2],
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+        self.project2 = self.create_project(organization=self.org, teams=[self.team2], name="Tiger")
         self.integration, self.org_integration = self.create_provider_integration_for(
             self.org, self.user, provider="github", name="Example", external_id="abcd"
         )
@@ -72,6 +73,9 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
         self.create_team_membership(team=self.team, member=non_member_om)
+
+        response = self.make_put({"projectId": self.project2.id, "sourceRoot": "newRoot"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
         response = self.make_put({"sourceRoot": "newRoot"})
         assert response.status_code == status.HTTP_200_OK

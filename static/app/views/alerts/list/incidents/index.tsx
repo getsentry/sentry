@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,19 +20,18 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
-
-import FilterBar from '../../filterBar';
-import type {Incident} from '../../types';
-import {getQueryStatus, getTeamParams} from '../../utils';
-import AlertHeader from '../header';
-import Onboarding from '../onboarding';
+import FilterBar from 'sentry/views/alerts/filterBar';
+import AlertHeader from 'sentry/views/alerts/list/header';
+import Onboarding from 'sentry/views/alerts/list/onboarding';
+import type {Incident} from 'sentry/views/alerts/types';
+import {getQueryStatus, getTeamParams} from 'sentry/views/alerts/utils';
 
 import AlertListRow from './row';
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   organization: Organization;
 };
 
@@ -269,7 +268,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <StyledAlert showIcon>
+                  <StyledAlert type="info" showIcon>
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar
@@ -301,7 +300,9 @@ function IncidentsListContainer(props: Props) {
   const renderDisabled = () => (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Main>
     </Layout.Body>
   );

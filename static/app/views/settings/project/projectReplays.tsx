@@ -1,10 +1,10 @@
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
-import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -12,12 +12,17 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+
+const ReplaySettingsAlert = HookOrDefault({
+  hookName: 'component:replay-settings-alert',
+  defaultComponent: null,
+});
 
 type RouteParams = {
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   project: Project;
 };
@@ -73,7 +78,7 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
           </LinkButton>
         }
       />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       <ReplaySettingsAlert />
 
       <Form

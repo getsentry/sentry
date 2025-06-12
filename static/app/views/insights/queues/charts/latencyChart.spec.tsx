@@ -2,11 +2,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 
+jest.mock('sentry/utils/useReleaseStats');
+
 describe('latencyChart', () => {
   const organization = OrganizationFixture();
+
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
+  });
 
   let eventsStatsMock: jest.Mock;
 
@@ -15,25 +26,37 @@ describe('latencyChart', () => {
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        data: [],
+        data: [[1739378162, [{count: 1}]]],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'duration',
+            'avg(messaging.message.receive.latency)': 'duration',
+            'epm()': 'rate',
+          },
+          units: {
+            'avg(span.duration)': 'millisecond',
+            'avg(messaging.message.receive.latency)': 'millisecond',
+            'epm()': '1/second',
+          },
+        },
       },
     });
   });
   it('renders', async () => {
     render(
-      <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />,
+      <LatencyChart
+        id="latency-chart-test"
+        destination="events"
+        referrer={Referrer.QUEUES_SUMMARY_LATENCY_CHART}
+      />,
       {organization}
     );
-    screen.getByText('Avg Latency');
+    screen.getByText('Average Duration');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          yAxis: [
-            'avg(span.duration)',
-            'avg(messaging.message.receive.latency)',
-            'spm()',
-          ],
+          yAxis: ['avg(span.duration)', 'avg(messaging.message.receive.latency)'],
           query: 'span.op:queue.process messaging.destination.name:events',
         }),
       })

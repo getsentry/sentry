@@ -17,9 +17,9 @@ interface Options<AllowNull extends boolean = boolean> {
 // `allowNull` to true.
 
 function useOrganization(opts?: Options<false>): Organization;
-function useOrganization(opts?: Options<true>): Organization | null;
+function useOrganization(opts: Options<true>): Organization | null;
 
-function useOrganization({allowNull}: Options = {}) {
+function useOrganization({allowNull = false}: Options = {}) {
   const organization = useContext(OrganizationContext);
 
   if (allowNull) {

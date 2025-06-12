@@ -6,6 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_field,
@@ -22,10 +23,8 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member.index import (
-    ROLE_CHOICES,
-    OrganizationMemberRequestSerializer,
-)
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
+from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -68,7 +67,7 @@ from .utils import (
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 
 
-@extend_schema_field(Any)  # union field types are kind of hard, leaving Any for now.
+@extend_schema_field(OpenApiTypes.ANY)  # union field types are kind of hard, leaving Any for now.
 class OperationValue(Field):
     """
     A SCIM PATCH operation value can either be a boolean,
@@ -98,7 +97,6 @@ class OperationValue(Field):
         raise ValidationError("value must be a boolean or object")
 
 
-@extend_schema_serializer(dict)
 class SCIMPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
     value = OperationValue()
@@ -111,7 +109,7 @@ class SCIMPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
-@extend_schema_serializer(exclude_fields="schemas")
+@extend_schema_serializer(exclude_fields=("schemas",))
 class SCIMPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
     schemas = serializers.ListField(child=serializers.CharField(), required=False)
@@ -176,7 +174,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: int | str,
+        organization_id_or_slug: int | str | None = None,
         member_id: str = "me",
         *args: Any,
         **kwargs: Any,
@@ -532,7 +530,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         update_role = False
 
-        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
             role = request.data["sentryOrgRole"].lower()
@@ -585,7 +583,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             )
 
             if member_query.exists():
-                member = member_query.first()
+                member = member_query.get()
                 if member.token_expired:
                     member.regenerate_token()
                     member.save()

@@ -62,7 +62,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
         total_checksum = sha1(bundle_file).hexdigest()
 
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         response = self.client.post(
@@ -82,7 +82,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
                 "project_ids": [self.project.id],
-                "upload_as_artifact_bundle": True,
                 "is_release_bundle_migration": True,
             }
         )
@@ -92,7 +91,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
 
         assemble_artifacts(
             org_id=self.organization.id,
@@ -100,7 +99,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             checksum=total_checksum,
             chunks=[blob1.checksum],
             project_ids=[self.project.id],
-            upload_as_artifact_bundle=True,
             is_release_bundle_migration=True,
         )
 
@@ -116,7 +114,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
     def test_dif_error_response(self):
         bundle_file = b"invalid"
         total_checksum = sha1(bundle_file).hexdigest()
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
 
         assemble_artifacts(
             org_id=self.organization.id,
@@ -124,7 +122,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             checksum=total_checksum,
             chunks=[blob1.checksum],
             project_ids=[self.project.id],
-            upload_as_artifact_bundle=True,
             is_release_bundle_migration=True,
         )
 
@@ -144,7 +141,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
         total_checksum = sha1(bundle_file).hexdigest()
 
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         response = self.client.post(
@@ -164,7 +161,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             "checksum": total_checksum,
             "chunks": [blob1.checksum],
             "project_ids": [self.project.id],
-            "upload_as_artifact_bundle": True,
             "is_release_bundle_migration": True,
         }
         mock_assemble_artifacts.apply_async.assert_called_once_with(kwargs=kwargs)

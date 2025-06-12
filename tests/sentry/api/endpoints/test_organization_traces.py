@@ -5,12 +5,16 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesResponse, TraceAttribute
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 
-from sentry.api.endpoints.organization_traces import process_breakdowns
+from sentry.api.endpoints.organization_traces import TracesExecutor, process_breakdowns
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import _snuba_query
 
 
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
@@ -56,6 +60,9 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         if tags := kwargs.get("tags", {}):
             data["tags"] = [[key, val] for key, val in tags.items()]
 
+        if environment := kwargs.pop("environment", None):
+            data["environment"] = environment
+
         self.store_event(
             data=data,
             project_id=project.id,
@@ -70,6 +77,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=duration,
             organization_id=project.organization.id,
             is_eap=self.is_eap,
+            environment=data.get("environment"),
             **kwargs,
         )
 
@@ -243,7 +251,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
 
-        timestamps.append(now - timedelta(days=1, minutes=21, seconds=0))
+        timestamps.append(now - timedelta(days=1, minutes=20, seconds=0))
         self.store_indexed_span(
             organization_id=project_1.organization.id,
             project_id=project_1.id,
@@ -329,6 +337,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.data == {
             "data": [],
             "meta": {
+                "dataScanned": "full",
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
                 "fields": {},
@@ -378,6 +387,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 200, response.data
 
         assert response.data["meta"] == {
+            "dataScanned": "full",
             "dataset": "unknown",
             "datasetReason": "unchanged",
             "fields": {},
@@ -543,7 +553,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
-                        "isRoot": False,
+                        "isRoot": True,
                         "kind": "project",
                         "project": self.project.slug,
                         "sdkName": "sentry.javascript.remix",
@@ -639,10 +649,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ]
 
     def test_use_separate_referrers(self):
-        from sentry.api.endpoints.organization_traces import TracesExecutor
-        from sentry.snuba.referrer import Referrer
-        from sentry.utils.snuba import _snuba_query
-
         now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
         start = now - timedelta(days=2)
         end = now - timedelta(days=1)
@@ -694,6 +700,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "foo:baz",
             ],
         ]:
+            if len(q) > 1 and self.is_eap:
+                continue
+
             for features in [
                 None,  # use the default features
                 ["organizations:performance-trace-explorer"],
@@ -710,6 +719,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 assert response.status_code == 200, response.data
 
                 assert response.data["meta"] == {
+                    "dataScanned": "full",
                     "dataset": "unknown",
                     "datasetReason": "unchanged",
                     "fields": {},
@@ -738,7 +748,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             {
                                 "project": project_1.slug,
                                 "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
+                                "isRoot": True,
                                 "start": timestamps[0],
                                 "end": timestamps[0] + 60_100,
                                 "sliceStart": 0,
@@ -777,7 +787,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             {
                                 "project": project_1.slug,
                                 "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
+                                "isRoot": True,
                                 "start": timestamps[4],
                                 "end": timestamps[4] + 90_123,
                                 "sliceStart": 0,
@@ -801,6 +811,80 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         ],
                     },
                 ]
+
+    def test_environment_filter(self):
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        timestamp = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(
+            days=3
+        )
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            timestamp=timestamp,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            environment="prod",
+        )
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id=uuid4().hex[:16],
+            timestamp=timestamp,
+            transaction="bar",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            environment="test",
+        )
+
+        query = {
+            # only query for project_2 but expect traces to start from project_1
+            "project": [self.project.id],
+            "field": ["id", "parent_span", "span.duration"],
+            "environment": "prod",
+        }
+
+        ts = timestamp.timestamp() * 1000
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60_100,
+                        "start": ts,
+                        "end": ts + 60_100,
+                        "isRoot": True,
+                        "kind": "project",
+                        "project": self.project.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "sliceEnd": 40,
+                        "sliceStart": 0,
+                        "sliceWidth": 40,
+                    },
+                ],
+                "duration": 60_100,
+                "start": ts,
+                "end": ts + 60_100,
+                "matchingSpans": 1,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "project": self.project.slug,
+                "rootDuration": 60_100,
+                "trace": trace_id,
+            },
+        ]
 
 
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
@@ -873,6 +957,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         response = self.do_request(trace_id, query)
         assert response.status_code == 200, response.data
         assert response.data["meta"] == {
+            "dataScanned": "full",
             "dataset": "unknown",
             "datasetReason": "unchanged",
             "fields": {
@@ -912,6 +997,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             response = self.do_request(trace_id, query)
             assert response.status_code == 200, response.data
             assert response.data["meta"] == {
+                "dataScanned": "full",
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
                 "fields": {
@@ -925,128 +1011,6 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 },
             }
             assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[1:4])]
-
-
-class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
-    view = "sentry-api-0-organization-traces-stats"
-
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = [
-                "organizations:performance-trace-explorer",
-                "organizations:global-views",
-            ]
-
-        if self.is_eap:
-            query["dataset"] = "spans"
-
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_no_feature(self):
-        response = self.do_request({}, features=[])
-        assert response.status_code == 404, response.data
-
-    def test_no_project(self):
-        response = self.do_request({})
-        assert response.status_code == 404, response.data
-
-    def test_bad_params_missing_y_axis(self):
-        response = self.do_request(
-            {
-                "project": [self.project.id],
-            }
-        )
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "yAxis": [
-                ErrorDetail(string="This field is required.", code="required"),
-            ],
-        }
-
-    def test_span_duration_filter(self):
-        for q in [
-            ["span.duration:>100"],
-        ]:
-            query = {
-                "yAxis": ["count()"],
-                "query": q,
-                "project": [self.project.id],
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-
-    def test_stats(self):
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        timestamp = before_now()
-        timestamp = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
-        timestamp = timestamp - timedelta(minutes=10)
-
-        self.double_write_segment(
-            project=project_1,
-            trace_id=uuid4().hex,
-            transaction_id=uuid4().hex,
-            span_id="1" + uuid4().hex[:15],
-            timestamp=timestamp,
-            transaction="foo",
-            duration=100,
-            exclusive_time=100,
-        )
-
-        self.double_write_segment(
-            project=project_1,
-            trace_id=uuid4().hex,
-            transaction_id=uuid4().hex,
-            span_id="1" + uuid4().hex[:15],
-            timestamp=timestamp,
-            transaction="bar",
-            duration=100,
-            exclusive_time=100,
-        )
-
-        self.double_write_segment(
-            project=project_2,
-            trace_id=uuid4().hex,
-            transaction_id=uuid4().hex,
-            span_id="1" + uuid4().hex[:15],
-            timestamp=timestamp,
-            transaction="bar",
-            duration=100,
-            exclusive_time=100,
-        )
-
-        for q in [
-            [f"project:{project_1.slug}"],
-            [
-                f"project:{project_1.slug} transaction:bar",
-                f"project:{project_2.slug} transaction:bar",
-            ],
-        ]:
-            query = {
-                "yAxis": ["count()"],
-                "query": q,
-                "project": [],
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-
-        if self.is_eap:
-            # When using EAP, this is extrapolated
-            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 20
-        else:
-            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
 
 
 @pytest.mark.parametrize(
@@ -2426,7 +2390,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                     {
                         "project": project_1.slug,
                         "sdkName": "sentry.javascript.node",
-                        "isRoot": False,
+                        "isRoot": True,
                         "start": timestamps[0],
                         "end": timestamps[0] + 60_100,
                         "sliceStart": 0,
@@ -2465,7 +2429,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                     {
                         "project": project_1.slug,
                         "sdkName": "sentry.javascript.node",
-                        "isRoot": False,
+                        "isRoot": True,
                         "start": timestamps[4],
                         "end": timestamps[4] + 90_123,
                         "sliceStart": 0,
@@ -2490,63 +2454,107 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
             },
         ]
 
-        for descending in [False, True]:
-            for q in [
-                ["foo:[bar, baz]"],
-                ["foo:bar span.duration:>10s", "foo:baz"],
-            ]:
-                expected = sorted(
-                    expected,
-                    key=lambda trace: trace["start"],
-                    reverse=descending,
-                )
+        descending = True
 
-                query = {
-                    # only query for project_2 but expect traces to start from project_1
-                    "project": [str(project_2.id)],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "query": q,
-                    "sort": "-timestamp" if descending else "timestamp",
-                    "per_page": "1",
-                }
-                response = self.do_request(query)
-                assert response.status_code == 200, response.data
-                assert response.data["data"] == [expected[0]]
+        for q in [
+            ["foo:[bar, baz]"],
+            ["foo:bar span.duration:>10s", "foo:baz"],
+        ]:
+            if len(q) > 1 and self.is_eap:
+                continue
 
-                links = parse_link_header(response.headers["Link"])
-                prev_link = next(link for link in links.values() if link["rel"] == "previous")
-                assert prev_link["results"] == "false"
-                next_link = next(link for link in links.values() if link["rel"] == "next")
-                assert next_link["results"] == "true"
-                assert next_link["cursor"]
+            expected = sorted(
+                expected,
+                key=lambda trace: trace["start"],
+                reverse=descending,
+            )
 
-                query = {
-                    # only query for project_2 but expect traces to start from project_1
-                    "project": [str(project_2.id)],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "query": q,
-                    "sort": "-timestamp" if descending else "timestamp",
-                    "per_page": "1",
-                    "cursor": next_link["cursor"],
-                }
-                response = self.do_request(query)
-                assert response.status_code == 200, response.data
-                assert response.data["data"] == [expected[1]]
+            query = {
+                # only query for project_2 but expect traces to start from project_1
+                "project": [str(project_2.id)],
+                "field": ["id", "parent_span", "span.duration"],
+                "query": q,
+                "sort": "-timestamp" if descending else "timestamp",
+                "per_page": "1",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert response.data["data"] == [expected[0]]
 
-                links = parse_link_header(response.headers["Link"])
-                prev_link = next(link for link in links.values() if link["rel"] == "previous")
-                assert prev_link["results"] == "true"
-                next_link = next(link for link in links.values() if link["rel"] == "next")
-                assert next_link["results"] == "false"
+            links = parse_link_header(response.headers["Link"])
+            prev_link = next(link for link in links.values() if link["rel"] == "previous")
+            assert prev_link["results"] == "false"
+            next_link = next(link for link in links.values() if link["rel"] == "next")
+            assert next_link["results"] == "true"
+            assert next_link["cursor"]
 
+            query = {
+                # only query for project_2 but expect traces to start from project_1
+                "project": [str(project_2.id)],
+                "field": ["id", "parent_span", "span.duration"],
+                "query": q,
+                "sort": "-timestamp" if descending else "timestamp",
+                "per_page": "1",
+                "cursor": next_link["cursor"],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert response.data["data"] == [expected[1]]
 
-class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
-    is_eap: bool = True
+            links = parse_link_header(response.headers["Link"])
+            prev_link = next(link for link in links.values() if link["rel"] == "previous")
+            assert prev_link["results"] == "true"
+            next_link = next(link for link in links.values() if link["rel"] == "next")
+            assert next_link["results"] == "false"
 
-    @pytest.mark.skip(reason="no support for metrics so not back porting this feature")
-    def test_get_spans_for_trace_matching_tags_metrics(self):
-        pass
+    def test_use_separate_referrers(self):
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = now - timedelta(days=2)
+        end = now - timedelta(days=1)
+        trace_id = uuid4().hex
 
+        with (
+            patch(
+                "sentry.api.endpoints.organization_traces.get_traces_rpc",
+                return_value=GetTracesResponse(
+                    traces=[
+                        GetTracesResponse.Trace(
+                            attributes=[
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_TRACE_ID,
+                                    value=AttributeValue(val_str=trace_id),
+                                    type=AttributeKey.Type.TYPE_STRING,
+                                ),
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_START_TIMESTAMP,
+                                    value=AttributeValue(val_double=start.timestamp()),
+                                    type=AttributeKey.Type.TYPE_DOUBLE,
+                                ),
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_END_TIMESTAMP,
+                                    value=AttributeValue(val_double=end.timestamp()),
+                                    type=AttributeKey.Type.TYPE_DOUBLE,
+                                ),
+                            ],
+                        )
+                    ],
+                ),
+            ),
+            patch("sentry.utils.snuba._snuba_query", wraps=_snuba_query) as mock_snuba_query,
+        ):
+            query = {
+                "project": [self.project.id],
+                "field": ["id", "parent_span", "span.duration"],
+            }
 
-class OrganizationTracesStatsEAPEndpointTest(OrganizationTracesStatsEndpointTest):
-    is_eap: bool = True
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+            actual_referrers = {
+                call[0][0][2].headers["referer"] for call in mock_snuba_query.call_args_list
+            }
+
+        assert {
+            Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
+        } == actual_referrers

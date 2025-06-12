@@ -2,13 +2,15 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import Tag from 'sentry/components/badge/tag';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
-import DropdownBubble from 'sentry/components/dropdownBubble';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {
+  CompactSelect,
+  type SelectOptionOrSection,
+} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -17,28 +19,28 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
+import {IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
-
-import type {CombinedAlerts} from '../../types';
-import {CombinedAlertType} from '../../types';
-import {isIssueAlert} from '../../utils';
+import type {CombinedAlerts} from 'sentry/views/alerts/types';
+import {CombinedAlertType} from 'sentry/views/alerts/types';
+import {isIssueAlert} from 'sentry/views/alerts/utils';
 
 type Props = {
   hasEditAccess: boolean;
   onDelete: (projectId: string, rule: CombinedAlerts) => void;
   onOwnerChange: (projectId: string, rule: CombinedAlerts, ownerValue: string) => void;
-  orgId: string;
+  organization: Organization;
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedAlerts;
@@ -48,7 +50,7 @@ function RuleListRow({
   rule,
   projectsLoaded,
   projects,
-  orgId,
+  organization,
   onDelete,
   onOwnerChange,
   hasEditAccess,
@@ -72,7 +74,10 @@ function RuleListRow({
     [CombinedAlertType.CRONS]: 'crons-rules',
   } satisfies Record<CombinedAlertType, string>;
 
-  const editLink = `/organizations/${orgId}/alerts/${editKey[rule.type]}/${slug}/${rule.id}/`;
+  const editLink = makeAlertsPathname({
+    path: `/${editKey[rule.type]}/${slug}/${rule.id}/`,
+    organization,
+  });
 
   const mutateKey = {
     [CombinedAlertType.ISSUE]: 'issue',
@@ -82,7 +87,10 @@ function RuleListRow({
   } satisfies Record<CombinedAlertType, string>;
 
   const duplicateLink = {
-    pathname: `/organizations/${orgId}/alerts/new/${mutateKey[rule.type]}/`,
+    pathname: makeAlertsPathname({
+      path: `/new/${mutateKey[rule.type]}/`,
+      organization,
+    }),
     query: {
       project: slug,
       duplicateRuleId: rule.id,
@@ -138,36 +146,35 @@ function RuleListRow({
   ];
 
   function handleOwnerChange({value}: {value: string}) {
-    const ownerValue = value && `team:${value}`;
-    setAssignee(ownerValue);
-    onOwnerChange(slug, rule, ownerValue);
+    setAssignee(value);
+    onOwnerChange(slug, rule, value);
   }
 
-  const unassignedOption: ItemsBeforeFilter[number] = {
+  const unassignedOption = {
     value: '',
     label: (
       <MenuItemWrapper>
-        <PaddedIconUser size="lg" />
+        <IconContainer>
+          <IconUser />
+        </IconContainer>
         <Label>{t('Unassigned')}</Label>
       </MenuItemWrapper>
     ),
-    searchKey: 'unassigned',
-    actor: '',
-    disabled: false,
+    textValue: 'unassigned',
   };
 
   const project = projects.find(p => p.slug === slug);
   const filteredProjectTeams = (project?.teams ?? []).filter(projTeam => {
     return userTeams.some(team => team.id === projTeam.id);
   });
-  const dropdownTeams = filteredProjectTeams
-    .map<ItemsBeforeFilter[number]>((team, idx) => ({
-      value: team.id,
-      searchKey: team.slug,
+  const dropdownTeams: Array<SelectOptionOrSection<string>> = filteredProjectTeams
+    .map((team, idx) => ({
+      value: `team:${team.id}`,
+      textValue: team.slug,
       label: (
-        <MenuItemWrapper data-test-id="assignee-option" key={idx}>
+        <MenuItemWrapper key={idx}>
           <IconContainer>
-            <TeamAvatar team={team} size={24} />
+            <TeamAvatar team={team} />
           </IconContainer>
           <Label>#{team.slug}</Label>
         </MenuItemWrapper>
@@ -194,7 +201,7 @@ function RuleListRow({
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
-      <PaddedIconUser size="lg" color="gray400" />
+      <IconUser size="md" color="gray400" />
     </Tooltip>
   );
 
@@ -203,10 +210,10 @@ function RuleListRow({
     rule.mode === UptimeMonitorMode.AUTO_DETECTED_ACTIVE;
 
   const titleBadge = hasUptimeAutoconfigureBadge ? (
-    <Tag
-      type="info"
-      tooltipProps={{isHoverable: true}}
-      tooltipText={tct(
+    <Tooltip
+      skipWrapper
+      isHoverable
+      title={tct(
         'This Uptime Monitoring alert was auto-detected. [learnMore: Learn more].',
         {
           learnMore: (
@@ -215,20 +222,32 @@ function RuleListRow({
         }
       )}
     >
-      {t('Auto Detected')}
-    </Tag>
+      <Tag type="info">{t('Auto Detected')}</Tag>
+    </Tooltip>
   ) : null;
 
   function ruleUrl() {
     switch (rule.type) {
       case CombinedAlertType.METRIC:
-        return `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
+        return makeAlertsPathname({
+          path: `/rules/details/${rule.id}/`,
+          organization,
+        });
       case CombinedAlertType.CRONS:
-        return `/organizations/${orgId}/alerts/rules/crons/${rule.project.slug}/${rule.id}/details/`;
+        return makeAlertsPathname({
+          path: `/rules/crons/${rule.project.slug}/${rule.id}/details/`,
+          organization,
+        });
       case CombinedAlertType.UPTIME:
-        return `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`;
+        return makeAlertsPathname({
+          path: `/rules/uptime/${rule.projectSlug}/${rule.id}/details/`,
+          organization,
+        });
       default:
-        return `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`;
+        return makeAlertsPathname({
+          path: `/rules/${rule.projects[0]}/${rule.id}/details/`,
+          organization,
+        });
     }
   }
 
@@ -270,32 +289,25 @@ function RuleListRow({
           <ActorAvatar actor={ownerActor} size={24} />
         ) : (
           <AssigneeWrapper>
-            {!projectsLoaded && <StyledLoadingIndicator mini />}
+            {!projectsLoaded && <StyledLoadingIndicator mini size={16} />}
             {projectsLoaded && (
-              <DropdownAutoComplete
-                data-test-id="alert-row-assignee"
-                maxHeight={400}
-                onOpen={e => {
-                  e?.stopPropagation();
-                }}
-                items={dropdownTeams}
-                alignMenu="right"
-                onSelect={handleOwnerChange}
-                itemSize="small"
-                searchPlaceholder={t('Filter teams')}
-                disableLabelPadding
-                emptyHidesInput
+              <CompactSelect
+                size="sm"
                 disabled={!hasEditAccess}
-              >
-                {({getActorProps, isOpen}) => (
-                  <DropdownButton {...getActorProps({})}>
-                    {avatarElement}
-                    {hasEditAccess && (
-                      <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
-                    )}
-                  </DropdownButton>
-                )}
-              </DropdownAutoComplete>
+                options={dropdownTeams}
+                value={assignee}
+                searchable
+                triggerLabel={avatarElement}
+                triggerProps={{
+                  'aria-label': assignee
+                    ? `Assigned to #${teamName?.name}`
+                    : t('Unassigned'),
+                  size: 'zero',
+                  borderless: true,
+                }}
+                searchPlaceholder={t('Filter teams')}
+                onChange={handleOwnerChange}
+              />
             )}
           </AssigneeWrapper>
         )}
@@ -346,7 +358,7 @@ const AlertName = styled('div')`
 `;
 
 const AlertIncidentDate = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const ProjectBadgeContainer = styled('div')`
@@ -367,25 +379,6 @@ const ActionsColumn = styled('div')`
 const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-
-  /* manually align menu underneath dropdown caret */
-  ${DropdownBubble} {
-    right: -14px;
-  }
-`;
-
-const DropdownButton = styled('div')`
-  display: flex;
-  align-items: center;
-  font-size: 20px;
-`;
-
-const StyledChevron = styled(IconChevron)`
-  margin-left: ${space(1)};
-`;
-
-const PaddedIconUser = styled(IconUser)`
-  padding: ${space(0.25)};
 `;
 
 const IconContainer = styled('div')`
@@ -393,14 +386,12 @@ const IconContainer = styled('div')`
   align-items: center;
   justify-content: center;
   width: ${p => p.theme.iconSizes.lg};
-  height: ${p => p.theme.iconSizes.lg};
   flex-shrink: 0;
 `;
 
 const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Label = styled(TextOverflow)`
@@ -412,7 +403,6 @@ const MarginLeft = styled('div')`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  height: 24px;
   margin: 0;
   margin-right: ${space(1.5)};
 `;

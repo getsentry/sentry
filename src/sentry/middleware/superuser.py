@@ -14,15 +14,11 @@ class SuperuserMiddleware(MiddlewareMixin):
         self.__skip_caching = request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
 
         if self.__skip_caching:
-            # XXX(dcramer): support legacy is_superuser calls for unauthenticated requests
-            request.is_superuser = lambda: False
             return
 
         su = Superuser(request)
 
         request.superuser = su
-        # XXX(schew2381): is_superuser is a DEPRECATED property. Please use is_active_superuser(request) instead.
-        request.is_superuser = lambda: request.superuser.is_active
 
         if su.is_active:
             logger.info(

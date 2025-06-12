@@ -23,9 +23,11 @@ import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-
-import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
-import type {ViewProps} from '../types';
+import {
+  replaceSeriesName,
+  transformEventStatsSmoothed,
+} from 'sentry/views/performance/trends/utils';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import {
   getMaxOfSeries,
@@ -123,7 +125,7 @@ function VitalChart({
                 }
 
                 const colors =
-                  (results && theme.charts.getColorPalette(results.length - 2)) || [];
+                  (results && theme.chart.getColorPalette(results.length - 2)) || [];
 
                 const {smoothedResults} = transformEventStatsSmoothed(results);
 
@@ -184,7 +186,7 @@ function VitalChart({
 
 export default VitalChart;
 
-export type VitalChartInnerProps = {
+type VitalChartInnerProps = {
   field: string;
   grid: LineChartProps['grid'];
   loading: boolean;
@@ -243,7 +245,7 @@ export function VitalChartInner(props: VitalChartInnerProps) {
       valueFormatter: (value: number, seriesName?: string) => {
         return tooltipFormatter(
           value,
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           aggregateOutputType(vitalFields[0] === WebVital.CLS ? seriesName : yAxis)
         );
       },
@@ -273,7 +275,7 @@ export function VitalChartInner(props: VitalChartInnerProps) {
         return {
           seriesName: adjustedSeries,
           ...rest,
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           color: theme[vitalStateColors[adjustedSeries]],
           lineStyle: {
             opacity: 1,

@@ -1,7 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -9,7 +11,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,7 +41,7 @@ import {
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
-const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
+const COLUMN_ORDER: Array<GridColumnOrder<keyof RowWithScoreAndOpportunity>> = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
@@ -65,6 +66,7 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -87,16 +89,16 @@ export function PagePerformanceTable() {
     isPending: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
-    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
+    transaction: query === '' ? undefined : `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
     browserTypes,
     subregions,
   });
 
-  const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
+  const tableData = data.map(row => ({
     ...row,
-    opportunity: ((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100,
+    opportunity: (row.opportunity ?? 0) * 100,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -121,7 +123,7 @@ export function PagePerformanceTable() {
 
       return {
         ...location,
-        query: {...location.query, sort: newSort},
+        query: {...location.query, sort: newSort, cursor: undefined},
       };
     }
     const sortableFields = SORTABLE_FIELDS;
@@ -240,7 +242,7 @@ export function PagePerformanceTable() {
       const func = 'count_scores';
       const args = [measurement?.replace('measurements.', 'measurements.score.')];
       const countWebVitalKey = `${func}(${args.join(', ')})`;
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (measurement === undefined || countWebVital === 0) {
         return (
@@ -253,7 +255,7 @@ export function PagePerformanceTable() {
     }
     if (key === 'p75(measurements.cls)') {
       const countWebVitalKey = 'count_scores(measurements.score.cls)';
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (countWebVital === 0) {
         return (
@@ -262,13 +264,11 @@ export function PagePerformanceTable() {
           </AlignRight>
         );
       }
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return <AlignRight>{Math.round(row[key] * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {
       if (row.opportunity !== undefined) {
-        return (
-          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
-        );
+        return <AlignRight>{Math.round(row.opportunity * 100) / 100}</AlignRight>;
       }
       return null;
     }
@@ -283,6 +283,7 @@ export function PagePerformanceTable() {
       location,
       organization,
       unit: meta.units?.[col.key],
+      theme,
     });
   }
 
@@ -396,5 +397,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

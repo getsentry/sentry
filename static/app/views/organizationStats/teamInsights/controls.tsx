@@ -4,7 +4,7 @@ import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import TeamSelector from 'sentry/components/teamSelector';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
@@ -44,7 +44,7 @@ const PAGE_QUERY_PARAMS = [
   'environment',
 ];
 
-type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'location'> & {
+type Props = Pick<RouteComponentProps, 'router' | 'location'> & {
   currentEnvironment?: string;
   currentTeam?: TeamWithProjects;
   showEnvironment?: boolean;
@@ -178,7 +178,7 @@ function TeamStatsControls({
         }}
       />
       {showEnvironment && (
-        <SelectControl
+        <Select
           options={[
             {
               value: '',
@@ -229,7 +229,7 @@ function TeamStatsControls({
         onChange={handleUpdateDatetime}
         showAbsolute={false}
         relativeOptions={relativeOptions}
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         triggerLabel={period && relativeOptions[period]}
         triggerProps={{prefix: t('Date Range')}}
       />

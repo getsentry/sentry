@@ -17,12 +17,12 @@ export type DebugIdBundleArtifact = {
   date: string;
   dateModified: string;
   fileCount: number;
-  files: {
+  files: Array<{
     debugId: string;
     filePath: string;
     fileSize: number;
     fileType: number;
     id: string;
     sourcemap: string | null;
-  }[];
+  }>;
 };

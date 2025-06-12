@@ -29,7 +29,6 @@ from sentry.snuba.metrics_layer.query import (
     bulk_run_query,
     fetch_metric_mris,
     fetch_metric_tag_keys,
-    fetch_metric_tag_values,
     run_query,
 )
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -797,8 +796,8 @@ class MQLTest(TestCase, BaseMetricsTestCase):
 
     def test_resolve_all_mris(self) -> None:
         for mri in [
-            "d:custom/sentry.event_manager.save@second",
-            "d:custom/sentry.event_manager.save_generic_events@second",
+            "d:transactions/sentry.event_manager.save@second",
+            "d:transactions/sentry.event_manager.save_generic_events@second",
         ]:
             self.store_metric(
                 self.org_id,
@@ -819,13 +818,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 parameters=[
                     Timeseries(
                         metric=Metric(
-                            mri="d:custom/sentry.event_manager.save@second",
+                            mri="d:transactions/sentry.event_manager.save@second",
                         ),
                         aggregate="avg",
                     ),
                     Timeseries(
                         metric=Metric(
-                            mri="d:custom/sentry.event_manager.save_generic_events@second",
+                            mri="d:transactions/sentry.event_manager.save_generic_events@second",
                         ),
                         aggregate="avg",
                     ),
@@ -835,7 +834,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             end=self.now,
             rollup=Rollup(interval=None, totals=True, orderby=None, granularity=10),
             scope=MetricsScope(
-                org_ids=[self.org_id], project_ids=[self.project.id], use_case_id="custom"
+                org_ids=[self.org_id], project_ids=[self.project.id], use_case_id="transactions"
             ),
             limit=Limit(20),
             offset=None,
@@ -989,48 +988,3 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
         assert len(tag_keys) == 1
         assert len(tag_keys[self.project.id]) == 3
         assert tag_keys[self.project.id] == ["status_code", "device", "transaction"]
-
-    def test_fetch_metric_tag_values(self) -> None:
-        tag_values = fetch_metric_tag_values(
-            self.org_id,
-            [self.project.id],
-            UseCaseID.TRANSACTIONS,
-            "g:transactions/test_gauge@none",
-            "transaction",
-        )
-        assert len(tag_values) == 2
-        assert tag_values == ["transaction_0", "transaction_1"]
-
-    def test_fetch_metric_tag_values_with_prefix(self) -> None:
-        tag_values = fetch_metric_tag_values(
-            self.org_id,
-            [self.project.id],
-            UseCaseID.TRANSACTIONS,
-            "g:transactions/test_gauge@none",
-            "status_code",
-            "5",
-        )
-        assert len(tag_values) == 1
-        assert tag_values == ["500"]
-
-    def test_fetch_metric_tag_values_for_multiple_projects(self) -> None:
-        new_project = self.create_project(name="New Project")
-        self.store_metric(
-            self.org_id,
-            new_project.id,
-            "g:transactions/test_gauge@none",
-            {"status_code": "524"},
-            self.ts(self.hour_ago + timedelta(minutes=10)),
-            10,
-        )
-
-        tag_values = fetch_metric_tag_values(
-            self.org_id,
-            [self.project.id, new_project.id],
-            UseCaseID.TRANSACTIONS,
-            "g:transactions/test_gauge@none",
-            "status_code",
-            "5",
-        )
-        assert len(tag_values) == 2
-        assert tag_values == ["500", "524"]

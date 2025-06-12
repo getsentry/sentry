@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,12 +40,7 @@ function IntegrationButton({
 
   if (!userHasAccess) {
     return (
-      <RequestIntegrationButton
-        organization={organization}
-        name={provider.name}
-        slug={provider.slug}
-        type={type}
-      />
+      <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
   }
   if (provider.canAdd) {

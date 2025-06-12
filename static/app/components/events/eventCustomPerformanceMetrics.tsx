@@ -1,7 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Panel from 'sentry/components/panels/panel';
 import {IconEllipsis} from 'sentry/icons';
@@ -18,8 +20,6 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {Tooltip} from '../tooltip';
 
 export enum EventDetailPageSource {
   PERFORMANCE = 'performance',
@@ -87,11 +87,11 @@ type EventCustomPerformanceMetricProps = Props & {
 
 export function getFieldTypeFromUnit(unit: any) {
   if (unit) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (DURATION_UNITS[unit]) {
       return 'duration';
     }
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (SIZE_UNITS[unit]) {
       return 'size';
     }
@@ -106,7 +106,7 @@ export function getFieldTypeFromUnit(unit: any) {
   return 'number';
 }
 
-export function EventCustomPerformanceMetric({
+function EventCustomPerformanceMetric({
   event,
   name,
   location,
@@ -114,6 +114,7 @@ export function EventCustomPerformanceMetric({
   source,
   isHomepage,
 }: EventCustomPerformanceMetricProps) {
+  const theme = useTheme();
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
     return null;
@@ -125,7 +126,7 @@ export function EventCustomPerformanceMetric({
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
         {[name]: renderValue},
-        {location, organization, unit}
+        {location, organization, unit, theme}
       )
     : renderValue;
 
@@ -135,14 +136,14 @@ export function EventCustomPerformanceMetric({
     switch (source) {
       case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: event.title,
           projectID: event.projectID,
           query: {query},
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+        return eventView.getResultsViewUrlTarget(organization, isHomepage);
     }
   }
 
@@ -151,10 +152,10 @@ export function EventCustomPerformanceMetric({
   let customMetricValue = value;
   if (typeof value === 'number' && unit && customMetricValue) {
     if (Object.keys(SIZE_UNITS).includes(unit)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= SIZE_UNITS[unit];
     } else if (Object.keys(DURATION_UNITS).includes(unit)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= DURATION_UNITS[unit];
     }
   }
@@ -210,6 +211,7 @@ export function TraceEventCustomPerformanceMetric({
   source,
   isHomepage,
 }: EventCustomPerformanceMetricProps) {
+  const theme = useTheme();
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
     return null;
@@ -221,7 +223,7 @@ export function TraceEventCustomPerformanceMetric({
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
         {[name]: renderValue},
-        {location, organization, unit}
+        {location, organization, unit, theme}
       )
     : renderValue;
 
@@ -231,14 +233,14 @@ export function TraceEventCustomPerformanceMetric({
     switch (source) {
       case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: event.title,
           projectID: event.projectID,
           query: {query},
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+        return eventView.getResultsViewUrlTarget(organization, isHomepage);
     }
   }
 
@@ -247,10 +249,10 @@ export function TraceEventCustomPerformanceMetric({
   let customMetricValue = value;
   if (typeof value === 'number' && unit && customMetricValue) {
     if (Object.keys(SIZE_UNITS).includes(unit)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= SIZE_UNITS[unit];
     } else if (Object.keys(DURATION_UNITS).includes(unit)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= DURATION_UNITS[unit];
     }
   }

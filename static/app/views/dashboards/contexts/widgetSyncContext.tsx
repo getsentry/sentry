@@ -42,8 +42,6 @@ export function WidgetSyncContextProvider({
   );
 }
 
-export {WidgetSyncContext};
-
 export function useWidgetSyncContext(): WidgetSyncContext {
   const context = _useWidgetSyncContext();
 

@@ -68,6 +68,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -85,6 +86,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -114,6 +116,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -144,6 +147,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -158,6 +162,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         name: 'Frequent Unhandled Issues',
         query: 'event.type:error error.unhandled:true',
+        queryDataset: 'error-events',
         sort: '-count',
         statsPeriod: '14d',
       },
@@ -175,7 +180,11 @@ describe('ProjectDetail > ProjectIssues', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);

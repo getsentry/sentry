@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 import {getFocusableTreeWalker} from '@react-aria/focus';
 import type {ListState} from '@react-stately/list';
-import type {Node} from '@react-types/shared';
+import type {Key, Node} from '@react-types/shared';
 
 import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -54,6 +54,8 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
       return '-24h';
     case FieldValueType.DURATION:
       return '10ms';
+    case FieldValueType.SIZE:
+      return '10bytes';
     case FieldValueType.PERCENTAGE:
       return '0.5';
     case FieldValueType.STRING:
@@ -122,6 +124,7 @@ export function getInitialFilterText(
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:
+    case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING:
@@ -130,18 +133,27 @@ export function getInitialFilterText(
   }
 }
 
-export function mergeSets<T>(...sets: Set<T>[]) {
-  const combinedSet = new Set<T>();
-  for (const set of sets) {
-    for (const value of set) {
-      combinedSet.add(value);
-    }
-  }
-  return combinedSet;
-}
-
 export function itemIsSection(
   item: SelectOptionOrSectionWithKey<string>
 ): item is SelectSectionWithKey<string> {
   return 'options' in item;
+}
+
+export function findItemInSections<T extends SelectOptionOrSectionWithKey<string>>(
+  items: T[],
+  key: Key
+): T | null {
+  for (const item of items) {
+    if (itemIsSection(item)) {
+      const option = item.options.find(child => child.key === key);
+      if (option) {
+        return option as T;
+      }
+    } else {
+      if (item.key === key) {
+        return item;
+      }
+    }
+  }
+  return null;
 }

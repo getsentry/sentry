@@ -1,14 +1,13 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {TraceScheduler} from '../traceRenderers/traceScheduler';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {
   VirtualizedList,
   type VirtualizedViewManager,
-} from '../traceRenderers/virtualizedViewManager';
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 export interface VirtualizedRow {
   index: number;
@@ -18,7 +17,7 @@ export interface VirtualizedRow {
 }
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
-  items: readonly TraceTreeNode<TraceTree.NodeValue>[];
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
   scheduler: TraceScheduler;
@@ -33,21 +32,21 @@ interface UseVirtualizedListResult {
 export const useVirtualizedList = (
   props: UseVirtualizedListProps
 ): UseVirtualizedListResult => {
-  const list = useRef<VirtualizedList | null>();
+  const list = useRef<VirtualizedList | null>(null);
 
   const scrollTopRef = useRef<number>(0);
   const scrollHeightRef = useRef<number>(0);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
 
-  const renderCache = useRef<Map<number, React.ReactNode>>();
-  const styleCache = useRef<Map<number, React.CSSProperties>>();
+  const renderCache = useRef<Map<number, React.ReactNode> | null>(null);
+  const styleCache = useRef<Map<number, React.CSSProperties> | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   if (!styleCache.current) {
-    styleCache.current = new Map();
+    styleCache.current = new Map<number, React.CSSProperties>();
   }
   if (!renderCache.current) {
-    renderCache.current = new Map();
+    renderCache.current = new Map<number, React.ReactNode>();
   }
 
   const [items, setItems] = useState<{
@@ -62,7 +61,7 @@ export const useVirtualizedList = (
 
   const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
   renderRef.current = props.render;
-  const itemsRef = useRef<readonly TraceTreeNode<TraceTree.NodeValue>[]>(props.items);
+  const itemsRef = useRef<ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>>(props.items);
   itemsRef.current = props.items;
   const managerRef = useRef<VirtualizedViewManager>(props.manager);
   managerRef.current = props.manager;
@@ -242,7 +241,7 @@ export const useVirtualizedList = (
       overscroll: 5,
       rowHeight: 24,
       scrollHeight: scrollHeightRef.current,
-      styleCache: styleCache.current!,
+      styleCache: styleCache.current,
       renderCache: renderCache.current,
       render: renderRef.current,
       manager: managerRef.current,
@@ -254,7 +253,7 @@ export const useVirtualizedList = (
   return {
     virtualized: items.virtualized,
     rendered: items.rendered,
-    list: list.current!,
+    list: list.current,
   };
 };
 
@@ -269,7 +268,7 @@ function findRenderedItems({
   render,
   manager,
 }: {
-  items: readonly TraceTreeNode<TraceTree.NodeValue>[];
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   overscroll: number;
   render: (arg: VirtualizedRow) => React.ReactNode;
@@ -346,14 +345,14 @@ function findRenderedItems({
   return {rendered, virtualized};
 }
 
-export function findOptimisticStartIndex({
+function findOptimisticStartIndex({
   items,
   overscroll,
   rowHeight,
   scrollTop,
   viewport,
 }: {
-  items: readonly TraceTreeNode<TraceTree.NodeValue>[];
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   overscroll: number;
   rowHeight: number;
   scrollTop: number;

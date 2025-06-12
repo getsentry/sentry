@@ -10,6 +10,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.requests.base import DiscordRequestError, DiscordRequestTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
@@ -58,7 +59,7 @@ class DiscordRequestParserTest(TestCase):
         assert integration == self.integration
 
         response = parser.get_response()
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert len(responses.calls) == 0
@@ -74,7 +75,7 @@ class DiscordRequestParserTest(TestCase):
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
 
         response = parser.get_response()
-        assert response.status_code == 401
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert not response.content
         assert_no_webhook_payloads()
         assert len(responses.calls) == 0
@@ -88,9 +89,30 @@ class DiscordRequestParserTest(TestCase):
         assert parser.get_integration_from_request() is None
 
         response = parser.get_response()
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = json.loads(response.content)
         assert data == {"type": 1}
+        assert_no_webhook_payloads()
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
+    def test_interactions_endpoint_routing_ping_no_org_integration(self, mock_verify_signature):
+        # Discord PING without an identifier linking to an integration
+        integration = self.create_provider_integration(
+            provider="discord",
+            external_id="discord:234",
+        )
+
+        data = {
+            "data": {"name": "command_name"},
+            "type": int(DiscordRequestTypes.COMMAND),
+            "guild_id": integration.external_id,
+        }
+        parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
+
+        response = parser.get_response()
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert_no_webhook_payloads()
         assert len(responses.calls) == 0
 
@@ -115,7 +137,7 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
@@ -132,7 +154,7 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
@@ -156,7 +178,7 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 201
+        assert response.status_code == status.HTTP_201_CREATED
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
@@ -180,7 +202,7 @@ class DiscordRequestParserTest(TestCase):
 
             response = parser.get_response()
             assert isinstance(response, HttpResponse)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
@@ -189,7 +211,7 @@ class DiscordRequestParserTest(TestCase):
     @patch("sentry.middleware.integrations.parsers.discord.convert_to_async_discord_response")
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
     def test_triggers_async_response(self, mock_verify_signature, mock_discord_task):
-        response_url = "https://discord.com/api/v10/webhooks/application_id/token"
+        response_url = f"{DISCORD_BASE_URL}/webhooks/application_id/token"
         data = {
             "application_id": "application_id",
             "token": "token",
@@ -219,7 +241,7 @@ class End2EndTest(APITestCase):
             reverse("sentry-integration-discord-interactions"),
             data={"type": DiscordRequestTypes.PING},
         )
-        assert response.status_code == 401
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert not response.content
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -231,7 +253,7 @@ class End2EndTest(APITestCase):
             HTTP_X_SIGNATURE_ED25519="signature",
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert mock_verify_signature.call_count == 1

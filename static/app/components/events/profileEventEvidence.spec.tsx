@@ -60,7 +60,7 @@ describe('ProfileEventEvidence', function () {
 
     expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/project-slug:transaction-id/?referrer=issue'
+      '/organizations/org-slug/insights/backend/project-slug:transaction-id/?referrer=issue'
     );
   });
 });

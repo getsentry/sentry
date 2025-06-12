@@ -5,7 +5,7 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
 export interface MetricsCompatibilitySumData {
   sum: {
@@ -34,7 +34,7 @@ function getRequestPayload({
 
 export default function MetricsCompatibilitySumsQuery({children, ...props}: QueryProps) {
   return (
-    <GenericDiscoverQuery<MetricsCompatibilitySumData, {}>
+    <GenericDiscoverQuery<MetricsCompatibilitySumData, Record<string, unknown>>
       route="metrics-compatibility"
       getRequestPayload={getRequestPayload}
       {...props}

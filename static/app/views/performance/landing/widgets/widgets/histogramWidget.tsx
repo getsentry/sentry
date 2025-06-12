@@ -6,15 +6,17 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {transformHistogramQuery} from 'sentry/views/performance/landing/widgets/transforms/transformHistogramQuery';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   WidgetDataResult,
-} from '../types';
-import {getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+} from 'sentry/views/performance/landing/widgets/utils';
 
 type AreaDataType = {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
@@ -80,7 +82,7 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
               isErrored={false}
               onFilterChange={onFilterChange}
               field={props.fields[0]!}
-              chartData={provided.widgetData.chart?.data?.[props.fields[0]!]!}
+              chartData={provided.widgetData.chart?.data?.[props.fields[0]!]}
               disableXAxis
               disableZoom
               disableChartPadding
@@ -94,6 +96,6 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
 }
 
 const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

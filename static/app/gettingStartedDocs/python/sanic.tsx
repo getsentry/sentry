@@ -5,7 +5,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
@@ -15,16 +14,22 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonAiocontextvarsConfig,
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[sanic]'`;
 
 const getSdkSetupSnippet = (params: Params) => `from sanic import Sanic
 import sentry_sdk
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
 )
 `;
 
@@ -43,24 +48,8 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-        {
-          description: (
-            <p>
-              {tct(
-                "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
-                {
-                  code: <code />,
-                }
-              )}
-            </p>
-          ),
-          language: 'bash',
-          code: 'pip install --upgrade aiocontextvars',
-        },
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[sanic]'}),
+        ...getPythonAiocontextvarsConfig(),
       ],
     },
   ],
@@ -118,12 +107,10 @@ async def hello_world(request):
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
 };
 
 export default docs;

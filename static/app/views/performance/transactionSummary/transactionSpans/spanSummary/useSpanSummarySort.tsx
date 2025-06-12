@@ -13,7 +13,7 @@ const SORTABLE_FIELDS = [
   SpanIndexedField.SPAN_DURATION,
 ] as const;
 
-export type ValidSort = Sort & {
+type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
@@ -28,8 +28,8 @@ export function useSpanSummarySort(
   const location = useLocation<Query>();
 
   return (
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    decodeSorts(location.query[sortParameterName]).find(isAValidSort) ?? fallback
   );
 }
 

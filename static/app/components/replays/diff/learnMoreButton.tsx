@@ -3,7 +3,8 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -106,7 +107,7 @@ const ButtonTitle = styled('div')`
 `;
 
 const ButtonSubtitle = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

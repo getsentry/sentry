@@ -18,14 +18,15 @@ import TimeRangeItemLabel from './timeRangeItemLabel';
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
-export type RelativeUnitsMapping = {
-  [Unit: string]: {
+type RelativeUnitsMapping = Record<
+  string,
+  {
     convertToDaysMultiplier: number;
     label: (num: number) => string;
     momentUnit: moment.unitOfTime.DurationConstructor;
     searchKey: string;
-  };
-};
+  }
+>;
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -118,7 +119,7 @@ export function getRelativeSummary(
 ): string {
   try {
     const defaultRelativePeriodString =
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       relativeOptions?.[relative] ?? DEFAULT_RELATIVE_PERIODS[relative];
 
     if (defaultRelativePeriodString) {
@@ -144,6 +145,8 @@ export function getAbsoluteSummary(
   end: DateString,
   utc?: boolean | null
 ) {
+  // XXX: These are NOT used for display purpose but only to determine if the
+  // dates are at the start or end of the day
   const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
   const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
 
@@ -219,7 +222,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
     maxDateRange,
   }: {
     supportedPeriods: T;
-    supportedUnits: (keyof T & string)[];
+    supportedUnits: Array<keyof T & string>;
     maxDateRange?: number;
     maxDays?: number;
   }

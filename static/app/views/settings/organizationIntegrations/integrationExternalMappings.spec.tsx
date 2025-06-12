@@ -6,12 +6,13 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import IntegrationExternalMappings from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', function () {
-  const {organization, router} = initializeOrg();
+  const {organization} = initializeOrg();
 
   const onCreateMock = jest.fn();
   const onDeleteMock = jest.fn();
@@ -66,7 +67,7 @@ describe('IntegrationExternalMappings', function () {
     });
   };
 
-  it('renders empty if not mappings are provided or found', function () {
+  it('renders empty if not mappings are provided or found', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/codeowners-associations/`,
       method: 'GET',
@@ -74,7 +75,6 @@ describe('IntegrationExternalMappings', function () {
     });
     const {container} = render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
@@ -84,11 +84,10 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(container).toHaveTextContent('Set up External User Mappings.');
   });
 
@@ -96,7 +95,6 @@ describe('IntegrationExternalMappings', function () {
     createMockSuggestions();
     render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
@@ -106,10 +104,7 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
@@ -123,7 +118,6 @@ describe('IntegrationExternalMappings', function () {
     createMockSuggestions();
     render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={MOCK_TEAM_MAPPINGS}
         type="team"
@@ -133,10 +127,7 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
@@ -156,7 +147,6 @@ describe('IntegrationExternalMappings', function () {
     createMockSuggestions();
     render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={MOCK_USER_MAPPINGS}
         type="user"
@@ -166,10 +156,7 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
     renderGlobalModal();
 

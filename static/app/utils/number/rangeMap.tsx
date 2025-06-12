@@ -23,9 +23,9 @@ export type Range<T> = {
  * ```
  */
 export class RangeMap<T> {
-  ranges: Range<T>[];
+  ranges: Array<Range<T>>;
 
-  constructor(ranges: Range<T>[]) {
+  constructor(ranges: Array<Range<T>>) {
     // Filter out sparse array slots just in case
     const filteredRanges = ranges.filter(Boolean);
 
@@ -49,10 +49,14 @@ export class RangeMap<T> {
     this.ranges = sortedRanges;
   }
 
-  get(value: number) {
+  getRange(value: number): Range<T> | undefined {
     return this.ranges.find(r => {
       return value >= r.min && value < r.max;
-    })?.value;
+    });
+  }
+
+  get(value: number): T | undefined {
+    return this.getRange(value)?.value;
   }
 
   get min() {

@@ -5,6 +5,8 @@
 """
 
 SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
+    "ProjectUptimeAlertCheckIndexEndpoint",
+    "OrganizationUptimeStatsEndpoint",
     "ApiTokensEndpoint",
     "AssistantEndpoint",
     "AuthenticatorIndexEndpoint",
@@ -90,6 +92,7 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectUsersEndpoint",
     "ReleaseThresholdEndpoint",
     "SentryAppRequestsEndpoint",
+    "SentryAppWebhookRequestsEndpoint",
     "SentryAppsStatsEndpoint",
     "SentryInternalAppTokensEndpoint",
     "TeamGroupsOldEndpoint",
@@ -105,4 +108,5 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "UserSubscriptionsEndpoint",
     "UserUserRolesEndpoint",
     "VstsSearchEndpoint",
+    "OrganizationWorkflowStatsEndpoint",
 }

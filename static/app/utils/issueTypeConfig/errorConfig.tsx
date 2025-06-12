@@ -8,6 +8,7 @@ import type {
 } from 'sentry/utils/issueTypeConfig/types';
 import {ErrorHelpType} from 'sentry/utils/issueTypeConfig/types';
 import isHydrationError from 'sentry/utils/react/isHydrationError';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 export const errorConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -21,13 +22,21 @@ export const errorConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
-    attachments: {enabled: true},
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
+      attachments: {enabled: true},
+      userFeedback: {enabled: true},
+      replays: {enabled: true},
+      tagsTab: {enabled: true},
+    },
     autofix: true,
     logLevel: {enabled: true},
     mergedIssues: {enabled: true},
-    replays: {enabled: true},
     similarIssues: {enabled: true},
-    userFeedback: {enabled: true},
     usesIssuePlatform: false,
     issueSummary: {enabled: true},
   },
@@ -71,12 +80,12 @@ const ErrorInfoChecks: ErrorInfo[] = [
     errorHelpType: ErrorHelpType.HYDRATION_ERROR,
   },
   {
-    errorTitle: 'TypeError: Load failed',
+    errorTitle: 'Load failed',
     projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.LOAD_FAILED,
   },
   {
-    errorTitle: 'Failed to fetch',
+    errorTitle: /Failed to fetch|NetworkError when attempting to fetch resource/,
     projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.FAILED_TO_FETCH,
   },

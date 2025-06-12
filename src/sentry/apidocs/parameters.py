@@ -5,6 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+from sentry.constants import SentryAppStatus
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -16,7 +17,10 @@ def build_typed_list(type: Any):
     a typed list using this workaround. build_basic_type will dynamically check the type
     and pass a warning if it can't recognize it, failing any build command in the process as well.
     """
-    return build_array_type(build_basic_type(type))
+    basic_type = build_basic_type(type)
+    if basic_type is None:
+        raise ValueError("'None' type lists are not supported.")
+    return build_array_type(schema=basic_type)
 
 
 class GlobalParams:
@@ -273,16 +277,6 @@ class ReleaseParams:
     )
 
 
-class SCIMParams:
-    TEAM_ID = OpenApiParameter(
-        name="team_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the team you'd like to query / update.",
-    )
-
-
 class IssueParams:
     KEY = OpenApiParameter(
         name="key",
@@ -316,6 +310,203 @@ class IssueParams:
         enum=["id", "date", "age", "count"],
     )
 
+    GROUP_STATS_PERIOD = OpenApiParameter(
+        name="groupStatsPeriod",
+        description="The timeline on which stats for the groups should be presented.",
+        enum=["", "24h", "14d", "auto"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    SHORT_ID_LOOKUP = OpenApiParameter(
+        name="shortIdLookup",
+        description="If this is set to `1` then the query will be parsed for issue short IDs. These may ignore other filters (e.g. projects), which is why it is an opt-in.",
+        enum=["1", "0"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    DEFAULT_QUERY = OpenApiParameter(
+        name="query",
+        description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
+        default="is:unresolved issue.priority:[high,medium]",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    VIEW_ID = OpenApiParameter(
+        name="viewId",
+        description="The ID of the view to use. If no query is present, the view's query and filters will be applied.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    VIEW_SORT = OpenApiParameter(
+        name="sort",
+        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Date Added' (`inbox`).",
+        default="date",
+        enum=["date", "new", "trends", "freq", "user", "inbox"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    LIMIT = OpenApiParameter(
+        name="limit",
+        description="The maximum number of issues to affect. The maximum is 100.",
+        default=100,
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+    )
+
+    GROUP_INDEX_EXPAND = OpenApiParameter(
+        name="expand",
+        description="Additional data to include in the response.",
+        enum=[
+            "inbox",
+            "owners",
+            "sessions",
+            "pluginActions",
+            "pluginIssues",
+            "integrationIssues",
+            "sentryAppIssues",
+            "latestEventHasAttachments",
+        ],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
+    GROUP_INDEX_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        description="Fields to remove from the response to improve query performance.",
+        enum=["stats", "lifetime", "base", "unhandled", "filtered"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+    MUTATE_ISSUE_ID_LIST = OpenApiParameter(
+        name="id",
+        description="The list of issue IDs to mutate. It is optional for status updates, in which an implicit `update all` is assumed.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+        many=True,
+    )
+    DELETE_ISSUE_ID_LIST = OpenApiParameter(
+        name="id",
+        description="The list of issue IDs to be removed. If not provided, it will attempt to remove the first 1000 issues.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+        many=True,
+    )
+
+
+class DetectorParams:
+    DETECTOR_ID = OpenApiParameter(
+        name="detector_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the detector you'd like to query.",
+    )
+
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="An optional search query for filtering detectors.",
+    )
+
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by id.
+
+Available fields are:
+- `name`
+- `id`
+- `type`
+- `connectedWorkflows`
+
+Prefix with `-` to sort in descending order.
+        """,
+    )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the detector you'd like to query.",
+        many=True,
+    )
+
+
+class WorkflowParams:
+    WORKFLOW_ID = OpenApiParameter(
+        name="workflow_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+    )
+
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="An optional search query for filtering workflows.",
+    )
+
+    SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The field to sort results by. If not specified, the results are sorted by id.
+
+Available fields are:
+- `name`
+- `id`
+- `dateCreated`
+- `dateUpdated`
+- `connectedDetectors`
+- `actions`
+
+Prefix with `-` to sort in descending order.
+    """,
+    )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+        many=True,
+    )
+
+
+class DetectorWorkflowParams:
+    DETECTOR_WORKFLOW_ID = OpenApiParameter(
+        name="detector_workflow_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the DetectorWorkflow you'd like to query.",
+    )
+
 
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
@@ -334,6 +525,29 @@ class MetricAlertParams:
         required=True,
         type=int,
         description="The ID of the rule you'd like to query.",
+    )
+
+
+class SentryAppParams:
+    SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
+        name="sentry_app_id_or_slug",
+        location="path",
+        required=True,
+        many=False,
+        type=str,
+        description="The ID or slug of the custom integration.",
+    )
+
+
+class SentryAppStatusParams:
+    SENTRY_APP_STATUS = OpenApiParameter(
+        name="sentry_app_status",
+        location="query",
+        required=False,
+        many=False,
+        type=int,
+        description=f"The status of the custom integration, values translate to the following: {SentryAppStatus.as_choices()}",
+        enum=SentryAppStatus.as_int_choices(),
     )
 
 
@@ -772,4 +986,124 @@ Available fields are:
 - `recentlyViewed`
 - `myqueries`
         """,
+    )
+
+
+class ExploreSavedQueryParams:
+    EXPLORE_SAVED_QUERY_ID = OpenApiParameter(
+        name="id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the Explore query you'd like to retrieve.""",
+    )
+
+
+class ExploreSavedQueriesParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""The name of the Explore query you'd like to filter by.""",
+    )
+
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by query name.
+
+Available fields are:
+- `name`
+- `dateCreated`
+- `dateUpdated`
+- `mostPopular`
+- `recentlyViewed`
+- `myqueries`
+        """,
+    )
+
+
+class PreventParams:
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="path",
+        required=True,
+        type=str,
+        description="The owner of the repository.",
+    )
+    REPOSITORY = OpenApiParameter(
+        name="repository",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the repository.",
+    )
+    INTERVAL = OpenApiParameter(
+        name="interval",
+        location="query",
+        required=False,
+        type=str,
+        description="""The time interval to search for results by.
+
+Available fields are:
+- `INTERVAL_30_DAY`
+- `INTERVAL_7_DAY`
+- `INTERVAL_1_DAY`
+""",
+    )
+    BRANCH = OpenApiParameter(
+        name="branch",
+        location="query",
+        required=False,
+        type=str,
+        description="""The branch to search for results by. If not specified, the default is `main`.
+        """,
+    )
+    TEST_RESULTS_FILTER_BY = OpenApiParameter(
+        name="filterBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""An optional field to filter by, which will constrain the results to only include tests that match the filter.
+
+Available fields are:
+- `FLAKY_TESTS`
+- `FAILED_TESTS`
+- `SLOWEST_TESTS`
+- `SKIPPED_TESTS`
+        """,
+    )
+    TEST_RESULTS_SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the default is `COMMITS_WHERE_FAIL` in descending order. Use `-`
+        for descending order.
+
+Available fields are:
+- `AVG_DURATION`
+- `FLAKE_RATE`
+- `FAILURE_RATE`
+- `COMMITS_WHERE_FAIL`
+- `UPDATED_AT`
+        """,
+    )
+    FIRST = OpenApiParameter(
+        name="first",
+        location="query",
+        required=False,
+        type=int,
+        default=20,
+        description="""The number of results to return from the start of the list.""",
+    )
+    LAST = OpenApiParameter(
+        name="last",
+        location="query",
+        required=False,
+        type=int,
+        description="""The number of results to return from the end of the list.""",
     )

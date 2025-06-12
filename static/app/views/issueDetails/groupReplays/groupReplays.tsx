@@ -3,31 +3,33 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import {useParams} from 'sentry/utils/useParams';
+import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
-import {ReplayClipPreviewWrapper} from './replayClipPreviewWrapper';
 import useReplaysFromIssue from './useReplaysFromIssue';
 
 type Props = {
@@ -67,17 +69,20 @@ function ReplayFilterMessage() {
   );
 }
 
-function GroupReplays({group}: Props) {
+export default function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const {eventView, fetchError, isFetching, pageLinks} = useReplaysFromIssue({
+  const {eventView, fetchError, isFetching} = useReplaysFromIssue({
     group,
     location,
     organization,
   });
-  const {allMobileProj} = useAllMobileProj({});
+
+  const isMobilePlatform = replayMobilePlatforms.includes(
+    group.project.platform ?? 'other'
+  );
 
   useEffect(() => {
     trackAnalytics('replay.render-issues-group-list', {
@@ -109,20 +114,14 @@ function GroupReplays({group}: Props) {
           isFetching={isFetching}
           replays={[]}
           sort={undefined}
-          visibleColumns={visibleColumns(allMobileProj)}
+          visibleColumns={visibleColumns(isMobilePlatform)}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
     );
   }
   return (
-    <GroupReplaysTable
-      eventView={eventView}
-      organization={organization}
-      pageLinks={pageLinks}
-      visibleColumns={visibleColumns(allMobileProj)}
-      group={group}
-    />
+    <GroupReplaysTable eventView={eventView} organization={organization} group={group} />
   );
 }
 
@@ -135,12 +134,10 @@ function GroupReplaysTableInner({
   selectedReplayIndex,
   overlayContent,
   replays,
-  pageLinks,
 }: {
   children: React.ReactNode;
   group: Group;
   organization: Organization;
-  pageLinks: string | null;
   replaySlug: string;
   replays: ReplayListRecord[] | undefined;
   selectedReplayIndex: number;
@@ -148,30 +145,38 @@ function GroupReplaysTableInner({
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
-  const {fetching, replay} = useLoadReplayReader({
+  const readerResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {allMobileProj} = useAllMobileProj({});
+  const {status, replay} = readerResult;
 
   return (
     <ReplayContextProvider
       analyticsContext="replay_tab"
-      isFetching={fetching}
+      isFetching={status === 'pending'}
       replay={replay}
       autoStart
     >
-      <ReplayClipPreviewWrapper
-        orgSlug={orgSlug}
-        replaySlug={replaySlug}
-        group={group}
-        pageLinks={pageLinks}
-        selectedReplayIndex={selectedReplayIndex}
-        setSelectedReplayIndex={setSelectedReplayIndex}
-        visibleColumns={[ReplayColumn.PLAY_PAUSE, ...visibleColumns(allMobileProj)]}
+      <GroupReplaysPlayer
+        replayReaderResult={readerResult}
         overlayContent={overlayContent}
-        replays={replays}
+        handleForwardClick={
+          replays && selectedReplayIndex + 1 < replays.length
+            ? () => {
+                setSelectedReplayIndex(selectedReplayIndex + 1);
+              }
+            : undefined
+        }
+        handleBackClick={
+          selectedReplayIndex > 0
+            ? () => {
+                setSelectedReplayIndex(selectedReplayIndex - 1);
+              }
+            : undefined
+        }
+        analyticsContext="replay_tab"
       />
       {children}
     </ReplayContextProvider>
@@ -188,11 +193,10 @@ function GroupReplaysTable({
   eventView: EventView;
   group: Group;
   organization: Organization;
-  pageLinks: string | null;
-  visibleColumns: ReplayColumn[];
 }) {
   const location = useLocation();
-  const urlParams = useUrlParams();
+  const navigate = useNavigate();
+  const params = useParams<{groupId: string}>();
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });
@@ -207,20 +211,29 @@ function GroupReplaysTable({
   const {replays} = replayListData;
   const {allMobileProj} = useAllMobileProj({});
 
-  const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
+  const rawReplayIndex = location.query.selected_replay_index;
   const selectedReplayIndex = parseInt(
     typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
     10
   );
 
+  useCleanQueryParamsOnRouteLeave({
+    fieldsToClean: ['selected_replay_index'],
+    shouldClean: newLocation =>
+      newLocation.pathname.includes(`/issues/${params.groupId}/`),
+  });
+
   const setSelectedReplayIndex = useCallback(
     (index: number) => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {...location.query, selected_replay_index: index},
-      });
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, selected_replay_index: index},
+        },
+        {replace: true, preventScrollReset: true}
+      );
     },
-    [location]
+    [location, navigate]
   );
 
   const selectedReplay = replays?.[selectedReplayIndex];
@@ -274,7 +287,6 @@ function GroupReplaysTable({
       organization={organization}
       group={group}
       replaySlug={selectedReplay.id}
-      pageLinks={replayListData.pageLinks}
       replays={replays}
     >
       {replayTable}
@@ -348,5 +360,3 @@ const OverlayText = styled('div')`
 const UpNext = styled('div')`
   line-height: 0;
 `;
-
-export default GroupReplays;

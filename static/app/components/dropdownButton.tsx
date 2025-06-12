@@ -1,16 +1,13 @@
-import {forwardRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button, ButtonLabel} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
-  /**
-   * Forward a ref to the button's root
-   */
-  forwardedRef?: React.ForwardedRef<HTMLButtonElement>;
+export interface DropdownButtonProps
+  extends Omit<ButtonProps, 'type' | 'prefix' | 'onClick'> {
   /**
    * Whether or not the button should render as open
    */
@@ -32,7 +29,7 @@ function DropdownButton({
   isOpen = false,
   showChevron = true,
   disabled = false,
-  forwardedRef,
+  ref,
   ...props
 }: DropdownButtonProps) {
   return (
@@ -43,20 +40,19 @@ function DropdownButton({
       disabled={disabled}
       isOpen={isOpen}
       size={size}
-      ref={forwardedRef}
+      ref={ref}
       {...props}
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
       {showChevron && (
         <ChevronWrap>
-          <Chevron
-            light
-            color="subText"
-            size={size === 'xs' ? 'small' : 'medium'}
-            weight="medium"
+          <IconChevron
+            color={
+              !props.priority || props.priority === 'default' ? 'subText' : undefined
+            }
             direction={isOpen ? 'up' : 'down'}
-            aria-hidden="true"
+            size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
         </ChevronWrap>
       )}
@@ -82,8 +78,16 @@ const StyledButton = styled(Button)<StyledButtonProps>`
   max-width: 100%;
   z-index: 2;
 
-  ${p => (p.isOpen || p.disabled) && 'box-shadow: none;'}
-  ${p => p.hasPrefix && `${ButtonLabel} {font-weight: ${p.theme.fontWeightNormal};}`}
+  ${p =>
+    (p.isOpen || p.disabled) &&
+    css`
+      box-shadow: none;
+    `}
+  ${p =>
+    p.hasPrefix &&
+    css`
+      font-weight: ${p.theme.fontWeightNormal};
+    `}
 `;
 
 const LabelText = styled('span')`
@@ -95,6 +99,4 @@ const LabelText = styled('span')`
   padding-right: ${space(0.75)};
 `;
 
-export default forwardRef<HTMLButtonElement, DropdownButtonProps>((props, ref) => (
-  <DropdownButton forwardedRef={ref} {...props} />
-));
+export default DropdownButton;

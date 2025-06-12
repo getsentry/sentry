@@ -20,7 +20,7 @@ export function useCreateProjectFromWizard() {
           name: params.name,
           platform: params.platform,
           default_rules: true,
-          origin: 'ui',
+          origin: 'wizard-ui',
         },
       });
     },

@@ -2,24 +2,31 @@ import type React from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  defaultId,
+  getIdFromLocation,
+  updateLocationWithId,
+} from 'sentry/views/explore/contexts/pageParamsContext/id';
 
+import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateFields';
+import {
+  defaultAggregateFields,
+  getAggregateFieldsFromLocation,
+  isGroupBy,
+  isVisualize,
+  updateLocationWithAggregateFields,
+} from './aggregateFields';
 import {
   defaultDataset,
   getDatasetFromLocation,
   updateLocationWithDataset,
 } from './dataset';
 import {defaultFields, getFieldsFromLocation, updateLocationWithFields} from './fields';
-import {
-  defaultGroupBys,
-  getGroupBysFromLocation,
-  updateLocationWithGroupBys,
-} from './groupBys';
 import {defaultMode, getModeFromLocation, Mode, updateLocationWithMode} from './mode';
 import {defaultQuery, getQueryFromLocation, updateLocationWithQuery} from './query';
 import {
@@ -29,64 +36,90 @@ import {
 } from './sortBys';
 import {defaultTitle, getTitleFromLocation, updateLocationWithTitle} from './title';
 import type {BaseVisualize, Visualize} from './visualizes';
-import {
-  defaultVisualizes,
-  getVisualizesFromLocation,
-  updateLocationWithVisualizes,
-} from './visualizes';
 
-interface ReadablePageParams {
+interface ReadablePageParamsOptions {
+  aggregateFields: AggregateField[];
   dataset: DiscoverDatasets | undefined;
   fields: string[];
-  groupBys: string[];
   mode: Mode;
   query: string;
   sortBys: Sort[];
-  visualizes: Visualize[];
+  id?: string;
   title?: string;
 }
 
+class ReadablePageParams {
+  aggregateFields: AggregateField[];
+  dataset: DiscoverDatasets | undefined;
+  fields: string[];
+  mode: Mode;
+  query: string;
+  sortBys: Sort[];
+  id?: string;
+  title?: string;
+  private _groupBys: string[];
+  private _visualizes: Visualize[];
+
+  constructor(options: ReadablePageParamsOptions) {
+    this.aggregateFields = options.aggregateFields;
+    this.dataset = options.dataset;
+    this.fields = options.fields;
+    this.mode = options.mode;
+    this.query = options.query;
+    this.sortBys = options.sortBys;
+    this.id = options.id;
+    this.title = options.title;
+
+    this._groupBys = this.aggregateFields
+      .filter(isGroupBy)
+      .map(groupBy => groupBy.groupBy);
+    this._visualizes = this.aggregateFields.filter(isVisualize);
+  }
+
+  get groupBys(): string[] {
+    return this._groupBys;
+  }
+
+  get visualizes(): Visualize[] {
+    return this._visualizes;
+  }
+}
+
 interface WritablePageParams {
+  aggregateFields?: Array<GroupBy | BaseVisualize> | null;
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
-  groupBys?: string[] | null;
+  id?: string | null;
   mode?: Mode | null;
   query?: string | null;
   sortBys?: Sort[] | null;
   title?: string | null;
-  visualizes?: BaseVisualize[] | null;
-}
-
-export interface SuggestedQuery {
-  fields: string[];
-  groupBys: string[];
-  mode: Mode;
-  query: string;
-  sortBys: Sort[];
-  title: string;
-  visualizes: BaseVisualize[];
 }
 
 function defaultPageParams(): ReadablePageParams {
+  const aggregateFields = defaultAggregateFields();
   const dataset = defaultDataset();
   const fields = defaultFields();
-  const groupBys = defaultGroupBys();
   const mode = defaultMode();
   const query = defaultQuery();
-  const visualizes = defaultVisualizes();
   const title = defaultTitle();
-  const sortBys = defaultSortBys(mode, fields, visualizes);
+  const id = defaultId();
+  const sortBys = defaultSortBys(
+    mode,
+    fields,
+    aggregateFields.filter(isVisualize).flatMap(visualize => visualize.yAxes)
+  );
 
-  return {
+  return new ReadablePageParams({
+    aggregateFields,
     dataset,
     fields,
-    groupBys,
     mode,
     query,
     sortBys,
     title,
-    visualizes,
-  };
+    id,
+  });
 }
 
 const PageParamsContext = createContext<ReadablePageParams>(defaultPageParams());
@@ -97,32 +130,33 @@ interface PageParamsProviderProps {
 
 export function PageParamsProvider({children}: PageParamsProviderProps) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const pageParams: ReadablePageParams = useMemo(() => {
+    const aggregateFields = getAggregateFieldsFromLocation(location, organization);
     const dataset = getDatasetFromLocation(location);
     const fields = getFieldsFromLocation(location);
-    const groupBys = getGroupBysFromLocation(location);
     const mode = getModeFromLocation(location);
     const query = getQueryFromLocation(location);
-    const visualizes = getVisualizesFromLocation(location);
+    const groupBys = aggregateFields.filter(isGroupBy).map(groupBy => groupBy.groupBy);
+    const visualizes = aggregateFields.filter(isVisualize);
     const sortBys = getSortBysFromLocation(location, mode, fields, groupBys, visualizes);
     const title = getTitleFromLocation(location);
+    const id = getIdFromLocation(location);
 
-    return {
+    return new ReadablePageParams({
+      aggregateFields,
       dataset,
       fields,
-      groupBys,
       mode,
       query,
       sortBys,
       title,
-      visualizes,
-    };
-  }, [location]);
+      id,
+    });
+  }, [location, organization]);
 
-  return (
-    <PageParamsContext.Provider value={pageParams}>{children}</PageParamsContext.Provider>
-  );
+  return <PageParamsContext value={pageParams}>{children}</PageParamsContext>;
 }
 
 export function useExplorePageParams(): ReadablePageParams {
@@ -130,16 +164,12 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  const organization = useOrganization();
+  return DiscoverDatasets.SPANS_EAP_RPC;
+}
+
+export function useExploreAggregateFields(): AggregateField[] {
   const pageParams = useExplorePageParams();
-
-  if (defined(pageParams.dataset)) {
-    return pageParams.dataset;
-  }
-
-  return organization.features.includes('visibility-explore-rpc')
-    ? DiscoverDatasets.SPANS_EAP_RPC
-    : DiscoverDatasets.SPANS_EAP;
+  return pageParams.aggregateFields;
 }
 
 export function useExploreFields(): string[] {
@@ -172,6 +202,11 @@ export function useExploreTitle(): string | undefined {
   return pageParams.title;
 }
 
+export function useExploreId(): string | undefined {
+  const pageParams = useExplorePageParams();
+  return pageParams.id;
+}
+
 export function useExploreVisualizes(): Visualize[] {
   const pageParams = useExplorePageParams();
   return pageParams.visualizes;
@@ -182,18 +217,18 @@ export function newExploreTarget(
   pageParams: WritablePageParams
 ): Location {
   const target = {...location, query: {...location.query}};
+  updateLocationWithAggregateFields(target, pageParams.aggregateFields);
   updateLocationWithDataset(target, pageParams.dataset);
   updateLocationWithFields(target, pageParams.fields);
-  updateLocationWithGroupBys(target, pageParams.groupBys);
   updateLocationWithMode(target, pageParams.mode);
   updateLocationWithQuery(target, pageParams.query);
   updateLocationWithSortBys(target, pageParams.sortBys);
-  updateLocationWithVisualizes(target, pageParams.visualizes);
   updateLocationWithTitle(target, pageParams.title);
+  updateLocationWithId(target, pageParams.id);
   return target;
 }
 
-export function useSetExplorePageParams() {
+export function useSetExplorePageParams(): (pageParams: WritablePageParams) => void {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -206,11 +241,11 @@ export function useSetExplorePageParams() {
   );
 }
 
-export function useSetExploreDataset() {
+export function useSetExploreAggregateFields() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (dataset: DiscoverDatasets) => {
-      setPageParams({dataset});
+    (aggregateFields: BaseAggregateField[]) => {
+      setPageParams({aggregateFields});
     },
     [setPageParams]
   );
@@ -227,12 +262,34 @@ export function useSetExploreFields() {
 }
 
 export function useSetExploreGroupBys() {
+  const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (groupBys: string[]) => {
-      setPageParams({groupBys});
+    (groupBys: string[], mode?: Mode) => {
+      const aggregateFields = [];
+      let i = 0;
+      for (const aggregateField of pageParams.aggregateFields) {
+        if (isGroupBy(aggregateField)) {
+          if (i < groupBys.length) {
+            const groupBy: GroupBy = {groupBy: groupBys[i++]!};
+            aggregateFields.push(groupBy);
+          }
+        } else {
+          aggregateFields.push(aggregateField.toJSON());
+        }
+      }
+      for (; i < groupBys.length; i++) {
+        const groupBy = {groupBy: groupBys[i]!};
+        aggregateFields.push(groupBy);
+      }
+
+      if (mode) {
+        setPageParams({aggregateFields, mode});
+      } else {
+        setPageParams({aggregateFields});
+      }
     },
-    [setPageParams]
+    [pageParams, setPageParams]
   );
 }
 
@@ -289,13 +346,51 @@ export function useSetExploreVisualizes() {
   const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (visualizes: BaseVisualize[], field?: string) => {
-      const writablePageParams: WritablePageParams = {visualizes};
-      if (defined(field) && !pageParams.fields.includes(field)) {
-        writablePageParams.fields = [...pageParams.fields, field];
+    (visualizes: BaseVisualize[], fields?: string[]) => {
+      const aggregateFields: WritablePageParams['aggregateFields'] = [];
+      let i = 0;
+      for (const aggregateField of pageParams.aggregateFields) {
+        if (isVisualize(aggregateField)) {
+          if (i < visualizes.length) {
+            aggregateFields.push(visualizes[i++]!);
+          }
+        } else {
+          aggregateFields.push(aggregateField);
+        }
       }
+      for (; i < visualizes.length; i++) {
+        aggregateFields.push(visualizes[i]!);
+      }
+
+      const writablePageParams: WritablePageParams = {aggregateFields};
+
+      const newFields = fields?.filter(field => !pageParams.fields.includes(field)) || [];
+      if (newFields.length > 0) {
+        writablePageParams.fields = [...pageParams.fields, ...newFields];
+      }
+
       setPageParams(writablePageParams);
     },
     [pageParams, setPageParams]
+  );
+}
+
+export function useSetExploreTitle() {
+  const setPageParams = useSetExplorePageParams();
+  return useCallback(
+    (title: string) => {
+      setPageParams({title});
+    },
+    [setPageParams]
+  );
+}
+
+export function useSetExploreId() {
+  const setPageParams = useSetExplorePageParams();
+  return useCallback(
+    (id: string) => {
+      setPageParams({id});
+    },
+    [setPageParams]
   );
 }

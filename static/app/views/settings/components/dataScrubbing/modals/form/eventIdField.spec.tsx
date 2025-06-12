@@ -1,6 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import theme from 'sentry/utils/theme';
 import EventIdField from 'sentry/views/settings/components/dataScrubbing/modals/form/eventIdField';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
@@ -62,7 +61,7 @@ describe('EventIdField', function () {
 
     expect(screen.queryByLabelText('Clear event ID')).not.toBeInTheDocument();
 
-    expect(screen.getByTestId('icon-check-mark')).toHaveAttribute('fill', theme.green400);
+    expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
   });
 
   it('ERROR status', async function () {

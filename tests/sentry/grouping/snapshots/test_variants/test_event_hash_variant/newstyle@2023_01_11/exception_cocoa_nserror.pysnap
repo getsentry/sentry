@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:10.249449+00:00'
+created: '2025-05-12T23:41:00.802468+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,73 +18,73 @@ app:
           "Code=<int> Description=The operation couldn’t be completed. (iOS_Swift.SampleError error <int>.)"
       threads (exception of app takes precedence)
         stacktrace*
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "main"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "UIApplicationMain"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIApplication _run]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "GSEventRunModal"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "CFRunLoopRunSpecific"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__CFRunLoopRun"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__CFRunLoopDoSources0"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__CFRunLoopDoSource0"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__eventFetcherSourceCallback"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__processEventQueue"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIApplicationAccessibility sendEvent:]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIApplication sendEvent:]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIWindow sendEvent:]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIWindow _sendTouchesForEvent:]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIControl touchesEnded:withEvent:]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIControl _sendActionsForEvents:withEvent:]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame (marked out of app by stack trace rule (family:native function:__*[[]Sentry* -app -group))
+          frame (marked out of app by the client)
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "ViewController.captureError"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "ViewController.captureError"
 --------------------------------------------------------------------------
@@ -152,7 +152,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame (ignored by stack trace rule (family:native function:__*[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:__*[[]Sentry* -group))
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
           frame (ignored by stack trace rule (category:internals -group))

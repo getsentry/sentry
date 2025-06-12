@@ -6,13 +6,18 @@ import round from 'lodash/round';
 
 export function formatPercentage(
   value: number,
-  places: number = 2,
+  places = 2,
   options: {
     minimumValue?: number;
+    nullValue?: string;
   } = {}
 ) {
   if (value === 0) {
     return '0%';
+  }
+
+  if (value === undefined || value === null) {
+    return options.nullValue ?? '0%';
   }
 
   const minimumValue = options.minimumValue ?? 0;

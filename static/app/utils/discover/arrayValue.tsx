@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import {nullableValue} from './fieldRenderers';
 
 type Props = {
-  value: (string | null)[];
+  value: Array<string | null>;
 };
 
 function ArrayValue(props: Props) {
@@ -22,7 +22,7 @@ function ArrayValue(props: Props) {
     <ArrayContainer expanded={expanded}>
       {expanded &&
         value
-          .slice(0, value.length - 1)
+          .slice(0, -1)
           .map((item, i) => (
             <ArrayItem key={`${i}:${item}`}>{nullableValue(item)}</ArrayItem>
           ))}

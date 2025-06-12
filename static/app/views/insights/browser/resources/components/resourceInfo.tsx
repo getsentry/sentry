@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
@@ -8,7 +8,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   DataTitles,
   getThroughputTitle,
@@ -21,7 +20,6 @@ type Props = {
   avgTransferSize: number;
   isLoading: boolean;
   throughput: number;
-  timeSpentPercentage: number;
   timeSpentTotal: number;
 };
 
@@ -33,7 +31,6 @@ function ResourceInfo(props: Props) {
     avgDuration,
     avgTransferSize,
     throughput,
-    timeSpentPercentage,
     timeSpentTotal,
   } = props;
 
@@ -112,17 +109,18 @@ function ResourceInfo(props: Props) {
           title={DataTitles.timeSpent}
           value={timeSpentTotal}
           unit={DurationUnit.MILLISECOND}
-          tooltip={getTimeSpentExplanation(timeSpentPercentage, 'resource')}
           isLoading={isLoading}
         />
       </ReadoutRibbon>
 
       {hasNoData && (
-        <Alert style={{width: '100%'}} type="warning" showIcon>
-          {t(
-            "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert style={{width: '100%'}} type="warning" showIcon>
+            {t(
+              "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
+            )}
+          </Alert>
+        </Alert.Container>
       )}
     </Fragment>
   );

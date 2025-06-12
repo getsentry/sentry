@@ -11,7 +11,7 @@ export default function findFirstRouteWithoutRouteParam(
   routes: PlainRoute[],
   route?: PlainRoute
 ) {
-  const routeIndex = route !== undefined ? routes.indexOf(route) : -1;
+  const routeIndex = route === undefined ? -1 : routes.indexOf(route);
   const routesToSearch = route && routeIndex > -1 ? routes.slice(routeIndex) : routes;
 
   return (

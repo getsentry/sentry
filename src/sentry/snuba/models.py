@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self, override
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -12,6 +14,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
+from sentry.deletions.base import ModelRelation
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.team import Team
 from sentry.users.models.user import User
@@ -19,7 +22,10 @@ from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
 if TYPE_CHECKING:
+    from sentry.models.organization import Organization
     from sentry.workflow_engine.models.data_source import DataSource
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -77,6 +83,8 @@ class SnubaQueryEventType(Model):
         ERROR = 0
         DEFAULT = 1
         TRANSACTION = 2
+        TRACE_ITEM_SPAN = 3
+        TRACE_ITEM_LOG = 4
 
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery")
     type = models.SmallIntegerField()
@@ -104,7 +112,7 @@ class QuerySubscription(Model):
 
     # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", related_name="subscriptions")
     type = (
         models.TextField()
     )  # Text identifier for the subscription type this is. Used to identify the registered callback associated with this subscription.
@@ -149,8 +157,40 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
     def bulk_get_query_object(
         data_sources: list[DataSource],
     ) -> dict[int, QuerySubscription | None]:
+        query_subscription_ids: list[int] = []
+
+        for ds in data_sources:
+            try:
+                subscription_id = int(ds.source_id)
+                query_subscription_ids.append(subscription_id)
+            except ValueError:
+                logger.exception(
+                    "Invalid DataSource.source_id fetching subscriptions",
+                    extra={"id": ds.id, "source_id": ds.source_id},
+                )
+
         qs_lookup = {
-            qs.id: qs
-            for qs in QuerySubscription.objects.filter(id__in=[ds.query_id for ds in data_sources])
+            str(qs.id): qs for qs in QuerySubscription.objects.filter(id__in=query_subscription_ids)
         }
-        return {ds.id: qs_lookup.get(ds.query_id) for ds in data_sources}
+        return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    @staticmethod
+    def related_model(instance) -> list[ModelRelation]:
+        return [ModelRelation(QuerySubscription, {"id": instance.source_id})]
+
+    @override
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+
+    @override
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        return QuerySubscription.objects.filter(
+            project__organization_id=org.id,
+            status__in=(
+                QuerySubscription.Status.ACTIVE.value,
+                QuerySubscription.Status.CREATING.value,
+                QuerySubscription.Status.UPDATING.value,
+            ),
+        ).count()

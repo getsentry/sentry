@@ -1,7 +1,7 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -103,7 +103,7 @@ const StyledArrowButton = styled(Button)<{direction: string}>`
   height: 36px;
   width: 36px;
   border-radius: 50%;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   padding: 0;
   margin: auto;
   background-color: ${p => p.theme.background};

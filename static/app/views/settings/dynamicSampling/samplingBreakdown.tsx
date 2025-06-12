@@ -1,10 +1,13 @@
-import {css} from '@emotion/react';
+import type React from 'react';
+import {Fragment} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -13,11 +16,10 @@ import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatP
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
-const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1]!;
-
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
+interface Props extends React.ComponentProps<typeof StyledPanel> {
   sampleCounts: ProjectSampleCount[];
   sampleRates: Record<string, number>;
+  isLoading?: boolean;
 }
 
 function OthersBadge() {
@@ -41,7 +43,13 @@ function OthersBadge() {
   );
 }
 
-export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) {
+export function SamplingBreakdown({
+  sampleCounts,
+  sampleRates,
+  isLoading,
+  ...props
+}: Props) {
+  const theme = useTheme();
   const spansWithSampleRates = sampleCounts
     ?.map(item => {
       const sampleRate = clampPercentRate(sampleRates[item.project.id] ?? 1);
@@ -68,85 +76,112 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
 
   const getSpanRate = (spanCount: any) => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
+  const palette = theme.chart.getColorPalette(ITEMS_TO_SHOW - 1);
 
   return (
-    <div {...props}>
-      <Heading>
-        {t('Breakdown of stored spans originating in these projects')}
-        <SubText>{t('Total: %s', formatAbbreviatedNumber(total))}</SubText>
-      </Heading>
-      <Breakdown>
-        {topItems.map((item: any, index: any) => {
-          const itemPercent = getSpanRate(item.sampledSpans);
-          return (
-            <Tooltip
-              key={item.project.id}
-              overlayStyle={{maxWidth: 'none'}}
-              title={
-                <LegendItem key={item.project.id}>
-                  <ProjectBadge disableLink avatarSize={16} project={item.project} />
-                  {formatPercent(itemPercent, {addSymbol: true})}
-                  <SubText>{formatAbbreviatedNumber(item.sampledSpans)}</SubText>
+    <StyledPanel {...props}>
+      <Heading>{t('Distribution of stored spans')}</Heading>
+      {isLoading ? (
+        <LoadingIndicator
+          size={32}
+          css={css`
+            margin: 0;
+          `}
+        />
+      ) : sampleCounts.length > 0 ? (
+        <Fragment>
+          <Breakdown>
+            {topItems.map((item: any, index: any) => {
+              const itemPercent = getSpanRate(item.sampledSpans);
+              return (
+                <Tooltip
+                  key={item.project.id}
+                  overlayStyle={{maxWidth: 'none'}}
+                  title={
+                    <LegendItem key={item.project.id}>
+                      <ProjectBadge disableLink avatarSize={16} project={item.project} />
+                      {formatPercent(itemPercent, {addSymbol: true})}
+                      <SubText>{formatAbbreviatedNumber(item.sampledSpans)}</SubText>
+                    </LegendItem>
+                  }
+                  skipWrapper
+                >
+                  <div
+                    style={{
+                      width: `${itemPercent * 100}%`,
+                      backgroundColor: palette[index],
+                    }}
+                  />
+                </Tooltip>
+              );
+            })}
+            {hasOthers && (
+              <Tooltip
+                overlayStyle={{maxWidth: 'none'}}
+                title={
+                  <LegendItem>
+                    <OthersBadge />
+                    {formatPercent(otherRate, {addSymbol: true})}
+                    <SubText>{formatAbbreviatedNumber(total)}</SubText>
+                  </LegendItem>
+                }
+                skipWrapper
+              >
+                <div
+                  style={{
+                    width: `${otherRate * 100}%`,
+                    backgroundColor: palette[palette.length - 1],
+                  }}
+                />
+              </Tooltip>
+            )}
+          </Breakdown>
+          <Footer>
+            <Legend>
+              {topItems.map((item: any) => {
+                const itemPercent = getSpanRate(item.sampledSpans);
+                return (
+                  <LegendItem key={item.project.id}>
+                    <ProjectBadge avatarSize={16} project={item.project} />
+                    {formatPercent(itemPercent, {addSymbol: true})}
+                  </LegendItem>
+                );
+              })}
+              {hasOthers && (
+                <LegendItem>
+                  <OthersBadge />
+                  {formatPercent(otherRate, {addSymbol: true})}
                 </LegendItem>
-              }
-              skipWrapper
-            >
-              <div
-                style={{
-                  width: `${itemPercent * 100}%`,
-                  backgroundColor: palette[index],
-                }}
-              />
-            </Tooltip>
-          );
-        })}
-        {hasOthers && (
-          <Tooltip
-            overlayStyle={{maxWidth: 'none'}}
-            title={
-              <LegendItem>
-                <OthersBadge />
-                {formatPercent(otherRate, {addSymbol: true})}
-                <SubText>{formatAbbreviatedNumber(total)}</SubText>
-              </LegendItem>
-            }
-            skipWrapper
-          >
-            <div
-              style={{
-                width: `${otherRate * 100}%`,
-                backgroundColor: palette[palette.length - 1],
-              }}
-            />
-          </Tooltip>
-        )}
-      </Breakdown>
-      <Legend>
-        {topItems.map((item: any) => {
-          const itemPercent = getSpanRate(item.sampledSpans);
-          return (
-            <LegendItem key={item.project.id}>
-              <ProjectBadge avatarSize={16} project={item.project} />
-              {formatPercent(itemPercent, {addSymbol: true})}
-            </LegendItem>
-          );
-        })}
-        {hasOthers && (
-          <LegendItem>
-            <OthersBadge />
-            {formatPercent(otherRate, {addSymbol: true})}
-          </LegendItem>
-        )}
-      </Legend>
-    </div>
+              )}
+            </Legend>
+            <Total>
+              <SubText>{t('Total Spans:')}</SubText>
+              &nbsp;
+              {formatAbbreviatedNumber(total)}
+            </Total>
+          </Footer>
+        </Fragment>
+      ) : (
+        <EmptyStateText>{t('No spans found in the selected period.')}</EmptyStateText>
+      )}
+    </StyledPanel>
   );
 }
 
+const StyledPanel = styled(Panel)`
+  padding: ${space(1.5)} ${space(2)};
+  margin-bottom: ${space(1.5)};
+`;
+
 const Heading = styled('h6')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const Footer = styled('div')`
   display: flex;
-  justify-content: space-between;
+  gap: ${space(2)};
+  align-items: flex-start;
 `;
 
 const Breakdown = styled('div')`
@@ -155,13 +190,24 @@ const Breakdown = styled('div')`
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+  background: ${p => p.theme.backgroundTertiary};
 `;
 
 const Legend = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  margin-top: ${space(1)};
+  margin-top: ${space(1.5)};
   gap: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  flex: 1;
+`;
+
+const Total = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  flex-shrink: 0;
 `;
 
 const LegendItem = styled('div')`
@@ -171,6 +217,12 @@ const LegendItem = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
+`;
+
+const EmptyStateText = styled('div')`
+  text-align: center;
+  padding: ${space(0.5)} 0 ${space(3)};
+  color: ${p => p.theme.subText};
 `;

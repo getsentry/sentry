@@ -172,7 +172,7 @@ class ProjectSerializerTest(TestCase):
         req.user = self.user
         req.superuser.set_logged_in(req.user)
 
-        with mock.patch.object(env, "request", req):
+        with env.active_request(req):
             result = serialize(self.project, self.user)
             assert result["access"] == TEAM_ADMIN["scopes"]
             assert result["hasAccess"] is True
@@ -422,16 +422,6 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasNewFeedbacks"] is True
-
-    def test_has_custom_metrics_flag(self):
-        result = serialize(self.project, self.user, ProjectSummarySerializer())
-        assert result["hasCustomMetrics"] is False
-
-        self.project.first_event = timezone.now()
-        self.project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
-
-        result = serialize(self.project, self.user, ProjectSummarySerializer())
-        assert result["hasCustomMetrics"] is True
 
     def test_has_monitors_flag(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -817,6 +807,26 @@ class DetailedProjectSerializerTest(TestCase):
         self.project.update_option("sentry:toolbar_allowed_origins", origins)
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:toolbar_allowed_origins"].split("\n") == origins
+
+    def test_autofix_automation_tuning_flag(self):
+        # Default is "off"
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["autofixAutomationTuning"] == "off"
+
+        # Update the value
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["autofixAutomationTuning"] == "high"
+
+    def test_seer_scanner_automation_flag(self):
+        # Default is "on"
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["seerScannerAutomation"] is True
+
+        # Update the value
+        self.project.update_option("sentry:seer_scanner_automation", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["seerScannerAutomation"] is False
 
 
 class BulkFetchProjectLatestReleases(TestCase):

@@ -28,17 +28,24 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
     # Indicates if Sentry created this mapping
-    automatically_generated = models.BooleanField(default=False)
+    automatically_generated = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root"),)
 
+    def __repr__(self) -> str:  # type: ignore[override]
+        return (
+            f"RepositoryProjectPathConfig(repo={self.repository.name}, "
+            + f"branch={self.default_branch}, "
+            + f"stack_root={self.stack_root}, "
+            + f"source_root={self.source_root})"
+        )
 
-def process_resource_change(instance, **kwargs):
+
+def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
     from sentry.models.group import Group
-    from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
     from sentry.utils.cache import cache
@@ -50,11 +57,11 @@ def process_resource_change(instance, **kwargs):
         try:
             update_code_owners_schema.apply_async(
                 kwargs={
-                    "organization": instance.project.organization,
-                    "projects": [instance.project],
+                    "organization": instance.project.organization_id,
+                    "projects": [instance.project_id],
                 }
             )
-        except (Project.DoesNotExist, Organization.DoesNotExist):
+        except Project.DoesNotExist:
             pass
 
     def _clear_commit_context_cache():

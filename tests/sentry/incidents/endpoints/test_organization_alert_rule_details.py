@@ -25,6 +25,9 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -37,13 +40,14 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, AlertRuleSerializer
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
@@ -53,7 +57,17 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    migrate_alert_rule,
+    migrate_metric_action,
+    migrate_metric_data_conditions,
+    migrate_resolve_threshold_data_condition,
+)
+from sentry.workflow_engine.models import Detector
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
+from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
+    assert_dual_written_resolution_threshold_equals,
+)
 
 pytestmark = [requires_snuba]
 
@@ -115,6 +129,9 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
     @cached_property
     def valid_params(self):
+        email_action_type = AlertRuleTriggerAction.get_registered_factory(
+            AlertRuleTriggerAction.Type.EMAIL
+        ).slug
         return {
             "name": "hello",
             "time_window": 10,
@@ -130,17 +147,31 @@ class AlertRuleDetailsBase(AlertRuleBase):
                     "label": "critical",
                     "alertThreshold": 200,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
                     ],
                 },
                 {
                     "label": "warning",
                     "alertThreshold": 150,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {
-                            "type": "email",
-                            "targetType": "user",
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.USER
+                            ],
                             "targetIdentifier": self.user.id,
                         },
                     ],
@@ -174,6 +205,16 @@ class AlertRuleDetailsBase(AlertRuleBase):
         resp = self.get_response(self.organization.slug, self.alert_rule.id)
         assert resp.status_code == 404
 
+    def test_no_project(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        project = self.alert_rule.projects.get()
+        Project.objects.get(id=project.id).delete()
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, self.alert_rule.id)
+
+        assert resp.status_code == 404
+
 
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
@@ -184,6 +225,32 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
+    def test_workflow_engine_serializer(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        critical_trigger = AlertRuleTrigger.objects.get(
+            alert_rule_id=self.alert_rule.id, label="critical"
+        )
+        critical_trigger_action = AlertRuleTriggerAction.objects.get(
+            alert_rule_trigger=critical_trigger
+        )
+        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
+
+        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
+        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
+            self.alert_rule
+        )
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert resp.data == serialize(self.detector, serializer=WorkflowEngineDetectorSerializer())
+
     def test_aggregate_translation(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -191,7 +258,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id)
             assert resp.data["aggregate"] == "count_unique(user)"
-            assert alert_rule.snuba_query is not None
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_expand_latest_incident(self):
@@ -213,17 +279,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data["latestIncident"] is not None
         assert resp.data["latestIncident"]["id"] == str(incident.id)
         assert "latestIncident" not in no_expand_resp.data
-
-    @with_feature("organizations:slack-metric-alert-description")
-    @with_feature("organizations:incidents")
-    def test_with_description(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.login_as(self.user)
-        rule = self.create_alert_rule(description="howdy")
-        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        resp = self.get_success_response(self.organization.slug, rule.id)
-        assert rule.description == resp.data.get("description")
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -653,6 +708,46 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    def test_workflow_engine_serializer(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        critical_trigger = AlertRuleTrigger.objects.get(
+            alert_rule_id=self.alert_rule.id, label="critical"
+        )
+        critical_trigger_action = AlertRuleTriggerAction.objects.get(
+            alert_rule_trigger=critical_trigger
+        )
+        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
+
+        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
+        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
+            self.alert_rule
+        )
+
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["name"] = "what"
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-metric-alert-dual-write"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+            outbox_runner(),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        alert_rule.name = "what"
+        alert_rule.date_modified = resp.data["dateModified"]
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, serializer=WorkflowEngineDetectorSerializer())
+        assert resp.data["name"] == "what"
+        assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
+
     def test_not_updated_fields(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -676,7 +771,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
         updated_alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
-        assert updated_alert_rule.snuba_query is not None
         updated_sub = updated_alert_rule.snuba_query.subscriptions.get()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
@@ -789,21 +883,171 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         assert len(resp.data["triggers"]) == 1
 
-    @with_feature("organizations:slack-metric-alert-description")
-    @with_feature("organizations:incidents")
-    def test_with_description(self):
-        self.create_team(organization=self.organization, members=[self.user])
+    @mock.patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger")
+    def test_dual_delete_trigger(self, mock_dual_delete):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
         self.login_as(self.user)
         alert_rule = self.alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        description = "yeehaw"
         serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["description"] = description
 
-        resp = self.get_success_response(
-            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        serialized_alert_rule["triggers"].pop(1)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert len(resp.data["triggers"]) == 1
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_delete_trigger_dual_update_resolve(self):
+        """
+        If there is no explicit resolve threshold on an alert rule, then we need to dual update the
+        comparison on the DataCondition corresponding to alert resolution.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
-        assert description == resp.data.get("description")
+
+        self.login_as(self.user)
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict.update({"resolveThreshold": None})
+        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        # the new resolution threshold should be the critical alert threshold
+        new_threshold = serialized_alert_rule["triggers"][0]["alertThreshold"]
+        old_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+        serialized_alert_rule["triggers"].pop(1)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"]) == 1
+        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_update_trigger_threshold_dual_update_resolve(self):
+        """
+        If there is no explicit resolve threshold on an alert rule, then we need to dual update the
+        comparison on the DataCondition corresponding to alert resolution if trigger thresholds
+        are updated.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict.update({"resolveThreshold": None})
+        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        # the new resolution threshold should be the critical alert threshold
+        # original thresholds: critical = 200, warning = 150
+        old_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+        # TEST 1: if we update the critical trigger threshold, the resolve threshold shouldn't change
+        serialized_alert_rule["triggers"][0]["alertThreshold"] = 300
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+        # TEST 2: if we update the warning trigger threshold, the resolve threshold also changes
+        new_threshold = 100
+        serialized_alert_rule["triggers"][1]["alertThreshold"] = new_threshold
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_update_trigger_threshold_dual_update_resolve_noop(self):
+        """
+        If there is an explicit resolve threshold on an alert rule, then updating triggers should
+        not affect the resolve action filter.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        resolve_threshold = alert_rule.resolve_threshold
+        assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
+
+        new_threshold = 125
+        serialized_alert_rule["triggers"][1]["alertThreshold"] = new_threshold
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        # remains unchanged
+        assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_remove_resolve_threshold_dual_update_resolve(self):
+        """
+        If we set the remove the resolve threshold from an alert rule, then we need to update the
+        resolve action filter according to the triggers.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        resolve_threshold = alert_rule.resolve_threshold
+        assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
+
+        serialized_alert_rule["resolveThreshold"] = None
+        new_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        # resolve threshold changes to the warning threshold
+        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_dual_update_resolve_all_triggers_removed_and_recreated(self):
+        """
+        If a PUT request is made via the API and the trigger IDs are not specified in the
+        request (as is usually the case), then the triggers + their actions are deleted and
+        recreated. Make sure that we can update the resolution threshold accordingly
+        in this case.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = None
+        test_params["triggers"][0]["alertThreshold"] = 300
+        test_params["triggers"][1]["alertThreshold"] = 50
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, self.alert_rule.id, **test_params)
+
+        # resolve threshold changes to the warning threshold
+        assert_dual_written_resolution_threshold_equals(self.alert_rule, 50)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -905,7 +1149,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data[0] == INVALID_TIME_WINDOW
         # We don't call send_historical_data_to_seer if we encounter a validation error.
         assert mock_seer_request.call_count == 0
-
         data2 = self.get_serialized_alert_rule()
         data2["query"] = "is:unresolved"
 
@@ -950,6 +1193,32 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 "Each trigger must have an associated action for this alert to fire."
             ]
         }
+
+    @mock.patch(
+        "sentry.incidents.serializers.alert_rule_trigger.dual_delete_migrated_alert_rule_trigger_action"
+    )
+    def test_dual_delete_action(self, mock_dual_delete):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_action = serialized_alert_rule["triggers"][1]["actions"].pop(1)
+        action = AlertRuleTriggerAction.objects.get(id=serialized_action["id"])
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"][1]["actions"]) == 1
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        assert mock_dual_delete.call_args_list[0][0][0] == action
 
     def test_update_trigger_action_type(self):
         self.create_member(
@@ -1629,9 +1898,8 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
-
-        assert resp.status_code == 400
-        assert error_message in resp.data["sentry_app"]
+        assert resp.status_code == 500
+        assert error_message in resp.data["detail"]
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
@@ -1667,6 +1935,33 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @patch(
+        "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule"
+    )
+    def test_dual_delete(self, mock_dual_delete):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
+
+        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+        assert AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        kwargs = mock_dual_delete.call_args_list[0][1]
+        assert kwargs["alert_rule"] == self.alert_rule
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
     def test_no_feature(self):
         self.create_member(

@@ -1,11 +1,7 @@
 import type {Dispatch, ReactNode} from 'react';
 import {createContext, useCallback, useContext, useReducer} from 'react';
-import type {Replayer} from '@sentry-internal/rrweb';
+import type {PlayerState, Replayer, SpeedState} from '@sentry-internal/rrweb';
 import {ReplayerEvents} from '@sentry-internal/rrweb';
-import type {
-  PlayerState,
-  SpeedState,
-} from '@sentry-internal/rrweb/typings/replay/machine';
 
 import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -73,13 +69,11 @@ export function ReplayPlayerStateContextProvider({children}: {children: ReactNod
   );
 
   return (
-    <StateContext.Provider value={state}>
-      <DispatchContext.Provider value={dispatch}>
-        <UserActionContext.Provider value={handleUserAction}>
-          {children}
-        </UserActionContext.Provider>
-      </DispatchContext.Provider>
-    </StateContext.Provider>
+    <StateContext value={state}>
+      <DispatchContext value={dispatch}>
+        <UserActionContext value={handleUserAction}>{children}</UserActionContext>
+      </DispatchContext>
+    </StateContext>
   );
 }
 
@@ -156,8 +150,8 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
     case 'didSpeedStateChange':
       return {...state, currentSpeed: replayerAction.speedState.context.timer.speed};
     default:
-      // @ts-ignore TS(2339): Property 'type' does not exist on type 'never'.
-      throw Error('Unknown action: ' + replayerAction.type);
+      // @ts-expect-error TS(2339): Property 'type' does not exist on type 'never'.
+      throw new Error('Unknown action: ' + replayerAction.type);
   }
 }
 
@@ -180,7 +174,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       });
       return;
 
-    case 'jumpToOffset':
+    case 'jumpToOffset': {
       const offsetMs = clamp(userAction.offsetMs, 0, replayer.getMetaData().totalTime);
       // TOOD: going back to the start of the replay needs to re-build & re-render the first frame I think.
 
@@ -199,8 +193,9 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       replayer.setConfig({skipInactive});
 
       return;
+    }
     default:
-      throw Error('Unknown action: ' + (userAction as any).type);
+      throw new Error('Unknown action: ' + (userAction as any).type);
   }
 }
 

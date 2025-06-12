@@ -16,7 +16,7 @@ class RootSpanStatus extends Component<Props> {
     const {event} = this.props;
 
     if (event.type === 'transaction') {
-      return event as EventTransaction;
+      return event;
     }
 
     return undefined;

@@ -1,8 +1,8 @@
 import {useState} from 'react';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -17,9 +17,7 @@ function getView({
 }) {
   switch (view) {
     case 'report':
-      return !data ? (
-        <AnnotatedText value={data} meta={meta?.['']} />
-      ) : (
+      return data ? (
         <KeyValueList
           data={Object.entries(data).map(([key, value]) => ({
             key,
@@ -29,6 +27,8 @@ function getView({
           }))}
           isContextData
         />
+      ) : (
+        <AnnotatedText value={data} meta={meta?.['']} />
       );
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;

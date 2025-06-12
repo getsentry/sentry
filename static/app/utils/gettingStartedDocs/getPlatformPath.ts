@@ -10,7 +10,7 @@ export function getPlatformPath(platform: PlatformIntegration) {
   // only want to split it at the first hyphen
   const hyphenIndex = platform.id.indexOf('-');
   const framework =
-    hyphenIndex !== -1 ? platform.id.substring(hyphenIndex + 1) : undefined;
+    hyphenIndex === -1 ? undefined : platform.id.substring(hyphenIndex + 1);
 
   if (framework) {
     return `${platform.language}/${framework}`;

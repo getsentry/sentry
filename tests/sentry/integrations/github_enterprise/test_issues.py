@@ -94,9 +94,8 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             json=[{"name": "bug"}, {"name": "enhancement"}, {"name": "duplicate"}],
         )
 
-        repo = "getsentry/sentry"
         # results should be sorted alphabetically
-        assert self.install.get_repo_labels(repo) == (
+        assert self.install.get_repo_labels("getsentry", "sentry") == (
             ("bug", "bug"),
             ("duplicate", "duplicate"),
             ("enhancement", "enhancement"),

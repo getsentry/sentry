@@ -10,7 +10,9 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
+  organization: {
+    features: ['global-views', 'open-membership', 'visibility-explore-view'],
+  },
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -51,6 +53,11 @@ describe('NewWidgetBuiler', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });
@@ -76,7 +83,7 @@ describe('NewWidgetBuiler', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
 
@@ -106,10 +113,11 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
-    expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+    expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
 
     expect(await screen.findByLabelText('Close Widget Builder')).toBeInTheDocument();
 
@@ -172,17 +180,18 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
     // see if alias field and add button are there
     expect(screen.getByPlaceholderText('Legend Alias')).toBeInTheDocument();
-    expect(screen.getByText('Add Filter')).toBeInTheDocument();
+    expect(screen.getByText('+ Add Filter')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
     });
     // add a field and see if delete buttons are there
-    await userEvent.click(screen.getByText('Add Filter'));
+    await userEvent.click(screen.getByText('+ Add Filter'));
     expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
   });
 
@@ -200,6 +209,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -207,7 +217,7 @@ describe('NewWidgetBuiler', function () {
     await waitFor(() => {
       expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
     });
-    expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
   });
 
@@ -233,12 +243,13 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
     expect(await screen.findByText('Select group')).toBeInTheDocument();
-    expect(await screen.findByText('Add Group')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
   });
 
   it('renders empty widget preview when no widget selected from templates', async function () {
@@ -252,10 +263,14 @@ describe('NewWidgetBuiler', function () {
         openWidgetTemplates
         setOpenWidgetTemplates={jest.fn()}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
-    expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
+    expect(await screen.findByText('Widget Library')).toBeInTheDocument();
 
     expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
   });

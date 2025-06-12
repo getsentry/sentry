@@ -1,21 +1,22 @@
 import {useEffect, useState} from 'react';
 
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import type {TraceTree} from '../traceModels/traceTree';
-
 import type {TraceMetaQueryResults} from './useTraceMeta';
+import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
   meta: TraceMetaQueryResults;
   replay: ReplayRecord | null;
-  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
+  trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
 };
 
@@ -42,6 +43,7 @@ export function useIssuesTraceTree({
 }: UseTraceTreeParams): IssuesTraceTree {
   const api = useApi();
   const {projects} = useProjects();
+  const traceState = useTraceState();
   const organization = useOrganization();
 
   const [tree, setTree] = useState<IssuesTraceTree>(IssuesTraceTree.Empty());
@@ -58,14 +60,13 @@ export function useIssuesTraceTree({
               event_id: traceSlug,
             })
       );
+      traceAnalytics.trackTraceErrorState(organization, 'issue_details');
       return;
     }
 
-    if (
-      trace?.data?.transactions.length === 0 &&
-      trace?.data?.orphan_errors.length === 0
-    ) {
+    if (trace.data && isEmptyTrace(trace.data)) {
       setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
+      traceAnalytics.trackTraceEmptyState(organization, 'issue_details');
       return;
     }
 
@@ -85,12 +86,15 @@ export function useIssuesTraceTree({
       const newTree = IssuesTraceTree.FromTrace(trace.data, {
         meta: meta.data,
         replay,
+        preferences: traceState.preferences,
       });
 
       setTree(newTree);
       newTree.build();
       return;
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     api,
     organization,

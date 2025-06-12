@@ -8,7 +8,6 @@ import sentry_sdk
 from django.conf import settings
 from rediscluster import RedisCluster
 
-from sentry.features.rollout import in_random_rollout
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
@@ -16,6 +15,7 @@ from sentry.ingest.transaction_clusterer.datasource import (
     TRANSACTION_SOURCE_URL,
 )
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
 
@@ -69,6 +69,17 @@ def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
             # Could theoretically delete the key here, but it has a lifetime
             # of 24h, so probably not worth it.
             logger.debug("Could not find project %s in db", project_id)
+
+
+def get_active_project_ids(namespace: ClustererNamespace) -> Iterator[int]:
+    """
+    Scan redis for projects and fetch their ids.
+
+    Unlike get_active_projects(), this will include ids for projects
+    that have been deleted since clustering was scheduled.
+    """
+    for key in _get_all_keys(namespace):
+        yield int(key)
 
 
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:

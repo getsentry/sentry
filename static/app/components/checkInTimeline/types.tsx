@@ -20,6 +20,37 @@ interface MarkerIntervals {
   referenceMarkerInterval: number;
 }
 
+export interface RollupConfig {
+  /**
+   * How many pixels does a single bucket take up? May be order of two
+   * fractional pixels (0.5, 0.25, 0.125 etc)
+   */
+  bucketPixels: number;
+  /**
+   * The actual interval (number of seconds in a bucket)
+   */
+  interval: number;
+  /**
+   * How much underscan did we produce for this candidate interval
+   */
+  timelineUnderscanWidth: number;
+  /**
+   * How many total number of buckets are we fitting into our timeline
+   */
+  totalBuckets: number;
+  /**
+   * How many total buckets are part of the underscan area
+   */
+  underscanBuckets: number;
+  /**
+   * The negative pixel offset that must be applied to all ticks when the
+   * underscan width cannot evenly fit each bucket. This happens because the
+   * underscan is the "remaining" size of the timeine container and thus will
+   * not always be an even multiple of the pixel bucket size.
+   */
+  underscanStartOffset: number;
+}
+
 export interface TimeWindowConfig {
   /**
    * The time format used for the cursor label and job tick tooltip
@@ -42,11 +73,23 @@ export interface TimeWindowConfig {
    */
   intervals: MarkerIntervals;
   /**
-   * The start of the window
+   * The start of the window excluding the underscan period.
+   */
+  periodStart: Date;
+  /**
+   * Configures how check-ins are bucketed into the timeline
+   */
+  rollupConfig: RollupConfig;
+  /**
+   * The start of the window.
+   *
+   * NOTE that this includes the underscan period. The periodStart value is
+   * what the selected period is actually configured for.
    */
   start: Date;
   /**
-   * The width in pixels of the timeline
+   * The width in pixels of the timeline. This value is clamped such that there
+   * may be some underscan. See the RollupConfig for more details.
    */
   timelineWidth: number;
 }
@@ -74,8 +117,9 @@ export type CheckInBucket<Status extends string> = [
 
 export interface JobTickData<Status extends string> {
   endTs: number;
-  roundedLeft: boolean;
-  roundedRight: boolean;
+  isEnding: boolean;
+  isStarting: boolean;
+  left: number;
   startTs: number;
   stats: StatsBucket<Status>;
   width: number;

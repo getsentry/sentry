@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     import docker
 
 CI = os.environ.get("CI") is not None
+USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
@@ -214,6 +215,9 @@ def devservices() -> None:
         click.echo("Assuming docker (CI).")
         return
 
+    if not USE_OLD_DEVSERVICES:
+        return
+
     if DARWIN:
         if USE_DOCKER_DESKTOP:
             click.echo("Using docker desktop.")
@@ -303,20 +307,12 @@ def up(
     """
     from sentry.runner import configure
 
-    if os.environ.get("USE_NEW_DEVSERVICES", "0") != "1":
+    if not USE_OLD_DEVSERVICES:
         click.secho(
-            """
-WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
-To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
-https://github.com/getsentry/devservices?tab=readme-ov-file#commands
-
-Instead of running `sentry devservices up`, consider using `devservices up`.
-For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
-Thanks for helping the Dev Infra team improve this experience!
-
-    """,
+            "WARNING: `sentry devservices up` is deprecated. Please use `devservices up` instead. For more info about the revamped devservices, see https://github.com/getsentry/devservices.",
             fg="yellow",
         )
+        return
 
     configure()
 
@@ -534,21 +530,6 @@ def down(project: str, service: list[str]) -> None:
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring down.
     """
-
-    if os.environ.get("USE_NEW_DEVSERVICES", "0") != "1":
-        click.secho(
-            """
-WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
-To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
-https://github.com/getsentry/devservices?tab=readme-ov-file#commands
-
-Instead of running `sentry devservices down`, consider using `devservices down`.
-For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
-Thanks for helping the Dev Infra team improve this experience!
-
-        """,
-            fg="yellow",
-        )
 
     def _down(container: docker.models.containers.Container) -> None:
         click.secho(f"> Stopping '{container.name}' container", fg="red")
