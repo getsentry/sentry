@@ -1665,6 +1665,34 @@ describe('SearchQueryBuilder', function () {
       const listBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
       expect(listBox).toBeChecked();
     });
+
+    it('strips multiple wildcards into a single wildcard', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(
+        screen.getByRole('combobox'),
+        '****random****Value*****{enter}'
+      );
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'browser.name:[Firefox,*random*Value*]',
+        expect.anything()
+      );
+    });
   });
 
   describe('filter types', function () {
@@ -3825,6 +3853,384 @@ describe('SearchQueryBuilder', function () {
       ).toHaveTextContent('bar');
 
       expect(screen.getByLabelText('avg(tags[bar,number]):>0')).toBeInTheDocument();
+    });
+  });
+
+  describe('wildcard operators', function () {
+    describe('selecting contains', function () {
+      describe('single value', function () {
+        it('wraps the value in wildcards', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:firefox"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'contains'}));
+
+          // Token should be wrapped in wildcards
+          expect(
+            screen.getByRole('row', {name: 'browser.name:*firefox*'})
+          ).toBeInTheDocument();
+
+          // Should now have "contains" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('contains')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              'browser.name:*firefox*',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe('multiple values', function () {
+        it('wraps the values in wildcards', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:[firefox,chrome]"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'contains'}));
+
+          // Token should be wrapped in wildcards
+          expect(
+            screen.getByRole('row', {name: 'browser.name:[*firefox*,*chrome*]'})
+          ).toBeInTheDocument();
+
+          // Should now have "contains" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('contains')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              'browser.name:[*firefox*,*chrome*]',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
+    });
+
+    describe('selecting does not contain', function () {
+      describe('single value', function () {
+        it('wraps the value in wildcards', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:firefox"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'does not contain'}));
+
+          // Token should be modified to be wrapped in wildcards and negated
+          expect(
+            screen.getByRole('row', {name: '!browser.name:*firefox*'})
+          ).toBeInTheDocument();
+
+          // Should now have "does not contain" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('does not contain')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              '!browser.name:*firefox*',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe('multiple values', function () {
+        it('wraps the values in wildcards', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:[firefox,chrome]"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'does not contain'}));
+
+          // Token should be wrapped in wildcards and negated
+          expect(
+            screen.getByRole('row', {name: '!browser.name:[*firefox*,*chrome*]'})
+          ).toBeInTheDocument();
+
+          // Should now have "does not contain" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('does not contain')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              '!browser.name:[*firefox*,*chrome*]',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
+    });
+
+    describe('selecting starts with', function () {
+      describe('single value', function () {
+        it('adds trailing wildcard', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:firefox"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'starts with'}));
+
+          // Token should have trailing wildcard
+          expect(
+            screen.getByRole('row', {name: 'browser.name:firefox*'})
+          ).toBeInTheDocument();
+
+          // Should now have "starts with" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('starts with')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              'browser.name:firefox*',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe('multiple values', function () {
+        it('adds trailing wildcard to each value', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:[firefox,chrome]"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'starts with'}));
+
+          // Token should have trailing wildcard on each value
+          expect(
+            screen.getByRole('row', {name: 'browser.name:[firefox*,chrome*]'})
+          ).toBeInTheDocument();
+
+          // Should now have "starts with" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('starts with')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              'browser.name:[firefox*,chrome*]',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
+    });
+
+    describe('selecting ends with', function () {
+      describe('single value', function () {
+        it('adds leading wildcard', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:firefox"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'ends with'}));
+
+          // Token should have leading wildcard
+          expect(
+            screen.getByRole('row', {name: 'browser.name:*firefox'})
+          ).toBeInTheDocument();
+
+          // Should now have "ends with" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('ends with')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              'browser.name:*firefox',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe('multiple values', function () {
+        it('adds leading wildcard to each value', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:[firefox,chrome]"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('is')
+          ).toBeInTheDocument();
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'ends with'}));
+
+          // Token should have leading wildcard on each value
+          expect(
+            screen.getByRole('row', {name: 'browser.name:[*firefox,*chrome]'})
+          ).toBeInTheDocument();
+
+          // Should now have "ends with" label
+          expect(
+            within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).getByText('ends with')
+          ).toBeInTheDocument();
+
+          await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+              'browser.name:[*firefox,*chrome]',
+              expect.anything()
+            );
+          });
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+        });
+      });
     });
   });
 });

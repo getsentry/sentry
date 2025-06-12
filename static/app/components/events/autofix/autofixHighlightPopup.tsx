@@ -170,7 +170,7 @@ function AutofixHighlightPopupContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const {data: autofixData} = useAutofixData({groupId});
+  const {data: autofixData} = useAutofixData({groupId, isUserWatching: true});
   const currentStep = isAgentComment
     ? autofixData?.steps?.[stepIndex + 1]
     : autofixData?.steps?.[stepIndex];

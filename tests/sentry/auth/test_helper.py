@@ -8,13 +8,9 @@ from django.db import models, router, transaction
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
-from sentry.auth.helper import (
-    OK_LINK_IDENTITY,
-    AuthHelper,
-    AuthHelperSessionStore,
-    AuthIdentityHandler,
-)
+from sentry.auth.helper import OK_LINK_IDENTITY, AuthHelper, AuthIdentityHandler
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
@@ -490,17 +486,17 @@ class AuthHelperTest(TestCase):
 
     @mock.patch("sentry.auth.helper.messages")
     def test_login(self, mock_messages):
-        final_step = self._test_pipeline(AuthHelper.FLOW_LOGIN)
+        final_step = self._test_pipeline(FLOW_LOGIN)
         assert final_step.url == f"/auth/login/{self.organization.slug}/"
 
     @mock.patch("sentry.auth.helper.messages")
     def test_setup_provider(self, mock_messages):
-        final_step = self._test_pipeline(AuthHelper.FLOW_SETUP_PROVIDER)
+        final_step = self._test_pipeline(FLOW_SETUP_PROVIDER)
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
     @mock.patch("sentry.auth.helper.messages")
     def test_referrer_state(self, mock_messages):
-        final_step = self._test_pipeline(flow=AuthHelper.FLOW_SETUP_PROVIDER, referrer="foobar")
+        final_step = self._test_pipeline(flow=FLOW_SETUP_PROVIDER, referrer="foobar")
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
 

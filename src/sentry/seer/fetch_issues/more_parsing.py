@@ -43,7 +43,7 @@ class PythonParserMore(PythonParser):
         return function_names_from_hunk_headers | function_names_from_rest_of_patch
 
 
-patch_parsers_more: dict[str, SimpleLanguageParser | LanguageParser] = PATCH_PARSERS | {
+patch_parsers_more: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = PATCH_PARSERS | {
     "py": PythonParserMore,
 }
 """

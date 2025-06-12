@@ -171,6 +171,7 @@ disable_error_code = [
 module = [
     "fixtures.safe_migrations_apps.*",
     "sentry.analytics.*",
+    "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.release_thresholds.health_checks.*",
@@ -376,6 +377,7 @@ module = [
     "sentry.snuba.metrics.extraction",
     "sentry.snuba.metrics.naming_layer.*",
     "sentry.snuba.query_subscriptions.*",
+    "sentry.spans.consumers.process_segments.*",
     "sentry.spans.grouping.*",
     "sentry.stacktraces.platform",
     "sentry.status_checks.*",
@@ -433,6 +435,7 @@ module = [
     "sentry.utils.security.*",
     "sentry.utils.sentry_apps.*",
     "sentry.utils.services",
+    "sentry.utils.signing",
     "sentry.utils.sms",
     "sentry.utils.snowflake",
     "sentry.utils.snuba_rpc",

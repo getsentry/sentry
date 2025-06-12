@@ -1,15 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
-import {ClassNames, css, useTheme} from '@emotion/react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import useDrawer from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
@@ -23,23 +21,24 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
-import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
-import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
+import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TreeResponseItem {
   'avg(span.duration)': number;
+  'count()': number;
+  'failure_rate()': number;
   'function.nextjs.component_type': string | null;
   'function.nextjs.path': string[];
+  'p95(span.duration)': number;
   'span.description': string;
 }
 
@@ -53,17 +52,28 @@ interface TreeContainer {
   children: TreeNode[];
   name: string;
   type: 'folder' | 'file';
+  query?: string;
 }
 
 interface TreeLeaf {
   'avg(span.duration)': number;
+  'count()': number;
+  'failure_rate()': number;
   name: string;
+  'p95(span.duration)': number;
+  query: string;
   'span.description': string;
   type: 'component';
 }
 
-const WIDGET_TITLE = t('Server Side Rendering');
 const HOVERCARD_BODY_CLASS_NAME = 'ssrTreeHovercard';
+
+const getP95Threshold = (avg: number) => {
+  return {
+    error: avg * 3,
+    warning: avg * 2,
+  };
+};
 
 export function getFileAndFunctionName(componentType: string) {
   // There are two cases:
@@ -107,6 +117,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
 
     const {file, functionName} = getFileAndFunctionName(componentType);
 
+    const currentPath = [];
     const fullPath = [...path];
     if (file) {
       fullPath.push(file);
@@ -114,6 +125,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
 
     // Iterate over the path segments and create folders if they don't exist yet
     for (const segment of fullPath) {
+      currentPath.push(segment);
       const child = currentFolder.children.find(c => c.name === segment);
       if (child) {
         currentFolder = child as TreeContainer;
@@ -122,6 +134,10 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
           children: [],
           name: segment,
           type: file === segment ? 'file' : 'folder',
+          query:
+            file === segment
+              ? `transaction:"GET /${currentPath.join('/')}" span.op:function.nextjs`
+              : undefined,
         };
         currentFolder.children.push(newFolder);
         currentFolder = newFolder;
@@ -132,48 +148,22 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
     currentFolder.children.push({
       name: functionName,
       type: 'component',
+      'count()': item['count()'],
       'avg(span.duration)': item['avg(span.duration)'],
       'span.description': item['span.description'],
+      'failure_rate()': item['failure_rate()'],
+      'p95(span.duration)': item['p95(span.duration)'],
+      query: `span.description:"${item['span.description']}" span.op:function.nextjs`,
     });
   }
 
   return root;
 }
 
-function filterTree(
-  tree: TreeContainer,
-  path: string[],
-  filter: (item: TreeNode, path: string[]) => boolean
-): TreeContainer {
-  const currentPath = [...path, tree.name];
-  const newChildren: TreeNode[] = [];
-
-  for (const child of tree.children) {
-    const childPath = [...currentPath, child.name];
-    const shouldKeep = filter(child, childPath);
-
-    if (child.type === 'folder' || child.type === 'file') {
-      const filteredChild = filterTree(child, currentPath, filter);
-      if (filteredChild.children.length > 0 || shouldKeep) {
-        newChildren.push(filteredChild);
-      }
-    } else if (shouldKeep) {
-      newChildren.push(child);
-    }
-  }
-
-  return {...tree, children: newChildren};
-}
-
-export default function SSRTreeWidget() {
+export function ServerTree() {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
-  const pageFilterChartParams = usePageFilterChartParams({
-    granularity: 'spans',
-  });
-  const {openDrawer} = useDrawer();
-
-  const fullQuery = `span.op:function.nextjs ${query}`;
+  const pageFilterChartParams = usePageFilterChartParams();
 
   const treeRequest = useApiQuery<TreeResponse>(
     [
@@ -185,108 +175,36 @@ export default function SSRTreeWidget() {
           noPagination: true,
           useRpc: true,
           dataset: 'spans',
-          query: fullQuery,
-          field: ['span.description', 'avg(span.duration)'],
+          query: `span.op:function.nextjs ${query}`,
+          field: [
+            'count()',
+            'span.description',
+            'failure_rate()',
+            'avg(span.duration)',
+            'p95(span.duration)',
+          ],
         },
       },
     ],
     {staleTime: 0}
   );
 
-  const treeData = treeRequest.data?.data ?? [];
+  const treeData = useMemo(() => treeRequest.data?.data ?? [], [treeRequest.data]);
   const hasData = treeData.length > 0;
 
-  const tree = mapResponseToTree(treeData);
-
-  const visualization = (
-    <WidgetVisualizationStates
-      isEmpty={!hasData}
-      isLoading={treeRequest.isLoading}
-      error={treeRequest.error}
-      VisualizationType={TreeWidgetVisualization}
-      visualizationProps={{tree, size: 'xs'}}
-    />
-  );
+  const tree = useMemo(() => mapResponseToTree(treeData), [treeData]);
 
   return (
-    <Widget
-      Title={<Widget.WidgetTitle title={WIDGET_TITLE} />}
-      Visualization={
-        <VisualizationWrapper hide={!hasData}>{visualization}</VisualizationWrapper>
-      }
-      noVisualizationPadding
-      revealActions="always"
-      Actions={
-        hasData && (
-          <Button
-            size="xs"
-            onClick={() =>
-              openDrawer(() => <SSRTreeDrawer tree={tree} />, {
-                ariaLabel: WIDGET_TITLE,
-                drawerKey: 'ssr-tree-widget',
-                drawerWidth: '600px',
-                resizable: true,
-                shouldCloseOnInteractOutside: element => {
-                  return !element.closest(`.${HOVERCARD_BODY_CLASS_NAME}`);
-                },
-                drawerCss: css`
-                  display: flex;
-                  flex-direction: column;
-                  height: 100%;
-                `,
-              })
-            }
-          >
-            {t('View All')}
-          </Button>
-        )
-      }
-    />
-  );
-}
-
-function SSRTreeDrawer({tree}: {tree: TreeContainer}) {
-  const [search, setSearch] = useState('');
-
-  const filteredTree = useMemo(() => {
-    return filterTree(tree, [], (_item, path) => {
-      // Split the search string by separators (/, \ and space)
-      const normalizedSearch = search
-        .toLowerCase()
-        .split(/[\\/\s]/)
-        .join();
-      const combinedPath = path.join().toLowerCase();
-      return combinedPath.includes(normalizedSearch);
-    });
-  }, [tree, search]);
-
-  return (
-    <Fragment>
-      <DrawerHeader>{WIDGET_TITLE}</DrawerHeader>
-      <StyledDrawerBody>
-        <DrawerHeading>{WIDGET_TITLE}</DrawerHeading>
-        <InputGroup>
-          <InputGroup.LeadingItems disablePointerEvents>
-            <IconSearch size="sm" />
-          </InputGroup.LeadingItems>
-          <InputGroup.Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={t('Search for a file or folder')}
-          />
-        </InputGroup>
-        <FlexGrow>
-          <DrawerPanel>
-            <TreeWidgetVisualization tree={filteredTree} />
-            {filteredTree.children.length === 0 && (
-              <EmptyMessage size="large" icon={<IconSearch size="lg" />}>
-                {t('No results found')}
-              </EmptyMessage>
-            )}
-          </DrawerPanel>
-        </FlexGrow>
-      </StyledDrawerBody>
-    </Fragment>
+    <StyledPanel>
+      <TreeWidgetVisualization tree={tree} />
+      {treeRequest.isLoading ? (
+        <LoadingIndicator />
+      ) : hasData ? null : (
+        <EmptyMessage size="large" icon={<IconSearch size="xl" />}>
+          {t('No results found')}
+        </EmptyMessage>
+      )}
+    </StyledPanel>
   );
 }
 
@@ -298,17 +216,13 @@ function sortTreeChildren(a: TreeNode, b: TreeNode): number {
   return a.name.localeCompare(b.name);
 }
 
-function TreeWidgetVisualization({
-  tree,
-  size = 'sm',
-}: {
-  tree: TreeContainer;
-  size?: 'xs' | 'sm';
-}) {
+function TreeWidgetVisualization({tree}: {tree: TreeContainer}) {
   return (
-    <TreeGrid size={size}>
+    <TreeGrid>
       <HeaderCell>{t('Path')}</HeaderCell>
-      <HeaderCell>{t('Avg Duration')}</HeaderCell>
+      <HeaderCell>{t('Error Rate')}</HeaderCell>
+      <HeaderCell>{t('AVG')}</HeaderCell>
+      <HeaderCell>{t('P95')}</HeaderCell>
       {tree.children.toSorted(sortTreeChildren).map((item, index) => {
         return <TreeNodeRenderer key={index} item={item} />;
       })}
@@ -327,12 +241,11 @@ function TreeNodeRenderer({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const theme = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const itemPath = [...path, item.name];
 
   let exploreLink: string | null = null;
-  if (item.type !== 'folder') {
+  if (item.query) {
     exploreLink = getExploreUrl({
       organization,
       selection,
@@ -343,23 +256,11 @@ function TreeNodeRenderer({
           yAxes: ['avg(span.duration)'],
         },
       ],
-      query:
-        item.type === 'component'
-          ? `span.description:"${item['span.description']}"`
-          : `transaction:"GET /${path.join('/')}" span.op:function.nextjs`,
+      query: item.query,
     });
   }
 
   if (item.type === 'component') {
-    const durationMs = item['avg(span.duration)'];
-
-    const valueColor =
-      durationMs > 500
-        ? theme.errorText
-        : durationMs > 200
-          ? theme.warningText
-          : undefined;
-
     return (
       <Fragment>
         <div>
@@ -370,8 +271,17 @@ function TreeNodeRenderer({
             </TextOverflow>
           </PathWrapper>
         </div>
-        <div style={{color: valueColor}}>
-          {getDuration(durationMs / 1000, 2, true, true)}
+        <div>
+          <ErrorRateCell errorRate={item['failure_rate()']} total={item['count()']} />
+        </div>
+        <div>
+          <DurationCell milliseconds={item['avg(span.duration)']} />
+        </div>
+        <div>
+          <DurationCell
+            milliseconds={item['p95(span.duration)']}
+            thresholds={getP95Threshold(item['avg(span.duration)'])}
+          />
         </div>
       </Fragment>
     );
@@ -428,7 +338,10 @@ function TreeNodeRenderer({
         </PathWrapper>
       </div>
       <div />
+      <div />
+      <div />
       {!isCollapsed &&
+        'children' in item &&
         item.children
           .toSorted(sortTreeChildren)
           .map((child, index) => (
@@ -443,29 +356,15 @@ function TreeNodeRenderer({
   );
 }
 
-TreeWidgetVisualization.LoadingPlaceholder =
-  TimeSeriesWidgetVisualization.LoadingPlaceholder;
-
-const VisualizationWrapper = styled('div')<{hide: boolean}>`
-  margin-top: ${space(1)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  overflow-y: auto;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  ${p =>
-    p.hide &&
-    css`
-      display: contents;
-    `}
-`;
-
 const HeaderCell = styled('div')`
-  padding: ${space(0.5)};
+  padding: ${space(2)} ${space(0.75)};
   text-transform: uppercase;
   font-weight: 600;
   color: ${p => p.theme.subText};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  font-size: ${p => p.theme.fontSizeSmall};
+  border-bottom: 1px solid ${p => p.theme.border};
   white-space: nowrap;
+  line-height: 1;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -502,52 +401,38 @@ const OneLineCodeBlock = styled('pre')`
   max-width: 100%;
 `;
 
-const TreeGrid = styled('div')<{size: 'xs' | 'sm'}>`
+const TreeGrid = styled('div')`
   display: grid;
-  grid-template-columns: 1fr min-content;
-  font-size: ${p => (p.size === 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium)};
+  grid-template-columns: 1fr min-content min-content min-content;
+  font-size: ${p => p.theme.fontSizeMedium};
 
   & > * {
-    padding: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+    text-align: right;
+    padding: ${space(0.75)} ${space(1.5)};
     background-color: ${p => p.theme.background};
+    line-height: 1.1;
   }
 
-  & > *:nth-child(2n + 1) {
+  & > *:nth-child(4n + 1) {
     text-align: left;
     padding-left: ${space(2)};
     min-width: 0;
   }
 
-  & > *:nth-child(2n) {
-    text-align: right;
+  & > *:nth-child(4n) {
     padding-right: ${space(2)};
   }
 
-  & > *:nth-child(4n + 1),
-  & > *:nth-child(4n + 2) {
+  & > *:nth-child(8n + 1),
+  & > *:nth-child(8n + 2),
+  & > *:nth-child(8n + 3),
+  & > *:nth-child(8n + 4) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
-const StyledDrawerBody = styled(DrawerBody)`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  flex: 1;
-  min-height: 0;
-`;
-
-const DrawerPanel = styled(Panel)`
-  max-height: 100%;
+const StyledPanel = styled(Panel)`
+  max-height: 400px;
   overflow-y: auto;
   margin-top: ${space(1)};
-`;
-
-const DrawerHeading = styled('h4')`
-  margin-bottom: ${space(2)};
-`;
-
-const FlexGrow = styled('div')`
-  flex: 1;
-  min-height: 0;
 `;
