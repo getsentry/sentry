@@ -1,5 +1,5 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -20,8 +20,6 @@ import {Select} from 'sentry/components/core/select';
 import {SelectOption} from 'sentry/components/core/select/option';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
@@ -55,7 +53,6 @@ import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString'
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -95,13 +92,12 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {WidgetTable} from 'sentry/views/dashboards/widgetTable';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
   renderDiscoverGridHeaderCell,
-  renderGridBodyCell,
   renderIssueGridHeaderCell,
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
@@ -200,9 +196,7 @@ function WidgetViewerModal(props: Props) {
     confidence,
     sampleCount,
   } = props;
-  const theme = useTheme();
   const location = useLocation();
-  const {projects} = useProjects();
   const navigate = useNavigate();
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
   // let widgetContentLoadingStatus: boolean | undefined = undefined;
@@ -378,17 +372,6 @@ function WidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  let columnOrder = decodeColumnOrder(
-    fields.map(field => ({
-      field,
-    }))
-  );
-  const columnSortBy = eventView.getSorts();
-  columnOrder = columnOrder.map((column, index) => ({
-    ...column,
-    width: parseInt(widths[index]!, 10) || -1,
-  }));
-
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
     t(
       'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
@@ -432,25 +415,6 @@ function WidgetViewerModal(props: Props) {
     };
   });
 
-  const onResizeColumn = (columnIndex: number, nextColumn: GridColumnOrder) => {
-    const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
-    const newWidths: number[] = new Array(Math.max(columnIndex, widths.length)).fill(
-      COL_WIDTH_UNDEFINED
-    );
-    widths.forEach((width, index) => (newWidths[index] = parseInt(width, 10)));
-    newWidths[columnIndex] = newWidth;
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [WidgetViewerQueryField.WIDTH]: newWidths,
-        },
-      },
-      {replace: true}
-    );
-  };
-
   // Get discover result totals
   useEffect(() => {
     const getDiscoverTotals = async () => {
@@ -478,44 +442,29 @@ function WidgetViewerModal(props: Props) {
     loading,
     pageLinks,
   }: GenericWidgetQueriesChildrenProps) {
-    const {isMetricsData} = useDashboardsMEPContext();
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
       <Fragment>
-        <GridEditable
-          isLoading={loading}
-          data={tableResults?.[0]?.data ?? []}
-          columnOrder={columnOrder}
-          columnSortBy={columnSortBy}
-          grid={{
-            renderHeadCell: renderDiscoverGridHeaderCell({
-              ...props,
-              location,
-              widget: tableWidget,
-              tableData: tableResults?.[0],
-              theme,
-              onHeaderClick: () => {
-                if (
-                  [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
-                  defined(widget.limit)
-                ) {
-                  setChartUnmodified(false);
-                }
-              },
-              isMetricsData,
-            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
-            renderBodyCell: renderGridBodyCell({
-              ...props,
-              location,
-              tableData: tableResults?.[0],
-              isFirstPage,
-              projects,
-              eventView,
-              theme,
-            }),
-            onResizeColumn,
+        <WidgetTable
+          loading={loading}
+          tableResults={tableResults ?? []}
+          renderHeaderGridCell={renderDiscoverGridHeaderCell}
+          customHeaderClick={() => {
+            if (
+              [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
+              defined(widget.limit)
+            ) {
+              setChartUnmodified(false);
+            }
           }}
+          widget={tableWidget}
+          organization={organization}
+          sort={sort || ''}
+          widths={widths}
+          usesLocationQuery
+          selection={selection}
+          isFirstPage={isFirstPage}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -560,31 +509,19 @@ function WidgetViewerModal(props: Props) {
     const links = parseLinkHeader(pageLinks ?? null);
     return (
       <Fragment>
-        <GridEditable
-          isLoading={loading}
-          data={tableResults?.[0]?.data ?? []}
-          columnOrder={columnOrder}
-          columnSortBy={columnSortBy}
-          grid={{
-            renderHeadCell: renderIssueGridHeaderCell({
-              location,
-              organization,
-              theme,
-              selection,
-              widget: tableWidget,
-              onHeaderClick: () => {
-                setChartUnmodified(false);
-              },
-            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
-            renderBodyCell: renderGridBodyCell({
-              location,
-              theme,
-              organization,
-              selection,
-              widget: tableWidget,
-            }),
-            onResizeColumn,
+        <WidgetTable
+          loading={loading}
+          tableResults={tableResults ?? []}
+          renderHeaderGridCell={renderIssueGridHeaderCell}
+          customHeaderClick={() => {
+            setChartUnmodified(false);
           }}
+          widget={tableWidget}
+          organization={organization}
+          sort={sort || ''}
+          widths={widths}
+          usesLocationQuery
+          selection={selection}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -636,35 +573,24 @@ function WidgetViewerModal(props: Props) {
     const isFirstPage = links.previous?.results === false;
     return (
       <Fragment>
-        <GridEditable
-          isLoading={loading}
-          data={tableResults?.[0]?.data ?? []}
-          columnOrder={columnOrder}
-          columnSortBy={columnSortBy}
-          grid={{
-            renderHeadCell: renderReleaseGridHeaderCell({
-              ...props,
-              location,
-              theme,
-              widget: tableWidget,
-              tableData: tableResults?.[0],
-              onHeaderClick: () => {
-                if (
-                  [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
-                  defined(widget.limit)
-                ) {
-                  setChartUnmodified(false);
-                }
-              },
-            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
-            renderBodyCell: renderGridBodyCell({
-              ...props,
-              location,
-              theme,
-              tableData: tableResults?.[0],
-              isFirstPage,
-            }),
-            onResizeColumn,
+        <WidgetTable
+          loading={loading}
+          tableResults={tableResults ?? []}
+          widget={tableWidget}
+          selection={selection}
+          renderHeaderGridCell={renderReleaseGridHeaderCell}
+          sort={sort || ''}
+          widths={widths}
+          organization={organization}
+          usesLocationQuery
+          isFirstPage={isFirstPage}
+          customHeaderClick={() => {
+            if (
+              [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
+              defined(widget.limit)
+            ) {
+              setChartUnmodified(false);
+            }
           }}
         />
         {!tableWidget.queries[0]!.orderby.match(/^-?release$/) &&

@@ -98,23 +98,24 @@ type GridEditableProps<DataRow, ColumnKey> = {
   bodyStyle?: React.CSSProperties;
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
+  fitMaxContent?: boolean;
+
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-
   height?: string | number;
+
   highlightedRowKey?: number;
 
   isLoading?: boolean;
 
   minimumColWidth?: number;
-
   onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
-  onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
 
+  onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   /**
    * Whether columns in the grid can be resized.
    *
@@ -465,6 +466,8 @@ class GridEditable<
       height,
       'aria-label': ariaLabel,
       bodyStyle,
+      stickyHeader,
+      fitMaxContent,
     } = this.props;
     const showHeader = title || headerButtons;
     return (
@@ -485,8 +488,9 @@ class GridEditable<
               scrollable={scrollable}
               height={height}
               ref={this.refGrid}
+              fitMaxContent={fitMaxContent}
             >
-              <GridHead>{this.renderGridHead()}</GridHead>
+              <GridHead sticky={stickyHeader}>{this.renderGridHead()}</GridHead>
               <GridBody>{this.renderGridBody()}</GridBody>
             </Grid>
           </Body>

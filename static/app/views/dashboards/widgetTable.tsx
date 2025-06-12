@@ -17,7 +17,7 @@ import {useDashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashbo
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
-interface Props {
+interface WidgetTableProps {
   loading: boolean;
   organization: Organization;
   renderHeaderGridCell: (
@@ -25,15 +25,17 @@ interface Props {
   ) => (column: TableColumn<keyof TableDataRow>, _columnIndex: number) => React.ReactNode;
   selection: PageFilters;
   sort: string;
-  style: any;
   tableResults: TableDataWithTitle[];
   widget: Widget;
   widths: string[];
   customHeaderClick?: () => void;
-  minColumnWidth?: string;
+  fitMaxContent?: boolean;
+  isFirstPage?: boolean;
+  minColumnWidth?: number;
   setWidgetSort?: (ns: string) => void;
   setWidths?: (w: string[]) => void;
   stickyHeader?: boolean;
+  style?: any;
   usesLocationQuery?: boolean;
 }
 
@@ -54,7 +56,7 @@ export const getColumnSortFromString = (sort: string): Array<TableColumnSort<str
   ];
 };
 
-export function WidgetTable(props: Props) {
+export function WidgetTable(props: WidgetTableProps) {
   const {
     tableResults,
     loading,
@@ -64,17 +66,19 @@ export function WidgetTable(props: Props) {
     sort,
     widget,
     style,
-    usesLocationQuery,
+    usesLocationQuery = false,
     stickyHeader,
     widths,
     setWidgetSort,
     setWidths,
     minColumnWidth,
+    isFirstPage,
+    fitMaxContent,
   } = props;
   const theme = useTheme();
   const location = useLocation();
-  const {projects} = useProjects();
   const navigate = useNavigate();
+  const {projects} = useProjects();
   const {isMetricsData} = useDashboardsMEPContext();
 
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
@@ -107,7 +111,9 @@ export function WidgetTable(props: Props) {
     widths.forEach((width, index) => (newWidths[index] = parseInt(width, 10)));
     newWidths[columnIndex] = newWidth;
     setWidths?.(newWidths.map(String));
-    // Editing a widget relies on location query, while state is used in dashboard
+    // Some use cases rely on state.
+    // Ex. modal viewer widget table uses location query, while state is used when
+    // there are multiple widgets on the dashboard
     if (usesLocationQuery) {
       navigate(
         {
@@ -124,6 +130,7 @@ export function WidgetTable(props: Props) {
 
   const onHeaderClick = (newSort?: string) => {
     customHeaderClick?.();
+    // To trigger a rerender when relying on widget state
     setWidgetSort?.(newSort || '');
   };
 
@@ -149,7 +156,7 @@ export function WidgetTable(props: Props) {
             ...props,
             location,
             tableData: tableResults?.[0],
-            isFirstPage: false,
+            isFirstPage,
             projects,
             eventView,
             theme,
@@ -159,7 +166,10 @@ export function WidgetTable(props: Props) {
         }}
         bodyStyle={style}
         stickyHeader={stickyHeader}
-        minimumColWidth={minColumnWidth ? parseInt(minColumnWidth, 10) : undefined}
+        scrollable
+        height={'100%'}
+        minimumColWidth={minColumnWidth}
+        fitMaxContent={fitMaxContent}
       />
     </Fragment>
   );

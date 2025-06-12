@@ -10,6 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {Widget} from 'sentry/views/dashboards/types';
+import {TABLE_WIDGET_STYLES} from 'sentry/views/dashboards/widgetCard';
 import {WidgetTable} from 'sentry/views/dashboards/widgetTable';
 
 type Props = {
@@ -56,13 +57,7 @@ export function IssueWidgetCard({
   return (
     <TableWrapper>
       <WidgetTable
-        style={{
-          borderRadius: 0,
-          marginBottom: 0,
-          borderLeft: 0,
-          borderRight: 0,
-          borderBottom: 0,
-        }}
+        style={TABLE_WIDGET_STYLES}
         loading={loading}
         tableResults={tableResults}
         widget={widget}
@@ -75,6 +70,7 @@ export function IssueWidgetCard({
         setWidgetSort={setWidgetSort}
         setWidths={(w: string[]) => setTableWidths?.(w)}
         usesLocationQuery={isPreview}
+        fitMaxContent={!isPreview}
       />
     </TableWrapper>
   );
@@ -89,5 +85,5 @@ const TableWrapper = styled('div')`
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  overflow: auto;
+  display: flex;
 `;

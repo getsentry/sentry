@@ -57,6 +57,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {TABLE_WIDGET_STYLES} from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -91,7 +92,7 @@ type WidgetCardChartProps = Pick<
   isPreview?: boolean;
   isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -165,13 +166,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return (
         <TableWrapper key={`table:${result.title}`}>
           <WidgetTable
-            style={{
-              borderRadius: 0,
-              marginBottom: 0,
-              borderLeft: 0,
-              borderRight: 0,
-              borderBottom: 0,
-            }}
+            style={TABLE_WIDGET_STYLES}
             loading={widget.widgetType === WidgetType.SPANS ? false : loading}
             tableResults={tableResults}
             widget={widget}
@@ -189,6 +184,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             setWidths={(w: string[]) => setTableWidths?.(w)}
             usesLocationQuery={isPreview}
             minColumnWidth={minTableColumnWidth}
+            fitMaxContent={!isPreview}
           />
         </TableWrapper>
       );

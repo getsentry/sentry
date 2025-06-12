@@ -42,7 +42,7 @@ type Props = {
   isMobile?: boolean;
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
