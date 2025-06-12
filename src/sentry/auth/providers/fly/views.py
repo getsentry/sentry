@@ -32,7 +32,7 @@ class FetchUser(AuthView):
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: HttpRequest, helper) -> HttpResponse:  # type: ignore[explicit-override]
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:  # type: ignore[explicit-override]
         with FlyClient(helper.fetch_state("data")["access_token"]) as client:
             """
             Utilize the access token to make final request to token introspection endpoint

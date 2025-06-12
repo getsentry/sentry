@@ -73,7 +73,6 @@ class WorkflowEventData:
     group_state: GroupState | None = None
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
-    workflow_id: int | None = None
     workflow_env: Environment | None = None
 
 
