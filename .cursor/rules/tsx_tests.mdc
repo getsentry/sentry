@@ -42,13 +42,13 @@ import {
 
 2. **`getByLabelText`/`getByPlaceholderText`** - For form elements
    ```tsx
-   screen.getByLabelText(/email address/i)
-   screen.getByPlaceholderText(/enter search term/i)
+   screen.getByLabelText('Email Address')
+   screen.getByPlaceholderText('Enter Search Term')
    ```
 
 3. **`getByText`** - For non-interactive elements
    ```tsx
-   screen.getByText(/error message/i)
+   screen.getByText('Error Message')
    ```
 
 4. **`getByTestId`** - Last resort only
@@ -146,15 +146,6 @@ fireEvent.change(input, { target: { value: 'text' } });
 // ✅ Use userEvent
 await userEvent.click(input);
 await userEvent.keyboard('text');
-```
-
-### Text matching
-```tsx
-// ❌ Exact text match
-screen.getByText('Hello World')
-
-// ✅ Case-insensitive regex
-screen.getByText(/hello world/i)
 ```
 
 ### Testing routing
