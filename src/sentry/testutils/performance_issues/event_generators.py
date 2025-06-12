@@ -29,7 +29,7 @@ for dirpath, dirnames, filenames in os.walk(_fixture_path):
 
         with open(filepath) as f:
             event = json.load(f)
-            event["project"] = PROJECT_ID
+            event["project_id"] = PROJECT_ID
 
         EVENTS[full_event_name] = event
 
@@ -67,7 +67,7 @@ def create_span(
 def create_event(spans, event_id: str = "a" * 16) -> dict[str, Any]:
     return {
         "event_id": event_id,
-        "project": PROJECT_ID,
+        "project_id": PROJECT_ID,
         "spans": spans,
         "sdk": {"name": "sentry.python"},
     }

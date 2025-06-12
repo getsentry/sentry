@@ -42,7 +42,7 @@ def overhead_span(
 def _valid_http_overhead_event(url: str) -> dict[str, Any]:
     return {
         "event_id": "a" * 16,
-        "project": PROJECT_ID,
+        "project_id": PROJECT_ID,
         "spans": [
             overhead_span(1000, 100, url),
             overhead_span(1000, 200, url),

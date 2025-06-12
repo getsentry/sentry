@@ -25,7 +25,7 @@ from sentry.testutils.performance_issues.event_generators import (
 def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
     return {
         "event_id": "a" * 16,
-        "project": PROJECT_ID,
+        "project_id": PROJECT_ID,
         "measurements": {
             "fcp": {
                 "value": 2500.0,

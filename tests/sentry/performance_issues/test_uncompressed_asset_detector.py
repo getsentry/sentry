@@ -54,7 +54,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_detects_uncompressed_asset_with_none_tag(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "tags": [None, ["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
@@ -91,7 +91,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_detects_uncompressed_asset(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
@@ -128,7 +128,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_detects_uncompressed_asset_with_trailing_query_params(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
@@ -166,7 +166,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_detects_uncompressed_asset_stylesheet(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
@@ -205,7 +205,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_does_not_detect_jpg_asset(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
@@ -260,7 +260,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_does_not_detect_woff_asset(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
@@ -315,7 +315,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_does_not_detect_mobile_uncompressed_asset(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "tags": [["browser.name", "firefox_mobile"]],
             "spans": [
                 create_asset_span(
@@ -335,7 +335,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_ignores_assets_under_size(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "spans": [
                 create_asset_span(
                     duration=1000.0,
@@ -354,7 +354,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_ignores_compressed_assets(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "spans": [
                 create_asset_span(
                     duration=1000.0,
@@ -373,7 +373,7 @@ class UncompressedAssetsDetectorTest(TestCase):
     def test_ignores_assets_under_duration(self):
         event = {
             "event_id": "a" * 16,
-            "project": PROJECT_ID,
+            "project_id": PROJECT_ID,
             "spans": [
                 create_asset_span(
                     duration=50.0,

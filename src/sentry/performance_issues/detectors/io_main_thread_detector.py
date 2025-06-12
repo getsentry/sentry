@@ -120,7 +120,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         event = self._event
         if "debug_meta" in event:
             images = event["debug_meta"].get("images", [])
-            project_id = event.get("project")
+            project_id = event["project_id"]
             if not isinstance(images, list):
                 return
             if project_id is not None:
