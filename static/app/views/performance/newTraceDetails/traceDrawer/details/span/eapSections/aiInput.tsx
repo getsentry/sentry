@@ -34,7 +34,7 @@ function renderToolMessage(content: any) {
 
 function parseAIMessages(messages: string) {
   try {
-    const array: any[] = JSON.parse(messages);
+    const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
     return array
       .map((message: any) => {
         switch (message.role) {
