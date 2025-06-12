@@ -32,7 +32,11 @@ import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfi
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {
+  FieldKey,
+  ISSUE_FIELD_TO_HEADER_MAP,
+  ISSUE_FIELDS,
+} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -73,10 +77,24 @@ export const renderIssueGridHeaderCell = ({
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const sortField = getSortField(String(column.key));
 
+    const getHumanReadableName = (columnName: string) => {
+      if (
+        columnName === FieldKey.LIFETIME_EVENTS ||
+        columnName === FieldKey.LIFETIME_USERS
+      ) {
+        return ISSUE_FIELD_TO_HEADER_MAP[columnName];
+      }
+      return columnName;
+    };
+
     return (
       <SortLink
         align={align}
-        title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
+        title={
+          <StyledTooltip title={column.name}>
+            {getHumanReadableName(column.name)}
+          </StyledTooltip>
+        }
         direction={widget.queries[0]!.orderby === sortField ? 'desc' : undefined}
         canSort={!!sortField}
         generateSortLink={

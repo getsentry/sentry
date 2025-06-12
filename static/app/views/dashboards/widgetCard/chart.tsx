@@ -61,7 +61,7 @@ import {TABLE_WIDGET_STYLES} from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
-import {WidgetTable} from 'sentry/views/dashboards/widgetTable';
+import WidgetTable from 'sentry/views/dashboards/widgetTable';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';

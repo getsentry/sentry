@@ -28,6 +28,7 @@ interface WidgetTableProps {
   tableResults: TableDataWithTitle[];
   widget: Widget;
   widths: string[];
+  combineColumnsAndAggregates?: boolean;
   customHeaderClick?: () => void;
   fitMaxContent?: boolean;
   isFirstPage?: boolean;
@@ -56,7 +57,7 @@ export const getColumnSortFromString = (sort: string): Array<TableColumnSort<str
   ];
 };
 
-export function WidgetTable(props: WidgetTableProps) {
+function WidgetTable(props: WidgetTableProps) {
   const {
     tableResults,
     loading,
@@ -74,6 +75,7 @@ export function WidgetTable(props: WidgetTableProps) {
     minColumnWidth,
     isFirstPage,
     fitMaxContent,
+    combineColumnsAndAggregates,
   } = props;
   const theme = useTheme();
   const location = useLocation();
@@ -89,9 +91,10 @@ export function WidgetTable(props: WidgetTableProps) {
 
   const {aggregates, columns} = widget.queries[0]!;
 
-  const fields = defined(widget.queries[0]!.fields)
-    ? widget.queries[0]!.fields
-    : [...columns, ...aggregates];
+  const fields =
+    !combineColumnsAndAggregates && defined(widget.queries[0]!.fields)
+      ? widget.queries[0]!.fields
+      : [...columns, ...aggregates];
 
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
@@ -174,3 +177,5 @@ export function WidgetTable(props: WidgetTableProps) {
     </Fragment>
   );
 }
+
+export default WidgetTable;

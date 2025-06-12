@@ -465,6 +465,7 @@ function WidgetViewerModal(props: Props) {
           usesLocationQuery
           selection={selection}
           isFirstPage={isFirstPage}
+          combineColumnsAndAggregates
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -522,6 +523,7 @@ function WidgetViewerModal(props: Props) {
           widths={widths}
           usesLocationQuery
           selection={selection}
+          combineColumnsAndAggregates
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -592,6 +594,7 @@ function WidgetViewerModal(props: Props) {
               setChartUnmodified(false);
             }
           }}
+          combineColumnsAndAggregates
         />
         {!tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
           (links?.previous?.results || links?.next?.results) && (

@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {TABLE_WIDGET_STYLES} from 'sentry/views/dashboards/widgetCard';
-import {WidgetTable} from 'sentry/views/dashboards/widgetTable';
+import WidgetTable from 'sentry/views/dashboards/widgetTable';
 
 type Props = {
   loading: boolean;
