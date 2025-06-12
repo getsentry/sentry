@@ -55,7 +55,7 @@ export function ClientTable() {
       'count_if(span.op,navigation)',
       'count_if(span.op,pageload)',
     ],
-    cursorParamName: 'cursor',
+    cursorParamName: 'tableCursor',
     referrer: Referrer.CLIENT_TABLE,
   });
 
@@ -64,7 +64,7 @@ export function ClientTable() {
       <HeadSortCell
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        cursorParamName={'cursor'}
+        cursorParamName={'tableCursor'}
         forceCellGrow={column.key === 'transaction'}
       >
         {column.name}
@@ -143,7 +143,7 @@ export function ClientTable() {
       data={tableDataRequest.data}
       initialColumnOrder={pageloadColumnOrder}
       stickyHeader
-      cursorParamName={'cursor'}
+      cursorParamName={'tableCursor'}
       pageLinks={pagesTablePageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
       grid={{
