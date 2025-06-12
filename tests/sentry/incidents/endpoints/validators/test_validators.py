@@ -31,7 +31,7 @@ class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
             data={
                 "type": Condition.GREATER,
                 "comparison": 100,
-                "conditionResult": DetectorPriorityLevel.HIGH,
+                "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                 "conditionGroupId": self.data_condition_group.id,
             }
         )
@@ -125,7 +125,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
-                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
@@ -186,7 +186,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
+        assert condition.condition_result == DetectorPriorityLevel.HIGH.name.lower()
 
         # Verify audit log
         mock_audit.assert_called_once_with(
@@ -218,19 +218,19 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
-                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                         "conditionGroupId": self.data_condition_group.id,
                     },
                     {
                         "type": Condition.GREATER,
                         "comparison": 200,
-                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                         "conditionGroupId": self.data_condition_group.id,
                     },
                     {
                         "type": Condition.GREATER,
                         "comparison": 300,
-                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],

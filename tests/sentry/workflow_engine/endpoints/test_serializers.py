@@ -130,7 +130,7 @@ class TestDetectorSerializer(TestCase):
                         "id": str(condition.id),
                         "type": Condition.GREATER.value,
                         "comparison": 100,
-                        "conditionResult": DetectorPriorityLevel.HIGH.value,
+                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                     }
                 ],
                 "actions": [
@@ -260,7 +260,7 @@ class TestDataConditionGroupSerializer(TestCase):
                     "id": str(condition.id),
                     "type": "gt",
                     "comparison": 100,
-                    "conditionResult": DetectorPriorityLevel.HIGH,
+                    "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                 }
             ],
             "actions": [
@@ -461,7 +461,7 @@ class TestWorkflowSerializer(TestCase):
                             "id": str(condition.id),
                             "type": "gt",
                             "comparison": 100,
-                            "conditionResult": DetectorPriorityLevel.HIGH.value,
+                            "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                         }
                     ],
                     "actions": [

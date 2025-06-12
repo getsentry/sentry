@@ -627,7 +627,7 @@ class Fixtures:
         **kwargs,
     ):
         if condition_result is None:
-            condition_result = str(DetectorPriorityLevel.HIGH.value)
+            condition_result = DetectorPriorityLevel.HIGH.name.lower()
         if condition_group is None:
             condition_group = self.create_data_condition_group()
 

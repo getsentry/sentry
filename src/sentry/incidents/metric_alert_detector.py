@@ -53,8 +53,8 @@ class MetricAlertComparisonConditionValidator(
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
-            result = DetectorPriorityLevel(int(value))
-        except ValueError:
+            result = DetectorPriorityLevel[value.upper()]
+        except (KeyError, AttributeError):
             result = None
 
         if result not in self.supported_condition_results:

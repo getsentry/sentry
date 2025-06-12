@@ -140,7 +140,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                         "id": self.condition.id,
                         "comparison": 100,
                         "type": Condition.GREATER,
-                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
                         "conditionGroupId": self.condition.condition_group.id,
                     },
                 ],
@@ -162,7 +162,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def assert_data_condition_updated(self, condition):
         assert condition.type == Condition.GREATER.value
         assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
+        assert condition.condition_result == DetectorPriorityLevel.HIGH.name.lower()
 
     def assert_snuba_query_updated(self, snuba_query):
         assert snuba_query.query == "updated query"
@@ -203,7 +203,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition_group_data = {
             "comparison": 50,
             "type": Condition.GREATER,
-            "conditionResult": DetectorPriorityLevel.MEDIUM,
+            "conditionResult": DetectorPriorityLevel.MEDIUM.name.lower(),
             "conditionGroupId": self.condition.condition_group.id,
         }
         data["conditionGroup"]["conditions"].append(condition_group_data)
@@ -229,7 +229,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition_group_data = {
             "comparison": "betterThan",
             "type": Condition.GREATER,
-            "conditionResult": DetectorPriorityLevel.MEDIUM,
+            "conditionResult": DetectorPriorityLevel.MEDIUM.name.lower(),
             "conditionGroupId": self.condition.condition_group.id,
         }
         data["conditionGroup"]["conditions"].append(condition_group_data)
