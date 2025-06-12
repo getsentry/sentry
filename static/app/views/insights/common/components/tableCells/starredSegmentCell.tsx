@@ -14,8 +14,10 @@ interface Props {
   segmentName: string;
 }
 
-type TableRow = Partial<EAPSpanResponse> &
-  Pick<EAPSpanResponse, 'is_starred_transaction' | 'transaction'>;
+interface TableRow extends Partial<EAPSpanResponse> {
+  is_starred_transaction: boolean;
+  transaction: string;
+}
 
 type TableResponse = [{confidence: any; data: TableRow[]; meta: EventsMetaType}];
 
@@ -39,9 +41,9 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
       {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
-      (oldResponse: TableResponse) => {
+      (oldResponse: TableResponse): TableResponse => {
         const oldTableData = oldResponse[0]?.data || [];
-        const newData = oldTableData.map(row => {
+        const newData = oldTableData.map((row): TableRow => {
           if (row.transaction === segmentName) {
             return {
               ...row,
@@ -50,7 +52,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
           }
           return row;
         });
-        return [{...oldResponse[0], data: newData}] satisfies TableResponse;
+        return [{...oldResponse[0], data: newData}];
       }
     );
   };
