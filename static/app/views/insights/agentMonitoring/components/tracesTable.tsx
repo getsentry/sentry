@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -19,7 +20,6 @@ import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/componen
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {getAITracesFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 
 interface TableData {
   agentFlow: string;
@@ -120,23 +120,12 @@ const BodyCell = memo(function BodyCell({
     [projects, dataRow.project]
   );
 
-  const trace = useTrace({
-    traceSlug: dataRow.traceId,
-  });
-
-  // @ts-expect-error: get event id from trace
-  const eventId = trace.data?.transactions[0]?.event_id;
-
   switch (column.key) {
     case 'traceId':
       return (
-        <FakeLink
-          onClick={() =>
-            openTraceViewDrawer(dataRow.traceId, eventId, project?.slug ?? '')
-          }
-        >
+        <Button priority="link" onClick={() => openTraceViewDrawer(dataRow.traceId)}>
           {dataRow.traceId.slice(0, 8)}
-        </FakeLink>
+        </Button>
       );
     case 'project':
       return project ? (
@@ -172,9 +161,4 @@ const LoadingOverlay = styled('div')`
   background-color: ${p => p.theme.background};
   opacity: 0.5;
   z-index: 1;
-`;
-
-const FakeLink = styled('div')`
-  color: ${p => p.theme.blue400};
-  cursor: pointer;
 `;

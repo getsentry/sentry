@@ -7,24 +7,34 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Placeholder from 'sentry/components/placeholder';
 import {IconCode, IconSort} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  AI_AGENT_NAME_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
+  AI_MODEL_ID_ATTRIBUTE,
   AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
+  AI_TOOL_CALL_DESCRIPTIONS,
   AI_TOOL_CALL_OPS,
+  AI_TOOL_NAME_ATTRIBUTE,
+  AI_TOTAL_TOKENS_ATTRIBUTE,
   mapMissingSpanOp,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -44,17 +54,31 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
+type TraceSpanNode = TraceTreeNode<
+  TraceTree.Transaction | TraceTree.EAPSpan | TraceTree.Span
+>;
 
 interface UseCompleteTraceResult {
   error: boolean;
   isLoading: boolean;
-  nodes: Array<TraceTreeNode & {uniqueKey: string}>;
+  nodes: TraceSpanNode[];
+}
+
+function getUniqueKey(node: TraceSpanNode, index: number) {
+  let uniqueKey: string;
+  if (isTransactionNode(node) || isEAPSpanNode(node)) {
+    uniqueKey = node.value?.event_id || `unknown-${index}`;
+  } else if (isSpanNode(node)) {
+    uniqueKey = node.value?.span_id || `unknown-${index}`;
+  } else {
+    uniqueKey = `unknown-${index}`;
+  }
+
+  return uniqueKey;
 }
 
 function useCompleteTrace(traceSlug: string): UseCompleteTraceResult {
-  const [nodes, setNodes] = useState<
-    Array<TraceTreeNode<TraceTree.NodeValue> & {uniqueKey: string}>
-  >([]);
+  const [nodes, setNodes] = useState<TraceSpanNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -109,22 +133,9 @@ function useCompleteTrace(traceSlug: string): UseCompleteTraceResult {
 
         const flattenedNodes = TraceTree.FindAll(tree.root, node => {
           return isTransactionNode(node) || isSpanNode(node) || isEAPSpanNode(node);
-        });
+        }) as TraceSpanNode[];
 
-        const nodesWithKeys = flattenedNodes.map((node, index) => {
-          let uniqueKey: string;
-          if (isTransactionNode(node) || isEAPSpanNode(node)) {
-            uniqueKey = node.value?.event_id || `unknown-${index}`;
-          } else if (isSpanNode(node)) {
-            uniqueKey = node.value?.span_id || `unknown-${index}`;
-          } else {
-            uniqueKey = `unknown-${index}`;
-          }
-
-          return Object.assign(node, {uniqueKey});
-        });
-
-        setNodes(nodesWithKeys);
+        setNodes(flattenedNodes);
         setIsLoading(false);
       } catch (err) {
         setError(true);
@@ -148,7 +159,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
   const {selection} = usePageFilters();
   const location = useLocation();
 
-  const openTraceViewDrawer = (traceId: string, eventId: string, projectSlug: string) =>
+  const openTraceViewDrawer = (traceId: string) =>
     openDrawer(
       () => (
         <DrawerWrapper>
@@ -158,8 +169,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
               <LinkButton
                 size="xs"
                 to={getTraceDetailsUrl({
-                  eventId,
-                  source: TraceViewSources.LLM_MODULE, // TODO: change source to AGENT_MONITORING
+                  source: TraceViewSources.AGENT_MONITORING,
                   organization,
                   location,
                   traceSlug: traceId,
@@ -172,11 +182,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
           </StyledDrawerHeader>
           <StyledDrawerBody>
             <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-              <AITraceView
-                traceId={traceId}
-                eventId={eventId}
-                projectSlug={projectSlug}
-              />
+              <AITraceView traceId={traceId} />
             </TraceStateProvider>
           </StyledDrawerBody>
         </DrawerWrapper>
@@ -198,45 +204,38 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
   };
 }
 
-function AITraceView({
-  traceId: traceSlug,
-  eventId: _eventId,
-  projectSlug: _projectSlug,
-}: {
-  eventId: string;
-  projectSlug: string;
-  traceId: string;
-}) {
+function AITraceView({traceId: traceSlug}: {traceId: string}) {
   const organization = useOrganization();
   const {nodes, isLoading, error} = useCompleteTrace(traceSlug);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (nodes.length > 0 && !selectedNodeKey && nodes[0]) {
-      setSelectedNodeKey(nodes[0].uniqueKey);
+      setSelectedNodeKey(getUniqueKey(nodes[0], 0));
     }
   }, [nodes, selectedNodeKey]);
 
   if (isLoading || nodes.length === 0) {
     return (
       <LoadingContainer>
-        <LoadingIndicator size={32}>Loading complete trace...</LoadingIndicator>
+        <LoadingIndicator size={32}>{t('Loading trace...')}</LoadingIndicator>
       </LoadingContainer>
     );
   }
 
   if (error) {
-    return <div>Error loading trace</div>;
+    return <div>{t('Failed to load trace')}</div>;
   }
 
   const selectedNode = selectedNodeKey
-    ? nodes.find(node => node.uniqueKey === selectedNodeKey) || nodes[0]
+    ? nodes.find((node, index) => getUniqueKey(node, index) === selectedNodeKey) ||
+      nodes[0]
     : nodes[0];
 
   return (
     <SplitContainer>
       <LeftPanel>
-        <h4>Abbreviated Trace</h4>
+        <h4>{t('Abbreviated Trace')}</h4>
 
         <AbbreviatedTrace
           nodes={nodes}
@@ -253,10 +252,65 @@ function AITraceView({
           organization={organization}
           replay={null}
           traceId={traceSlug}
+          hideNodeActions
         />
       </RightPanel>
     </SplitContainer>
   );
+}
+
+const TAGS_REGEX = /tags\[(.*?),.*\]/;
+function mapSpanAttributes(
+  spanAttributes: Record<string, string | number | boolean | null>
+) {
+  // Map "tags[gen_ai.request.model,string]" to "gen_ai.request.model"
+  return Object.fromEntries(
+    Object.entries(spanAttributes)
+      .map<[string, string | undefined]>(([key, value]) => {
+        const match = key.match(TAGS_REGEX);
+        if (match?.[1]) {
+          return [match[1], value?.toString()];
+        }
+        return [key, value?.toString()];
+      })
+      .filter((entry): entry is [string, string] => defined(entry[1]))
+  );
+}
+
+const keyToTag = (key: string, type: 'string' | 'number') => {
+  return `tags[${key},${type}]`;
+};
+
+function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) {
+  const spans = useMemo(() => {
+    return nodes.filter(node => isEAPSpanNode(node));
+  }, [nodes]);
+  const spanAttributesRequest = useEAPSpans(
+    {
+      search: `span_id:[${spans.map(span => span.value.event_id).join(',')}]`,
+      fields: [
+        'span_id',
+        keyToTag(AI_MODEL_ID_ATTRIBUTE, 'string'),
+        keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
+        keyToTag(AI_TOOL_NAME_ATTRIBUTE, 'string'),
+        keyToTag(AI_AGENT_NAME_ATTRIBUTE, 'string'),
+      ] as EAPSpanProperty[],
+      limit: 100,
+    },
+    Referrer.TRACE_DRAWER
+  );
+
+  const spanAttributes = useMemo(() => {
+    return spanAttributesRequest.data?.reduce(
+      (acc, span) => {
+        acc[span.span_id] = mapSpanAttributes(span);
+        return acc;
+      },
+      {} as Record<string, Record<string, string>>
+    );
+  }, [spanAttributesRequest.data]);
+
+  return {data: spanAttributes, isPending: spanAttributesRequest.isPending};
 }
 
 function AbbreviatedTrace({
@@ -264,7 +318,7 @@ function AbbreviatedTrace({
   selectedNodeKey,
   onSelectNode,
 }: {
-  nodes: Array<TraceTreeNode & {uniqueKey: string}>;
+  nodes: TraceSpanNode[];
   onSelectNode: (key: string) => void;
   selectedNodeKey: string | null;
 }) {
@@ -278,11 +332,21 @@ function AbbreviatedTrace({
   } => {
     if (nodes.length === 0) return {startTime: 0, endTime: 0, duration: 0};
 
-    const rootNode = nodes.find(node => isTransactionNode(node));
+    const rootNode = nodes.find(
+      (node): node is TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan> =>
+        isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction)
+    );
     if (!rootNode?.value) return {startTime: 0, endTime: 0, duration: 0};
 
     const startTime = rootNode.value.start_timestamp;
-    const endTime = rootNode.value.timestamp;
+    let endTime = 0;
+    if (isTransactionNode(rootNode)) {
+      endTime = rootNode.value.timestamp;
+    } else if (isEAPSpanNode(rootNode)) {
+      endTime = rootNode.value.end_timestamp;
+    }
+
+    if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
 
     return {
       startTime,
@@ -291,17 +355,28 @@ function AbbreviatedTrace({
     };
   }, [nodes]);
 
+  const spanAttributesRequest = useEAPSpanAttributes(nodes);
+
   return (
     <TraceListContainer>
-      {nodes.map(node => {
+      {nodes.map((node, index) => {
+        const uniqueKey = getUniqueKey(node, index);
         return (
           <TraceListItem
-            key={node.uniqueKey}
+            key={uniqueKey}
             node={node}
             traceBounds={traceBounds}
-            onClick={() => onSelectNode(node.uniqueKey)}
-            isSelected={node.uniqueKey === selectedNodeKey}
+            onClick={() => onSelectNode(uniqueKey)}
+            isSelected={uniqueKey === selectedNodeKey}
             colors={colors}
+            isLoadingAttributes={
+              isEAPSpanNode(node) ? spanAttributesRequest.isPending : false
+            }
+            spanAttributes={
+              isEAPSpanNode(node)
+                ? spanAttributesRequest.data[node.value.event_id]
+                : undefined
+            }
           />
         );
       })}
@@ -315,14 +390,18 @@ function TraceListItem({
   isSelected,
   traceBounds,
   colors,
+  spanAttributes = {},
+  isLoadingAttributes = false,
 }: {
   colors: readonly string[];
   isSelected: boolean;
-  node: TraceTreeNode<TraceTree.NodeValue> & {uniqueKey: string};
+  node: TraceSpanNode;
   onClick: () => void;
+  spanAttributes: Record<string, string> | undefined;
   traceBounds: {duration: number; endTime: number; startTime: number};
+  isLoadingAttributes?: boolean;
 }) {
-  const {icon, title, subtitle, color} = getNodeInfo(node, colors);
+  const {icon, title, subtitle, color} = getNodeInfo(node, colors, spanAttributes);
 
   const safeColor = color || colors[0] || '#9ca3af';
 
@@ -334,7 +413,11 @@ function TraceListItem({
       <ListItemContent>
         <ListItemHeader>
           <ListItemTitle>{title}</ListItemTitle>
-          {subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>}
+          {isLoadingAttributes ? (
+            <Placeholder height="12px" width="60px" />
+          ) : (
+            subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>
+          )}
         </ListItemHeader>
         <DurationBar color={safeColor} relativeTiming={relativeTiming} />
       </ListItemContent>
@@ -386,8 +469,9 @@ function calculateRelativeTiming(
 }
 
 function getNodeInfo(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  colors: readonly string[]
+  node: TraceSpanNode,
+  colors: readonly string[],
+  spanAttributes: Record<string, string>
 ) {
   // Default return value
   const nodeInfo = {
@@ -403,62 +487,60 @@ function getNodeInfo(
     return nodeInfo;
   }
 
-  if (isSpanNode(node)) {
-    const op = mapMissingSpanOp({
-      op: node.value.op,
-      description: node.value.description,
-    });
+  if (!isEAPSpanNode(node) && !isSpanNode(node)) {
+    return nodeInfo;
+  }
 
-    if (
-      AI_RUN_OPS.includes(op) ||
-      AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
-    ) {
-      nodeInfo.icon = <IconBot size="md" />;
-      nodeInfo.title = 'ai.agent';
-      nodeInfo.subtitle =
-        tryParseJson(node.value.data?.['ai.prompt'] ?? '{}').prompt || '';
-      nodeInfo.color = colors[1];
-    } else if (
-      AI_GENERATION_OPS.includes(op) ||
-      AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
-    ) {
-      nodeInfo.icon = <IconSpeechBubble size="md" />;
-      nodeInfo.title = 'ai.generate';
-      nodeInfo.subtitle = node.value.data?.['gen_ai.request.model'] || '';
-      nodeInfo.color = colors[2];
-    } else if (AI_TOOL_CALL_OPS.includes(op)) {
-      nodeInfo.icon = <IconTool size="md" />;
-      nodeInfo.title = node.value.description || 'Tool Call';
-      nodeInfo.subtitle = node.value.data?.['ai.toolCall.name'] || '';
-      nodeInfo.color = colors[3];
-    } else if (node.value.op === 'http.client') {
-      nodeInfo.icon = <IconSort size="md" />;
-      nodeInfo.title = node.value.description || 'HTTP';
-      nodeInfo.subtitle = node.value.data?.['http.url'] || '';
-      nodeInfo.color = colors[4];
-    } else {
-      nodeInfo.title = node.value.op || 'Span';
-      nodeInfo.subtitle = node.value.description || '';
+  const getNodeAttribute = (key: string) => {
+    if (isEAPSpanNode(node)) {
+      return spanAttributes?.[key];
     }
-    return nodeInfo;
-  }
 
-  if (isEAPSpanNode(node)) {
-    nodeInfo.title = node.value.op || 'EAP Span';
+    return node.value?.data?.[key];
+  };
+
+  const op = mapMissingSpanOp({
+    op: node.value?.op,
+    description: node.value?.description,
+  });
+
+  if (
+    AI_RUN_OPS.includes(op) ||
+    AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
+  ) {
+    const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
+    const model = getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) || '';
+    nodeInfo.icon = <IconBot size="md" />;
+    nodeInfo.title = op;
+    nodeInfo.subtitle = `${agentName} (${model})`;
+    nodeInfo.color = colors[1];
+  } else if (
+    AI_GENERATION_OPS.includes(op) ||
+    AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
+  ) {
+    const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
+    nodeInfo.icon = <IconSpeechBubble size="md" />;
+    nodeInfo.title = op;
+    nodeInfo.subtitle = tokens ? ` ${tokens} Tokens` : '';
+    nodeInfo.color = colors[2];
+  } else if (
+    AI_TOOL_CALL_OPS.includes(op) ||
+    AI_TOOL_CALL_DESCRIPTIONS.includes(node.value.description ?? '')
+  ) {
+    nodeInfo.icon = <IconTool size="md" />;
+    nodeInfo.title = op || 'gen_ai.toolCall';
+    nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
+    nodeInfo.color = colors[3];
+  } else if (op === 'http.client') {
+    nodeInfo.icon = <IconSort size="md" />;
+    nodeInfo.title = node.value.description || 'HTTP';
+    nodeInfo.color = colors[4];
+  } else {
+    nodeInfo.title = op || 'Span';
     nodeInfo.subtitle = node.value.description || '';
-    return nodeInfo;
   }
-
   return nodeInfo;
 }
-
-const tryParseJson = (value: string) => {
-  try {
-    return JSON.parse(value);
-  } catch (e) {
-    return value;
-  }
-};
 
 const StyledDrawerBody = styled(DrawerBody)`
   padding: 0;

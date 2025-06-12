@@ -28,8 +28,8 @@ export const AI_GENERATION_DESCRIPTIONS = [
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
-const AI_TOOL_CALL_DESCRIPTIONS = ['ai.toolCall'];
+export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
+export const AI_TOOL_CALL_DESCRIPTIONS = ['ai.toolCall'];
 
 const AI_OPS = [...AI_RUN_OPS, ...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS];
 const AI_DESCRIPTIONS = [
@@ -40,6 +40,8 @@ const AI_DESCRIPTIONS = [
 
 export const AI_MODEL_ID_ATTRIBUTE = 'gen_ai.request.model' as EAPSpanProperty;
 export const AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name' as EAPSpanProperty;
+export const AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name' as EAPSpanProperty;
+export const AI_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens' as EAPSpanProperty;
 
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM =
   `sum(tags[gen_ai.usage.total_tokens,number])` as EAPSpanProperty;

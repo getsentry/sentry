@@ -26,6 +26,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   organization: Organization;
   replay: ReplayRecord | null;
   traceId: string;
+  hideNodeActions?: boolean;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
