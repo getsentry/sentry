@@ -29,6 +29,7 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
         parameters=[
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
+            PreventParams.INTERVAL,
         ],
         request=None,
         responses={
@@ -44,16 +45,15 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
         Also accepts a query parameter to specify the time period for the metrics.
         """
 
-        owner = "codecov"
-        repository = "gazebo"
-
         variables = {
             "owner": owner,
             "repo": repository,
-            "interval": MeasurementInterval.INTERVAL_30_DAY.value,
+            "interval": request.query_params.get(
+                "interval", MeasurementInterval.INTERVAL_30_DAY.value
+            ),
         }
 
-        client = CodecovApiClient(git_provider_org="codecov")
+        client = CodecovApiClient(git_provider_org=owner)
         graphql_response = client.query(query=query, variables=variables)
         test_results = TestResultAggregatesSerializer().to_representation(graphql_response.json())
 

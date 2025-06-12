@@ -1237,6 +1237,7 @@ const MultilineText = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
+  word-break: break-word;
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, Never
+from typing import Any
 
 import orjson
 from django.db import router, transaction
@@ -24,9 +24,9 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -176,7 +176,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
+    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
         return [PagerDutyInstallationRedirect()]
 
     def post_install(
@@ -218,7 +218,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         }
 
 
-class PagerDutyInstallationRedirect(PipelineView[Never]):
+class PagerDutyInstallationRedirect(IntegrationPipelineViewT):
     def get_app_url(self, account_name=None):
         if not account_name:
             account_name = "app"
@@ -228,7 +228,7 @@ class PagerDutyInstallationRedirect(PipelineView[Never]):
 
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

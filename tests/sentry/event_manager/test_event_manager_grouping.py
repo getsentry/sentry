@@ -11,6 +11,7 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
+from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
@@ -129,6 +130,15 @@ class EventManagerGroupingTest(TestCase):
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data["metadata"]["title"] == event2.title
+
+    def test_loads_default_config_if_stored_config_option_is_invalid(self):
+        self.project.update_option("sentry:grouping_config", "dogs.are.great")
+        config_dict = get_grouping_config_dict_for_project(self.project)
+        assert config_dict["id"] == DEFAULT_GROUPING_CONFIG
+
+        self.project.update_option("sentry:grouping_config", {"not": "a string"})
+        config_dict = get_grouping_config_dict_for_project(self.project)
+        assert config_dict["id"] == DEFAULT_GROUPING_CONFIG
 
     def test_auto_updates_grouping_config_even_if_config_is_gone(self):
         """This tests that setups with deprecated configs will auto-upgrade."""

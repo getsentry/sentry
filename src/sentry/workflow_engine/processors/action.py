@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.db import models
 from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast, Coalesce
@@ -78,6 +79,10 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
 def create_workflow_fire_histories(
     actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
 ) -> list[WorkflowFireHistory]:
+    """
+    Record that the workflows associated with these actions were fired for this
+    event.
+    """
     # Create WorkflowFireHistory objects for workflows we fire actions for
     workflow_ids = set(
         WorkflowDataConditionGroup.objects.filter(
@@ -101,9 +106,15 @@ def filter_recently_fired_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> BaseQuerySet[Action]:
     # get the actions for any of the triggered data condition groups
-    actions = Action.objects.filter(
-        dataconditiongroupaction__condition_group__in=filtered_action_groups
-    ).distinct()
+    actions = (
+        Action.objects.filter(dataconditiongroupaction__condition_group__in=filtered_action_groups)
+        .annotate(
+            workflow_id=models.F(
+                "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__id"
+            )
+        )
+        .distinct()
+    )
 
     group = event_data.event.group
 
@@ -132,8 +143,6 @@ def filter_recently_fired_actions(
 
     # dual write to WorkflowActionGroupStatus, ignoring results for now until they are canonical
     _ = filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
-
-    create_workflow_fire_histories(filtered_actions, event_data)
 
     return filtered_actions
 
@@ -259,9 +268,6 @@ def filter_recently_fired_workflow_actions(
         )
     )
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
-
-    # TODO: write this in a single spot
-    # create_workflow_fire_histories
 
     # TODO: somehow attach workflows so we can fire actions with the appropriate workflow env
     return Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))

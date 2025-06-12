@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable
 
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 
 from sentry import options
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
@@ -39,15 +39,10 @@ class DemoModeGuardMiddleware:
                 )
                 # only in "sentry.io/"
                 session = getattr(request, "session", None)
-                if session:
-                    logger.debug(
-                        "Maybe blocking redirect for org: %s", session and session.get("activeorg")
-                    )
-                    if is_demo_org(_get_org(session.get("activeorg"))):
-                        logger.debug(
-                            "Found org, deleting activeog session variable for %s",
-                            session.get("activeorg"),
-                        )
-                        del session["activeorg"]
+                if session and (activeorg := session.get("activeorg")):
+                    logger.debug("Maybe blocking org redirect for org: %s", activeorg)
+                    if is_demo_org(_get_org(activeorg)):
+                        logger.debug("Org %s is demo org, redirecting to welcome page", activeorg)
+                        return HttpResponseRedirect("https://sentry.io/welcome")
 
         return self.get_response(request)

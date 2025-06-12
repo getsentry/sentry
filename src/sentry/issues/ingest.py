@@ -89,7 +89,7 @@ class IssueArgs(TypedDict):
     platform: str | None
     message: str
     level: int | None
-    culprit: str
+    culprit: str | None
     last_seen: datetime
     first_seen: datetime
     active_at: datetime
@@ -126,7 +126,7 @@ def _create_issue_kwargs(
 
 class OccurrenceMetadata(TypedDict):
     type: str
-    culprit: str
+    culprit: str | None
     metadata: Mapping[str, Any]
     title: str
     location: str | None

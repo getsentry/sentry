@@ -5,7 +5,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
-from sentry.spans.consumers.process_segments.types import Span
+from sentry.spans.consumers.process_segments.enrichment import Span
 
 ###############################################
 # Test ported from Snuba's `eap_items_span`. #
