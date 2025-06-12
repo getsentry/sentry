@@ -6,8 +6,9 @@ import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, Never, NoReturn, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
+import sentry_sdk
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
@@ -20,6 +21,10 @@ from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
+from sentry.integrations.pipeline_types import (
+    IntegrationPipelineProviderT,
+    IntegrationPipelineViewT,
+)
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.team import Team
@@ -28,8 +33,6 @@ from sentry.organizations.services.organization import (
     RpcOrganizationSummary,
     organization_service,
 )
-from sentry.pipeline import PipelineProvider
-from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -46,7 +49,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.users.models.identity import Identity
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
-from sentry.utils.sdk import Scope
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -182,7 +184,7 @@ class IntegrationData(TypedDict):
     provider: NotRequired[str]  # maybe unused ???
 
 
-class IntegrationProvider(PipelineProvider[Never], abc.ABC):
+class IntegrationProvider(IntegrationPipelineProviderT, abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
 
@@ -297,7 +299,7 @@ class IntegrationProvider(PipelineProvider[Never], abc.ABC):
 
     def get_pipeline_views(
         self,
-    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
+    ) -> Sequence[IntegrationPipelineViewT | Callable[[], IntegrationPipelineViewT]]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.
@@ -452,7 +454,7 @@ class IntegrationInstallation(abc.ABC):
                 raise Identity.DoesNotExist
         identity = identity_service.get_identity(filter={"id": org_integration.default_auth_id})
         if identity is None:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("integration_provider", self.model.get_provider().name)
             scope.set_tag("org_integration_id", org_integration.id)
             scope.set_tag("default_auth_id", org_integration.default_auth_id)

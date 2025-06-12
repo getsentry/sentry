@@ -1,8 +1,9 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import TestsPage from 'sentry/views/codecov/tests/tests';
 
+// TODO: Make these fixtures
 const mockTestResultsData = [
   {
     name: 'tests.symbolicator.test_unreal_full.SymbolicatorUnrealIntegrationTest::test_unreal_crash_with_attachments',
@@ -18,12 +19,48 @@ const mockTestResultsData = [
   },
 ];
 
-const mockApiCall = () =>
+// TODO: Make these fixtures
+const mockTestResultAggregates = [
+  {
+    slowestTestsDuration: 6234,
+    slowestTestsDurationPercentChange: 0.4,
+    totalDuration: 28787,
+    totalDurationPercentChange: 0.6,
+    totalFails: 1,
+    totalFailsPercentChange: 0.42,
+    totalSkips: 2,
+    totalSkipsPercentChange: -0.23,
+    totalSlowTests: 100,
+    totalSlowTestsPercentChange: 0,
+    flakeCount: 3,
+    flakeCountPercentChange: null,
+    flakeRate: 4.9326690672322796e-5,
+    flakeRatePercentChange: null,
+  },
+];
+
+const mockApiCall = () => {
   MockApiClient.addMockResponse({
     url: `/prevent/owner/some-org-name/repository/some-repository/test-results/`,
     method: 'GET',
-    body: {data: mockTestResultsData},
+    body: {
+      results: mockTestResultsData,
+      pageInfo: {
+        endCursor: 'sdfgadghsefhaasdfnkjasdf',
+        hasNextPage: true,
+      },
+      totalCount: 1,
+    },
   });
+
+  MockApiClient.addMockResponse({
+    url: `/prevent/owner/some-org-name/repository/some-repository/test-results-aggregates/`,
+    method: 'GET',
+    body: {
+      results: mockTestResultAggregates,
+    },
+  });
+};
 
 describe('CoveragePageWrapper', () => {
   describe('when the wrapper is used', () => {
@@ -47,8 +84,15 @@ describe('CoveragePageWrapper', () => {
         }
       );
 
-      const testsAnalytics = await screen.findByText('Test Analytics');
-      expect(testsAnalytics).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('page-filter-integrated-org-selector')
+        ).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      });
     });
   });
 });

@@ -5,7 +5,9 @@ import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compa
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
+import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
   '24h': t('Last 24 hours'),
@@ -75,7 +77,10 @@ export function DateSelector({relativeDate, onChange, trigger}: DateSelectorProp
               {...triggerProps}
             >
               <TriggerLabelWrap>
-                <TriggerLabel>{defaultLabel}</TriggerLabel>
+                <FlexContainer>
+                  <IconCalendar />
+                  <TriggerLabel>{defaultLabel}</TriggerLabel>
+                </FlexContainer>
               </TriggerLabelWrap>
             </DropdownButton>
           );
@@ -99,4 +104,10 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
+`;
+
+const FlexContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
 `;
