@@ -1,5 +1,4 @@
 from enum import IntEnum
-from typing import Any
 
 from django.db import models
 
@@ -11,7 +10,6 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
 
 
 @region_silo_model
@@ -109,8 +107,6 @@ class PreprodArtifact(DefaultFieldsModel):
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
-
-    extras: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
     class Meta:
         app_label = "preprod"
