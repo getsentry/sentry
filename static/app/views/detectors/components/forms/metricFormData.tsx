@@ -1,5 +1,14 @@
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {PriorityLevel} from 'sentry/types/group';
+import type {
+  DataCondition,
+  DataConditionGroup,
+} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+} from 'sentry/types/workflowEngine/dataConditions';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -21,7 +30,7 @@ interface PrioritizeLevelFormData {
   /**
    * Optional value at which the issue is resolved
    */
-  resolveThreshold?: number;
+  resolveThreshold?: string;
 }
 
 interface MetricDetectorConditionFormData {
@@ -98,14 +107,15 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   conditionType: 'gt',
   conditionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
+  resolveThreshold: '',
 
   // Default dynamic fields
   sensitivity: AlertRuleSensitivity.LOW,
   thresholdType: AlertRuleThresholdType.ABOVE,
 
   // Snuba query fields
-  visualize: 'span.duration',
-  aggregate: 'p75',
+  visualize: 'transaction.duration',
+  aggregate: 'count',
   query: '',
 
   // Passed in from step 1
@@ -122,4 +132,180 @@ export function useMetricDetectorFormField<T extends MetricDetectorFormFieldName
 ): MetricDetectorFormData[T] {
   const value = useFormField(name);
   return value;
+}
+
+interface NewConditionGroup {
+  conditions: Array<Omit<DataCondition, 'id'>>;
+  logicType: DataConditionGroup['logicType'];
+}
+
+interface NewDataSource {
+  aggregate: string;
+  dataset: string;
+  environment: string | null;
+  eventTypes: string[];
+  query: string;
+  queryType: number;
+  timeWindow: number;
+}
+
+export interface NewMetricDetector {
+  conditionGroup: NewConditionGroup;
+  // TODO: config types don't exist yet
+  config: {
+    // TODO: what is this
+    detection_type: any;
+    threshold_period: number;
+  };
+  dataSource: NewDataSource; // Single data source object (not array)
+  detectorType: Detector['type'];
+  name: string;
+  projectId: Detector['projectId'];
+}
+
+// Map PriorityLevel to DetectorPriorityLevel integer values
+// Note: Metric detectors only support MEDIUM and HIGH priority levels
+const PRIORITY_LEVEL_TO_DETECTOR_PRIORITY = {
+  [PriorityLevel.LOW]: 25, // DetectorPriorityLevel.LOW
+  [PriorityLevel.MEDIUM]: 50, // DetectorPriorityLevel.MEDIUM
+  [PriorityLevel.HIGH]: 75, // DetectorPriorityLevel.HIGH
+} as const;
+
+/**
+ * Creates escalation conditions based on priority level and available thresholds
+ */
+function createEscalationConditions(
+  data: MetricDetectorFormData
+): Array<Omit<DataCondition, 'id'>> {
+  const conditions: Array<Omit<DataCondition, 'id'>> = [];
+
+  if (!data.conditionType) {
+    return conditions;
+  }
+
+  // Always create the main condition for the initial priority level
+  if (data.conditionValue) {
+    // Convert LOW to MEDIUM since metric detectors don't support LOW
+    const effectiveInitialPriority =
+      data.initialPriorityLevel === PriorityLevel.LOW
+        ? PriorityLevel.MEDIUM
+        : data.initialPriorityLevel;
+
+    conditions.push({
+      type:
+        data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
+      comparison: parseFloat(data.conditionValue) || 0,
+      conditionResult: PRIORITY_LEVEL_TO_DETECTOR_PRIORITY[effectiveInitialPriority],
+    });
+  }
+
+  // Create escalation conditions for higher priority levels
+  // Only add MEDIUM escalation if initial priority is LOW and mediumThreshold is provided
+  if (data.initialPriorityLevel === PriorityLevel.LOW && data.mediumThreshold) {
+    conditions.push({
+      type:
+        data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
+      comparison: parseFloat(data.mediumThreshold) || 0,
+      conditionResult: PRIORITY_LEVEL_TO_DETECTOR_PRIORITY[PriorityLevel.MEDIUM],
+    });
+  }
+
+  // Only add HIGH escalation if initial priority is LOW or MEDIUM and highThreshold is provided
+  if (
+    (data.initialPriorityLevel === PriorityLevel.LOW ||
+      data.initialPriorityLevel === PriorityLevel.MEDIUM) &&
+    data.highThreshold
+  ) {
+    conditions.push({
+      type:
+        data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
+      comparison: parseFloat(data.highThreshold) || 0,
+      conditionResult: PRIORITY_LEVEL_TO_DETECTOR_PRIORITY[PriorityLevel.HIGH],
+    });
+  }
+
+  return conditions;
+}
+
+/**
+ * Creates a resolution condition if resolveThreshold is provided
+ */
+function createResolutionCondition(
+  data: MetricDetectorFormData
+): Omit<DataCondition, 'id'> | null {
+  if (
+    data.resolveThreshold === undefined ||
+    data.resolveThreshold === '' ||
+    !data.conditionType
+  ) {
+    return null;
+  }
+
+  // Resolution condition uses opposite comparison type
+  // Backend only supports 'gt' (GREATER) and 'lt' (LESS), not 'lte' (LESS_OR_EQUAL)
+  const resolveConditionType =
+    data.conditionType === 'gt'
+      ? DataConditionType.LESS // Use LESS instead of LESS_OR_EQUAL
+      : DataConditionType.GREATER;
+
+  // Backend only supports MEDIUM and HIGH priority levels, so use MEDIUM for resolution
+  // This represents "resolve when metric goes back to medium/normal levels"
+  return {
+    type: resolveConditionType,
+    comparison: data.resolveThreshold,
+    // TODO: why are we using numbers
+    conditionResult: 0,
+  };
+}
+
+/**
+ * Creates the data source configuration for the detector
+ */
+function createDataSource(data: MetricDetectorFormData): NewDataSource {
+  const dataset = 'events';
+  const eventTypes = ['error'];
+
+  return {
+    queryType: 0,
+    dataset,
+    query: data.query,
+    aggregate: `${data.aggregate}(${data.visualize})`,
+    timeWindow: data.conditionComparisonAgo ? data.conditionComparisonAgo / 60 : 60,
+    environment: data.environment ? data.environment : null,
+    eventTypes,
+  };
+}
+
+export function getNewMetricDetectorData(
+  data: MetricDetectorFormData
+): NewMetricDetector {
+  // Create escalation conditions (multiple conditions for LOW initial priority)
+  const escalationConditions = createEscalationConditions(data);
+
+  // Create resolution condition if provided
+  const resolutionCondition = createResolutionCondition(data);
+
+  // Combine all conditions
+  const conditions = [...escalationConditions];
+  if (resolutionCondition) {
+    conditions.push(resolutionCondition);
+  }
+
+  // Create data source configuration
+  const dataSource = createDataSource(data);
+
+  return {
+    name: data.name || 'New Monitor',
+    detectorType: 'metric_issue',
+    projectId: data.projectId,
+    conditionGroup: {
+      logicType: DataConditionGroupLogicType.ANY,
+      conditions,
+    },
+    config: {
+      threshold_period: 1,
+      detection_type: 'static',
+    },
+    dataSource,
+  };
 }

@@ -79,8 +79,9 @@ export default function PriorityControl() {
               size="sm"
               suffix="s"
               placeholder="0"
-              name={`conditionGroup.conditions.1.comparison`}
+              name={METRIC_DETECTOR_FORM_FIELDS.mediumThreshold}
               data-test-id="priority-control-medium"
+              required
             />
           }
           right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
@@ -97,8 +98,9 @@ export default function PriorityControl() {
               size="sm"
               suffix="s"
               placeholder="0"
-              name={`conditionGroup.conditions.2.comparison`}
+              name={METRIC_DETECTOR_FORM_FIELDS.highThreshold}
               data-test-id="priority-control-high"
+              required
             />
           }
           right={<GroupPriorityBadge showLabel priority={PriorityLevel.HIGH} />}

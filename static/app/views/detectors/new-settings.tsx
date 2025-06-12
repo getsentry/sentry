@@ -20,9 +20,13 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {EditableDetectorTitle} from 'sentry/views/detectors/components/forms/editableDetectorTitle';
+import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
-import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from 'sentry/views/detectors/components/forms/metricFormData';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import {
+  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+  getNewMetricDetectorData,
+} from 'sentry/views/detectors/components/forms/metricFormData';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,
@@ -57,13 +61,14 @@ export default function DetectorNewSettings() {
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, formModel) => {
-      const errors = formModel.validateForm();
-      if (errors) {
+      const hasErrors = formModel.validateForm();
+      if (!hasErrors) {
         return;
       }
 
-      // TODO: properly format the data for the createDetector API
-      const detector = await createDetector(data as any);
+      const detector = await createDetector(
+        getNewMetricDetectorData(data as MetricDetectorFormData)
+      );
       navigate(makeMonitorDetailsPathname(organization.slug, detector.id));
     },
     [createDetector, navigate, organization.slug]
@@ -87,7 +92,7 @@ export default function DetectorNewSettings() {
           <Layout.HeaderContent>
             <NewDetectorBreadcrumbs />
             <Layout.Title>
-              <EditableDetectorTitle />
+              <EditableDetectorName />
             </Layout.Title>
           </Layout.HeaderContent>
         </StyledLayoutHeader>

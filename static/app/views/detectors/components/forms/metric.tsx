@@ -71,6 +71,9 @@ function MonitorKind() {
 
 function ResolveSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const thresholdType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.thresholdType
+  );
 
   return (
     <Container>
@@ -88,7 +91,11 @@ function ResolveSection() {
           <ThresholdField
             flexibleControlStateSize
             inline={false}
-            label={t('Close an incident when the value dips below:')}
+            label={
+              thresholdType === AlertRuleThresholdType.BELOW
+                ? t('Close an incident when the value rises above:')
+                : t('Close an incident when the value dips below:')
+            }
             placeholder="0"
             name={METRIC_DETECTOR_FORM_FIELDS.resolveThreshold}
             suffix="s"
@@ -146,6 +153,10 @@ function PrioritizeSection() {
 
 function DetectSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+
   const aggregateOptions: Array<[string, string]> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return [aggregate, aggregate];
@@ -165,15 +176,13 @@ function DetectSection() {
               flexibleControlStateSize
               inline={false}
               label="Visualize"
-              name="visualize"
-              choices={[['span.duration', 'span.duration']]}
-              defaultValue="span.duration"
+              name={METRIC_DETECTOR_FORM_FIELDS.visualize}
+              choices={[['transaction.duration', 'transaction.duration']]}
             />
             <AggregateField
               placeholder={t('aggregate')}
               flexibleControlStateSize
-              defaultValue={'p75'}
-              name="aggregate"
+              name={METRIC_DETECTOR_FORM_FIELDS.aggregate}
               choices={aggregateOptions}
             />
           </Flex>
@@ -192,6 +201,8 @@ function DetectSection() {
                   hideLabel
                   inline
                   flexibleControlStateSize
+                  // For some reason, not setting a default value empties the form field
+                  defaultValue={conditionType}
                   choices={[
                     ['gt', t('Above')],
                     ['lte', t('Below')],
@@ -227,6 +238,8 @@ function DetectSection() {
                   hideLabel
                   inline
                   flexibleControlStateSize
+                  // For some reason, not setting a default value empties the form field
+                  defaultValue={conditionType}
                   choices={[
                     ['gt', t('higher')],
                     ['lt', t('lower')],
