@@ -368,7 +368,7 @@ def get_attribute_values_with_substring(
     return {"values": values}
 
 
-seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
+seer_method_registry: dict[str, Callable[..., dict[str, Any] | list[int]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
