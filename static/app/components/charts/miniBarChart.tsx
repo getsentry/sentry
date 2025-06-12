@@ -278,7 +278,7 @@ function MiniBarChart({
   const theme = useTheme();
   const xAxisLineColor: string = isChonkTheme(theme)
     ? theme.tokens.graphics.muted
-    : theme.gray200;
+    : theme.gray300;
 
   const updatedSeries: BarChartSeries[] = useMemo(() => {
     if (!series?.length) {
@@ -291,7 +291,7 @@ function MiniBarChart({
 
     const colorList = Array.isArray(colors)
       ? colors
-      : [theme.gray200, theme.purple300, theme.purple300];
+      : [theme.gray300, theme.purple300, theme.purple300];
 
     for (let i = 0; i < series.length; i++) {
       const original = series[i]!;
@@ -322,7 +322,7 @@ function MiniBarChart({
       chartSeries.push(updated);
     }
     return chartSeries;
-  }, [series, emphasisColors, stacked, colors, theme.gray200, theme.purple300]);
+  }, [series, emphasisColors, stacked, colors, theme.gray300, theme.purple300]);
 
   const chartOptions = useMemo(() => {
     const yAxisOptions = labelYAxisExtents
