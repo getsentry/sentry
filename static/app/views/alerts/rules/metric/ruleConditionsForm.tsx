@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
@@ -66,11 +67,17 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
-import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {
+  DEPRECATED_TRANSACTION_ALERTS,
+  getSupportedAndOmittedTags,
+} from 'sentry/views/alerts/wizard/options';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {
   DEFAULT_AGGREGATE,
@@ -436,8 +443,18 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       dataset,
       comparisonType,
       onTimeWindowChange,
+      isEditing,
     } = this.props;
 
+    const isDeprecatedTransactionAlertType =
+      alertType &&
+      deprecateTransactionAlerts(organization) &&
+      DEPRECATED_TRANSACTION_ALERTS.includes(alertType) &&
+      hasEAPAlerts(organization);
+
+    const transactionAlertDisabledMessage = t(
+      'Transaction based alerts are no longer supported. Create span alerts instead.'
+    );
     return (
       <Fragment>
         <StyledListItem>
@@ -445,34 +462,46 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <div>{t('Define your metric')}</div>
           </StyledListTitle>
         </StyledListItem>
-        <FormRow>
-          <WizardField
-            name="aggregate"
-            help={null}
-            organization={organization}
-            disabled={disabled}
-            project={project}
-            style={{
-              ...this.formElemBaseStyle,
-              flex: 1,
-            }}
-            inline={false}
-            flexibleControlStateSize
-            columnWidth={200}
-            alertType={alertType}
-            required
-          />
-          <Select
-            name="timeWindow"
-            styles={this.selectControlStyles}
-            options={getTimeWindowOptions(dataset, comparisonType)}
-            isDisabled={disabled}
-            value={timeWindow}
-            onChange={({value}: any) => onTimeWindowChange(value)}
-            inline={false}
-            flexibleControlStateSize
-          />
-        </FormRow>
+        <Tooltip
+          title={transactionAlertDisabledMessage}
+          disabled={!isDeprecatedTransactionAlertType}
+          isHoverable
+        >
+          <FormRow>
+            <WizardField
+              name="aggregate"
+              help={null}
+              organization={organization}
+              disabled={disabled}
+              project={project}
+              style={{
+                ...this.formElemBaseStyle,
+                flex: 1,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
+              required
+              isEditing={isEditing}
+              disabledReason={
+                isDeprecatedTransactionAlertType
+                  ? transactionAlertDisabledMessage
+                  : undefined
+              }
+            />
+            <Select
+              name="timeWindow"
+              styles={this.selectControlStyles}
+              options={getTimeWindowOptions(dataset, comparisonType)}
+              isDisabled={disabled || (isDeprecatedTransactionAlertType && isEditing)}
+              value={timeWindow}
+              onChange={({value}: any) => onTimeWindowChange(value)}
+              inline={false}
+              flexibleControlStateSize
+            />
+          </FormRow>
+        </Tooltip>
       </Fragment>
     );
   }
