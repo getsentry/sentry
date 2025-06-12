@@ -11,25 +11,29 @@ class TestResultAggregatesSerializer(serializers.Serializer):
     Serializer for test results aggregates response
     """
 
-    totalDuration = serializers.IntegerField()
-    totalDurationPercentChange = serializers.IntegerField()
-    slowestTestsDuration = serializers.IntegerField()
-    slowestTestsDurationPercentChange = serializers.IntegerField()
+    totalDuration = serializers.FloatField()
+    totalDurationPercentChange = serializers.FloatField()
+    slowestTestsDuration = serializers.FloatField()
+    slowestTestsDurationPercentChange = serializers.FloatField()
     totalSlowTests = serializers.IntegerField()
-    totalSlowTestsPercentChange = serializers.IntegerField()
+    totalSlowTestsPercentChange = serializers.FloatField()
     totalFails = serializers.IntegerField()
-    totalFailsPercentChange = serializers.IntegerField()
+    totalFailsPercentChange = serializers.FloatField()
     totalSkips = serializers.IntegerField()
-    totalSkipsPercentChange = serializers.IntegerField()
+    totalSkipsPercentChange = serializers.FloatField()
+    flakeCount = serializers.IntegerField()
+    flakeCountPercentChange = serializers.FloatField()
+    flakeRate = serializers.FloatField()
+    flakeRatePercentChange = serializers.FloatField()
 
-    def to_representation(self, graphql_response):
+    def to_representation(self, instance):
         """
         Transform the GraphQL response to the serialized format
         """
         try:
-            response_data = graphql_response["data"]["owner"]["repository"]["testAnalytics"][
-                "testResultsAggregates"
-            ]
+            test_analytics = instance["data"]["owner"]["repository"]["testAnalytics"]
+            response_data = test_analytics["testResultsAggregates"]
+            response_data.update(test_analytics["flakeAggregates"])
 
             return super().to_representation(response_data)
 
@@ -41,9 +45,7 @@ class TestResultAggregatesSerializer(serializers.Serializer):
                     "error": str(e),
                     "endpoint": "test-results-aggregates",
                     "response_keys": (
-                        list(graphql_response.keys())
-                        if isinstance(graphql_response, dict)
-                        else None
+                        list(instance.keys()) if isinstance(instance, dict) else None
                     ),
                 },
             )

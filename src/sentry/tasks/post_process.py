@@ -945,65 +945,65 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_workflow_engine(job: PostProcessJob) -> None:
+    """
+    Invoke the workflow_engine to process workflows given the job.
+
+    Currently, we do not want to add this to an event in post processing,
+    instead wrap this with a check for a feature flag before invoking.
+
+    Eventually, we'll want to replace `process_rule` with this method.
+    """
+    metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
+
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
+    # PostProcessJob event is optional, WorkflowEventData event is required
+    if "event" not in job:
+        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
+        return
+
+    try:
+        workflow_event_data = WorkflowEventData(
+            event=job["event"],
+            group_state=job.get("group_state"),
+            has_reappeared=job.get("has_reappeared"),
+            has_escalated=job.get("has_escalated"),
+        )
+    except Exception:
+        logger.exception("Could not create WorkflowEventData", extra={"job": job})
+        return
+
+    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
+        process_workflows(workflow_event_data)
+
+
+def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
+    """
+    Call for process_workflow_engine with the issue alert feature flag
+    """
     if job["is_reprocessed"]:
         return
 
     org = job["event"].project.organization
-    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    # TODO: only fire one system. To test, fire from both systems and observe metrics
     if not features.has("organizations:workflow-engine-process-workflows", org):
         return
 
-    from sentry.workflow_engine.processors.workflow import process_workflows
-
-    # PostProcessJob event is optional, WorkflowEventData event is required
-    if "event" not in job:
-        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
-        return
-
-    try:
-        workflow_event_data = WorkflowEventData(
-            event=job["event"],
-            group_state=job.get("group_state"),
-            has_reappeared=job.get("has_reappeared"),
-            has_escalated=job.get("has_escalated"),
-        )
-    except Exception:
-        logger.exception("Could not create WorkflowEventData", extra={"job": job})
-        return
-
-    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_event_data)
+    process_workflow_engine(job)
 
 
 def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
+    """
+    Call for process_workflow_engine for metric alerts
+    """
     if job["is_reprocessed"]:
         return
 
     org = job["event"].project.organization
-    # TODO: only fire one system. to test, fire from both systems and observe metrics
     if not features.has("organizations:workflow-engine-process-metric-issue-workflows", org):
         return
 
-    from sentry.workflow_engine.processors.workflow import process_workflows
-
-    # PostProcessJob event is optional, WorkflowEventData event is required
-    if "event" not in job:
-        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
-        return
-
-    try:
-        workflow_event_data = WorkflowEventData(
-            event=job["event"],
-            group_state=job.get("group_state"),
-            has_reappeared=job.get("has_reappeared"),
-            has_escalated=job.get("has_escalated"),
-        )
-    except Exception:
-        logger.exception("Could not create WorkflowEventData", extra={"job": job})
-        return
-
-    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_event_data)
+    process_workflow_engine(job)
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -1586,12 +1586,21 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ):
         return
 
+    project = group.project
+    if not project.get_option("sentry:seer_scanner_automation"):
+        return
+
     seer_enabled = get_seer_org_acknowledgement(group.organization.id)
     if not seer_enabled:
         return
 
-    project = group.project
-    if not project.get_option("sentry:seer_scanner_automation"):
+    from sentry import quotas
+    from sentry.constants import DataCategory
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
         return
 
     start_seer_automation.delay(group.id)
@@ -1609,7 +1618,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         handle_auto_assignment,
         kick_off_seer_automation,
         process_rules,
-        process_workflow_engine,
+        process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,

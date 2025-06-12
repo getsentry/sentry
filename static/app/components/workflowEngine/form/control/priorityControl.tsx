@@ -8,7 +8,7 @@ import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import FormContext from 'sentry/components/forms/formContext';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

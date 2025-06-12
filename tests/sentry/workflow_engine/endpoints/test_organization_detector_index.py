@@ -439,3 +439,20 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+    def test_empty_query_string(self):
+        data = {**self.valid_data}
+        data["dataSource"]["query"] = ""
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+
+        assert query_sub.snuba_query.query == ""

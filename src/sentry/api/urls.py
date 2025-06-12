@@ -15,6 +15,7 @@ from sentry.api.endpoints.organization_events_anomalies import OrganizationEvent
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_feedback_summary import OrganizationFeedbackSummaryEndpoint
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_member_invite.details import (
@@ -217,6 +218,7 @@ from sentry.issues.endpoints import (
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
+from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
@@ -2066,6 +2068,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-user-feedback",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/feedback-summary/$",
+        OrganizationFeedbackSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-user-feedback-summary",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-teams/$",
         OrganizationUserTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-user-teams",
@@ -3498,6 +3505,12 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
+    ),
+    # Temporary public endpoint for proxying browser reports to GCP, to gather real-world data
+    re_path(
+        r"^reporting-api-experiment/$",
+        BrowserReportingCollectorEndpoint.as_view(),
+        name="sentry-api-0-reporting-api-experiment",
     ),
     # Catch all
     re_path(

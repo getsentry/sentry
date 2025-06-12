@@ -5,7 +5,6 @@ import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 
 import DetailLayout from './detail';
-import EditLayout from './edit';
 import ListLayout from './list';
 
 function Fixture({children}: any) {
@@ -19,21 +18,6 @@ function Fixture({children}: any) {
     </SentryDocumentTitle>
   );
 }
-
-describe('Edit Layout component', function () {
-  it('renders children and context values', function () {
-    render(
-      <Fixture>
-        <EditLayout>children-test-value</EditLayout>
-      </Fixture>
-    );
-
-    expect(screen.getByText('children-test-value')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'action-test-value'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'breadcrumb-test-value'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'title-test-value'})).toBeInTheDocument();
-  });
-});
 
 describe('Detail Layout component', function () {
   it('renders children and context values', function () {

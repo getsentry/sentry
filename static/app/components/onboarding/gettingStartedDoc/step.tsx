@@ -136,6 +136,10 @@ interface BaseStepProps {
    * Useful for when we want to fire analytics events.
    */
   onOptionalToggleClick?: (showOptionalConfig: boolean) => void;
+  /**
+   * Additional items to be displayed to the right of the step title, e.g. a button to copy the configuration to the clipboard.
+   */
+  trailingItems?: React.ReactNode;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -195,6 +199,7 @@ export function Step({
   description,
   onOptionalToggleClick,
   collapsible = false,
+  trailingItems,
   codeHeader,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & StepProps) {
@@ -252,6 +257,7 @@ export function Step({
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
         />
+        {trailingItems && <div onClick={e => e.stopPropagation()}>{trailingItems}</div>}
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
     </div>
@@ -312,12 +318,16 @@ const GeneralAdditionalInfo = styled(Description)`
 
 const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: ${space(1)};
   margin-bottom: ${p => (p.expanded ? space(2) : 0)};
   cursor: pointer;
 `;
 
 const ToggleButton = styled(Button)`
+  flex: 1;
+  display: flex;
   padding: 0;
   &,
   :hover {

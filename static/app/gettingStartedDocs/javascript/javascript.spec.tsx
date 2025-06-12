@@ -24,10 +24,10 @@ describe('javascript onboarding docs', function () {
 
     // Includes import statement
     expect(
-      screen.getByText(
+      screen.queryAllByText(
         textWithMarkupMatcher(/import \* as Sentry from "@sentry\/browser"/)
       )
-    ).toBeInTheDocument();
+    ).not.toHaveLength(0);
   });
 
   it('displays sample rates by default', () => {

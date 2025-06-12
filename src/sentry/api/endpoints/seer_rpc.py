@@ -5,6 +5,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -24,7 +25,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_sdk import Scope, capture_exception
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -67,13 +67,12 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
         )
 
     if not signature.startswith("rpc0:"):
+        logger.error("Seer RPC signature validation failed: invalid signature prefix")
         return False
 
     if not body:
         logger.error("Seer RPC signature validation failed: no body")
-        # TODO: For stability and backward compatibility, we are allowing all signatures
-        # while we deploy the fix to both services. But we are logging an error if it fails.
-        return True
+        return False
 
     try:
         # We aren't using the version bits currently.
@@ -85,17 +84,14 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
             computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
             is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
             if is_valid:
-                logger.info("Seer RPC signature validated")
                 return True
     except Exception:
         logger.exception("Seer RPC signature validation failed")
-        return True
+        return False
 
     logger.error("Seer RPC signature validation failed")
 
-    # TODO: For stability and backward compatibility, we are allowing all signatures
-    # while we deploy the fix to both services. But we are logging an error if it fails.
-    return True
+    return False
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
@@ -116,7 +112,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        Scope.get_isolation_scope().set_tag("seer_rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -164,21 +160,21 @@ class SeerRpcServiceEndpoint(Endpoint):
         try:
             result = self._dispatch_to_local_method(method_name, arguments)
         except RpcResolutionException as e:
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise NotFound from e
         except SerializableFunctionValueException as e:
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise ParseError from e
         except ObjectDoesNotExist as e:
             # Let this fall through, this is normal.
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise NotFound from e
         except Exception as e:
             if in_test_environment():
                 raise
             if settings.DEBUG:
                 raise Exception(f"Problem processing seer rpc endpoint {method_name}") from e
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise ValidationError from e
         return Response(data=result)
 
@@ -302,6 +298,73 @@ def get_attribute_values(
     return {"values": values}
 
 
+def get_attribute_values_with_substring(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    fields_with_substrings: list[dict[str, str]],
+    stats_period: str = "48h",
+    limit: int = 100,
+) -> dict:
+    """
+    Get attribute values with substring.
+    Note: The RPC is guaranteed to not return duplicate values for the same field.
+    ie: if span.description is requested with both null and "payment" substrings,
+    the RPC will return the set of values for span.description to avoid duplicates.
+    """
+    values: dict[str, set[str]] = {}
+
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
+    for field_with_substring in fields_with_substrings:
+        field = field_with_substring["field"]
+        substring = field_with_substring["substring"]
+
+        resolved_field, _ = resolver.resolve_attribute(field)
+        if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
+            req = TraceItemAttributeValuesRequest(
+                meta=RequestMeta(
+                    organization_id=org_id,
+                    cogs_category="events_analytics_platform",
+                    referrer="seer_rpc",
+                    project_ids=project_ids,
+                    start_timestamp=start_time_proto,
+                    end_timestamp=end_time_proto,
+                    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                ),
+                key=resolved_field.proto_definition,
+                limit=limit,
+                value_substring_match=substring,
+            )
+
+            values_response = snuba_rpc.attribute_values_rpc(req)
+            if field in values:
+                values[field].update({value for value in values_response.values if value})
+            else:
+                values[field] = {value for value in values_response.values if value}
+
+    return {"values": values}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -311,6 +374,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_profile_details": get_profile_details,
     "get_attribute_names": get_attribute_names,
     "get_attribute_values": get_attribute_values,
+    "get_attribute_values_with_substring": get_attribute_values_with_substring,
 }
 
 

@@ -454,14 +454,22 @@ class SnubaEventStorage(EventStorage):
             return Dataset.Discover
 
     def get_adjacent_event_ids_snql(
-        self, organization_id, project_id, group_id, environments, event, conditions=None
+        self,
+        organization_id: int,
+        project_id: int,
+        group_id: int | None,
+        environments: Sequence[str],
+        event: Event | GroupEvent,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Condition] | None = None,
     ):
         """
-        Utility function for grabbing an event's adjascent events,
+        Utility function for grabbing an event's adjacent events,
         which are the ones with the closest timestamps before and after.
         This function is only used in project_event_details at the moment,
         so it's interface is tailored to that. We use SnQL and use the project_id
-        and toStartOfDay(timestamp) to efficently scan our table
+        and toStartOfDay(timestamp) to efficiently scan our table
         """
         dataset = self._get_dataset_for_event(event)
         app_id = "eventstore"
@@ -486,12 +494,15 @@ class SnubaEventStorage(EventStorage):
                 *project_conditions,
             ]
 
+        lower_bound = start or (event.datetime - timedelta(days=100))
+        upper_bound = end or (event.datetime + timedelta(days=100))
+
         def make_prev_timestamp_conditions(event):
             return [
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
                     Op.GTE,
-                    event.datetime - timedelta(days=100),
+                    lower_bound,
                 ),
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -515,7 +526,7 @@ class SnubaEventStorage(EventStorage):
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
                     Op.LT,
-                    event.datetime + timedelta(days=100),
+                    upper_bound,
                 ),
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -594,9 +605,9 @@ class SnubaEventStorage(EventStorage):
         prev_filter = deepcopy(filter)
         prev_filter.conditions = prev_filter.conditions or []
         prev_filter.conditions.extend(get_before_event_condition(event))
-
-        # We only store 90 days of data, add a few extra days just in case
-        prev_filter.start = event.datetime - timedelta(days=100)
+        if not prev_filter.start:
+            # We only store 90 days of data, add a few extra days just in case
+            prev_filter.start = event.datetime - timedelta(days=100)
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         prev_filter.end = event.datetime + timedelta(seconds=1)
@@ -606,7 +617,8 @@ class SnubaEventStorage(EventStorage):
         next_filter.conditions = next_filter.conditions or []
         next_filter.conditions.extend(get_after_event_condition(event))
         next_filter.start = event.datetime
-        next_filter.end = datetime.utcnow()
+        if not next_filter.end:
+            next_filter.end = datetime.utcnow()
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)

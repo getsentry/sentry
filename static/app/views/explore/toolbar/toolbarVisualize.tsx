@@ -140,10 +140,6 @@ function VisualizeDropdown({
   const {tags: stringTags} = useSpanTags('string');
   const {tags: numberTags} = useSpanTags('number');
 
-  const yAxes: string[] = useMemo(() => {
-    return visualizes.flatMap(visualize => visualize.yAxes);
-  }, [visualizes]);
-
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
@@ -159,7 +155,6 @@ function VisualizeDropdown({
   const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
-    yAxes,
     parsedFunction,
   });
 
