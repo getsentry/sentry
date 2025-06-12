@@ -110,7 +110,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         try:
             group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
         except DataConditionGroup.DoesNotExist:
-            # TODO: Possible?
+            # This isn't expected under normal conditions, but weird things can happen in the
+            # midst of deletions and migrations.
             logger.exception(
                 "DataConditionGroup does not exist",
                 extra={"id": self.when_condition_group_id},
