@@ -1307,6 +1307,22 @@ class ProjectUpdateTest(APITestCase):
         self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
         assert self.project.get_option("sentry:target_sample_rate") == 0.1
 
+    def test_no_setting_grouping_configs(self):
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, groupingConfig="some config", status_code=400
+        )
+        assert "Grouping config cannot be manually set" in response.text
+
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, secondaryGroupingConfig="another config", status_code=400
+        )
+        assert "Secondary grouping config cannot be manually set" in response.text
+
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=12311121, status_code=400
+        )
+        assert "Secondary grouping expiry cannot be manually set" in response.text
+
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
