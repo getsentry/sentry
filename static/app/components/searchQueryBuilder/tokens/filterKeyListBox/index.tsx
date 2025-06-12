@@ -140,7 +140,7 @@ function RecentSearchFilterOption<T>({
 }
 
 function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
-  const ref = useRef<HTMLButtonElement>(null);
+  const ref = useRef<HTMLLIElement>(null);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
   const organization = useOrganization();
 
@@ -164,16 +164,11 @@ function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   };
 
   return (
-    <AskSeerButton
-      ref={ref}
-      data-test-id="ask-seer-option"
-      onClick={handleClick}
-      {...optionProps}
-    >
+    <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <SeerIcon />
       <AskSeerLabel {...labelProps}>{t('Ask Seer')}</AskSeerLabel>
-    </AskSeerButton>
+    </AskSeerListItem>
   );
 }
 
@@ -649,37 +644,37 @@ const AskSeerPane = styled('div')`
   width: 100%;
 `;
 
-const AskSeerButton = styled(Button)`
-  width: 100%;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  justify-content: flex-start;
-  padding: ${space(1.5)} ${space(2)};
+const AskSeerListItem = styled('li')`
+  position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  padding: ${space(1)} ${space(1.5)};
+  background: transparent;
+  color: ${p => p.theme.purple400};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  cursor: pointer;
+  border: none;
+  outline: none;
   gap: ${space(1)};
-  border: 0;
+  list-style: none;
+  margin: 0;
+
   &:hover,
   &:focus {
     background: ${p => p.theme.purple100};
     color: ${p => p.theme.purple400};
-    box-shadow: none;
   }
 
   &[aria-selected='true'] {
     background: ${p => p.theme.purple100};
     color: ${p => p.theme.purple400};
-    box-shadow: none;
   }
 `;
-
-const AskSeerLabel = styled('div')`
+const AskSeerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis};
-  flex: 1;
-  padding-left: ${space(1)};
   color: ${p => p.theme.purple400};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
