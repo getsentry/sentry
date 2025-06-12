@@ -36,7 +36,7 @@ class FetchUser(AuthView):
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: HttpRequest, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
             if self.org is not None:
                 # if we have a configured org (self.org) for our oauth provider
