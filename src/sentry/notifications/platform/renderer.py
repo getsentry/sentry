@@ -1,17 +1,17 @@
 import abc
-from typing import Generic
+from typing import Generic, cast
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderKey
+from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.types import NotificationRenderable
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationRenderableT
 
 
-class NotificationRenderer(abc.ABC, Generic[NotificationRenderable]):
+class NotificationRenderer(abc.ABC, Generic[NotificationRenderableT]):
     """
     A base class for all notification providers.
     """
 
-    provider: type[NotificationProvider[NotificationRenderable]]
+    provider: NotificationProvider[NotificationRenderableT]
 
     @property
     @abc.abstractmethod
@@ -22,4 +22,6 @@ class NotificationRenderer(abc.ABC, Generic[NotificationRenderable]):
         raise NotImplementedError("Must use a NotificationProviderKey")
 
     def __init__(self) -> None:
-        self.provider = provider_registry.get(self.provider_key)
+        self.provider = cast(
+            NotificationProvider[NotificationRenderableT], provider_registry.get(self.provider_key)
+        )

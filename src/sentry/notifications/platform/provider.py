@@ -1,30 +1,20 @@
 import abc
-from enum import StrEnum
 from typing import TYPE_CHECKING, Generic
 
-from sentry.integrations.types import ExternalProviderEnum
-from sentry.notifications.platform.types import NotificationRenderable
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationRenderableT
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
 if TYPE_CHECKING:
     from sentry.notifications.platform.renderer import NotificationRenderer
 
 
-class NotificationProviderKey(StrEnum):
-    """
-    The unique keys for each registered notification provider.
-    """
-
-    EMAIL = ExternalProviderEnum.EMAIL
-    SLACK = ExternalProviderEnum.SLACK
-    MSTEAMS = ExternalProviderEnum.MSTEAMS
-    DISCORD = ExternalProviderEnum.DISCORD
-
-
-class NotificationProvider(abc.ABC, Generic[NotificationRenderable]):
+class NotificationProvider(abc.ABC, Generic[NotificationRenderableT]):
     """
     A base class for all notification providers.
     """
+
+    def __init__(self) -> None:
+        pass
 
     @property
     @abc.abstractmethod
@@ -44,7 +34,7 @@ class NotificationProvider(abc.ABC, Generic[NotificationRenderable]):
 
     @property
     @abc.abstractmethod
-    def default_renderer(self) -> type["NotificationRenderer[NotificationRenderable]"]:
+    def default_renderer(self) -> type["NotificationRenderer[NotificationRenderableT]"]:
         """
         Returns the default renderer for this provider.
         """
