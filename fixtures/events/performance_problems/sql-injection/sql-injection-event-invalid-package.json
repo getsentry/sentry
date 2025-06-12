@@ -25,6 +25,9 @@
       ["single", "u"]
     ]
   },
+  "modules": {
+    "sequelize": "1.0.0"
+  },
   "spans": [
     {
       "timestamp": 1747089758.567536,
