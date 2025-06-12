@@ -336,8 +336,8 @@ class GoParser(LanguageParser):
     Interface method (in interface definition):         MethodName(param Type) ReturnType
     """
 
-    # Regular function declarations
-    function_declaration_regex = r"^@@.*@@[^=]*?\s*func\s+(?P<fnc>\w+)\s*\("
+    # Regular function declarations (including generics)
+    function_declaration_regex = r"^@@.*@@[^=]*?\s*func\s+(?P<fnc>\w+)(?:\[[^\]]*\])?\s*\("
 
     # Method declarations with receiver (pointer or value)
     method_with_receiver_regex = r"^@@.*@@[^=]*?\s*func\s+\([^)]+\)\s*(?P<fnc>\w+)\s*\("
@@ -350,15 +350,14 @@ class GoParser(LanguageParser):
 
     # Interface method declarations (no func keyword, just method signature)
     # This matches lines that look like method signatures in interfaces
-    interface_method_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*\([^)]*\)(?:\s+\w+|\s*\([^)]*\))?\s*$"
+    interface_method_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*\([^)]*\)(?:\s+[^{]*)?$"
 
     regexes = [
         function_declaration_regex,
         method_with_receiver_regex,
         function_var_regex,
         function_short_decl_regex,
-        # Note: interface_method_regex is intentionally last as it's more general
-        # and could match other patterns if placed earlier
+        interface_method_regex,
     ]
 
 
@@ -372,21 +371,18 @@ PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "rb": RubyParser,
 }
 
-# Beta parsers for experimental language support
-BETA_PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
-    "cs": CSharpParser,
-    "go": GoParser,
-}
 
-
-def get_patch_parsers_for_organization(organization: Organization | RpcOrganization | None = None):
+def get_patch_parsers_for_organization(
+    organization: Organization | RpcOrganization | None = None,
+) -> dict[str, type[SimpleLanguageParser] | type[LanguageParser]]:
     """
     Returns the appropriate patch parsers based on feature flags.
     Falls back to the standard parsers if no organization is provided.
     """
+    parsers = PATCH_PARSERS
     if organization and features.has("organizations:csharp-open-pr-comments", organization):
-        # Merge stable and beta parsers when feature flag is enabled
-        return {**PATCH_PARSERS, **BETA_PATCH_PARSERS}
-    else:
-        # Return only stable parsers when feature flag is disabled or no organization context
-        return {k: v for k, v in PATCH_PARSERS.items() if k not in BETA_PATCH_PARSERS}
+        parsers.update({"cs": CSharpParser})
+    if organization and features.has("organizations:go-open-pr-comments", organization):
+        parsers.update({"go": GoParser})
+
+    return parsers

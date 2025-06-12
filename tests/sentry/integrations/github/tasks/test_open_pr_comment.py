@@ -152,7 +152,7 @@ class TestSafeForComment(GithubCommentTestCase):
         ]
 
     @responses.activate
-    @with_feature("organizations:csharp-open-pr-comments")
+    @with_feature("organizations:go-open-pr-comments")
     def test_simple_with_go(self):
         data = [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
@@ -563,7 +563,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:csharp-open-pr-comments")
+    @with_feature("organizations:go-open-pr-comments")
     def test_go_simple(self):
         # should match function name exactly or struct.functionName
         group_id_1 = [
