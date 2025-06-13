@@ -29,7 +29,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
         max_length=200,
-        help_text="Name of the uptime monitor",
+        help_text="Name of the monitor",
     )
     type = serializers.CharField()
     config = serializers.JSONField(default={})
