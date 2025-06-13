@@ -236,7 +236,7 @@ function GroupBySelector({
   );
 
   return (
-    <StyledCompactSelect
+    <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
       triggerLabel={label}
@@ -307,7 +307,7 @@ function VisualizeSelector({
 
   return (
     <Fragment>
-      <StyledCompactSelect
+      <SingleWidthCompactSelect
         data-test-id="editor-visualize-function"
         options={aggregateOptions}
         value={parsedFunction?.name}
@@ -320,7 +320,7 @@ function VisualizeSelector({
           },
         }}
       />
-      <StyledCompactSelect
+      <DoubleWidthCompactSelect
         data-test-id="editor-visualize-argument"
         options={argumentOptions}
         value={parsedFunction?.arguments[0] ?? ''}
@@ -353,8 +353,13 @@ const StyledButton = styled(Button)`
   padding-right: 0;
 `;
 
-const StyledCompactSelect = styled(CompactSelect)`
-  flex-grow: 1;
+const SingleWidthCompactSelect = styled(CompactSelect)`
+  flex: 1;
+  min-width: 0;
+`;
+
+const DoubleWidthCompactSelect = styled(CompactSelect)`
+  flex: 2;
   min-width: 0;
 `;
 
