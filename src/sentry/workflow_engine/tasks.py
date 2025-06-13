@@ -1,8 +1,16 @@
-from sentry.models.activity import Activity, activity_creation_registry
+from typing import TYPE_CHECKING
+
+from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker import config, namespaces, retry
 from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.issues.status_change_message import StatusChangeMessageData
+    from sentry.models.activity import Activity
+    from sentry.models.group import Group
+    from sentry.workflow_engine.models import Detector
 
 
 @instrumented_task(
@@ -22,9 +30,9 @@ from sentry.utils import metrics
         ),
     ),
 )
-def process_workflow_task(activity_id: int) -> None:
+def process_workflow_task(activity_id: Activity.id, detector_id: Detector.id) -> None:
     """
-    Process a workflow task identified by the given activity ID.
+    Process a workflow task identified by the given Activity ID and Detector ID.
 
     This task will retry up to 3 times with a delay of 5 seconds between attempts.
     It has a soft time limit of 50 seconds and a hard time limit of 60 seconds.
@@ -38,14 +46,18 @@ def process_workflow_task(activity_id: int) -> None:
     pass
 
 
-@activity_creation_registry.register("workflow_status_update")
-def workflow_status_update_handler(activity: Activity, detector_id: int | None) -> None:
+@group_status_update_registry.register("workflow_status_update")
+def workflow_status_update_handler(
+    group: Group, status_change_message: StatusChangeMessageData, activity: Activity
+) -> None:
     """
     Hook the process_workflow_task into the activity creation registry.
 
     Since this handler is called in process for the activity, we want
     to queue a task to process workflows asynchronously.
     """
+    detector_id = status_change_message.get("detector_id")
+
     if detector_id is None:
         # We should not hit this case, it's should only occur if there is a bug
         # passing it from the workflow_engine to the issue platform.
@@ -56,4 +68,5 @@ def workflow_status_update_handler(activity: Activity, detector_id: int | None) 
     metrics.incr(
         "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
     )
-    # process_workflow_task.delay(activity.id)
+    # TODO - should this also set the group id so we can set it on WorkflowEventData at the top level? :thinking:
+    # process_workflow_task.delay(activity.id, detector_id)
