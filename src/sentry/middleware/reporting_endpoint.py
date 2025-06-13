@@ -21,6 +21,12 @@ class ReportingEndpointMiddleware:
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase
     ) -> HttpResponseBase:
+        # There are some Relay endpoints which need to be able to run without touching the database
+        # (so the `options` check below is no good), and besides, Relay has no use for a
+        # browser-specific header, so we need to (but also can) bail early.
+        if "api/0/relays" in request.path:
+            return response
+
         if options.get("issues.browser_reporting.reporting_endpoints_header_enabled"):
             # This will enable crashes and intervention and deprecation reports
             # They always report to the default endpoint
