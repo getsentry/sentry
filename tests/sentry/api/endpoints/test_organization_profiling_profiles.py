@@ -1,8 +1,8 @@
-import pytest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
