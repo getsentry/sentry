@@ -131,7 +131,7 @@ export function AIInputSection({
   }
 
   let promptMessages = getTraceNodeAttribute(
-    'ai.prompt.messages',
+    'gen_ai.request.messages',
     node,
     event,
     attributes
