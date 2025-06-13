@@ -65,9 +65,12 @@ export default function PlayStationSdkAccessModal({
     const messageBody = [
       `User: ${user.name || 'No Name'}`,
       `Email: ${user.email || 'No Email'}`,
-      `Engines: ${formData.gameEngines.map((engine: string) =>
-        GAME_ENGINE_OPTIONS.find(option => option.value === engine)?.label || engine
-      ).join(', ')}`,
+      `Engines: ${formData.gameEngines
+        .map(
+          (engine: string) =>
+            GAME_ENGINE_OPTIONS.find(option => option.value === engine)?.label || engine
+        )
+        .join(', ')}`,
       `Org Slug: ${organization.slug}`,
     ].join('\n');
 
