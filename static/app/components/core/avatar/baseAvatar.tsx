@@ -93,8 +93,6 @@ export function BaseAvatar({
         onLoad={handleLoad}
         onError={handleError}
       />
-    ) : type === 'background' ? (
-      <BackgroundAvatar round={round} suggested={suggested} />
     ) : (
       <LetterAvatar
         ref={ref as React.Ref<SVGSVGElement>}
@@ -143,32 +141,6 @@ const AvatarContainer = styled('span')<{
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
-`;
-
-interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
-  ref?: React.Ref<SVGSVGElement>;
-  round?: boolean;
-  suggested?: boolean;
-}
-
-/**
- * Creates an avatar placeholder that is used when showing multiple
- * suggested assignees
- */
-const BackgroundAvatar = styled(
-  ({round: _round, ref, ...props}: BackgroundAvatarProps) => {
-    return (
-      <svg ref={ref} viewBox="0 0 120 120" {...props}>
-        <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
-      </svg>
-    );
-  }
-)<BackgroundAvatarProps>`
-  ${BaseAvatarComponentStyles};
-
-  svg rect {
-    fill: ${p => p.theme.purple100};
-  }
 `;
 
 const ImageAvatar = styled('img')<BaseAvatarComponentProps>`

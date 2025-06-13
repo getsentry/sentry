@@ -12,7 +12,7 @@ import type {ALLOWED_SCOPES} from 'sentry/constants';
  * Visual representation of a project/team/organization/user
  */
 export type Avatar = {
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'default';
   avatarUuid: string | null;
   avatarUrl?: string | null;
   color?: boolean;
