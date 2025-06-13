@@ -1407,7 +1407,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         assert rule_group_data == {}
 
     @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
     def test_batched_cleanup(self, mock_apply_delayed):
         group_two = self.create_group(self.project)
         group_three = self.create_group(self.project)
@@ -1422,8 +1422,8 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_three.id)
 
         process_in_batches(self.project.id, "delayed_processing")
-        batch_one_key = mock_apply_delayed.call_args_list[0][0][1]
-        batch_two_key = mock_apply_delayed.call_args_list[1][0][1]
+        batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
+        batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify process_rulegroups_in_batches removed the data from the buffer
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})

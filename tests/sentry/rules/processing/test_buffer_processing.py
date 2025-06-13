@@ -253,22 +253,26 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.group_three = self.create_group(self.project)
         self.rule = self.create_alert_rule()
 
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
     def test_no_redis_data(self, mock_apply_delayed):
         process_in_batches(self.project.id, "delayed_processing")
-        mock_apply_delayed.assert_called_once_with(self.project.id)
+        mock_apply_delayed.assert_called_once_with(
+            kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
+        )
 
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
     def test_basic(self, mock_apply_delayed):
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
         process_in_batches(self.project.id, "delayed_processing")
-        mock_apply_delayed.assert_called_once_with(self.project.id)
+        mock_apply_delayed.assert_called_once_with(
+            kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
+        )
 
     @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
     def test_batch(self, mock_apply_delayed):
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
@@ -278,11 +282,11 @@ class ProcessInBatchesTest(CreateEventTestCase):
         assert mock_apply_delayed.call_count == 2
 
         # Validate the batches are created correctly
-        batch_one_key = mock_apply_delayed.call_args_list[0][0][1]
+        batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_one = buffer.backend.get_hash(
             model=Project, field={"project_id": self.project.id, "batch_key": batch_one_key}
         )
-        batch_two_key = mock_apply_delayed.call_args_list[1][0][1]
+        batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
         batch_two = buffer.backend.get_hash(
             model=Project, field={"project_id": self.project.id, "batch_key": batch_two_key}
         )
