@@ -13,9 +13,13 @@ _GIST_EXT = """\
         SafeRunSQL(
             sql="CREATE EXTENSION btree_gist;",
             reverse_sql="",
-            hints={"tables": ["accounts_spend_allocations"]},
+            hints={{"tables": [{table!r}]}},
         ),
 """
+_EXCLUSION_TABLES = {
+    "groupopenperiod": "sentry_groupopenperiod",
+    "spendallocation": "accounts_spend_allocations",
+}
 
 
 def _get_kw(kws: list[ast.keyword], name: str) -> ast.keyword | None:
@@ -47,8 +51,15 @@ class App(NamedTuple):
     replaces: list[str]
 
     @property
+    def is_already_squashed(self) -> bool:
+        return self.current[4:14] == "_squashed_"
+
+    @property
     def squash_name(self) -> str:
-        return f"0001_squashed_{self.current}"
+        if self.is_already_squashed:
+            return self.current
+        else:
+            return f"0001_squashed_{self.current}"
 
     @property
     def squash_fname(self) -> str:
@@ -134,7 +145,7 @@ def _clear_out_replaces(apps: list[App]) -> None:
                 f.writelines(lines)
 
 
-def _clean_one_depends(app: App) -> dict[str, set[str]]:
+def _clean_one_depends(app: App, already_squashed: set[tuple[str, str]]) -> dict[str, set[str]]:
     ret: dict[str, set[str]]
     ret = collections.defaultdict(set)
     for fname in os.listdir(app.root):
@@ -156,10 +167,12 @@ def _clean_one_depends(app: App) -> dict[str, set[str]]:
             ):
                 for elt in node.value.elts:
                     if isinstance(elt, ast.Tuple):
-                        cand, _ = ast.literal_eval(elt)
+                        target = ast.literal_eval(elt)
+                        cand, _ = target
                         if cand != app.name:
                             ret[cand].add(fname.removesuffix(".py"))
-                            fixups.append(elt.lineno)
+                            if target not in already_squashed:
+                                fixups.append(elt.lineno)
 
         if fixups:
             for fixup in fixups:
@@ -173,14 +186,15 @@ def _clean_one_depends(app: App) -> dict[str, set[str]]:
 
 
 def _clear_out_depends(apps: list[App]) -> dict[str, dict[str, set[str]]]:
-    return {app.name: _clean_one_depends(app) for app in apps}
+    already_squashed = {(app.name, app.current) for app in apps if app.is_already_squashed}
+    return {app.name: _clean_one_depends(app, already_squashed) for app in apps}
 
 
 class FixupVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
         self.initial_lineno: int | None = None
         self.is_post_deployment_lineno: int | None = None
-        self.first_exclude_constraint: int | None = None
+        self.first_exclude_constraint: tuple[str, int] | None = None
 
     def visit_Assign(self, node: ast.Assign) -> None:
         if _is_assign_to(node, "initial"):
@@ -203,7 +217,10 @@ class FixupVisitor(ast.NodeVisitor):
                 and isinstance(kw.value.func, ast.Attribute)
                 and kw.value.func.attr == "ExclusionConstraint"
             ):
-                self.first_exclude_constraint = node.lineno
+                model_name_kw = _get_kw(node.keywords, "model_name")
+                assert model_name_kw is not None and isinstance(model_name_kw.value, ast.Constant)
+                table = _EXCLUSION_TABLES[model_name_kw.value.value]
+                self.first_exclude_constraint = (table, node.lineno)
 
         self.generic_visit(node)
 
@@ -216,7 +233,8 @@ def _fixup(fname: str, replaces: list[tuple[str, str]]) -> None:
     visitor.visit(ast.parse("".join(lines), filename=fname))
 
     if visitor.first_exclude_constraint is not None:
-        lines.insert(visitor.first_exclude_constraint - 1, _GIST_EXT)
+        gist_table, gist_line = visitor.first_exclude_constraint
+        lines.insert(gist_line - 1, _GIST_EXT.format(table=gist_table))
 
     assert visitor.is_post_deployment_lineno is not None
     post_deploy_and_replaces = f"""\
@@ -243,6 +261,9 @@ def _fixup(fname: str, replaces: list[tuple[str, str]]) -> None:
 
 def _squash_one(repo: str, app: App) -> None:
     print(f"squashing {app.name}...")
+    if app.is_already_squashed:
+        print("==> skipped (already squashed!)")
+        return
     for fname in os.listdir(app.root):
         if _is_migration(fname):
             os.remove(os.path.join(app.root, fname))
@@ -364,6 +385,8 @@ def _fix_sentry_references(apps: list[App], sentry: App) -> None:
 
         with open(app.squash_fname, "w", encoding="UTF-8") as f:
             f.writelines(lines)
+
+        subprocess.check_call(("git", "add", "--", app.squash_fname))
 
 
 class DependenciesVisitor(ast.NodeVisitor):
