@@ -17,7 +17,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
     def setUp(self):
         super().setUp()
         self.group.times_seen_pending = 0
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
