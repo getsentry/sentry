@@ -687,32 +687,6 @@ export default Storybook.story('SearchQueryBuilder', story => {
     );
   });
 
-  story('Unsubmitted search indicator', () => {
-    const [query, setQuery] = useState('is:unresolved assigned:me');
-
-    return (
-      <Fragment>
-        <p>
-          You can display an indicator when the search query has been modified but not
-          fully submitted using the <code>showUnsubmittedIndicator</code> prop. This can
-          be useful to remind the user that they have unsaved changes for use cases which
-          require manual submission.
-        </p>
-        <p>
-          Current query: <code>{query}</code>
-        </p>
-        <SearchQueryBuilder
-          initialQuery={query}
-          filterKeys={FILTER_KEYS}
-          getTagValues={getTagValues}
-          searchSource="storybook"
-          showUnsubmittedIndicator
-          onSearch={setQuery}
-        />
-      </Fragment>
-    );
-  });
-
   story('Disabled', () => {
     return (
       <SearchQueryBuilder
