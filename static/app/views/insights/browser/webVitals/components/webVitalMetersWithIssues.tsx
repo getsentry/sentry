@@ -16,6 +16,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
+import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {
   getIssueQueryFilter,
   useWebVitalsIssuesQuery,
@@ -41,29 +42,6 @@ type Props = {
   projectScore?: ProjectScore;
   showTooltip?: boolean;
   transaction?: string;
-};
-
-export const WEB_VITALS_METERS_CONFIG = {
-  lcp: {
-    name: t('Largest Contentful Paint'),
-    formatter: (value: number) => getFormattedDuration(value / 1000),
-  },
-  fcp: {
-    name: t('First Contentful Paint'),
-    formatter: (value: number) => getFormattedDuration(value / 1000),
-  },
-  inp: {
-    name: t('Interaction to Next Paint'),
-    formatter: (value: number) => getFormattedDuration(value / 1000),
-  },
-  cls: {
-    name: t('Cumulative Layout Shift'),
-    formatter: (value: number) => Math.round(value * 100) / 100,
-  },
-  ttfb: {
-    name: t('Time To First Byte'),
-    formatter: (value: number) => getFormattedDuration(value / 1000),
-  },
 };
 
 export default function WebVitalMetersWithIssues({
