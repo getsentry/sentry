@@ -8,15 +8,21 @@ import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import FormContext from 'sentry/components/forms/formContext';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
+import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
+
+const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL = {
+  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
+  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
+  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
+};
 
 function ThresholdPriority() {
   const conditionType = useMetricDetectorFormField(
@@ -37,16 +43,24 @@ function ChangePriority() {
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
-  const lowThreshold = useFormField<string>('conditionGroup.conditions.0.comparison')!;
+  const conditionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  );
   return (
     <div>
-      {lowThreshold === '' ? '0' : lowThreshold}%{' '}
+      {conditionValue === '' ? '0' : conditionValue}%{' '}
       {conditionType === 'gt' ? t('higher') : t('lower')}
     </div>
   );
 }
 
-export default function PriorityControl() {
+interface PriorityControlProps {
+  minimumPriority?: DetectorPriorityLevel;
+}
+
+export default function PriorityControl({
+  minimumPriority = DetectorPriorityLevel.LOW,
+}: PriorityControlProps) {
   // TODO: kind type not yet available from detector types
   const detectorKind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const initialPriorityLevel = useMetricDetectorFormField(
@@ -66,9 +80,9 @@ export default function PriorityControl() {
             <SecondaryLabel>({t('issue created')})</SecondaryLabel>
           </Flex>
         }
-        right={<InitialPrioritySelect />}
+        right={<InitialPrioritySelect minimumPriority={minimumPriority} />}
       />
-      {priorityIsConfigurable(initialPriorityLevel, PriorityLevel.MEDIUM) && (
+      {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.MEDIUM) && (
         <PrioritizeRow
           left={
             <NumberField
@@ -87,7 +101,7 @@ export default function PriorityControl() {
           right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
         />
       )}
-      {priorityIsConfigurable(initialPriorityLevel, PriorityLevel.HIGH) && (
+      {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.HIGH) && (
         <PrioritizeRow
           left={
             <NumberField
@@ -111,18 +125,10 @@ export default function PriorityControl() {
 }
 
 function priorityIsConfigurable(
-  createdPriority: PriorityLevel,
-  targetPriority: PriorityLevel
+  initialPriorityLevel: DetectorPriorityLevel,
+  targetPriority: DetectorPriorityLevel
 ): boolean {
-  if (createdPriority === PriorityLevel.LOW) {
-    return (
-      targetPriority === PriorityLevel.MEDIUM || targetPriority === PriorityLevel.HIGH
-    );
-  }
-  if (createdPriority === PriorityLevel.MEDIUM) {
-    return targetPriority === PriorityLevel.HIGH;
-  }
-  return false;
+  return targetPriority > initialPriorityLevel;
 }
 
 function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.ReactNode}) {
@@ -139,9 +145,17 @@ function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.React
   );
 }
 
-const priorities = [PriorityLevel.LOW, PriorityLevel.MEDIUM, PriorityLevel.HIGH];
+const priorities = [
+  DetectorPriorityLevel.LOW,
+  DetectorPriorityLevel.MEDIUM,
+  DetectorPriorityLevel.HIGH,
+];
 
-function InitialPrioritySelect() {
+function InitialPrioritySelect({
+  minimumPriority,
+}: {
+  minimumPriority: DetectorPriorityLevel;
+}) {
   const formContext = useContext(FormContext);
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
@@ -152,19 +166,29 @@ function InitialPrioritySelect() {
       size="xs"
       trigger={(props, isOpen) => {
         return (
-          <EmptyButton {...props}>
-            <GroupPriorityBadge showLabel priority={initialPriorityLevel}>
+          <EmptyButton type="button" {...props}>
+            <GroupPriorityBadge
+              showLabel
+              priority={DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[initialPriorityLevel]}
+            >
               <InteractionStateLayer isPressed={isOpen} />
               <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
             </GroupPriorityBadge>
           </EmptyButton>
         );
       }}
-      options={priorities.map(priority => ({
-        label: <GroupPriorityBadge showLabel priority={priority} />,
-        value: priority,
-        textValue: priority,
-      }))}
+      options={priorities
+        .filter(priority => priority >= minimumPriority)
+        .map(priority => ({
+          label: (
+            <GroupPriorityBadge
+              showLabel
+              priority={DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[priority]}
+            />
+          ),
+          value: priority,
+          textValue: DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[priority],
+        }))}
       value={initialPriorityLevel}
       onChange={({value}) => {
         formContext.form?.setValue(

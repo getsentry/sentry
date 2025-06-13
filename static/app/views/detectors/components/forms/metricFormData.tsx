@@ -1,5 +1,4 @@
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
-import {PriorityLevel} from 'sentry/types/group';
 import type {
   DataCondition,
   DataConditionGroup,
@@ -7,6 +6,7 @@ import type {
 import {
   DataConditionGroupLogicType,
   DataConditionType,
+  DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {
@@ -18,7 +18,7 @@ interface PrioritizeLevelFormData {
   /**
    * Issue is created at this priority level
    */
-  initialPriorityLevel: PriorityLevel;
+  initialPriorityLevel: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH;
   /**
    * High priority value is optional depending on the initial level
    */
@@ -103,7 +103,8 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   kind: 'threshold',
 
   // Priority level fields
-  initialPriorityLevel: PriorityLevel.LOW,
+  // Metric detectors only support MEDIUM and HIGH priority levels
+  initialPriorityLevel: DetectorPriorityLevel.MEDIUM,
   conditionType: 'gt',
   conditionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
@@ -163,14 +164,6 @@ export interface NewMetricDetector {
   projectId: Detector['projectId'];
 }
 
-// Map PriorityLevel to DetectorPriorityLevel integer values
-// Note: Metric detectors only support MEDIUM and HIGH priority levels
-const PRIORITY_LEVEL_TO_DETECTOR_PRIORITY = {
-  [PriorityLevel.LOW]: 25, // DetectorPriorityLevel.LOW
-  [PriorityLevel.MEDIUM]: 50, // DetectorPriorityLevel.MEDIUM
-  [PriorityLevel.HIGH]: 75, // DetectorPriorityLevel.HIGH
-} as const;
-
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */
@@ -185,42 +178,21 @@ function createEscalationConditions(
 
   // Always create the main condition for the initial priority level
   if (data.conditionValue) {
-    // Convert LOW to MEDIUM since metric detectors don't support LOW
-    const effectiveInitialPriority =
-      data.initialPriorityLevel === PriorityLevel.LOW
-        ? PriorityLevel.MEDIUM
-        : data.initialPriorityLevel;
-
     conditions.push({
       type:
         data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
       comparison: parseFloat(data.conditionValue) || 0,
-      conditionResult: PRIORITY_LEVEL_TO_DETECTOR_PRIORITY[effectiveInitialPriority],
+      conditionResult: data.initialPriorityLevel,
     });
   }
 
-  // Create escalation conditions for higher priority levels
-  // Only add MEDIUM escalation if initial priority is LOW and mediumThreshold is provided
-  if (data.initialPriorityLevel === PriorityLevel.LOW && data.mediumThreshold) {
-    conditions.push({
-      type:
-        data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
-      comparison: parseFloat(data.mediumThreshold) || 0,
-      conditionResult: PRIORITY_LEVEL_TO_DETECTOR_PRIORITY[PriorityLevel.MEDIUM],
-    });
-  }
-
-  // Only add HIGH escalation if initial priority is LOW or MEDIUM and highThreshold is provided
-  if (
-    (data.initialPriorityLevel === PriorityLevel.LOW ||
-      data.initialPriorityLevel === PriorityLevel.MEDIUM) &&
-    data.highThreshold
-  ) {
+  // Only add HIGH escalation if initial priority is MEDIUM and highThreshold is provided
+  if (data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM && data.highThreshold) {
     conditions.push({
       type:
         data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
       comparison: parseFloat(data.highThreshold) || 0,
-      conditionResult: PRIORITY_LEVEL_TO_DETECTOR_PRIORITY[PriorityLevel.HIGH],
+      conditionResult: DetectorPriorityLevel.HIGH,
     });
   }
 
@@ -253,8 +225,7 @@ function createResolutionCondition(
   return {
     type: resolveConditionType,
     comparison: data.resolveThreshold,
-    // TODO: why are we using numbers
-    conditionResult: 0,
+    conditionResult: DetectorPriorityLevel.MEDIUM,
   };
 }
 
@@ -266,9 +237,11 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   const eventTypes = ['error'];
 
   return {
+    // TODO: Add an enum for queryType and dataset
     queryType: 0,
     dataset,
     query: data.query,
+    // TODO: aggregate doesn't always contain the selected "visualize" value.
     aggregate: `${data.aggregate}(${data.visualize})`,
     timeWindow: data.conditionComparisonAgo ? data.conditionComparisonAgo / 60 : 60,
     environment: data.environment ? data.environment : null,
