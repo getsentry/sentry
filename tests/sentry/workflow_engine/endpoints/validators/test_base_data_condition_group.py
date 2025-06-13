@@ -139,11 +139,14 @@ class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValida
         validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         validator.is_valid(raise_exception=True)
         dcg = validator.create(validator.validated_data)
+        assert dcg.conditions.count() == 1
+        condition = dcg.conditions.first()
+        assert condition
 
         # update condition
         self.valid_data["conditions"] = [
             {
-                "id": dcg.conditions.first().id,
+                "id": condition.id,
                 "type": Condition.EQUAL,
                 "comparison": 2,  # update to 2 from 1
                 "conditionResult": True,
