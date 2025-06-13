@@ -28,7 +28,7 @@ const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
   {
     key: 'avg(span.duration)',
     name: t('AVG Duration'),
-    width: 122,
+    width: 140,
   },
   {
     key: 'performance_score(measurements.score.total)',
