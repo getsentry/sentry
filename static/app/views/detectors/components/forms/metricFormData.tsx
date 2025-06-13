@@ -9,6 +9,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -154,7 +155,7 @@ export interface NewMetricDetector {
   conditionGroup: NewConditionGroup;
   // TODO: config types don't exist yet
   config: {
-    // TODO: what is this
+    // TODO: what is the shape of config?
     detection_type: any;
     threshold_period: number;
   };
@@ -167,26 +168,25 @@ export interface NewMetricDetector {
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */
-function createEscalationConditions(
-  data: MetricDetectorFormData
-): NewConditionGroup['conditions'] {
-  const conditions: NewConditionGroup['conditions'] = [];
-
-  if (!data.conditionType) {
-    return conditions;
+function createConditions(data: MetricDetectorFormData): NewConditionGroup['conditions'] {
+  if (!defined(data.conditionType) || !defined(data.conditionValue)) {
+    return [];
   }
 
-  // Always create the main condition for the initial priority level
-  if (data.conditionValue) {
-    conditions.push({
+  const conditions: NewConditionGroup['conditions'] = [
+    // Always create the main condition for the initial priority level
+    {
       type: data.conditionType,
       comparison: parseFloat(data.conditionValue) || 0,
       conditionResult: data.initialPriorityLevel,
-    });
-  }
+    },
+  ];
 
   // Only add HIGH escalation if initial priority is MEDIUM and highThreshold is provided
-  if (data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM && data.highThreshold) {
+  if (
+    data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM &&
+    defined(data.highThreshold)
+  ) {
     conditions.push({
       type: data.conditionType,
       comparison: parseFloat(data.highThreshold) || 0,
@@ -194,34 +194,22 @@ function createEscalationConditions(
     });
   }
 
-  return conditions;
-}
+  // Create resolution condition if provided
+  if (defined(data.resolveThreshold)) {
+    // Resolution condition uses opposite comparison type
+    const resolveConditionType =
+      data.conditionType === DataConditionType.GREATER
+        ? DataConditionType.LESS
+        : DataConditionType.GREATER;
 
-/**
- * Creates a resolution condition if resolveThreshold is provided
- */
-function createResolutionCondition(
-  data: MetricDetectorFormData
-): Omit<DataCondition, 'id'> | null {
-  if (
-    data.resolveThreshold === undefined ||
-    data.resolveThreshold === '' ||
-    !data.conditionType
-  ) {
-    return null;
+    conditions.push({
+      type: resolveConditionType,
+      comparison: data.resolveThreshold,
+      conditionResult: DetectorPriorityLevel.OK,
+    });
   }
 
-  // Resolution condition uses opposite comparison type
-  const resolveConditionType =
-    data.conditionType === DataConditionType.GREATER
-      ? DataConditionType.LESS // Use LESS instead of LESS_OR_EQUAL
-      : DataConditionType.GREATER;
-
-  return {
-    type: resolveConditionType,
-    comparison: data.resolveThreshold,
-    conditionResult: DetectorPriorityLevel.OK,
-  };
+  return conditions;
 }
 
 /**
@@ -247,19 +235,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
 export function getNewMetricDetectorData(
   data: MetricDetectorFormData
 ): NewMetricDetector {
-  // Create escalation conditions (multiple conditions for LOW initial priority)
-  const escalationConditions = createEscalationConditions(data);
-
-  // Create resolution condition if provided
-  const resolutionCondition = createResolutionCondition(data);
-
-  // Combine all conditions
-  const conditions = [...escalationConditions];
-  if (resolutionCondition) {
-    conditions.push(resolutionCondition);
-  }
-
-  // Create data source configuration
+  const conditions = createConditions(data);
   const dataSource = createDataSource(data);
 
   return {
@@ -267,6 +243,7 @@ export function getNewMetricDetectorData(
     detectorType: 'metric_issue',
     projectId: data.projectId,
     conditionGroup: {
+      // TODO: Can this be different values?
       logicType: DataConditionGroupLogicType.ANY,
       conditions,
     },
