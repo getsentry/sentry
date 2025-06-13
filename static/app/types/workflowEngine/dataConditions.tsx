@@ -53,6 +53,7 @@ export enum DataConditionGroupLogicType {
 }
 
 export enum DetectorPriorityLevel {
+  OK = 0,
   LOW = 25,
   MEDIUM = 50,
   HIGH = 75,

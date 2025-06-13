@@ -179,8 +179,7 @@ function createEscalationConditions(
   // Always create the main condition for the initial priority level
   if (data.conditionValue) {
     conditions.push({
-      type:
-        data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
+      type: data.conditionType,
       comparison: parseFloat(data.conditionValue) || 0,
       conditionResult: data.initialPriorityLevel,
     });
@@ -189,8 +188,7 @@ function createEscalationConditions(
   // Only add HIGH escalation if initial priority is MEDIUM and highThreshold is provided
   if (data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM && data.highThreshold) {
     conditions.push({
-      type:
-        data.conditionType === 'gt' ? DataConditionType.GREATER : DataConditionType.LESS,
+      type: data.conditionType,
       comparison: parseFloat(data.highThreshold) || 0,
       conditionResult: DetectorPriorityLevel.HIGH,
     });
@@ -214,18 +212,15 @@ function createResolutionCondition(
   }
 
   // Resolution condition uses opposite comparison type
-  // Backend only supports 'gt' (GREATER) and 'lt' (LESS), not 'lte' (LESS_OR_EQUAL)
   const resolveConditionType =
-    data.conditionType === 'gt'
+    data.conditionType === DataConditionType.GREATER
       ? DataConditionType.LESS // Use LESS instead of LESS_OR_EQUAL
       : DataConditionType.GREATER;
 
-  // Backend only supports MEDIUM and HIGH priority levels, so use MEDIUM for resolution
-  // This represents "resolve when metric goes back to medium/normal levels"
   return {
     type: resolveConditionType,
     comparison: data.resolveThreshold,
-    conditionResult: DetectorPriorityLevel.MEDIUM,
+    conditionResult: DetectorPriorityLevel.OK,
   };
 }
 
@@ -237,7 +232,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   const eventTypes = ['error'];
 
   return {
-    // TODO: Add an enum for queryType and dataset
+    // TODO: Add an enum for queryType and dataset or look for existing ones
     queryType: 0,
     dataset,
     query: data.query,

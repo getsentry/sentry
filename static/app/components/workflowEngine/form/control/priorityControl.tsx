@@ -18,7 +18,16 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
 
-const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL = {
+const priorities = [
+  DetectorPriorityLevel.LOW,
+  DetectorPriorityLevel.MEDIUM,
+  DetectorPriorityLevel.HIGH,
+] as const;
+
+const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
+  (typeof priorities)[number],
+  PriorityLevel
+> = {
   [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
   [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
   [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
@@ -144,12 +153,6 @@ function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.React
     </Row>
   );
 }
-
-const priorities = [
-  DetectorPriorityLevel.LOW,
-  DetectorPriorityLevel.MEDIUM,
-  DetectorPriorityLevel.HIGH,
-];
 
 function InitialPrioritySelect({
   minimumPriority,
