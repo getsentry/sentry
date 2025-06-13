@@ -9,7 +9,6 @@ import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
@@ -45,8 +44,6 @@ export default function FeedbackListPage() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
-
-  const feedbackSummary = useFeedbackSummary();
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -90,7 +87,7 @@ export default function FeedbackListPage() {
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <Container style={{gridArea: 'list'}}>
-                        <FeedbackList feedbackSummary={feedbackSummary} />
+                        <FeedbackList />
                       </Container>
                       <SearchContainer>
                         <FeedbackSearch />
@@ -158,7 +155,7 @@ const LayoutGrid = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: minmax(1fr, 195px) 1fr;
+    grid-template-columns: minmax(195px, 1fr) 1.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
@@ -169,6 +166,8 @@ const LayoutGrid = styled('div')`
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;
+
+// grid-template-columns: minmax(195px, 1fr) 1.5fr; hmm, need to come back to this, i kinda get what it does but it seems a bit sus, but it works better than what was there previously since before there was invalid CSS here
 
 const Container = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};

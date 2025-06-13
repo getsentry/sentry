@@ -14,6 +14,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
+import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -42,15 +43,9 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
   );
 }
 
-interface FeedbackListProps {
-  feedbackSummary: {
-    error: Error | null;
-    loading: boolean;
-    summary: string | null;
-  };
-}
+export default function FeedbackList() {
+  const feedbackSummary = useFeedbackSummary();
 
-export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const {
     isFetchingNextPage,

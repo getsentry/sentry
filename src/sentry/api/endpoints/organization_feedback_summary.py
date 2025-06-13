@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -54,6 +53,20 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         ):
             return Response(status=403)
 
+        try:
+            start, end = get_date_range_from_stats_period(
+                request.GET,
+                # optional=False,
+                # default_stats_period=timedelta(days=7),
+            )
+        except (InvalidParams, Exception):
+            # print("wat on earth is going on, there seems to be a daterange parsing issue")
+            raise ParseError(detail="Invalid or missing date range")
+
+        # print(
+        #     f"This is the start and end dates that are being used to generate the summary: {start.strftime('%B %d, %Y')} to {end.strftime('%B %d, %Y')}"
+        # )
+
         return Response(
             {
                 "summary": "This is a test summary that is being used to test the feedback summary frontend view, since we don't have the LLM set up here. I am making this purposefully long just to see if it will add an option to read more.",
@@ -61,15 +74,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 "num_feedbacks_used": 10,
             }
         )
-
-        try:
-            start, end = get_date_range_from_stats_period(
-                request.GET,
-                optional=False,
-                default_stats_period=timedelta(days=7),
-            )
-        except InvalidParams:
-            raise ParseError(detail="Invalid or missing date range")
 
         filters = {
             "type": FeedbackGroup.type_id,
