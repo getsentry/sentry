@@ -22,6 +22,7 @@ import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {AutofixRepositories} from './autofixRepositories';
 
@@ -226,13 +227,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
                       }
                     )}
                   </Alert>
-                  {!canWriteProject && (
-                    <Alert type="warning" system>
-                      {t(
-                        'These settings can only be edited by users with the organization-level owner, manager, or team-level admin role.'
-                      )}
-                    </Alert>
-                  )}
+                  <ProjectPermissionAlert project={project} />
                   {showWarning && (
                     <Alert type="warning" system showIcon>
                       {t(
