@@ -168,13 +168,17 @@ function VitalMeter({
           title={
             issues &&
             issues.length > 0 &&
-            tct(
-              'There are [count] performance issues potentially affecting [webVital].',
-              {
-                count: issues.length > 5 ? '5+' : issues.length,
-                webVital: webVital.toUpperCase(),
-              }
-            )
+            (issues.length === 1
+              ? t('There is 1 performance issue potentially affecting [webVital].', {
+                  webVital: webVital.toUpperCase(),
+                })
+              : tct(
+                  'There are [count] performance issues potentially affecting [webVital].',
+                  {
+                    count: issues.length > 5 ? '5+' : issues.length,
+                    webVital: webVital.toUpperCase(),
+                  }
+                ))
           }
           tooltipProps={{
             isHoverable: true,
