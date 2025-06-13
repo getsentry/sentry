@@ -714,24 +714,40 @@ def _create_detector_state(apps: Apps, alert_rule: Any, project: Any, detector: 
 def _update_migrated_detector_triggers(apps: Apps, alert_rule: Any, detector: Any) -> None:
     Detector = apps.get_model("workflow_engine", "Detector")
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
-    with transaction.atomic(router.db_for_write(Detector)):
-        critical_detector_trigger = DataCondition.objects.get(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-        critical_detector_trigger.type = Condition.ANOMALY_DETECTION
-        critical_detector_trigger.comparison = {
-            "sensitivity": alert_rule.sensitivity,
-            "seasonality": alert_rule.seasonality,
-            "threshold_type": alert_rule.threshold_type,
-        }
-        critical_detector_trigger.save()
+    if DataCondition.objects.filter(
+        condition_group=detector.workflow_condition_group, type=Condition.ANOMALY_DETECTION
+    ).exists():
+        # data conditions are correctly formed
+        return
 
-        resolve_detector_trigger = DataCondition.objects.get(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.OK,
+    try:
+        with transaction.atomic(router.db_for_write(Detector)):
+            critical_detector_trigger = DataCondition.objects.get(
+                condition_group=detector.workflow_condition_group,
+                condition_result=DetectorPriorityLevel.HIGH,
+            )
+            critical_detector_trigger.type = Condition.ANOMALY_DETECTION
+            critical_detector_trigger.comparison = {
+                "sensitivity": alert_rule.sensitivity,
+                "seasonality": alert_rule.seasonality,
+                "threshold_type": alert_rule.threshold_type,
+            }
+            critical_detector_trigger.save()
+
+            resolve_detector_trigger = DataCondition.objects.get(
+                condition_group=detector.workflow_condition_group,
+                condition_result=DetectorPriorityLevel.OK,
+            )
+            resolve_detector_trigger.delete()
+            logger.info(
+                "Updated migrated detector triggers", extra={"alert_rule_id": alert_rule.id}
+            )
+    except Exception as e:
+        logger.info(
+            "error when updating detector triggers",
+            extra={"error": str(e), "alert_rule_id": alert_rule.id},
         )
-        resolve_detector_trigger.delete()
+        sentry_sdk.capture_exception(e)
 
 
 def migrate_anomaly_detection_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
@@ -762,7 +778,7 @@ def migrate_anomaly_detection_alerts(apps: Apps, schema_editor: BaseDatabaseSche
                     # this alert was changed to an anomaly detection alert after the initial migration
                     # we should update this rule's detector triggers
                     logger.info(
-                        "Alert rule already migrated—updating detector triggers",
+                        "Alert rule already migrated",
                         extra={"alert_rule_id": alert_rule.id},
                     )
                     detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
