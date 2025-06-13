@@ -14,12 +14,24 @@ from sentry.testutils.cases import TestCase
 
 
 class NotificationProviderTest(TestCase):
+
+    def setUp(self):
+        self.slack_integration = self.create_integration(
+            organization=self.organization, provider="slack", external_id="ext-123"
+        )
+        self.discord_integration = self.create_integration(
+            organization=self.organization, provider="discord", external_id="ext-123"
+        )
+
     def test_all_registrants_follow_protocol(self):
         for provider in provider_registry.get_all():
             # Ensures the provider can be instantiated, does not test functionality
             provider()
             # Ensures protocol properties are present and correct
             assert provider.key in NotificationProviderKey
+            assert issubclass(provider.target_class, NotificationTarget)
+            for resource_type in provider.target_resource_types:
+                assert resource_type in NotificationTargetResourceType
             # Ensures the default renderer links back to its connected provider key
             assert provider.default_renderer.provider_key == provider.key
             assert isinstance(provider.is_available(), bool)
@@ -31,8 +43,8 @@ class NotificationProviderTest(TestCase):
             )
 
     def test_validate_target_class(self):
-        class ExampleProvider(NotificationProvider[Any]):
-            key = NotificationProviderKey.SLACK
+        class TestDiscordProvider(NotificationProvider[Any]):
+            key = NotificationProviderKey.DISCORD
             target_class = IntegrationNotificationTarget
             target_resource_types = [
                 NotificationTargetResourceType.CHANNEL,
@@ -41,9 +53,9 @@ class NotificationProviderTest(TestCase):
 
         with pytest.raises(
             NotificationProviderError,
-            match="Target 'NotificationTarget' is not a valid dataclass for ExampleProvider",
+            match="Target 'NotificationTarget' is not a valid dataclass for TestDiscordProvider",
         ):
-            ExampleProvider.validate_target(
+            TestDiscordProvider.validate_target(
                 target=NotificationTarget(
                     provider_key=NotificationProviderKey.EMAIL,
                     resource_type=NotificationTargetResourceType.EMAIL,
@@ -53,40 +65,40 @@ class NotificationProviderTest(TestCase):
 
         with pytest.raises(
             NotificationProviderError,
-            match="Target intended for 'email' provider was given to ExampleProvider",
+            match="Target intended for 'slack' provider was given to TestDiscordProvider",
         ):
-            ExampleProvider.validate_target(
+            TestDiscordProvider.validate_target(
                 target=IntegrationNotificationTarget(
-                    provider_key=NotificationProviderKey.EMAIL,
+                    provider_key=NotificationProviderKey.SLACK,
                     resource_type=NotificationTargetResourceType.EMAIL,
                     resource_id="test@example.com",
-                    integration_id=self.integration.id,
+                    integration_id=self.slack_integration.id,
                     organization_id=self.organization.id,
                 )
             )
 
         with pytest.raises(
             NotificationProviderError,
-            match="Target with resource type 'email' is not supported by ExampleProvider"
+            match="Target with resource type 'email' is not supported by TestDiscordProvider"
             "Supported resource types: channel, direct_message",
         ):
-            ExampleProvider.validate_target(
+            TestDiscordProvider.validate_target(
                 target=IntegrationNotificationTarget(
-                    provider_key=ExampleProvider.key,
+                    provider_key=TestDiscordProvider.key,
                     resource_type=NotificationTargetResourceType.EMAIL,
                     resource_id="test@example.com",
-                    integration_id=self.integration.id,
+                    integration_id=self.discord_integration.id,
                     organization_id=self.organization.id,
                 )
             )
 
         # and finally, a valid target
-        ExampleProvider.validate_target(
+        TestDiscordProvider.validate_target(
             target=IntegrationNotificationTarget(
-                provider_key=ExampleProvider.key,
+                provider_key=TestDiscordProvider.key,
                 resource_type=NotificationTargetResourceType.CHANNEL,
                 resource_id="C01234567890",
-                integration_id=self.integration.id,
+                integration_id=self.discord_integration.id,
                 organization_id=self.organization.id,
             )
         )

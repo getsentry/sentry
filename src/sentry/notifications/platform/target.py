@@ -68,6 +68,10 @@ class IntegrationNotificationTarget(NotificationTarget):
         After initialization, we can fetch the integration and organization integration. so they're
         accessible as properties.
         """
+
+        # TODO(ecosystem): In the event we initialize many targets at once, we should consider parallelizing these RPC calls.
+        # Consider this once we focus on building out targets and strategies.
+        # Also, consider filtering out by status, though we may still send a notification to a disabled integration, for marketing or informational purposes.
         org_context = integration_service.organization_context(
             integration_id=self.integration_id,
             organization_id=self.organization_id,
