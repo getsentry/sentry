@@ -18,5 +18,5 @@ jobs:
       - name: Tag release version
         run: |
           docker buildx imagetools create --tag \
-           ghcr.io/getsentry/sentry-self-hosted:${{ github.ref_name }} \
-           ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
+           ghcr.io/getsentry/sentry:${{ github.ref_name }} \
+           ghcr.io/getsentry/sentry:${{ github.sha }}
