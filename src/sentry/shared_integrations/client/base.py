@@ -10,6 +10,7 @@ from requests import PreparedRequest, Request, Response
 from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.base import is_response_error, is_response_success
@@ -107,7 +108,12 @@ class BaseApiClient:
             log_params[self.integration_type] = self.name
 
         log_params.update(getattr(self, "logging_context", None) or {})
-        self.logger.info("%s.http_response", self.integration_type, extra=log_params)
+        # If the option is enabled, log for all status codes
+        if options.get("integrations.http-response.logs"):
+            self.logger.info("%s.http_response", self.integration_type, extra=log_params)
+        # Else only log for 400+ status codes
+        elif int(code) >= 400:
+            self.logger.warning("%s.http_response", self.integration_type, extra=log_params)
 
     def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"
