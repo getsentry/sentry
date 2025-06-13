@@ -2,10 +2,11 @@
 
 import django.contrib.postgres.constraints
 import django.contrib.postgres.fields.ranges
-from django.db import migrations, models
+from django.db import migrations
 
 import sentry.models.groupopenperiod
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -28,27 +29,37 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="groupopenperiod",
-            name="exclude_overlapping_start_end",
-        ),
-        migrations.AddConstraint(
-            model_name="groupopenperiod",
-            constraint=django.contrib.postgres.constraints.ExclusionConstraint(
-                expressions=[
-                    (models.F("group"), "="),
-                    (
-                        sentry.models.groupopenperiod.TsTzRange(
-                            "date_started",
-                            "date_ended",
-                            django.contrib.postgres.fields.ranges.RangeBoundary(
-                                inclusive_lower=True, inclusive_upper=True
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                SafeRunSQL(
+                    """\
+                    ALTER TABLE sentry_groupopenperiod DROP CONSTRAINT IF EXISTS exclude_overlapping_start_end;
+                    ALTER TABLE "sentry_groupopenperiod" ADD CONSTRAINT "exclude_overlapping_start_end" EXCLUDE USING GIST ("group" WITH =, (TSTZRANGE("date_started", "date_ended", '[]')) WITH &&);
+                    """,
+                    reverse_sql="ALTER TABLE sentry_groupopenperiod DROP CONSTRAINT IF EXISTS exclude_overlapping_start_end;",
+                    hints={"tables": ["sentry_groupopenperiod"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddConstraint(
+                    model_name="groupopenperiod",
+                    constraint=django.contrib.postgres.constraints.ExclusionConstraint(
+                        expressions=[
+                            ("group", "="),
+                            (
+                                sentry.models.groupopenperiod.TsTzRange(
+                                    "date_started",
+                                    "date_ended",
+                                    django.contrib.postgres.fields.ranges.RangeBoundary(
+                                        inclusive_lower=True, inclusive_upper=True
+                                    ),
+                                ),
+                                "&&",
                             ),
-                        ),
-                        "&&",
+                        ],
+                        name="exclude_overlapping_start_end",
                     ),
-                ],
-                name="exclude_overlapping_start_end",
-            ),
+                ),
+            ],
         ),
     ]
