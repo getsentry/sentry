@@ -325,7 +325,9 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                     1,
                     tags={"action_type": action.type},
                 )
-                if features.has("workflow-engine-metric-alert-dual-processing-logs", organization):
+                if features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
+                ):
                     logger.info(
                         "workflow_engine.action.would-trigger",
                         extra={
