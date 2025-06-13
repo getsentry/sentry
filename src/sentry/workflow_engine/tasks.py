@@ -39,13 +39,19 @@ def process_workflow_task(activity_id: int) -> None:
 
 
 @activity_creation_registry.register("workflow_status_update")
-def workflow_status_update_handler(activity: Activity) -> None:
+def workflow_status_update_handler(activity: Activity, detector_id: int | None) -> None:
     """
     Hook the process_workflow_task into the activity creation registry.
 
     Since this handler is called in process for the activity, we want
     to queue a task to process workflows asynchronously.
     """
+    if detector_id is None:
+        # We should not hit this case, it's should only occur if there is a bug
+        # passing it from the workflow_engine to the issue platform.
+        metrics.incr("workflow_engine.error.tasks.no_detector_id")
+        return
+
     # TODO - implement in follow-up PR for now, just track a metric that we are seeing the activities.
     metrics.incr(
         "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
