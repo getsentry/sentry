@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -376,24 +376,22 @@ function AbbreviatedTrace({
 
         const uniqueKey = getUniqueKey(node, index);
         return (
-          <Fragment key={uniqueKey}>
-            <TraceListItem
-              key={uniqueKey}
-              node={node}
-              traceBounds={transactionBounds}
-              onClick={() => onSelectNode(uniqueKey)}
-              isSelected={uniqueKey === selectedNodeKey}
-              colors={colors}
-              isLoadingAttributes={
-                isEAPSpanNode(node) ? spanAttributesRequest.isPending : false
-              }
-              spanAttributes={
-                isEAPSpanNode(node)
-                  ? spanAttributesRequest.data[node.value.event_id]
-                  : undefined
-              }
-            />
-          </Fragment>
+          <TraceListItem
+            key={uniqueKey}
+            node={node}
+            traceBounds={transactionBounds}
+            onClick={() => onSelectNode(uniqueKey)}
+            isSelected={uniqueKey === selectedNodeKey}
+            colors={colors}
+            isLoadingAttributes={
+              isEAPSpanNode(node) ? spanAttributesRequest.isPending : false
+            }
+            spanAttributes={
+              isEAPSpanNode(node)
+                ? spanAttributesRequest.data[node.value.event_id]
+                : undefined
+            }
+          />
         );
       })}
     </TraceListContainer>
