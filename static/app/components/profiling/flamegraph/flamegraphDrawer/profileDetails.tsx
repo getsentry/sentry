@@ -1,7 +1,8 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Flex} from 'sentry/components/container/flex';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -23,7 +24,6 @@ import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {UseResizableDrawerOptions} from 'sentry/utils/useResizableDrawer';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
@@ -81,42 +81,33 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     flamegraphPreferences.layout === 'table left' ||
     flamegraphPreferences.layout === 'table right';
 
-  const detailsBarRef = useRef<HTMLDivElement>(null);
+  const isSidebarLayout =
+    flamegraphPreferences.layout === 'table left' ||
+    flamegraphPreferences.layout === 'table right';
 
-  const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
-    const isSidebarLayout =
-      flamegraphPreferences.layout === 'table left' ||
-      flamegraphPreferences.layout === 'table right';
+  const {resize, resizeHandleProps, resizedElementProps} = useResizableDrawer(
+    isSidebarLayout
+      ? {
+          initialSize: {height: 260},
+          direction: 'up',
+          min: {height: 26},
+        }
+      : {
+          initialSize: {width: 260},
+          direction: 'left',
+          min: {width: 260},
+        }
+  );
 
-    // Only used when in sidebar layout
-    const initialSize = isSidebarLayout ? 260 : 0;
-
-    const onResize = (newSize: number, maybeOldSize?: number) => {
-      if (!detailsBarRef.current) {
-        return;
-      }
-
-      if (isSidebarLayout) {
-        detailsBarRef.current.style.width = `100%`;
-        detailsBarRef.current.style.height = `${maybeOldSize ?? newSize}px`;
-      } else {
-        detailsBarRef.current.style.height = '';
-        detailsBarRef.current.style.width = '';
-      }
-    };
-
-    return {
-      initialSize,
-      onResize,
-      direction: isSidebarLayout ? 'up' : 'left',
-      min: 26,
-    };
-  }, [flamegraphPreferences.layout]);
-
-  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
+  const onDoubleClick = useCallback(() => {
+    resize(isSidebarLayout ? {width: 260} : {height: 0});
+  }, [resize, isSidebarLayout]);
 
   return (
-    <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
+    <ProfileDetailsBar
+      ref={resizedElementProps.ref}
+      layout={flamegraphPreferences.layout}
+    >
       <ProfilingDetailsFrameTabs>
         <ProfilingDetailsListItem
           size="sm"
@@ -144,12 +135,13 @@ export function ProfileDetails(props: ProfileDetailsProps) {
             {t('Environment')}
           </Button>
         </ProfilingDetailsListItem>
-        <ProfilingDetailsListItem
+        <Flex
+          ref={resizeHandleProps.ref}
           style={{
             flex: '1 1 100%',
             cursor: isResizableDetailsBar ? 'ns-resize' : undefined,
           }}
-          onMouseDown={isResizableDetailsBar ? onMouseDown : undefined}
+          onMouseDown={isResizableDetailsBar ? resizeHandleProps.onMouseDown : undefined}
           onDoubleClick={isResizableDetailsBar ? onDoubleClick : undefined}
         />
       </ProfilingDetailsFrameTabs>
