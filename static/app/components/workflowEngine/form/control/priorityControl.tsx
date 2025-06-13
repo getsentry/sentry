@@ -12,7 +12,10 @@ import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
-import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -42,8 +45,8 @@ function ThresholdPriority() {
   );
   return (
     <div>
-      {conditionType === 'gt' ? t('Above') : t('Below')}{' '}
-      {conditionValue === '' ? '0s' : conditionValue + 's'}
+      {conditionType === DataConditionType.GREATER ? t('Above') : t('Below')}{' '}
+      {conditionValue === '' ? '0s' : `${conditionValue}s`}
     </div>
   );
 }
@@ -58,7 +61,7 @@ function ChangePriority() {
   return (
     <div>
       {conditionValue === '' ? '0' : conditionValue}%{' '}
-      {conditionType === 'gt' ? t('higher') : t('lower')}
+      {conditionType === DataConditionType.GREATER ? t('higher') : t('lower')}
     </div>
   );
 }
