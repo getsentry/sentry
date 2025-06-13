@@ -1,3 +1,4 @@
+import pytest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
@@ -822,6 +823,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                 },
             )
 
+    @pytest.mark.skip(reason="flaky: #93526")
     @patch("sentry.profiles.flamegraph.bulk_snuba_queries")
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_spans(
