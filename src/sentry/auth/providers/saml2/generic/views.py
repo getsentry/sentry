@@ -50,7 +50,7 @@ def saml2_configure_view(
 
 
 class SelectIdP(AuthView):
-    def dispatch(self, request: HttpRequest, helper) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
         op = "url"
 
         forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}

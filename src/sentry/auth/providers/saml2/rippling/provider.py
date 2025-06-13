@@ -18,7 +18,7 @@ class WaitForCompletion(AuthView):
     This is simply an extra step to wait for them to complete that.
     """
 
-    def dispatch(self, request: HttpRequest, helper) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
         if "continue_setup" in request.POST:
             return helper.next_step()
 

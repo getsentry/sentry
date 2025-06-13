@@ -7,7 +7,7 @@ from sentry.auth.view import AuthView
 
 def make_simple_setup(form_cls, template_path: str) -> type[AuthView]:
     class SelectIdP(AuthView):
-        def dispatch(self, request: HttpRequest, helper) -> HttpResponseBase:
+        def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
             form = process_metadata(form_cls, request, helper)
 
             if form:
