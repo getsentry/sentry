@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,9 +10,7 @@ import {
   useLogsAggregateFunction,
   useLogsAggregateParam,
   useLogsGroupBy,
-  useLogsSortBys,
   useSetLogsPageParams,
-  useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
@@ -66,11 +65,9 @@ interface LogsToolbarProps {
 export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const aggregateFunction = useLogsAggregateFunction();
   const aggregateParam = useLogsAggregateParam() ?? 'logs';
-  const sortBys = useLogsSortBys();
   const groupBy = useLogsGroupBy();
-  const sortAscending = !sortBys.some(x => x.kind === 'desc');
   const setLogsPageParams = useSetLogsPageParams();
-  const setLogsSortBys = useSetLogsSortBys();
+  const functionArgRef = useRef<HTMLDivElement>(null);
 
   const aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
     label: prettifyTagKey(key),
@@ -98,18 +95,21 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
               } else {
                 setLogsPageParams({aggregateFn: val.value as string | undefined});
               }
+              functionArgRef.current?.querySelector('button')?.click();
             }}
             value={aggregateFunction}
           />
-          <Select
-            options={aggregatableKeys}
-            onChange={val =>
-              setLogsPageParams({aggregateParam: val.value as string | undefined})
-            }
-            searchable
-            value={aggregateParam}
-            disabled={aggregateFunction === 'count'}
-          />
+          <SelectRefWrapper ref={functionArgRef}>
+            <Select
+              options={aggregatableKeys}
+              onChange={val =>
+                setLogsPageParams({aggregateParam: val.value as string | undefined})
+              }
+              searchable
+              value={aggregateParam}
+              disabled={aggregateFunction === 'count'}
+            />
+          </SelectRefWrapper>
         </ToolbarSelectRow>
       </ToolbarItem>
       <ToolbarItem>
@@ -135,55 +135,6 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
           searchable
           triggerProps={{style: {width: '100%'}}}
         />
-      </ToolbarItem>
-      <ToolbarItem>
-        <SectionHeader>
-          <Label>{t('Sort By')}</Label>
-        </SectionHeader>
-        <ToolbarSelectRow>
-          <Select
-            options={[
-              ...Object.keys(stringTags ?? {}),
-              ...Object.keys(numberTags ?? {}),
-            ].map(key => ({
-              label: prettifyTagKey(key),
-              value: key,
-            }))}
-            onChange={val =>
-              setLogsSortBys([
-                {
-                  field: val.value as string,
-                  kind: sortAscending ? 'asc' : 'desc',
-                },
-              ])
-            }
-            value={sortBys[0]!.field}
-            triggerProps={{style: {width: '100%'}}}
-          />
-          <Select
-            options={[
-              {
-                label: t('asc'),
-                value: 'asc',
-              },
-              {
-                label: t('desc'),
-                value: 'desc',
-              },
-            ]}
-            value={sortAscending ? 'asc' : 'desc'}
-            onChange={val => {
-              setLogsSortBys([
-                {
-                  field: sortBys[0]!.field,
-                  kind: val.value === 'desc' ? 'desc' : 'asc',
-                },
-              ]);
-            }}
-            searchable
-            triggerProps={{style: {width: '100%'}}}
-          />
-        </ToolbarSelectRow>
       </ToolbarItem>
     </Container>
   );
@@ -227,6 +178,11 @@ const ToolbarSelectRow = styled('div')`
   grid-template-columns: minmax(90px, auto) 1fr;
   max-width: 100%;
   gap: ${space(2)};
+`;
+
+const SelectRefWrapper = styled('div')`
+  width: 100%;
+  min-width: 0;
 `;
 
 const Select = styled(CompactSelect)`

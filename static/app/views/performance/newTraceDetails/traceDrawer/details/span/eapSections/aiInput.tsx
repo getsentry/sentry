@@ -131,7 +131,7 @@ export function AIInputSection({
   }
 
   let promptMessages = getTraceNodeAttribute(
-    'ai.prompt.messages',
+    'gen_ai.request.messages',
     node,
     event,
     attributes
@@ -143,10 +143,10 @@ export function AIInputSection({
       event,
       attributes
     );
-    promptMessages = transformInputMessages(inputMessages);
+    promptMessages = inputMessages && transformInputMessages(inputMessages);
   }
 
-  const aiInput = defined(promptMessages) && parseAIMessages(promptMessages as string);
+  const aiInput = defined(promptMessages) && parseAIMessages(promptMessages);
 
   if (!aiInput) {
     return null;
