@@ -1,5 +1,8 @@
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from django.db.models.expressions import RawSQL
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
@@ -28,7 +31,7 @@ def get_issues_related_to_exception_type(
     max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
     num_days_ago: int = NUM_DAYS_AGO,
     run_id: int | None = None,
-) -> list[int]:
+) -> dict[str, Any]:
     """
     Fetches issue ids with the given exception types.
 
@@ -59,7 +62,7 @@ def get_issues_related_to_exception_type(
                 "run_id": run_id,
             },
         )
-        return []
+        return {"error": "Repo does not exist"}
 
     repo_id = repo.id
 
@@ -79,24 +82,20 @@ def get_issues_related_to_exception_type(
                 "external_id": external_id,
             },
         )
-        return []
+        return {"error": "Repo project path config does not exist"}
 
     project_ids = repo_project_path_configs.values_list("project_id", flat=True)
     date_threshold = datetime.now(tz=UTC) - timedelta(days=num_days_ago)
 
     # Fetch issues where the exception type is the given exception type
-    # Using raw SQL since data is GzippedDictField which can't be filtered with Django ORM
-    query = """
-        SELECT * FROM sentry_groupedmessage
-        WHERE project_id IN %s
-        AND last_seen >= %s
-        AND (data::json -> 'metadata' ->> 'type') = %s
-        ORDER BY last_seen
-        LIMIT %s
-    """
-    issues = Group.objects.raw(
-        query, [tuple(project_ids), date_threshold, exception_type, max_num_issues]
+    # Using a bit ofraw SQL since data is GzippedDictField which can't be filtered with Django ORM
+    query_set = (
+        Group.objects.annotate(metadata_type=RawSQL("(data::json -> 'metadata' ->> 'type')", []))
+        .filter(
+            metadata_type=exception_type,
+            project_id__in=project_ids,
+            last_seen__gte=date_threshold,
+        )
+        .order_by("last_seen")[:max_num_issues]
     )
-
-    # Extract IDs from the returned Group objects
-    return [issue.id for issue in issues]
+    return {"issues": [issue.id for issue in query_set]}

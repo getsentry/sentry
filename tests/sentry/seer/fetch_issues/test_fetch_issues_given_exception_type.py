@@ -42,7 +42,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == [group.id]
+        assert group_ids == {"issues": [group.id]}
 
         # Assert that ValueError did not match the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -51,7 +51,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="ValueError",
         )
-        assert group_ids == []
+        assert group_ids == {"issues": []}
 
     def test_multiple_projects(self):
         release = self.create_release(project=self.project, version="1.0.0")
@@ -128,7 +128,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert {group_1.id, group_2.id} == set(group_ids)
+        assert {group_1.id, group_2.id} == set(group_ids["issues"])
         assert group_3.id not in group_ids
 
     def test_last_seen_filter(self):
@@ -165,7 +165,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == [group.id]
+        assert group_ids == {"issues": [group.id]}
 
         # Assert that KeyError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -175,7 +175,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             exception_type="KeyError",
             num_days_ago=9,
         )
-        assert group_ids == []
+        assert group_ids == {"issues": []}
 
     def test_multiple_exception_types(self):
         release = self.create_release(project=self.project, version="1.0.0")
@@ -223,7 +223,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == [group_1.id]
+        assert group_ids == {"issues": [group_1.id]}
 
         # Assert that ValueError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -232,7 +232,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="ValueError",
         )
-        assert group_ids == [group_2.id]
+        assert group_ids == {"issues": [group_2.id]}
 
     def test_repo_does_not_exist(self):
         group_ids = get_issues_related_to_exception_type(
@@ -241,7 +241,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == []
+        assert group_ids == {"error": "Repo does not exist"}
 
     def test_repository_project_path_config_does_not_exist(self):
         self.create_repo(
@@ -257,4 +257,4 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == []
+        assert group_ids == {"error": "Repo project path config does not exist"}
