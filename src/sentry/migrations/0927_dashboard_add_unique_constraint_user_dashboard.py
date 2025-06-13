@@ -25,11 +25,15 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddConstraint(
-            model_name="dashboardfavoriteuser",
-            constraint=models.UniqueConstraint(
-                fields=("user_id", "dashboard_id"),
-                name="sentry_dashboardfavoriteuser_user_id_dashboard_id_2c7267a5_uniq",
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.AddConstraint(
+                    model_name="dashboardfavoriteuser",
+                    constraint=models.UniqueConstraint(
+                        fields=("user_id", "dashboard_id"),
+                        name="sentry_dashboardfavoriteuser_user_id_dashboard_id_2c7267a5_uniq",
+                    ),
+                )
+            ]
         )
     ]
