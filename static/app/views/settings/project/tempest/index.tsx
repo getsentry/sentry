@@ -103,7 +103,7 @@ export default function TempestSettings({organization, project}: Props) {
   const getHeaderAction = () => {
     switch (tab) {
       case 'devkit-crashes':
-        return getDevKitHeaderAction();
+        return getDevKitHeaderAction(organization, project);
       case 'playstation':
       default:
         return getPlayStationHeaderAction(hasWriteAccess, organization, project);
