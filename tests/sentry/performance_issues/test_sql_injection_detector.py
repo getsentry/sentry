@@ -57,3 +57,7 @@ class SQLInjectionDetectorTest(TestCase):
     def test_sql_injection_on_non_vulnerable_query(self):
         injection_event = get_event("sql-injection/sql-injection-event-non-vulnerable")
         assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_invalid_package(self):
+        injection_event = get_event("sql-injection/sql-injection-event-invalid-package")
+        assert len(self.find_problems(injection_event)) == 0

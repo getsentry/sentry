@@ -381,10 +381,6 @@ export function UsageTotals({
   freeUnits = 0,
   prepaidUnits = 0,
   reservedUnits = null,
-  // freeBudget = null,
-  // prepaidBudget = null,
-  // reservedBudget = null,
-  // reservedSpend = null,
   softCapType = null,
   totals = EMPTY_STAT_TOTAL,
   eventTotals = {},
@@ -1261,11 +1257,19 @@ export function CombinedUsageTotals({
             if (shouldCompressCategories && category !== parentCategoryForCompression) {
               return null;
             }
+            const billedUsage =
+              subscription.categories?.[category as DataCategory]?.usage ?? 0;
+            const totals = allTotalsByCategory?.[category] ?? EMPTY_STAT_TOTAL;
+            const adjustedTotals = {
+              ...totals,
+              accepted: billedUsage,
+            };
+
             return (
               <UsageTotalsTable
                 key={category}
                 category={category as DataCategory}
-                totals={allTotalsByCategory?.[category] ?? EMPTY_STAT_TOTAL}
+                totals={adjustedTotals}
                 subscription={subscription}
               />
             );
