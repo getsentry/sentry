@@ -4,17 +4,17 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
-import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metricFormData';
+import {
+  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+  METRIC_DETECTOR_FORM_FIELDS,
+} from 'sentry/views/detectors/components/forms/metricFormData';
 
 describe('PriorityControl', function () {
   it('renders children', async function () {
     const formModel = new FormModel({
       initialData: {
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
         [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
-        [METRIC_DETECTOR_FORM_FIELDS.conditionType]: 'gt',
-        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '0',
-        [METRIC_DETECTOR_FORM_FIELDS.mediumThreshold]: '',
-        [METRIC_DETECTOR_FORM_FIELDS.highThreshold]: '',
       },
     });
     render(
@@ -31,11 +31,8 @@ describe('PriorityControl', function () {
   it('allows configuring priority', async function () {
     const formModel = new FormModel({
       initialData: {
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
         [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
-        [METRIC_DETECTOR_FORM_FIELDS.conditionType]: 'gt',
-        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '0',
-        [METRIC_DETECTOR_FORM_FIELDS.mediumThreshold]: '',
-        [METRIC_DETECTOR_FORM_FIELDS.highThreshold]: '',
       },
     });
     render(
@@ -59,11 +56,8 @@ describe('PriorityControl', function () {
   it('allows configuring medium and high thresholds', async function () {
     const formModel = new FormModel({
       initialData: {
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
         [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
-        [METRIC_DETECTOR_FORM_FIELDS.conditionType]: 'gt',
-        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '0',
-        [METRIC_DETECTOR_FORM_FIELDS.mediumThreshold]: '',
-        [METRIC_DETECTOR_FORM_FIELDS.highThreshold]: '',
       },
     });
     render(
@@ -84,11 +78,8 @@ describe('PriorityControl', function () {
   it('filters priority options based on minimumPriority prop', async function () {
     const formModel = new FormModel({
       initialData: {
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
         [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.MEDIUM,
-        [METRIC_DETECTOR_FORM_FIELDS.conditionType]: 'gt',
-        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '0',
-        [METRIC_DETECTOR_FORM_FIELDS.mediumThreshold]: '',
-        [METRIC_DETECTOR_FORM_FIELDS.highThreshold]: '',
       },
     });
 

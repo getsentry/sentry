@@ -16,6 +16,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   FieldKey,
@@ -27,6 +28,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -45,6 +47,20 @@ export function MetricDetectorForm() {
 }
 
 function MonitorKind() {
+  const options: Array<[MetricDetectorFormData['kind'], string, string]> = [
+    [
+      'threshold',
+      t('Threshold'),
+      t('Absolute-valued thresholds, for non-seasonal data.'),
+    ],
+    ['change', t('Change'), t('Percentage changes over defined time windows.')],
+    [
+      'dynamic',
+      t('Dynamic'),
+      t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
+    ],
+  ];
+
   return (
     <MonitorKindField
       label={t('...and monitor for changes in the following way:')}
@@ -52,19 +68,7 @@ function MonitorKind() {
       inline={false}
       name={METRIC_DETECTOR_FORM_FIELDS.kind}
       defaultValue="threshold"
-      choices={[
-        [
-          'threshold',
-          t('Threshold'),
-          t('Absolute-valued thresholds, for non-seasonal data.'),
-        ],
-        ['change', t('Change'), t('Percentage changes over defined time windows.')],
-        [
-          'dynamic',
-          t('Dynamic'),
-          t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
-        ],
-      ]}
+      choices={options}
     />
   );
 }
@@ -203,10 +207,12 @@ function DetectSection() {
                   flexibleControlStateSize
                   // For some reason, not setting a default value empties the form field
                   defaultValue={conditionType}
-                  choices={[
-                    ['gt', t('Above')],
-                    ['lte', t('Below')],
-                  ]}
+                  choices={
+                    [
+                      [DataConditionType.GREATER, t('Above')],
+                      [DataConditionType.LESS, t('Below')],
+                    ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
+                  }
                   required
                 />
                 <ThresholdField
@@ -240,10 +246,12 @@ function DetectSection() {
                   flexibleControlStateSize
                   // For some reason, not setting a default value empties the form field
                   defaultValue={conditionType}
-                  choices={[
-                    ['gt', t('higher')],
-                    ['lt', t('lower')],
-                  ]}
+                  choices={
+                    [
+                      [DataConditionType.GREATER, t('higher')],
+                      [DataConditionType.LESS, t('lower')],
+                    ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
+                  }
                   required
                 />
                 <span>{t('than the previous')}</span>
@@ -252,14 +260,18 @@ function DetectSection() {
                   hideLabel
                   inline
                   flexibleControlStateSize
-                  choices={[
-                    [5 * 60, '5 minutes'],
-                    [15 * 60, '15 minutes'],
-                    [60 * 60, '1 hour'],
-                    [24 * 60 * 60, '1 day'],
-                    [7 * 24 * 60 * 60, '1 week'],
-                    [30 * 24 * 60 * 60, '1 month'],
-                  ]}
+                  choices={
+                    [
+                      [5 * 60, '5 minutes'],
+                      [15 * 60, '15 minutes'],
+                      [60 * 60, '1 hour'],
+                      [24 * 60 * 60, '1 day'],
+                      [7 * 24 * 60 * 60, '1 week'],
+                      [30 * 24 * 60 * 60, '1 month'],
+                    ] satisfies Array<
+                      [MetricDetectorFormData['conditionComparisonAgo'], string]
+                    >
+                  }
                   required
                 />
               </Flex>
@@ -274,11 +286,13 @@ function DetectSection() {
                 help={t(
                   'Choose your level of anomaly responsiveness. Higher thresholds means alerts for most anomalies. Lower thresholds means alerts only for larger ones.'
                 )}
-                choices={[
-                  [AlertRuleSensitivity.HIGH, t('High')],
-                  [AlertRuleSensitivity.MEDIUM, t('Medium')],
-                  [AlertRuleSensitivity.LOW, t('Low')],
-                ]}
+                choices={
+                  [
+                    [AlertRuleSensitivity.HIGH, t('High')],
+                    [AlertRuleSensitivity.MEDIUM, t('Medium')],
+                    [AlertRuleSensitivity.LOW, t('Low')],
+                  ] satisfies Array<[MetricDetectorFormData['sensitivity'], string]>
+                }
               />
               <SelectField
                 required
@@ -287,11 +301,13 @@ function DetectSection() {
                 help={t(
                   'Decide if you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.'
                 )}
-                choices={[
-                  [AlertRuleThresholdType.ABOVE, t('Above')],
-                  [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
-                  [AlertRuleThresholdType.BELOW, t('Below')],
-                ]}
+                choices={
+                  [
+                    [AlertRuleThresholdType.ABOVE, t('Above')],
+                    [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
+                    [AlertRuleThresholdType.BELOW, t('Below')],
+                  ] satisfies Array<[MetricDetectorFormData['thresholdType'], string]>
+                }
               />
             </Flex>
           )}

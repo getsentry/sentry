@@ -41,7 +41,7 @@ interface MetricDetectorConditionFormData {
   /**
    * Both kind=threshold and kind=change
    */
-  conditionType?: 'gt' | 'lte';
+  conditionType?: DataConditionType.GREATER | DataConditionType.LESS;
   /**
    * When this value is exceeded the issue is created at initialPriorityLevel
    * Both kind=threshold and kind=change
@@ -105,7 +105,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   // Priority level fields
   // Metric detectors only support MEDIUM and HIGH priority levels
   initialPriorityLevel: DetectorPriorityLevel.MEDIUM,
-  conditionType: 'gt',
+  conditionType: DataConditionType.GREATER,
   conditionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
   resolveThreshold: '',
