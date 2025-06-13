@@ -415,6 +415,7 @@ class StatefulDetectorHandler(
             )
 
             # Set the event data with the necessary fields
+            event_data["environment"] = self.detector.config.get("environment")
             event_data["timestamp"] = detector_result.detection_time
             event_data["project_id"] = detector_result.project_id
             event_data["event_id"] = detector_result.event_id
@@ -525,8 +526,8 @@ class StatefulDetectorHandler(
                 if condition_result.result is not None
                 and isinstance(condition_result.result, DetectorPriorityLevel)
             ]
-
-            new_priority = max(new_priority, *validated_condition_results)
+            if validated_condition_results:
+                new_priority = max(new_priority, *validated_condition_results)
 
         return condition_evaluation, new_priority
 
