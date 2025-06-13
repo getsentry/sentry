@@ -141,12 +141,6 @@ interface BaseProps {
   saveOnBlur?: boolean;
 
   /**
-   * A function producing an optional component with extra information.
-   */
-  selectionInfoFunction?: (
-    props: PassthroughProps & {value: FieldValue; error?: string}
-  ) => React.ReactNode;
-  /**
    * Used in the form model to transform the value
    */
   setValue?: (value: FieldValue, props?: any) => any;
@@ -183,7 +177,6 @@ type PassthroughProps = Omit<
   | 'saveOnBlur'
   | 'saveMessage'
   | 'saveMessageAlertType'
-  | 'selectionInfoFunction'
   | 'hideControlState'
   | 'defaultValue'
 >;
@@ -320,7 +313,6 @@ function FormField(props: FormFieldProps) {
         flexibleControlStateSize,
         saveMessage,
         saveMessageAlertType,
-        selectionInfoFunction,
         // Don't pass `defaultValue` down to input fields, will be handled in
         // form model
         defaultValue: _defaultValue,
@@ -382,22 +374,6 @@ function FormField(props: FormFieldProps) {
               }}
             </Observer>
           </FieldGroup>
-          {selectionInfoFunction && (
-            <Observer>
-              {() => {
-                const error = model.getError(name);
-                const value = model.getValue(name);
-
-                return (
-                  <Fragment>
-                    {fieldProps.visible
-                      ? selectionInfoFunction({...fieldProps, error, value})
-                      : null}
-                  </Fragment>
-                );
-              }}
-            </Observer>
-          )}
           {saveOnBlurFieldOverride && (
             <Observer>
               {() => {
