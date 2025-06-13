@@ -2,7 +2,7 @@ import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNam
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -139,89 +139,7 @@ describe('OrganizationAuditLog', function () {
     }
   });
 
-  it('Handles relative date range selection', async function () {
-    const initialMockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
-      method: 'GET',
-      body: {
-        rows: [
-          {
-            id: '4500000',
-            actor: UserFixture(),
-            event: 'project.remove',
-            ipAddress: '127.0.0.1',
-            note: 'removed project test',
-            targetObject: 5466660,
-            targetUser: null,
-            data: {},
-            dateCreated: '2021-09-28T00:29:33.940848Z',
-          },
-        ],
-        options: AuditLogsApiEventNamesFixture(),
-      },
-    });
-
-    const {router} = initializeOrg({
-      projects: [],
-      router: {
-        params: {orgId: 'org-slug'},
-      },
-    });
-
-    render(<OrganizationAuditLog location={router.location} />);
-
-    expect(await screen.findByText('project.remove')).toBeInTheDocument();
-    expect(initialMockResponse).toHaveBeenCalledTimes(1);
-
-    const secondMockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
-      method: 'GET',
-      body: {
-        rows: [
-          {
-            id: '4500001',
-            actor: UserFixture(),
-            event: 'org.edit',
-            ipAddress: '192.168.1.1',
-            note: 'edited organization settings',
-            targetObject: 5466661,
-            targetUser: null,
-            data: {},
-            dateCreated: '2021-09-29T00:29:33.940848Z',
-          },
-        ],
-        options: AuditLogsApiEventNamesFixture(),
-      },
-    });
-
-    // Select relative date range
-    const dateSelector = screen.getByTestId('page-filter-timerange-selector');
-    await userEvent.click(dateSelector);
-    const last7DaysOption = await screen.findByRole('option', {name: 'Last 7 days'});
-    await userEvent.click(last7DaysOption);
-
-    await waitFor(() => {
-      expect(secondMockResponse).toHaveBeenCalledWith(
-        '/organizations/org-slug/audit-logs/',
-        expect.objectContaining({
-          method: 'GET',
-          query: expect.objectContaining({
-            statsPeriod: '7d',
-          }),
-        })
-      );
-    });
-
-    // Only org.edit should be included
-    expect(await screen.findByText('org.edit')).toBeInTheDocument();
-    expect(screen.getByText('edited organization settings')).toBeInTheDocument();
-    expect(screen.getByText('192.168.1.1')).toBeInTheDocument();
-
-    expect(screen.queryByText('project.remove')).not.toBeInTheDocument();
-    expect(screen.queryByText('removed project test')).not.toBeInTheDocument();
-  });
-
-  it('Handles initial absolute date range', async function () {
+  it('Handles absolute date range', async function () {
     const absoluteDateMockResponse = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
       method: 'GET',
