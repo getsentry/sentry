@@ -70,7 +70,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topN: 3,
-      enabled: !!queriesRequest.data,
+      enabled: queriesRequest.data.length > 0,
     },
     Referrer.QUERIES_CHART,
     props.pageFilters
@@ -119,7 +119,9 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
   const footer = hasData && (
     <WidgetFooterTable>
       {queriesRequest.data?.map((item, index) => (
-        <Fragment key={item['sentry.normalized_description']}>
+        <Fragment
+          key={`${item['project.id']}-${item['span.group']}-${item['sentry.normalized_description']}`}
+        >
           <div>
             <SeriesColorIndicator
               style={{
