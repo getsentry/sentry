@@ -248,6 +248,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                         use_aggregate_conditions=True,
                     ),
                     sampling_mode=snuba_params.sampling_mode,
+                    equations=self.get_equation_list(organization, request, param_name="groupBy"),
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
