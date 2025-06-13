@@ -442,6 +442,7 @@ class GroupManager(BaseManager["Group"]):
         activity_data: Mapping[str, Any] | None = None,
         send_activity_notification: bool = True,
         from_substatus: int | None = None,
+        detector_id: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models.activity import Activity
@@ -486,6 +487,7 @@ class GroupManager(BaseManager["Group"]):
                 activity_type,
                 data=activity_data,
                 send_notification=send_activity_notification,
+                detector_id=detector_id,
             )
             record_group_history_from_activity_type(group, activity_type.value)
 
@@ -498,6 +500,7 @@ class GroupManager(BaseManager["Group"]):
                         "priority": new_priority.to_str(),
                         "reason": PriorityChangeReason.ONGOING,
                     },
+                    detector_id=detector_id,
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 

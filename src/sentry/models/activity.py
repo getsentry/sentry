@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
 
 _default_logger = logging.getLogger(__name__)
+DetectorId = int | None
 
 
 class ActivityManager(BaseManager["Activity"]):
@@ -87,6 +88,7 @@ class ActivityManager(BaseManager["Activity"]):
         user_id: int | None = None,
         data: Mapping[str, Any] | None = None,
         send_notification: bool = True,
+        detector_id: DetectorId = None,
     ) -> Activity:
         if user:
             user_id = user.id
@@ -104,7 +106,7 @@ class ActivityManager(BaseManager["Activity"]):
             activity.send_notification()
 
         for handler in activity_creation_registry.registrations.values():
-            handler(activity)
+            handler(activity, detector_id)
 
         return activity
 
@@ -225,5 +227,5 @@ class ActivityIntegration(Enum):
     SUSPECT_COMMITTER = "suspectCommitter"
 
 
-ActivityCreationHandler = Callable[[Activity], None]
+ActivityCreationHandler = Callable[[Activity, DetectorId], None]
 activity_creation_registry = Registry[ActivityCreationHandler](enable_reverse_lookup=False)

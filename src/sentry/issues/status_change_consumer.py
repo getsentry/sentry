@@ -39,6 +39,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         "fingerprint": status_change["fingerprint"],
         "new_status": new_status,
         "new_substatus": new_substatus,
+        "detector_id": status_change.get("detector_id", None),
     }
 
     # Validate the provided status and substatus - we only allow setting a substatus for unresolved or ignored groups.
@@ -63,6 +64,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=ActivityType.SET_RESOLVED,
+            detector_id=status_change.get("detector_id", None),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
         kick_off_status_syncs.apply_async(
@@ -85,6 +87,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=ActivityType.SET_IGNORED,
+            detector_id=status_change.get("detector_id", None),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
         kick_off_status_syncs.apply_async(
@@ -122,6 +125,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             from_substatus=group.substatus,
+            detector_id=status_change.get("detector_id", None),
         )
         add_group_to_inbox(group, group_inbox_reason)
         kick_off_status_syncs.apply_async(
