@@ -16,6 +16,7 @@ from sentry.sentry_apps.api.serializers.sentry_app_component import (
 )
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import (
     SentryAppInstallation,
@@ -97,6 +98,19 @@ class DatabaseBackedAppService(AppService):
             return serialize_sentry_app(sentry_app)
         except SentryApp.DoesNotExist:
             return None
+
+    def get_sentry_apps_by_proxy_users(self, *, proxy_user_ids: list[int]) -> list[RpcSentryApp]:
+        sentry_apps = SentryApp.objects.filter(proxy_user_id__in=proxy_user_ids)
+        sentry_app_avatars = SentryAppAvatar.objects.filter(
+            sentry_app_id__in=sentry_apps.values_list("id", flat=True)
+        )
+        sentry_app_avatar_map = defaultdict(list)
+        for avatar in sentry_app_avatars:
+            sentry_app_avatar_map[avatar.sentry_app_id].append(avatar)
+        return [
+            serialize_sentry_app(app=app, avatars=sentry_app_avatar_map[app.id])
+            for app in sentry_apps
+        ]
 
     def get_installations_for_organization(
         self, *, organization_id: int
@@ -220,7 +234,12 @@ class DatabaseBackedAppService(AppService):
             self,
         ) -> Callable[[SentryAppInstallationFilterArgs], str | None]:
             return self._filter_has_any_key_validator(
-                "organization_id", "installation_ids", "app_ids", "uuids", "status"
+                "organization_id",
+                "installation_ids",
+                "app_ids",
+                "uuids",
+                "status",
+                "proxy_user_ids",
             )
 
         def serialize_api(self, serializer: None) -> Serializer:
