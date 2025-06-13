@@ -1,10 +1,17 @@
+import {Fragment} from 'react';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-import {TimezoneProvider, UserTimezoneProvider, useTimezone} from './timezoneProvider';
+import {
+  OverrideTimezoneProvider,
+  TimezoneProvider,
+  UserTimezoneProvider,
+  useTimezone,
+  useTimezoneOverride,
+} from './timezoneProvider';
 
 describe('timezoneProvider', function () {
   function setConfigStoreTimezone(tz: string) {
@@ -20,6 +27,17 @@ describe('timezoneProvider', function () {
 
   function ChangeUserTimezone({tz}: {tz: string}) {
     return <button onClick={() => setConfigStoreTimezone(tz)}>Change Timezone</button>;
+  }
+
+  function OverrideTimezone({tz}: {tz: string}) {
+    const {setOverride, clearOverride} = useTimezoneOverride();
+
+    return (
+      <Fragment>
+        <button onClick={() => setOverride(tz)}>Override Timezone</button>
+        <button onClick={() => clearOverride()}>Reset Timezone</button>
+      </Fragment>
+    );
   }
 
   beforeEach(() => setConfigStoreTimezone('America/New_York'));
@@ -59,6 +77,32 @@ describe('timezoneProvider', function () {
 
       screen.getByRole('button', {name: 'Change Timezone'}).click();
       expect(screen.getByTestId('tz')).toHaveTextContent('America/Los_Angeles');
+    });
+  });
+
+  describe('OverrideTimezoneProvider', function () {
+    it('can override timezones', function () {
+      render(
+        <UserTimezoneProvider>
+          <ShowTimezone data-test-id="tz-outer" />
+          <OverrideTimezoneProvider>
+            <ShowTimezone data-test-id="tz-inner" />
+            <OverrideTimezone tz="America/Los_Angeles" />
+          </OverrideTimezoneProvider>
+        </UserTimezoneProvider>
+      );
+
+      expect(screen.getByTestId('tz-outer')).toHaveTextContent('America/New_York');
+
+      // Act because useOverrideTimezone is an effect
+      act(() => screen.getByRole('button', {name: 'Override Timezone'}).click());
+      expect(screen.getByTestId('tz-outer')).toHaveTextContent('America/New_York');
+      expect(screen.getByTestId('tz-inner')).toHaveTextContent('America/Los_Angeles');
+
+      // Act because useOverrideTimezone is an effect
+      act(() => screen.getByRole('button', {name: 'Reset Timezone'}).click());
+      expect(screen.getByTestId('tz-outer')).toHaveTextContent('America/New_York');
+      expect(screen.getByTestId('tz-inner')).toHaveTextContent('America/New_York');
     });
   });
 });
