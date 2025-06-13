@@ -19,6 +19,7 @@ export default function useFeedbackSummary(): {
   error: Error | null;
   loading: boolean;
   summary: string | null;
+  tooFewFeedbacks: boolean | null;
 } {
   // const [response, setResponse] = useState<string | null>(null);
   // const [loading, setLoading] = useState(false);
@@ -46,7 +47,7 @@ export default function useFeedbackSummary(): {
 
   const organization = useOrganization();
 
-  // This is similar to what is done in useMailboxCounts.tsx
+  // This is similar to what is done in useMailboxCounts.tsx, and is also why we can't use useFeedbackSummary in feedbackListPage.tsx
   const {listHeadTime} = useFeedbackQueryKeys();
 
   const queryViewWithStatsPeriod = useMemo(() => {
@@ -57,6 +58,8 @@ export default function useFeedbackSummary(): {
       queryView,
     });
   }, [listHeadTime, queryView]);
+
+  // console.log('queryViewWithStatsPeriod', queryViewWithStatsPeriod);
 
   const {
     data: feedbackSummaryData,
@@ -72,47 +75,15 @@ export default function useFeedbackSummary(): {
         },
       },
     ],
-    {staleTime: 5000, enabled: Boolean(queryViewWithStatsPeriod)}
+    {staleTime: 5000, enabled: Boolean(queryViewWithStatsPeriod), retry: 1} // Only retry once if the request fails
   );
-
-  // useEffect(() => {
-  //   // Refetch when isHelpful changes to false
-  //   const shouldRefetch = isHelpful === false && prevIsHelpfulRef.current !== isHelpful;
-
-  //   if (shouldRefetch) {
-  //     requestMadeRef.current = false;
-  //   }
-
-  //   prevIsHelpfulRef.current = isHelpful;
-
-  //   if (!apiKey || !messages.length || requestMadeRef.current) {
-  //     return;
-  //   }
-
-  //   setLoading(true);
-  //   setError(null);
-  //   requestMadeRef.current = true;
-
-  //   getSentimentSummary({messages, apiKey})
-  //     .then(result => {
-  //       setResponse(result);
-  //     })
-  //     .catch(err => {
-  //       setError(
-  //         err instanceof Error ? err : new Error('Failed to get sentiment summary')
-  //       );
-  //     })
-  //     .finally(() => {
-  //       setLoading(false);
-  //     });
-
-  // }, [apiKey, messages, isHelpful, queryView, organization]);
 
   if (isFeedbackSummaryLoading) {
     return {
       summary: null,
       loading: true,
       error: null,
+      tooFewFeedbacks: false,
     };
   }
 
@@ -121,6 +92,7 @@ export default function useFeedbackSummary(): {
       summary: null,
       loading: false,
       error: feedbackSummaryError,
+      tooFewFeedbacks: null,
     };
   }
 
@@ -128,5 +100,6 @@ export default function useFeedbackSummary(): {
     summary: feedbackSummaryData.summary,
     loading: false,
     error: null,
+    tooFewFeedbacks: feedbackSummaryData.num_feedbacks_used === 0,
   };
 }

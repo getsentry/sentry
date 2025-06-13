@@ -111,18 +111,6 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      {/* <Feature features="organizations:user-feedback-ai-summaries">
-        <Summary>
-          <SummaryHeader>Feedback Summary</SummaryHeader>
-          {summaryLoading ? (
-            <Placeholder height="200px" />
-          ) : (
-            // <Fragment>
-            <div>{summary}</div>
-            // </Fragment>
-          )}
-        </Summary>
-      </Feature> */}
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
         <InfiniteLoader

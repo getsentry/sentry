@@ -48,6 +48,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
+        # time.sleep(2.5)
+
         if not features.has(
             "organizations:user-feedback-ai-summaries", organization, actor=request.user
         ):
@@ -63,9 +65,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             # print("wat on earth is going on, there seems to be a daterange parsing issue")
             raise ParseError(detail="Invalid or missing date range")
 
-        # print(
-        #     f"This is the start and end dates that are being used to generate the summary: {start.strftime('%B %d, %Y')} to {end.strftime('%B %d, %Y')}"
-        # )
+        # return Response(status=403)
 
         return Response(
             {
