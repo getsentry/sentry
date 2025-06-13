@@ -163,7 +163,7 @@ export function getTraceNodeAttribute(
 
 export function getIsAiNode(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return undefined;
+    return false;
   }
 
   if (isTransactionNode(node)) {

@@ -1586,12 +1586,21 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ):
         return
 
+    project = group.project
+    if not project.get_option("sentry:seer_scanner_automation"):
+        return
+
     seer_enabled = get_seer_org_acknowledgement(group.organization.id)
     if not seer_enabled:
         return
 
-    project = group.project
-    if not project.get_option("sentry:seer_scanner_automation"):
+    from sentry import quotas
+    from sentry.constants import DataCategory
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
         return
 
     start_seer_automation.delay(group.id)
