@@ -63,7 +63,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         condition_group = validated_data.pop("condition_group")
         data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
-        if data_conditions:
+        if data_conditions and instance.workflow_condition_group:
             group_validator = BaseDataConditionGroupValidator()
             group_validator.update(instance.workflow_condition_group, condition_group)
 
