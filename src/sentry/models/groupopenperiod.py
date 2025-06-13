@@ -58,7 +58,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
 
         constraints = (
             ExclusionConstraint(
-                name="exclude_overlapping_start_end",
+                name="exclude_overlapping_date_start_end",
                 expressions=[
                     (models.F("group"), RangeOperators.EQUAL),
                     (
