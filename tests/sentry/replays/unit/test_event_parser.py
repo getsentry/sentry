@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.replays.usecases.ingest.event_parser import (
     EventType,
     _get_testid,
@@ -797,3 +799,80 @@ def test_as_log_message():
     }
     assert as_log_message(event) is None
     assert as_log_message({}) is None
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {},
+        {"type": None},
+        {"type": "3", "data": 2},
+        {"type": "3", "data": {"source": "2"}},
+        {"type": "5"},
+        {"type": 5},
+        {"type": 5, "data": {"tag": "breadcrumb"}},
+        {"type": 5, "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}}},
+        {
+            "type": 5,
+            "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr", "data": "None"}},
+        },
+        {
+            "type": 5,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {"op": "resource.xhr", "data": {"requestBodySize": "test"}},
+            },
+        },
+        {
+            "type": 5,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {"op": "resource.xhr", "data": {"requestBodySize": None}},
+            },
+        },
+        {
+            "type": 5,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {"op": "resource.xhr", "data": {"request": None}},
+            },
+        },
+        {
+            "type": 5,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {"op": "resource.xhr", "data": {"request": {"size": None}}},
+            },
+        },
+        {
+            "type": 5,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {"op": "resource.xhr", "data": {"request": {"size": "t"}}},
+            },
+        },
+        {
+            "type": 5,
+            "data": {"tag": "breadcrumb", "payload": {}},
+        },
+        {
+            "type": 5,
+            "data": {"tag": "breadcrumb", "payload": {"data": {}}},
+        },
+        {
+            "type": 5,
+            "data": {"tag": "breadcrumb", "payload": {"data": {"nodeId": -1, "node": {}}}},
+        },
+        {
+            "type": 5,
+            "data": {"tag": "breadcrumb", "payload": {"data": {"nodeId": 0, "node": None}}},
+        },
+        {
+            "type": 5,
+            "data": {"tag": "breadcrumb", "payload": {"data": {"nodeId": 0, "node": "t"}}},
+        },
+    ],
+)
+def test_parse_highlighted_events_fault_tolerance(event):
+    # If the test raises an exception we fail. All of these events are invalid.
+    parse_highlighted_events([event], True)
