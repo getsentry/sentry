@@ -62,7 +62,11 @@ class GroupOpenPeriod(DefaultFieldsModel):
                 expressions=[
                     (models.F("group"), RangeOperators.EQUAL),
                     (
-                        TsTzRange("date_started", "date_ended", RangeBoundary()),
+                        TsTzRange(
+                            "date_started",
+                            "date_ended",
+                            RangeBoundary(inclusive_lower=True, inclusive_upper=True),
+                        ),
                         RangeOperators.OVERLAPS,
                     ),
                 ],
