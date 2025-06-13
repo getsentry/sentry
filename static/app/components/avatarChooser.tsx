@@ -5,7 +5,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {AvatarUploader} from 'sentry/components/avatarUploader';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
@@ -19,7 +18,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp, SentryAppAvatarPhotoType} from 'sentry/types/integrations';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import useApi from 'sentry/utils/useApi';
 
@@ -27,7 +26,6 @@ export type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
 type AvatarChooserType =
   | 'user'
-  | 'team'
   | 'organization'
   | 'sentryAppColor'
   | 'sentryAppSimple'
@@ -145,7 +143,6 @@ function AvatarChooser(props: AvatarChooserProps) {
   const isLetter = avatarType === 'letter_avatar';
   const isDefault = !!preview && avatarType === 'default';
 
-  const isTeam = type === 'team';
   const isOrganization = type === 'organization';
   const isSentryApp = type?.startsWith('sentryApp');
 
@@ -179,8 +176,6 @@ function AvatarChooser(props: AvatarChooserProps) {
     <UserAvatar {...sharedAvatarProps} user={model as AvatarUser} />
   ) : isOrganization ? (
     <OrganizationAvatar {...sharedAvatarProps} organization={model as Organization} />
-  ) : isTeam ? (
-    <TeamAvatar {...sharedAvatarProps} team={model as Team} />
   ) : isSentryApp ? (
     <SentryAppAvatar {...sharedAvatarProps} sentryApp={model as SentryApp} />
   ) : null;
