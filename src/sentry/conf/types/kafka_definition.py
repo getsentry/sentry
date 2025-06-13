@@ -40,6 +40,7 @@ class Topic(Enum):
     INGEST_TRANSACTIONS_DLQ = "ingest-transactions-dlq"
     INGEST_TRANSACTIONS_BACKLOG = "ingest-transactions-backlog"
     INGEST_SPANS = "ingest-spans"
+    INGEST_SPANS_DLQ = "ingest-spans-dlq"
     INGEST_METRICS = "ingest-metrics"
     INGEST_METRICS_DLQ = "ingest-metrics-dlq"
     SNUBA_METRICS = "snuba-metrics"
