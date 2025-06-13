@@ -1,5 +1,6 @@
 import functools
 from collections.abc import Generator, Iterator
+from typing import Any
 
 import requests
 import sentry_sdk
@@ -78,7 +79,7 @@ def make_seer_request(request_data: str) -> bytes:
         },
     )
     if response.status_code != 200:
-        raise ParseError("A non 200 HTTP status code was returned.")
+        raise ParseError("A summary could not be produced at this time.")
 
     return response.content
 
