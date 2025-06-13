@@ -2,6 +2,7 @@ from sentry.models.activity import Activity, activity_creation_registry
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker import config, namespaces, retry
+from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -31,7 +32,9 @@ def process_workflow_task(activity_id: int) -> None:
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
-    # TODO implement this in a follow-up PR. This update will require a lot of updates...
+    # TODO - @saponifi3d - implement this in a follow-up PR. This update will require WorkflowEventData
+    # to allow for an activity in the `event` attribute. That refactor is a bit noisy
+    # and will be done in a subsequent pr.
     pass
 
 
@@ -43,6 +46,8 @@ def workflow_status_update_handler(activity: Activity) -> None:
     Since this handler is called in process for the activity, we want
     to queue a task to process workflows asynchronously.
     """
-    # TODO implement this in a follow-up PR.
+    # TODO - implement in follow-up PR for now, just track a metric that we are seeing the activities.
+    metrics.incr(
+        "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
+    )
     # process_workflow_task.delay(activity.id)
-    pass
