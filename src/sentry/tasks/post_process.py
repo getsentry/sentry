@@ -966,6 +966,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     try:
         workflow_event_data = WorkflowEventData(
             event=job["event"],
+            group=job["event"].group,
             group_state=job.get("group_state"),
             has_reappeared=job.get("has_reappeared"),
             has_escalated=job.get("has_escalated"),
