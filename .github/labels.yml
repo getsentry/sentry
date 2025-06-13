@@ -194,6 +194,8 @@
   color: '8D5494'
 - name: 'Product Area: Issues - Suggested Fix'
   color: '8D5494'
+- name: 'Product Area: Logs'
+  color: '8D5494'
 - name: 'Product Area: Org Relocation'
   color: '8D5494'
 - name: 'Product Area: Performance'
