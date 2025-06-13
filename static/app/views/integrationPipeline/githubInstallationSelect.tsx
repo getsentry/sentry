@@ -204,7 +204,7 @@ const StyledContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   padding: ${space(2)};
-  max-width: 33%;
+  max-width: 600px;
   margin: 0 auto;
   margin-top: 10%;
 `;
