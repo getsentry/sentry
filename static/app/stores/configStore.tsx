@@ -45,11 +45,11 @@ const storeConfig: ConfigStoreDefinition = {
     };
 
     // TODO(dcramer): abstract this out of ConfigStore
-    if (config.user) {
-      config.user.permissions = new Set(config.user.permissions);
+    if (this.state.user) {
+      this.state.user.permissions = new Set(this.state.user.permissions);
 
       const systemTimeZone = moment.tz.guess();
-      const userTimeZone = config.user.options.timezone;
+      const userTimeZone = this.state.user.options.timezone;
 
       const nowInSystemTimezone = moment.tz(undefined, systemTimeZone);
       const nowInUserTimezone = moment.tz(undefined, userTimeZone);
@@ -64,7 +64,7 @@ const storeConfig: ConfigStoreDefinition = {
       moment.tz.setDefault(userTimeZone);
     }
 
-    this.trigger(config);
+    this.trigger(this.state);
   },
 
   getState() {
