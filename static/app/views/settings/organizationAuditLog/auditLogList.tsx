@@ -272,8 +272,7 @@ function AuditLogList({
   statsPeriod,
   utc = false,
 }: Props) {
-  const user = useUser();
-  const is24Hours = user.options?.clock24Hours;
+  const is24Hours = useUser().options?.clock24Hours;
   const organization = useOrganization();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
