@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
+from urllib.parse import urlparse
 
 import sentry_sdk
 
@@ -228,3 +230,138 @@ def _get_breadcrumb_event(
         return MutationEvent(payload)
     else:
         return None
+
+
+class EventType(Enum):
+    CLICK = 0
+    DEAD_CLICK = 1
+    RAGE_CLICK = 2
+    NAVIGATION = 3
+    CONSOLE = 4
+    UI_BLUR = 5
+    UI_FOCUS = 6
+    RESOURCE_FETCH = 7
+    RESOURCE_XHR = 8
+    LCP = 9
+    FCP = 10
+    HYDRATION_ERROR = 11
+    MUTATIONS = 12
+    UNKNOWN = 13
+    FEEDBACK = 14
+
+
+def which(event: dict[str, Any]) -> EventType:
+    """Identify the passed event.
+
+    This function helpfully hides the dirty data munging necessary to identify an event type and
+    helpfully reduces the number of operations required by reusing context from previous
+    branches.
+    """
+    if event.get("type") == 5:
+        if event["data"]["tag"] == "breadcrumb":
+            payload = event["data"]["payload"]
+            category = payload["category"]
+            if category == "ui.click":
+                return EventType.CLICK
+            elif category == "ui.slowClickDetected":
+                is_timeout_reason = payload["data"].get("endReason") == "timeout"
+                is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
+                    "a",
+                    "button",
+                    "input",
+                )
+                timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
+                    "timeafterclickms", 0
+                )
+
+                if is_timeout_reason and is_target_tagname and timeout >= 7000:
+                    is_rage = (
+                        payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
+                    ) >= 5
+                    if is_rage:
+                        return EventType.RAGE_CLICK
+                    else:
+                        return EventType.DEAD_CLICK
+            elif category == "navigation":
+                return EventType.NAVIGATION
+            elif category == "console":
+                return EventType.CONSOLE
+            elif category == "ui.blur":
+                return EventType.UI_BLUR
+            elif category == "ui.focus":
+                return EventType.UI_FOCUS
+            elif category == "replay.hydrate-error":
+                return EventType.HYDRATION_ERROR
+            elif category == "replay.mutations":
+                return EventType.MUTATIONS
+            elif category == "sentry.feedback":
+                return EventType.FEEDBACK
+        elif event["data"]["tag"] == "performanceSpan":
+            payload = event["data"]["payload"]
+            op = payload["op"]
+            if op == "resource.fetch":
+                return EventType.RESOURCE_FETCH
+            elif op == "resource.xhr":
+                return EventType.RESOURCE_XHR
+            elif op == "web-vital":
+                if payload["description"] == "largest-contentful-paint":
+                    return EventType.LCP
+                elif payload["description"] == "first-contentful-paint":
+                    return EventType.FCP
+    return EventType.UNKNOWN
+
+
+def as_log_message(event: dict[str, Any]) -> str | None:
+    """Return an event as a log message.
+
+    Useful in AI contexts where the event's structure is an impediment to the AI's understanding
+    of the interaction log. Not every event produces a log message. This function is overly coupled
+    to the AI use case. In later iterations, if more or all log messages are desired, this function
+    should be forked.
+    """
+    event_type = which(event)
+    timestamp = event.get("timestamp", 0.0)
+
+    match event_type:
+        case EventType.CLICK:
+            return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
+        case EventType.DEAD_CLICK:
+            return f"User clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
+        case EventType.RAGE_CLICK:
+            return f"User rage clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
+        case EventType.NAVIGATION:
+            return f"User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}"
+        case EventType.CONSOLE:
+            return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
+        case EventType.UI_BLUR:
+            return f"User looked away from the tab at {timestamp}."
+        case EventType.UI_FOCUS:
+            return f"User returned to tab at {timestamp}."
+        case EventType.RESOURCE_FETCH:
+            payload = event["data"]["payload"]
+            parsed_url = urlparse(payload["description"])
+
+            path = f"{parsed_url.path}?{parsed_url.query}"
+            size = payload["data"]["response"]["size"]
+            status_code = payload["data"]["statusCode"]
+            duration = payload["endTimestamp"] - payload["startTimestamp"]
+            method = payload["data"]["method"]
+            return f'Application initiated request: "{method} {path} HTTP/2.0" {status_code} {size}; took {duration} milliseconds at {timestamp}'
+        case EventType.RESOURCE_XHR:
+            return None
+        case EventType.LCP:
+            duration = event["data"]["payload"]["data"]["size"]
+            rating = event["data"]["payload"]["data"]["rating"]
+            return f"Application largest contentful paint: {duration} ms and has a {rating} rating"
+        case EventType.FCP:
+            duration = event["data"]["payload"]["data"]["size"]
+            rating = event["data"]["payload"]["data"]["rating"]
+            return f"Application first contentful paint: {duration} ms and has a {rating} rating"
+        case EventType.HYDRATION_ERROR:
+            return f"There was a hydration error on the page at {timestamp}."
+        case EventType.MUTATIONS:
+            return None
+        case EventType.UNKNOWN:
+            return None
+        case EventType.FEEDBACK:
+            return "The user filled out a feedback form describing their experience using the application."
