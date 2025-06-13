@@ -12,12 +12,7 @@ import {space} from 'sentry/styles/space';
 
 import {IconRepository} from './iconRepository';
 
-const CODECOV_PLACEHOLDER_REPOS = [
-  'test repo 1',
-  'test-repo-2',
-  'Sample-two',
-  'an-extra-long-repo-name-with-lots-of-words-in-it',
-];
+const CODECOV_PLACEHOLDER_REPOS = ['gazebo', 'sentry'];
 
 function SyncRepoButton() {
   return (

@@ -47,7 +47,14 @@ export const RIGHT_ALIGNED_FIELDS = new Set([
   'commitsFailed',
 ]);
 
-export const SORTABLE_FIELDS = [
+export type SortableTAOptions =
+  | 'testName'
+  | 'averageDurationMs'
+  | 'flakeRate'
+  | 'commitsFailed'
+  | 'lastRun';
+
+export const SORTABLE_FIELDS: SortableTAOptions[] = [
   'testName',
   'averageDurationMs',
   'flakeRate',
