@@ -55,51 +55,54 @@ def delete_group_list(
             error_ids.append(g.id)
 
     transaction_id = uuid4().hex
-    delete_logger.info(
-        "object.delete.api",
-        extra={
-            "objects": group_ids,
-            "project_id": project.id,
-            "transaction_id": transaction_id,
-        },
-    )
+    extra = {
+        "objects": group_ids,
+        "project_id": project.id,
+        "transaction_id": transaction_id,
+    }
+    delete_logger.info("object.delete.api", extra=extra)
     # The tags can be used if we want to find errors for when a task fails
     sentry_sdk.set_tags(
-        {
-            "project_id": project.id,
-            "transaction_id": transaction_id,
-        },
+        {"project_id": project.id, "transaction_id": transaction_id},
     )
 
-    Group.objects.filter(id__in=group_ids).exclude(
-        status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-    ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
+    try:
+        Group.objects.filter(id__in=group_ids).exclude(
+            status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+        ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
-    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
+        eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
 
-    # The moment groups are marked as pending deletion, we create audit entries
-    # so that we can see who requested the deletion. Even if anything after this point
-    # fails, we will still have a record of who requested the deletion.
-    create_audit_entries(request, project, group_list, delete_type, transaction_id)
+        # The moment groups are marked as pending deletion, we create audit entries
+        # so that we can see who requested the deletion. Even if anything after this point
+        # fails, we will still have a record of who requested the deletion.
+        create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
-    # Tell seer to delete grouping records for these groups
-    call_delete_seer_grouping_records_by_hash(error_ids)
+        # Tell seer to delete grouping records for these groups
+        call_delete_seer_grouping_records_by_hash(project, error_ids, extra)
 
-    # Removing GroupHash rows prevents new events from associating to the groups
-    # we just deleted.
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+        # Removing GroupHash rows prevents new events from associating to the groups
+        # we just deleted.
+        GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
-    # We remove `GroupInbox` rows here so that they don't end up influencing queries for
-    # `Group` instances that are pending deletion
-    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+        # We remove `GroupInbox` rows here so that they don't end up influencing queries for
+        # `Group` instances that are pending deletion
+        GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
-    delete_groups_task.apply_async(
-        kwargs={
-            "object_ids": group_ids,
-            "transaction_id": str(transaction_id),
-            "eventstream_state": eventstream_state,
-        }
-    )
+        delete_logger.info("object.delete.delete_groups_task", extra=extra)
+        delete_groups_task.apply_async(
+            kwargs={
+                "object_ids": group_ids,
+                "transaction_id": str(transaction_id),
+                "eventstream_state": eventstream_state,
+            }
+        )
+    except Exception as e:
+        extra["error"] = str(e)
+        # When using GCP to search for an object or transaction_id, it will help
+        # to have the full context of the error.
+        delete_logger.warning("object.delete.api.error", extra=extra)
+        raise
 
 
 def create_audit_entries(

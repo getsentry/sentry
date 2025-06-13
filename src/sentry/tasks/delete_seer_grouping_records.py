@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import options
@@ -54,7 +55,8 @@ def delete_seer_grouping_records_by_hash(
 
 
 def call_delete_seer_grouping_records_by_hash(
-    group_ids: list[int],
+    group_ids: Sequence[int],
+    extra: Mapping[str, str] | None = None,
 ) -> None:
     project = None
     if group_ids:
@@ -73,7 +75,7 @@ def call_delete_seer_grouping_records_by_hash(
         group_hashes = [group_hash.hash for group_hash in group_hash_objects]
         logger.info(
             "calling seer record deletion by hash",
-            extra={"project_id": project.id, "hashes": group_hashes},
+            extra={"project_id": project.id, "hashes": group_hashes, **(extra or {})},
         )
         if group_hashes:
             delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
