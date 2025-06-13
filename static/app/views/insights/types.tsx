@@ -1,6 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
-import type {Flatten} from 'sentry/utils/flatten';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {Flatten} from 'sentry/utils/types/flatten';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
