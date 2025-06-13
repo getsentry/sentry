@@ -320,6 +320,47 @@ class CSharpParser(LanguageParser):
     ]
 
 
+class GoParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+    function_prefix = "."
+
+    r"""
+    Type of function declaration                        Example
+    Regular function:                                   func Hello(name string) string
+    Method with receiver:                               func (r *Receiver) MethodName() error
+    Method with value receiver:                         func (r Receiver) MethodName() error
+    Anonymous function:                                 func() { ... }
+    Function variable:                                  var myFunc = func() { ... }
+    Function variable (short declaration):              myFunc := func() { ... }
+    Interface method (in interface definition):         MethodName(param Type) ReturnType
+    """
+
+    # Regular function declarations (including generics)
+    function_declaration_regex = r"^@@.*@@[^=]*?\s*func\s+(?P<fnc>\w+)(?:\[[^\]]*\])?\s*\("
+
+    # Method declarations with receiver (pointer or value)
+    method_with_receiver_regex = r"^@@.*@@[^=]*?\s*func\s+\([^)]+\)\s*(?P<fnc>\w+)\s*\("
+
+    # Function variables with var keyword
+    function_var_regex = r"^@@.*@@[^=]*?\s*var\s+(?P<fnc>\w+)\s*=\s*func\s*\("
+
+    # Function variables with short declaration (:=)
+    function_short_decl_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*:=\s*func\s*\("
+
+    # Interface method declarations (no func keyword, just method signature)
+    # This matches lines that look like method signatures in interfaces
+    interface_method_regex = r"^@@.*@@(?!.*\bfunc\b)\s+(?P<fnc>\w+)\s*\([^)]*\).*$"
+
+    regexes = [
+        function_declaration_regex,
+        method_with_receiver_regex,
+        function_var_regex,
+        function_short_decl_regex,
+        interface_method_regex,
+    ]
+
+
 PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "py": PythonParser,
     "js": JavascriptParser,
@@ -330,20 +371,18 @@ PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "rb": RubyParser,
 }
 
-# Beta parsers for experimental language support
-BETA_PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
-    "cs": CSharpParser,
-}
 
-
-def get_patch_parsers_for_organization(organization: Organization | RpcOrganization | None = None):
+def get_patch_parsers_for_organization(
+    organization: Organization | RpcOrganization | None = None,
+) -> dict[str, type[SimpleLanguageParser] | type[LanguageParser]]:
     """
     Returns the appropriate patch parsers based on feature flags.
     Falls back to the standard parsers if no organization is provided.
     """
+    parsers = PATCH_PARSERS
     if organization and features.has("organizations:csharp-open-pr-comments", organization):
-        # Merge stable and beta parsers when feature flag is enabled
-        return {**PATCH_PARSERS, **BETA_PATCH_PARSERS}
-    else:
-        # Return only stable parsers when feature flag is disabled or no organization context
-        return {k: v for k, v in PATCH_PARSERS.items() if k not in BETA_PATCH_PARSERS}
+        parsers.update({"cs": CSharpParser})
+    if organization and features.has("organizations:go-open-pr-comments", organization):
+        parsers.update({"go": GoParser})
+
+    return parsers
