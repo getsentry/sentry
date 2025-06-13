@@ -75,5 +75,10 @@ class IntegrationNotificationTarget(NotificationTarget):
         if org_context.integration is None or org_context.organization_integration is None:
             raise NotificationTargetError("Could not find integration installation")
 
+        if org_context.integration.provider != self.provider_key:
+            raise NotificationTargetError(
+                f"Retrieved '{org_context.integration.provider}' integration did not match target provider of '{self.provider_key}'"
+            )
+
         self.integration = org_context.integration
         self.organization_integration = org_context.organization_integration
