@@ -641,7 +641,185 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('updates query at the correct index', async function () {
+  it('allows changing a query', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    const section = screen.getByTestId('section-visualize-0');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    expect(queries).toEqual([
+      {
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
+  it('allows adding a query', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    // Add chart
+    await userEvent.click(screen.getByRole('button', {name: 'Add Query'}));
+    expect(queries).toEqual([
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
+  it('allows duplicating a query', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    const section = screen.getByTestId('section-visualize-0');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    // Duplicate chart
+    await userEvent.click(screen.getByRole('button', {name: 'More options'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Query'}));
+    expect(queries).toEqual([
+      {
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+      {
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
+  it('allows deleting a query', async function () {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -732,50 +910,6 @@ describe('MultiQueryModeContent', function () {
       },
     ]);
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'More options'})[0]!);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Query'}));
-
-    expect(queries).toEqual([
-      {
-        yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
-        fields: ['id', 'span.self_time', 'timestamp'],
-        groupBys: [],
-        query: '',
-      },
-      {
-        yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
-        fields: ['id', 'span.self_time', 'timestamp'],
-        groupBys: [],
-        query: '',
-      },
-      {
-        yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
-        fields: ['id', 'span.duration', 'timestamp'],
-        groupBys: [],
-        query: '',
-      },
-    ]);
-
-    await userEvent.click(screen.getAllByRole('button', {name: 'More options'})[0]!);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete Query'}));
     await userEvent.click(screen.getAllByRole('button', {name: 'More options'})[0]!);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete Query'}));
 
