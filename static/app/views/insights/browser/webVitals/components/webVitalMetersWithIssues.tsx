@@ -12,7 +12,6 @@ import {IconIssues} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -250,11 +249,7 @@ function VitalContainer({
   );
 }
 
-export const getFormattedDuration = (value: number) => {
-  return getDuration(value, value < 1 ? 0 : 2, true);
-};
-
-export const getIssuesUrl = ({
+const getIssuesUrl = ({
   organization,
   webVital,
 }: {
