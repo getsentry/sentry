@@ -7,12 +7,12 @@ import Placeholder from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
-import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/conenctedDetectors';
 import {
   getAutomationActions,
   useAutomationProjectIds,
@@ -51,7 +51,7 @@ export function AutomationListRow({automation}: AutomationListRowProps) {
         <ProjectList projectSlugs={projectSlugs} />
       </CellWrapper>
       <CellWrapper className="connected-monitors">
-        <ConnectionCell ids={detectorIds} type="detector" disabled={disabled} />
+        <AutomationListConnectedDetectors detectorIds={detectorIds} />
       </CellWrapper>
     </RowWrapper>
   );
