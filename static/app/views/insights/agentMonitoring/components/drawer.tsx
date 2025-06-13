@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -169,50 +169,86 @@ function useCompleteTrace(traceSlug: string): UseCompleteTraceResult {
   };
 }
 
-export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
-  const {openDrawer, isDrawerOpen} = useDrawer();
+function TraceViewDrawer({traceId}: {traceId: string}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
+  const [selectedNode, setSelectedNode] = useState<TraceSpanNode | undefined>(undefined);
+
+  let spanId: string | undefined;
+  let targetId: string | undefined;
+  let timestamp: number | undefined;
+
+  if (selectedNode) {
+    if (isEAPSpanNode(selectedNode)) {
+      spanId = selectedNode.value.event_id;
+      targetId = selectedNode.value.transaction_id;
+      timestamp = selectedNode.value.start_timestamp;
+    }
+    if (isTransactionNode(selectedNode)) {
+      spanId = selectedNode.value.event_id;
+      targetId = selectedNode.value.event_id;
+      timestamp = selectedNode.value.start_timestamp;
+    }
+    if (isSpanNode(selectedNode)) {
+      spanId = selectedNode.value.span_id;
+      timestamp = selectedNode.value.start_timestamp;
+      // Find parent transaction
+      let parent = selectedNode.parent;
+      while (parent && !isTransactionNode(parent)) {
+        parent = parent.parent;
+      }
+      if (parent) {
+        targetId = parent.value.event_id;
+        spanId = selectedNode.value.span_id;
+      }
+    }
+  }
+
+  return (
+    <DrawerWrapper>
+      <StyledDrawerHeader>
+        <HeaderContent>
+          <div />
+          <LinkButton
+            size="xs"
+            to={getTraceDetailsUrl({
+              source: TraceViewSources.AGENT_MONITORING,
+              organization,
+              location,
+              traceSlug: traceId,
+              dateSelection: normalizeDateTimeParams(selection),
+              spanId,
+              timestamp,
+              targetId,
+            })}
+          >
+            {t('View Full Trace')}
+          </LinkButton>
+        </HeaderContent>
+      </StyledDrawerHeader>
+      <StyledDrawerBody>
+        <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+          <AITraceView traceId={traceId} onSelectNode={setSelectedNode} />
+        </TraceStateProvider>
+      </StyledDrawerBody>
+    </DrawerWrapper>
+  );
+}
+
+export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
+  const {openDrawer, isDrawerOpen} = useDrawer();
 
   const openTraceViewDrawer = (traceId: string) =>
-    openDrawer(
-      () => (
-        <DrawerWrapper>
-          <StyledDrawerHeader>
-            <HeaderContent>
-              <div />
-              <LinkButton
-                size="xs"
-                to={getTraceDetailsUrl({
-                  source: TraceViewSources.AGENT_MONITORING,
-                  organization,
-                  location,
-                  traceSlug: traceId,
-                  dateSelection: normalizeDateTimeParams(selection),
-                })}
-              >
-                {t('View Full Trace')}
-              </LinkButton>
-            </HeaderContent>
-          </StyledDrawerHeader>
-          <StyledDrawerBody>
-            <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-              <AITraceView traceId={traceId} />
-            </TraceStateProvider>
-          </StyledDrawerBody>
-        </DrawerWrapper>
-      ),
-      {
-        ariaLabel: t('Abbreviated Trace'),
-        onClose,
-        shouldCloseOnInteractOutside: () => true,
-        drawerWidth: '40%',
-        resizable: true,
+    openDrawer(() => <TraceViewDrawer traceId={traceId} />, {
+      ariaLabel: t('Abbreviated Trace'),
+      onClose,
+      shouldCloseOnInteractOutside: () => true,
+      drawerWidth: '40%',
+      resizable: true,
 
-        drawerKey: 'abbreviated-trace-view-drawer',
-      }
-    );
+      drawerKey: 'abbreviated-trace-view-drawer',
+    });
 
   return {
     openTraceViewDrawer,
@@ -220,16 +256,31 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
   };
 }
 
-function AITraceView({traceId: traceSlug}: {traceId: string}) {
+function AITraceView({
+  traceId: traceSlug,
+  onSelectNode,
+}: {
+  traceId: string;
+  onSelectNode?: (node: TraceSpanNode) => void;
+}) {
   const organization = useOrganization();
   const {nodes, isLoading, error} = useCompleteTrace(traceSlug);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
 
+  const handleSelectNode = useCallback(
+    (node: TraceSpanNode, index: number) => {
+      const uniqueKey = getUniqueKey(node, index);
+      setSelectedNodeKey(uniqueKey);
+      onSelectNode?.(node);
+    },
+    [onSelectNode]
+  );
+
   useEffect(() => {
     if (nodes.length > 0 && !selectedNodeKey && nodes[0]) {
-      setSelectedNodeKey(getUniqueKey(nodes[0], 0));
+      handleSelectNode(nodes[0], 0);
     }
-  }, [nodes, selectedNodeKey]);
+  }, [handleSelectNode, nodes, selectedNodeKey]);
 
   if (isLoading || nodes.length === 0) {
     return (
@@ -256,7 +307,7 @@ function AITraceView({traceId: traceSlug}: {traceId: string}) {
         <AbbreviatedTrace
           nodes={nodes}
           selectedNodeKey={selectedNodeKey}
-          onSelectNode={setSelectedNodeKey}
+          onSelectNode={handleSelectNode}
         />
       </LeftPanel>
       <RightPanel>
@@ -335,7 +386,7 @@ function AbbreviatedTrace({
   onSelectNode,
 }: {
   nodes: TraceSpanNode[];
-  onSelectNode: (key: string) => void;
+  onSelectNode: (node: TraceSpanNode, index: number) => void;
   selectedNodeKey: string | null;
 }) {
   const theme = useTheme();
@@ -380,7 +431,7 @@ function AbbreviatedTrace({
             key={uniqueKey}
             node={node}
             traceBounds={transactionBounds}
-            onClick={() => onSelectNode(uniqueKey)}
+            onClick={() => onSelectNode(node, index)}
             isSelected={uniqueKey === selectedNodeKey}
             colors={colors}
             isLoadingAttributes={
