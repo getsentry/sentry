@@ -1,5 +1,6 @@
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -88,7 +89,12 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
                     id=integration.id,
                     organization_id=external_issue.organization_id,
                 )
-        except (IntegrationFormError, ApiUnauthorized, OrganizationIntegrationNotFound) as e:
+        except (
+            IntegrationFormError,
+            ApiUnauthorized,
+            OrganizationIntegrationNotFound,
+            InvalidIdentity,
+        ) as e:
             lifecycle.record_halt(halt_reason=e)
             return None
     return None

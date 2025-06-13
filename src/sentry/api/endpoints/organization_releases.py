@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from django.db import IntegrityError
 from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
@@ -47,7 +48,7 @@ from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
-from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
@@ -476,7 +477,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             data=request.data, context={"organization": organization}
         )
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         if serializer.is_valid():
             result = serializer.validated_data
             scope.set_tag("version", result["version"])

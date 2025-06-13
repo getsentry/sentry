@@ -461,10 +461,13 @@ class GroupManager(BaseManager["Group"]):
         should_reopen_open_period = {
             group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
         }
+        resolved_at = timezone.now()
         updated_priority = {}
         for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            if status == GroupStatus.RESOLVED:
+                group.resolved_at = resolved_at
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
                 if priority and group.priority != priority:
@@ -473,7 +476,9 @@ class GroupManager(BaseManager["Group"]):
 
             modified_groups_list.append(group)
 
-        Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
+        Group.objects.bulk_update(
+            modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
+        )
 
         for group in modified_groups_list:
             activity = Activity.objects.create_group_activity(
@@ -496,7 +501,20 @@ class GroupManager(BaseManager["Group"]):
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
-            update_group_open_period(group, status, activity, should_reopen_open_period[group.id])
+            # The open period is only updated when a group is resolved or reopened. We don't want to
+            # update the open period when a group transitions between different substatuses within UNRESOLVED.
+            if status == GroupStatus.RESOLVED:
+                update_group_open_period(
+                    group=group,
+                    new_status=GroupStatus.RESOLVED,
+                    resolution_time=activity.datetime,
+                    resolution_activity=activity,
+                )
+            elif status == GroupStatus.UNRESOLVED and should_reopen_open_period[group.id]:
+                update_group_open_period(
+                    group=group,
+                    new_status=GroupStatus.UNRESOLVED,
+                )
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:

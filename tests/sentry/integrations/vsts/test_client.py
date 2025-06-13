@@ -13,6 +13,7 @@ from django.test import override_settings
 from responses import matchers
 
 from fixtures.vsts import VstsIntegrationTestCase
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts.client import VstsApiClient
 from sentry.integrations.vsts.integration import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
@@ -374,6 +375,50 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert (
             source_url
             == f"https://MyVSTSAccount.visualstudio.com/project-name/_git/{repo.name}?path={quote_plus(path)}&version=GB{version}"
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.vsts.client.VstsApiClient.check_file",
+        side_effect=ApiError(
+            text='{"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}'
+        ),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link_identity_deleted(self, mock_record, mock_check_file):
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        path = "/src/sentry/integrations/vsts/client.py"
+        version = "master"
+        url = f"https://myvstsaccount.visualstudio.com/project-name/_apis/git/repositories/{repo.name}/items?path={path.lstrip('/')}&api-version=7.0&versionDescriptor.version={version}"
+
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json={"text": 200},
+        )
+
+        source_url = installation.get_stacktrace_link(repo, path, "master", version)
+        assert source_url is None
+        halt = mock_record.mock_calls[-2]
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert (
+            halt.args[1].text
+            == '{"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}'
         )
 
 

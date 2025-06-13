@@ -13,6 +13,7 @@ export default function ReplayDetailsMetadata({readerResult}: Props) {
       readerResult={readerResult}
       renderArchived={() => null}
       renderError={() => null}
+      renderThrottled={() => null}
       renderLoading={() => <Placeholder height="47px" width="203px" />}
       renderMissing={() => null}
       renderProcessingError={() => null}

@@ -4,14 +4,7 @@ import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-
-interface SuspectGroupTag extends GroupTag {
-  suspect: {
-    baselinePercent: undefined | number;
-    score: undefined | number;
-  };
-}
+import type {FlagDrawerItem} from 'sentry/views/issueDetails/groupFeatureFlags/types';
 
 interface Props {
   environments: string[];
@@ -23,7 +16,7 @@ interface Props {
 
 interface Response {
   allGroupFlagCount: number;
-  displayFlags: SuspectGroupTag[];
+  displayFlags: FlagDrawerItem[];
   isError: boolean;
   isPending: boolean;
   refetch: () => void;
@@ -67,11 +60,15 @@ export default function useGroupFlagDrawerData({
       ? Object.fromEntries(suspectScores.data.map(score => [score.flag, score]))
       : {};
 
-    return groupFlags.map<SuspectGroupTag>(flag => ({
+    return groupFlags.map<FlagDrawerItem>(flag => ({
       ...flag,
       suspect: {
         baselinePercent: suspectScoresMap[flag.key]?.baseline_percent,
         score: suspectScoresMap[flag.key]?.score,
+      },
+      distribution: suspectScoresMap[flag.key]?.distribution ?? {
+        baseline: {},
+        outliers: {},
       },
     }));
   }, [groupFlags, suspectScores]);
@@ -106,11 +103,6 @@ export default function useGroupFlagDrawerData({
     if (sortBy === SortBy.ALPHABETICAL) {
       const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
       return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
-    }
-    if (sortBy === SortBy.SUSPICION) {
-      return filteredFlags.toSorted(
-        (a, b) => (b.suspect.score ?? 0) - (a.suspect.score ?? 0)
-      );
     }
     if (sortBy === SortBy.DISTRIBUTION) {
       const sorted = filteredFlags.toSorted((a, b) => {

@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
@@ -18,12 +19,13 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -43,23 +45,26 @@ import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {
+  AlertRuleOptions,
+  RequestDataFragment,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
-  MetricValues,
-  RuleAction,
+  getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
-  alertRuleConfig: Partial<RequestDataFragment>;
   projectName: string;
+  alertRule?: Partial<AlertRuleOptions>;
   platform?: Partial<OnboardingSelectedSDK>;
   team?: string;
 };
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
-  alertRule: Partial<RequestDataFragment> | undefined;
   platform: OnboardingSelectedSDK;
+  alertRule?: Partial<AlertRuleOptions>;
+  notificationRule?: IssueAlertRule;
   team?: string;
 };
 
@@ -92,7 +97,10 @@ function getMissingValues({
     isMissingTeam: !isOrgMemberWithNoAccess && !team,
     isMissingProjectName: projectName === '',
     isMissingAlertThreshold:
-      shouldCreateCustomRule && !conditions?.every?.(condition => !!condition.value),
+      shouldCreateCustomRule &&
+      (!conditions ||
+        conditions.length === 0 ||
+        !conditions.every(condition => !!condition.value)),
     isMissingMessagingIntegrationChannel:
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
@@ -134,12 +142,10 @@ const keyToErrorText: Record<string, string> = {
 export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
-  const createProject = useCreateProject();
+  const createProjectAndRules = useCreateProjectAndRules();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -149,52 +155,19 @@ export function CreateProject() {
     null
   );
 
-  const createRules = useCallback(
-    async ({
-      project,
-      alertRuleConfig,
-    }: {project: Project} & Pick<FormData, 'alertRuleConfig'>) => {
-      const ruleIds = [];
-
-      if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await api.requestPromise(
-          `/projects/${organization.slug}/${project.slug}/rules/`,
-          {
-            method: 'POST',
-            data: {
-              name: project.name,
-              conditions: alertRuleConfig?.conditions,
-              actions: alertRuleConfig?.actions,
-              actionMatch: alertRuleConfig?.actionMatch,
-              frequency: alertRuleConfig?.frequency,
-            },
-          }
-        );
-
-        ruleIds.push(ruleData.id);
-      }
-
-      const notificationRule = await createNotificationAction({
-        shouldCreateRule: alertRuleConfig?.shouldCreateRule,
-        name: project.name,
-        projectSlug: project.slug,
-        conditions: alertRuleConfig?.conditions,
-        actionMatch: alertRuleConfig?.actionMatch,
-        frequency: alertRuleConfig?.frequency,
-      });
-
-      if (notificationRule) {
-        ruleIds.push(notificationRule.id);
-      }
-
-      return ruleIds;
-    },
-    [organization, api, createNotificationAction]
-  );
-
   const autoFill = useMemo(() => {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
+
+  const createNotificationActionParam = useMemo(() => {
+    return autoFill && createdProject?.notificationRule?.actions
+      ? {actions: createdProject.notificationRule.actions}
+      : undefined;
+  }, [autoFill, createdProject?.notificationRule?.actions]);
+
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
+    createNotificationActionParam
+  );
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -204,7 +177,7 @@ export function CreateProject() {
         projectName: createdProject.name ?? '',
         platform: createdProject.platform,
         team: createdProject.team ?? defaultTeam,
-        alertRuleConfig: createdProject.alertRule ?? {},
+        alertRule: createdProject.alertRule,
       };
     }
 
@@ -212,7 +185,6 @@ export function CreateProject() {
       projectName: '',
       platform: undefined,
       team: defaultTeam,
-      alertRuleConfig: {},
     };
   }, [autoFill, defaultTeam, createdProject]);
 
@@ -221,14 +193,19 @@ export function CreateProject() {
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
+  const alertRuleConfig = useMemo(
+    () => getRequestDataFragment(formData.alertRule),
+    [formData.alertRule]
+  );
+
   const missingValues = getMissingValues({
     isOrgMemberWithNoAccess,
     notificationProps,
     projectName: formData.projectName,
     team: formData.team,
-    shouldCreateCustomRule: formData.alertRuleConfig?.shouldCreateCustomRule,
-    shouldCreateRule: formData.alertRuleConfig?.shouldCreateRule,
-    conditions: formData.alertRuleConfig?.conditions,
+    shouldCreateCustomRule: alertRuleConfig.shouldCreateCustomRule,
+    shouldCreateRule: alertRuleConfig.shouldCreateRule,
+    conditions: alertRuleConfig.conditions,
   });
 
   const formErrorCount = [
@@ -237,9 +214,6 @@ export function CreateProject() {
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
   ].filter(value => value).length;
-
-  const canSubmitForm =
-    !createProject.isPending && canUserCreateProject && formErrorCount === 0;
 
   const submitTooltipText = getSubmitTooltipText({
     ...missingValues,
@@ -273,7 +247,7 @@ export function CreateProject() {
       platform,
       projectName,
       team,
-      alertRuleConfig,
+      alertRule,
     }: {selectedFramework?: OnboardingSelectedSDK} & Omit<FormData, 'platform'> & {
         platform: OnboardingSelectedSDK;
       }) => {
@@ -287,24 +261,23 @@ export function CreateProject() {
       let projectToRollback: Project | undefined;
 
       try {
-        const project = await createProject.mutateAsync({
-          name: projectName,
-          platform: selectedPlatform,
-          default_rules: alertRuleConfig?.defaultRules ?? true,
-          firstTeamSlug: team,
-        });
-
+        const {project, notificationRule, ruleIds} =
+          await createProjectAndRules.mutateAsync({
+            projectName,
+            platform: selectedPlatform,
+            team,
+            alertRuleConfig,
+            createNotificationAction,
+          });
         projectToRollback = project;
-
-        const ruleIds = await createRules({project, alertRuleConfig});
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: alertRuleConfig?.defaultRules
-            ? 'Default'
-            : alertRuleConfig?.shouldCreateCustomRule
-              ? 'Custom'
-              : 'No Rule',
+          issue_alert: alertRuleConfig.shouldCreateCustomRule
+            ? 'Custom'
+            : alertRuleConfig.shouldCreateRule === false
+              ? 'No Rule'
+              : 'Default',
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
@@ -324,15 +297,9 @@ export function CreateProject() {
           id: project.id,
           name: project.name,
           team: project.team?.slug,
-          alertRule: {
-            shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
-            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
-            conditions: alertRuleConfig?.conditions,
-            actions: alertRuleConfig?.actions,
-            actionMatch: alertRuleConfig?.actionMatch,
-            frequency: alertRuleConfig?.frequency,
-          },
           platform: selectedPlatform,
+          alertRule,
+          notificationRule,
         });
 
         navigate(
@@ -344,7 +311,6 @@ export function CreateProject() {
           )
         );
       } catch (error) {
-        setErrors(error.responseJSON);
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
@@ -358,6 +324,9 @@ export function CreateProject() {
         }
 
         if (projectToRollback) {
+          Sentry.logger.error('Rolling back project', {
+            projectToRollback,
+          });
           try {
             // Rolling back the project also deletes its associated alert rules
             // due to the cascading delete constraint.
@@ -376,7 +345,15 @@ export function CreateProject() {
         }
       }
     },
-    [createRules, organization, createProject, setCreatedProject, navigate, api]
+    [
+      organization,
+      setCreatedProject,
+      navigate,
+      api,
+      createProjectAndRules,
+      createNotificationAction,
+      alertRuleConfig,
+    ]
   );
 
   const handleProjectCreation = useCallback(
@@ -429,6 +406,11 @@ export function CreateProject() {
       );
     },
     [configurePlatform, organization]
+  );
+
+  const debounceHandleProjectCreation = useMemo(
+    () => debounce(handleProjectCreation, 2000, {leading: true, trailing: false}),
+    [handleProjectCreation]
   );
 
   const handlePlatformChange = useCallback(
@@ -486,26 +468,17 @@ export function CreateProject() {
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
           <IssueAlertOptions
-            alertSetting={
-              formData.alertRuleConfig?.shouldCreateCustomRule
-                ? RuleAction.CUSTOMIZED_ALERTS
-                : formData.alertRuleConfig?.shouldCreateRule
-                  ? RuleAction.DEFAULT_ALERT
-                  : RuleAction.CREATE_ALERT_LATER
-            }
-            interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
-            threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
-            metric={
-              formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
-                'EventFrequencyCondition'
-              )
-                ? MetricValues.ERRORS
-                : MetricValues.USERS
-            }
-            onChange={value => {
-              updateFormData('alertRuleConfig', value);
-            }}
+            alertSetting={formData.alertRule?.alertSetting}
+            interval={formData.alertRule?.interval}
+            metric={formData.alertRule?.metric}
+            threshold={formData.alertRule?.threshold}
             notificationProps={notificationProps}
+            onFieldChange={(field, value) => {
+              updateFormData('alertRule', {
+                ...formData.alertRule,
+                [field]: value,
+              });
+            }}
           />
           <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
           <FormFieldGroup>
@@ -552,21 +525,22 @@ export function CreateProject() {
                 <Button
                   data-test-id="create-project"
                   priority="primary"
-                  disabled={!canSubmitForm}
-                  onClick={() => handleProjectCreation(formData)}
+                  disabled={!(canUserCreateProject && formErrorCount === 0)}
+                  busy={createProjectAndRules.isPending}
+                  onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}
                 </Button>
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {errors && (
+          {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
               <Alert type="error">
-                {Object.keys(errors).map(key => (
+                {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                    {(errors as any)[key]}
+                    {(createProjectAndRules.error.responseJSON as any)[key]}
                   </div>
                 ))}
               </Alert>

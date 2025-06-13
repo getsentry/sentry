@@ -5,7 +5,7 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {hydrateToFlagSeries, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface FlagSeriesProps {
@@ -40,9 +40,13 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
-        const time = getFormattedDate(data.xAxis, 'MMM D, YYYY LT z', {
-          local: !selection.datetime.utc,
-        });
+        const time = getFormattedDate(
+          data.xAxis,
+          getFormat({timeZone: true, year: true}),
+          {
+            local: !selection.datetime.utc,
+          }
+        );
 
         const eventIsBefore = moment(event?.dateCreated).isBefore(moment(time));
         const formattedDate = moment(time).from(event?.dateCreated, true);
@@ -69,6 +73,7 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
 
   return {
     seriesName: t('Feature Flags'),
+    id: 'flag-lines',
     data: [],
     color: theme.blue200,
     markLine,

@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -6,27 +6,25 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -43,21 +41,17 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     isLoading: isLoadingPreferences,
   } = useProjectSeerPreferences(project);
   const {starredViews: views} = useStarredIssueViews();
-  const {mutate: createIssueView} = useCreateGroupSearchView({
-    onMutate: () => {
-      addLoadingMessage(t('Creating view...'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('View starred successfully'));
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to create view'));
-    },
+
+  const detailedProject = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
   });
 
   const isAutomationAllowed = organization.features.includes(
     'trigger-autofix-on-issue-summary'
   );
+  const prefersStackedNav = usePrefersStackedNav();
+  const isStarredViewAllowed = prefersStackedNav;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -74,43 +68,55 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     !codeMappingRepos?.length &&
     !isLoadingPreferences;
   const needsAutomation =
-    project.autofixAutomationTuning === 'off' && isAutomationAllowed;
+    detailedProject?.data &&
+    (detailedProject?.data?.autofixAutomationTuning === 'off' ||
+      detailedProject?.data?.autofixAutomationTuning === undefined ||
+      detailedProject?.data?.seerScannerAutomation === false ||
+      detailedProject?.data?.seerScannerAutomation === undefined) &&
+    isAutomationAllowed;
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
-    isAutomationAllowed;
+    isAutomationAllowed &&
+    isStarredViewAllowed;
 
   // Warning conditions
   const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
   const hasSingleUnreadableRepo = unreadableRepos.length === 1;
 
-  const anyStepIncomplete =
-    needsGithubIntegration ||
-    needsRepoSelection ||
-    needsAutomation ||
-    needsFixabilityView;
+  // Use localStorage for collapsed state
+  const [stepsCollapsed, setStepsCollapsed] = useLocalStorageState(
+    `seer-onboarding-collapsed:${project.id}`,
+    false
+  );
 
-  const [hideSteps, setHideSteps] = useState(false);
-
-  const handleStarFixabilityView = () => {
-    createIssueView({
-      name: 'Easy Fixes 🤖',
-      query: 'is:unresolved issue.seer_actionability:high',
-      querySort: IssueSortOptions.DATE,
-      projects: [],
-      environments: [],
-      timeFilters: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: null,
-      },
-      starred: true,
-    });
-  };
+  // Calculate incomplete steps
+  const stepConditions = [
+    needsGithubIntegration,
+    needsRepoSelection,
+    needsAutomation,
+    needsFixabilityView,
+  ];
+  const incompleteSteps = stepConditions.filter(Boolean).length;
+  const anyStepIncomplete = incompleteSteps > 0;
 
   return (
     <NoticesContainer>
-      {anyStepIncomplete && !hideSteps && (
+      {/* Collapsed summary */}
+      {anyStepIncomplete && stepsCollapsed && (
+        <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
+          <SeerWaitingIcon size="lg" style={{marginRight: 8}} />
+          <span>
+            {t(
+              'Only %s step%s left to get the most out of Seer.',
+              incompleteSteps,
+              incompleteSteps === 1 ? '' : 's'
+            )}
+          </span>
+          <IconChevron direction="down" style={{marginLeft: 'auto'}} />
+        </CollapsedSummaryCard>
+      )}
+      {/* Full guided steps */}
+      {anyStepIncomplete && !stepsCollapsed && (
         <Fragment>
           <StepsHeader>
             <SeerWaitingIcon size="xl" />
@@ -232,7 +238,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             )}
 
             {/* Step 4: Fixability View */}
-            {isAutomationAllowed && (
+            {isAutomationAllowed && isStarredViewAllowed && (
               <GuidedSteps.Step
                 key="fixability-view"
                 stepKey="fixability-view"
@@ -259,12 +265,13 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   </StepImageCol>
                 </StepContentRow>
                 <GuidedSteps.StepButtons>
-                  <Button onClick={() => setHideSteps(true)} size="sm">
+                  <Button onClick={() => setStepsCollapsed(true)} size="sm">
                     {t('Skip for Now')}
                   </Button>
-                  <Button onClick={handleStarFixabilityView} size="sm" priority="primary">
-                    {t('Star Recommended View')}
-                  </Button>
+                  <StarFixabilityViewButton
+                    isCompleted={!needsFixabilityView}
+                    project={project}
+                  />
                 </GuidedSteps.StepButtons>
               </GuidedSteps.Step>
             )}
@@ -323,7 +330,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 }
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const NoticesContainer = styled('div')`
@@ -384,4 +391,24 @@ const StepsDivider = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.border};
   margin: ${space(3)} 0;
+`;
+
+const CollapsedSummaryCard = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  background: ${p => p.theme.pink400}10;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 6px;
+  padding: ${space(1)};
+  margin-bottom: ${space(2)};
+  cursor: pointer;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 500;
+  color: ${p => p.theme.textColor};
+  transition: box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  &:hover {
+    background: ${p => p.theme.pink400}20;
+  }
 `;

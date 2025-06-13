@@ -49,7 +49,7 @@ from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import clip
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries_with_referrers
 from sentry.utils.snuba_rpc import get_traces_rpc
 
@@ -1417,7 +1417,7 @@ def process_user_queries(
             where, _ = resolve_conditions(user_query)
             queries[user_query] = where
 
-    set_span_data("user_queries_count", len(queries))
+    set_span_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
 
     return queries
@@ -1452,7 +1452,7 @@ def process_rpc_user_queries(
         if where is not None:
             queries[user_query] = where
 
-    set_span_data("user_queries_count", len(queries))
+    set_span_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
 
     return queries

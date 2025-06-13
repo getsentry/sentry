@@ -51,15 +51,18 @@ const mockReplay = ReplayReader.factory({
 
 mockUseLoadReplayReader.mockImplementation(() => {
   return {
+    attachmentError: undefined,
     attachments: [],
     errors: [],
     fetchError: undefined,
-    fetching: false,
+    isError: false,
+    isPending: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: REPLAY_ID_1,
     replayRecord: ReplayRecordFixture({id: REPLAY_ID_1}),
+    status: 'success' as const,
   };
 });
 

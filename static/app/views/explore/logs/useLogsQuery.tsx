@@ -18,10 +18,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  useLogsAggregate,
+  useLogsAggregateCursor,
+  useLogsAggregateSortBys,
   useLogsAutoRefresh,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
+  useLogsGroupBy,
+  useLogsIsFrozen,
+  useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsRefreshInterval,
   useLogsSearch,
@@ -38,6 +44,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {
   type EventsLogsResult,
+  type LogsAggregatesResult,
   OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
@@ -88,6 +95,94 @@ export function usePrefetchLogTableRowOnHover({
   });
 }
 
+function useLogsAggregatesQueryKey({
+  limit,
+  referrer,
+}: {
+  referrer: string;
+  limit?: number;
+}) {
+  const organization = useOrganization();
+  const _search = useLogsSearch();
+  const baseSearch = useLogsBaseSearch();
+  const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const location = useLocation();
+  const projectIds = useLogsProjectIds();
+  const groupBy = useLogsGroupBy();
+  const aggregate = useLogsAggregate();
+  const aggregateSortBys = useLogsAggregateSortBys();
+  const aggregateCursor = useLogsAggregateCursor();
+  const fields: string[] = [];
+  if (groupBy) {
+    fields.push(groupBy);
+  }
+  fields.push(aggregate);
+
+  const search = baseSearch ? _search.copy() : _search;
+  if (baseSearch) {
+    search.tokens.push(...baseSearch.tokens);
+  }
+  const pageFilters = selection;
+  const dataset = DiscoverDatasets.OURLOGS;
+
+  const eventView = getEventView(
+    search,
+    fields,
+    aggregateSortBys,
+    pageFilters,
+    dataset,
+    projectIds
+  );
+  const params = {
+    query: {
+      ...eventView.getEventsAPIPayload(location),
+      per_page: limit ? limit : undefined,
+      cursor: aggregateCursor,
+      referrer,
+    },
+    pageFiltersReady,
+    eventView,
+  };
+
+  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+
+  return {
+    queryKey,
+    other: {
+      eventView,
+      pageFiltersReady,
+    },
+  };
+}
+
+/**
+ * Requires LogsParamsContext to be provided.
+ */
+export function useLogsAggregatesQuery({
+  disabled,
+  limit,
+  referrer,
+}: {
+  disabled?: boolean;
+  limit?: number;
+  referrer?: string;
+}) {
+  const _referrer = referrer ?? 'api.explore.logs-table-aggregates';
+  const {queryKey, other} = useLogsAggregatesQueryKey({limit, referrer: _referrer});
+
+  const queryResult = useApiQuery<LogsAggregatesResult>(queryKey, {
+    enabled: !disabled,
+    staleTime: getStaleTimeForEventView(other.eventView),
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  return {
+    ...queryResult,
+    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
+  };
+}
+
 function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) {
   const organization = useOrganization();
   const _search = useLogsSearch();
@@ -95,6 +190,8 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const cursor = useLogsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
+  const isFrozen = useLogsIsFrozen();
+  const limitToTraceId = useLogsLimitToTraceId();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
@@ -112,15 +209,19 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const params = {
     query: {
       ...eventView.getEventsAPIPayload(location),
+      ...(limitToTraceId ? {traceId: limitToTraceId} : {}),
       cursor,
       per_page: limit ? limit : undefined,
+      referrer,
     },
     pageFiltersReady,
     eventView,
-    referrer,
   };
 
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+  const queryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/${limitToTraceId && isFrozen ? 'trace-logs' : 'events'}/`,
+    params,
+  ];
 
   return {
     queryKey,
@@ -167,8 +268,8 @@ export function useLogsQuery({
     isLoading: queryResult.isLoading,
     queryResult,
     data: queryResult?.data?.data,
-    error: queryResult.error,
     infiniteData: queryResult?.data?.data,
+    error: queryResult.error,
     meta: queryResult?.data?.meta,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
@@ -463,6 +564,7 @@ export function useInfiniteLogsQuery({
     hasPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
+    lastPageLength: data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0,
   };
 }
 

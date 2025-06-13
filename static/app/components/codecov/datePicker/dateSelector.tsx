@@ -1,136 +1,92 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
-import SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
-import {
-  getArbitraryRelativePeriod,
-  getSortedRelativePeriods,
-} from 'sentry/components/timeRangeSelector/utils';
+import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
+import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {space} from 'sentry/styles/space';
 
-import {CODECOV_DEFAULT_RELATIVE_PERIODS} from './datePicker';
-
-const SelectorItemsHook = HookOrDefault({
-  hookName: 'component:header-selector-items',
-  defaultComponent: SelectorItems,
-});
-
-type ChangeData = {
-  relative: string | null;
+export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
+  '24h': t('Last 24 hours'),
+  '7d': t('Last 7 days'),
+  '30d': t('Last 30 days'),
 };
 
-export interface DateSelectorProps
-  extends Omit<
-    SingleSelectProps<string>,
-    'disableSearchFilter' | 'onChange' | 'onClose' | 'options' | 'value'
-  > {
-  /**
-   * Whether the current value is out of sync with the stored persistent value.
-   */
-  desynced?: boolean;
-  /**
-   * Custom width value for relative compact select
-   */
-  menuWidth?: string;
-  onChange?: (data: ChangeData) => void;
-  onClose?: () => void;
+export interface DateSelectorProps {
+  onChange: (data: string) => void;
   /**
    * Relative date value
    */
-  relative?: string | null;
+  relativeDate?: string | null;
+  /**
+   * Optional trigger for the assignee selector. If nothing passed in,
+   * the default trigger will be used
+   */
+  trigger?: (
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
+  ) => React.ReactNode;
 }
 
-export function DateSelector({
-  relative,
-  onChange,
-  onClose,
-  trigger,
-  menuWidth,
-  desynced,
-  ...selectProps
-}: DateSelectorProps) {
-  const getOptions = useCallback((items: Item[]): Array<SelectOption<string>> => {
-    return items.map((item: Item): SelectOption<string> => {
-      return {
-        value: item.value,
-        label: <OptionLabel>{item.label}</OptionLabel>,
-        textValue: item.searchKey,
-      };
-    });
-  }, []);
-
+export function DateSelector({relativeDate, onChange, trigger}: DateSelectorProps) {
   const handleChange = useCallback<NonNullable<SingleSelectProps<string>['onChange']>>(
-    option => {
-      onChange?.({relative: option.value});
+    newSelectedPeriod => {
+      onChange(newSelectedPeriod.value);
     },
     [onChange]
   );
 
-  // Currently selected relative period
-  const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
-  // Periods from default relative periods object
-  const restrictedDefaultPeriods = Object.fromEntries(
-    Object.entries(CODECOV_DEFAULT_RELATIVE_PERIODS).filter(([period]) =>
-      parsePeriodToHours(period)
-    )
-  );
-  const defaultRelativePeriods = {
-    ...restrictedDefaultPeriods,
-    ...arbitraryRelativePeriods,
-  };
+  const options = useMemo((): Array<SelectOption<string>> => {
+    const currentAndDefaultCodecovPeriods = {
+      ...getArbitraryRelativePeriod(relativeDate),
+      ...CODECOV_DEFAULT_RELATIVE_PERIODS,
+    };
+
+    return Object.entries(currentAndDefaultCodecovPeriods).map(
+      ([key, value]): SelectOption<string> => {
+        return {
+          value: key,
+          label: <OptionLabel>{value}</OptionLabel>,
+          textValue: value,
+        };
+      }
+    );
+  }, [relativeDate]);
 
   return (
-    <SelectorItemsHook
-      shouldShowRelative
-      relativePeriods={getSortedRelativePeriods(defaultRelativePeriods)}
-      handleSelectRelative={value => handleChange({value})}
-    >
-      {items => (
-        <CompactSelect
-          {...selectProps}
-          disableSearchFilter
-          options={getOptions(items)}
-          value={relative ?? ''}
-          onChange={handleChange}
-          menuWidth={menuWidth ?? '16rem'}
-          onClose={() => {
-            onClose?.();
-          }}
-          trigger={
-            trigger ??
-            ((triggerProps, isOpen) => {
-              const defaultLabel = items.some(item => item.value === relative)
-                ? relative?.toUpperCase()
-                : t('Invalid Period');
+    <CompactSelect
+      disableSearchFilter
+      options={options}
+      value={relativeDate ?? ''}
+      onChange={handleChange}
+      menuWidth={'16rem'}
+      trigger={
+        trigger ??
+        ((triggerProps, isOpen) => {
+          const defaultLabel = options.some(item => item.value === relativeDate)
+            ? relativeDate?.toUpperCase()
+            : t('Invalid Period');
 
-              return (
-                <DropdownButton
-                  isOpen={isOpen}
-                  size={selectProps.size}
-                  data-test-id="page-filter-codecov-time-selector"
-                  {...triggerProps}
-                  {...selectProps.triggerProps}
-                >
-                  <TriggerLabelWrap>
-                    <TriggerLabel>
-                      {selectProps.triggerLabel ?? defaultLabel}
-                    </TriggerLabel>
-                    {desynced && <DesyncedFilterIndicator />}
-                  </TriggerLabelWrap>
-                </DropdownButton>
-              );
-            })
-          }
-        />
-      )}
-    </SelectorItemsHook>
+          return (
+            <DropdownButton
+              isOpen={isOpen}
+              data-test-id="codecov-time-selector"
+              {...triggerProps}
+            >
+              <TriggerLabelWrap>
+                <FlexContainer>
+                  <IconCalendar />
+                  <TriggerLabel>{defaultLabel}</TriggerLabel>
+                </FlexContainer>
+              </TriggerLabelWrap>
+            </DropdownButton>
+          );
+        })
+      }
+    />
   );
 }
 
@@ -148,4 +104,10 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
+`;
+
+const FlexContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
 `;

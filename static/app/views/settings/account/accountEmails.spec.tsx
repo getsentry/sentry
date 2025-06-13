@@ -1,6 +1,11 @@
 import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
 
@@ -29,11 +34,14 @@ describe('AccountEmails', function () {
     });
 
     render(<AccountEmails />);
+    renderGlobalModal();
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Remove email'}))[0]!
     );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,

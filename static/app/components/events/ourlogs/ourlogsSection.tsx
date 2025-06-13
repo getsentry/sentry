@@ -106,10 +106,7 @@ function OurlogsSectionContent({
     // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
-  if (
-    !tableData ||
-    (tableData.data && tableData.data.length === 0 && logsSearch.isEmpty())
-  ) {
+  if (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty())) {
     // Like breadcrumbs, we don't show the logs section if there are no logs.
     return null;
   }

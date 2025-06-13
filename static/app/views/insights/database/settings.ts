@@ -16,8 +16,11 @@ export const DATA_TYPE = t('Query');
 export const DATA_TYPE_PLURAL = t('Queries');
 export const BASE_URL = 'database';
 
+export const EXCLUDED_DB_OPS = ['db.sql.room', 'db.redis'];
+
 export const BASE_FILTERS = {
-  'span.module': ModuleName.DB,
+  'span.category': ModuleName.DB,
+  '!span.op': `[${EXCLUDED_DB_OPS.join(',')}]`,
   has: 'sentry.normalized_description',
 };
 

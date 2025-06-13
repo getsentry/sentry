@@ -1,9 +1,9 @@
 import {captureException} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
-import type {EChartsInstance} from 'echarts-for-react';
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 
@@ -14,7 +14,7 @@ interface Props extends LoadableChartWidgetProps {
    */
   id: ChartId;
 
-  ref?: React.Ref<EChartsInstance>;
+  ref?: React.Ref<ReactEchartsRef>;
 }
 // We need to map the widget id to the dynamic import because we want the import paths to be statically analyzable.
 const CHART_MAP = {
@@ -182,6 +182,8 @@ const CHART_MAP = {
     ),
   overviewRequestsChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
+  overviewSlowNextjsSSRWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget'),
   overviewSlowQueriesChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'

@@ -13,11 +13,12 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
-from sentry.issues.auto_source_code_config.code_mapping import NeedsExtension, create_code_mapping
+from sentry.issues.auto_source_code_config.code_mapping import create_code_mapping
 from sentry.issues.auto_source_code_config.derived_code_mappings_endpoint import (
     get_code_mapping_from_request,
     get_file_and_repo_matches,
 )
+from sentry.issues.auto_source_code_config.errors import NeedsExtension
 from sentry.issues.auto_source_code_config.integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,

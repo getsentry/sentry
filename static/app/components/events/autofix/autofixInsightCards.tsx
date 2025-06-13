@@ -16,6 +16,7 @@ import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnim
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -166,6 +167,14 @@ function AutofixInsightCard({
                         size="sm"
                         title={t('Redo work from here')}
                         aria-label={t('Redo work from here')}
+                        analyticsEventName="Autofix: Insight Card Rethink Open"
+                        analyticsEventKey="autofix.insight.rethink_open"
+                        analyticsParams={{
+                          insight_card_index: index,
+                          step_index: stepIndex,
+                          group_id: groupId,
+                          run_id: runId,
+                        }}
                       >
                         {'\u23CE'}
                       </Button>
@@ -213,6 +222,14 @@ function AutofixInsightCard({
                     icon={<FlippedReturnIcon />}
                     aria-label={t('Edit insight')}
                     title={t('Rethink the answer from here')}
+                    analyticsEventName="Autofix: Insight Card Rethink"
+                    analyticsEventKey="autofix.insight.rethink"
+                    analyticsParams={{
+                      insight_card_index: index,
+                      step_index: stepIndex,
+                      group_id: groupId,
+                      run_id: runId,
+                    }}
                   />
                 </RightSection>
               </InsightCardRow>
@@ -307,6 +324,8 @@ function CollapsibleChainLink({
   const [newInsightText, setNewInsightText] = useState('');
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
 
+  const organization = useOrganization();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdding(false);
@@ -317,6 +336,13 @@ function CollapsibleChainLink({
         insightCount !== undefined && insightCount > 0 ? insightCount : null,
     });
     setNewInsightText('');
+
+    trackAnalytics('autofix.step.rethink', {
+      step_index: stepIndex,
+      group_id: groupId,
+      run_id: runId,
+      organization,
+    });
   };
 
   const handleCancel = () => {
@@ -405,6 +431,13 @@ function CollapsibleChainLink({
               onClick={() => setIsAdding(true)}
               title={t('Give feedback and rethink the answer')}
               aria-label={t('Give feedback and rethink the answer')}
+              analyticsEventName="Autofix: Step Rethink Open"
+              analyticsEventKey="autofix.step.rethink_open"
+              analyticsParams={{
+                step_index: stepIndex,
+                group_id: groupId,
+                run_id: runId,
+              }}
             >
               <RethinkLabel>{t('Rethink this answer')}</RethinkLabel>
               <FlippedReturnIcon />
@@ -534,7 +567,7 @@ function AutofixInsightCards({
   );
 }
 
-function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const orgSlug = useOrganization().slug;
@@ -562,7 +595,12 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
       addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {

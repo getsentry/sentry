@@ -6,7 +6,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 export enum TraceLayoutTabKeys {
@@ -49,9 +48,7 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
 
 function getTabOptions({
   sections,
-  hasTraceTabsUi,
 }: {
-  hasTraceTabsUi: boolean;
   sections: ReturnType<typeof useTraceContextSections>;
 }): Tab[] {
   const tabOptions: Tab[] = [];
@@ -61,11 +58,7 @@ function getTabOptions({
   }
 
   if (sections.hasTags) {
-    tabOptions.push(
-      hasTraceTabsUi
-        ? TAB_DEFINITIONS[TraceLayoutTabKeys.ATTRIBUTES]
-        : TAB_DEFINITIONS[TraceLayoutTabKeys.TAGS]
-    );
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.ATTRIBUTES]);
   }
 
   if (sections.hasProfiles) {
@@ -100,9 +93,7 @@ export function useTraceLayoutTabs({
     rootEventResults,
     logs,
   });
-  const hasTraceTabsUi = useHasTraceTabsUI();
-
-  const tabOptions = getTabOptions({sections: {...sections}, hasTraceTabsUi});
+  const tabOptions = getTabOptions({sections: {...sections}});
 
   const queryParams = qs.parse(window.location.search);
   const tabSlugFromUrl = queryParams.tab;

@@ -18,6 +18,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Collapsible} from 'sentry/views/nav/collapsible';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -176,7 +177,9 @@ SecondaryNav.Section = function SecondaryNavSection({
           setIsCollapsed={setIsCollapsedState}
         />
       ) : null}
-      {isCollapsed ? null : children}
+      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+        {children}
+      </Collapsible>
     </Section>
   );
 };
@@ -240,6 +243,14 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
   return <Footer layout={layout}>{children}</Footer>;
 };
 
+function SectionSeparator() {
+  return (
+    <SeparatorWrapper data-separator>
+      <Separator />
+    </SeparatorWrapper>
+  );
+}
+
 const Wrapper = styled('div')`
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -251,7 +262,6 @@ const Header = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
   padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -289,7 +299,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 
   /* Hide separators if there is not a previous section */
   [data-nav-section] + & {
-    > hr {
+    > [data-separator] {
       display: block;
     }
   }
@@ -298,7 +308,6 @@ const Section = styled('div')<{layout: NavLayout}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.fontWeightBold};
   color: ${p.theme.textColor};
-  margin: ${space(1)} 0 ${space(0.5)} 0;
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
   ${p.isMobile &&
@@ -339,12 +348,15 @@ const TrailingItems = styled('div')`
   flex-shrink: 0;
 `;
 
-const SectionSeparator = styled('hr')`
+const SeparatorWrapper = styled('div')`
+  padding: ${space(1.5)} 0;
   display: none;
+`;
 
+const Separator = styled('hr')`
   height: 1px;
   background: ${p => p.theme.innerBorder};
-  margin: ${space(1.5)} ${space(1)};
+  margin: 0 ${space(1)};
   border: none;
 `;
 
@@ -354,13 +366,13 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.content.muted};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -376,7 +388,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     width: 4px;
     height: 20px;
     left: -${space(1.5)};
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.colors.blue400};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
@@ -412,6 +424,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
+  gap: ${space(0.75)};
 
   &:focus-visible {
     box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};

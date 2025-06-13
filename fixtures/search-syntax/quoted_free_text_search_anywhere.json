@@ -15,7 +15,7 @@
           "type": "valueText",
           "value": "foo@example.com",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},

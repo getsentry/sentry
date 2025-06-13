@@ -57,7 +57,7 @@ def pytest_configure(config):
 
     try:
         status = subprocess.call(
-            ["yarn", "build-acceptance"],
+            ["pnpm", "run", "build-acceptance"],
             env={"PATH": os.environ["PATH"], "NODE_OPTIONS": "--max-old-space-size=4096"},
         )
 

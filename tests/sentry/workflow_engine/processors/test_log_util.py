@@ -3,7 +3,11 @@ import unittest
 from datetime import timedelta
 from unittest.mock import Mock
 
-from sentry.workflow_engine.processors.log_util import BatchPerformanceTracker, top_n_slowest
+from sentry.workflow_engine.processors.log_util import (
+    _MAX_ITERATIONS_LOGGED,
+    BatchPerformanceTracker,
+    top_n_slowest,
+)
 
 
 class TestBatchPerformanceTracker(unittest.TestCase):
@@ -98,6 +102,18 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert call_args["extra"]["total_duration"] == 200
         assert call_args["extra"]["durations"]["item1"] == 1
         assert call_args["extra"]["durations"]["item2"] == 199
+
+    def test_durations_truncated(self):
+        """Test that durations_truncated is set correctly when there are too many iterations."""
+        for i in range(_MAX_ITERATIONS_LOGGED + 100):
+            with self.tracker.track(f"item_{i}"):
+                self.time_func.return_value = i + 1
+
+        self.tracker.finalize()
+        self.logger.info.assert_called_once()
+        call_args = self.logger.info.call_args[1]
+        assert call_args["extra"]["durations_truncated"] == 100
+        assert len(call_args["extra"]["durations"]) == _MAX_ITERATIONS_LOGGED
 
 
 def test_top_n_slowest():

@@ -14,7 +14,7 @@
           "type": "valueText",
           "value": "release",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -35,7 +35,7 @@
           "type": "valueText",
           "value": "hi:there",
           "quoted": true,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

@@ -130,12 +130,7 @@ function RecentSearchFilterOption<T>({
   );
 
   return (
-    <RecentFilterPill
-      ref={ref}
-      key={key}
-      data-test-id="recent-filter-key"
-      {...optionProps}
-    >
+    <RecentFilterPill key={key} data-test-id="recent-filter-key" {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <RecentFilterPillLabel {...labelProps}>
         {getKeyLabel(filter.key)}
@@ -222,7 +217,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   sections,
 }: FilterKeyMenuContentProps<T>) {
   const {filterKeys, setDisplaySeerResults} = useSearchQueryBuilder();
-  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey)?.props
+  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey!)?.props
     ?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
@@ -545,7 +540,7 @@ const RecentFilterPill = styled('li')`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0 ${space(1.5)} 0 ${space(0.75)};
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   cursor: pointer;
@@ -615,14 +610,14 @@ const SeerButtonWrapper = styled('div')`
   justify-content: flex-start;
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.purple100};
   width: 100%;
 `;
 
 const SeerFullWidthButton = styled(Button)`
   width: 100%;
   border-radius: 0;
-  background: none;
+  background-color: none;
   box-shadow: none;
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -635,7 +630,7 @@ const SeerFullWidthButton = styled(Button)`
   gap: ${space(1)};
   &:hover,
   &:focus {
-    background: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.purple100};
     color: ${p => p.theme.purple400};
     box-shadow: none;
   }

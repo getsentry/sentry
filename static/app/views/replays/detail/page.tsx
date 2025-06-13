@@ -5,8 +5,7 @@ import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplay
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
-import ReplaysLayout from 'sentry/views/replays/detail/layout';
+import ReplayLayout from 'sentry/views/replays/detail/layout/replayLayout';
 import ReplayDetailsError from 'sentry/views/replays/detail/replayDetailsError';
 
 type Props = {
@@ -27,8 +26,13 @@ export default function ReplayDetailsPage({readerResult}: Props) {
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
         </Layout.Page>
       )}
+      renderThrottled={({fetchError, onRetry}) => (
+        <Layout.Page withPadding>
+          <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
+        </Layout.Page>
+      )}
       renderLoading={({replayRecord}) => (
-        <ReplaysLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
+        <ReplayLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
       )}
       renderMissing={() => (
         <Layout.Page withPadding>
@@ -44,13 +48,11 @@ export default function ReplayDetailsPage({readerResult}: Props) {
       )}
     >
       {({replay}) => (
-        <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-          <ReplaysLayout
-            isVideoReplay={replay.isVideoReplay()}
-            replayRecord={replay.getReplay()}
-            isLoading={false}
-          />
-        </ReplayDetailsProviders>
+        <ReplayLayout
+          isVideoReplay={replay.isVideoReplay()}
+          replayRecord={replay.getReplay()}
+          isLoading={false}
+        />
       )}
     </ReplayLoadingState>
   );

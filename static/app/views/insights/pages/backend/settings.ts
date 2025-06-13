@@ -13,8 +13,6 @@ export const MODULES = [
   ModuleName.HTTP,
   ModuleName.CACHE,
   ModuleName.QUEUE,
-  ModuleName.CRONS,
-  ModuleName.UPTIME,
 ];
 
 export const OVERVIEW_PAGE_ALLOWED_OPS = ['http.server'];

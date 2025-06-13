@@ -1,4 +1,4 @@
-import {Fragment, type MouseEventHandler} from 'react';
+import {Fragment, type MouseEventHandler, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link, {linkStyles} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
@@ -20,7 +20,10 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
+import {
+  NAV_SIDEBAR_OPEN_DELAY_MS,
+  PRIMARY_SIDEBAR_WIDTH,
+} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import type {PrimaryNavGroup} from 'sentry/views/nav/types';
@@ -67,7 +70,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disableTooltip?: boolean;
 }
 
-export function SidebarItem({
+function SidebarItem({
   children,
   label,
   showLabel,
@@ -90,6 +93,20 @@ export function SidebarItem({
   );
 }
 
+function SidebarItemIcon({
+  children,
+  layout,
+}: {
+  children: React.ReactNode;
+  layout: NavLayout;
+}) {
+  return (
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
+      {children}
+    </IconDefaultsProvider>
+  );
+}
+
 export function SidebarMenu({
   items,
   children,
@@ -99,7 +116,8 @@ export function SidebarMenu({
   disableTooltip,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
-  const organization = useOrganization();
+  // This component can be rendered without an organization in some cases
+  const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
 
   const showLabel = layout === NavLayout.MOBILE;
@@ -120,17 +138,23 @@ export function SidebarMenu({
               {...props}
               aria-label={showLabel ? undefined : label}
               onClick={event => {
-                recordPrimaryItemClick(analyticsKey, organization);
+                if (organization) {
+                  recordPrimaryItemClick(analyticsKey, organization);
+                }
                 props.onClick?.(event);
                 onOpen?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
+              icon={
+                showLabel ? (
+                  <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
+                ) : null
+              }
             >
               {theme.isChonk ? null : (
                 <InteractionStateLayer hasSelectedBackground={isOpen} />
               )}
-              {children}
-              {showLabel ? label : null}
+              {showLabel ? label : children}
             </NavButton>
           </SidebarItem>
         );
@@ -138,6 +162,36 @@ export function SidebarMenu({
       items={items}
     />
   );
+}
+
+function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
+  const {isCollapsed, activePrimaryNavGroup, setActivePrimaryNavGroup} = useNavContext();
+
+  // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  return useHover({
+    onHoverStart: () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Setting the nav group immediately when there isn't already a selection
+      // ensures that the correct menu is immediately shown when the sidebar expands
+      if (!activePrimaryNavGroup && isCollapsed) {
+        setActivePrimaryNavGroup(group);
+        return;
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        setActivePrimaryNavGroup(group);
+      }, NAV_SIDEBAR_OPEN_DELAY_MS);
+    },
+    onHoverEnd: () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    },
+  });
 }
 
 function SidebarNavLink({
@@ -148,17 +202,12 @@ function SidebarNavLink({
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {layout, activePrimaryNavGroup, setActivePrimaryNavGroup} = useNavContext();
+  const {layout, activePrimaryNavGroup} = useNavContext();
   const theme = useTheme();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
-
-  const {hoverProps} = useHover({
-    onHoverStart: () => {
-      setActivePrimaryNavGroup(group);
-    },
-  });
+  const {hoverProps} = useActivateNavGroupOnHover(group);
 
   return (
     <NavLink
@@ -234,10 +283,12 @@ export function SidebarButton({
           buttonProps.onClick?.(e);
           onClick?.(e);
         }}
+        icon={
+          showLabel ? <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon> : null
+        }
       >
         {theme.isChonk ? null : <InteractionStateLayer />}
-        {children}
-        {showLabel ? label : null}
+        {showLabel ? label : children}
       </NavButton>
     </SidebarItem>
   );
@@ -325,7 +376,7 @@ const ChonkNavLinkIconContainer = chonkStyled('span')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
-  border-radius: ${p => p.theme.radius.lg};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const NavLinkIconContainer = withChonk(
@@ -399,7 +450,7 @@ const ChonkNavLink = chonkStyled(Link, {
     left: 0px;
     width: 4px;
     height: 20px;
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
@@ -514,7 +565,6 @@ const StyledNavButton = styled(Button, {
   position: relative;
   background: transparent;
 
-  ${linkStyles}
   ${baseNavItemStyles}
 `;
 
@@ -523,7 +573,7 @@ type NavButtonProps = ButtonProps & {
 };
 
 // Use a manual theme switch because the types of Button dont seem to play well with withChonk.
-export const NavButton = styled((p: NavButtonProps) => {
+const NavButton = styled((p: NavButtonProps) => {
   const theme = useTheme();
   if (theme.isChonk) {
     return (
@@ -540,7 +590,7 @@ export const NavButton = styled((p: NavButtonProps) => {
 export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   position: absolute;
   top: ${p => (p.isMobile ? `8px` : `calc(50% - 12px)`)};
-  left: ${p => (p.isMobile ? '32px' : `calc(50% + 14px)`)};
+  left: ${p => (p.isMobile ? '36px' : `calc(50% + 14px)`)};
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
@@ -551,6 +601,14 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   height: 10px;
   border-radius: 50%;
   border: 2px solid ${p => p.theme.background};
+
+  ${p =>
+    p.theme.isChonk &&
+    p.isMobile &&
+    css`
+      top: 5px;
+      left: 12px;
+    `}
 `;
 
 export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`

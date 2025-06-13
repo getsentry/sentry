@@ -13,7 +13,7 @@ S001_methods = frozenset(("not_called", "called_once", "called_once_with"))
 
 S002_msg = "S002 print functions or statements are not allowed."
 
-S003_msg = "S003 Use ``from sentry.utils import json`` instead."
+S003_msg = "S003 Use `from sentry.utils import json` instead."
 S003_modules = frozenset(("json", "simplejson"))
 
 S004_msg = "S004 Use `pytest.raises` instead for better debuggability."
@@ -34,7 +34,9 @@ S010_msg = "S010 Except handler does nothing and should be removed"
 S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
 
 # SentryIsAuthenticated extends from IsAuthenticated and provides additional checks for demo users
-S012_msg = "S012 Use ``from sentry.api.permissions import SentryIsAuthenticated`` instead"
+S012_msg = "S012 Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
+
+S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -71,6 +73,8 @@ class SentryVisitor(ast.NodeVisitor):
                 x.name == "IsAuthenticated" for x in node.names
             ):
                 self.errors.append((node.lineno, node.col_offset, S012_msg))
+            elif node.module == "sentry.db.models.fields.array":
+                self.errors.append((node.lineno, node.col_offset, S013_msg))
 
         self.generic_visit(node)
 

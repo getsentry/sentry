@@ -2,9 +2,13 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+// eslint-disable-next-line boundaries/element-types
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+// eslint-disable-next-line boundaries/element-types
 import Link from 'sentry/components/links/link';
+// eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+// eslint-disable-next-line boundaries/element-types
 import {space} from 'sentry/styles/space';
 
 import {
@@ -36,6 +40,7 @@ export function LinkButton({
       <StyledLinkButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
+        disabled={disabled}
         size={size}
         {...props}
         // @ts-expect-error set href as undefined to force "disabled" state.
@@ -105,6 +110,7 @@ const ButtonLabel = styled('span', {
     !['size', 'borderless'].includes(prop),
 })<Pick<CommonButtonProps, 'size' | 'borderless'>>`
   height: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;

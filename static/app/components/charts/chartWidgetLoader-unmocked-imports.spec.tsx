@@ -120,22 +120,6 @@ jest.mock(
     })),
   })
 );
-jest.mock('sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery', () => ({
-  usePublishQueuesTimeSeriesQuery: jest.fn(() => ({
-    data: {},
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery', () => ({
-  useProcessQueuesTimeSeriesQuery: jest.fn(() => ({
-    data: {
-      'avg(messaging.message.receive.latency)': {},
-    },
-    isPending: false,
-    error: null,
-  })),
-}));
 jest.mock(
   'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery',
   () => ({
@@ -210,6 +194,11 @@ jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
     isPending: false,
     error: null,
   })),
+  useTopNSpanMetricsSeries: jest.fn(() => ({
+    data: [mockDiscoverSeries('transaction_a,abc123')],
+    isPending: false,
+    error: null,
+  })),
 }));
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
   useEAPSeries: jest.fn(() => ({
@@ -259,6 +248,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'avg(http.response_content_length)': {},
       'avg(http.response_transfer_size)': {},
       'avg(http.decoded_response_content_length)': {},
+      'avg(messaging.message.receive.latency)': {},
     },
     isPending: false,
     error: null,

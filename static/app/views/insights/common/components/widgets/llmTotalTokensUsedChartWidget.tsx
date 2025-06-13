@@ -5,19 +5,20 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {Referrer} from 'sentry/views/insights/llmMonitoring/referrers';
 
 export default function LlmTotalTokensUsedChartWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
   const aggregate = 'sum(ai.total_tokens.used)';
-
-  const query = 'span.category:"ai"';
+  const referrer = Referrer.TOTAL_TOKENS_USED_CHART;
+  const search = new MutableSearch('span.category:"ai"');
   const {data, isPending, error} = useSpanMetricsSeries(
     {
       yAxis: [aggregate],
-      search: new MutableSearch(query),
+      search,
       transformAliasToInputFormat: true,
     },
-    'api.ai-pipelines.view',
+    referrer,
     props.pageFilters
   );
 
@@ -30,6 +31,7 @@ export default function LlmTotalTokensUsedChartWidget(props: LoadableChartWidget
       series={[{...data[aggregate], color: colors[0]}]}
       isLoading={isPending}
       error={error}
+      queryInfo={{search, referrer, yAxis: [aggregate]}}
     />
   );
 }

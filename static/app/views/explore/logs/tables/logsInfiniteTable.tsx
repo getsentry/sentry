@@ -1,6 +1,9 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
@@ -32,6 +35,8 @@ import {
 import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
 import {
   FirstTableHeadCell,
+  FloatingBackToTopContainer,
+  HoveringRowLoadingRendererContainer,
   LOGS_GRID_BODY_ROW_HEIGHT,
   LogTableBody,
   LogTableRow,
@@ -39,14 +44,12 @@ import {
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
+  getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
 import {EmptyStateText} from 'sentry/views/traces/styles';
-
-const LOGS_FETCH_PREVIOUS_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // Pixels from bottom of table to trigger table fetch.
-const LOGS_FETCH_NEXT_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 20; // Pixels from bottom of table to trigger table fetch.
 
 type LogsTableProps = {
   allowPagination?: boolean;
@@ -56,14 +59,19 @@ type LogsTableProps = {
   stringAttributes?: TagCollection;
 };
 
+const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
+const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
+
 export function LogsInfiniteTable({
   showHeader = true,
   numberAttributes,
   stringAttributes,
   scrollContainer,
 }: LogsTableProps) {
+  const theme = useTheme();
   const fields = useLogsFields();
   const search = useLogsSearch();
+  const isTableFrozen = useLogsIsTableFrozen();
   const autoRefresh = useLogsAutoRefresh();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {
@@ -76,10 +84,16 @@ export function LogsInfiniteTable({
     fetchPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
+    lastPageLength,
   } = infiniteLogsQueryResult;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(new Set());
+  const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
+    Record<string, number>
+  >({});
+  const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
@@ -90,20 +104,30 @@ export function LogsInfiniteTable({
     },
   });
 
+  const estimateSize = useCallback(
+    (index: number) => {
+      const logItemId = data?.[index]?.[OurLogKnownFieldKey.ID];
+      const estimatedHeight =
+        expandedLogRowsHeights[logItemId ?? ''] ?? LOGS_GRID_BODY_ROW_HEIGHT;
+      return estimatedHeight;
+    },
+    [expandedLogRowsHeights, data]
+  );
+
   const highlightTerms = useMemo(() => getLogBodySearchTerms(search), [search]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
-    estimateSize: () => LOGS_GRID_BODY_ROW_HEIGHT,
-    overscan: 150,
+    estimateSize,
+    overscan: LOGS_OVERSCAN_AMOUNT,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
     scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
   });
 
   const containerVirtualizer = useVirtualizer({
     count: data?.length ?? 0,
-    estimateSize: () => LOGS_GRID_BODY_ROW_HEIGHT,
-    overscan: 150,
+    estimateSize,
+    overscan: LOGS_OVERSCAN_AMOUNT,
     getScrollElement: () => scrollContainer?.current ?? null,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
@@ -112,7 +136,9 @@ export function LogsInfiniteTable({
   const virtualItems = virtualizer.getVirtualItems();
 
   const firstItem = virtualItems[0]?.start;
+  const firstItemIndex = virtualItems[0]?.index;
   const lastItem = virtualItems[virtualItems.length - 1]?.end;
+  const lastItemIndex = virtualItems[virtualItems.length - 1]?.index;
 
   const [paddingTop, paddingBottom] =
     defined(firstItem) && defined(lastItem)
@@ -127,33 +153,82 @@ export function LogsInfiniteTable({
     : virtualizer;
 
   useEffect(() => {
-    if (isScrolling) {
+    if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
+      setTimeout(() => {
+        setIsFunctionScrolling(false);
+      }, 10);
+    }
+  }, [isFunctionScrolling, isScrolling, scrollOffset]);
+
+  useEffect(() => {
+    if (isScrolling && !isFunctionScrolling) {
       if (
-        scrollDirection === 'forward' &&
-        scrollOffset &&
-        scrollOffset > LOGS_FETCH_NEXT_THRESHOLD
-      ) {
-        fetchNextPage();
-      } else if (
         scrollDirection === 'backward' &&
         scrollOffset &&
-        virtualizer.getTotalSize() - scrollOffset < LOGS_FETCH_PREVIOUS_THRESHOLD
+        scrollOffset <= LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD
       ) {
         fetchPreviousPage();
+      }
+      if (
+        scrollDirection === 'forward' &&
+        lastItemIndex &&
+        lastItemIndex >= data?.length - getDynamicLogsNextFetchThreshold(lastPageLength)
+      ) {
+        fetchNextPage();
       }
     }
   }, [
     scrollDirection,
-    scrollOffset,
+    lastItemIndex,
+    data?.length,
     isScrolling,
     fetchNextPage,
     fetchPreviousPage,
-    virtualizer,
+    lastPageLength,
+    scrollOffset,
+    isFunctionScrolling,
   ]);
+
+  const handleExpand = useCallback((logItemId: string) => {
+    setExpandedLogRows(prev => {
+      const newSet = new Set(prev);
+      newSet.add(logItemId);
+      return newSet;
+    });
+  }, []);
+  const handleExpandHeight = useCallback((logItemId: string, estimatedHeight: number) => {
+    setExpandedLogRowsHeights(prev => ({...prev, [logItemId]: estimatedHeight}));
+  }, []);
+  const handleCollapse = useCallback((logItemId: string) => {
+    setExpandedLogRows(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(logItemId);
+      return newSet;
+    });
+  }, []);
+
+  const tableStaticCSS = useMemo(() => {
+    return {
+      '.log-table-row-chevron-button': {
+        width: theme.isChonk ? '24px' : '18px',
+        height: theme.isChonk ? '24px' : '18px',
+        marginRight: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+    };
+  }, [theme.isChonk]);
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} data-test-id="logs-table">
+      <Table
+        ref={tableRef}
+        style={initialTableStyles}
+        css={tableStaticCSS}
+        hideBorder={isTableFrozen}
+        data-test-id="logs-table"
+      >
         {showHeader ? (
           <LogsTableHeader
             numberAttributes={numberAttributes}
@@ -173,11 +248,10 @@ export function LogsInfiniteTable({
           {isError && <ErrorRenderer />}
           {isEmpty && <EmptyRenderer />}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
-            <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
+            <HoveringRowLoadingRenderer position="top" />
           )}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
-            const isPastFetchedRows = virtualRow.index > data?.length - 1;
 
             if (!dataRow) {
               return null;
@@ -190,10 +264,12 @@ export function LogsInfiniteTable({
                   highlightTerms={highlightTerms}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
+                  canDeferRenderElements
+                  onExpand={handleExpand}
+                  onCollapse={handleCollapse}
+                  isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
+                  onExpandHeight={handleExpandHeight}
                 />
-                {isPastFetchedRows && (
-                  <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
-                )}
               </Fragment>
             );
           })}
@@ -205,10 +281,20 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
-            <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
+            <HoveringRowLoadingRenderer position="bottom" />
           )}
         </LogTableBody>
       </Table>
+      <FloatingBackToTopContainer
+        tableLeft={tableRef.current?.getBoundingClientRect().left ?? 0}
+        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
+      >
+        <BackToTopButton
+          virtualizer={virtualizer}
+          hidden={isPending || (firstItemIndex ?? 0) === 0}
+          setIsFunctionScrolling={setIsFunctionScrolling}
+        />
+      </FloatingBackToTopContainer>
     </Fragment>
   );
 }
@@ -323,5 +409,44 @@ function LoadingRenderer({size}: {size?: number}) {
     <TableStatus size={size}>
       <LoadingIndicator size={size} />
     </TableStatus>
+  );
+}
+
+function HoveringRowLoadingRenderer({position}: {position: 'top' | 'bottom'}) {
+  return (
+    <HoveringRowLoadingRendererContainer
+      position={position}
+      rowHeight={LOGS_GRID_BODY_ROW_HEIGHT}
+      headerHeight={45}
+    >
+      <LoadingIndicator size={LOGS_GRID_BODY_ROW_HEIGHT * 1.5} />
+    </HoveringRowLoadingRendererContainer>
+  );
+}
+
+function BackToTopButton({
+  virtualizer,
+  hidden,
+  setIsFunctionScrolling,
+}: {
+  hidden: boolean;
+  setIsFunctionScrolling: (isScrolling: boolean) => void;
+  virtualizer: Virtualizer<HTMLElement, Element> | Virtualizer<Window, Element>;
+}) {
+  if (hidden) {
+    return null;
+  }
+  return (
+    <Button
+      onClick={() => {
+        setIsFunctionScrolling(true);
+        virtualizer.scrollToOffset(0, {
+          behavior: 'smooth',
+        });
+      }}
+      aria-label="Back to top"
+    >
+      <IconArrow direction="up" size="md" />
+    </Button>
   );
 }

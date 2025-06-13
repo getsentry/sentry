@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -25,6 +26,10 @@ from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.models.release import Release
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseStages
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -33,15 +38,29 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import (
     can_expose_attribute,
+    get_secondary_aliases,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_to_sentry_conventions,
 )
+from sentry.search.events.constants import (
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
+from sentry.search.events.filter import _flip_field_sort
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 from sentry.utils.cursors import Cursor, CursorResult
+
+
+class TraceItemAttributeKey(TypedDict):
+    key: str
+    name: str
+    secondaryAliases: NotRequired[list[str]]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -138,8 +157,9 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 
 def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
-):
+) -> TraceItemAttributeKey:
     key = translate_internal_to_public_alias(name, type, item_type)
+    secondary_aliases = get_secondary_aliases(name, item_type)
 
     if key is not None:
         name = key
@@ -148,12 +168,17 @@ def as_attribute_key(
     else:
         key = name
 
-    return {
+    attribute_key: TraceItemAttributeKey = {
         # key is what will be used to query the API
         "key": key,
         # name is what will be used to display the tag nicely in the UI
         "name": name,
     }
+
+    if secondary_aliases:
+        attribute_key["secondaryAliases"] = sorted(secondary_aliases)
+
+    return attribute_key
 
 
 @region_silo_endpoint
@@ -186,7 +211,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attribute_type = serialized.get("attribute_type")
         item_type = serialized.get("item_type")
 
-        max_attributes = options.get("performance.spans-tags-key.max")
+        max_attributes = options.get("explore.trace-items.keys.max")
         value_substring_match = translate_escape_sequences(substring_match)
         trace_item_type = SupportedTraceItemType(item_type)
         referrer = resolve_attribute_referrer(trace_item_type, attribute_type)
@@ -239,7 +264,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 replacement, serialized["attribute_type"], trace_item_type
                             )
 
-                    attribute_keys[attr_key["name"]] = attr_key
+                        attribute_keys[attr_key["name"]] = attr_key
 
                 attributes = list(attribute_keys.values())
                 sentry_sdk.set_context("api_response", {"attributes": attributes})
@@ -295,7 +320,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         item_type = serialized.get("item_type")
         substring_match = serialized.get("substring_match", "")
 
-        max_attribute_values = options.get("performance.spans-tags-values.max")
+        max_attribute_values = options.get("explore.trace-items.values.max")
 
         definitions = (
             SPAN_DEFINITIONS
@@ -346,6 +371,16 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             params=snuba_params, config=SearchResolverConfig(), definitions=definitions
         )
         self.search_type, self.attribute_key = self.resolve_attribute_key(key, snuba_params)
+        self.autocomplete_function: dict[str, Callable[[], list[TagValue]]] = (
+            {key: self.project_id_autocomplete_function for key in self.PROJECT_ID_KEYS}
+            | {key: self.project_slug_autocomplete_function for key in self.PROJECT_SLUG_KEYS}
+            | {
+                RELEASE_STAGE_ALIAS: self.release_stage_autocomplete_function,
+                SEMVER_ALIAS: self.semver_autocomplete_function,
+                SEMVER_BUILD_ALIAS: self.semver_build_autocomplete_function,
+                SEMVER_PACKAGE_ALIAS: self.semver_package_autocomplete_function,
+            }
+        )
 
     def resolve_attribute_key(
         self, key: str, snuba_params: SnubaParams
@@ -354,11 +389,10 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         return resolved_attr.search_type, resolved_attr.proto_definition
 
     def execute(self) -> list[TagValue]:
-        if self.key in self.PROJECT_ID_KEYS:
-            return self.project_id_autocomplete_function()
+        func = self.autocomplete_function.get(self.key)
 
-        if self.key in self.PROJECT_SLUG_KEYS:
-            return self.project_slug_autocomplete_function()
+        if func is not None:
+            return func()
 
         if self.search_type == "boolean":
             return self.boolean_autocomplete_function()
@@ -367,6 +401,146 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             return self.string_autocomplete_function()
 
         return []
+
+    def release_stage_autocomplete_function(self):
+        return [
+            TagValue(
+                key=self.key,
+                value=stage.value,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for stage in ReleaseStages
+            if not self.query or self.query in stage.value
+        ]
+
+    def semver_autocomplete_function(self):
+        versions = Release.objects.filter(version__contains="@" + self.query)
+
+        project_ids = self.snuba_params.project_ids
+        if project_ids:
+            release_projects = ReleaseProject.objects.filter(project_id__in=project_ids)
+            versions = versions.filter(id__in=release_projects.values_list("release_id", flat=True))
+
+        environment_ids = self.snuba_params.environment_ids
+        if environment_ids:
+            release_environments = ReleaseEnvironment.objects.filter(
+                environment_id__in=environment_ids
+            )
+            versions = versions.filter(
+                id__in=release_environments.values_list("release_id", flat=True)
+            )
+
+        order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
+        versions = versions.filter_to_semver()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        versions = versions.annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        versions = versions.order_by(*order_by)
+
+        seen = set()
+        formatted_versions = []
+        # We want to format versions here in a way that makes sense for autocomplete. So we
+        # - Only include package if we think the user entered a package
+        # - Exclude build number, since it's not used as part of filtering
+        # When we don't include package, this can result in duplicate version numbers, so we
+        # also de-dupe here. This can result in less than 1000 versions returned, but we
+        # typically use very few values so this works ok.
+        for version in versions.values_list("version", flat=True)[:1000]:
+            formatted_version = version.split("@", 1)[1]
+            formatted_version = formatted_version.split("+", 1)[0]
+            if formatted_version in seen:
+                continue
+
+            seen.add(formatted_version)
+            formatted_versions.append(
+                TagValue(
+                    key=self.key,
+                    value=formatted_version,
+                    times_seen=None,
+                    first_seen=None,
+                    last_seen=None,
+                )
+            )
+
+        return formatted_versions
+
+    def semver_build_autocomplete_function(self):
+        build = self.query if self.query else ""
+        if not build.endswith("*"):
+            build += "*"
+
+        organization_id = self.snuba_params.organization_id
+        assert organization_id is not None
+
+        versions = Release.objects.filter_by_semver_build(
+            organization_id,
+            "exact",
+            build,
+            self.snuba_params.project_ids,
+        )
+
+        environment_ids = self.snuba_params.environment_ids
+        if environment_ids:
+            release_environments = ReleaseEnvironment.objects.filter(
+                environment_id__in=environment_ids
+            )
+            versions = versions.filter(
+                id__in=release_environments.values_list("release_id", flat=True)
+            )
+
+        builds = (
+            versions.values_list("build_code", flat=True).distinct().order_by("build_code")[:1000]
+        )
+
+        return [
+            TagValue(
+                key=self.key,
+                value=build,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for build in builds
+        ]
+
+    def semver_package_autocomplete_function(self):
+        packages = (
+            Release.objects.filter(
+                organization_id=self.snuba_params.organization_id, package__startswith=self.query
+            )
+            .values_list("package")
+            .distinct()
+        )
+
+        versions = Release.objects.filter(
+            organization_id=self.snuba_params.organization_id,
+            package__in=packages,
+            id__in=ReleaseProject.objects.filter(
+                project_id__in=self.snuba_params.project_ids
+            ).values_list("release_id", flat=True),
+        ).annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+
+        environment_ids = self.snuba_params.environment_ids
+        if environment_ids:
+            release_environments = ReleaseEnvironment.objects.filter(
+                environment_id__in=environment_ids
+            )
+            versions = versions.filter(
+                id__in=release_environments.values_list("release_id", flat=True)
+            )
+
+        packages = versions.values_list("package", flat=True).distinct().order_by("package")[:1000]
+
+        return [
+            TagValue(
+                key=self.key,
+                value=package,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for package in packages
+        ]
 
     def boolean_autocomplete_function(self) -> list[TagValue]:
         return [

@@ -16,14 +16,17 @@ interface UseGroupByFieldsProps {
    */
   groupBys: string[];
   tags: TagCollection;
-  prefix?: string;
+  hideEmptyOption?: boolean;
 }
 
-export function useGroupByFields({tags, groupBys}: UseGroupByFieldsProps) {
+export function useGroupByFields({
+  tags,
+  groupBys,
+  hideEmptyOption,
+}: UseGroupByFieldsProps) {
   const options: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
-      // We do not support grouping by span id, we have a dedicated sample mode for that
-      ...Object.keys(tags).filter(key => key !== 'id'),
+      ...Object.keys(tags).filter(key => !DISALLOWED_GROUP_BY_FIELDS.has(key)),
 
       // These options aren't known to exist on this project but it was inserted into
       // the group bys somehow so it should be a valid options in the group bys.
@@ -36,11 +39,15 @@ export function useGroupByFields({tags, groupBys}: UseGroupByFieldsProps) {
 
     return [
       // hard code in an empty option
-      {
-        label: <Disabled>{t('\u2014')}</Disabled>,
-        value: UNGROUPED,
-        textValue: t('\u2014'),
-      },
+      ...(hideEmptyOption
+        ? []
+        : [
+            {
+              label: <Disabled>{t('\u2014')}</Disabled>,
+              value: UNGROUPED,
+              textValue: t('\u2014'),
+            },
+          ]),
       ...potentialOptions.map(key => {
         const kind = FieldKind.TAG;
         return {
@@ -53,10 +60,14 @@ export function useGroupByFields({tags, groupBys}: UseGroupByFieldsProps) {
         };
       }),
     ];
-  }, [tags, groupBys]);
+  }, [tags, groupBys, hideEmptyOption]);
 
   return options;
 }
+
+// Some fields don't make sense to allow users to group by as they create
+// very high cardinality groupings and is not useful.
+const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
 
 const Disabled = styled('span')`
   color: ${p => p.theme.subText};

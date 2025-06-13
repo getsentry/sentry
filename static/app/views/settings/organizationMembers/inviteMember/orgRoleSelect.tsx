@@ -45,7 +45,7 @@ class OrganizationRoleSelect extends Component<Props> {
       <Panel>
         <StyledPanelHeader>
           <div>{t('Organization Role')}</div>
-          {disabled && <QuestionTooltip size="sm" title={helpText} />}
+          {disabled && helpText && <QuestionTooltip size="sm" title={helpText} />}
         </StyledPanelHeader>
 
         <PanelBody>

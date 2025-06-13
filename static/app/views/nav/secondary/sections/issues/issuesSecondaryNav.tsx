@@ -66,17 +66,15 @@ export function IssuesSecondaryNav() {
             </SecondaryNav.Section>
           </Fragment>
         )}
-        {organization.features.includes('enforce-stacked-navigation') && (
-          <SecondaryNav.Section id="issues-views-all">
-            <SecondaryNav.Item
-              to={`${baseUrl}/views/`}
-              analyticsItemName="issues_all_views"
-              end
-            >
-              {t('All Views')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
-        )}
+        <SecondaryNav.Section id="issues-views-all">
+          <SecondaryNav.Item
+            to={`${baseUrl}/views/`}
+            analyticsItemName="issues_all_views"
+            end
+          >
+            {t('All Views')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
         <IssueViews sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>

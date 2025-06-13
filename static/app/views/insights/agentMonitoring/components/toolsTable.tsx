@@ -17,7 +17,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
-  CellExpander,
   CellLink,
   GridEditableContainer,
   LoadingOverlay,
@@ -31,9 +30,9 @@ import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
@@ -93,7 +92,7 @@ export function ToolsTable() {
           : undefined,
       keepPreviousData: true,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.TOOLS_TABLE
   );
 
   const tableData = useMemo(() => {
@@ -112,8 +111,11 @@ export function ToolsTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'tool' && <CellExpander />}
+      <HeadSortCell
+        sortKey={column.key}
+        cursorParamName="toolsCursor"
+        forceCellGrow={column.key === 'tool'}
+      >
         {column.name}
       </HeadSortCell>
     );

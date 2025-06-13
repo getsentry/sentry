@@ -234,5 +234,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             environments=environment_names,
             include_full_release_data="fullRelease" not in collapse,
             conditions=conditions,
+            start=start,
+            end=end,
         )
         return Response(data)

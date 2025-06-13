@@ -345,7 +345,16 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return null;
     }
 
-    return <SpanProfileDetails span={props.node.value} event={props.event} />;
+    return (
+      <SpanProfileDetails
+        span={{
+          span_id: props.node.value.span_id,
+          start_timestamp: props.node.value.start_timestamp,
+          end_timestamp: props.node.value.timestamp,
+        }}
+        event={props.event}
+      />
+    );
   }
 
   function renderSpanDetails() {

@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
@@ -15,11 +15,13 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     LOGS_PRIVATE_ATTRIBUTES,
     LOGS_REPLACEMENT_ATTRIBUTES,
     LOGS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.spans.attributes import (
+    SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_PRIVATE_ATTRIBUTES,
     SPANS_REPLACEMENT_ATTRIBUTES,
@@ -110,7 +112,6 @@ def validate_sampling(sampling_mode: SAMPLING_MODES | None) -> DownsampledStorag
     if sampling_mode not in SAMPLING_MODE_MAP:
         raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
     else:
-        sampling_mode = cast(SAMPLING_MODES, sampling_mode)
         return DownsampledStorageConfig(mode=SAMPLING_MODE_MAP[sampling_mode])
 
 
@@ -138,12 +139,25 @@ SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, 
 }
 
 
+INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
+    SupportedTraceItemType.SPANS: SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+}
+
+
 def translate_internal_to_public_alias(
     internal_alias: str,
     type: Literal["string", "number"],
     item_type: SupportedTraceItemType,
 ) -> str | None:
     mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})
+    return mapping.get(internal_alias)
+
+
+def get_secondary_aliases(
+    internal_alias: str, item_type: SupportedTraceItemType
+) -> set[str] | None:
+    mapping = INTERNAL_TO_SECONDARY_ALIASES.get(item_type, {})
     return mapping.get(internal_alias)
 
 

@@ -328,7 +328,7 @@ class SearchResolverQueryTest(TestCase):
                 aggregation=AttributeAggregation(
                     aggregate=Function.FUNCTION_AVG,
                     key=AttributeKey(name="foo", type=AttributeKey.Type.TYPE_DOUBLE),
-                    label="avg(tags[foo, number])",
+                    label="avg(tags[foo,number])",
                     extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                 ),
                 op=AggregationComparisonFilter.OP_GREATER_THAN,

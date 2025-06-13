@@ -553,7 +553,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
         )
 
-        mock_generate_fixability_score.assert_called_once_with(self.group.id)
+        mock_generate_fixability_score.assert_called_once_with(self.group)
 
         mock_trigger_autofix_task.assert_called_once_with(
             group_id=self.group.id,
@@ -585,7 +585,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             ("low", 0.6, False),
             ("low", 0.7, True),
             ("low", 0.8, True),
-            ("medium", 0.4, False),
+            ("medium", 0.39, False),
             ("medium", 0.5, True),
             ("medium", 0.6, True),
             ("high", 0.2, False),
@@ -620,7 +620,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                     self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
                 )
 
-                mock_generate_fixability_score.assert_called_once_with(self.group.id)
+                mock_generate_fixability_score.assert_called_once_with(self.group)
                 self.group.refresh_from_db()
                 assert self.group.seer_fixability_score == score
 

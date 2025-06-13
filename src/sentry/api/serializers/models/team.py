@@ -75,6 +75,7 @@ def get_member_totals(
         Team.objects.filter(
             id__in=[t.pk for t in team_list],
             organizationmember__invite_status=InviteStatus.APPROVED.value,
+            organizationmember__user_is_active=True,
         )
         .annotate(member_count=Count("organizationmemberteam"))
         .values("id", "member_count")

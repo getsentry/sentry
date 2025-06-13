@@ -554,24 +554,33 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
 }
 
 const space = {
-  nano: '1px',
-  micro: '2px',
-  mini: '4px',
+  none: '0px',
+  '2xs': '2px',
+  xs: '4px',
   sm: '6px',
   md: '8px',
   lg: '12px',
   xl: '16px',
+  '2xl': '24px',
+  '3xl': '32px',
+  '4xl': '48px',
+  '5xl': '64px',
+  '6xl': '80px',
+  '7xl': '96px',
+  '8xl': '112px',
+  '9xl': '128px',
 } as const;
 
 const radius = {
-  nano: '1px',
-  micro: '2px',
-  mini: '3px',
+  none: '0px',
+  '2xs': '2px',
+  xs: '3px',
   sm: '4px',
-  md: '5px',
-  lg: '6px',
-  xl: '8px',
-  // @TODO(jonasbadalic): do we need an xl?
+  md: '6px',
+  lg: '8px',
+  xl: '12px',
+  '2xl': '16px',
+  full: 'calc(infinity*1px)',
 } as const;
 
 const lightColors = {
@@ -1226,8 +1235,8 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     background: darkColors.surface400,
     header: darkColors.white,
     text: darkAliases.subText,
-    next: '',
-    previous: '',
+    next: lightAliases.textColor,
+    previous: darkColors.white,
     close: lightColors.white,
   },
 
@@ -1303,8 +1312,8 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     background: darkColors.blue400,
     header: darkColors.white,
     text: darkColors.white,
-    next: '',
-    previous: '',
+    next: lightAliases.textColor,
+    previous: darkColors.white,
     close: lightColors.white,
   },
 

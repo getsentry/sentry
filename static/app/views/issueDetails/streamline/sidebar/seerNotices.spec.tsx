@@ -1,9 +1,11 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
 describe('SeerNotices', function () {
@@ -52,21 +54,45 @@ describe('SeerNotices', function () {
       url: `/projects/${organization.slug}/${ProjectFixture().slug}/autofix-repos/`,
       body: [createRepository()],
     });
+    ConfigStore.set('user', UserFixture());
   });
 
-  it('shows automation step if automation is allowed and tuning is off', () => {
-    const project = getProjectWithAutomation('off');
-    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      organization,
+  it('shows automation step if automation is allowed and tuning is off', async () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
     });
-    expect(screen.getByText('Unleash Automation')).toBeInTheDocument();
-    expect(screen.getByText('Enable Automation')).toBeInTheDocument();
+    const project = {
+      ...ProjectFixture(),
+      organization: {
+        ...ProjectFixture().organization,
+        features: [],
+      },
+    };
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
+      organization: {
+        ...organization,
+        features: ['trigger-autofix-on-issue-summary'],
+      },
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Unleash Automation')).toBeInTheDocument();
+    });
   });
 
   it('does not show automation step if automation is not allowed', () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
+    });
     const project = {
       ...ProjectFixture(),
-      autofixAutomationTuning: 'off' as const,
       organization: {
         ...ProjectFixture().organization,
         features: [],
@@ -79,15 +105,43 @@ describe('SeerNotices', function () {
   });
 
   it('shows fixability view step if automation is allowed and view not starred', () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+      },
+    });
     const project = getProjectWithAutomation('high');
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user').options,
+        prefersStackedNavigation: true,
+      },
+    });
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      organization,
+      organization: {
+        ...organization,
+        features: ['trigger-autofix-on-issue-summary'],
+      },
     });
     expect(screen.getByText('Get Some Quick Wins')).toBeInTheDocument();
     expect(screen.getByText('Star Recommended View')).toBeInTheDocument();
   });
 
   it('does not render guided steps if all onboarding steps are complete', () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+      },
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/group-search-views/starred/`,
       body: [
@@ -99,7 +153,12 @@ describe('SeerNotices', function () {
     });
     const project = getProjectWithAutomation('medium');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      ...{organization: {...organization, features: []}},
+      ...{
+        organization: {
+          ...organization,
+          features: ['trigger-autofix-on-issue-summary'],
+        },
+      },
     });
     // Should not find any step titles
     expect(screen.queryByText('Set Up the GitHub Integration')).not.toBeInTheDocument();

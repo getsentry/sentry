@@ -52,11 +52,14 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
+/**
+ * See DataConditionSerializer
+ */
 export interface DataCondition {
   comparison: any;
-  comparison_type: DataConditionType;
   id: string;
-  condition_result?: any;
+  type: DataConditionType;
+  conditionResult?: any;
 }
 
 export interface DataConditionGroup {

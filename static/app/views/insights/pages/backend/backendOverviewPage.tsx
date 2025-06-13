@@ -20,7 +20,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -272,18 +271,8 @@ function EAPBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
-  const organization = useOrganization();
-  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
-
-  const {maxPickableDays} = limitMaxPickableDays(organization);
-
   return (
-    <DomainOverviewPageProviders
-      maxPickableDays={
-        isLaravelPageAvailable || isNextJsPageEnabled ? maxPickableDays : undefined
-      }
-    >
+    <DomainOverviewPageProviders>
       <BackendOverviewPage />
     </DomainOverviewPageProviders>
   );
@@ -306,6 +295,6 @@ const StackedWidgetWrapper = styled('div')`
 const TripleRowWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: 300px;
   gap: ${space(2)};
-  height: 300px;
 `;

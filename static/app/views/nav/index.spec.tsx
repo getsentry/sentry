@@ -36,7 +36,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
-  'issue-stream-custom-views',
   'enforce-stacked-navigation',
 ];
 
@@ -301,10 +300,12 @@ describe('Nav', function () {
         await userEvent.hover(
           screen.getByRole('navigation', {name: 'Primary Navigation'})
         );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'true'
-        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
 
         // Moving pointer away should hide the sidebar
         await userEvent.unhover(

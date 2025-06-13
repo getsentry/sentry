@@ -140,10 +140,10 @@ export default function DataConditionNodeList({
 
 function Node() {
   const {condition} = useDataConditionNodeContext();
-  const node = dataConditionNodesMap.get(condition.comparison_type);
+  const node = dataConditionNodesMap.get(condition.type);
 
   const Component = node?.dataCondition;
-  return Component ? Component : node?.label;
+  return Component ? <Component /> : node?.label;
 }
 
 const StyledSelectControl = styled(Select)`

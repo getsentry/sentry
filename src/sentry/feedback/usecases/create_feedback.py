@@ -25,6 +25,7 @@ from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -378,17 +379,10 @@ def create_feedback_issue(
     validate_issue_platform_event_schema(event_fixed)
 
     # Analytics
-    if not project.flags.has_feedbacks:
-        first_feedback_received.send_robust(project=project, sender=Project)
+    set_project_flag_and_signal(project, "has_feedbacks", first_feedback_received)
 
-    if (
-        source
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-        ]
-        and not project.flags.has_new_feedbacks
-    ):
-        first_new_feedback_received.send_robust(project=project, sender=Project)
+    if source == FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE:
+        set_project_flag_and_signal(project, "has_new_feedbacks", first_new_feedback_received)
 
     # Send to issue platform for processing.
     produce_occurrence_to_kafka(
@@ -471,17 +465,24 @@ def shim_to_feedback(
         return
 
     try:
+        name = (
+            report.get("name")
+            or get_path(event.data, "user", "name")
+            or get_path(event.data, "user", "username")
+            or ""
+        )
+        contact_email = report.get("email") or get_path(event.data, "user", "email") or ""
+
         feedback_event: dict[str, Any] = {
             "contexts": {
                 "feedback": {
-                    "name": report.get("name", ""),
-                    "contact_email": report.get("email", ""),
+                    "name": name,
+                    "contact_email": contact_email,
                     "message": report["comments"],
+                    "associated_event_id": event.event_id,
                 },
             },
         }
-
-        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
         if get_path(event.data, "contexts", "replay", "replay_id"):
             feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]

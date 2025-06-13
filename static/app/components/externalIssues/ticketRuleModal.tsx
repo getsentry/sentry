@@ -79,6 +79,9 @@ export default function TicketRuleModal({
   const queryClient = useQueryClient();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
+  // The instance are values from the saved rule. Once a user modifies the form, we don't want to
+  // override any inputs with these instance values.
+  const [showInstanceValues, setShowInstanceValues] = useState(true);
 
   const [hasUpdatedCache, setHasUpdatedCache] = useState(false);
   const [issueConfigFieldsCache, setIssueConfigFieldsCache] = useState<
@@ -128,7 +131,7 @@ export default function TicketRuleModal({
       integrationId: instance.integration,
       query: initialConfigQuery,
     }),
-    {staleTime: Infinity, retry: false}
+    {staleTime: Infinity, retry: false, refetchOnMount: 'always'}
   );
 
   // After the first fetch, update this config cache state
@@ -249,6 +252,7 @@ export default function TicketRuleModal({
 
   const onFieldChange = useCallback(
     (fieldName: string, value: FieldValue) => {
+      setShowInstanceValues(false);
       if (dynamicFieldValues.hasOwnProperty(fieldName)) {
         setDynamicFieldValue(fieldName, value);
         refetchWithDynamicFields({...dynamicFieldValues, [fieldName]: value});
@@ -310,6 +314,10 @@ export default function TicketRuleModal({
       // Don't overwrite the default values for title and description.
       .filter(field => !fields.map(f => f.name).includes(field.name))
       .map(field => {
+        // We only need to do the below operation if the form has not been modified.
+        if (!showInstanceValues) {
+          return field;
+        }
         // Overwrite defaults with previously selected values if they exist.
         // Certain fields such as priority (for Jira) have their options change
         // because they depend on another field such as Project, so we need to
@@ -338,7 +346,7 @@ export default function TicketRuleModal({
         return field;
       });
     return [...fields, ...cleanedFields];
-  }, [instance, integrationDetails, cache]);
+  }, [instance, integrationDetails, cache, showInstanceValues]);
 
   const formErrors: ExternalIssueFormErrors = useMemo(() => {
     const errors: ExternalIssueFormErrors = {};
