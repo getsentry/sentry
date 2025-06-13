@@ -26,6 +26,8 @@ MAX_FEEDBACKS_TO_SUMMARIZE = 1000
 # Token limit is 1,048,576 tokens, see https://ai.google.dev/gemini-api/docs/models#gemini-2.0-flash
 MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 
+SUMMARY_CACHE_TIMEOUT = 3600
+
 
 @region_silo_endpoint
 class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
@@ -67,6 +69,24 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
 
+        # Sort first, then convert each element to a string
+        project_ids = sorted([project.id for project in projects])
+        project_ids = [str(project_id) for project_id in project_ids]
+        hashed_project_ids = hash_from_values(project_ids)
+
+        # Cache key should be the filters that were selected by the user, and the cache should time out after 1 hour
+        # For date range, only use year, month, and day since including the time would make the cache useless
+        summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
+        summary_cache = cache.get(summary_cache_key)
+        if summary_cache:
+            return Response(
+                {
+                    "summary": summary_cache["summary"],
+                    "success": True,
+                    "num_feedbacks_used": summary_cache["num_feedbacks_used"],
+                }
+            )
+
         filters = {
             "type": FeedbackGroup.type_id,
             "first_seen__gte": start,
@@ -86,22 +106,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                     "summary": None,
                     "success": False,
                     "num_feedbacks_used": 0,
-                }
-            )
-
-        project_ids = [str(project.id) for project in projects]
-        hashed_project_ids = hash_from_values(project_ids)
-
-        # Cache key should be the filters that were selected by the user, and the cache should time out after 1 hour
-        # For date range, only use year, month, and day since including the time would make the cache useless
-        summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
-        summary_cache = cache.get(summary_cache_key)
-        if summary_cache:
-            return Response(
-                {
-                    "summary": summary_cache["summary"],
-                    "success": True,
-                    "num_feedbacks_used": summary_cache["num_feedbacks_used"],
                 }
             )
 
@@ -128,7 +132,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         cache.set(
             summary_cache_key,
             {"summary": summary, "num_feedbacks_used": len(group_feedbacks)},
-            timeout=3600,
+            timeout=SUMMARY_CACHE_TIMEOUT,
         )
 
         return Response(
