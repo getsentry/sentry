@@ -578,12 +578,12 @@ const LeftPanel = styled('div')`
   border-right: 1px solid ${p => p.theme.border};
   overflow-y: auto;
   overflow-x: hidden;
+  max-width: 400px;
 `;
 
 const RightPanel = styled('div')`
   min-width: 400px;
-  max-width: 600px;
-  width: 50%;
+  flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.background};
   overflow-y: auto;
