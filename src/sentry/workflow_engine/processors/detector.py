@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.activity import Activity
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import (
@@ -15,8 +17,10 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
-    evt = event_data.event
+def get_detector_by_group_type(evt: GroupEvent) -> Detector:
+    """
+    Get the detector from an occurrence.
+    """
     issue_occurrence = evt.occurrence
 
     try:
@@ -44,6 +48,33 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
             },
         )
         raise Detector.DoesNotExist("Detector not found for event")
+
+    return detector
+
+
+def get_detector_from_activity(activity: Activity):
+    """
+    Get the detector from an groups Activity event.
+
+    TODO - figure out how to set this on the StatusMessageData
+    to be proxied to here (will likely require us to proxy the `data`
+    when creating the activity).
+    """
+    pass
+
+
+def get_detector_by_event(event_data: WorkflowEventData) -> Detector | None:
+    evt = event_data.event
+
+    if isinstance(evt, GroupEvent):
+        detector = get_detector_by_group_type(evt)
+    elif isinstance(evt, Activity):
+        # detector = get_detector_from_activity(evt)
+        # For now, create a metric so we can see that we are trying to resolve a detector
+        metrics.incr("workflow_engine.detectors.fetch_by_activity")
+        return None
+    else:
+        raise ValueError(f"Unsupported event type: {type(evt)}. Expected GroupEvent or Activity.")
 
     return detector
 
