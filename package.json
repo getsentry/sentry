@@ -228,7 +228,13 @@
     "overrides": {
       "react-mentions>@babel/runtime": "7.26.10",
       "react-is": "19.1.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@sentry-internal/node-cpu-profiler",
+      "@sentry/cli",
+      "core-js",
+      "esbuild"
+    ]
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
