@@ -140,7 +140,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             f"Unsupported status: {status_change['new_status']} {status_change['new_substatus']}"
         )
 
-    if activity_type is not None:
+    if isinstance(activity_type, ActivityType):
         """
         If we have set created an activity, then we'll also notify any registered handlers
         that the group status has changed.
