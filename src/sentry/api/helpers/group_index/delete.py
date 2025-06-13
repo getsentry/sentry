@@ -69,7 +69,7 @@ def delete_group_list(
             "project_id": project.id,
             "transaction_id": transaction_id,
             "group_deletion_project_id": project.id,
-            "group_deletion_group_ids": group_ids,
+            "group_deletion_group_ids": str(group_ids),
         },
     )
 
