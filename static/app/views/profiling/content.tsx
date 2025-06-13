@@ -298,6 +298,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
           initialQuery={query}
           onSearch={handleSearch}
           searchSource="profile_landing"
+          disallowFreeText={false}
         />
       </SearchbarContainer>
       {transactionsError && (
