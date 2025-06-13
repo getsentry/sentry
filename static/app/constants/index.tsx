@@ -610,7 +610,6 @@ export const SPAN_PROPS_DOCS_URL =
 export const LOGS_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/logs/';
 
-export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
