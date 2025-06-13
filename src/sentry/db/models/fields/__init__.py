@@ -1,4 +1,3 @@
-from .array import *  # NOQA
 from .bounded import *  # NOQA
 from .citext import *  # NOQA
 from .foreignkey import *  # NOQA
