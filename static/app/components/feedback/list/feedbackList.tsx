@@ -10,16 +10,16 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import Feature from 'sentry/components/acl/feature';
+// import Feature from 'sentry/components/acl/feature';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
-import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
+// import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+// import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
@@ -45,7 +45,7 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
 }
 
 export default function FeedbackList() {
-  const feedbackSummary = useFeedbackSummary();
+  // const feedbackSummary = useFeedbackSummary();
 
   const {listQueryKey} = useFeedbackQueryKeys();
   const {
@@ -65,7 +65,7 @@ export default function FeedbackList() {
 
   const location = useLocation();
 
-  const {summary, loading: summaryLoading} = feedbackSummary;
+  // const {summary, loading: summaryLoading} = feedbackSummary;
 
   const locationRef = useRef({pathname: location.pathname, query: location.query});
 
@@ -111,7 +111,7 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <Feature features="organizations:user-feedback-ai-summaries">
+      {/* <Feature features="organizations:user-feedback-ai-summaries">
         <Summary>
           <SummaryHeader>Feedback Summary</SummaryHeader>
           {summaryLoading ? (
@@ -122,7 +122,7 @@ export default function FeedbackList() {
             // </Fragment>
           )}
         </Summary>
-      </Feature>
+      </Feature> */}
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
         <InfiniteLoader
@@ -179,21 +179,6 @@ export default function FeedbackList() {
     </Fragment>
   );
 }
-
-const SummaryHeader = styled('div')`
-  font-weight: bold;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const Summary = styled('div')`
-  padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const FeedbackListItems = styled('div')`
   display: grid;
