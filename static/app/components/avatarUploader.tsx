@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import Well from 'sentry/components/well';
 import {AVATAR_URL_MAP} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
 
 const ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
@@ -409,7 +409,7 @@ class AvatarUploader extends Component<Props, State> {
 
     const upload = <a onClick={this.uploadClick} />;
     const uploader = (
-      <Well hasImage centered>
+      <Well>
         <p>{tct('[upload:Upload an image] to get started.', {upload})}</p>
       </Well>
     );
@@ -489,4 +489,13 @@ const Resizer = styled('div')<{position: Position}>`
 
 const HiddenCanvas = styled('canvas')`
   display: none;
+`;
+
+const Well = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+  padding: 80px ${space(4)};
+  margin-bottom: 20px;
+  border-radius: 3px;
+  text-align: center;
 `;
