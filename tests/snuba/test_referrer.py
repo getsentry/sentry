@@ -9,40 +9,44 @@ class ReferrerTest(TestCase):
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_not_exist(self, warn_log):
         assert warn_log.call_count == 0
-        validate_referrer("does_not_exist")
+        assert not validate_referrer("does_not_exist")
         assert warn_log.call_count == 1
 
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_dynamic_tsdb_model(self, warn_log):
         assert warn_log.call_count == 0
         for model in TSDBModel:
-            validate_referrer(f"tsdb-modelid:{model.value}")
+            assert validate_referrer(f"tsdb-modelid:{model.value}")
         assert warn_log.call_count == 0
 
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_tsdb_model_with_suffix(self, warn_log):
         assert warn_log.call_count == 0
-        validate_referrer("tsdb-modelid:300.user_count_snoozes")
+        assert validate_referrer("tsdb-modelid:300.user_count_snoozes")
         assert warn_log.call_count == 0
-        validate_referrer("tsdb-modelid:4.frequency_snoozes")
+        assert validate_referrer("tsdb-modelid:4.frequency_snoozes")
         assert warn_log.call_count == 0
         # tsdb-modelid:4 doesn't use the `user_count_snoozes` suffix
-        validate_referrer("tsdb-modelid:4.user_count_snoozes")
+        assert not validate_referrer("tsdb-modelid:4.user_count_snoozes")
         assert warn_log.call_count == 1
 
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_common_suffixes(self, warn_log):
         assert warn_log.call_count == 0
-        validate_referrer("api.performance.http.domain-summary-transactions-list")
-        validate_referrer("api.performance.http.domain-summary-transactions-list.primary")
-        validate_referrer("api.performance.http.domain-summary-transactions-list.secondary")
+        assert validate_referrer("api.performance.http.domain-summary-transactions-list")
+        assert validate_referrer("api.performance.http.domain-summary-transactions-list.primary")
+        assert validate_referrer("api.performance.http.domain-summary-transactions-list.secondary")
         assert warn_log.call_count == 0
 
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_uncommon_suffixes(self, warn_log):
         assert warn_log.call_count == 0
-        validate_referrer("api.performance.http.domain-summary-transactions-list.special")
-        validate_referrer("api.performance.http.domain-summary-transactions-list.airyrpm")
+        assert not validate_referrer(
+            "api.performance.http.domain-summary-transactions-list.special"
+        )
+        assert not validate_referrer(
+            "api.performance.http.domain-summary-transactions-list.airyrpm"
+        )
         assert warn_log.call_count == 2
 
     @patch("sentry.snuba.referrer.logger.warning")
@@ -61,5 +65,5 @@ class ReferrerTest(TestCase):
     def test_referrer_validate_base_enum_values(self, warn_log):
         assert warn_log.call_count == 0
         for i in Referrer:
-            validate_referrer(i.value)
+            assert validate_referrer(i.value)
         assert warn_log.call_count == 0
