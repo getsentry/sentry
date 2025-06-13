@@ -1186,14 +1186,12 @@ class DeleteGroupsTest(TestCase):
         )
         assert send_robust.called
 
-    @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
-    )
-    @patch("sentry.tasks.delete_seer_grouping_records.logger")
+    @patch("sentry.deletions.tasks.groups.delete_groups.apply_async")
     @patch("sentry.signals.issue_deleted.send_robust")
-    def test_delete_groups_deletes_seer_records_by_hash(
-        self, send_robust: Mock, mock_logger: Mock, mock_delete_seer_grouping_records_by_hash
+    def test_delete_groups_calls_deletion_task(
+        self, send_robust: Mock, mock_delete_groups_task: Mock
     ):
+        """Test that the API layer calls the deletion task and cleans up GroupHash/GroupInbox immediately."""
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         groups = [self.create_group(), self.create_group()]
@@ -1208,6 +1206,7 @@ class DeleteGroupsTest(TestCase):
 
         delete_groups(request, [self.project], self.organization.id)
 
+        # GroupHash and GroupInbox should be deleted immediately in the API layer
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
             == 0
@@ -1217,10 +1216,8 @@ class DeleteGroupsTest(TestCase):
             == 0
         )
         assert send_robust.called
-        mock_logger.info.assert_called_with(
-            "calling seer record deletion by hash",
-            extra={"project_id": self.project.id, "hashes": hashes},
-        )
-        mock_delete_seer_grouping_records_by_hash.assert_called_with(
-            args=[self.project.id, hashes, 0]
-        )
+
+        # The deletion task should be called
+        mock_delete_groups_task.assert_called_once()
+        call_kwargs = mock_delete_groups_task.call_args[1]["kwargs"]
+        assert call_kwargs["object_ids"] == group_ids

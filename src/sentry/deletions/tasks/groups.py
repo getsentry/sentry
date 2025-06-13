@@ -7,8 +7,6 @@ import sentry_sdk
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.grouphash import GroupHash
-from sentry.models.groupinbox import GroupInbox
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
@@ -69,14 +67,12 @@ def delete_groups(
         },
     )
 
-    # Perform cleanup operations before deletion to prevent blocking
-    # if these operations fail
+    # Perform seer cleanup operation before deletion to prevent blocking
+    # if this operation fails
     try:
-        # Get all groups in the current batch to determine error groups and project
+        # Get all groups in the current batch to determine error groups
         groups = list(Group.objects.filter(id__in=current_batch))
         if groups:
-            project_id = groups[0].project_id
-
             # Tell seer to delete grouping records for error groups
             error_ids = []
             for group in groups:
@@ -85,17 +81,9 @@ def delete_groups(
 
             if error_ids:
                 call_delete_seer_grouping_records_by_hash(error_ids)
-
-            # Removing GroupHash rows prevents new events from associating to the groups
-            # we are about to delete.
-            GroupHash.objects.filter(project_id=project_id, group__id__in=current_batch).delete()
-
-            # We remove `GroupInbox` rows here so that they don't end up influencing queries for
-            # `Group` instances that are pending deletion
-            GroupInbox.objects.filter(project_id=project_id, group__id__in=current_batch).delete()
     except Exception as e:
         logger.warning(
-            "delete_groups.cleanup_failed",
+            "delete_groups.seer_cleanup_failed",
             extra={
                 "object_ids_current_batch": current_batch,
                 "project_id": first_group.project_id,
@@ -103,7 +91,7 @@ def delete_groups(
                 "error": str(e),
             },
         )
-        # Continue with deletion even if cleanup fails
+        # Continue with deletion even if seer cleanup fails
 
     task = deletions.get(
         model=Group, query={"id__in": current_batch}, transaction_id=transaction_id
