@@ -34,7 +34,7 @@ from sentry.snuba import (
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.referrer import Referrer, validate_referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -303,7 +303,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif not validate_referrer(referrer):
+        elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"

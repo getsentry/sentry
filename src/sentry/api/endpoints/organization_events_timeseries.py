@@ -30,7 +30,7 @@ from sentry.snuba import (
     uptime_checks,
 )
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer, validate_referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.utils import DATASET_LABELS
 from sentry.utils.snuba import SnubaTSResult
 
@@ -215,7 +215,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif not validate_referrer(referrer):
+        elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
         query_source = self.get_request_querysource(request, referrer)
 

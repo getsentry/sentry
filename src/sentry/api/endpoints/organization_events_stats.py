@@ -30,7 +30,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer, validate_referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
 SENTRY_BACKEND_REFERRERS = [
@@ -140,7 +140,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
             elif referrer is None or not referrer:
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
-            elif not validate_referrer(referrer):
+            elif not is_valid_referrer(referrer):
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
             if referrer in SENTRY_BACKEND_REFERRERS:
