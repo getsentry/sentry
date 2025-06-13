@@ -13,6 +13,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUser
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
 from sentry.feedback.usecases.feedback_summaries import generate_summary
+from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
@@ -64,12 +65,14 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid or missing date range")
 
+        projects = self.get_projects(request, organization)
+
         filters = {
             "type": FeedbackGroup.type_id,
             "first_seen__gte": start,
             "first_seen__lte": end,
             "status": GroupStatus.UNRESOLVED,
-            "project__in": self.get_projects(request, organization),
+            "project__in": projects,
         }
 
         groups = Group.objects.filter(**filters).order_by("-first_seen")[
@@ -99,8 +102,12 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-        # Cache key should be the filters that were selected by the user, and should timeout after 1 hour
-        summary_cache_key = f"feedback_summary:{organization.id}:TODO:add_filters_here"
+        project_ids = [str(project.id) for project in projects]
+        hashed_project_ids = hash_from_values(project_ids)
+
+        # Cache key should be the filters that were selected by the user, and the cache should time out after 1 hour
+        # For date range, only use year, month, and day since including the time would make the cache useless
+        summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
         summary = cache.get(summary_cache_key)
         if summary:
             return Response(
