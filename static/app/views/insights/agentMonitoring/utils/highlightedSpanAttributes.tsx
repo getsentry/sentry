@@ -147,15 +147,16 @@ export function getTraceNodeAttribute(
   }
 
   if (isEAPSpanNode(node) && attributes) {
-    return attributes.find(attribute => attribute.name === name)?.value;
+    const attributeObject = ensureAttributeObject(attributes);
+    return getAttribute(attributeObject, name);
   }
 
   if (isTransactionNode(node) && event) {
-    return event.contexts.trace?.data?.[name];
+    return getAttribute(event.contexts.trace?.data || {}, name);
   }
 
   if (isSpanNode(node)) {
-    return node.value.data?.[name];
+    return getAttribute(node.value.data || {}, name);
   }
 
   return undefined;

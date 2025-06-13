@@ -143,10 +143,10 @@ export function AIInputSection({
       event,
       attributes
     );
-    promptMessages = transformInputMessages(inputMessages);
+    promptMessages = inputMessages && transformInputMessages(inputMessages);
   }
 
-  const aiInput = defined(promptMessages) && parseAIMessages(promptMessages as string);
+  const aiInput = defined(promptMessages) && parseAIMessages(promptMessages);
 
   if (!aiInput) {
     return null;
