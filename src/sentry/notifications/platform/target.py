@@ -12,6 +12,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.utils.registry import NoRegistrationExistsError
 
 
 class NotificationTargetError(Exception):
@@ -42,9 +43,12 @@ class NotificationTarget:
     provider: type[NotificationProvider[Any]] = field(init=False)
 
     def __post_init__(self) -> None:
-        self.provider = provider_registry.get(self.provider_key)
-        # TODO(ecosystem): Figure out a system for validating specific data.
-        # Should it happen on the provider, template, or something else?
+        try:
+            self.provider = provider_registry.get(self.provider_key)
+        except NoRegistrationExistsError as exception:
+            raise NotificationTargetError(
+                f"Could not find registration for '{self.provider_key}'"
+            ) from exception
 
 
 @dataclass(kw_only=True)
@@ -68,11 +72,8 @@ class IntegrationNotificationTarget(NotificationTarget):
             integration_id=self.integration_id,
             organization_id=self.organization_id,
         )
-        if org_context.integration is None:
-            raise NotificationTargetError("Invalid integration as target")
-
-        if org_context.organization_integration is None:
-            raise NotificationTargetError("Invalid organization for integration as target")
+        if org_context.integration is None or org_context.organization_integration is None:
+            raise NotificationTargetError("Could not find integration installation")
 
         self.integration = org_context.integration
         self.organization_integration = org_context.organization_integration

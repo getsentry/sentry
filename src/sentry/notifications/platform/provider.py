@@ -18,7 +18,7 @@ class NotificationProviderError(Exception):
 
 class NotificationProvider[RenderableT](Protocol):
     """
-    A abstract base class for all notification providers.
+    A protocol metaclass for all notification providers.
 
     RenderableT is a type used to send to the notification provider
     For example, Email might expect HTML, or raw text; Slack might expect a JSON Block Kit object.
