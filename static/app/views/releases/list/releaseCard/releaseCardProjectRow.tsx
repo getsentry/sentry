@@ -272,7 +272,5 @@ const CrashFreeWrapper = styled('div')`
 `;
 
 const ViewColumn = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  line-height: 20px;
   text-align: right;
 `;
