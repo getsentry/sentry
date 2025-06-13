@@ -24,6 +24,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
+import {RequestSdkAccessButton} from './RequestSdkAccessButton';
+
 interface Props {
   organization: Organization;
   project: Project;
@@ -84,7 +86,7 @@ export default function DevKitSettings({organization, project}: Props) {
                 >
                   <GuidedSteps.Step
                     stepKey="step-1"
-                    title={t('Copy Playstation Ingestion URL')}
+                    title={t('Copy PlayStation Ingestion URL')}
                   >
                     <DescriptionWrapper>
                       <p>
@@ -200,10 +202,11 @@ export default function DevKitSettings({organization, project}: Props) {
   );
 }
 
-export const getDevKitHeaderAction = () => {
+export const getDevKitHeaderAction = (organization: Organization, project: Project) => {
   return (
     <ButtonBar gap={1.5}>
       <FeedbackWidgetButton />
+      <RequestSdkAccessButton organization={organization} project={project} />
     </ButtonBar>
   );
 };

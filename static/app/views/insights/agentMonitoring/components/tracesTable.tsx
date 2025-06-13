@@ -1,30 +1,25 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {getAITracesFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
   agentFlow: string;
@@ -116,28 +111,22 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: TableData;
 }) {
-  const location = useLocation();
-  const organization = useOrganization();
+  const {openTraceViewDrawer} = useTraceViewDrawer({});
+
   const {projects} = useProjects();
-  const {selection} = usePageFilters();
 
   const project = useMemo(
     () => projects.find(p => p.slug === dataRow.project),
     [projects, dataRow.project]
   );
 
-  const traceViewTarget = getTraceDetailsUrl({
-    eventId: dataRow.traceId,
-    source: TraceViewSources.LLM_MODULE, // TODO: change source to AGENT_MONITORING
-    organization,
-    location,
-    traceSlug: dataRow.traceId,
-    dateSelection: normalizeDateTimeParams(selection),
-  });
-
   switch (column.key) {
     case 'traceId':
-      return <Link to={traceViewTarget}>{dataRow.traceId.slice(0, 8)}</Link>;
+      return (
+        <Button priority="link" onClick={() => openTraceViewDrawer(dataRow.traceId)}>
+          {dataRow.traceId.slice(0, 8)}
+        </Button>
+      );
     case 'project':
       return project ? (
         <ProjectBadge project={project} avatarSize={16} />

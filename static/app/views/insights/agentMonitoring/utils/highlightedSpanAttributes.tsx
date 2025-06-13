@@ -117,7 +117,7 @@ export function getHighlightedSpanAttributes({
     });
   }
 
-  const toolArgs = getAttribute(attributeObject, 'ai.toolCall.args');
+  const toolArgs = getAttribute(attributeObject, 'gen_ai.tool.input');
   if (toolArgs) {
     highlightedAttributes.push({
       name: t('Arguments'),
@@ -125,7 +125,7 @@ export function getHighlightedSpanAttributes({
     });
   }
 
-  const toolResult = getAttribute(attributeObject, 'ai.toolCall.result');
+  const toolResult = getAttribute(attributeObject, 'gen_ai.tool.output');
   if (toolResult) {
     highlightedAttributes.push({
       name: t('Result'),
@@ -147,15 +147,16 @@ export function getTraceNodeAttribute(
   }
 
   if (isEAPSpanNode(node) && attributes) {
-    return attributes.find(attribute => attribute.name === name)?.value;
+    const attributeObject = ensureAttributeObject(attributes);
+    return getAttribute(attributeObject, name);
   }
 
   if (isTransactionNode(node) && event) {
-    return event.contexts.trace?.data?.[name];
+    return getAttribute(event.contexts.trace?.data || {}, name);
   }
 
   if (isSpanNode(node)) {
-    return node.value.data?.[name];
+    return getAttribute(node.value.data || {}, name);
   }
 
   return undefined;
@@ -163,7 +164,7 @@ export function getTraceNodeAttribute(
 
 export function getIsAiNode(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return undefined;
+    return false;
   }
 
   if (isTransactionNode(node)) {

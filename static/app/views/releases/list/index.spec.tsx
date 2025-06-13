@@ -88,6 +88,11 @@ describe('ReleasesList', () => {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${projects[0]!.slug}/`,
+      body: [],
+    });
   });
 
   afterEach(() => {

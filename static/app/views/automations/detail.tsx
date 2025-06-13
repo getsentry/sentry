@@ -22,6 +22,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useUserFromId from 'sentry/utils/useUserFromId';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
@@ -40,6 +41,8 @@ export default function AutomationDetail() {
     isError,
     refetch,
   } = useAutomationQuery(params.automationId);
+
+  const {data: createdByUser} = useUserFromId({id: Number(automation?.createdBy)});
 
   const detectorsQuery = useDetectorQueriesByIds(automation?.detectorIds || []);
   const detectors = detectorsQuery
@@ -105,7 +108,10 @@ export default function AutomationDetail() {
                     keyName={t('Date created')}
                     value={<DateTime date={automation.dateCreated} dateOnly year />}
                   />
-                  <KeyValueTableRow keyName={t('Created by')} value="placeholder" />
+                  <KeyValueTableRow
+                    keyName={t('Created by')}
+                    value={createdByUser?.name || createdByUser?.email || t('Unknown')}
+                  />
                   <KeyValueTableRow
                     keyName={t('Last modified')}
                     value={<TimeSince date={automation.dateUpdated} />}

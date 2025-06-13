@@ -1,10 +1,13 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import EmptyMessage from 'sentry/components/emptyMessage';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
@@ -25,6 +28,8 @@ interface PlatformInsightsTableProps<
   pageLinks: string | undefined;
   isPlaceholderData?: boolean;
 }
+
+const COL_WIDTH_MINIMUM = 120;
 
 export function PlatformInsightsTable<
   DataRow extends Record<string, any>,
@@ -75,6 +80,12 @@ export function PlatformInsightsTable<
           grid={{...props.grid, onResizeColumn: handleResizeColumn}}
           columnOrder={columnOrder}
           columnSortBy={[{key: sortField as ColumnKey, order: sortOrder}]}
+          minimumColWidth={COL_WIDTH_MINIMUM}
+          emptyMessage={
+            <EmptyMessage size="large" icon={<IconSearch size="xl" />}>
+              {t('No results found')}
+            </EmptyMessage>
+          }
           stickyHeader
         />
         {isPlaceholderData && <LoadingOverlay />}

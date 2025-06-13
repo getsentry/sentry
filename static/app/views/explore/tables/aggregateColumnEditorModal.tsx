@@ -282,7 +282,6 @@ function VisualizeSelector({
   const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
-    yAxes: [],
     parsedFunction,
   });
 
