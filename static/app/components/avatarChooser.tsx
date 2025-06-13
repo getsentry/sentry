@@ -5,9 +5,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {AvatarUploader} from 'sentry/components/avatarUploader';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
+import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -15,11 +15,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import Well from 'sentry/components/well';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp, SentryAppAvatarPhotoType} from 'sentry/types/integrations';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import useApi from 'sentry/utils/useApi';
 
@@ -27,7 +26,6 @@ export type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
 type AvatarChooserType =
   | 'user'
-  | 'team'
   | 'organization'
   | 'sentryAppColor'
   | 'sentryAppSimple'
@@ -145,11 +143,10 @@ function AvatarChooser(props: AvatarChooserProps) {
   const isLetter = avatarType === 'letter_avatar';
   const isDefault = !!preview && avatarType === 'default';
 
-  const isTeam = type === 'team';
   const isOrganization = type === 'organization';
   const isSentryApp = type?.startsWith('sentryApp');
 
-  const choices: Array<[AvatarType, string]> = [];
+  const choices: Array<RadioOption<AvatarType>> = [];
 
   if (allowDefault && preview) {
     choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);
@@ -161,7 +158,13 @@ function AvatarChooser(props: AvatarChooserProps) {
     choices.push(['upload', t('Upload an image')]);
   }
   if (allowGravatar) {
-    choices.push(['gravatar', t('Use Gravatar')]);
+    choices.push([
+      'gravatar',
+      t('Use Gravatar'),
+      tct('Manage your Gravatar on [gravatarLink:gravatar.com].', {
+        gravatarLink: <ExternalLink href="https://gravatar.com" />,
+      }),
+    ]);
   }
 
   const sharedAvatarProps = {
@@ -173,8 +176,6 @@ function AvatarChooser(props: AvatarChooserProps) {
     <UserAvatar {...sharedAvatarProps} user={model as AvatarUser} />
   ) : isOrganization ? (
     <OrganizationAvatar {...sharedAvatarProps} organization={model as Organization} />
-  ) : isTeam ? (
-    <TeamAvatar {...sharedAvatarProps} team={model as Team} />
   ) : isSentryApp ? (
     <SentryAppAvatar {...sharedAvatarProps} sentryApp={model as SentryApp} />
   ) : null;
@@ -205,12 +206,6 @@ function AvatarChooser(props: AvatarChooserProps) {
             {isDefault && preview}
           </AvatarGroup>
           <AvatarUploadSection>
-            {allowGravatar && avatarType === 'gravatar' && (
-              <Well>
-                {t('Gravatars are managed through ')}
-                <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-              </Well>
-            )}
             {model.avatar && avatarType === 'upload' && (
               <AvatarUploader
                 {...props}
