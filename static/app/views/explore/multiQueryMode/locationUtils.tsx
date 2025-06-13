@@ -212,6 +212,25 @@ export function useDeleteQueryAtIndex() {
   );
 }
 
+export function useDuplicateQueryAtIndex() {
+  const location = useLocation();
+  const queries = useReadQueriesFromLocation();
+  const navigate = useNavigate();
+
+  return useCallback(
+    (index: number) => {
+      const query = queries[index];
+      if (defined(query)) {
+        const duplicate = structuredClone(query);
+        const newQueries = queries.toSpliced(index + 1, 0, duplicate);
+        const target = getUpdatedLocationWithQueries(location, newQueries);
+        navigate(target);
+      }
+    },
+    [location, navigate, queries]
+  );
+}
+
 export function getSamplesTargetAtIndex(
   index: number,
   queries: ReadableExploreQueryParts[],

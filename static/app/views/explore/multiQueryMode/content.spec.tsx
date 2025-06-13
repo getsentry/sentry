@@ -731,7 +731,54 @@ describe('MultiQueryModeContent', function () {
         query: '',
       },
     ]);
-    await userEvent.click(screen.getAllByLabelText('Delete Query')[0]!);
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'More options'})[0]!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Query'}));
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+      {
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'More options'})[0]!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete Query'}));
+    await userEvent.click(screen.getAllByRole('button', {name: 'More options'})[0]!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete Query'}));
+
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
@@ -960,14 +1007,11 @@ describe('MultiQueryModeContent', function () {
         },
       },
     });
-    function Component() {
-      return <MultiQueryModeContent />;
-    }
 
     render(
       <PageParamsProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
+          <MultiQueryModeContent />
         </SpanTagsProvider>
       </PageParamsProvider>,
       {
@@ -1046,14 +1090,10 @@ describe('MultiQueryModeContent', function () {
       },
     });
 
-    function Component() {
-      return <MultiQueryModeContent />;
-    }
-
     render(
       <PageParamsProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
+          <MultiQueryModeContent />
         </SpanTagsProvider>
       </PageParamsProvider>,
       {
