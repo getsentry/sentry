@@ -326,6 +326,13 @@ def _run_automation(
                 logger.error("Autofix auto-trigger rate limit hit")
                 return
 
+        has_budget: bool = quotas.backend.has_available_reserved_budget(
+            org_id=group.organization.id,
+            data_category=DataCategory.SEER_AUTOFIX,
+        )
+        if not has_budget:
+            return
+
         with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
             autofix_state = get_autofix_state(group_id=group_id)
 
@@ -391,15 +398,6 @@ def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     )
 
 
-def _has_seer_scanner_budget(group: Group, source: SeerAutomationSource) -> bool:
-    if source == SeerAutomationSource.ISSUE_DETAILS:
-        return True
-
-    return quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-
-
 def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
@@ -425,9 +423,6 @@ def get_issue_summary(
 
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
-
-    if not _has_seer_scanner_budget(group, source):
-        return {"detail": "No budget for Seer Scanner."}, 402
 
     cache_key = f"ai-group-summary-v2:{group.id}"
     lock_key = f"ai-group-summary-v2-lock:{group.id}"
