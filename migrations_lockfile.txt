@@ -23,7 +23,7 @@ preprod: 0003_drop_sentry_jsonfield_actual
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0926_dashboard_favorite_defer_position_constraint
+sentry: 0927_dashboard_add_unique_constraint_user_dashboard
 
 social_auth: 0001_squashed_0002_default_auto_field
 
