@@ -3,6 +3,7 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';
+import type {Flatten} from 'sentry/utils/flatten';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
@@ -14,10 +15,10 @@ interface Props {
   segmentName: string;
 }
 
-interface TableRow extends Partial<EAPSpanResponse> {
-  is_starred_transaction: boolean;
-  transaction: string;
-}
+type TableRow = Flatten<
+  Partial<EAPSpanResponse> &
+    Pick<EAPSpanResponse, 'is_starred_transaction' | 'transaction'>
+>;
 
 type TableResponse = [{confidence: any; data: TableRow[]; meta: EventsMetaType}];
 
