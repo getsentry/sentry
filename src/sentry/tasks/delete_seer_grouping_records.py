@@ -70,25 +70,16 @@ def call_delete_seer_grouping_records_by_hash(
         and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):
-        group_hashes_batch = []
+        group_hashes = []
 
         for group_hash in RangeQuerySetWrapper(
             GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids),
             step=BATCH_SIZE,
         ):
-            group_hashes_batch.append(group_hash.hash)
+            group_hashes.append(group_hash.hash)
 
-            if len(group_hashes_batch) >= BATCH_SIZE:
-                delete_seer_grouping_records_by_hash.apply_async(
-                    args=[project.id, group_hashes_batch, 0]
-                )
-                group_hashes_batch = []
-
-        # Handle any remaining hashes in the final batch
-        if group_hashes_batch:
-            delete_seer_grouping_records_by_hash.apply_async(
-                args=[project.id, group_hashes_batch, 0]
-            )
+        if group_hashes:
+            delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
 
 
 @instrumented_task(
