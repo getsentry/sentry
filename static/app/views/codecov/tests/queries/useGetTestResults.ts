@@ -25,7 +25,7 @@ import type {SortableTAOptions} from 'sentry/views/codecov/tests/testAnalyticsTa
  */
 function sortValueToSortKey(value: string) {
   const word = value.replace(/^[+-]/, '') as SortableTAOptions;
-  const sign = value.startsWith('-') ? '-' : '';
+  const sign = value[0] === '-' ? '-' : '';
   return `${sign}${TABLE_FIELD_NAME_TO_SORT_KEY[word]}`;
 }
 
