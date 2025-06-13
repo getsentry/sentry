@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {SeerLoadingIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -16,7 +15,7 @@ import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
-import {IconRefresh} from 'sentry/icons';
+import {IconRefresh, IconSeerLoading, IconSeerWaiting} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -155,7 +154,7 @@ function ActiveLogDisplay({
     return (
       <ActiveLogWrapper>
         <SeerIconContainer>
-          <SeerWaitingIcon size="lg" />
+          <IconSeerWaiting size="lg" />
         </SeerIconContainer>
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
@@ -462,7 +461,7 @@ const SeerIconContainer = styled('div')`
   flex-shrink: 0;
 `;
 
-const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
+const StyledAnimatedSeerIcon = styled(IconSeerLoading)`
   position: relative;
   transition: opacity 0.2s ease;
   top: 0;
