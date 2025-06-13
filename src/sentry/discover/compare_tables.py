@@ -263,23 +263,12 @@ def compare_tables_for_dashboard_widget_queries(
             "reason": CompareTableResult.EAP_FAILED,
             "fields": fields,
             "widget_query": widget_query,
-            "mismatches": None,
+            "mismatches": fields,
             "query": query,
         }
     else:
         passed, mismatches, reason = compare_table_results(metrics_query_result, eap_result)
         if passed:
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_tag("passed", True)
-                scope.set_tag("mismatches", mismatches)
-                scope.set_tag("widget_fields", fields)
-                scope.set_tag(
-                    "widget_viewer_url",
-                    widget_viewer_url,
-                )
-                sentry_sdk.capture_message(
-                    "dashboard_widget_comparison_done", level="info", scope=scope
-                )
             return {
                 "passed": True,
                 "reason": CompareTableResult.PASSED,
