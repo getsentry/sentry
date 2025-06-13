@@ -3,6 +3,8 @@ from collections.abc import Callable
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry import options
+
 
 class ReportingEndpointMiddleware:
     """
@@ -19,10 +21,8 @@ class ReportingEndpointMiddleware:
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase
     ) -> HttpResponseBase:
-        # Check if the request has staff attribute and if staff is active
-        staff = getattr(request, "staff", None)
-        if staff and staff.is_active:
-            # This will enable crashes, intervention and deprecation warnings
+        if options.get("issues.browser_reporting.reporting_endpoints_header_enabled"):
+            # This will enable crashes and intervention and deprecation reports
             # They always report to the default endpoint
             response["Reporting-Endpoints"] = (
                 "default=https://sentry.my.sentry.io/api/0/reporting-api-experiment/"
