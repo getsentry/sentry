@@ -19,6 +19,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
@@ -77,6 +78,12 @@ function getUniqueKey(node: TraceSpanNode, index: number) {
   return uniqueKey;
 }
 
+function isTransactionNodeEquivalent(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan> {
+  return isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction);
+}
+
 function useCompleteTrace(traceSlug: string): UseCompleteTraceResult {
   const [nodes, setNodes] = useState<TraceSpanNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,8 +138,17 @@ function useCompleteTrace(traceSlug: string): UseCompleteTraceResult {
 
         await Promise.all(zoomPromises);
 
+        // Keep only transactions that include AI spans and the AI spans themselves
         const flattenedNodes = TraceTree.FindAll(tree.root, node => {
-          return isTransactionNode(node) || isSpanNode(node) || isEAPSpanNode(node);
+          if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+            return false;
+          }
+
+          if (isTransactionNodeEquivalent(node)) {
+            return TraceTree.Find(node, child => getIsAiNode(child)) !== null;
+          }
+
+          return getIsAiNode(node);
         }) as TraceSpanNode[];
 
         setNodes(flattenedNodes);
@@ -324,26 +340,19 @@ function AbbreviatedTrace({
 }) {
   const theme = useTheme();
   const colors = theme.chart.getColorPalette(5);
+  let transactionBounds = {startTime: 0, endTime: 0, duration: 0};
 
-  const traceBounds = useMemo((): {
-    duration: number;
-    endTime: number;
-    startTime: number;
-  } => {
-    if (nodes.length === 0) return {startTime: 0, endTime: 0, duration: 0};
+  const getTransactionBounds = (
+    transactionNode: TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>
+  ) => {
+    if (!transactionNode?.value) return {startTime: 0, endTime: 0, duration: 0};
 
-    const rootNode = nodes.find(
-      (node): node is TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan> =>
-        isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction)
-    );
-    if (!rootNode?.value) return {startTime: 0, endTime: 0, duration: 0};
-
-    const startTime = rootNode.value.start_timestamp;
+    const startTime = transactionNode.value.start_timestamp;
     let endTime = 0;
-    if (isTransactionNode(rootNode)) {
-      endTime = rootNode.value.timestamp;
-    } else if (isEAPSpanNode(rootNode)) {
-      endTime = rootNode.value.end_timestamp;
+    if (isTransactionNode(transactionNode)) {
+      endTime = transactionNode.value.timestamp;
+    } else if (isEAPSpanNode(transactionNode)) {
+      endTime = transactionNode.value.end_timestamp;
     }
 
     if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
@@ -353,19 +362,24 @@ function AbbreviatedTrace({
       endTime,
       duration: endTime - startTime,
     };
-  }, [nodes]);
+  };
 
   const spanAttributesRequest = useEAPSpanAttributes(nodes);
 
   return (
     <TraceListContainer>
       {nodes.map((node, index) => {
+        const isTransaction = isTransactionNodeEquivalent(node);
+        if (isTransaction) {
+          transactionBounds = getTransactionBounds(node);
+        }
+
         const uniqueKey = getUniqueKey(node, index);
         return (
           <TraceListItem
             key={uniqueKey}
             node={node}
-            traceBounds={traceBounds}
+            traceBounds={transactionBounds}
             onClick={() => onSelectNode(uniqueKey)}
             isSelected={uniqueKey === selectedNodeKey}
             colors={colors}
@@ -512,7 +526,7 @@ function getNodeInfo(
     const model = getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) || '';
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.title = op;
-    nodeInfo.subtitle = `${agentName} (${model})`;
+    nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
     nodeInfo.color = colors[1];
   } else if (
     AI_GENERATION_OPS.includes(op) ||
