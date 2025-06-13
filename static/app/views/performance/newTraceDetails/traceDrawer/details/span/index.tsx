@@ -78,10 +78,12 @@ function SpanNodeDetailHeader({
   node,
   organization,
   onTabScrollToNode,
+  hideNodeActions,
 }: {
   node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
+  hideNodeActions?: boolean;
 }) {
   const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
   return (
@@ -95,11 +97,13 @@ function SpanNodeDetailHeader({
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
-      <TraceDrawerComponents.NodeActions
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-      />
+      {!hideNodeActions && (
+        <TraceDrawerComponents.NodeActions
+          node={node}
+          organization={organization}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+      )}
     </TraceDrawerComponents.HeaderContainer>
   );
 }
@@ -250,6 +254,7 @@ export function SpanNodeDetails(
         node={node}
         organization={organization}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={props.hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         {node.event?.projectSlug ? (
