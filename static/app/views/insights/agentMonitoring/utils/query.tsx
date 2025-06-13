@@ -58,6 +58,9 @@ export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.usage.total_cost', ['ai.total_cost.used']],
   ['gen_ai.tool.input', ['ai.toolCall.args']],
   ['gen_ai.tool.output', ['ai.toolCall.result']],
+  ['gen_ai.request.messages', ['ai.prompt.messages']],
+  ['gen_ai.response.tool_calls', ['ai.response.toolCalls']],
+  ['gen_ai.response.text', ['ai.response.text']],
 ]);
 
 export function getIsAiSpan({
