@@ -1,19 +1,22 @@
-from typing import TYPE_CHECKING, Generic, Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationRenderableT
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
 if TYPE_CHECKING:
     from sentry.notifications.platform.renderer import NotificationRenderer
 
 
-class NotificationProvider(Protocol, Generic[NotificationRenderableT]):
+class NotificationProvider[T](Protocol):
     """
     A protocol metaclass for all notification providers.
+
+    Accepts a renderable object type that is understood by the notification provider.
+    For example, Email might expect HTML, or raw text; Slack might expect a JSON Block Kit object.
     """
 
     key: NotificationProviderKey
-    default_renderer: type["NotificationRenderer[NotificationRenderableT]"]
+    default_renderer: type["NotificationRenderer[T]"]
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
