@@ -60,6 +60,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event()
         self.event_data = WorkflowEventData(
             event=self.group_event,
+            group=self.group,
             group_state=GroupState(
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
             ),
@@ -166,6 +167,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(environment=env.name)
         self.event_data = WorkflowEventData(
             event=self.group_event,
+            group=self.group,
             group_state=GroupState(
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
             ),
@@ -342,7 +344,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     def test_workflow_trigger(self):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
@@ -409,7 +411,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         )
 
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
-        # no workflows are triggered because the slow conditions need to be evaluted
+        # no workflows are triggered because the slow conditions need to be evaluated
         assert triggered_workflows == set()
 
 
@@ -429,7 +431,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.create_workflow_action(self.workflow)
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -557,7 +559,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     @with_feature("organizations:workflow-engine-process-workflows")
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
