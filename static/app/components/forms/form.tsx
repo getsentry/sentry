@@ -12,7 +12,6 @@ import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderProps = {
   model: FormModel;
@@ -238,7 +237,9 @@ function Form({
         className={className ?? 'form-stacked'}
         data-test-id={dataTestId}
       >
-        <div>{isRenderFunc(children) ? children({model: formModel}) : children}</div>
+        <div>
+          {typeof children === 'function' ? children({model: formModel}) : children}
+        </div>
 
         {shouldShowFooter && (
           <StyledFooter
