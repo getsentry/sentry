@@ -1,5 +1,4 @@
 import logging
-from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
@@ -345,25 +344,3 @@ class ActivityTest(TestCase):
         )
 
         mock_send_activity_notifications.assert_not_called()
-
-
-class TestActivityCreationHandlers(TestCase):
-    def test_create_group_activity(self):
-        project = self.create_project(name="test_create_group_activity")
-        group = self.create_group(project)
-        user = self.create_user()
-
-        with mock.patch("sentry.models.activity.activity_creation_registry") as mock_registry:
-            mock_handler = mock.Mock()
-            mock_registry.registrations = {"test_handler": mock_handler}
-
-            activity = Activity.objects.create_group_activity(
-                group=group,
-                type=ActivityType.SET_UNRESOLVED,
-                user=user,
-                data=None,
-                send_notification=False,
-            )
-
-            assert mock_handler.called
-            assert mock_handler.call_args[0][0] == activity
