@@ -365,6 +365,7 @@ class StatefulDetectorHandler(
             project_id=self.detector.project_id,
             new_status=GroupStatus.RESOLVED,
             new_substatus=None,
+            detector_id=self.detector.id,
         )
 
     def _extract_value_from_packet(

@@ -98,6 +98,7 @@ class ActivityManager(BaseManager["Activity"]):
         if user_id is not None:
             activity_args["user_id"] = user_id
         activity = self.create(**activity_args)
+
         if send_notification:
             activity.send_notification()
 
