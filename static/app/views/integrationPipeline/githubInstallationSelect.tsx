@@ -9,7 +9,6 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -118,16 +117,7 @@ export function GithubInstallationSelect({
               title={installation.github_account}
             />
           )}
-          <span>
-            <FullText>{`${installation.github_account}`}</FullText>
-            <ShortText>
-              {installation.installation_id === '-1' ? (
-                <Tooltip title={installation.github_account}>{'Integrate...'}</Tooltip>
-              ) : (
-                `${installation.github_account}`
-              )}
-            </ShortText>
-          </span>
+          <span>{`${installation.github_account}`}</span>
           {!doesntRequireUpgrade(installation.installation_id) && (
             <IconLightning size="xs" />
           )}
@@ -214,7 +204,7 @@ const StyledContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   padding: ${space(2)};
-  max-width: 33%;
+  max-width: 600px;
   margin: 0 auto;
   margin-top: 10%;
 `;
@@ -245,21 +235,5 @@ const StyledSelect = styled(CompactSelect)`
   width: 100%;
   > button {
     width: 100%;
-  }
-`;
-
-const FullText = styled('span')`
-  display: inline;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-`;
-
-const ShortText = styled('span')`
-  display: none;
-
-  @media (max-width: 768px) {
-    display: inline;
   }
 `;
