@@ -277,11 +277,6 @@ class OptionsStore:
 
         cache_key = key.cache_key
 
-        if value == 1.0:
-            logger.warning(
-                "suspicious set_cache activity on %s = %s", key.cache_key, value, stack_info=True
-            )
-
         if key.ttl > 0:
             self._local_cache[cache_key] = _make_cache_value(key, value)
 
