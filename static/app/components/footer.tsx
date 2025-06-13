@@ -42,16 +42,7 @@ function BaseFooter({className}: Props) {
         {isSelfHosted && (
           <Fragment>
             {'Sentry '}
-            {getDynamicText({
-              fixed: 'Acceptance Test',
-              value: version.current,
-            })}
-            <Build>
-              {getDynamicText({
-                fixed: 'test',
-                value: version.build.substring(0, 7),
-              })}
-            </Build>
+            {version}
           </Fragment>
         )}
         {privacyUrl && <FooterLink href={privacyUrl}>{t('Privacy Policy')}</FooterLink>}

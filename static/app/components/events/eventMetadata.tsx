@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 
 type Props = {
@@ -30,12 +29,7 @@ function EventMetadata({event, organization, projectId}: Props) {
       <SectionHeading>{t('Event ID')}</SectionHeading>
       <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
       <MetadataContainer>
-        <DateTime
-          date={getDynamicText({
-            value: event.dateCreated || (event.endTimestamp || 0) * 1000,
-            fixed: 'Dummy timestamp',
-          })}
-        />
+        <DateTime date={event.dateReceived || event.dateCreated} />
       </MetadataContainer>
       <Projects orgId={organization.slug} slugs={[projectId]}>
         {({projects}) => {

@@ -47,7 +47,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -216,18 +215,15 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data, baggage) => (
       <Container>
         {data[field]
-          ? getDynamicText({
-              value: (
-                <FieldDateTime
-                  date={data[field]}
-                  year
-                  seconds
-                  timeZone
-                  utc={decodeScalar(baggage?.location?.query?.utc) === 'true'}
-                />
-              ),
-              fixed: 'timestamp',
-            })
+          ? (
+              <FieldDateTime
+                date={data[field]}
+                year
+                seconds
+                timeZone
+                utc={decodeScalar(baggage?.location?.query?.utc) === 'true'}
+              />
+            )
           : emptyValue}
       </Container>
     ),
@@ -799,10 +795,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'timestamp.to_hour',
     renderFunc: data => (
       <Container>
-        {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_hour']} year timeZone />,
-          fixed: 'timestamp.to_hour',
-        })}
+        <FieldDateTime date={data['timestamp.to_hour']} year timeZone />
       </Container>
     ),
   },
@@ -810,10 +803,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'timestamp.to_day',
     renderFunc: data => (
       <Container>
-        {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />,
-          fixed: 'timestamp.to_day',
-        })}
+        <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />
       </Container>
     ),
   },

@@ -1,6 +1,5 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
-import getDynamicText from 'sentry/utils/getDynamicText';
 
 const forms: JsonFormObject[] = [
   {
@@ -15,7 +14,7 @@ const forms: JsonFormObject[] = [
         // additional data/props that is related to rendering of form field rather than data
         label: 'Name',
         help: 'e.g. My Application',
-        setValue: value => getDynamicText({value, fixed: 'CI_APPLICATION_NAME'}),
+        setValue: value => value,
       },
       {
         name: 'homepageUrl',

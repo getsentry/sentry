@@ -165,28 +165,22 @@ export function GeneralInfo(props: GeneralnfoProps) {
     {
       key: 'start_timestamp',
       subject: t('Start Timestamp'),
-      value: getDynamicText({
-        fixed: 'Mar 19, 2021 11:06:27 AM UTC',
-        value: (
-          <Fragment>
-            <DateTime date={startTimestamp} />
-            {` (${startTimeWithLeadingZero})`}
-          </Fragment>
-        ),
-      }),
+      value: (
+        <Fragment>
+          <DateTime date={startTimestamp} />
+          {` (${startTimeWithLeadingZero})`}
+        </Fragment>
+      ),
     },
     {
       key: 'end_timestamp',
       subject: t('End Timestamp'),
-      value: getDynamicText({
-        fixed: 'Mar 19, 2021 11:06:28 AM UTC',
-        value: (
-          <Fragment>
-            <DateTime date={endTimestamp} />
-            {` (${endTimeWithLeadingZero})`}
-          </Fragment>
-        ),
-      }),
+      value: (
+        <Fragment>
+          <DateTime date={endTimestamp} />
+          {` (${endTimeWithLeadingZero})`}
+        </Fragment>
+      ),
       actionButton: (
         <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.TIMESTAMP}

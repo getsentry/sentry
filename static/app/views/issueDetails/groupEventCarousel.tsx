@@ -34,7 +34,6 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -419,19 +418,14 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             </EventIdContainer>
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
-                {getDynamicText({
-                  fixed: 'Jan 1, 12:00 AM',
-                  value: (
-                    <Tooltip
-                      isHoverable
-                      showUnderline
-                      title={<EventCreatedTooltip event={event} />}
-                      overlayStyle={{maxWidth: 300}}
-                    >
-                      <DateTime date={event.dateCreated ?? event.dateReceived} />
-                    </Tooltip>
-                  ),
-                })}
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
+                  <DateTime date={event.dateCreated ?? event.dateReceived} />
+                </Tooltip>
                 {isOverLatencyThreshold && (
                   <Tooltip title="High latency">
                     <StyledIconWarning size="xs" color="warningText" />

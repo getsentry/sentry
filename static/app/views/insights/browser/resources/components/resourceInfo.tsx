@@ -4,7 +4,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -38,25 +37,16 @@ function ResourceInfo(props: Props) {
     avgContentLength: tct(
       'On average, this resource is [bytes] when encoded (for example when gzipped).',
       {
-        bytes: getDynamicText({
-          value: formatBytesBase2(avgContentLength),
-          fixed: 'xx KiB',
-        }),
+        bytes: formatBytesBase2(avgContentLength),
       }
     ),
     avgDecodedContentLength: tct('On average, this resource is [bytes] when decoded.', {
-      bytes: getDynamicText({
-        value: formatBytesBase2(avgDecodedContentLength),
-        fixed: 'xx KiB',
-      }),
+      bytes: formatBytesBase2(avgDecodedContentLength),
     }),
     avgTransferSize: tct(
       'On average, the total bytes transferred over the network (body + headers) for this resource is [bytes].',
       {
-        bytes: getDynamicText({
-          value: formatBytesBase2(avgTransferSize),
-          fixed: 'xx KiB',
-        }),
+        bytes: formatBytesBase2(avgTransferSize),
       }
     ),
   };

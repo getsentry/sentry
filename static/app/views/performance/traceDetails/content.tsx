@@ -263,10 +263,7 @@ class TraceDetailsContent extends Component<Props, State> {
             2,
             true
           )}
-          subtext={getDynamicText({
-            value: <TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />,
-            fixed: '5 days ago',
-          })}
+          subtext={<TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />}
         />
       </TraceDetailHeader>
     );

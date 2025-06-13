@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
   bytes: number;
@@ -15,10 +14,7 @@ function FileSize(props: Props) {
 
   return (
     <Span className={className}>
-      {getDynamicText({
-        value: base === 10 ? formatBytesBase10(bytes) : formatBytesBase2(bytes),
-        fixed: 'xx KB',
-      })}
+      {base === 10 ? formatBytesBase10(bytes) : formatBytesBase2(bytes)}
     </Span>
   );
 }

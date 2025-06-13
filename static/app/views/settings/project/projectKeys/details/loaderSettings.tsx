@@ -56,10 +56,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     : [];
 
   const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
-  const loaderLink = getDynamicText({
-    value: data.dsn.cdn,
-    fixed: '__JS_SDK_LOADER_URL__',
-  });
+  const loaderLink = data.dsn.cdn;
 
   const updateLoaderOption = useCallback(
     async (changes: {

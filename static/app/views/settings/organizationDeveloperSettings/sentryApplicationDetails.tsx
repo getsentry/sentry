@@ -504,10 +504,10 @@ export default function SentryApplicationDetails(props: Props) {
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
                 {app.status !== 'internal' && (
-                  <FormField name="clientId" label="Client ID">
-                    {({value, id}: any) => (
-                      <TextCopyInput id={id}>
-                        {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
+                  <FormField name="clientId" label="Client ID" flexibleControlStateSize>
+                    {({value}: any) => (
+                      <TextCopyInput>
+                        {value}
                       </TextCopyInput>
                     )}
                   </FormField>
@@ -515,40 +515,13 @@ export default function SentryApplicationDetails(props: Props) {
                 <FormField
                   name="clientSecret"
                   label="Client Secret"
-                  help={t(`Your secret is only available briefly after integration creation. Make
-                    sure to save this value!`)}
+                  flexibleControlStateSize
                 >
-                  {({value, id}: any) =>
-                    value ? (
-                      <Tooltip
-                        disabled={showAuthInfo()}
-                        position="right"
-                        containerDisplayMode="inline"
-                        title={t(
-                          'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
-                        )}
-                      >
-                        <TextCopyInput id={id}>
-                          {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
-                        </TextCopyInput>
-                      </Tooltip>
-                    ) : (
-                      <ClientSecret>
-                        <HiddenSecret>{t('hidden')}</HiddenSecret>
-                        {hasTokenAccess() ? (
-                          <Confirm
-                            onConfirm={rotateClientSecret}
-                            message={t(
-                              'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
-                            )}
-                            errorMessage={t('Error rotating secret')}
-                          >
-                            <Button priority="danger">Rotate client secret</Button>
-                          </Confirm>
-                        ) : undefined}
-                      </ClientSecret>
-                    )
-                  }
+                  {({value}: any) => (
+                    <TextCopyInput>
+                      {value}
+                    </TextCopyInput>
+                  )}
                 </FormField>
               </PanelBody>
             </Panel>

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -21,7 +21,6 @@ import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   type ApiQueryKey,
   useApiQuery,
@@ -118,7 +117,7 @@ function ApiApplicationsDetails() {
             <FormField name="clientID" label="Client ID" flexibleControlStateSize>
               {({value}: any) => (
                 <TextCopyInput>
-                  {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
+                  {value}
                 </TextCopyInput>
               )}
             </FormField>
@@ -133,7 +132,7 @@ function ApiApplicationsDetails() {
               {({value}: any) =>
                 value ? (
                   <TextCopyInput>
-                    {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
+                    {value}
                   </TextCopyInput>
                 ) : (
                   <ClientSecret>

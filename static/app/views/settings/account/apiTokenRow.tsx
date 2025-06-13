@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
@@ -9,7 +9,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import useApi from 'sentry/utils/useApi';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
@@ -33,16 +33,17 @@ function ApiTokenRow({
         {token.name}
         <TokenPreview aria-label={t('Token preview')}>
           {tokenPreview(
-            getDynamicText({
-              value: token.tokenLastCharacters,
-              fixed: 'ABCD',
-            }),
+            token.tokenLastCharacters,
             tokenPrefix
           )}
         </TokenPreview>
       </div>
       <div>
-        <DateTime date={token.dateCreated} />
+        <CreatedDate>
+          <DateTime
+            date={new Date(token.dateCreated).toISOString()}
+          />
+        </CreatedDate>
       </div>
       <div>
         <ScopeList>{token.scopes.join(', ')}</ScopeList>
@@ -84,6 +85,10 @@ const Actions = styled(ButtonBar)`
 
 const TokenPreview = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const CreatedDate = styled('div')`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
 export default ApiTokenRow;

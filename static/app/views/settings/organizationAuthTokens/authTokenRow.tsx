@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {OrgAuthToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 function LastUsed({
@@ -31,10 +30,7 @@ function LastUsed({
         {tct('[date] in project [project]', {
           date: (
             <TimeSince
-              date={getDynamicText({
-                value: dateLastUsed,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
+              date={dateLastUsed}
             />
           ),
           project: (
@@ -51,10 +47,7 @@ function LastUsed({
     return (
       <Fragment>
         <TimeSince
-          date={getDynamicText({
-            value: dateLastUsed,
-            fixed: new Date(1508208080000), // National Pasta Day
-          })}
+          date={dateLastUsed}
         />
       </Fragment>
     );
@@ -104,10 +97,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         {token.tokenLastCharacters && (
           <TokenPreview aria-label={t('Token preview')}>
             {tokenPreview(
-              getDynamicText({
-                value: token.tokenLastCharacters,
-                fixed: 'ABCD',
-              }),
+              token.tokenLastCharacters,
               'sntrys_'
             )}
           </TokenPreview>
@@ -120,10 +110,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         ) : (
           <Fragment>
             <TimeSince
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
+              date={token.dateCreated}
             />
           </Fragment>
         )}

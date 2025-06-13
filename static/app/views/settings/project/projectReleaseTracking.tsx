@@ -18,7 +18,6 @@ import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   type ApiQueryKey,
   setApiQueryData,
@@ -220,21 +219,9 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
             )}
           </p>
 
-          {getDynamicText({
-            value: (
-              <AutoSelectText>
-                <pre>{getReleaseWebhookIntructions()}</pre>
-              </AutoSelectText>
-            ),
-            fixed: (
-              <pre>
-                {`curl __WEBHOOK_URL__ \\
--X POST \\
--H 'Content-Type: application/json' \\
--d \'{"version": "abcdefg"}\'`}
-              </pre>
-            ),
-          })}
+          <AutoSelectText>
+            <pre>{getReleaseWebhookIntructions()}</pre>
+          </AutoSelectText>
         </PanelBody>
       </Panel>
 
