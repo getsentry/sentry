@@ -268,7 +268,10 @@ class OrganizationFeedbackSummaryTest(APITestCase):
     )
     @patch("sentry.api.endpoints.organization_feedback_summary.cache")
     def test_get_feedback_summary_cache_hit(self, mock_cache, mock_generate_summary):
-        mock_cache.get.return_value = "Test cached summary of feedback"
+        mock_cache.get.return_value = {
+            "summary": "Test cached summary of feedback",
+            "num_feedbacks_used": 13,
+        }
 
         for _ in range(15):
             event = mock_feedback_event(self.project1.id)
@@ -281,7 +284,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test cached summary of feedback"
-        assert response.data["num_feedbacks_used"] == 15
+        assert response.data["num_feedbacks_used"] == 13
 
         mock_cache.get.assert_called_once()
         mock_cache.set.assert_not_called()

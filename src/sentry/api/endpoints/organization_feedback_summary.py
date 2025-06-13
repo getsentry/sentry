@@ -89,6 +89,22 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 }
             )
 
+        project_ids = [str(project.id) for project in projects]
+        hashed_project_ids = hash_from_values(project_ids)
+
+        # Cache key should be the filters that were selected by the user, and the cache should time out after 1 hour
+        # For date range, only use year, month, and day since including the time would make the cache useless
+        summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
+        summary_cache = cache.get(summary_cache_key)
+        if summary_cache:
+            return Response(
+                {
+                    "summary": summary_cache["summary"],
+                    "success": True,
+                    "num_feedbacks_used": summary_cache["num_feedbacks_used"],
+                }
+            )
+
         # Also cap the number of characters that we send to the LLM
         group_feedbacks = []
         total_chars = 0
@@ -102,22 +118,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-        project_ids = [str(project.id) for project in projects]
-        hashed_project_ids = hash_from_values(project_ids)
-
-        # Cache key should be the filters that were selected by the user, and the cache should time out after 1 hour
-        # For date range, only use year, month, and day since including the time would make the cache useless
-        summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
-        summary = cache.get(summary_cache_key)
-        if summary:
-            return Response(
-                {
-                    "summary": summary,
-                    "success": True,
-                    "num_feedbacks_used": len(group_feedbacks),
-                }
-            )
-
         try:
             summary = generate_summary(group_feedbacks)
         except Exception:
@@ -125,7 +125,11 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             logger.exception("Error generating summary of user feedbacks")
             return Response({"detail": "Error generating summary"}, status=500)
 
-        cache.set(summary_cache_key, summary, timeout=60 * 60)
+        cache.set(
+            summary_cache_key,
+            {"summary": summary, "num_feedbacks_used": len(group_feedbacks)},
+            timeout=3600,
+        )
 
         return Response(
             {
