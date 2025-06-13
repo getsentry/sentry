@@ -169,8 +169,8 @@ export interface NewMetricDetector {
  */
 function createEscalationConditions(
   data: MetricDetectorFormData
-): Array<Omit<DataCondition, 'id'>> {
-  const conditions: Array<Omit<DataCondition, 'id'>> = [];
+): NewConditionGroup['conditions'] {
+  const conditions: NewConditionGroup['conditions'] = [];
 
   if (!data.conditionType) {
     return conditions;
