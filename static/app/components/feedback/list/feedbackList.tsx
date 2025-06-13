@@ -10,6 +10,7 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import Feature from 'sentry/components/acl/feature';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
@@ -110,16 +111,18 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <Summary>
-        <SummaryHeader>Feedback Summary</SummaryHeader>
-        {summaryLoading ? (
-          <Placeholder height="200px" />
-        ) : (
-          <Fragment>
+      <Feature features="organizations:user-feedback-ai-summaries">
+        <Summary>
+          <SummaryHeader>Feedback Summary</SummaryHeader>
+          {summaryLoading ? (
+            <Placeholder height="200px" />
+          ) : (
+            // <Fragment>
             <div>{summary}</div>
-          </Fragment>
-        )}
-      </Summary>
+            // </Fragment>
+          )}
+        </Summary>
+      </Feature>
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
         <InfiniteLoader
