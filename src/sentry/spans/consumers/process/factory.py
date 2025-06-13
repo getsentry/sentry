@@ -6,11 +6,12 @@ from functools import partial
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import Commit, FilteredPayload, Message, Partition
+from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 
 from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
@@ -62,7 +63,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         committer = CommitOffsets(commit)
 
         buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
-        first_partition = next((p.index for p in partitions), 0)
 
         # patch onto self just for testing
         flusher: ProcessingStrategy[FilteredPayload | int]
@@ -74,7 +74,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         if self.num_processes != 1:
             run_task = run_task_with_multiprocessing(
-                function=partial(process_batch, buffer, first_partition),
+                function=partial(process_batch, buffer),
                 next_step=flusher,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
@@ -84,7 +84,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             )
         else:
             run_task = RunTask(
-                function=partial(process_batch, buffer, first_partition),
+                function=partial(process_batch, buffer),
                 next_step=flusher,
             )
 
@@ -119,42 +119,57 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 def process_batch(
     buffer: SpansBuffer,
-    first_partition: int,
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
     min_timestamp = None
     spans = []
     for value in values.payload:
-        timestamp, payload = value.payload
-        if min_timestamp is None or timestamp < min_timestamp:
-            min_timestamp = timestamp
+        assert isinstance(value, BrokerValue)
 
-        val = rapidjson.loads(payload.value)
+        try:
+            timestamp, payload = value.payload
+            if min_timestamp is None or timestamp < min_timestamp:
+                min_timestamp = timestamp
 
-        partition_id: int = first_partition
-        if len(value.committable) == 1:
-            partition_id = next(iter(value.committable)).index
+            val = rapidjson.loads(payload.value)
 
-        if killswitches.killswitch_matches_context(
-            "spans.drop-in-buffer",
-            {
-                "org_id": val.get("organization_id"),
-                "project_id": val.get("project_id"),
-                "trace_id": val.get("trace_id"),
-                "partition_id": partition_id,
-            },
-        ):
-            continue
+            partition_id = value.partition.index
 
-        span = Span(
-            trace_id=val["trace_id"],
-            span_id=val["span_id"],
-            parent_span_id=val.get("parent_span_id"),
-            project_id=val["project_id"],
-            payload=payload.value,
-            is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
-        )
-        spans.append(span)
+            if killswitches.killswitch_matches_context(
+                "spans.drop-in-buffer",
+                {
+                    "org_id": val.get("organization_id"),
+                    "project_id": val.get("project_id"),
+                    "trace_id": val.get("trace_id"),
+                    "partition_id": partition_id,
+                },
+            ):
+                continue
+
+            span = Span(
+                trace_id=val["trace_id"],
+                span_id=val["span_id"],
+                parent_span_id=val.get("parent_span_id"),
+                project_id=val["project_id"],
+                payload=payload.value,
+                is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
+            )
+            spans.append(span)
+
+        except Exception:
+            logger.exception("spans.invalid-message")
+            # We only DLQ when parsing the input for now. All other errors
+            # beyond this point are very unlikely to pertain to a specific message:
+            #
+            # * if we get exceptions from buffer.process_spans, it's likely
+            #   because Redis is down entirely.
+            # * if we get exceptions from the flusher, it's likely that there
+            #   is a broader issue with traffic patterns where no individual
+            #   message is at fault.
+            #
+            # in those situations it's better to halt the consumer as we're
+            # otherwise very likely to just DLQ everything anyway.
+            raise InvalidMessage(value.partition, value.offset)
 
     assert min_timestamp is not None
     buffer.process_spans(spans, now=min_timestamp)

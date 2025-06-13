@@ -309,6 +309,14 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                         "event_data": asdict(event_data),
                     },
                 )
+        else:
+            # If the feature flag is not enabled, only send a metric
+            for action in actions:
+                metrics_incr(
+                    "process_workflows.action_triggered",
+                    1,
+                    tags={"action_type": action.type},
+                )
 
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
     if len(actions) > 0:
