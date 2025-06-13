@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex} from 'sentry/components/core/layout';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -21,9 +22,10 @@ import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {getInternalDate, shouldUse24Hours} from 'sentry/utils/dates';
+import {getInternalDate} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {
   projectDetectorSettingsId,
@@ -270,11 +272,12 @@ function AuditLogList({
   statsPeriod,
   utc = false,
 }: Props) {
-  const is24Hours = shouldUse24Hours();
+  const user = useUser();
+  const is24Hours = user.options?.clock24Hours;
   const organization = useOrganization();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
-  const allTime = 'All time';
+  const allTime = t('All time');
 
   // Calculate display values for the dropdown - convert UTC timestamps back to user's intended timezone
   const getDisplayValues = () => {
@@ -295,7 +298,7 @@ function AuditLogList({
   const {displayStart, displayEnd} = getDisplayValues();
 
   const headerActions = (
-    <HeaderActions>
+    <ButtonBar gap={2}>
       <TimeRangeSelector
         start={start}
         end={end}
@@ -303,15 +306,9 @@ function AuditLogList({
         onChange={onDateSelect}
         relativeOptions={{
           allTime: t('All time'),
-          '1h': t('Last hour'),
-          '24h': t('Last 24 hours'),
-          '7d': t('Last 7 days'),
-          '14d': t('Last 14 days'),
-          '30d': t('Last 30 days'),
-          '90d': t('Last 90 days'),
         }}
         utc={utc}
-        maxPickableDays={10000}
+        maxPickableDays={Infinity}
         trigger={(triggerProps, isOpen) => {
           const currentValue = statsPeriod || allTime;
           let displayLabel: React.ReactNode;
@@ -324,16 +321,10 @@ function AuditLogList({
             displayLabel = getAbsoluteSummary(start, end, utc);
           } else if (currentValue === allTime) {
             displayLabel = t('All time');
-          } else {
-            displayLabel = currentValue.toUpperCase();
           }
 
           return (
-            <DropdownButton
-              isOpen={isOpen}
-              data-test-id="page-filter-timerange-selector"
-              {...triggerProps}
-            >
+            <DropdownButton isOpen={isOpen} {...triggerProps}>
               {displayLabel}
             </DropdownButton>
           );
@@ -350,7 +341,7 @@ function AuditLogList({
           onEventSelect(options?.value);
         }}
       />
-    </HeaderActions>
+    </ButtonBar>
   );
 
   return (
@@ -417,12 +408,6 @@ const Name = styled('strong')`
 
 const EventSelector = styled(Select)`
   width: 250px;
-`;
-
-const HeaderActions = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-  align-items: center;
 `;
 
 const UserInfo = styled('div')`

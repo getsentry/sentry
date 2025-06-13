@@ -86,14 +86,7 @@ function OrganizationAuditLog({location}: Props) {
     setState(prevState => ({...prevState, isLoading: true}));
 
     try {
-      const payload: {
-        cursor?: string;
-        end?: DateString;
-        event?: string;
-        start?: DateString;
-        statsPeriod?: string | null;
-        utc?: boolean;
-      } = {
+      const payload = {
         cursor: state.currentCursor,
         event: state.eventType,
         start: state.start,
