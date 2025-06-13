@@ -173,9 +173,10 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         self.group.save()
 
         message = get_test_message_status_change(
-            project_id=self.project.id,
-            fingerprint="test-fingerprint",
-            new_status=GroupStatus.RESOLVED,
+            self.project.id,
+            fingerprint=self.fingerprint,
+            new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ONGOING,
         )
         result = _process_message(message)
         assert result is not None

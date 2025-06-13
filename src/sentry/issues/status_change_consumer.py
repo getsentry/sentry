@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
+    activity_type: ActivityType | None = None
     new_status = status_change["new_status"]
     new_substatus = status_change["new_substatus"]
 
@@ -140,12 +141,12 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             f"Unsupported status: {status_change['new_status']} {status_change['new_substatus']}"
         )
 
-    if isinstance(activity_type, ActivityType):
+    if activity_type is not None:
         """
         If we have set created an activity, then we'll also notify any registered handlers
         that the group status has changed.
 
-        This is used to trigger the `workflow_engine` processing status changes
+        This is used to trigger the `workflow_engine` processing status changes.
         """
         latest_activity = Activity.objects.filter(
             group_id=group.id, type=activity_type.value
