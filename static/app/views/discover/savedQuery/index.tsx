@@ -44,6 +44,7 @@ import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,
@@ -411,6 +412,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       location,
       savedQuery?.queryDataset
     );
+
+    if (
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      deprecateTransactionAlerts(organization)
+    ) {
+      return null;
+    }
 
     let alertType: any;
     let buttonEventView = eventView;
