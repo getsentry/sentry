@@ -38,9 +38,14 @@ export function AIOutputSection({
     return null;
   }
 
-  const responseText = getTraceNodeAttribute('ai.response.text', node, event, attributes);
+  const responseText = getTraceNodeAttribute(
+    'gen_ai.response.text',
+    node,
+    event,
+    attributes
+  );
   const toolCalls = getTraceNodeAttribute(
-    'ai.response.toolCalls',
+    'gen_ai.response.tool_calls',
     node,
     event,
     attributes
