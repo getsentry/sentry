@@ -34,3 +34,7 @@ export function updateLocationWithFields(
     delete location.query.field;
   }
 }
+
+export function isDefaultFields(location: Location): boolean {
+  return decodeList(location.query.field).length === 0;
+}
