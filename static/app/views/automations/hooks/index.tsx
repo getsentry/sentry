@@ -15,16 +15,18 @@ const makeAutomationsQueryKey = ({
   ids,
   limit,
   cursor,
+  projects,
 }: {
   orgSlug: string;
   cursor?: string;
   ids?: string[];
   limit?: number;
+  projects?: number[];
   query?: string;
   sort?: string;
 }): ApiQueryKey => [
   `/organizations/${orgSlug}/workflows/`,
-  {query: {query, sort, id: ids, per_page: limit, cursor}},
+  {query: {query, sort, id: ids, per_page: limit, cursor, project: projects}},
 ];
 
 const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
@@ -35,6 +37,7 @@ interface UseAutomationsQueryOptions {
   cursor?: string;
   ids?: string[];
   limit?: number;
+  projects?: number[];
   query?: string;
   sort?: string;
 }

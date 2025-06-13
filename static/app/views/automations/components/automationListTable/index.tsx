@@ -1,40 +1,84 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AutomationListRow} from 'sentry/views/automations/components/automationListRow';
-import {useAutomationsQuery} from 'sentry/views/automations/hooks';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {
+  AutomationListRow,
+  AutomationListRowSkeleton,
+} from 'sentry/views/automations/components/automationListTable/row';
+import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 
-function AutomationListTable() {
-  const {data: automations = [], isPending} = useAutomationsQuery();
+type AutomationListTableProps = {
+  automations: Automation[];
+  isError: boolean;
+  isPending: boolean;
+};
+
+function LoadingSkeletons() {
+  return Array.from({length: AUTOMATION_LIST_PAGE_LIMIT}).map((_, index) => (
+    <AutomationListRowSkeleton key={index} />
+  ));
+}
+
+function TableHeader() {
+  return (
+    <StyledPanelHeader>
+      <Flex className="name">
+        <Heading>{t('Name')}</Heading>
+      </Flex>
+      <Flex className="last-triggered">
+        <Heading>{t('Last Triggered')}</Heading>
+      </Flex>
+      <Flex className="action">
+        <HeaderDivider />
+        <Heading>{t('Actions')}</Heading>
+      </Flex>
+      <Flex className="projects">
+        <HeaderDivider />
+        <Heading>{t('Projects')}</Heading>
+      </Flex>
+      <Flex className="connected-monitors">
+        <HeaderDivider />
+        <Heading>{t('Monitors')}</Heading>
+      </Flex>
+    </StyledPanelHeader>
+  );
+}
+
+function AutomationListTable({
+  automations,
+  isPending,
+  isError,
+}: AutomationListTableProps) {
+  if (isError) {
+    return (
+      <PanelGrid>
+        <TableHeader />
+        <PanelBody>
+          <LoadingError />
+        </PanelBody>
+      </PanelGrid>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <PanelGrid>
+        <TableHeader />
+        <LoadingSkeletons />
+      </PanelGrid>
+    );
+  }
 
   return (
     <PanelGrid>
-      <StyledPanelHeader>
-        <Flex className="name">
-          <Heading>{t('Name')}</Heading>
-        </Flex>
-        <Flex className="last-triggered">
-          <Heading>{t('Last Triggered')}</Heading>
-        </Flex>
-        <Flex className="action">
-          <HeaderDivider />
-          <Heading>{t('Actions')}</Heading>
-        </Flex>
-        <Flex className="projects">
-          <HeaderDivider />
-          <Heading>{t('Projects')}</Heading>
-        </Flex>
-        <Flex className="connected-monitors">
-          <HeaderDivider />
-          <Heading>{t('Monitors')}</Heading>
-        </Flex>
-      </StyledPanelHeader>
-      {isPending ? <LoadingIndicator /> : null}
+      <TableHeader />
       {automations.map(automation => (
         <AutomationListRow key={automation.id} automation={automation} />
       ))}
