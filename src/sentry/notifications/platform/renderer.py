@@ -13,6 +13,7 @@ class NotificationRenderer(Protocol, Generic[NotificationRenderableT_co]):
 
     provider_key: NotificationProviderKey
 
+    @classmethod
     def render(
         self, *, data: NotificationData, template: NotificationTemplate
     ) -> type["NotificationRenderableT_co"]:
