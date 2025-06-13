@@ -19,7 +19,7 @@ monitors: 0006_add_is_upserting
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-preprod: 0002_drop_sentry_jsonfield
+preprod: 0003_drop_sentry_jsonfield_actual
 
 replays: 0001_squashed_0005_drop_replay_index
 
