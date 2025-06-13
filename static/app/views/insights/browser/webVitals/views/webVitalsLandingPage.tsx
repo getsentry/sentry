@@ -73,8 +73,9 @@ function WebVitalsLandingPage() {
     }
   });
 
-  const useWebVitalsIssues =
-    organization.features.includes('performance-web-vitals-issues') || true;
+  const useWebVitalsIssues = organization.features.includes(
+    'performance-web-vitals-issues'
+  );
 
   return (
     <React.Fragment>
