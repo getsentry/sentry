@@ -1,8 +1,9 @@
 from typing import Any
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderKey
+from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
 # TODO(ecosystem): Figure out a way to use 'SlackBlock' type
