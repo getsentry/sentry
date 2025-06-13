@@ -229,7 +229,7 @@
       "react-mentions>@babel/runtime": "7.26.10",
       "react-is": "19.1.0"
     },
-    "ignoredBuiltDependencies": [
+    "onlyBuiltDependencies": [
       "@sentry-internal/node-cpu-profiler",
       "@sentry/cli",
       "core-js",
