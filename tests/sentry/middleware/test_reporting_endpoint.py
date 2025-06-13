@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from django.http import HttpResponse
 from django.test import RequestFactory
 
@@ -29,4 +31,15 @@ class ReportingEndpointMiddlewareTestCase(TestCase):
             request = self.factory.get("/")
             response = self.middleware.process_response(request, HttpResponse())
 
+            assert response.get("Reporting-Endpoints") is None
+
+    @patch("src.sentry.middleware.reporting_endpoint.options.get")
+    def test_no_options_check_in_relay_endpoints(self, mock_options_get: MagicMock) -> None:
+        with override_options(
+            {"issues.browser_reporting.reporting_endpoints_header_enabled": True}
+        ):
+            request = self.factory.get("/api/0/relays/register/challenge/")
+            response = self.middleware.process_response(request, HttpResponse())
+
+            mock_options_get.assert_not_called()
             assert response.get("Reporting-Endpoints") is None
