@@ -583,3 +583,119 @@ A POST request is issued with no body. The URL and authorization context is used
     Cookie: \_ga=GA1.2.17576183...
 
 - Response 204
+
+## Replay Delete Jobs [/organizations/<organization_id_or_slug>/replays/jobs/delete/]
+
+- Parameters
+
+  - per_page (optional, number)
+    Default: 10
+  - offset (optional, number)
+    Default: 0
+
+### Browse Replay Delete Jobs [GET]
+
+Retrieve a collection of replays.
+
+**Attributes**
+
+| Column      | Type             | Description                                                                 |
+| ----------- | ---------------- | --------------------------------------------------------------------------- |
+| id          | number           | -                                                                           |
+| dateCreated | string           | -                                                                           |
+| dateUpdated | string           | -                                                                           |
+| rangeStart  | string           | The minimum UTC timestamp in the deletion range.                            |
+| rangeEnd    | string           | The maximum UTC timestamp in the deletion range.                            |
+| environment | optional[string] | The environment to delete replays from.                                     |
+| projects    | list[number]     | The projects to delete replays from.                                        |
+| status      | string           | The status of the deletion job. One of pending, in-progress, and completed. |
+| query       | optional[string] | The query string which matches the to-be-deleted replays.                   |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "id": 23,
+        "dateCreated": "2025-06-06T14:05:57.909921",
+        "dateUpdated": "2025-06-06T14:05:57.909921",
+        "rangeStart": "2025-06-01T00:00:00.000000",
+        "rangeEnd": "2025-06-04T00:00:00.000000",
+        "environment": "prod",
+        "projects": [11276],
+        "status": "in-progress",
+        "query": "release:2.3.0 AND url:*/billing*"
+      }
+    ]
+  }
+  ```
+
+### Create a Replay Collection Deletion [POST]
+
+Delete a collection of replays. Deletes are throttled and will take some time to complete. The number of events expected to be deleted is returned on the meta object. This number is ephemeral and can change. It is only returned for informational reasons.
+
+- Request
+
+  ```json
+  {
+    "data": {
+      "rangeStart": "2025-06-01T00:00:00.000000",
+      "rangeEnd": "2025-06-04T00:00:00.000000",
+      "environment": "prod",
+      "projects": [11276],
+      "query": "release:2.3.0 AND url:*/billing*"
+    }
+  }
+  ```
+
+- Response 201
+
+  ```json
+  {
+    "data": {
+      "id": 23,
+      "dateCreated": "2025-06-06T14:05:57.909921",
+      "dateUpdated": "2025-06-06T14:05:57.909921",
+      "rangeStart": "2025-06-01T00:00:00.000000",
+      "rangeEnd": "2025-06-04T00:00:00.000000",
+      "environment": "prod",
+      "projects": [11276],
+      "status": "pending",
+      "query": "release:2.3.0 AND url:*/billing*"
+    },
+    "meta": {
+      "count": 13922
+    }
+  }
+  ```
+
+## Replay Delete Job [/organizations/<organization_id_or_slug>/replays/jobs/delete/<id>/]
+
+### Get Replay Delete Job [GET]
+
+Fetch a replay delete job instance.
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "id": 23,
+      "dateCreated": "2025-06-06T14:05:57.909921",
+      "dateUpdated": "2025-06-06T14:05:57.909921",
+      "rangeStart": "2025-06-01T00:00:00.000000",
+      "rangeEnd": "2025-06-04T00:00:00.000000",
+      "environment": "prod",
+      "projects": [11276],
+      "status": "pending",
+      "query": "release:2.3.0 AND url:*/billing*"
+    }
+  }
+  ```
+
+### Schedule Replay Collection Deletion [PUT]
+
+An empty PUT request is made to the endpoint. The instance is scheduled for processing if it was in a pending state.
+
+- Response 202
