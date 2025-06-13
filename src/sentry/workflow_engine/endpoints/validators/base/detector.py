@@ -1,3 +1,5 @@
+import builtins
+
 from django.db import router, transaction
 from rest_framework import serializers
 
@@ -29,7 +31,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     type = serializers.CharField()
     config = serializers.JSONField(default={})
 
-    def validate_type(self, value: str) -> "type[GroupType]":
+    def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
         if type is None:
             organization = self.context.get("organization")
