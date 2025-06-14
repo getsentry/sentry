@@ -8,10 +8,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.validators.base import (
-    BaseDataConditionValidator,
-    BaseDataSourceValidator,
-)
+from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -47,7 +44,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return type
 
     @property
-    def data_source(self) -> BaseDataSourceValidator:
+    def data_sources(self) -> serializers.ListField:
         raise NotImplementedError
 
     @property
@@ -63,20 +60,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 logic_type=DataConditionGroup.Type.ANY,
                 organization_id=self.context["organization"].id,
             )
-            data_source_creator = validated_data["data_source"]["_creator"]
-            data_source = data_source_creator.create()
-            detector_data_source = DataSource.objects.create(
-                organization_id=self.context["project"].organization_id,
-                source_id=data_source.id,
-                type=validated_data["data_source"]["data_source_type"],
-            )
-            for condition in validated_data["condition_group"]["conditions"]:
-                DataCondition.objects.create(
-                    comparison=condition["comparison"],
-                    condition_result=condition["condition_result"],
-                    type=condition["type"],
-                    condition_group=condition_group,
-                )
+
             detector = Detector.objects.create(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
@@ -84,7 +68,26 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 type=validated_data["type"].slug,
                 config=validated_data.get("config", {}),
             )
-            DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
+
+            for validated_data_source in validated_data["data_sources"]:
+                data_source_creator = validated_data_source["_creator"]
+                data_source = data_source_creator.create()
+                detector_data_source = DataSource.objects.create(
+                    organization_id=self.context["project"].organization_id,
+                    source_id=data_source.id,
+                    type=validated_data_source["data_source_type"],
+                )
+                DataSourceDetector.objects.create(
+                    data_source=detector_data_source, detector=detector
+                )
+
+            for condition in validated_data["condition_group"]["conditions"]:
+                DataCondition.objects.create(
+                    comparison=condition["comparison"],
+                    condition_result=condition["condition_result"],
+                    type=condition["type"],
+                    condition_group=condition_group,
+                )
 
             create_audit_entry(
                 request=self.context["request"],
