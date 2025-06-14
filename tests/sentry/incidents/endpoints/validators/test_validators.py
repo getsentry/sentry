@@ -108,15 +108,17 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.valid_data = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
-            "dataSource": {
-                "query_type": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "time_window": 60,
-                "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "query_type": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "time_window": 60,
+                    "environment": self.environment.name,
+                    "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -240,4 +242,45 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert not validator.is_valid()
         assert validator.errors.get("nonFieldErrors") == [
             ErrorDetail(string="Too many conditions", code="invalid")
+        ]
+
+    def test_no_data_sources(self):
+        data = {
+            **self.valid_data,
+            "dataSources": [],
+        }
+        validator = MetricAlertsDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("dataSources") == [
+            ErrorDetail(string="Ensure this field has at least 1 elements.", code="min_length")
+        ]
+
+    def test_too_many_data_sources(self):
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "query_type": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "test query 1",
+                    "aggregate": "count()",
+                    "time_window": 60,
+                    "environment": self.environment.name,
+                    "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                },
+                {
+                    "query_type": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "test query 2",
+                    "aggregate": "count()",
+                    "time_window": 60,
+                    "environment": self.environment.name,
+                    "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                },
+            ],
+        }
+        validator = MetricAlertsDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("dataSources") == [
+            ErrorDetail(string="Ensure this field has no more than 1 elements.", code="max_length")
         ]
