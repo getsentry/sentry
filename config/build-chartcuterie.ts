@@ -67,7 +67,6 @@ async function runEsbuild(commitHash: string): Promise<void> {
       'process.env.NODE_ENV': JSON.stringify('production'),
       'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(false),
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(false),
-      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(false),
       'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(false),
       'process.env.UI_DEV_ENABLE_PROFILING': JSON.stringify(false),
       'process.env.SPA_DSN': JSON.stringify(''),

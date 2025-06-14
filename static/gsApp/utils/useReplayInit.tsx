@@ -72,7 +72,7 @@ export default function useReplayInit() {
       }
     }
 
-    if (process.env.NODE_ENV !== 'production' || process.env.IS_ACCEPTANCE_TEST) {
+    if (process.env.NODE_ENV !== 'production') {
       return;
     }
 
