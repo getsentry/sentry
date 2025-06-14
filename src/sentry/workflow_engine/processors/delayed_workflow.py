@@ -46,7 +46,7 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
-    filter_recently_fired_actions,
+    filter_recently_fired_workflow_actions,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
@@ -460,7 +460,7 @@ def fire_actions_for_groups(
                     threshold_seconds=1,
                 ):
                     workflows_actions = evaluate_workflows_action_filters(workflows, event_data)
-                filtered_actions = filter_recently_fired_actions(
+                filtered_actions = filter_recently_fired_workflow_actions(
                     action_filters | workflows_actions, event_data
                 )
                 create_workflow_fire_histories(filtered_actions, event_data)
