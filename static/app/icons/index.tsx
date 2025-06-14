@@ -94,6 +94,8 @@ export {IconResize} from './iconResize';
 export {IconRewind10} from './iconRewind10';
 export {IconSad} from './iconSad';
 export {IconSearch} from './iconSearch';
+export {IconSeer} from './iconSeer';
+export {IconSeerLoading, IconSeerWaiting} from './iconSeerLoading';
 export {IconSentry} from './iconSentry';
 export {IconSentryPrideLogo} from './iconSentryPrideLogo';
 export {IconSettings} from './iconSettings';

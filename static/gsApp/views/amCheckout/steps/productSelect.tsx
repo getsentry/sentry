@@ -9,10 +9,9 @@ import mediumStarDark from 'sentry-images/spot/product-select-star-m-dark.svg';
 import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
 import smallStarDark from 'sentry-images/spot/product-select-star-s-dark.svg';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconAdd, IconCheckmark} from 'sentry/icons';
+import {IconAdd, IconCheckmark, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -43,7 +42,7 @@ function ProductSelect({
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
     [SelectableProduct.SEER]: {
-      icon: <SeerIcon size="lg" color={'pink400'} />,
+      icon: <IconSeer size="lg" color="pink400" />,
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
