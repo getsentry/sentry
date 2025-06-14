@@ -14,6 +14,7 @@ export default function useInitSentryToolbar(organization: null | Organization) 
 
   useSentryToolbar({
     enabled: showDevToolbar && isEmployee,
+    version: 'latest',
     initProps: {
       organizationSlug: organization?.slug ?? 'sentry',
       projectIdOrSlug: 'javascript',
