@@ -15,11 +15,14 @@ import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  renderDiscoverGridHeaderCell,
+  renderReleaseGridHeaderCell,
+} from 'sentry/components/modals/widgetViewerModal/widgetViewerTableCell';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -39,7 +42,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -48,18 +51,17 @@ import {
   getMeasurementSlug,
   isEquation,
   maybeEquationAlias,
-  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {TABLE_WIDGET_STYLES} from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import WidgetTable from 'sentry/views/dashboards/widgetTable';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -87,9 +89,10 @@ type WidgetCardChartProps = Pick<
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isPreview?: boolean;
   isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -98,13 +101,15 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
+  setTableWidths?: (tableWidths: string[]) => void;
+  setWidgetSort?: (ns: string) => void;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showLoadingText?: boolean;
+  tableWidths?: string[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
-
 class WidgetCardChart extends Component<WidgetCardChartProps> {
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
     if (
@@ -136,48 +141,50 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return !isEqual(currentProps, nextProps);
   }
 
+  setWidths(newWidths: string[]) {
+    this.setState({widths: newWidths});
+  }
+
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection, minTableColumnWidth} = this.props;
-    if (typeof tableResults === 'undefined') {
+    const {
+      widget,
+      selection,
+      organization,
+      setWidgetSort,
+      tableWidths,
+      setTableWidths,
+      isPreview,
+      minTableColumnWidth,
+    } = this.props;
+    if (typeof tableResults === 'undefined' || loading) {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
 
-    const datasetConfig = getDatasetConfig(widget.widgetType);
-
-    const getCustomFieldRenderer = (
-      field: string,
-      meta: MetaType,
-      organization?: Organization
-    ) => {
-      return (
-        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-      );
-    };
-
-    return tableResults.map((result, i) => {
-      const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
-      const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
-      const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
-
+    return tableResults.map((result, _) => {
+      const sort = widget.queries[0]?.orderby;
       return (
         <TableWrapper key={`table:${result.title}`}>
-          <StyledSimpleTableChart
-            eventView={eventView}
-            fieldAliases={fieldAliases}
-            location={location}
-            fields={fields}
-            title={tableResults.length > 1 ? result.title : ''}
-            // Bypass the loading state for span widgets because this renders the loading placeholder
-            // and we want to show the underlying data during preflight instead
+          <WidgetTable
+            style={TABLE_WIDGET_STYLES}
             loading={widget.widgetType === WidgetType.SPANS ? false : loading}
-            loader={<LoadingPlaceholder />}
-            metadata={result.meta}
-            data={result.data}
-            stickyHeaders
-            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={getCustomFieldRenderer}
+            tableResults={tableResults}
+            widget={widget}
+            selection={selection}
+            renderHeaderGridCell={
+              widget.widgetType === WidgetType.RELEASE
+                ? renderReleaseGridHeaderCell
+                : renderDiscoverGridHeaderCell
+            }
+            sort={sort || ''}
+            widths={tableWidths || []}
+            organization={organization}
+            stickyHeader
+            setWidgetSort={setWidgetSort}
+            setWidths={(w: string[]) => setTableWidths?.(w)}
+            usesLocationQuery={isPreview}
             minColumnWidth={minTableColumnWidth}
+            fitMaxContent={!isPreview}
           />
         </TableWrapper>
       );
@@ -657,11 +664,7 @@ const TableWrapper = styled('div')`
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledSimpleTableChart = styled(SimpleTableChart)`
   overflow: auto;
-  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

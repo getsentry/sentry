@@ -351,6 +351,20 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
+  handleWidgetSort(index: number, newSort: string) {
+    const {dashboard, onUpdate} = this.props;
+    const widget = dashboard.widgets[index]!;
+    const widgetCopy = cloneDeep({
+      ...widget,
+    });
+    if (widgetCopy.queries[0]) widgetCopy.queries[0].orderby = newSort;
+
+    const nextList = [...dashboard.widgets];
+    nextList[index] = widgetCopy;
+
+    onUpdate(nextList);
+  }
+
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
     const {
@@ -391,6 +405,7 @@ class Dashboard extends Component<Props, State> {
           index={String(index)}
           newlyAddedWidget={newlyAddedWidget}
           onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+          handleWidgetSort={(ns: string) => this.handleWidgetSort(index, ns)}
         />
       </div>
     );
