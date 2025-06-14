@@ -98,12 +98,12 @@ export default function DetectorEdit() {
     return getMetricDetectorFormData(detector);
   }, [detector]);
 
-  if (isError || !detector || !initialData) {
-    return <LoadingError onRetry={refetch} />;
+  if (isPending && !initialData) {
+    return <LoadingIndicator />;
   }
 
-  if (isPending) {
-    return <LoadingIndicator />;
+  if (isError || !detector || !initialData) {
+    return <LoadingError onRetry={refetch} />;
   }
 
   return (
