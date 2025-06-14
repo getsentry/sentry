@@ -272,6 +272,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
+        # print(
+        #     f"THESE ARE THE START AND END THAT ARE BEING PASSED TO ORGANIZATION_GROUP_INDEX : {start.strftime('%B %d, %Y')} to {end.strftime('%B %d, %Y')}"
+        # )
+
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
         if stats_period not in (None, "", "24h", "14d", "auto"):

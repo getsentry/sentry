@@ -24,7 +24,7 @@ export default function useFeedbackListQueryKey({
     fields: {
       limit: PER_PAGE,
       queryReferrer: 'feedback_list_page',
-      end: decodeScalar,
+      end: decodeScalar, // NOTE: this is where the params are being obtained from the URL
       environment: decodeList,
       field: decodeList,
       project: decodeList,
@@ -54,7 +54,7 @@ export default function useFeedbackListQueryKey({
     const {mailbox, ...fixedQueryView} = queryViewWithStatsPeriod;
 
     return [
-      `/organizations/${organization.slug}/issues/`,
+      `/organizations/${organization.slug}/issues/`, // NOTE: this is where the params are being passed to the endpoint
       {
         query: {
           ...fixedQueryView,

@@ -7,6 +7,7 @@ import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedback
 import FeedbackWidgetBanner from 'sentry/components/feedback/feedbackOnboarding/feedbackWidgetBanner';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
+import FeedbackSummary from 'sentry/components/feedback/feedbackSummary';
 import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
@@ -65,7 +66,7 @@ export default function FeedbackListPage() {
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip
                   title={t(
-                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
+                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that is not working as expected.'
                   )}
                   docsUrl="https://docs.sentry.io/product/user-feedback/"
                 />
@@ -84,9 +85,15 @@ export default function FeedbackListPage() {
                   <FeedbackFilters style={{gridArea: 'filters'}} />
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
-                      <Container style={{gridArea: 'list'}}>
-                        <FeedbackList />
-                      </Container>
+                      <SummaryListContainer style={{gridArea: 'list'}}>
+                        {/* is this bad design? FeedbackSummary conditionally renders itself if there is a summary, but should that decision be made in its parent instead? causes weird issues like we can't wrap FeedbackSummary with a Container here, it must be wrapped inside the component itself */}
+                        {/* the reason i don't generate the summary here instead of in FeedbackSummary is that useFeedbackSummary requires the FeedbackQueryKeys context to be present to be able to parse the start/end date */}
+                        {/* another option is to create a new component that wraps the summary and the list, and generate the summary in that new component so the parent would conditionally render the child instead of the child conditionally rendering itself */}
+                        <FeedbackSummary />
+                        <Container>
+                          <FeedbackList />
+                        </Container>
+                      </SummaryListContainer>
                       <SearchContainer>
                         <FeedbackSearch />
                       </SearchContainer>
@@ -116,6 +123,12 @@ const Background = styled('div')`
   flex-direction: column;
   align-items: stretch;
   gap: ${space(2)};
+`;
+
+const SummaryListContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const LayoutGrid = styled('div')`
@@ -153,7 +166,7 @@ const LayoutGrid = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: minmax(1fr, 195px) 1fr;
+    grid-template-columns: minmax(195px, 1fr) 1.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
@@ -164,6 +177,8 @@ const LayoutGrid = styled('div')`
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;
+
+// grid-template-columns: minmax(195px, 1fr) 1.5fr; hmm, need to come back to this, i kinda get what it does but it seems a bit sus, but it works better than what was there previously since before there was invalid CSS here
 
 const Container = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
