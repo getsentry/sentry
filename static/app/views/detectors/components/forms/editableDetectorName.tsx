@@ -2,9 +2,9 @@ import EditableText from 'sentry/components/editableText';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 
-export function EditableDetectorTitle() {
+export function EditableDetectorName() {
   return (
-    <FormField name="title" inline={false} flexibleControlStateSize stacked>
+    <FormField name="name" inline={false} flexibleControlStateSize stacked>
       {({onChange, value}) => (
         <EditableText
           isDisabled={false}
