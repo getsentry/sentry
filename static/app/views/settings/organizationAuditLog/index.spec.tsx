@@ -2,7 +2,7 @@ import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNam
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -137,5 +137,60 @@ describe('OrganizationAuditLog', function () {
         `/settings/${organization.slug}/projects/${project.slug}/performance/`
       );
     }
+  });
+
+  it('Handles absolute date range', async function () {
+    const absoluteDateMockResponse = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/audit-logs/`,
+      method: 'GET',
+      body: {
+        rows: [
+          {
+            id: '4500002',
+            actor: UserFixture(),
+            event: 'member.invite',
+            ipAddress: '10.0.0.1',
+            note: 'invited member test@example.com',
+            targetObject: 5466662,
+            targetUser: null,
+            data: {},
+            dateCreated: '2021-09-30T00:29:33.940848Z',
+          },
+        ],
+        options: AuditLogsApiEventNamesFixture(),
+      },
+    });
+
+    const {router} = initializeOrg({
+      projects: [],
+      router: {
+        params: {orgId: 'org-slug'},
+        location: {
+          query: {
+            start: '2021-09-01T00:00:00.000Z',
+            end: '2021-09-30T23:59:59.999Z',
+          },
+        },
+      },
+    });
+
+    render(<OrganizationAuditLog location={router.location} />);
+
+    await waitFor(() => {
+      expect(absoluteDateMockResponse).toHaveBeenCalledWith(
+        '/organizations/org-slug/audit-logs/',
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({
+            start: '2021-09-01T00:00:00.000Z',
+            end: '2021-09-30T23:59:59.999Z',
+          }),
+        })
+      );
+    });
+
+    expect(await screen.findByText('member.invite')).toBeInTheDocument();
+    expect(screen.getByText('invited member test@example.com')).toBeInTheDocument();
+    expect(screen.getByText('10.0.0.1')).toBeInTheDocument();
   });
 });
