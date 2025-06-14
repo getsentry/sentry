@@ -359,8 +359,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         # Two authenticators to ensure the user list is distinct
         with assume_test_silo_mode(SiloMode.CONTROL):
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=1)
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=2)
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=1, config={})
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=2, config={})
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
