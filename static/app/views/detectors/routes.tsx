@@ -1,5 +1,5 @@
 import {IndexRoute, Route} from 'sentry/components/route';
-import {makeLazyloadComponent as make} from 'sentry/routes';
+import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 
 export const detectorRoutes = (
   <Route path="monitors/">
