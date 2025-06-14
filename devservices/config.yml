@@ -132,6 +132,18 @@ x-sentry-service-config:
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     profiling: [postgres, snuba, vroom, spotlight]
+    crons:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-monitors,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        worker,
+      ]
     minimal: [postgres, snuba]
     ingest-all:
       [
