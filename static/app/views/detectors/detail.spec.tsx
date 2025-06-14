@@ -1,3 +1,4 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
 import {DetectorFixture, SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -28,6 +29,7 @@ describe('DetectorDetails', function () {
     projectId: project.id,
     dataSources: [dataSource],
     owner: `team:${ownerTeam.id}`,
+    workflowIds: ['1', '2'], // Add workflow IDs for connected automations
   });
   const initialRouterConfig = {
     location: {
@@ -42,6 +44,14 @@ describe('DetectorDetails', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
       body: snubaQueryDetector,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [
+        AutomationFixture({id: '1', name: 'Automation 1'}),
+        AutomationFixture({id: '2', name: 'Automation 2'}),
+      ],
+      match: [MockApiClient.matchQuery({id: ['1', '2']})],
     });
   });
 
@@ -62,5 +72,38 @@ describe('DetectorDetails', function () {
     ).toBeInTheDocument();
     // Displays the owner team
     expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
+  });
+
+  describe('connected automations', function () {
+    it('displays empty message when no automations are connected', async function () {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
+        body: {
+          ...snubaQueryDetector,
+          workflowIds: [],
+        },
+      });
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+      expect(await screen.findByText('No automations connected')).toBeInTheDocument();
+    });
+
+    it('displays connected automations', async function () {
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      // Verify both automations are displayed
+      expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+      expect(await screen.findByText('Automation 2')).toBeInTheDocument();
+
+      // Verify the table shows the correct columns
+      expect(screen.getByText('Name')).toBeInTheDocument();
+      expect(screen.getByText('Last Triggered')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+    });
   });
 });
