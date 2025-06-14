@@ -21,7 +21,7 @@ class TestIssueAlertRegistryInvoker(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get"
@@ -43,7 +43,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
