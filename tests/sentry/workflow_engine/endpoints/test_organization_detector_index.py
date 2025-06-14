@@ -276,15 +276,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "name": "Test Detector",
             "type": MetricIssue.slug,
             "projectId": self.project.id,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.name.lower(),
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 60,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.name.lower(),
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 60,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -440,7 +442,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
     def test_empty_query_string(self):
         data = {**self.valid_data}
-        data["dataSource"]["query"] = ""
+        data["dataSources"][0]["query"] = ""
 
         with self.tasks():
             response = self.get_success_response(
