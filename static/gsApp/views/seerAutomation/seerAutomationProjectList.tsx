@@ -86,7 +86,7 @@ function getSeerLabel(key: string) {
     case 'off':
       return t('Off');
     case 'super_low':
-      return t('Only Super Highly Actionable Issues');
+      return t('Only the Most Actionable Issues');
     case 'low':
       return t('Highly Actionable and Above');
     case 'medium':
