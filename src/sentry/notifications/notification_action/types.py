@@ -376,6 +376,9 @@ class BaseMetricAlertHandler(ABC):
             op="workflow_engine.handlers.action.notification.metric_alert.invoke_legacy_registry"
         ):
             event = job.event
+            if not isinstance(event, GroupEvent):
+                raise ValueError("Event must be a GroupEvent for alert context")
+
             if not event.occurrence:
                 raise ValueError("Event occurrence is required for alert context")
 
@@ -383,11 +386,11 @@ class BaseMetricAlertHandler(ABC):
 
             notification_context = cls.build_notification_context(action)
             alert_context = cls.build_alert_context(
-                detector, evidence_data, event.group.status, event.occurrence.priority
+                detector, evidence_data, :ob.group.status, event.occurrence.priority
             )
 
             metric_issue_context = cls.build_metric_issue_context(
-                event.group, evidence_data, event.occurrence.priority
+                job.group, evidence_data, event.occurrence.priority
             )
             open_period_context = cls.build_open_period_context(event)
 

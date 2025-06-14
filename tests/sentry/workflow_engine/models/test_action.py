@@ -12,7 +12,8 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 class TestAction(TestCase):
     def setUp(self):
-        self.mock_event = WorkflowEventData(event=Mock(spec=GroupEvent))
+        mock_group = Mock(spec=GroupEvent)
+        self.mock_event = WorkflowEventData(event=mock_group, group=mock_group.group)
         self.mock_detector = Mock(name="detector")
         self.action = Action(type=Action.Type.SLACK)
         self.config_schema = {
