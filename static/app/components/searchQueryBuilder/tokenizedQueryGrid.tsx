@@ -108,7 +108,12 @@ function Grid(props: GridProps) {
         dispatch({type: 'COMMIT_QUERY'});
       }}
     >
-      <SelectionKeyHandler ref={selectionKeyHandlerRef} state={state} undo={undo} />
+      <SelectionKeyHandler
+        ref={selectionKeyHandlerRef}
+        state={state}
+        undo={undo}
+        gridRef={ref}
+      />
       {[...state.collection].map(item => {
         const token = item.value;
 
