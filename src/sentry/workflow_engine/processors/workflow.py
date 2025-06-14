@@ -35,6 +35,7 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 logger = log_context.get_logger(__name__)
 
 WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
+DetectorId = int | None
 
 
 class WorkflowDataConditionGroupType(StrEnum):
@@ -213,11 +214,17 @@ def evaluate_workflows_action_filters(
 
     enqueue_workflows(queue_items_by_project_id)
 
+    event_id = (
+        event_data.event.event_id
+        if isinstance(event_data.event, GroupEvent)
+        else event_data.event.id
+    )
+
     logger.info(
         "workflow_engine.evaluate_workflows_action_filters",
         extra={
-            "group_id": event_data.event.group_id,
-            "event_id": event_data.event.event_id,
+            "group_id": event_data.group.id,
+            "event_id": event_id,
             "workflow_ids": [workflow.id for workflow in workflows],
             "action_conditions": [action_condition.id for action_condition in action_conditions],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
@@ -279,7 +286,7 @@ def _get_associated_workflows(
 
 
 @log_context.root()
-def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
+def process_workflows(event_data: WorkflowEventData, detector_id: DetectorId = None) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -288,8 +295,14 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
     try:
-        detector = get_detector_by_event(event_data)
+        detector: Detector
+        if detector_id is not None:
+            detector = Detector.objects.get(id=detector_id)
+        elif isinstance(event_data.event, GroupEvent):
+            detector = get_detector_by_event(event_data)
+
         log_context.add_extras(detector_id=detector.id)
+
         organization = detector.project.organization
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.

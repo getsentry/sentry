@@ -159,6 +159,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
         event_data = WorkflowEventData(
             event=test_event,
+            group=test_event.group,
         )
 
         for action_blob in actions:

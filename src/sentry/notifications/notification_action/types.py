@@ -251,7 +251,7 @@ class BaseIssueAlertHandler(ABC):
     ) -> None:
         """
         This method will create a rule instance from the Action model, and then invoke the legacy registry.
-        This method encompases the following logic in our legacy system:
+        This method encompasses the following logic in our legacy system:
         1. post_process process_rules calls rule_processor.apply
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
