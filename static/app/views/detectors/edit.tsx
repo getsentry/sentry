@@ -1,56 +1,152 @@
-/* eslint-disable no-alert */
-import {Fragment, useState} from 'react';
+import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
-import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
+import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
+import {FullHeightForm} from 'sentry/views/detectors/components/forms/fullHeightForm';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import {
+  getMetricDetectorFormData,
+  getNewMetricDetectorData,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metricFormData';
+import {useDetectorQuery, useUpdateDetector} from 'sentry/views/detectors/hooks';
+import {
+  makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
+} from 'sentry/views/detectors/pathnames';
+
+function DetectorBreadcrumbs({detectorId}: {detectorId: string}) {
+  const title = useMetricDetectorFormField('name');
+  const organization = useOrganization();
+  return (
+    <Breadcrumbs
+      crumbs={[
+        {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+        {label: title, to: makeMonitorDetailsPathname(organization.slug, detectorId)},
+        {label: t('Edit')},
+      ]}
+    />
+  );
+}
+
+function DetectorDocumentTitle() {
+  const title = useMetricDetectorFormField('name');
+  return <SentryDocumentTitle title={t('Edit Monitor: %s', title)} />;
+}
 
 export default function DetectorEdit() {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const params = useParams<{detectorId: string}>();
+
   useWorkflowEngineFeatureGate({redirect: true});
-  const [title, setTitle] = useState(t('Edit Monitor'));
+
+  const {
+    data: detector,
+    isPending,
+    isError,
+    refetch,
+  } = useDetectorQuery(params.detectorId);
+
+  const {mutateAsync: updateDetector} = useUpdateDetector();
+
+  const handleSubmit = useCallback<OnSubmitCallback>(
+    async (data, _, __, ___, formModel) => {
+      if (!detector) {
+        return;
+      }
+
+      const isValid = formModel.validateForm();
+      if (!isValid) {
+        return;
+      }
+
+      const updatedData = {
+        detectorId: detector.id,
+        ...getNewMetricDetectorData(data as MetricDetectorFormData),
+      };
+
+      const updatedDetector = await updateDetector(updatedData);
+      navigate(makeMonitorDetailsPathname(organization.slug, updatedDetector.id));
+    },
+    [updateDetector, navigate, organization.slug, detector]
+  );
+
+  const initialData = useMemo((): MetricDetectorFormData | null => {
+    if (!detector) {
+      return null;
+    }
+
+    return getMetricDetectorFormData(detector);
+  }, [detector]);
+
+  if (isError || !detector || !initialData) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
 
   return (
-    <SentryDocumentTitle title={title} noSuffix>
-      <BreadcrumbsProvider
-        crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
-      >
-        <ActionsProvider actions={<Actions />}>
-          <EditLayout onTitleChange={setTitle}>
+    <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
+      <DetectorDocumentTitle />
+      <Layout.Page>
+        <StyledLayoutHeader>
+          <Layout.HeaderContent>
+            <DetectorBreadcrumbs detectorId={params.detectorId} />
+            <Flex gap={space(1)} column>
+              <Layout.Title>
+                <EditableDetectorName />
+              </Layout.Title>
+              <DetectorSubtitle
+                projectId={initialData.projectId}
+                environment={initialData.environment}
+              />
+            </Flex>
+          </Layout.HeaderContent>
+        </StyledLayoutHeader>
+        <Layout.Body>
+          <Layout.Main fullWidth>
             <MetricDetectorForm />
-          </EditLayout>
-        </ActionsProvider>
-      </BreadcrumbsProvider>
-    </SentryDocumentTitle>
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+      <StickyFooter>
+        <Flex gap={space(1)} flex={1} justify="flex-end">
+          <LinkButton
+            priority="default"
+            to={makeMonitorDetailsPathname(organization.slug, params.detectorId)}
+          >
+            {t('Cancel')}
+          </LinkButton>
+          <Button priority="primary" type="submit">
+            {t('Save Changes')}
+          </Button>
+        </Flex>
+      </StickyFooter>
+    </FullHeightForm>
   );
 }
 
-function Actions() {
-  const disable = () => {
-    window.alert('disable');
-  };
-  const del = () => {
-    window.alert('delete');
-  };
-  const save = () => {
-    window.alert('save');
-  };
-  return (
-    <Fragment>
-      <Button onClick={disable}>{t('Disable')}</Button>
-      <Button onClick={del} priority="danger">
-        {t('Delete')}
-      </Button>
-      <Button onClick={save} priority="primary">
-        {t('Save')}
-      </Button>
-    </Fragment>
-  );
-}
+const StyledLayoutHeader = styled(Layout.Header)`
+  background-color: ${p => p.theme.background};
+`;
