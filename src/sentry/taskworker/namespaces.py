@@ -131,6 +131,10 @@ tempest_tasks = taskregistry.create_namespace("tempest", app_feature="errors")
 
 uptime_tasks = taskregistry.create_namespace("uptime", app_feature="crons")
 
+workflow_engine_tasks = taskregistry.create_namespace(
+    "workflow_engine", app_feature="workflow_engine"
+)
+
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")
