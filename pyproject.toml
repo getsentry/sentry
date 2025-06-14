@@ -384,6 +384,7 @@ module = [
     "sentry.status_checks.*",
     "sentry.tasks.beacon",
     "sentry.tasks.commit_context",
+    "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
