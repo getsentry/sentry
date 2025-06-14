@@ -431,7 +431,7 @@ def fire_actions_for_groups(
     ) as tracker:
         for group, group_event in group_to_groupevent.items():
             with tracker.track(str(group.id)):
-                event_data = WorkflowEventData(event=group_event)
+                event_data = WorkflowEventData(event=group_event, group=group)
                 detector = get_detector_by_event(event_data)
 
                 workflow_triggers: set[DataConditionGroup] = set()

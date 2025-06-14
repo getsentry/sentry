@@ -251,7 +251,7 @@ class BaseIssueAlertHandler(ABC):
     ) -> None:
         """
         This method will create a rule instance from the Action model, and then invoke the legacy registry.
-        This method encompases the following logic in our legacy system:
+        This method encompasses the following logic in our legacy system:
         1. post_process process_rules calls rule_processor.apply
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
@@ -376,10 +376,10 @@ class BaseMetricAlertHandler(ABC):
             evidence_data = MetricIssueEvidenceData(**event.occurrence.evidence_data)
 
             notification_context = cls.build_notification_context(action)
-            alert_context = cls.build_alert_context(detector, evidence_data, event.group.status)
+            alert_context = cls.build_alert_context(detector, evidence_data, job.group.status)
 
             metric_issue_context = cls.build_metric_issue_context(
-                event.group, evidence_data, event.occurrence.priority
+                job.group, evidence_data, event.occurrence.priority
             )
             open_period_context = cls.build_open_period_context(event)
 

@@ -123,7 +123,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             date_started=self.group_event.group.first_seen,
         )
         self.event_data = WorkflowEventData(
-            event=self.group_event, workflow_env=self.workflow.environment
+            event=self.group_event,
+            workflow_env=self.workflow.environment,
+            group=self.group,
         )
 
     def setUp(self):
