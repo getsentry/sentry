@@ -254,3 +254,91 @@ export function getNewMetricDetectorData(
     dataSource,
   };
 }
+
+/**
+ * Converts a Detector to MetricDetectorFormData for editing
+ */
+export function getMetricDetectorFormData(detector: Detector): MetricDetectorFormData {
+  // Get the first data source (assuming metric detectors have one)
+  const dataSource = detector.dataSources?.[0];
+
+  // Check if this is a snuba query data source
+  const snubaQuery =
+    dataSource?.type === 'snuba_query_subscription'
+      ? dataSource.queryObj?.snubaQuery
+      : undefined;
+
+  // Extract aggregate and visualize from the aggregate string
+  // Format is typically "count(transaction.duration)"
+  const aggregateMatch = snubaQuery?.aggregate?.match(/^(\w+)\(([^)]+)\)$/);
+  const aggregate = aggregateMatch?.[1] || 'count';
+  const visualize = aggregateMatch?.[2] || 'transaction.duration';
+
+  // Get conditions from the condition group
+  const conditions = detector.conditionGroup?.conditions || [];
+
+  // Find the main condition (not a resolution condition)
+  const mainCondition = conditions.find(
+    condition =>
+      condition.conditionResult === DetectorPriorityLevel.MEDIUM ||
+      condition.conditionResult === DetectorPriorityLevel.HIGH
+  );
+
+  // Find high priority escalation condition
+  const highCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.HIGH
+  );
+
+  // Find resolution condition
+  const resolveCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.OK
+  );
+
+  // Determine initial priority level, ensuring it's valid for the form
+  let initialPriorityLevel: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH =
+    DetectorPriorityLevel.MEDIUM;
+
+  if (mainCondition?.conditionResult === DetectorPriorityLevel.HIGH) {
+    initialPriorityLevel = DetectorPriorityLevel.HIGH;
+  } else if (mainCondition?.conditionResult === DetectorPriorityLevel.MEDIUM) {
+    initialPriorityLevel = DetectorPriorityLevel.MEDIUM;
+  }
+
+  // Ensure condition type is valid for the form
+  let conditionType: DataConditionType.GREATER | DataConditionType.LESS =
+    DataConditionType.GREATER;
+  if (
+    mainCondition?.type === DataConditionType.LESS ||
+    mainCondition?.type === DataConditionType.GREATER
+  ) {
+    conditionType = mainCondition.type;
+  }
+
+  return {
+    // Core detector fields
+    name: detector.name,
+    projectId: detector.projectId,
+    environment: snubaQuery?.environment || '',
+    query: snubaQuery?.query || '',
+    aggregate,
+    visualize,
+
+    // Determine kind - for now default to threshold
+    // TODO: Add logic to detect if it's change or dynamic based on config
+    kind: 'threshold',
+
+    // Priority level fields
+    initialPriorityLevel,
+    conditionValue: mainCondition?.comparison?.toString() || '',
+    conditionType,
+    highThreshold: highCondition?.comparison?.toString(),
+    resolveThreshold: resolveCondition?.comparison?.toString(),
+
+    // Condition fields - convert timeWindow from minutes to seconds
+    conditionComparisonAgo: snubaQuery?.timeWindow ? snubaQuery.timeWindow * 60 : 3600,
+
+    // Default dynamic fields (these might need to be extracted from config in the future)
+    sensitivity: AlertRuleSensitivity.LOW,
+    thresholdType: AlertRuleThresholdType.ABOVE,
+  };
+}
