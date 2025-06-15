@@ -1,0 +1,166 @@
+import {useState} from 'react';
+
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
+
+import {useResizableDrawer} from './useResizableDrawer';
+
+## useResizableDrawer
+
+Use this hook to create a resizable drawer. The hook will return the props to pass to the element you wish to resize and the props to pass to the resize handle.
+
+The hook returns the following:
+
+- `resizing`: A boolean that indicates if the drawer is resizing.
+- `resizeHandleProps`: The props to pass to the resize handle.
+- `resizedElementProps`: The props to pass to the element you wish to resize.
+
+<CodeSnippet language="typescript" dark>
+```tsx
+import { useResizableDrawer } from 'sentry/utils/useResizableDrawer';
+
+function App() {
+const { resizing, resizeHandleProps, resizedElementProps } = useResizableDrawer({
+direction: 'right',
+initialSize: {width: 260},
+max: {width: 400},
+min: {width: 100},
+});
+
+return (
+
+<div>
+  {/* resizedElementProps are the props to pass to the element you wish to resize */}
+  <div {...resizedElementProps}>
+    {/* resizeHandleProps are the props to pass to the resize handle */}
+    <div {...resizeHandleProps}>Resizing: {resizing ? 'true' : 'false'}</div>
+  </div>
+</div>
+); }
+
+````
+</CodeSnippet>
+
+## Reactivity
+
+The hook will update if the value of initialSize, max, min, or direction changes. This is useful if for example the hook is used to create a resizable drawer on a dynamic layout.
+
+<CodeSnippet language="typescript" dark>
+```tsx
+import { useState } from 'react';
+
+import { Flex } from 'sentry/components/container/flex';
+import { Button } from 'sentry/components/core/button';
+
+import { useResizableDrawer } from 'sentry/utils/useResizableDrawer';
+
+function ReactiveDemo() {
+  const [layout, setLayout] = useState('horizontal');
+
+  const { resizeHandleProps, resizedElementProps } = useResizableDrawer(
+    layout === 'horizontal' ? {
+      direction: 'right',
+      initialSize: {width: 260},
+      max: {width: 400},
+      min: {width: 100},
+    } : {
+      direction: 'down',
+      initialSize: {height: 260},
+      max: {height: 400},
+      min: {height: 100},
+    }
+  );
+
+  return (
+    <Flex column gap={8}>
+      <Flex align='center' gap={8}>
+        <Button onClick={() => setLayout(layout === 'horizontal' ? 'vertical' : 'horizontal')}>
+          Change Layout
+        </Button>
+      </Flex>
+      <Flex column={layout === 'vertical'}>
+        <Flex
+          align='center'
+          justify='center'
+          {...resizedElementProps}
+          style={{ border: '1px solid #ccc' }}
+        >
+          <Flex {...resizeHandleProps} style={{ padding: '10px'}} justify='center' align='center' w='100%' h='100%'>
+            <span>ResizableDrawer</span>
+          </Flex>
+        </Flex>
+        <Flex align='center' justify='center' style={{ border: '1px solid #ccc', minHeight: '40px', minWidth: '100px', padding: '10px' }}><span>Content</span></Flex>
+      </Flex>
+    </Flex>
+  );
+}
+```
+
+</CodeSnippet>
+
+export function ReactiveDemo() {
+  const [layout, setLayout] = useState('horizontal');
+
+const { resizeHandleProps, resizedElementProps } = useResizableDrawer(
+layout === 'horizontal' ? {
+direction: 'right',
+initialSize: {width: 260},
+max: {width: 400},
+min: {width: 100},
+} : {
+direction: 'down',
+initialSize: {height: 260},
+max: {height: 400},
+min: {height: 100},
+}
+);
+
+return (
+
+<Flex column gap={8}>
+  <Flex align="center" gap={8}>
+    <Button
+      onClick={() => setLayout(layout === 'horizontal' ? 'vertical' : 'horizontal')}
+    >
+      Change Layout
+    </Button>
+  </Flex>
+  <Flex column={layout === 'vertical'}>
+    <Flex
+      align="center"
+      justify="center"
+      {...resizedElementProps}
+      style={{border: '1px solid #ccc'}}
+    >
+      <Flex
+        {...resizeHandleProps}
+        style={{padding: '10px'}}
+        justify="center"
+        align="center"
+        w="100%"
+        h="100%"
+      >
+        <span>ResizableDrawer</span>
+      </Flex>
+    </Flex>
+    <Flex
+      align="center"
+      justify="center"
+      style={{
+        border: '1px solid #ccc',
+        minHeight: '40px',
+        minWidth: '100px',
+        padding: '10px',
+      }}
+    >
+      <span>Content</span>
+    </Flex>
+  </Flex>
+</Flex>
+); }
+
+## Demo:
+
+<ReactiveDemo />
+````
