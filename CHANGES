@@ -1,3 +1,35 @@
+25.6.0
+------
+
+### Various fixes & improvements
+
+- fix(ourlogs): Hide the sidebar (#93581) by @colin-sentry
+- fix(nav): Fix secondary sidebar scrolling (#93576) by @malwilley
+- fix(ui): Add space to transactions tooltip (#93450) by @evanpurkhiser
+- ref: fix migration squasher (#93563) by @asottile-sentry
+- feat(workflow_engine): Add registry hook for Activity creation (#93522) by @saponifi3d
+- feat(devservices): Add ingest full mode (#93079) by @hubertdeng123
+- chore: Allow pnpm built dependencies (#93556) by @ryan953
+- ref(js): Remove isRenderFunc (#93552) by @evanpurkhiser
+- fix(search): Do not commit empty filter keys (#93558) by @malwilley
+- :wrench: chore: remove suspicious cache log (#93559) by @iamrajjoshi
+- feat(aci): set up sentry app action settings button (#93456) by @ameliahsu
+- :bug: fix(aci): fix ff name for logs (#93554) by @iamrajjoshi
+- feat(codecov): add query params to test analytics hooks (#93473) by @adrianviquez
+- feat(billing): Add quotas.has_profile_duration_quota (#93551) by @dashed
+- ref(ts): Remove `background` avatar type (#93540) by @evanpurkhiser
+- feat(forms): Remove unused `selectionInfoFunction` (#93539) by @scttcper
+- ref(avatar): Simplify prop interface (#93542) by @evanpurkhiser
+- fix(aci): replace `detectorType` with `type` in detector endpoints (#93544) by @ameliahsu
+- feat(aci): Add automation list connected detectors (#93546) by @malwilley
+- feat(trace-eap-waterfall): Only rendering context section if data exists (#93468) by @Abdkhan14
+- ref: delete pyc file (#93547) by @asottile-sentry
+- chore(slos): add slos for refresher (#93483) by @Christinarlong
+- chore(github): add mapping so we start collecting analytics (#93398) by @Christinarlong
+- chore(aci): log action ids we'd fire in workflow engine (#93480) by @cathteng
+
+_Plus 1248 more_
+
 25.5.1
 ------
 
