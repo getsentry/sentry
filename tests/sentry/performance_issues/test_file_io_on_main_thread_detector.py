@@ -128,7 +128,7 @@ class FileIOMainThreadDetectorTest(TestCase):
 
     def test_file_io_with_proguard(self):
         event = get_event("file-io-on-main-thread-with-obfuscation")
-        event["project"] = self.project.id
+        event["project_id"] = self.project.id
 
         uuid = event["debug_meta"]["images"][0]["uuid"]
         self.create_proguard(uuid)
