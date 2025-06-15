@@ -42,11 +42,13 @@ export function useSaveMultiQuery() {
       projects,
       environment: environments,
       query: queries.map(q => ({
+        aggregateField: [
+          ...q.groupBys.filter(groupBy => groupBy !== '').map(groupBy => ({groupBy})),
+          {yAxes: q.yAxes, chartType: q.chartType},
+        ],
         fields: q.fields,
         orderby: q.sortBys[0] ? encodeSort(q.sortBys[0]) : undefined, // Explore only handles a single sort by
-        groupby: q.groupBys.filter(groupBy => groupBy !== ''),
         query: q.query ?? '',
-        visualize: [{yAxes: q.yAxes, chartType: q.chartType}],
         mode: q.groupBys.length > 0 ? 'aggregate' : 'samples',
       })),
     };
