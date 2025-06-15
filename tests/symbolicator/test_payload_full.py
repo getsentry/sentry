@@ -202,6 +202,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         insta_snapshot_native_stacktrace_data(self, event.data)
 
+    @pytest.mark.skip(reason="flaky: #93040")
     def test_missing_dsym(self):
         self.login_as(user=self.user)
 
