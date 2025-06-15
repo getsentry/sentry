@@ -56,18 +56,25 @@ export default function useLoadReplayReader({
     );
   }, [clipWindow, firstMatchingError]);
 
-  const replay = useMemo(
-    () =>
-      ReplayReader.factory({
-        attachments,
-        clipWindow: memoizedClipWindow,
-        errors,
-        fetching: isPending,
-        replayRecord,
-        eventTimestampMs,
-      }),
-    [attachments, memoizedClipWindow, errors, isPending, replayRecord, eventTimestampMs]
-  );
+  const replay = useMemo(() => {
+    return replayRecord?.is_archived
+      ? null
+      : ReplayReader.factory({
+          attachments,
+          clipWindow: memoizedClipWindow,
+          errors,
+          fetching: isPending,
+          replayRecord,
+          eventTimestampMs,
+        });
+  }, [
+    attachments,
+    memoizedClipWindow,
+    errors,
+    isPending,
+    replayRecord,
+    eventTimestampMs,
+  ]);
 
   return {
     ...replayData,

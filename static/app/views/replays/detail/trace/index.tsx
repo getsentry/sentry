@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NewTraceView} from 'sentry/views/replays/detail/trace/trace';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  replayRecord: ReplayRecord | undefined;
+  replayRecord: HydratedReplayRecord | undefined;
 }
 
 const features = ['organizations:performance-view'];

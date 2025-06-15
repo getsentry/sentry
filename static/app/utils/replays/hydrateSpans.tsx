@@ -3,10 +3,10 @@ import invariant from 'invariant';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import type {RawSpanFrame, SpanFrame} from 'sentry/utils/replays/types';
 import {isSpanFrame} from 'sentry/utils/replays/types';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 export default function hydrateSpans(
-  replayRecord: ReplayRecord,
+  replayRecord: HydratedReplayRecord,
   spanFrames: RawSpanFrame[]
 ): SpanFrame[] {
   const startTimestampMs = replayRecord.started_at.getTime();
