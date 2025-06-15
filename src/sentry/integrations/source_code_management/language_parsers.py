@@ -353,11 +353,6 @@ class GoParser(LanguageParser):
     # Function variable separate assignment (handles var declaration then assignment)
     function_assignment_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*=\s*func\s*\("
 
-    # Anonymous functions (standalone, not assigned to variables)
-    # Note: These don't have names, but we capture them for completeness
-    # The regex will match but won't capture a meaningful function name
-    anonymous_function_regex = r"^@@.*@@[^=]*?\s*func\s*\("
-
     # Interface method declarations (no func keyword, just method signature)
     # This matches lines that look like method signatures in interfaces
     interface_method_regex = r"^@@.*@@(?!.*\bfunc\b)\s+(?P<fnc>\w+)\s*\([^)]*\).*$"
