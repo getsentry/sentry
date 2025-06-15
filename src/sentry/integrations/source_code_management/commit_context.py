@@ -139,6 +139,11 @@ class PullRequestFile:
     patch: str
 
 
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = (
+    "‼️ **{title}** `{subtitle}`\n - [View Issue]({url}){environment}\n"
+)
+
+
 class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
@@ -569,6 +574,32 @@ class PRCommentWorkflow(ABC):
             ),
         )
         return raw_snql_query(request, referrer=self.referrer.value)["data"]
+
+    def get_environment_info(self, issue: Group) -> str:
+        try:
+            recommended_event = issue.get_recommended_event()
+            if recommended_event:
+                environment = recommended_event.get_environment()
+                if environment and environment.name:
+                    return f"\n - Environment: `{environment.name}`"
+        except Exception as e:
+            # If anything goes wrong, just continue without environment info
+            logger.info(
+                "get_environment_info.no-environment",
+                extra={"issue_id": issue.id, "error": e},
+            )
+        return ""
+
+    @staticmethod
+    def get_merged_pr_single_issue_template(
+        title: str, subtitle: str, url: str, environment: str
+    ) -> str:
+        return MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+            title=title,
+            subtitle=subtitle,
+            url=url,
+            environment=environment,
+        )
 
 
 class OpenPRCommentWorkflow(ABC):
