@@ -328,16 +328,18 @@ class GoParser(LanguageParser):
     r"""
     Type of function declaration                        Example
     Regular function:                                   func Hello(name string) string
+    Function with multiple returns:                     func Hello(name string) (string, error)
     Method with receiver:                               func (r *Receiver) MethodName() error
     Method with value receiver:                         func (r Receiver) MethodName() error
     Anonymous function:                                 func() { ... }
     Function variable:                                  var myFunc = func() { ... }
     Function variable (short declaration):              myFunc := func() { ... }
+    Function variable separate assignment:              add = func(x, y int) int { ... }
     Interface method (in interface definition):         MethodName(param Type) ReturnType
     """
 
-    # Regular function declarations (including generics)
-    function_declaration_regex = r"^@@.*@@[^=]*?\s*func\s+(?P<fnc>\w+)(?:\[[^\]]*\])?\s*\("
+    # Regular function declarations (including generics with optional whitespace)
+    function_declaration_regex = r"^@@.*@@[^=]*?\s*func\s+(?P<fnc>\w+)(?:\s*\[[^\]]*\])?\s*\("
 
     # Method declarations with receiver (pointer or value)
     method_with_receiver_regex = r"^@@.*@@[^=]*?\s*func\s+\([^)]+\)\s*(?P<fnc>\w+)\s*\("
@@ -348,6 +350,14 @@ class GoParser(LanguageParser):
     # Function variables with short declaration (:=)
     function_short_decl_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*:=\s*func\s*\("
 
+    # Function variable separate assignment (handles var declaration then assignment)
+    function_assignment_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*=\s*func\s*\("
+
+    # Anonymous functions (standalone, not assigned to variables)
+    # Note: These don't have names, but we capture them for completeness
+    # The regex will match but won't capture a meaningful function name
+    anonymous_function_regex = r"^@@.*@@[^=]*?\s*func\s*\("
+
     # Interface method declarations (no func keyword, just method signature)
     # This matches lines that look like method signatures in interfaces
     interface_method_regex = r"^@@.*@@(?!.*\bfunc\b)\s+(?P<fnc>\w+)\s*\([^)]*\).*$"
@@ -357,7 +367,9 @@ class GoParser(LanguageParser):
         method_with_receiver_regex,
         function_var_regex,
         function_short_decl_regex,
+        function_assignment_regex,
         interface_method_regex,
+        # Note: anonymous_function_regex omitted as it doesn't capture meaningful names
     ]
 
 

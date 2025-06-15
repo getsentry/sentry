@@ -1238,3 +1238,92 @@ class GoParserTestCase(TestCase):
             "camelCase",
             "MixedCase_With_Underscores",
         }
+
+    def test_go_multiline_signatures(self):
+        """Test Go functions with parameters and return types spanning multiple lines"""
+        patch = """
+@@ -152,10 +152,6 @@ func LongFunction(
+    param1 string,
+    param2 int,
+    param3 []byte,
+) (string, error)
+
+@@ -160,12 +160,8 @@ func (s *Service) ProcessRequest(
+    ctx context.Context,
+    request *http.Request,
+    options ...Option,
+) (*Response, error) {
+
+@@ -170,15 +170,10 @@ var complexHandler = func(
+    w http.ResponseWriter,
+    r *http.Request,
+    middleware []Middleware,
+) error {
+
+@@ -180,18 +180,12 @@ transformer := func(
+    input map[string]interface{},
+    validators []Validator,
+) (
+    map[string]interface{},
+    error,
+) {
+
+@@ -190,20 +190,15 @@ func GenericProcessor[T any, R comparable](
+    items []T,
+    processor func(T) R,
+    options ProcessOptions,
+) ([]R, error)
+
+@@ -200,25 +200,18 @@ func (db *Database) ExecuteTransaction(
+    ctx context.Context,
+    queries []string,
+    params []interface{},
+) (
+    results []Result,
+    err error,
+)
+
+@@ -210,30 +210,20 @@ var middleware = func(
+    next http.Handler,
+) http.Handler {
+
+@@ -215,35 +215,22 @@ MultilineInterface(
+    param1 string,
+    param2 int,
+) (string, error)
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "LongFunction",
+            "ProcessRequest",
+            "complexHandler",
+            "transformer",
+            "GenericProcessor",
+            "ExecuteTransaction",
+            "middleware",
+            "MultilineInterface",
+        }
+
+    def test_go_separate_variable_assignment(self):
+        """Test Go function variables declared separately from assignment (addressing PR comment)"""
+        patch = """
+@@ -152,10 +152,6 @@ var add func(int, int) int
+some other code here
+@@ -160,12 +160,8 @@ add = func(x, y int) int {
+
+@@ -170,15 +170,10 @@ var handler func(http.ResponseWriter, *http.Request)
+@@ -175,18 +175,12 @@ handler = func(w http.ResponseWriter, r *http.Request) {
+
+@@ -180,20 +180,15 @@ var processor func([]byte) []byte
+random code
+@@ -190,25 +190,18 @@ processor = func(data []byte) []byte {
+
+"""
+
+        # The separate assignment should be captured by function_assignment_regex
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "add",
+            "handler",
+            "processor",
+        }
