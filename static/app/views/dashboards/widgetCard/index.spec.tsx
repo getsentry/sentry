@@ -14,7 +14,6 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -23,10 +22,11 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import WidgetTable from 'sentry/views/dashboards/widgetTable';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
-jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
+jest.mock('sentry/views/dashboards/widgetTable', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
@@ -520,8 +520,8 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
     await waitFor(() =>
-      expect((SimpleTableChart as jest.Mock).mock.calls[0][0]).toEqual(
-        expect.objectContaining({stickyHeaders: true})
+      expect((WidgetTable as jest.Mock).mock.calls[0][0]).toEqual(
+        expect.objectContaining({stickyHeader: true})
       )
     );
   });

@@ -59,6 +59,20 @@ export const SESSION_DURATION_ALERT = (
   <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
+// Used in widget preview and on the dashboard
+export const TABLE_WIDGET_STYLES = {
+  // Makes the top edges of the table sharp
+  borderTopLeftRadius: 0,
+  borderTopRightRadius: 0,
+  // Removes extra bordering from the table
+  marginBottom: 0,
+  borderLeft: 0,
+  borderRight: 0,
+  borderBottom: 0,
+  // Get sticky headers to work
+  height: '100%',
+};
+
 type Props = WithRouterProps & {
   api: Client;
   isEditingDashboard: boolean;
@@ -73,6 +87,7 @@ type Props = WithRouterProps & {
   disableFullscreen?: boolean;
   disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
+  handleWidgetSort?: (ns: string) => void;
   hasEditAccess?: boolean;
   index?: string;
   isEditingWidget?: boolean;
@@ -80,7 +95,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -155,6 +170,8 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
+    handleWidgetSort,
+    isPreview,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -319,6 +336,8 @@ function WidgetCard(props: Props) {
             disableZoom={disableZoom}
             onDataFetchStart={onDataFetchStart}
             showLoadingText={showLoadingText && isLoadingTextVisible}
+            handleWidgetSort={handleWidgetSort}
+            isPreview={isPreview}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

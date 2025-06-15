@@ -374,6 +374,8 @@ function DashboardTable({
           <p>{t('Sorry, no Dashboards match your filters.')}</p>
         </EmptyStateWarning>
       }
+      stickyHeader
+      scrollable
     />
   );
 }
