@@ -277,10 +277,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         detector = get_detector_by_event(event_data)
         log_context.add_extras(detector_id=detector.id)
         organization = detector.project.organization
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
-        ):
-            log_context.set_verbose(True)
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
         WorkflowEventContext.set(
@@ -305,6 +301,11 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         )
     except Environment.DoesNotExist:
         return set()
+
+    if features.has(
+        "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
+    ):
+        log_context.set_verbose(True)
 
     workflows = _get_associated_workflows(detector, environment, event_data)
     if not workflows:

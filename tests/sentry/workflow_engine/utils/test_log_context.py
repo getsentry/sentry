@@ -116,6 +116,6 @@ class LogContextTest(TestCase):
             )
             context = log_context._log_context_state.get()
             context.modify_record(record)
-            assert record.workflow_id == 123
+            assert record.workflow_id == 123  # type: ignore[attr-defined]
 
         test_func()
