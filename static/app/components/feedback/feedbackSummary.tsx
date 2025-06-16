@@ -40,13 +40,11 @@ export default function FeedbackSummary() {
     const el = summaryRef.current;
     if (!el) return undefined;
 
-    // Observe width/height changes
     const resizeObserver = new window.ResizeObserver(() => {
       checkClamped();
     });
     resizeObserver.observe(el);
 
-    // Clean up
     return () => {
       resizeObserver.disconnect();
     };
@@ -86,7 +84,7 @@ export default function FeedbackSummary() {
           >
             {summary}
           </SummaryContent>
-          {isClamped && !expanded && (
+          {!expanded && isClamped && (
             <ReadMoreButton type="button" onClick={() => setExpanded(true)}>
               {t('Read more')}
             </ReadMoreButton>
