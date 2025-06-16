@@ -5,6 +5,7 @@ import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
@@ -13,11 +14,15 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
+import {hasOurlogsAlertsFeature} from 'sentry/utils/ourlogs/features';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_EAP_AGGREGATION = 'count';
 const DEFAULT_EAP_FIELD = 'span.duration';
@@ -26,6 +31,10 @@ const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EA
 interface Props {
   aggregate: string;
   onChange: (value: string, meta: Record<string, any>) => void;
+  organization: Organization;
+  alertType?: AlertType;
+  onTraceItemChange?: (value: TraceItemDataset) => void;
+  traceItemType?: TraceItemDataset;
 }
 
 // Use the same aggregates/operations available in the explore view
@@ -36,11 +45,44 @@ const OPERATIONS = [
   })),
 ];
 
-function EAPFieldWrapper({aggregate, onChange}: Props) {
-  return <EAPField aggregate={aggregate} onChange={onChange} />;
+const DEFAULT_ARGS_FOR_TRACE_ITEM_AGGREGATES: Record<
+  string,
+  Record<TraceItemDataset, string>
+> = {
+  count: {
+    [TraceItemDataset.SPANS]: 'span.duration',
+    [TraceItemDataset.LOGS]: 'message',
+  },
+};
+
+function EAPFieldWrapper({
+  aggregate,
+  onChange,
+  organization,
+  alertType,
+  traceItemType,
+  onTraceItemChange,
+}: Props) {
+  return (
+    <EAPField
+      aggregate={aggregate}
+      onChange={onChange}
+      organization={organization}
+      alertType={alertType}
+      traceItemType={traceItemType}
+      onTraceItemChange={onTraceItemChange}
+    />
+  );
 }
 
-function EAPField({aggregate, onChange}: Props) {
+function EAPField({
+  aggregate,
+  onChange,
+  organization,
+  alertType,
+  traceItemType,
+  onTraceItemChange,
+}: Props) {
   // We parse out the aggregation and field from the aggregate string.
   // This only works for aggregates with <= 1 argument.
   const {
@@ -48,8 +90,9 @@ function EAPField({aggregate, onChange}: Props) {
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
-  const {tags: storedStringTags} = useSpanTags('string');
-  const {tags: storedNumberTags} = useSpanTags('number');
+  const {attributes: storedNumberTags} = useTraceItemAttributes('number');
+  const {attributes: storedStringTags} = useTraceItemAttributes('string');
+
   const storedTags =
     aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
   const numberTags: TagCollection = useMemo(() => {
@@ -64,8 +107,15 @@ function EAPField({aggregate, onChange}: Props) {
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
   const [lockOptions, selectedOption] = useMemo(() => {
-    if (aggregation === AggregationKey.COUNT) {
+    if (
+      aggregation === AggregationKey.COUNT &&
+      traceItemType === TraceItemDataset.SPANS
+    ) {
       return [true, {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}];
+    }
+
+    if (aggregation === AggregationKey.COUNT && traceItemType === TraceItemDataset.LOGS) {
+      return [true, {label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}];
     }
 
     if (
@@ -77,7 +127,7 @@ function EAPField({aggregate, onChange}: Props) {
 
     const fieldName = fieldsArray.find(f => f.key === field)?.name;
     return [false, field && {label: fieldName, value: field}];
-  }, [aggregation, field, fieldsArray]);
+  }, [aggregation, field, fieldsArray, traceItemType]);
 
   useEffect(() => {
     if (lockOptions) {
@@ -118,6 +168,19 @@ function EAPField({aggregate, onChange}: Props) {
     [aggregation, field, onChange]
   );
 
+  const handleTraceItemChange = useCallback(
+    (option: any) => {
+      const selectedAggregation = aggregation || DEFAULT_EAP_AGGREGATION;
+      const newArg =
+        DEFAULT_ARGS_FOR_TRACE_ITEM_AGGREGATES[selectedAggregation]?.[
+          option.value as TraceItemDataset
+        ];
+      onChange(`${aggregation}(${newArg ?? ''})`, {});
+      onTraceItemChange?.(option.value);
+    },
+    [aggregation, onChange, onTraceItemChange]
+  );
+
   // As SelectControl does not support an options size limit out of the box
   // we work around it by using the async variant of the control
   const getFieldOptions = useCallback(
@@ -134,9 +197,21 @@ function EAPField({aggregate, onChange}: Props) {
     },
     [fieldsArray]
   );
+  const supportedTraceItemTypes = [{label: t('Spans'), value: TraceItemDataset.SPANS}];
+  if (alertType === 'trace_item_throughput' && hasOurlogsAlertsFeature(organization)) {
+    supportedTraceItemTypes.push({label: t('Logs'), value: TraceItemDataset.LOGS});
+  }
 
   return (
     <Wrapper>
+      {supportedTraceItemTypes.length > 1 && (
+        <StyledSelectControl
+          label={t('Event')}
+          options={supportedTraceItemTypes}
+          value={traceItemType}
+          onChange={handleTraceItemChange}
+        />
+      )}
       <StyledSelectControl
         searchable
         placeholder={t('Select an operation')}

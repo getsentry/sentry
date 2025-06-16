@@ -68,6 +68,7 @@ import {
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
@@ -156,6 +157,7 @@ type State = {
   isExtrapolatedChartData?: boolean;
   seasonality?: AlertRuleSeasonality;
   seriesSamplingInfo?: SeriesSamplingInfo;
+  traceItemType?: TraceItemDataset;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -870,6 +872,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     });
   };
 
+  handleTraceItemTypeChange = (traceItemType: TraceItemDataset) => {
+    this.setState({traceItemType}, () => this.fetchAnomalies());
+  };
+
   handleSensitivityChange = (sensitivity: AlertRuleSensitivity) => {
     this.setState({sensitivity}, () => this.fetchAnomalies());
   };
@@ -1291,6 +1297,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
+      traceItemType,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1441,6 +1448,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     router={router}
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
+                    traceItemType={traceItemType}
+                    onTraceItemChange={(value: TraceItemDataset) =>
+                      this.handleTraceItemTypeChange(value)
+                    }
                   />
                   <AlertListItem>{t('Set thresholds')}</AlertListItem>
                   {thresholdTypeForm(formDisabled)}

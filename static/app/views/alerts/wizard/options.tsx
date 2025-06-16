@@ -18,6 +18,7 @@ import {
 } from 'sentry/utils/fields';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import {hasOurlogsAlertsFeature} from 'sentry/utils/ourlogs/features';
 import {
   Dataset,
   EventTypes,
@@ -51,7 +52,8 @@ export type AlertType =
   | 'trace_item_failure_rate'
   | 'trace_item_lcp'
   | 'trace_item_fid'
-  | 'trace_item_cls';
+  | 'trace_item_cls'
+  | 'trace_item_logs';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -108,6 +110,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   trace_item_fid: t('First Input Delay'),
   trace_item_cls: t('Cumulative Layout Shift'),
   eap_metrics: t('Spans'),
+  trace_item_logs: t('Logs'),
   crons_monitor: t('Cron Monitor'),
 };
 
@@ -165,6 +168,7 @@ export const getAlertWizardCategories = (org: Organization) => {
           : deprecatedTransactionAggregationOptions),
 
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
+        ...(hasOurlogsAlertsFeature(org) ? ['trace_item_logs' as const] : []),
       ],
     });
 
@@ -298,6 +302,11 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: 'p95(measurements.cls)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_logs: {
+    aggregate: 'count(message)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_LOG,
   },
 };
 

@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {hasOurlogsAlertsFeature} from 'sentry/utils/ourlogs/features';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
@@ -22,6 +23,7 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
   hasEAPAlerts,
@@ -42,6 +44,8 @@ type Props = Omit<FormFieldProps, 'children'> & {
   columnWidth?: number;
   inFieldLabels?: boolean;
   isEditing?: boolean;
+  onTraceItemChange?: (value: TraceItemDataset) => void;
+  traceItemType?: TraceItemDataset;
 };
 
 export default function WizardField({
@@ -49,6 +53,8 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
+  onTraceItemChange,
+  traceItemType,
   ...fieldProps
 }: Props) {
   const isDeprecatedTransactionAlertType =
@@ -174,6 +180,15 @@ export default function WizardField({
               },
             ]
           : []),
+
+        ...(hasOurlogsAlertsFeature(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.trace_item_logs,
+                value: 'trace_item_logs' as const,
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -246,6 +261,10 @@ export default function WizardField({
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
                 }}
+                organization={organization}
+                alertType={alertType}
+                onTraceItemChange={onTraceItemChange}
+                traceItemType={traceItemType}
               />
             ) : (
               <StyledQueryField
