@@ -342,7 +342,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
             # Safely get (request_size, response_size)
             sizes_tuple = _get_request_response_sizes(event)
-            response_size = "unknown"
+            response_size = None
 
             # Check if the tuple is valid and response size exists
             if sizes_tuple and sizes_tuple[1] is not None:
@@ -352,7 +352,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             duration = payload["endTimestamp"] - payload["startTimestamp"]
             method = payload["data"]["method"]
 
-            return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp}'
+            if response_size is None:
+                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp}'
+            else:
+                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp}'
         case EventType.RESOURCE_XHR:
             return None
         case EventType.LCP:

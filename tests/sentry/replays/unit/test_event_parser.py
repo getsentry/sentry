@@ -767,6 +767,7 @@ def test_as_log_message():
         },
     }
     assert as_log_message(event) is not None
+    assert "unknown" not in as_log_message(event)
 
     event = {
         "type": 5,
