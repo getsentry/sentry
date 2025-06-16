@@ -5,15 +5,13 @@ import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface DetectorListRowProps {
   detector: Detector;
@@ -22,19 +20,17 @@ interface DetectorListRowProps {
 export function DetectorListRow({
   detector: {workflowIds, owner, id, projectId, name, disabled, type, createdBy},
 }: DetectorListRowProps) {
-  const organization = useOrganization();
-  const link = makeMonitorDetailsPathname(organization.slug, id);
   const issues: Group[] = [];
 
   return (
     <RowWrapper disabled={disabled} data-test-id="detector-list-row">
       <InteractionStateLayer />
       <CellWrapper>
-        <StyledTitleCell
+        <DetectorLink
+          detectorId={id}
           name={name}
           createdBy={createdBy}
           projectId={projectId}
-          link={link}
           disabled={disabled}
         />
       </CellWrapper>
@@ -88,11 +84,6 @@ export function DetectorListRowSkeleton() {
 const CellWrapper = styled(Flex)`
   padding: 0 ${space(2)};
   flex: 1;
-`;
-
-const StyledTitleCell = styled(TitleCell)`
-  padding: ${space(2)};
-  margin: -${space(2)};
 `;
 
 const StyledIssueCell = styled(IssueCell)`
