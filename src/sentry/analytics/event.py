@@ -86,7 +86,7 @@ class Event:
             **{
                 f.name: kwargs.get(f.name, getattr(instance, f.name, None))
                 for f in fields(cls)
-                if f.name not in ("type", "uuid", "datetime")
+                if f.name not in ("type", "uuid_", "datetime_")
             }
         )
 
