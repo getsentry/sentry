@@ -159,3 +159,8 @@ export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<WebhookProviderEnum, string> 
   [WebhookProviderEnum.UNLEASH]:
     'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
 };
+
+// Issues search backend expects a certain format for feature flag search keys.
+export function makeFeatureFlagSearchKey(flagKey: string) {
+  return `flags[${flagKey}]`;
+}

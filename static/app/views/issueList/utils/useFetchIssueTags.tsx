@@ -5,6 +5,7 @@ import {
   ItemType,
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
+import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {
   FixabilityScoreThresholds,
   getIssueTitleFromType,
@@ -167,8 +168,7 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // flags[] is required for the search endpoint.
-      const key = `flags[${tag.key}]`;
+      const key = makeFeatureFlagSearchKey(tag.key);
       if (allTagsCollection[key]) {
         allTagsCollection[key].totalValues =
           (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);
