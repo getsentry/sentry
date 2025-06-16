@@ -310,6 +310,15 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                     },
                 )
         else:
+            logger.info(
+                "workflow_engine.triggered_actions",
+                extra={
+                    "detector_id": detector.id,
+                    "detector_type": detector.type,
+                    "action_ids": [action.id for action in actions],
+                    "event_data": asdict(event_data),
+                },
+            )
             # If the feature flag is not enabled, only send a metric
             for action in actions:
                 metrics_incr(
@@ -317,6 +326,18 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                     1,
                     tags={"action_type": action.type},
                 )
+                if features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
+                ):
+                    logger.info(
+                        "workflow_engine.action.would-trigger",
+                        extra={
+                            "detector_id": detector.id,
+                            "detector_type": detector.type,
+                            "action_id": action.id,
+                            "event_data": asdict(event_data),
+                        },
+                    )
 
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
     if len(actions) > 0:

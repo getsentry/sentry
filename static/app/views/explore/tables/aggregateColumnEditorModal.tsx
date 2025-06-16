@@ -9,6 +9,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -100,24 +101,31 @@ export function AggregateColumnEditorModal({
               );
             })}
             <RowContainer>
-              <ButtonBar gap={1}>
-                <Button
-                  size="sm"
-                  aria-label={t('Add a Group By')}
-                  onClick={() => insertColumn({groupBy: ''})}
-                  icon={<IconAdd isCircled />}
-                >
-                  {t('Add a Group By')}
-                </Button>
-                <Button
-                  size="sm"
-                  aria-label={t('Add an Aggregation')}
-                  onClick={() => insertColumn(new Visualize([DEFAULT_VISUALIZATION]))}
-                  icon={<IconAdd isCircled />}
-                >
-                  {t('Add an Aggregation')}
-                </Button>
-              </ButtonBar>
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'add-group-by',
+                    label: t('Group By / Attribute'),
+                    details: t('ex. browser, device, release'),
+                    onAction: () => insertColumn({groupBy: ''}),
+                  },
+                  {
+                    key: 'add-visualize',
+                    label: t('Visualize / Function'),
+                    details: t('ex. p50(span.duration)'),
+                    onAction: () => insertColumn(new Visualize([DEFAULT_VISUALIZATION])),
+                  },
+                ]}
+                trigger={triggerProps => (
+                  <Button
+                    {...triggerProps}
+                    aria-label={t('Add a Column')}
+                    icon={<IconAdd isCircled />}
+                  >
+                    {t('Add a Column')}
+                  </Button>
+                )}
+              />
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
@@ -236,7 +244,7 @@ function GroupBySelector({
   );
 
   return (
-    <StyledCompactSelect
+    <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
       triggerLabel={label}
@@ -307,7 +315,7 @@ function VisualizeSelector({
 
   return (
     <Fragment>
-      <StyledCompactSelect
+      <SingleWidthCompactSelect
         data-test-id="editor-visualize-function"
         options={aggregateOptions}
         value={parsedFunction?.name}
@@ -320,7 +328,7 @@ function VisualizeSelector({
           },
         }}
       />
-      <StyledCompactSelect
+      <DoubleWidthCompactSelect
         data-test-id="editor-visualize-argument"
         options={argumentOptions}
         value={parsedFunction?.arguments[0] ?? ''}
@@ -353,8 +361,13 @@ const StyledButton = styled(Button)`
   padding-right: 0;
 `;
 
-const StyledCompactSelect = styled(CompactSelect)`
-  flex-grow: 1;
+const SingleWidthCompactSelect = styled(CompactSelect)`
+  flex: 1;
+  min-width: 0;
+`;
+
+const DoubleWidthCompactSelect = styled(CompactSelect)`
+  flex: 2;
   min-width: 0;
 `;
 

@@ -12,6 +12,7 @@ class StatusChangeMessageData(TypedDict):
     new_status: int
     new_substatus: int | None
     id: str
+    detector_id: int | None
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class StatusChangeMessage:
     project_id: int
     new_status: int
     new_substatus: int | None
+    detector_id: int | None = None
     id: str = field(default_factory=lambda: uuid4().hex)
 
     def to_dict(
@@ -30,5 +32,6 @@ class StatusChangeMessage:
             "project_id": self.project_id,
             "new_status": self.new_status,
             "new_substatus": self.new_substatus,
+            "detector_id": self.detector_id,
             "id": self.id,
         }
