@@ -30,4 +30,4 @@ class OrganizationIssuesCountTest(APITestCase, SnubaTestCase, SearchIssueTestMix
 
         response = self.client.get(self.url + '?query=flags["test:flag"]:true')
         assert response.status_code == 200
-        assert response.json() == {'flags["test:flag"]:true': 1}
+        assert response.json() == {"flags[test:flag]:true": 1}
