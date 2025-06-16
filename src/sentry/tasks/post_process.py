@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions, ratelimits
+from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
@@ -1594,23 +1594,18 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not seer_enabled:
         return
 
-    if not features.has("organizations:unlimited-auto-triggered-autofix-runs", group.organization):
-        limit = options.get("seer.max_num_scanner_autotriggered_per_hour") or 1000
-        is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
-            project=project,
-            key="seer.scanner.auto_triggered",
-            limit=limit,
-            window=60 * 60,  # 1 hour
+    from sentry.autofix.utils import is_seer_scanner_rate_limited
+
+    is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
+    if is_rate_limited:
+        sentry_sdk.set_tags(
+            {
+                "scanner_run_count": current,
+                "scanner_run_limit": limit,
+            }
         )
-        if is_rate_limited:
-            sentry_sdk.set_tags(
-                {
-                    "auto_run_count": current,
-                    "auto_run_limit": limit,
-                }
-            )
-            logger.error("Seer scanner auto-trigger rate limit hit")
-            return
+        logger.error("Seer scanner auto-trigger rate limit hit")
+        return
 
     from sentry import quotas
     from sentry.constants import DataCategory
