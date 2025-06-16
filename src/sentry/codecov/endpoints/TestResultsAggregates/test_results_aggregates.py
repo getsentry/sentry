@@ -25,7 +25,7 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieves aggregated test result metrics for a given repository and owner",
+        operation_id="Retrieve aggregated test result metrics for repository and owner",
         parameters=[
             PreventParams.OWNER,
             PreventParams.REPOSITORY,

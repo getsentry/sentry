@@ -218,6 +218,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert evaluation_result
         assert evaluation_result.priority == DetectorPriorityLevel.OK
         assert isinstance(evaluation_result.result, StatusChangeMessage)
+        assert evaluation_result.result.detector_id == self.detector.id
 
     def test_evaluate__resolve__detector_state(self):
         self.handler.evaluate(self.data_packet)

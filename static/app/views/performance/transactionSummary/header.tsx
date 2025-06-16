@@ -24,6 +24,7 @@ import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCou
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -356,7 +357,9 @@ function TransactionHeader({
         <ButtonBar gap={1}>
           <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
-              hasFeature && !metricsCardinality?.isLoading ? (
+              hasFeature &&
+              !metricsCardinality?.isLoading &&
+              !deprecateTransactionAlerts(organization) ? (
                 <CreateAlertFromViewButton
                   size="sm"
                   eventView={eventView}

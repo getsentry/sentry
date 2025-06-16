@@ -55,6 +55,8 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.NORMALIZED_DESCRIPTION,
   SpanIndexedField.RELEASE, // temporary as orgs with >1k keys still want releases
   SpanFields.PROJECT_ID,
+  SpanFields.SPAN_SYSTEM,
+  SpanFields.SPAN_CATEGORY,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];

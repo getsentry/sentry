@@ -87,6 +87,7 @@ function getSentryIntegrations() {
  * entrypoints require this.
  */
 export function initializeSdk(config: Config) {
+  // NOTE: This config is mutated by `commonInitialization`
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN

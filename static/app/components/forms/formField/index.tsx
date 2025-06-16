@@ -123,6 +123,15 @@ interface BaseProps {
   onKeyDown?: (value: any, event: any) => void;
   placeholder?: ObservedFnOrValue<React.ReactNode>;
 
+  /**
+   * If this is true, the field value is preserved in the form model when the
+   * field is unmounted. This is useful for fields that might disappear and
+   * reappear.
+   *
+   * see {@link FormModel.softRemoveField}
+   */
+  preserveOnUnmount?: boolean;
+
   resetOnError?: boolean;
   /**
    * The message to display when saveOnBlur is false
@@ -140,12 +149,6 @@ interface BaseProps {
    */
   saveOnBlur?: boolean;
 
-  /**
-   * A function producing an optional component with extra information.
-   */
-  selectionInfoFunction?: (
-    props: PassthroughProps & {value: FieldValue; error?: string}
-  ) => React.ReactNode;
   /**
    * Used in the form model to transform the value
    */
@@ -183,7 +186,6 @@ type PassthroughProps = Omit<
   | 'saveOnBlur'
   | 'saveMessage'
   | 'saveMessageAlertType'
-  | 'selectionInfoFunction'
   | 'hideControlState'
   | 'defaultValue'
 >;
@@ -320,7 +322,6 @@ function FormField(props: FormFieldProps) {
         flexibleControlStateSize,
         saveMessage,
         saveMessageAlertType,
-        selectionInfoFunction,
         // Don't pass `defaultValue` down to input fields, will be handled in
         // form model
         defaultValue: _defaultValue,
@@ -382,22 +383,6 @@ function FormField(props: FormFieldProps) {
               }}
             </Observer>
           </FieldGroup>
-          {selectionInfoFunction && (
-            <Observer>
-              {() => {
-                const error = model.getError(name);
-                const value = model.getValue(name);
-
-                return (
-                  <Fragment>
-                    {fieldProps.visible
-                      ? selectionInfoFunction({...fieldProps, error, value})
-                      : null}
-                  </Fragment>
-                );
-              }}
-            </Observer>
-          )}
           {saveOnBlurFieldOverride && (
             <Observer>
               {() => {

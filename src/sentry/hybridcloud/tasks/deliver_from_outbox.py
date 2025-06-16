@@ -143,7 +143,7 @@ def schedule_batch(
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_tasks,
-        processing_deadline_duration=30,
+        processing_deadline_duration=90,
     ),
 )
 def drain_outbox_shards(
@@ -170,7 +170,7 @@ def drain_outbox_shards(
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
-        processing_deadline_duration=30,
+        processing_deadline_duration=90,
     ),
 )
 def drain_outbox_shards_control(

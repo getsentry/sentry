@@ -15,6 +15,7 @@ import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 interface UseDetectorsQueryKeyOptions {
   cursor?: string;
+  ids?: string[];
   limit?: number;
   projects?: number[];
   query?: string;
@@ -28,19 +29,22 @@ const makeDetectorListQueryKey = ({
   projects,
   limit,
   cursor,
+  ids,
 }: {
   orgSlug: string;
   cursor?: string;
+  ids?: string[];
   limit?: number;
   projects?: number[];
   query?: string;
   sortBy?: string;
 }): ApiQueryKey => [
   `/organizations/${orgSlug}/detectors/`,
-  {query: {query, sortBy, project: projects, per_page: limit, cursor}},
+  {query: {query, sortBy, project: projects, per_page: limit, cursor, id: ids}},
 ];
 
 export function useDetectorsQuery({
+  ids,
   query,
   sortBy,
   projects,
@@ -50,7 +54,15 @@ export function useDetectorsQuery({
   const org = useOrganization();
 
   return useApiQuery<Detector[]>(
-    makeDetectorListQueryKey({orgSlug: org.slug, query, sortBy, projects, limit, cursor}),
+    makeDetectorListQueryKey({
+      orgSlug: org.slug,
+      query,
+      sortBy,
+      projects,
+      limit,
+      cursor,
+      ids,
+    }),
     {
       staleTime: 0,
       retry: false,
