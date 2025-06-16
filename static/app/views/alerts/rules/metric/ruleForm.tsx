@@ -68,6 +68,7 @@ import {
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
@@ -91,7 +92,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
-  type EventTypes,
+  EventTypes,
   type MetricActionTemplate,
   type MetricRule,
   TimeWindow,
@@ -147,6 +148,7 @@ type State = {
   sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
+  traceItemType: TraceItemDataset | null;
   triggerErrors: Map<number, Record<string, string>>;
   triggers: Trigger[];
   chartError?: boolean;
@@ -231,6 +233,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       organization,
     });
+    const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
+    const traceItemType = ruleEventTypes.includes(EventTypes.TRACE_ITEM_SPAN)
+      ? TraceItemDataset.SPANS
+      : ruleEventTypes.includes(EventTypes.TRACE_ITEM_LOG)
+        ? TraceItemDataset.LOGS
+        : null;
 
     return {
       ...super.getDefaultState(),
@@ -263,6 +271,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       alertType,
+      traceItemType,
     };
   }
 

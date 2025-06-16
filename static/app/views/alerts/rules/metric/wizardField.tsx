@@ -12,7 +12,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
+import {hasLogAlerts, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
@@ -162,6 +162,14 @@ export default function WizardField({
               {
                 label: AlertWizardAlertNames.eap_metrics,
                 value: 'eap_metrics' as const,
+              },
+            ]
+          : []),
+        ...(hasLogAlerts(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.trace_item_logs,
+                value: 'trace_item_logs' as const,
               },
             ]
           : []),

@@ -179,3 +179,7 @@ export function isEapAlertType(alertType?: AlertType) {
     'trace_item_cls',
   ].includes(alertType);
 }
+
+export function hasLogAlerts(organization: Organization): boolean {
+  return organization.features.includes('ourlogs-alerts');
+}

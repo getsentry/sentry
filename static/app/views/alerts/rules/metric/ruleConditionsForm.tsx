@@ -31,7 +31,6 @@ import ListItem from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
@@ -44,12 +43,7 @@ import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  DEVICE_CLASS_TAG_VALUES,
-  FieldKind,
-  isDeviceClass,
-} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
 import {
   getMeasurements,
   type MeasurementCollection,
@@ -71,8 +65,11 @@ import {
   DEPRECATED_TRANSACTION_ALERTS,
   getSupportedAndOmittedTags,
 } from 'sentry/views/alerts/wizard/options';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
@@ -634,13 +631,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
                     return isEapAlertType(alertType) ? (
-                      <EAPSpanSearchQueryBuilderWithContext
+                      <EAPSearchQueryBuilderWithContext
                         initialQuery={value ?? ''}
                         onSearch={(query, {parsedQuery}) => {
                           onFilterSearch(query, parsedQuery);
                           onChange(query, {});
                         }}
                         project={project}
+                        traceItemType={TraceItemDataset.SPANS}
                       />
                     ) : (
                       <SearchContainer>
@@ -764,30 +762,33 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 }
 
-interface EAPSpanSearchQueryBuilderWithContextProps {
+interface EAPSearchQueryBuilderWithContextProps {
   initialQuery: string;
   onSearch: (query: string, isQueryValid: any) => void;
   project: Project;
+  traceItemType: TraceItemDataset;
 }
 
-function EAPSpanSearchQueryBuilderWithContext({
+function EAPSearchQueryBuilderWithContext({
   initialQuery,
   onSearch,
   project,
-}: EAPSpanSearchQueryBuilderWithContextProps) {
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
-  return (
-    <EAPSpanSearchQueryBuilder
-      numberTags={numberTags}
-      stringTags={stringTags}
-      initialQuery={initialQuery}
-      searchSource="alerts"
-      onSearch={onSearch}
-      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      projects={[parseInt(project.id, 10)]}
-    />
-  );
+  traceItemType,
+}: EAPSearchQueryBuilderWithContextProps) {
+  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+  const {attributes: stringAttributes} = useTraceItemAttributes('string');
+
+  const tracesItemSearchQueryBuilderProps = {
+    initialQuery,
+    searchSource: 'alerts',
+    onSearch,
+    numberAttributes,
+    stringAttributes,
+    itemType: traceItemType,
+    projects: [parseInt(project.id, 10)],
+  };
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
 const StyledListTitle = styled('div')`
