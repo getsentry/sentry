@@ -438,7 +438,7 @@ export function TraceIssuesRenderer({
   return (
     <LinkButton
       to={normalizeUrl({
-        pathname: `/organizations/${organization.slug}/issues`,
+        pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           query: `trace:"${trace.trace}"`,
         },

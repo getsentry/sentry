@@ -84,7 +84,7 @@ export function OverviewRow({
   });
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
   const monitorDetails = singleMonitorView ? null : (

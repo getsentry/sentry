@@ -221,7 +221,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
                           />
                         ),
                         break: <br />,
-                        bulklink: <Link to={`/settings/${organization.slug}/seer`} />,
+                        bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
                       }
                     )}
                   </Alert>
