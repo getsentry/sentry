@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -48,8 +49,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
-        # time.sleep(2.5)
-
         if not features.has(
             "organizations:user-feedback-ai-summaries", organization, actor=request.user
         ):
@@ -58,23 +57,11 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         try:
             start, end = get_date_range_from_stats_period(
                 request.GET,
-                # optional=False,
-                # default_stats_period=timedelta(days=7),
+                optional=False,
+                default_stats_period=timedelta(days=7),
             )
-        except (InvalidParams, Exception):
-            # print("wat on earth is going on, there seems to be a daterange parsing issue")
+        except InvalidParams:
             raise ParseError(detail="Invalid or missing date range")
-
-        # return Response(status=403)
-
-        return Response(
-            {
-                "summary": "This is a test summary that is being used to test the feedback summary frontend view, since we don't have the LLM set up here. I am making this purposefully long just to see if it will add an option to read more.",
-                # "summary": "This is a short test summary that is not very long.",
-                "success": True,
-                "num_feedbacks_used": 10,
-            }
-        )
 
         filters = {
             "type": FeedbackGroup.type_id,
