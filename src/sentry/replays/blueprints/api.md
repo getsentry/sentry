@@ -608,7 +608,7 @@ Retrieve a collection of replay delete jobs.
 | rangeEnd    | string           | The maximum UTC timestamp in the deletion range.                            |
 | environment | optional[string] | The environment to delete replays from.  If not specified, applies to all environments               |
 | projects    | list[number]     | The projects to delete replays from.                                        |
-| status      | string           | The status of the deletion job. One of pending, in-progress, and completed. |
+| status      | string           | The status of the deletion job. One of `pending`, `in-progress`, and `completed`. |
 | query       | optional[string] | The query string which matches the to-be-deleted replays.                   |
 
 - Response 200
