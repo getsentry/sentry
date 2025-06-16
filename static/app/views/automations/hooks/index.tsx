@@ -4,8 +4,8 @@ import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const makeAutomationsQueryKey = ({
@@ -41,12 +41,16 @@ interface UseAutomationsQueryOptions {
   query?: string;
   sort?: string;
 }
-export function useAutomationsQuery(options: UseAutomationsQueryOptions = {}) {
+export function useAutomationsQuery(
+  options: UseAutomationsQueryOptions = {},
+  queryOptions: Partial<UseApiQueryOptions<Automation[]>> = {}
+) {
   const {slug: orgSlug} = useOrganization();
 
   return useApiQuery<Automation[]>(makeAutomationsQueryKey({orgSlug, ...options}), {
     staleTime: 0,
     retry: false,
+    ...queryOptions,
   });
 }
 
@@ -78,16 +82,4 @@ export function useAvailableActionsQuery() {
     staleTime: Infinity,
     retry: false,
   });
-}
-
-export function useDetectorQueriesByIds(automationIds: string[]) {
-  const org = useOrganization();
-
-  return useApiQueries<Automation>(
-    automationIds.map(id => makeAutomationQueryKey(org.slug, id)),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
 }
