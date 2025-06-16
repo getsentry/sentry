@@ -122,8 +122,8 @@ class SQLInjectionDetector(PerformanceDetector):
         for parameter in self.request_parameters:
             value = parameter[1]
             key = parameter[0]
-            if re.search(rf"(?<![\w.]){re.escape(key)}(?![\w.])", description) and re.search(
-                rf"(?<![\w.]){re.escape(value)}(?![\w.])", description
+            if re.search(rf'(?<![\w.])"?{re.escape(key)}"?(?![\w."])', description) and re.search(
+                rf'(?<![\w.])"?{re.escape(value)}"?(?![\w."])', description
             ):
                 description = description.replace(value, "?")
                 vulnerable_parameters.append(key)
