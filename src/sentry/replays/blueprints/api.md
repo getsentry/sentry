@@ -631,7 +631,7 @@ Retrieve a collection of replay delete jobs.
   }
   ```
 
-### Create a Replay Collection Deletion [POST]
+### Create a Replay Batch Deletion Job [POST]
 
 Delete a collection of replays. Deletes are throttled and will take some time to complete. The number of events expected to be deleted is returned on the meta object. This number is ephemeral and can change. It is only returned for informational reasons.
 
