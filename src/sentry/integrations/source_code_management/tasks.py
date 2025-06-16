@@ -184,6 +184,7 @@ def pr_comment_workflow(pr_id: int, project_id: int):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=150,
     ),
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
