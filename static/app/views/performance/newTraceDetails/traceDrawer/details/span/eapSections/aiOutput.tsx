@@ -50,8 +50,9 @@ export function AIOutputSection({
     event,
     attributes
   );
+  const toolOutput = getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
 
-  if (!responseText && !toolCalls) {
+  if (!responseText && !toolCalls && !toolOutput) {
     return null;
   }
 
@@ -85,6 +86,9 @@ export function AIOutputSection({
           </TraceDrawerComponents.MultilineText>
         </Fragment>
       )}
+      {toolOutput ? (
+        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
+      ) : null}
     </FoldSection>
   );
 }

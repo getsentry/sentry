@@ -30,6 +30,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -1243,6 +1244,31 @@ const MultilineText = styled('div')`
   }
 `;
 
+function MultilineJSON({
+  value,
+  maxDefaultDepth = 2,
+}: {
+  value: string;
+  maxDefaultDepth?: number;
+}) {
+  try {
+    const json = JSON.parse(value);
+    return (
+      <TraceDrawerComponents.MultilineText>
+        <StructuredData
+          value={json}
+          maxDefaultDepth={maxDefaultDepth}
+          withAnnotatedText
+        />
+      </TraceDrawerComponents.MultilineText>
+    );
+  } catch (error) {
+    return (
+      <TraceDrawerComponents.MultilineText>{value}</TraceDrawerComponents.MultilineText>
+    );
+  }
+}
+
 const MultilineTextLabel = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(1)};
@@ -1280,6 +1306,7 @@ const TraceDrawerComponents = {
   SectionCardGroup,
   DropdownMenuWithPortal,
   MultilineText,
+  MultilineJSON,
   MultilineTextLabel,
 };
 
