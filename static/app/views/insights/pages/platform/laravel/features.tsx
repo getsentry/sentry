@@ -4,7 +4,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-export function hasLaravelInsightsFeature(organization: Organization) {
+function hasLaravelInsightsFeature(organization: Organization) {
   return organization.features.includes('laravel-insights');
 }
 
