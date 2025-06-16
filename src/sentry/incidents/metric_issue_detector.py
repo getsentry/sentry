@@ -101,7 +101,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             dataset=data_source.get("dataset", snuba_query.dataset),
             query=data_source.get("query", snuba_query.query),
             aggregate=data_source.get("aggregate", snuba_query.aggregate),
-            time_window=timedelta(minutes=data_source.get("time_window", snuba_query.time_window)),
+            time_window=timedelta(seconds=data_source.get("time_window", snuba_query.time_window)),
             resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
             environment=data_source.get("environment", snuba_query.environment),
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),

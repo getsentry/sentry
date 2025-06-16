@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 UNSUPPORTED_QUERIES = {"release:latest"}
 
 # Allowed time windows (in minutes) for crash rate alerts
-CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]
+CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [1800, 3600, 7200, 14400, 43200, 86400]
 
 
 QUERY_TYPE_VALID_DATASETS = {
@@ -251,7 +251,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 query_type,
                 dataset=dataset,
                 aggregate=data["aggregate"],
-                time_window=int(timedelta(minutes=data["time_window"]).total_seconds()),
+                time_window=data["time_window"],
                 extra_fields={
                     "org_id": projects[0].organization_id,
                     "event_types": data.get("event_types"),
@@ -349,7 +349,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             dataset=validated_data["dataset"],
             query=validated_data["query"],
             aggregate=validated_data["aggregate"],
-            time_window=timedelta(minutes=validated_data["time_window"]),
+            time_window=timedelta(seconds=validated_data["time_window"]),
             resolution=timedelta(minutes=1),
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
