@@ -132,6 +132,20 @@ x-sentry-service-config:
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     profiling: [postgres, snuba, vroom, spotlight]
+    ingest:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        worker,
+        ingest-events,
+        ingest-transactions,
+        ingest-attachments,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+      ]
     minimal: [postgres, snuba]
     ingest-all:
       [
