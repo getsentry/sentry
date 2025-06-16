@@ -24,8 +24,6 @@ const productionEntryPoints = [
 ];
 
 const testingEntryPoints = [
-  // benchmarks are opt-in for development
-  'static/app/**/*.benchmark.{js,mjs,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
@@ -60,7 +58,6 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'core-js',
     '@babel/runtime', // used implicitly alongside @babel/plugin-transform-runtime
-    'tsconfig-paths', // passed as cli arg to benchmarking
     'eslint-import-resolver-typescript', // used in eslint config
     'jest-environment-jsdom', // used as testEnvironment in jest config
     'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
