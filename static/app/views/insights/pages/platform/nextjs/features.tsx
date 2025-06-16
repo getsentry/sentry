@@ -12,7 +12,7 @@ function hasNextJsInsightsFeature(organization: Organization) {
   return organization.features.includes('nextjs-insights');
 }
 
-function useIsNextJsInsightsAvailable() {
+export function useIsNextJsInsightsAvailable() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
