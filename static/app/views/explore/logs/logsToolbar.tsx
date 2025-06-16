@@ -64,7 +64,7 @@ interface LogsToolbarProps {
 
 export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const aggregateFunction = useLogsAggregateFunction();
-  const aggregateParam = useLogsAggregateParam() ?? 'logs';
+  let aggregateParam = useLogsAggregateParam();
   const groupBy = useLogsGroupBy();
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
@@ -75,6 +75,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   }));
   if (aggregateFunction === 'count') {
     aggregatableKeys.unshift({label: t('logs'), value: 'logs'});
+    aggregateParam = 'logs';
   }
 
   return (
