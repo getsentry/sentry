@@ -185,6 +185,7 @@ module = [
     "sentry.api.serializers.rest_framework.group_notes",
     "sentry.audit_log.services.*",
     "sentry.auth.access",
+    "sentry.auth.authenticators.recovery_code",
     "sentry.auth.manager",
     "sentry.auth.services.*",
     "sentry.auth.view",
