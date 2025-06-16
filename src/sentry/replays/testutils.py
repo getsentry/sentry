@@ -448,9 +448,11 @@ def mock_segment_rageclick(
         {
             "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
             "type": "default",
-            "category": "ui.multiClick",
+            "category": "ui.slowClickDetected",
             "message": message,
             "data": {
+                "endReason": "timeout",
+                "timeAfterClickMs": 7000,
                 "node": {
                     "tagName": tagName,
                     "attributes": {
