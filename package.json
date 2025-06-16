@@ -192,7 +192,6 @@
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
     "babel-jest": "29.7.0",
-    "benchmark": "^2.1.4",
     "eslint": "^9.22.0",
     "eslint-config-prettier": "^10.1.2",
     "eslint-import-resolver-typescript": "^3.8.3",
