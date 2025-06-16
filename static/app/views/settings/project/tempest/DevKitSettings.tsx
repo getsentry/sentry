@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -39,16 +39,6 @@ export default function DevKitSettings({organization, project}: Props) {
     orgSlug: organization.slug,
     projSlug: project.slug,
   });
-
-  const playstationURL = useMemo(() => {
-    if (!projectKeys) {
-      return null;
-    }
-
-    // xxx (vgrozdanic): this is a temporary hack since the playstation URL is almost the same as for the minidump
-    const primaryKey = projectKeys[0];
-    return primaryKey?.dsn?.minidump.replace('minidump', 'playstation');
-  }, [projectKeys]);
 
   if (isLoadingKeys) {
     return <LoadingIndicator />;
@@ -94,7 +84,7 @@ export default function DevKitSettings({organization, project}: Props) {
                       </p>
                       <CodeSnippetWrapper>
                         <OnboardingCodeSnippet>
-                          {playstationURL || ''}
+                          {projectKeys?.[0]?.dsn?.playstation || ''}
                         </OnboardingCodeSnippet>
                       </CodeSnippetWrapper>
                     </DescriptionWrapper>

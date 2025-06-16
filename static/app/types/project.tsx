@@ -110,6 +110,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    playstation: string;
     public: string;
     secret: string;
     security: string;

@@ -76,6 +76,7 @@ export function renderWithOnboardingLayout<
         csp: 'test-csp',
         minidump: 'test-minidump',
         unreal: 'test-unreal',
+        playstation: 'test-playstation',
       }}
       platformKey="java-spring-boot"
       projectId="test-project-id"
