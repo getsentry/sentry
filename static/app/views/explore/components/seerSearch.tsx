@@ -153,13 +153,18 @@ export function SeerSearch() {
 
       const {query, visualizations, groupBys, sort, statsPeriod} = result;
 
+      const start = pageFilters.selection.datetime.start?.valueOf();
+      const end = pageFilters.selection.datetime.end?.valueOf();
+
       const selection = {
         ...pageFilters.selection,
         datetime: {
-          start: pageFilters.selection.datetime.start,
-          end: pageFilters.selection.datetime.end,
-          period: statsPeriod || pageFilters.selection.datetime.period,
+          start: start
+            ? new Date(start).toISOString()
+            : pageFilters.selection.datetime.start,
+          end: end ? new Date(end).toISOString() : pageFilters.selection.datetime.end,
           utc: pageFilters.selection.datetime.utc,
+          period: statsPeriod || pageFilters.selection.datetime.period,
         },
       };
       const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
