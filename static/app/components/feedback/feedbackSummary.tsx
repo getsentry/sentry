@@ -1,4 +1,3 @@
-import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
@@ -10,45 +9,6 @@ import {space} from 'sentry/styles/space';
 
 export default function FeedbackSummary() {
   const {error, loading, summary, tooFewFeedbacks} = useFeedbackSummary();
-  const [expanded, setExpanded] = useState(false);
-  const [isClamped, setIsClamped] = useState(false);
-  const summaryRef = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    const checkClamped = () => {
-      const el = summaryRef.current;
-      if (el) {
-        el.style.display = '-webkit-box';
-        el.style.webkitLineClamp = '2';
-        const clampedHeight = el.clientHeight;
-
-        el.style.display = 'block';
-        el.style.webkitLineClamp = 'unset';
-        const fullHeight = el.clientHeight;
-
-        setIsClamped(fullHeight > clampedHeight);
-
-        // Restore to clamped state if not expanded
-        if (!expanded) {
-          el.style.display = '-webkit-box';
-          el.style.webkitLineClamp = '2';
-        }
-      }
-    };
-
-    checkClamped();
-    const el = summaryRef.current;
-    if (!el) return undefined;
-
-    const resizeObserver = new window.ResizeObserver(() => {
-      checkClamped();
-    });
-    resizeObserver.observe(el);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [summary, loading, tooFewFeedbacks, expanded]);
 
   if (error) {
     return <LoadingError message={t('There was an error loading the summary')} />;
@@ -70,30 +30,7 @@ export default function FeedbackSummary() {
         </div>
         <SummaryContainer>
           <SummaryHeader>{t('Feedback Summary')}</SummaryHeader>
-          <SummaryContent
-            ref={summaryRef}
-            style={
-              expanded
-                ? {
-                    display: 'block',
-                    WebkitLineClamp: 'unset',
-                    overflow: 'visible',
-                  }
-                : {}
-            }
-          >
-            {summary}
-          </SummaryContent>
-          {!expanded && isClamped && (
-            <ReadMoreButton type="button" onClick={() => setExpanded(true)}>
-              {t('Read more')}
-            </ReadMoreButton>
-          )}
-          {expanded && isClamped && (
-            <ReadMoreButton type="button" onClick={() => setExpanded(false)}>
-              {t('Show less')}
-            </ReadMoreButton>
-          )}
+          <SummaryContent>{summary}</SummaryContent>
         </SummaryContainer>
       </SummaryIconContainer>
     </Summary>
@@ -117,25 +54,6 @@ const SummaryContent = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;
-  max-width: 100%;
-  transition: -webkit-line-clamp 0.2s;
-`;
-
-const ReadMoreButton = styled('button')`
-  background: none;
-  border: none;
-  color: ${p => p.theme.purple400};
-  cursor: pointer;
-  padding: 0;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  align-self: flex-start;
 `;
 
 const Summary = styled('div')`
