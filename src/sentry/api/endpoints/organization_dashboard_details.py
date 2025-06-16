@@ -217,6 +217,9 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        if not request.user.is_authenticated:
+            return Response(status=401)
+
         if isinstance(dashboard, dict):
             return Response(status=204)
 
