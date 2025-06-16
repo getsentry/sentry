@@ -54,6 +54,10 @@ class SQLInjectionDetectorTest(TestCase):
         assert problem.evidence_data["vulnerable_parameters"] == ["username"]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
 
+    def test_sql_injection_regex(self):
+        injection_event = get_event("sql-injection/sql-injection-test-regex-event")
+        assert len(self.find_problems(injection_event)) == 0
+
     def test_sql_injection_on_non_vulnerable_query(self):
         injection_event = get_event("sql-injection/sql-injection-event-non-vulnerable")
         assert len(self.find_problems(injection_event)) == 0
