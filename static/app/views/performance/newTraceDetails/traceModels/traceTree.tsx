@@ -1619,7 +1619,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         // Adding the index check here because the node may not be in the list,
         // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
         // The node is part of the tree, but not visible yet. Check can be pushed to the top of the function
-        // when we don't have to support non-eap traces.
+        // when we no longer have to support non-eap traces.
         if (index !== -1) {
           this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
         }
@@ -1633,7 +1633,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         // Adding the index check here because the node may not be in the list,
         // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
         // The node is part of the tree, but not visible yet.Check can be pushed to the top of the function
-        // when we don't have to support non-eap traces.
+        // when we no longer have to support non-eap traces.
         if (index !== -1) {
           this.list.splice(
             index + 1,
