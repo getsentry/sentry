@@ -97,7 +97,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
-        mock_logger.info.assert_called_with(
+        mock_logger.info.assert_any_call(
             "workflow_engine.evaluate_workflows_action_filters",
             extra={
                 "group_id": self.group.id,
@@ -571,6 +571,9 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def test_basic__no_filter(self) -> None:
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action_group}
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -582,6 +585,9 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action_group}
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group
@@ -650,17 +656,23 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash, mock_push_to_sorted_set
     ):
+        condition2 = self.create_data_condition(condition_group=self.create_data_condition_group())
+        condition3 = self.create_data_condition(condition_group=self.create_data_condition_group())
         enqueue_workflow(
             self.workflow,
-            [self.condition],
+            [self.condition, condition2, condition3],
             self.group_event,
             WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
         )
 
+        condition_group_ids = ",".join(
+            str(condition.condition_group_id)
+            for condition in [self.condition, condition2, condition3]
+        )
         mock_push_to_sorted_set.assert_called_once_with(
             model=Workflow,
             filters={"project_id": self.group_event.project_id},
-            field=f"{self.workflow.id}:{self.group_event.group_id}:{self.condition.condition_group_id}:workflow_trigger",
+            field=f"{self.workflow.id}:{self.group_event.group_id}:{condition_group_ids}:workflow_trigger",
             value=json.dumps(
                 {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}
             ),

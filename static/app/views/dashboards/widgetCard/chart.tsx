@@ -591,6 +591,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   gap: ${space(2)};
   justify-content: center;
   align-items: center;
+  pointer-events: none;
 `;
 
 function LoadingScreen({

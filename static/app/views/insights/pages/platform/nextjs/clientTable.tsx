@@ -22,12 +22,13 @@ import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/us
 
 const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count()', name: t('Pageloads'), width: 122},
+  {key: 'span.op', name: t('Operation'), width: 122},
+  {key: 'count()', name: t('Views'), width: 122},
   {key: 'failure_rate()', name: t('Error Rate'), width: 122},
   {
-    key: 'avg_if(span.duration,span.op,navigation)',
-    name: t('AVG Navigation Duration'),
-    width: 210,
+    key: 'avg(span.duration)',
+    name: t('AVG Duration'),
+    width: 140,
   },
   {
     key: 'performance_score(measurements.score.total)',
@@ -36,11 +37,7 @@ const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
   },
 ];
 
-const rightAlignColumns = new Set([
-  'count()',
-  'failure_rate()',
-  'avg_if(span.duration,span.op,navigation)',
-]);
+const rightAlignColumns = new Set(['count()', 'failure_rate()', 'avg(span.duration)']);
 
 export function ClientTable() {
   const tableDataRequest = useTableData({
@@ -48,14 +45,15 @@ export function ClientTable() {
     fields: [
       'transaction',
       'project.id',
+      'span.op',
       'count()',
       'failure_rate()',
-      'avg_if(span.duration,span.op,navigation)',
+      'avg(span.duration)',
       'performance_score(measurements.score.total)',
       'count_if(span.op,navigation)',
       'count_if(span.op,pageload)',
     ],
-    cursorParamName: 'cursor',
+    cursorParamName: 'tableCursor',
     referrer: Referrer.CLIENT_TABLE,
   });
 
@@ -64,7 +62,7 @@ export function ClientTable() {
       <HeadSortCell
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        cursorParamName={'cursor'}
+        cursorParamName={'tableCursor'}
         forceCellGrow={column.key === 'transaction'}
       >
         {column.name}
@@ -100,9 +98,12 @@ export function ClientTable() {
               dataRow={dataRow}
               targetView="frontend"
               projectId={dataRow['project.id'].toString()}
+              query={`transaction.op:${dataRow['span.op']}`}
             />
           );
         }
+        case 'span.op':
+          return <div>{dataRow['span.op']}</div>;
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
         case 'failure_rate()': {
@@ -117,15 +118,8 @@ export function ClientTable() {
             />
           );
         }
-        case 'avg_if(span.duration,span.op,navigation)': {
-          if (!dataRow['count_if(span.op,navigation)']) {
-            return <NoData>{' — '}</NoData>;
-          }
-          return (
-            <DurationCell
-              milliseconds={dataRow['avg_if(span.duration,span.op,navigation)']}
-            />
-          );
+        case 'avg(span.duration)': {
+          return <DurationCell milliseconds={dataRow['avg(span.duration)']} />;
         }
         default:
           return <div />;
@@ -143,7 +137,7 @@ export function ClientTable() {
       data={tableDataRequest.data}
       initialColumnOrder={pageloadColumnOrder}
       stickyHeader
-      cursorParamName={'cursor'}
+      cursorParamName={'tableCursor'}
       pageLinks={pagesTablePageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
       grid={{
@@ -156,9 +150,4 @@ export function ClientTable() {
 
 const AlignCenter = styled('div')`
   text-align: center;
-`;
-
-const NoData = styled('div')`
-  text-align: right;
-  color: ${p => p.theme.subText};
 `;

@@ -15,6 +15,7 @@ from sentry.api.endpoints.organization_events_anomalies import OrganizationEvent
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_feedback_summary import OrganizationFeedbackSummaryEndpoint
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_member_invite.details import (
@@ -321,6 +322,9 @@ from sentry.replays.endpoints.project_replay_recording_segment_details import (
 )
 from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
+)
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
+    ProjectReplaySummarizeBreadcrumbsEndpoint,
 )
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
@@ -2064,6 +2068,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-user-feedback",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/feedback-summary/$",
+        OrganizationFeedbackSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-user-feedback-summary",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-teams/$",
         OrganizationUserTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-user-teams",
@@ -2683,6 +2692,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/$",
         ProjectReplayRecordingSegmentIndexEndpoint.as_view(),
         name="sentry-api-0-project-replay-recording-segment-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/summarize/breadcrumbs/$",
+        ProjectReplaySummarizeBreadcrumbsEndpoint.as_view(),
+        name="sentry-api-0-project-replay-summarize-breadcrumbs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",

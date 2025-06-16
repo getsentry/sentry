@@ -469,7 +469,7 @@ const appConfig: Configuration = {
       stream: false,
       // Node crypto is imported in @sentry-internal/global-search but not used here
       crypto: false,
-      // `yarn why` says this is only needed in dev deps
+      // `pnpm why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
       'process/browser': require.resolve('process/browser'),
@@ -665,7 +665,7 @@ if (IS_UI_DEV_ONLY) {
     return slug;
   };
 
-  // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
+  // Try and load certificates from mkcert if available. Use $ pnpm mkcert-localhost
   const certPath = path.join(import.meta.dirname, 'config');
   const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
     ? {

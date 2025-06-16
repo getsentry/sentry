@@ -93,6 +93,8 @@ export enum SpanFields {
   PROJECT_ID = 'project.id',
   RESPONSE_CODE = 'span.status_code',
   DEVICE_CLASS = 'device.class',
+  SPAN_SYSTEM = 'span.system',
+  SPAN_CATEGORY = 'span.category',
 }
 
 type WebVitalsMeasurements =
