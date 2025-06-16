@@ -30,7 +30,7 @@ function ReplaysListContainer() {
             {t('Session Replay')}
             <PageHeadingQuestionTooltip
               title={t(
-                'A view of available video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+                'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
               )}
               docsUrl="https://docs.sentry.io/product/session-replay/"
             />

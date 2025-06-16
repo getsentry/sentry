@@ -584,6 +584,37 @@ A POST request is issued with no body. The URL and authorization context is used
 
 - Response 204
 
+## Replay Summarize Breadcrumb [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/summarize/breadcrumbs/]
+
+### Fetch Replay Breadcrumb Summary [GET]
+
+| Column                   | Type            | Description                                                                                   |
+| ------------------------ | --------------- | --------------------------------------------------------------------------------------------- |
+| title                    | str             | The main title of the user journey summary.                                                   |
+| summary                  | str             | A concise summary featuring the highlights of the user's journey while using the application. |
+| time_ranges              | list[TimeRange] | A list of TimeRange objects.                                                                  |
+| time_ranges.period_start | number          | The start time (UNIX timestamp) of the analysis window.                                       |
+| time_ranges.period_end   | number          | The end time (UNIX timestamp) of the analysis window.                                         |
+| time_ranges.period_title | str             | A concise summary utilizing 6 words or fewer describing what happened during the time range.  |
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "title": "Something Happened",
+      "summary": "The application broke",
+      "time_ranges": [
+        {
+          "period_start": 1749584581.5356228,
+          "period_end": 1749584992.912,
+          "period_title": "Second Replay Load Failure"
+        }
+      ]
+    }
+  }
+  ```
+
 ## Replay Deletion Jobs [/organizations/<organization_id_or_slug>/replays/jobs/delete/]
 
 - Parameters
@@ -599,17 +630,17 @@ Retrieve a collection of replay delete jobs.
 
 **Attributes**
 
-| Column      | Type             | Description                                                                 |
-| ----------- | ---------------- | --------------------------------------------------------------------------- |
-| id          | number           | -                                                                           |
-| dateCreated | string           | -                                                                           |
-| dateUpdated | string           | -                                                                           |
-| rangeStart  | string           | The minimum UTC timestamp in the deletion range.                            |
-| rangeEnd    | string           | The maximum UTC timestamp in the deletion range.                            |
-| environment | optional[string] | The environment to delete replays from.  If not specified, applies to all environments               |
-| projects    | list[number]     | The projects to delete replays from.                                        |
-| status      | string           | The status of the deletion job. One of `pending`, `in-progress`, and `completed`. |
-| query       | optional[string] | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax                  |
+| Column      | Type             | Description                                                                                                                |
+| ----------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| id          | number           | -                                                                                                                          |
+| dateCreated | string           | -                                                                                                                          |
+| dateUpdated | string           | -                                                                                                                          |
+| rangeStart  | string           | The minimum UTC timestamp in the deletion range.                                                                           |
+| rangeEnd    | string           | The maximum UTC timestamp in the deletion range.                                                                           |
+| environment | optional[string] | The environment to delete replays from. If not specified, applies to all environments                                      |
+| projects    | list[number]     | The projects to delete replays from.                                                                                       |
+| status      | string           | The status of the deletion job. One of `pending`, `in-progress`, and `completed`.                                          |
+| query       | optional[string] | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax |
 
 - Response 200
 
@@ -681,21 +712,15 @@ Fetch a replay delete job instance.
   ```json
   {
     "data": {
-      "id": 23,
-      "dateCreated": "2025-06-06T14:05:57.909921",
-      "dateUpdated": "2025-06-06T14:05:57.909921",
-      "rangeStart": "2025-06-01T00:00:00.000000",
-      "rangeEnd": "2025-06-04T00:00:00.000000",
-      "environment": "production",
-      "projects": [11276],
-      "status": "pending",
-      "query": "release:2.3.0 AND url:*/billing*"
+      "title": "Something Happened",
+      "summary": "The application broke",
+      "time_ranges": [
+        {
+          "period_start": 1749584581.5356228,
+          "period_end": 1749584992.912,
+          "period_title": "Second Replay Load Failure"
+        }
+      ]
     }
   }
   ```
-
-### Schedule Replay Collection Deletion [PUT]
-
-An empty PUT request is made to the endpoint. The instance is scheduled for processing if it was in a pending state.
-
-- Response 202

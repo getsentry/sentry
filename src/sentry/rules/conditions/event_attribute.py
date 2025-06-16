@@ -34,7 +34,7 @@ class AttributeHandler(ABC):
         raise NotImplementedError
 
 
-attribute_registry = Registry[AttributeHandler]()
+attribute_registry = Registry[type[AttributeHandler]]()
 
 
 # Maps attributes to snuba columns
@@ -290,7 +290,9 @@ class ErrorAttributeHandler(AttributeHandler):
         return [
             e.mechanism.handled != negate
             for e in getattr(event.interfaces.get("exception"), "values", [])
-            if getattr(e, "mechanism") is not None and getattr(e.mechanism, "handled") is not None
+            if e is not None
+            and getattr(e, "mechanism") is not None
+            and getattr(e.mechanism, "handled") is not None
         ]
 
 

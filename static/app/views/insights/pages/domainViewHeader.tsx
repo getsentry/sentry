@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {TabListItemProps} from 'sentry/components/core/tabs';
+import {TabList} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {TabList} from 'sentry/components/tabs';
-import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,7 +19,7 @@ import {
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -59,7 +59,7 @@ export function DomainViewHeader({
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsInsightsEnabled = useIsNextJsInsightsAvailable();
 
   const crumbs: Crumb[] = [
     {

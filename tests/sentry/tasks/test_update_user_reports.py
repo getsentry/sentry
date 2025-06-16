@@ -64,7 +64,7 @@ class UpdateUserReportTest(TestCase):
         )
 
         with self.tasks():
-            update_user_reports(start=start, end=end)
+            update_user_reports(start_datetime=start.isoformat(), end_datetime=end.isoformat())
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
         report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
@@ -106,7 +106,11 @@ class UpdateUserReportTest(TestCase):
         )
 
         with self.tasks():
-            update_user_reports(start=start, end=end, event_lookback=event_lookback)
+            update_user_reports(
+                start_datetime=start.isoformat(),
+                end_datetime=end.isoformat(),
+                event_lookback_days=event_lookback.days,
+            )
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
         report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
@@ -207,7 +211,11 @@ class UpdateUserReportTest(TestCase):
         self.create_event_and_report(project.id, event_dt=event_dt, report_dt=report_dt)
 
         with self.tasks():
-            update_user_reports(start=epoch, end=now, event_lookback=event_lookback)
+            update_user_reports(
+                start_datetime=epoch.isoformat(),
+                end_datetime=now.isoformat(),
+                event_lookback_days=event_lookback.days,
+            )
 
         assert mock_get_event_retention.call_count > 0
         report = UserReport.objects.get()

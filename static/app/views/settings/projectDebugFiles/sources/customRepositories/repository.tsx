@@ -24,7 +24,6 @@ function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props
       </div>
       <div>
         <CustomRepositoryActions
-          repositoryName={repository.name}
           hasFeature={hasFeature}
           hasAccess={hasAccess}
           onDelete={() => onDelete(repository.id)}

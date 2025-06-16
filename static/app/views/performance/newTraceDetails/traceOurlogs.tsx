@@ -9,20 +9,14 @@ import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  LogsPageDataProvider,
-  useLogsPageData,
-} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -44,43 +38,27 @@ export function TraceViewLogsDataProvider({
   );
 }
 
-export function TraceViewLogsSection() {
-  const tableData = useLogsPageData();
-  const logsSearch = useLogsSearch();
-  const hasTraceTabsUi = useHasTraceTabsUI();
-
-  if (hasTraceTabsUi) {
-    return (
-      <StyledPanel>
-        <LogsSectionContent />
-      </StyledPanel>
-    );
-  }
-
-  if (
-    !tableData?.logsQueryResult ||
-    (tableData.logsQueryResult?.data?.length === 0 && logsSearch.isEmpty())
-  ) {
-    return null;
-  }
-
+export function TraceViewLogsSection({
+  scrollContainer,
+}: {
+  scrollContainer: React.RefObject<HTMLDivElement | null>;
+}) {
   return (
-    <FoldSection
-      sectionKey={TraceContextSectionKeys.LOGS as string as SectionKey}
-      title={t('Logs')}
-      data-test-id="logs-data-section"
-      initialCollapse={false}
-      disableCollapsePersistence
-    >
-      <LogsSectionContent />
-    </FoldSection>
+    <StyledPanel>
+      <LogsSectionContent scrollContainer={scrollContainer} />
+    </StyledPanel>
   );
 }
 
-function LogsSectionContent() {
+function LogsSectionContent({
+  scrollContainer,
+}: {
+  scrollContainer: React.RefObject<HTMLDivElement | null>;
+}) {
   const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
+  const hasInfiniteFeature = organization.features.includes('ourlogs-infinite-scroll');
 
   return (
     <Fragment>
@@ -94,7 +72,11 @@ function LogsSectionContent() {
         onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
-        <LogsTable showHeader={false} />
+        {hasInfiniteFeature ? (
+          <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+        ) : (
+          <LogsTable showHeader={false} />
+        )}
       </TableContainer>
     </Fragment>
   );

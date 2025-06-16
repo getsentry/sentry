@@ -82,6 +82,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
   securityToken?: string;
   securityTokenHeader?: string;
+  seerScannerAutomation?: boolean;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
@@ -109,6 +110,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    playstation: string;
     public: string;
     secret: string;
     security: string;

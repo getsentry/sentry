@@ -21,6 +21,7 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.shared_integrations.exceptions import (
+    ApiUnauthorized,
     IntegrationFormError,
     IntegrationInstallationConfigurationError,
 )
@@ -179,6 +180,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 IntegrationInstallationConfigurationError,
                 IntegrationFormError,
                 InvalidIdentity,
+                ApiUnauthorized,
             ) as e:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.

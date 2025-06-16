@@ -246,7 +246,12 @@ function EAPMobileOverviewPage() {
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
@@ -258,13 +263,6 @@ function EAPMobileOverviewPage() {
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <MobileOverviewTable response={response} sort={sorts[1]} />
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

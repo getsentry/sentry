@@ -13,7 +13,14 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
-from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
+from sentry.release_health.tasks import (
+    has_been_adopted,
+    iter_adopted_releases,
+    monitor_release_adoption,
+    process_projects_with_sessions,
+    valid_and_adopted_release,
+    valid_environment,
+)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -544,3 +551,54 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
 
 class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
     backend_class = MetricReleaseMonitorBackend
+
+
+def test_iter_adopted_releases():
+    """Test the totals object is flattened into a list of tuple of values."""
+    assert (
+        list(iter_adopted_releases({1: {"": {"releases": {"0.1": 1}, "total_sessions": 1}}})) == []
+    )
+
+    assert list(
+        iter_adopted_releases(
+            {
+                1: {"prod": {"releases": {"0.1": 1, "0.3": 9}, "total_sessions": 10}},
+                2: {"prod": {"releases": {"0.1": 1, "0.2": 4}, "total_sessions": 5}},
+            }
+        )
+    ) == [
+        {"project_id": 1, "environment": "prod", "version": "0.1"},
+        {"project_id": 1, "environment": "prod", "version": "0.3"},
+        {"project_id": 2, "environment": "prod", "version": "0.1"},
+        {"project_id": 2, "environment": "prod", "version": "0.2"},
+    ]
+
+    assert (
+        list(iter_adopted_releases({1: {"prod": {"releases": {"0.1": 1}, "total_sessions": 100}}}))
+        == []
+    )
+
+
+def test_valid_environment():
+    """A valid environment is one that has at least one session and a non-empty name."""
+    assert valid_environment("production", 20)
+    assert not valid_environment("", 20)
+    assert not valid_environment("production", 0)
+
+
+def test_valid_and_adopted_release():
+    """A valid release has a valid name and at least 10% of the environment's sessions."""
+    assert valid_and_adopted_release("release", 10, 100)
+    assert not valid_and_adopted_release("", 10, 100)
+    assert not valid_and_adopted_release("\t", 10, 100)
+    assert not valid_and_adopted_release("release", 10, 101)
+
+
+def test_has_been_adopted():
+    """An adopted session has at least 10% of the environment's sessions."""
+    assert has_been_adopted(10, 1)
+    assert has_been_adopted(100, 10)
+    assert has_been_adopted(1000, 100)
+    assert not has_been_adopted(100, 0)
+    assert not has_been_adopted(100, 1)
+    assert not has_been_adopted(100, 9)

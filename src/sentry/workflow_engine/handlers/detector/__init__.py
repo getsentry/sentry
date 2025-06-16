@@ -4,8 +4,8 @@ __all__ = [
     "DetectorHandler",
     "DetectorOccurrence",
     "DetectorStateData",
-    "StatefulGroupingDetectorHandler",
+    "StatefulDetectorHandler",
 ]
 
 from .base import DataPacketEvaluationType, DataPacketType, DetectorHandler, DetectorOccurrence
-from .stateful import DetectorStateData, StatefulGroupingDetectorHandler
+from .stateful import DetectorStateData, StatefulDetectorHandler

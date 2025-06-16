@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -12,7 +11,6 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -20,7 +18,6 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
-import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
@@ -49,7 +46,6 @@ export function PlatformLandingPageLayout({
   const location = useLocation();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
-  const datePageFilterProps = limitMaxPickableDays(organization);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -63,23 +59,9 @@ export function PlatformLandingPageLayout({
       renderDisabled={NoAccess}
     >
       {performanceType === 'backend' ? (
-        <BackendHeader
-          headerTitle={BACKEND_LANDING_TITLE}
-          headerActions={
-            <Fragment>
-              <NewNextJsExperienceButton />
-            </Fragment>
-          }
-        />
+        <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       ) : (
-        <FrontendHeader
-          headerTitle={FRONTEND_LANDING_TITLE}
-          headerActions={
-            <Fragment>
-              <NewNextJsExperienceButton />
-            </Fragment>
-          }
-        />
+        <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       )}
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -89,7 +71,7 @@ export function PlatformLandingPageLayout({
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={['starred']} />
                   <EnvironmentPageFilter />
-                  <DatePageFilter {...datePageFilterProps} />
+                  <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar

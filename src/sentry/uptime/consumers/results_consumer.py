@@ -26,6 +26,7 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
 )
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.result_handler import handle_onboarding_result
+from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
     UptimeStatus,
@@ -43,11 +44,17 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import IncidentStatus, ProjectUptimeSubscriptionMode
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    IncidentStatus,
+    ProjectUptimeSubscriptionMode,
+)
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +86,10 @@ _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_produ
 
 def build_last_update_key(detector: Detector) -> str:
     return f"project-sub-last-update:detector:{detector.id}"
+
+
+def build_last_seen_interval_key(detector: Detector) -> str:
+    return f"project-sub-last-seen-interval:detector:{detector.id}"
 
 
 def build_active_consecutive_status_key(detector: Detector, status: str) -> str:
@@ -292,6 +303,33 @@ def handle_active_result(
     result: CheckResult,
     metric_tags: dict[str, str],
 ):
+    organization = detector.project.organization
+
+    if features.has("organizations:uptime-detector-handler", organization):
+        # XXX(epurkhiser): Enabling the uptime-detector-handler will process
+        # check results via the uptime detector handler. However the handler
+        # WILL NOT produce issue occurrences (however it will do nearly
+        # everything else, including logging that it will produce)
+        packet = UptimePacketValue(
+            check_result=result,
+            subscription=uptime_subscription,
+            metric_tags=metric_tags,
+        )
+        process_data_packets(
+            [DataPacket(source_id=str(uptime_subscription.id), packet=packet)],
+            DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        )
+
+        # Bail if we're doing issue creation via detectors, we don't want to
+        # create issues using the legacy system in this case. If this flag is
+        # not enabled the detector will still run, but will not produce an
+        # issue occurrence.
+        #
+        # Once we've determined that the detector handler is producing issues
+        # the same as the legacy issue creation, we can remove this.
+        if features.has("organizations:uptime-detector-create-issues", organization):
+            return
+
     uptime_status = uptime_subscription.uptime_status
     result_status = result["status"]
 
@@ -470,28 +508,47 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         ) / subscription_interval_ms
 
         # If the scheduled check is two or more intervals since the last seen check, we can declare the
-        # intervening checks missed.
+        # intervening checks missed...
         if last_update_raw is not None and num_intervals > 1:
-            num_missed_checks = num_intervals - 1
-            metrics.distribution(
-                "uptime.result_processer.num_missing_check",
-                num_missed_checks,
-                tags=metric_tags,
-            )
-            logger.info(
-                "uptime.result_processor.num_missing_check",
-                extra={"num_missed_checks": num_missed_checks, **result},
-            )
-            if num_intervals != int(num_intervals):
-                logger.info(
-                    "uptime.result_processor.invalid_check_interval",
-                    extra={
-                        "last_update_ms": last_update_ms,
-                        "current_update_ms": result["scheduled_check_time_ms"],
-                        "interval_ms": subscription_interval_ms,
-                        **result,
-                    },
+            # ... but it might be the case that the user changed the frequency of the detector.  So, first
+            # verify that the interval in postgres is the same as the last-seen interval (in redis).
+            # We only store in redis when we encounter a difference like this, which means we won't be able
+            # to tell if a missed check is real with the very first missed check.  This is probably okay,
+            # and preferable to just writing the interval to redis on every check consumed.
+            last_interval_key = build_last_seen_interval_key(detector)
+
+            # If we've never set an interval before, just set this to zero, which will never compare
+            # true with any valid interval.
+            last_interval_seen: str = cluster.get(last_interval_key) or "0"
+
+            if int(last_interval_seen) == subscription_interval_ms:
+                num_missed_checks = num_intervals - 1
+                metrics.distribution(
+                    "uptime.result_processer.num_missing_check",
+                    num_missed_checks,
+                    tags=metric_tags,
                 )
+                logger.info(
+                    "uptime.result_processor.num_missing_check",
+                    extra={"num_missed_checks": num_missed_checks, **result},
+                )
+                if num_intervals != int(num_intervals):
+                    logger.info(
+                        "uptime.result_processor.invalid_check_interval",
+                        0,
+                        extra={
+                            "last_update_ms": last_update_ms,
+                            "current_update_ms": result["scheduled_check_time_ms"],
+                            "interval_ms": subscription_interval_ms,
+                            **result,
+                        },
+                    )
+            else:
+                logger.info(
+                    "uptime.result_processor.false_num_missing_check",
+                    extra={**result},
+                )
+                cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
 
         if features.has("organizations:uptime-detailed-logging", organization):
             logger.info("handle_result_for_project.after_dedupe", extra=result)

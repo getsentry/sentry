@@ -111,13 +111,13 @@ export const NOTIFICATION_SETTING_FIELDS = {
   brokenMonitors: {
     name: 'brokenMonitors',
     type: 'select',
-    label: t('Broken Monitors'),
+    label: t('Broken Cron Monitors'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
     help: t(
-      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+      'Notifications for Cron Monitors that have been in a failing state for a prolonged period of time'
     ),
   },
   // legacy options

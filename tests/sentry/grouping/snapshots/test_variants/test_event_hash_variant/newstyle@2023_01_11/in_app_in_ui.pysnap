@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:07.744470+00:00'
+created: '2025-05-12T23:41:14.019436+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app:
           frame (marked out of app by the client)
             function*
               "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "main.m"
             function*
@@ -79,7 +79,7 @@ app:
               "<compiler-generated>"
             function*
               "AnyTableViewController.tableView"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
@@ -89,7 +89,7 @@ app:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -114,7 +114,7 @@ app:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*

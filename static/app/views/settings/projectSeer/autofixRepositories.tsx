@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -15,7 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -43,6 +44,9 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
+  const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
+    'solution' | 'code_changes' | 'open_pr'
+  >('solution');
 
   useEffect(() => {
     if (repositories) {
@@ -69,6 +73,9 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
+        setAutomatedRunStoppingPoint(
+          preference.automated_run_stopping_point || 'solution'
+        );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
         const repoIds = codeMappingRepos.map(repo => repo.external_id);
@@ -83,22 +90,26 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
+        setAutomatedRunStoppingPoint('solution');
       }
     }
   }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
 
   const updatePreferences = useCallback(
-    (updatedIds?: string[], updatedSettings?: Record<string, RepoSettings>) => {
+    (
+      updatedIds?: string[],
+      updatedSettings?: Record<string, RepoSettings>,
+      newStoppingPoint?: 'solution' | 'code_changes' | 'open_pr'
+    ) => {
       if (!repositories) {
         return;
       }
-
       const idsToUse = updatedIds || selectedRepoIds;
       const settingsToUse = updatedSettings || repoSettings;
+      const stoppingPointToUse = newStoppingPoint || automatedRunStoppingPoint;
       const selectedRepos = repositories.filter(repo =>
         idsToUse.includes(repo.externalId)
       );
-
       const reposData = selectedRepos.map(repo => {
         const [owner, name] = (repo.name || '/').split('/');
         return {
@@ -110,14 +121,19 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           instructions: settingsToUse[repo.externalId]?.instructions || '',
         };
       });
-
       updateProjectSeerPreferences({
         repositories: reposData,
+        automated_run_stopping_point: stoppingPointToUse,
       });
-
       setShowSaveNotice(true);
     },
-    [repositories, selectedRepoIds, repoSettings, updateProjectSeerPreferences]
+    [
+      repositories,
+      selectedRepoIds,
+      repoSettings,
+      automatedRunStoppingPoint,
+      updateProjectSeerPreferences,
+    ]
   );
 
   const handleSaveModalSelections = useCallback(
@@ -199,15 +215,27 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     <Panel>
       <PanelHeader hasButtons>
         <Flex align="center" gap={space(0.5)}>
-          {t('Seer Repositories')}
+          {t('Working Repositories')}
           <QuestionTooltip
-            title={t(
-              'Below are the repositories that Seer will work on. Seer will only be able to see code from and make PRs to the repositories that you select here.'
+            title={tct(
+              'Seer will only be able to see code from and make PRs to the repos that you select here. The [link:GitHub integration] is required for Seer to access these repos.',
+              {
+                link: <Link to={`/settings/${organization.slug}/integrations/github/`} />,
+              }
             )}
             size="sm"
+            isHoverable
           />
         </Flex>
-        <div>
+        <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+          <LinkButton
+            size="sm"
+            icon={<IconGithub />}
+            to={`/settings/${organization.slug}/integrations/github/`}
+            style={{textTransform: 'none'}}
+          >
+            {t('Manage Integration')}
+          </LinkButton>
           <Tooltip
             isHoverable
             title={
@@ -226,7 +254,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             }
           >
             <Button
-              size="xs"
+              size="sm"
               icon={<IconAdd />}
               disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
               onClick={openAddRepoModal}

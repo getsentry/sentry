@@ -5,6 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -33,10 +34,12 @@ describe('Visualize', () => {
           'span.duration': {
             key: 'span.duration',
             name: 'span.duration',
+            kind: FieldKind.MEASUREMENT,
           },
           'span.self_time': {
             key: 'span.self_time',
             name: 'span.self_time',
+            kind: FieldKind.MEASUREMENT,
           },
         };
         return {tags, isLoading: false};
@@ -46,10 +49,12 @@ describe('Visualize', () => {
         'span.op': {
           key: 'span.op',
           name: 'span.op',
+          kind: FieldKind.TAG,
         },
         'span.description': {
           key: 'span.description',
           name: 'span.description',
+          kind: FieldKind.TAG,
         },
       };
 
@@ -1521,6 +1526,148 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'spans'
     );
+    expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
+  });
+
+  it('disables changing visualize fields for epm', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['epm()'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('disables changing visualize fields for failure_rate', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['failure_rate()'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('changes to epm() when using epm', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.self_time)'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'avg'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'epm'}));
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'epm'
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+  it('changes to failure_rate() when using failure_rate', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.self_time)'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'avg'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'failure_rate'}));
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'failure_rate'
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
   });
 
   it('defaults count_unique argument to span.op', async function () {

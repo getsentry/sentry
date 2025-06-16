@@ -89,7 +89,11 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod, has_initial_open_period
+from sentry.models.groupopenperiod import (
+    GroupOpenPeriod,
+    create_open_period,
+    has_initial_open_period,
+)
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -102,19 +106,19 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.performance_issues.performance_detection import detect_performance_problems
+from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
-from sentry.receivers.onboarding import (
-    record_first_insight_span,
-    record_first_transaction,
-    record_release_received,
-)
+from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
+    first_insight_span_received,
+    first_transaction_received,
     issue_unresolved,
 )
 from sentry.tasks.process_buffer import buffer_incr
@@ -134,10 +138,9 @@ from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, i
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
@@ -218,27 +221,6 @@ def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
         if result is not None:
             return bool(result)
     return True
-
-
-def get_project_insight_flag(project: Project, module: InsightModules):
-    if module == InsightModules.HTTP:
-        return project.flags.has_insights_http
-    elif module == InsightModules.DB:
-        return project.flags.has_insights_db
-    elif module == InsightModules.ASSETS:
-        return project.flags.has_insights_assets
-    elif module == InsightModules.APP_START:
-        return project.flags.has_insights_app_start
-    elif module == InsightModules.SCREEN_LOAD:
-        return project.flags.has_insights_screen_load
-    elif module == InsightModules.VITAL:
-        return project.flags.has_insights_vitals
-    elif module == InsightModules.CACHE:
-        return project.flags.has_insights_caches
-    elif module == InsightModules.QUEUE:
-        return project.flags.has_insights_queues
-    elif module == InsightModules.LLM_MONITORING:
-        return project.flags.has_insights_llm_monitoring
 
 
 def has_pending_commit_resolution(group: Group) -> bool:
@@ -514,6 +496,7 @@ class EventManager:
 
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
+        _derive_client_error_sampling_rate(jobs, projects)
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -565,12 +548,12 @@ class EventManager:
                     project=project, event=job["event"], sender=Project
                 )
 
-            if (
-                has_event_minified_stack_trace(job["event"])
-                and not project.flags.has_minified_stack_trace
-            ):
-                first_event_with_minified_stack_trace_received.send_robust(
-                    project=project, event=job["event"], sender=Project
+            if has_event_minified_stack_trace(job["event"]):
+                set_project_flag_and_signal(
+                    project,
+                    "has_minified_stack_trace",
+                    first_event_with_minified_stack_trace_received,
+                    event=job["event"],
                 )
 
         if is_reprocessed:
@@ -756,6 +739,33 @@ def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
             # Get rid of ephemeral interface data
             if iface.ephemeral:
                 data.pop(iface.path, None)
+
+
+def _derive_client_error_sampling_rate(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        if job["project_id"] in options.get("issues.client_error_sampling.project_allowlist"):
+            try:
+                client_sample_rate = (
+                    job["data"]
+                    .get("contexts", {})
+                    .get("error_sampling", {})
+                    .get("client_sample_rate")
+                )
+
+                if client_sample_rate is not None and isinstance(client_sample_rate, (int, float)):
+                    if 0 < client_sample_rate <= 1:
+                        job["data"]["sample_rate"] = client_sample_rate
+                    else:
+                        logger.warning(
+                            "Client sent invalid error sample_rate outside valid range (0-1)",
+                            extra={
+                                "project_id": job["project_id"],
+                                "client_sample_rate": client_sample_rate,
+                            },
+                        )
+                        metrics.incr("issues.client_error_sampling.invalid_range")
+            except (KeyError, TypeError, AttributeError):
+                pass
 
 
 def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
@@ -1260,6 +1270,7 @@ def assign_event_to_group(
     return group_info
 
 
+@sentry_sdk.tracing.trace
 def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
@@ -1294,6 +1305,7 @@ def get_hashes_and_grouphashes(
         return NULL_GROUPHASH_INFO
 
 
+@sentry_sdk.tracing.trace
 def handle_existing_grouphash(
     job: Job,
     existing_grouphash: GroupHash,
@@ -1463,6 +1475,13 @@ def _create_group(
     group_data["metadata"]["initial_priority"] = priority
     group_creation_kwargs["data"] = group_data
 
+    # Set initial times_seen
+    group_creation_kwargs["times_seen"] = 1
+
+    # If the project is in the allowlist, use the client sample rate to weight the times_seen
+    if project.id in options.get("issues.client_error_sampling.project_allowlist"):
+        group_creation_kwargs["times_seen"] = _get_error_weighted_times_seen(event)
+
     try:
         with transaction.atomic(router.db_for_write(Group)):
             # This is the 99.999% path. The rest of the function is all to handle a very rare and
@@ -1506,6 +1525,14 @@ def _create_group(
             date_ended=None,
         )
     return group
+
+
+def _get_error_weighted_times_seen(event: BaseEvent) -> int:
+    if event.get_event_type() in ("error", "default"):
+        error_sample_rate = event.data.get("sample_rate")
+        if error_sample_rate is not None and error_sample_rate > 0:
+            return int(1 / error_sample_rate)
+    return 1
 
 
 def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
@@ -1713,15 +1740,8 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        if features.has(
-            "organizations:issue-open-periods", group.project.organization
-        ) and has_initial_open_period(group):
-            GroupOpenPeriod.objects.create(
-                group=group,
-                project_id=group.project_id,
-                date_started=event.datetime,
-                date_ended=None,
-            )
+        if has_initial_open_period(group):
+            create_open_period(group, date)
 
     return is_regression
 
@@ -1826,7 +1846,11 @@ def _process_existing_aggregate(
 
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
-    buffer_incr(Group, {"times_seen": 1}, {"id": group.id}, updated_group_values)
+    times_seen = 1
+    if group.project.id in options.get("issues.client_error_sampling.project_allowlist"):
+        times_seen = _get_error_weighted_times_seen(event)
+
+    buffer_incr(Group, {"times_seen": times_seen}, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 
@@ -2475,6 +2499,19 @@ def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping)
             )
 
 
+INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
+    InsightModules.HTTP: "has_insights_http",
+    InsightModules.DB: "has_insights_db",
+    InsightModules.ASSETS: "has_insights_assets",
+    InsightModules.APP_START: "has_insights_app_start",
+    InsightModules.SCREEN_LOAD: "has_insights_screen_load",
+    InsightModules.VITAL: "has_insights_vitals",
+    InsightModules.CACHE: "has_insights_caches",
+    InsightModules.QUEUE: "has_insights_queues",
+    InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
+}
+
+
 @sentry_sdk.tracing.trace
 def _record_transaction_info(
     jobs: Sequence[Job], projects: ProjectsMapping, skip_send_first_transaction: bool
@@ -2490,12 +2527,22 @@ def _record_transaction_info(
             record_event_processed(project, event)
 
             if not skip_send_first_transaction:
-                record_first_transaction(project, event.datetime)
+                set_project_flag_and_signal(
+                    project,
+                    "has_transactions",
+                    first_transaction_received,
+                    event=event,
+                )
 
             spans = job["data"]["spans"]
             for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if not get_project_insight_flag(project, module) and is_module(spans):
-                    record_first_insight_span(project, module)
+                if is_module(spans):
+                    set_project_flag_and_signal(
+                        project,
+                        INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                        first_insight_span_received,
+                        module=module,
+                    )
 
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None
@@ -2587,8 +2634,8 @@ def save_transaction_events(
                 )
             except KeyError:
                 continue
-    set_span_data("jobs", len(jobs))
-    set_span_data("projects", len(projects))
+    set_span_attribute("jobs", len(jobs))
+    set_span_attribute("projects", len(projects))
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 

@@ -107,7 +107,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricIssue.slug,
+            "type": MetricIssue.slug,
             "dataSource": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
@@ -198,11 +198,13 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
 
     def test_invalid_detector_type(self):
-        data = {**self.valid_data, "detectorType": "invalid_type"}
+        data = {**self.valid_data, "type": "invalid_type"}
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
-        assert validator.errors.get("detectorType") == [
-            ErrorDetail(string="Unknown detector type", code="invalid")
+        assert validator.errors.get("type") == [
+            ErrorDetail(
+                string="Unknown detector type 'invalid_type'. Must be one of: error", code="invalid"
+            )
         ]
 
     def test_too_many_conditions(self):

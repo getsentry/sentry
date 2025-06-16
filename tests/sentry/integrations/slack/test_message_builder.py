@@ -8,6 +8,7 @@ import orjson
 from django.urls import reverse
 from urllib3.response import HTTPResponse
 
+from sentry.autofix.utils import SeerAutomationSource
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -103,8 +104,6 @@ def build_test_message_blocks(
         else:
             title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
 
-    title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
-
     if rule:
         if legacy_rule_id:
             block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id}}}'
@@ -115,8 +114,22 @@ def build_test_message_blocks(
 
     blocks: list[dict[str, Any]] = [
         {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": title_text},
+            "type": "rich_text",
+            "elements": [
+                {
+                    "type": "rich_text_section",
+                    "elements": [
+                        {"type": "emoji", "name": "red_circle"},
+                        {"type": "text", "text": " "},
+                        {
+                            "type": "link",
+                            "url": title_link,
+                            "text": formatted_title,
+                            "style": {"bold": True},
+                        },
+                    ],
+                }
+            ],
             "block_id": block_id,
         },
     ]
@@ -848,7 +861,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         with self.feature("organizations:performance-issues"):
             blocks = SlackIssuesMessageBuilder(event.group, event).build()
         assert isinstance(blocks, dict)
-        assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
+        title_text = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
+        assert "N+1 Query" in title_text
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
             in blocks["blocks"][2]["text"]["text"]
@@ -976,6 +990,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
+        self.project.update_option("sentry:seer_scanner_automation", True)
 
         mock_summary = {
             "headline": "Custom AI Title",
@@ -995,11 +1010,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
             blocks = SlackIssuesMessageBuilder(group).build()
 
-            mock_get_summary.assert_called_once_with(group, source="alert")
+            mock_get_summary.assert_called_once_with(group, source=SeerAutomationSource.ALERT)
 
             # Verify that the original title is \\ present
-            assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
-            assert "Identity not found" in blocks["blocks"][0]["text"]["text"]
+            title_text = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
+            assert "IntegrationError" in title_text
+            assert "Identity not found" in title_text
 
             # Verify that the AI content is used in the context block
             content_block = blocks["blocks"][1]["elements"][0]["text"]
@@ -1038,13 +1054,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
+        self.project.update_option("sentry:seer_scanner_automation", True)
 
         patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
 
         with patch(patch_path) as mock_get_summary:
             mock_get_summary.assert_not_called()
             blocks = SlackIssuesMessageBuilder(group).build()
-            assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+            title_text = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
+            assert "IntegrationError" in title_text
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature(
@@ -1081,6 +1099,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group1 = event1.group
         group1.type = ErrorGroupType.type_id
         group1.save()
+
+        self.project.update_option("sentry:seer_scanner_automation", True)
 
         # Test case for long exception text (over 50 characters)
         long_text = (
@@ -1130,7 +1150,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ):
             mock_get_summary.return_value = (mock_summary, 200)
             blocks = SlackIssuesMessageBuilder(group1, event1.for_group(group1)).build()
-            title_text = blocks["blocks"][0]["text"]["text"]
+            title_text = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
 
             assert "First line of text..." in title_text
             assert "Second line" not in title_text
@@ -1142,7 +1162,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ):
             mock_get_summary.return_value = (mock_summary, 200)
             blocks = SlackIssuesMessageBuilder(group2, event2.for_group(group2)).build()
-            title_text = blocks["blocks"][0]["text"]["text"]
+            title_text = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
 
             expected_truncated = long_text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
             assert expected_truncated in title_text
@@ -1185,8 +1205,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             ):
                 mock_get_summary.return_value = (mock_summary, 200)
                 blocks = SlackIssuesMessageBuilder(group_lb, event_lb.for_group(group_lb)).build()
-                title_block = blocks["blocks"][0]["text"]["text"]
-                assert f": {expected_headline_part}*>" in title_block, f"Failed for {name}"
+                title_block = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
+                assert f": {expected_headline_part}" in title_block, f"Failed for {name}"
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @patch(
@@ -1220,7 +1240,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         mock_get_issue_summary.assert_not_called()
 
         blocks = SlackIssuesMessageBuilder(group).build()
-        assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+        title_text = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
+        assert "IntegrationError" in title_text
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):

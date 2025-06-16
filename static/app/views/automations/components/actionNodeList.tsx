@@ -1,64 +1,127 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import {Select} from 'sentry/components/core/select';
-import type {Action, ActionType, Integration} from 'sentry/types/workflowEngine/actions';
+import {t} from 'sentry/locale';
+import {
+  type Action,
+  ActionGroup,
+  type ActionHandler,
+} from 'sentry/types/workflowEngine/actions';
 import {
   ActionNodeContext,
   actionNodesMap,
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
+import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
 interface ActionNodeListProps {
   actions: Action[];
-  availableActions: Array<{type: ActionType; integrations?: Integration[]}>;
   group: string;
-  onAddRow: (type: ActionType) => void;
+  onAddRow: (actionId: string, actionHandler: ActionHandler) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
-  updateAction: (id: string, data: Record<string, any>) => void;
+  updateAction: (id: string, params: Record<string, any>) => void;
+}
+
+interface Option {
+  label: string;
+  value: ActionHandler;
 }
 
 export default function ActionNodeList({
   group,
   placeholder,
   actions,
-  availableActions,
   onAddRow,
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
-  const options = Array.from(actionNodesMap)
-    .filter(([value]) => availableActions.some(action => action.type === value))
-    .map(([value, {label}]) => ({value, label}));
+  const {data: availableActions = []} = useAvailableActionsQuery();
+  const [actionHandlerMap, setActionHandlerMap] = useState<Record<string, ActionHandler>>(
+    {}
+  );
+
+  const options = useMemo(() => {
+    const notificationActions: Option[] = [];
+    const ticketCreationActions: Option[] = [];
+    const otherActions: Option[] = [];
+
+    availableActions.forEach(action => {
+      const label =
+        actionNodesMap.get(action.type)?.label || action.sentryApp?.name || action.type;
+      const newAction = {
+        value: action,
+        label,
+      };
+
+      if (action.handlerGroup === ActionGroup.NOTIFICATION) {
+        notificationActions.push(newAction);
+      } else if (action.handlerGroup === ActionGroup.TICKET_CREATION) {
+        ticketCreationActions.push(newAction);
+      } else {
+        otherActions.push(newAction);
+      }
+    });
+
+    return [
+      {
+        key: ActionGroup.NOTIFICATION,
+        label: t('Notifications'),
+        options: notificationActions,
+      },
+      {
+        key: ActionGroup.TICKET_CREATION,
+        label: t('Ticket Creation'),
+        options: ticketCreationActions,
+      },
+      {
+        key: ActionGroup.OTHER,
+        label: t('Other Integrations'),
+        options: otherActions,
+      },
+    ];
+  }, [availableActions]);
 
   return (
     <Fragment>
-      {actions.map(action => (
-        <AutomationBuilderRow
-          key={`${group}.action.${action.id}`}
-          onDelete={() => {
-            onDeleteRow(action.id);
-          }}
-        >
-          <ActionNodeContext.Provider
-            value={{
-              action,
-              actionId: `${group}.action.${action.id}`,
-              onUpdate: newAction => updateAction(action.id, newAction),
-              integrations: availableActions.find(a => a.type === action.type)
-                ?.integrations,
+      {actions.map(action => {
+        const handler = actionHandlerMap[action.id];
+        if (!handler) {
+          return null;
+        }
+        return (
+          <AutomationBuilderRow
+            key={`${group}.action.${action.id}`}
+            onDelete={() => {
+              onDeleteRow(action.id);
+              setActionHandlerMap(({[action.id]: _, ...rest}) => rest);
             }}
           >
-            <Node />
-          </ActionNodeContext.Provider>
-        </AutomationBuilderRow>
-      ))}
+            <ActionNodeContext.Provider
+              value={{
+                action,
+                actionId: `${group}.action.${action.id}`,
+                onUpdate: newAction => updateAction(action.id, newAction),
+                handler,
+              }}
+            >
+              <Node />
+            </ActionNodeContext.Provider>
+          </AutomationBuilderRow>
+        );
+      })}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {
-          onAddRow(obj.value);
+          const actionId = uuid4();
+          onAddRow(actionId, obj.value);
+          setActionHandlerMap(currActionHandlerMap => ({
+            ...currActionHandlerMap,
+            [actionId]: obj.value,
+          }));
         }}
         placeholder={placeholder}
         value={null}
@@ -70,7 +133,9 @@ export default function ActionNodeList({
 function Node() {
   const {action} = useActionNodeContext();
   const node = actionNodesMap.get(action.type);
-  return node?.action;
+
+  const Component = node?.action;
+  return Component ? <Component /> : node?.label;
 }
 
 const StyledSelectControl = styled(Select)`

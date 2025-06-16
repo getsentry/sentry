@@ -441,7 +441,7 @@ def get_processors_for_stacktraces(data, infos):
     return processors
 
 
-def get_processable_frames(stacktrace_info, processors):
+def get_processable_frames(stacktrace_info, processors) -> list[ProcessableFrame]:
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
@@ -558,7 +558,7 @@ def get_stacktrace_processing_task(infos, processors):
     processors that seem to not handle any frames.
     """
     by_processor: dict[str, list[Any]] = {}
-    to_lookup: dict[str, str] = {}
+    to_lookup: dict[str, ProcessableFrame] = {}
 
     # by_stacktrace_info requires stable sorting as it is used in
     # StacktraceProcessingTask.iter_processable_stacktraces. This is important

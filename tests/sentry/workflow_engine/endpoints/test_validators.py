@@ -112,7 +112,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
         self.project = self.create_project()
         self.validator_class = BaseDetectorTypeValidator
 
-    def test_validate_detector_type_valid(self):
+    def test_validate_type_valid(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -123,19 +123,19 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 detector_settings=DetectorSettings(validator=MetricAlertsDetectorValidator),
             )
             validator = self.validator_class()
-            result = validator.validate_detector_type("test_type")
+            result = validator.validate_type("test_type")
             assert result == mock_get_by_slug.return_value
 
-    def test_validate_detector_type_unknown(self):
+    def test_validate_type_unknown(self):
         with mock.patch.object(grouptype.registry, "get_by_slug", return_value=None):
             validator = self.validator_class()
             with pytest.raises(
                 ValidationError,
-                match="[ErrorDetail(string='Unknown detector type', code='invalid')]",
+                match="[ErrorDetail(string='Unknown detector type 'unknown_type'. Must be one of: error', code='invalid')]",
             ):
-                validator.validate_detector_type("unknown_type")
+                validator.validate_type("unknown_type")
 
-    def test_validate_detector_type_incompatible(self):
+    def test_validate_type_incompatible(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -149,7 +149,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 ValidationError,
                 match="[ErrorDetail(string='Detector type not compatible with detectors', code='invalid')]",
             ):
-                validator.validate_detector_type("test_type")
+                validator.validate_type("test_type")
 
 
 # TODO - Move these tests into a base detector test file
@@ -164,7 +164,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricIssue.slug,
+            "type": MetricIssue.slug,
             "dataSource": {
                 "field1": "test",
                 "field2": 123,
@@ -229,20 +229,18 @@ class DetectorValidatorTest(BaseValidatorTest):
             data=detector.get_audit_log_data(),
         )
 
-    def test_validate_detector_type_unknown(self):
-        validator = MockDetectorValidator(data={**self.valid_data, "detectorType": "unknown_type"})
+    def test_validate_type_unknown(self):
+        validator = MockDetectorValidator(data={**self.valid_data, "type": "unknown_type"})
         assert not validator.is_valid()
-        assert validator.errors.get("detectorType") == [
-            ErrorDetail(string="Unknown detector type", code="invalid")
+        assert validator.errors.get("type") == [
+            ErrorDetail(string="Unknown detector type 'unknown_type'", code="invalid")
         ], validator.errors
 
-    def test_validate_detector_type_incompatible(self):
+    def test_validate_type_incompatible(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_settings=None)
-            validator = MockDetectorValidator(
-                data={**self.valid_data, "detectorType": "incompatible_type"}
-            )
+            validator = MockDetectorValidator(data={**self.valid_data, "type": "incompatible_type"})
             assert not validator.is_valid()
-            assert validator.errors.get("detectorType") == [
+            assert validator.errors.get("type") == [
                 ErrorDetail(string="Detector type not compatible with detectors", code="invalid")
             ]

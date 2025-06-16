@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import quote as urlquote
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import unquote, urlparse, urlunparse
 
 import sentry_sdk
 
@@ -16,9 +16,14 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError, ApiRetryError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRetryError,
+    ApiUnauthorized,
+    IntegrationError,
+)
 from sentry.users.models.identity import Identity
 
 
@@ -137,15 +142,29 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 # Ignore retry errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if (
-                    self.integration_name == ExternalProviderEnum.GITLAB.value
+                    self.integration_name == IntegrationProviderSlug.GITLAB.value
                     and client.base_url != GITLAB_CLOUD_BASE_URL
                 ):
                     lifecycle.record_halt(e)
                     return None
                 else:
                     raise
+            except ApiUnauthorized as e:
+                lifecycle.record_halt(e)
+                return None
+
             except ApiError as e:
                 if e.code in (404, 400):
+                    lifecycle.record_halt(e)
+                    return None
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                # It involves decomposing this logic
+                #  {"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}"
+                elif (
+                    e.json
+                    and e.json.get("typeKey") == "AadUserStateException"
+                    and self.integration_name == IntegrationProviderSlug.AZURE_DEVOPS.value
+                ):
                     lifecycle.record_halt(e)
                     return None
                 else:
@@ -178,14 +197,18 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     "organization_id": repo.organization_id,
                 }
             )
-            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
 
             def encode_url(url: str) -> str:
                 parsed = urlparse(url)
+                # Decode the path first to avoid double-encoding
+                decoded_path = unquote(parsed.path)
+                # Encode only unencoded elements
+                encoded_path = urlquote(decoded_path, safe="/")
                 # Encode elements of the filepath like square brackets
                 # Preserve path separators and query params etc.
-                return urlunparse(parsed._replace(path=urlquote(parsed.path, safe="/")))
+                return urlunparse(parsed._replace(path=encoded_path))
 
             if version:
                 scope.set_tag("stacktrace_link.tried_version", True)

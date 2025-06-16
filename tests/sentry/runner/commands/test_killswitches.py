@@ -161,5 +161,6 @@ class KillswitchesTest(CliTestCase):
             mock.call(
                 trigger="invalidate-all",
                 organization_id=mock_schedule.mock_calls[0].kwargs["organization_id"],
+                countdown=0,
             )
         ]

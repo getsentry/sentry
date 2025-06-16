@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypedDict
@@ -18,6 +18,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
+from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.types import EAPResponse
@@ -85,6 +86,8 @@ class ResolvedAttribute(ResolvedColumn):
     is_aggregate: bool = field(default=False, init=False)
     # There are columns in RPC that are available but we don't want rendered to the user
     private: bool = False
+    replacement: str | None = field(default=None)
+    deprecation_status: str | None = field(default=None)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -228,6 +231,21 @@ class ResolvedConditionalAggregate(ResolvedFunction):
                 if self.extrapolation
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedEquation(ResolvedFunction):
+    operator: Column.BinaryFormula.Op.ValueType
+    lhs: Column | None
+    rhs: Column | None
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        return Column.BinaryFormula(
+            op=self.operator,
+            left=self.lhs,
+            right=self.rhs,
         )
 
 
@@ -444,3 +462,4 @@ class ColumnDefinitions:
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
+    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], SearchFilter]]

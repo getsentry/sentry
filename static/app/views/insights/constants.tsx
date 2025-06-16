@@ -74,6 +74,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
+  [SpanFunction.COUNT]: {
+    desc: t('Count of spans'),
+    defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
 };
 
 const RELEASE_FILTERS: FilterKeySection = {
@@ -117,7 +123,7 @@ const SPAN_FILTERS: FilterKeySection = {
     SpanIndexedField.SPAN_STATUS,
     SpanIndexedField.SPAN_ACTION,
     SpanIndexedField.SPAN_DOMAIN,
-    SpanIndexedField.SPAN_MODULE,
+    SpanIndexedField.SPAN_CATEGORY,
   ],
 };
 

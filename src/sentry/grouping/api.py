@@ -143,7 +143,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
-            validate=lambda x: x in CONFIGURATIONS,
+            validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
         )
 
 
@@ -412,7 +412,7 @@ def get_grouping_variants_for_event(
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
-    context = GroupingContext(config or load_default_grouping_config())
+    context = GroupingContext(config or load_default_grouping_config(), event)
     strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
         event, context
     )

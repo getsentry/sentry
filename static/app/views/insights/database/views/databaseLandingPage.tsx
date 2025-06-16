@@ -16,6 +16,7 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import DatabaseLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget';
 import DatabaseLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget';
+import {useDatabaseLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingChartFilter';
 import {useDatabaseLandingDurationQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery';
 import {useDatabaseLandingThroughputQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -42,6 +43,7 @@ export function DatabaseLandingPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const hasModuleData = useHasFirstSpan(moduleName);
+  const {search, enabled} = useDatabaseLandingChartFilter();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription =
@@ -111,10 +113,10 @@ export function DatabaseLandingPage() {
   );
 
   const {isPending: isThroughputDataLoading, data: throughputData} =
-    useDatabaseLandingThroughputQuery();
+    useDatabaseLandingThroughputQuery({search, enabled});
 
   const {isPending: isDurationDataLoading, data: durationData} =
-    useDatabaseLandingDurationQuery();
+    useDatabaseLandingDurationQuery({search, enabled});
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isPending;

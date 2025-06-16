@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:17.384014+00:00'
+created: '2025-05-12T23:41:33.339417+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -51,10 +51,10 @@ app:
           frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
           frame* (marked in-app by the client)
@@ -62,7 +62,7 @@ app:
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
@@ -78,7 +78,7 @@ app:
           frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
           frame* (marked in-app by the client)
@@ -86,22 +86,22 @@ app:
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
@@ -109,16 +109,16 @@ app:
           frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
         type*

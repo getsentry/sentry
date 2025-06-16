@@ -159,7 +159,7 @@ export function ColumnEditorModal({
                 <Button
                   size="sm"
                   aria-label={t('Add a Column')}
-                  onClick={insertColumn}
+                  onClick={() => insertColumn()}
                   icon={<IconAdd isCircled />}
                 >
                   {t('Add a Column')}

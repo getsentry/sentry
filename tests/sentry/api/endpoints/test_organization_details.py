@@ -765,6 +765,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
             "githubPRBot": False,
+            "gitlabPRBot": False,
+            "gitlabOpenPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -857,6 +859,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
+        assert "to {}".format(data["gitlabPRBot"]) in log.data["gitlabPRBot"]
+        assert "to {}".format(data["gitlabOpenPRBot"]) in log.data["gitlabOpenPRBot"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to Default Mode" in log.data["samplingMode"]
@@ -1271,6 +1275,28 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             data = {"targetSampleRate": 0.1}
             self.get_error_response(self.organization.slug, status_code=400, **data)
 
+    def test_ingest_through_trusted_relays_only_option(self):
+        # by default option is not set
+        assert not self.organization.get_option("sentry:ingest_through_trusted_relays_only")
+
+        with self.feature("organizations:ingest-through-trusted-relays-only"):
+            data = {"ingestThroughTrustedRelaysOnly": True}
+            self.get_success_response(self.organization.slug, **data)
+            assert self.organization.get_option("sentry:ingest-through-trusted-relays-only")
+
+        with self.feature({"organizations:ingest-through-trusted-relays-only": False}):
+            data = {"ingestThroughTrustedRelaysOnly": True}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:ingest-through-trusted-relays-only")
+    def test_get_ingest_through_trusted_relays_only_option(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["ingestThroughTrustedRelaysOnly"] is False
+
+    def test_get_ingest_through_trusted_relays_only_option_without_feature(self):
+        response = self.get_success_response(self.organization.slug)
+        assert "ingestThroughTrustedRelaysOnly" not in response.data
+
     @with_feature("organizations:dynamic-sampling-custom")
     def test_target_sample_rate_range(self):
         # low, within and high
@@ -1328,6 +1354,20 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
         ]
         assert self.organization.get_option("sentry:default_autofix_automation_tuning") is None
+
+    @with_feature({"organizations:trigger-autofix-on-issue-summary": False})
+    def test_default_seer_scanner_automation_feature_disabled(self):
+        data = {"defaultSeerScannerAutomation": True}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["defaultSeerScannerAutomation"] == [
+            "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+        ]
+
+    @with_feature({"organizations:trigger-autofix-on-issue-summary": True})
+    def test_default_seer_scanner_automation_feature_enabled(self):
+        data = {"defaultSeerScannerAutomation": True}
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

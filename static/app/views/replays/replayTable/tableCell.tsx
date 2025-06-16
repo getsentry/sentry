@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
-import PlatformIcon from 'sentry/components/replays/platformIcon';
+import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
@@ -19,6 +19,7 @@ import {
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconNot,
   IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -318,6 +319,9 @@ export function ReplayCell({
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
+  const location = useLocation();
+  const isIssuesReplayList = location.pathname.includes('issues');
+
   const replayDetailsPathname = makeReplaysPathname({
     path: `/${replay.id}/`,
     organization,
@@ -403,13 +407,21 @@ export function ReplayCell({
             {replay.is_archived ? (
               replay.user.display_name || t('Anonymous User')
             ) : (
-              <MainLink
-                to={detailsTab()}
+              <DisplayNameLink
+                to={
+                  isIssuesReplayList
+                    ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
+                      {
+                        pathname: location.pathname,
+                        query: location.query,
+                      }
+                    : detailsTab()
+                }
                 onClick={trackNavigationEvent}
                 data-has-viewed={replay.has_viewed}
               >
                 {replay.user.display_name || t('Anonymous User')}
-              </MainLink>
+              </DisplayNameLink>
             )}
           </Row>
           <Row gap={0.5}>{subText}</Row>
@@ -441,7 +453,7 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
   ${p => (p.minWidth ? `min-width: ${p.minWidth}px;` : '')}
 `;
 
-const MainLink = styled(Link)`
+const DisplayNameLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
@@ -489,7 +501,7 @@ export function TransactionCell({
 }
 
 export function OSCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.os ?? {};
+  const {name, version} = replay.os;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
@@ -500,7 +512,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -516,18 +528,27 @@ export function OSCell({replay, showDropdownFilters}: Props) {
 }
 
 export function BrowserCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.browser ?? {};
+  const {name, version} = replay.browser;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;
   }
+
+  if (name === null && version === null) {
+    return (
+      <Item>
+        {/* <Tag icon={<IconNot />} /> */}
+        <IconNot size="xs" color="gray300" />
+      </Item>
+    );
+  }
   return (
     <Item>
       <Container>
         <Tooltip title={`${name} ${version}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}

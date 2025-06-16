@@ -12,13 +12,10 @@ import {
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
   type AutofixData,
-  type AutofixFeedback,
   type AutofixProgressItem,
-  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -36,7 +33,6 @@ interface StepProps {
   hasStepBelow: boolean;
   runId: string;
   step: AutofixStep;
-  feedback?: AutofixFeedback;
   isChangesFirstAppearance?: boolean;
   isRootCauseFirstAppearance?: boolean;
   isSolutionFirstAppearance?: boolean;
@@ -66,7 +62,6 @@ function Step({
   hasErroredStepBefore,
   previousDefaultStepIndex,
   previousInsightCount,
-  feedback,
   isRootCauseFirstAppearance,
   isSolutionFirstAppearance,
   isChangesFirstAppearance,
@@ -102,7 +97,6 @@ function Step({
                   agentCommentThread={step.agent_comment_thread ?? undefined}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
-                  feedback={feedback}
                   isRootCauseFirstAppearance={isRootCauseFirstAppearance}
                 />
               )}
@@ -117,7 +111,6 @@ function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  feedback={feedback}
                   isSolutionFirstAppearance={isSolutionFirstAppearance}
                 />
               )}
@@ -155,55 +148,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     return null;
   }
 
-  if (data.status === AutofixStatus.ERROR) {
-    const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
-    const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
-
-    // sugar coat common errors
-    let customErrorMessage = '';
-    if (
-      errorMessage.toLowerCase().includes('overloaded') ||
-      errorMessage.toLowerCase().includes('no completion tokens') ||
-      errorMessage.toLowerCase().includes('exhausted')
-    ) {
-      customErrorMessage = t(
-        'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
-      );
-    } else if (
-      errorMessage.toLowerCase().includes('prompt') ||
-      errorMessage.toLowerCase().includes('tokens')
-    ) {
-      customErrorMessage = t(
-        "Seer worked so hard that it couldn't fit all its findings in its own memory. Please try again."
-      );
-    } else if (errorMessage.toLowerCase().includes('iterations')) {
-      customErrorMessage = t(
-        'Seer was taking a ton of iterations, so we pulled the plug out of fear it might go rogue. Please try again.'
-      );
-    } else if (errorMessage.toLowerCase().includes('timeout')) {
-      customErrorMessage = t(
-        'Seer was taking way too long, so we pulled the plug to turn it off and on again. Please try again.'
-      );
-    } else {
-      customErrorMessage = t(
-        "Oops, Seer went kaput. We've dispatched Seer to fix Seer. In the meantime, try again?"
-      );
-    }
-
-    return (
-      <ErrorContainer>
-        <StyledArrow direction="down" size="sm" />
-        <ErrorMessage>
-          {customErrorMessage || (
-            <Fragment>
-              {t('Something went wrong with Autofix:')} {errorMessage}
-            </Fragment>
-          )}
-        </ErrorMessage>
-      </ErrorContainer>
-    );
-  }
-
   const lastStep = steps[steps.length - 1];
   const logs: AutofixProgressItem[] = lastStep!.progress?.filter(isProgressLog) ?? [];
   const activeLog =
@@ -214,7 +158,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const isInitialMount = !isMountedRef.current;
 
   return (
-    <StepsContainer>
+    <div>
       {steps.map((step, index) => {
         const previousDefaultStepIndex = steps
           .slice(0, index)
@@ -264,7 +208,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
               }
               previousInsightCount={previousInsightCount}
-              feedback={data.feedback}
               isRootCauseFirstAppearance={
                 step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && !isInitialMount
               }
@@ -289,7 +232,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             autofixData={data}
           />
         )}
-    </StepsContainer>
+    </div>
   );
 }
 
@@ -300,26 +243,6 @@ const StepMessage = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   justify-content: flex-start;
   text-align: left;
-`;
-
-const ErrorMessage = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-`;
-
-const StepsContainer = styled('div')``;
-
-const ErrorContainer = styled('div')`
-  margin-top: ${space(1)};
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
-  opacity: 0.5;
 `;
 
 const StepCard = styled('div')`

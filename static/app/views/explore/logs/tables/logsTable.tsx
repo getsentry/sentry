@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -73,7 +73,7 @@ export function LogsTable({
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
-  const highlightTerms = getLogBodySearchTerms(search);
+  const highlightTerms = useMemo(() => getLogBodySearchTerms(search), [search]);
   const sortBys = useLogsSortBys();
   const setSortBys = useSetLogsSortBys();
 

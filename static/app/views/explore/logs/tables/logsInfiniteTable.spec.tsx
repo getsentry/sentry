@@ -4,7 +4,13 @@ import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -63,12 +69,26 @@ jest.mock('@tanstack/react-virtual', () => {
       scrollOffset: 0,
       isScrolling: false,
     }),
+    useVirtualizer: jest.fn().mockReturnValue({
+      getVirtualItems: jest.fn().mockReturnValue([
+        {key: '1', index: 0, start: 0, end: 50, lane: 0},
+        {key: '2', index: 1, start: 50, end: 100, lane: 0},
+        {key: '3', index: 2, start: 100, end: 150, lane: 0},
+      ]),
+      getTotalSize: jest.fn().mockReturnValue(150),
+      options: {
+        scrollMargin: 0,
+      },
+      scrollDirection: 'forward',
+      scrollOffset: 0,
+      isScrolling: false,
+    }),
   };
 });
 
 describe('LogsInfiniteTable', function () {
   const organization = OrganizationFixture({
-    features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-live-refresh'],
+    features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-infinite-scroll'],
   });
   const project = ProjectFixture();
 
@@ -216,6 +236,7 @@ describe('LogsInfiniteTable', function () {
     expect(allTreeRows).toHaveLength(3);
     for (const row of allTreeRows) {
       for (const field of visibleColumnFields) {
+        await userEvent.hover(row);
         const cell = await within(row).findByTestId(`log-table-cell-${field}`);
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',

@@ -36,6 +36,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -115,7 +116,11 @@ function countPreviousItemsOfType({
   type: Token;
 }) {
   const itemKeys = [...state.collection.getKeys()];
-  const currentIndex = itemKeys.indexOf(state.selectionManager.focusedKey);
+  const focusedKey = state.selectionManager.focusedKey;
+  if (!focusedKey) {
+    return 0;
+  }
+  const currentIndex = itemKeys.indexOf(focusedKey);
 
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
@@ -125,12 +130,19 @@ function countPreviousItemsOfType({
   }, 0);
 }
 
-function calculateNextFocusForFilter(state: ListState<ParseResultToken>): FocusOverride {
+function calculateNextFocusForFilter(
+  state: ListState<ParseResultToken>,
+  definition: FieldDefinition | null
+): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
+  const part =
+    definition && definition.kind === FieldKind.FUNCTION && definition.parameters?.length
+      ? 'key'
+      : 'value';
 
   return {
     itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
-    part: 'value',
+    part,
   };
 }
 
@@ -428,7 +440,7 @@ function SearchQueryBuilderInputInternal({
               value,
               getFieldDefinition
             ),
-            focusOverride: calculateNextFocusForFilter(state),
+            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
             shouldCommitQuery: false,
           });
           resetInputValue();
@@ -492,14 +504,49 @@ function SearchQueryBuilderInputInternal({
         onInputChange={e => {
           // Parse text to see if this keystroke would have created any tokens.
           // Add a trailing quote in case the user wants to wrap with quotes.
-          const parsedText = parseSearch(e.target.value + '"');
+          const rawValue = e.target.value;
+          const parsedText = parseSearch(rawValue + '"');
 
-          if (
-            parsedText?.some(
+          const parenIndex =
+            parsedText?.findIndex(
               textToken =>
                 textToken.type === Token.L_PAREN || textToken.type === Token.R_PAREN
-            )
-          ) {
+            ) ?? -1;
+
+          if (parenIndex > -1) {
+            // There's a chance they're trying to type a function.
+            // If so we should autocomplete it as a function.
+            const paren = parsedText![parenIndex]!;
+            if (paren.type === Token.L_PAREN) {
+              const maybeSpaces = parsedText![parenIndex - 1];
+              const maybeFunction = parsedText![parenIndex - 2];
+              if (
+                maybeSpaces?.type === Token.SPACES &&
+                maybeSpaces.value === '' &&
+                maybeFunction?.type === Token.FREE_TEXT &&
+                getFieldDefinition(maybeFunction.value)?.kind === FieldKind.FUNCTION
+              ) {
+                dispatch({
+                  type: 'UPDATE_FREE_TEXT',
+                  tokens: [token],
+                  text: replaceFocusedWordWithFilter(
+                    inputValue,
+                    selectionIndex,
+                    filterValue,
+                    getFieldDefinition
+                  ),
+                  focusOverride: calculateNextFocusForFilter(
+                    state,
+                    getFieldDefinition(filterValue)
+                  ),
+                  shouldCommitQuery: false,
+                });
+                resetInputValue();
+                return;
+              }
+            }
+
+            // It's not a function so treat it as just a parenthesis
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
@@ -528,7 +575,10 @@ function SearchQueryBuilderInputInternal({
                 filterKey,
                 getFieldDefinition
               ),
-              focusOverride: calculateNextFocusForFilter(state),
+              focusOverride: calculateNextFocusForFilter(
+                state,
+                getFieldDefinition(filterKey)
+              ),
               shouldCommitQuery: false,
             });
             resetInputValue();
@@ -646,12 +696,6 @@ const Row = styled('div')`
       right: ${space(0.5)};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
-    }
-  }
-
-  input {
-    &::selection {
       background-color: ${p => p.theme.gray100};
     }
   }

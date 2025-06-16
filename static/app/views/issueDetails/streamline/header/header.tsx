@@ -131,9 +131,15 @@ export default function StreamlinedGroupHeader({
           </ButtonBar>
         </Flex>
         <HeaderGrid>
-          <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow delay={1000}>
-            {primaryTitle}
-          </PrimaryTitle>
+          <Tooltip
+            title={primaryTitle}
+            skipWrapper
+            isHoverable
+            showOnlyOnOverflow
+            delay={1000}
+          >
+            <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+          </Tooltip>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
               <StatLink
@@ -181,7 +187,7 @@ export default function StreamlinedGroupHeader({
                 <Tooltip
                   isHoverable
                   title={tct('[tooltip] [link:Learn more]', {
-                    tooltip: statusProps?.tooltip ?? '',
+                    tooltip: statusProps.tooltip,
                     link: (
                       <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
                     ),
@@ -194,9 +200,15 @@ export default function StreamlinedGroupHeader({
             {subtitle && (
               <Fragment>
                 <Divider />
-                <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
+                <Tooltip
+                  title={subtitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
                   <Subtext>{subtitle}</Subtext>
-                </Subtitle>
+                </Tooltip>
               </Fragment>
             )}
             <ErrorBoundary customComponent={null}>
@@ -256,7 +268,7 @@ const HeaderGrid = styled('div')`
   align-items: center;
 `;
 
-const PrimaryTitle = styled(Tooltip)`
+const PrimaryTitle = styled('span')`
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -289,9 +301,6 @@ const StatCount = styled(Count)`
 
 const Subtext = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const Subtitle = styled(Tooltip)`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

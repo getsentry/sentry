@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -101,6 +102,12 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         bad_url = good_url.replace("7654", "not-an-id")
         assert_status_code(self.client.get(bad_url), 404)
 
+    def test_pending_deletion(self):
+        detector = self.create_detector()
+        detector.status = ObjectStatus.PENDING_DELETION
+        detector.save()
+        self.get_error_response(self.organization.slug, detector.id, status_code=404)
+
 
 @region_silo_test
 class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
@@ -112,7 +119,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             "id": self.detector.id,
             "projectId": self.project.id,
             "name": "Updated Detector",
-            "detectorType": MetricIssue.slug,
+            "type": MetricIssue.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
             "dataSource": {
@@ -252,6 +259,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
                 event=audit_log.get_event_id("DETECTOR_REMOVE"),
                 actor=self.user,
             ).exists()
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
 
     def test_error_group_type(self):
         """
@@ -260,7 +269,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         data_condition_group = self.create_data_condition_group()
         error_detector = self.create_detector(
             project_id=self.project.id,
-            name="Error Detector",
+            name="Error Monitor",
             type=ErrorGroupType.slug,
             workflow_condition_group=data_condition_group,
         )

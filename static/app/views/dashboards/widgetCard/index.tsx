@@ -4,17 +4,17 @@ import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
+import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -48,9 +48,11 @@ import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
-const SESSION_DURATION_ALERT_TEXT = t(
-  'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-  getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+const SESSION_DURATION_ALERT_TEXT = tct(
+  'session.duration is no longer being recorded as of [date]. Data in this widget may be incomplete.',
+  {
+    date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />,
+  }
 );
 
 export const SESSION_DURATION_ALERT = (
@@ -123,6 +125,10 @@ function WidgetCard(props: Props) {
 
     setData(prevData => ({...prevData, ...rest}));
 
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     setIsLoadingTextVisible(false);
   };
 

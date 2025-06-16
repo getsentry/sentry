@@ -7,6 +7,7 @@ import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';
+import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
@@ -26,9 +27,9 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconMegaphone} from 'sentry/icons';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -79,13 +80,8 @@ function ListBoxSectionButton({
 }
 
 function FeedbackFooter() {
-  const {searchSource, query} = useSearchQueryBuilder();
+  const {searchSource} = useSearchQueryBuilder();
   const openForm = useFeedbackForm();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const organization = useOrganization();
-
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   if (!openForm) {
     return null;
@@ -93,18 +89,6 @@ function FeedbackFooter() {
 
   return (
     <SectionedOverlayFooter>
-      <Feature features="organizations:gen-ai-explore-traces">
-        {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
-          <StyledSeerButton
-            priority="primary"
-            size="xs"
-            icon={<IconSeer />}
-            onClick={() => traceExploreAiQueryContext?.onAiButtonClick?.(query)}
-          >
-            {t('Use Seer AI')}
-          </StyledSeerButton>
-        ) : null}
-      </Feature>
       <Button
         size="xs"
         icon={<IconMegaphone />}
@@ -146,12 +130,7 @@ function RecentSearchFilterOption<T>({
   );
 
   return (
-    <RecentFilterPill
-      ref={ref}
-      key={key}
-      data-test-id="recent-filter-key"
-      {...optionProps}
-    >
+    <RecentFilterPill key={key} data-test-id="recent-filter-key" {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <RecentFilterPillLabel {...labelProps}>
         {getKeyLabel(filter.key)}
@@ -237,15 +216,41 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys} = useSearchQueryBuilder();
-  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey)?.props
+  const {filterKeys, setDisplaySeerResults} = useSearchQueryBuilder();
+  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey!)?.props
     ?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+  const organization = useOrganization();
+
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   return (
     <Fragment>
+      <Feature features="organizations:gen-ai-explore-traces">
+        {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
+          <SeerButtonWrapper>
+            <SeerFullWidthButton
+              size="md"
+              icon={<SeerIcon />}
+              onClick={() => {
+                trackAnalytics('trace.explorer.ai_query_interface', {
+                  organization,
+                  action: 'opened',
+                });
+                setDisplaySeerResults(true);
+              }}
+              borderless
+            >
+              {t('Ask Seer')}
+            </SeerFullWidthButton>
+          </SeerButtonWrapper>
+        ) : null}
+      </Feature>
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
@@ -322,6 +327,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 }: FilterKeyListBoxProps<T>) {
   const {filterKeyMenuWidth, wrapperRef, query, portalTarget} = useSearchQueryBuilder();
 
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+  const organization = useOrganization();
+
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   // Add recent filters to hiddenOptions so they don't show up the ListBox component.
   // We render recent filters manually in the RecentFiltersPane component.
   const hiddenOptionsWithRecentsAdded = useMemo<Set<SelectKey>>(() => {
@@ -370,7 +381,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         visible={isOpen}
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
-        <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
+        <SectionedOverlay
+          ref={popoverRef}
+          fullWidth
+          showDetailsPane={showDetailsPane}
+          hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+        >
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
@@ -392,7 +408,11 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 
   const filterKeyListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
+      <SectionedOverlay
+        ref={popoverRef}
+        width={filterKeyMenuWidth}
+        hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+      >
         {isOpen ? (
           <FilterKeyMenuContent
             fullWidth={fullWidth}
@@ -418,38 +438,58 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 }
 
 const SectionedOverlay = styled(Overlay, {
-  shouldForwardProp: prop => !['fullWidth', 'showDetailsPane', 'width'].includes(prop),
+  shouldForwardProp: prop =>
+    !['fullWidth', 'showDetailsPane', 'width', 'hasAiFeatures'].includes(prop),
 })<{
   fullWidth?: boolean;
+  hasAiFeatures?: boolean;
   showDetailsPane?: boolean;
   width?: number;
 }>`
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  grid-template-columns: ${p => (p.fullWidth ? '50% 50%' : '1fr')};
-  grid-template-areas:
-    'recentFilters recentFilters'
-    'tabs tabs'
-    'list list'
-    'footer footer';
   ${p =>
-    p.fullWidth &&
-    css`
-      grid-template-areas:
-        'recentFilters recentFilters'
-        'tabs tabs'
-        ${p.showDetailsPane ? "'list details'" : "'list list'"}
-        'footer footer';
-    `}
+    p.hasAiFeatures
+      ? css`
+          grid-template-rows: auto auto auto 1fr auto;
+          grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
+          grid-template-areas:
+            'seer seer'
+            'recentFilters recentFilters'
+            'tabs tabs'
+            'list list'
+            'footer footer';
+          ${p.fullWidth &&
+          css`
+            grid-template-areas:
+              'seer seer'
+              'recentFilters recentFilters'
+              'tabs tabs'
+              ${p.showDetailsPane ? "'list details'" : "'list list'"}
+              'footer footer';
+          `}
+        `
+      : css`
+          grid-template-rows: auto auto 1fr auto;
+          grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
+          grid-template-areas:
+            'recentFilters recentFilters'
+            'tabs tabs'
+            'list list'
+            'footer footer';
+          ${p.fullWidth &&
+          css`
+            grid-template-areas:
+              'recentFilters recentFilters'
+              'tabs tabs'
+              ${p.showDetailsPane ? "'list details'" : "'list list'"}
+              'footer footer';
+          `}
+        `}
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
   ${p =>
     p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
-`;
-
-const StyledSeerButton = styled(Button)`
-  margin-right: ${space(1)};
 `;
 
 const SectionedOverlayFooter = styled('div')`
@@ -500,7 +540,7 @@ const RecentFilterPill = styled('li')`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0 ${space(1.5)} 0 ${space(0.75)};
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   cursor: pointer;
@@ -560,5 +600,38 @@ const EmptyState = styled('div')`
 
   div {
     max-width: 280px;
+  }
+`;
+
+const SeerButtonWrapper = styled('div')`
+  grid-area: seer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.purple100};
+  width: 100%;
+`;
+
+const SeerFullWidthButton = styled(Button)`
+  width: 100%;
+  border-radius: 0;
+  background-color: none;
+  box-shadow: none;
+  color: ${p => p.theme.purple400};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-align: left;
+  justify-content: flex-start;
+  padding: ${space(1)} ${space(2)};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  &:hover,
+  &:focus {
+    background-color: ${p => p.theme.purple100};
+    color: ${p => p.theme.purple400};
+    box-shadow: none;
   }
 `;

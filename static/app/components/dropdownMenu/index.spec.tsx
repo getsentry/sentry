@@ -364,4 +364,32 @@ describe('DropdownMenu', function () {
     // JSDOM throws an error on navigation
     expect(errorSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('should allow opening of a nearby menu', async function () {
+    // render two menus
+    render(
+      <Fragment>
+        <DropdownMenu items={[{key: 'item1', label: 'Item One'}]} triggerLabel="Menu A" />
+        <DropdownMenu items={[{key: 'item2', label: 'Item Two'}]} triggerLabel="Menu B" />
+      </Fragment>
+    );
+
+    // Open menu A
+    await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
+
+    // Open menu B
+    await userEvent.click(screen.getByRole('button', {name: 'Menu B'}));
+
+    // Menu B should be open
+    const menuB = await screen.findByRole('menuitemradio', {name: 'Item Two'});
+    expect(menuB).toBeInTheDocument();
+    await waitFor(() => {
+      expect(menuB).toHaveFocus();
+    });
+
+    // Menu A should be closed
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Item One'})
+    ).not.toBeInTheDocument();
+  });
 });

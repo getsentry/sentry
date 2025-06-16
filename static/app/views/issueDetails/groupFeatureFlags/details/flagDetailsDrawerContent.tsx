@@ -6,12 +6,15 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,15 +22,14 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
-import {
-  getFlagActionLabel,
-  type RawFlag,
-} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export function FlagDetailsDrawerContent() {
+interface Props {
+  group: Group;
+}
+
+export function FlagDetailsDrawerContent({group}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
@@ -105,9 +107,20 @@ export function FlagDetailsDrawerContent() {
           </ColumnTitle>
         </Header>
         <Body>
-          {flagLog.data.map((fv, i) => (
-            <FlagDetailsRow key={`${fv.id}-${i}`} flagValue={fv} />
-          ))}
+          {flagLog.data.map((flag, i) => {
+            const prev = flagLog.data[i - 1];
+
+            return (
+              <Fragment key={`${flag.id}-${i}`}>
+                {group.firstSeen > flag.createdAt &&
+                (i === 0 ||
+                  (flagLog.data && prev && prev.createdAt > group.firstSeen)) ? (
+                  <GroupFirstSeenRow group={group} />
+                ) : null}
+                <FlagDetailsRow flagValue={flag} />
+              </Fragment>
+            );
+          })}
         </Body>
       </Table>
       <Pagination
@@ -142,6 +155,18 @@ function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
       {getFlagActionLabel(flagValue.action)}
       <DateTime date={flagValue.createdAt} year timeZone />
       <FlagValueActionsMenu flagValue={flagValue} />
+    </Row>
+  );
+}
+
+function GroupFirstSeenRow({group}: {group: Group}) {
+  return (
+    <Row>
+      <LeftAlignedValue>{t('Issue First Seen')}</LeftAlignedValue>
+      <LeftAlignedValue />
+      <LeftAlignedValue />
+      <DateTime date={group.firstSeen} year timeZone />
+      <div />
     </Row>
   );
 }

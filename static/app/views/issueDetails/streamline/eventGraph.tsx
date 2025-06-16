@@ -19,6 +19,8 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
+import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -41,7 +43,6 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -159,6 +160,7 @@ export function EventGraph({
   });
 
   const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
+  const shouldShowBubbles = hasReleaseBubblesSeries && showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
@@ -268,6 +270,18 @@ export function EventGraph({
       staleTime: 0,
     }
   );
+  const {flags} = useFlagsInEvent({
+    eventId: event?.id,
+    groupId: group.id,
+    group,
+    event,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+    enabled: Boolean(event?.id && group.id),
+  });
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
@@ -284,8 +298,13 @@ export function EventGraph({
 
   const releaseSeries = useReleaseMarkLineSeries({
     group,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+    releases: shouldShowBubbles ? [] : releases,
     onReleaseClick: handleReleaseLineClick,
+  });
+
+  const flagSeries = useFlagSeries({
+    event,
+    flags: shouldShowBubbles ? [] : flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -305,6 +324,7 @@ export function EventGraph({
     releaseBubbleGrid,
   } = useReleaseBubbles({
     chartId: EVENT_GRAPH_WIDGET_ID,
+    eventId: event?.id,
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
@@ -313,7 +333,8 @@ export function EventGraph({
       lastEventSeriesTimestamp && eventSeriesInterval
         ? lastEventSeriesTimestamp + eventSeriesInterval
         : undefined,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+    releases: shouldShowBubbles ? releases : [],
+    flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
     datetime: {
@@ -331,14 +352,6 @@ export function EventGraph({
     },
     [connectReleaseBubbleChartRef]
   );
-  const flagSeries = useFlagSeries({
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-    event,
-  });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];

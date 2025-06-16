@@ -17,7 +17,7 @@ export default function QueuesSummaryThroughputChartWidget(
     <ThroughputChart
       {...props}
       id="queuesSummaryThroughputChartWidget"
-      referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+      referrer={Referrer.QUEUES_SUMMARY_THROUGHPUT_CHART}
       destination={destination}
     />
   );

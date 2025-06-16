@@ -25,6 +25,7 @@ export type FieldValue =
   | boolean
   | Record<PropertyKey, unknown>
   | Choice
+  | null
   | undefined; // is undefined valid here?
 
 export type FormOptions = {

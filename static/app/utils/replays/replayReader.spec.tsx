@@ -567,7 +567,7 @@ describe('ReplayReader', () => {
         throw new Error('Failed to create ReplayReader instance');
       }
 
-      const result = reader.getRRWebFramesWithoutStyles();
+      const result = reader.getRRWebFramesForDomExtraction();
 
       expect(result).toEqual([
         {data: {node: {childNodes: [], tagName: 'html', type: 1}}, timestamp: 0, type: 2},

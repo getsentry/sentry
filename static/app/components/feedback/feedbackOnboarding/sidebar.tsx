@@ -271,6 +271,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return <FeedbackOnboardingWebApiBanner />;
   }
 
+  const excludedPlatformOptions = ['react-native', 'flutter'];
+  const isExcluded = excludedPlatformOptions.includes(currentPlatform.id);
+
   const radioButtons = (
     <Header>
       {showRadioButtons ? (
@@ -284,6 +287,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
+                        size="xs"
                         triggerLabel={jsFramework.label}
                         value={jsFramework.value}
                         onChange={setJsFramework}
@@ -314,6 +318,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       ) : (
         newDocs?.platformOptions &&
         widgetPlatform &&
+        !isExcluded &&
         !crashReportOnboarding &&
         !isLoading && (
           <PlatformSelect>

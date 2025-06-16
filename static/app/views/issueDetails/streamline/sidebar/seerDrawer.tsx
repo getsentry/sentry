@@ -6,7 +6,6 @@ import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -22,7 +21,7 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -52,7 +51,12 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
-  const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
+  const {
+    autofixData,
+    triggerAutofix,
+    reset,
+    isPending: autofixDataPending,
+  } = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
   const location = useLocation();
   const navigate = useNavigate();
@@ -60,7 +64,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const userScrolledRef = useRef(false);
+  const userScrolledRef = useRef(true);
   const lastScrollTopRef = useRef(0);
   const autofixDataRef = useRef(autofixData);
 
@@ -137,6 +141,24 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               );
             }, 200);
           }
+        } else {
+          // No matching step found, scroll to bottom
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          userScrolledRef.current = true;
+
+          // Clear the scrollTo parameter from the URL after scrolling
+          setTimeout(() => {
+            navigate(
+              {
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  scrollTo: undefined,
+                },
+              },
+              {replace: true}
+            );
+          }, 200);
         }
       }
     },
@@ -166,6 +188,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     lastTriggeredAt = lastTriggeredAt + 'Z';
   }
 
+  const showWelcomeScreen =
+    aiConfig.needsGenAiAcknowledgement ||
+    (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing'));
+
   return (
     <SeerDrawerContainer className="seer-drawer-container">
       <SeerDrawerHeader>
@@ -184,90 +210,87 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           ]}
         />
       </SeerDrawerHeader>
-      <SeerDrawerNavigator>
-        <Flex align="center" gap={space(1)}>
-          <Header>{t('Seer')}</Header>
-          <FeatureBadge
-            type="beta"
-            tooltipProps={{
-              title: tct(
-                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-                {email: <a href="mailto:autofix@sentry.io" />}
-              ),
-              isHoverable: true,
-            }}
-          />
-          <QuestionTooltip
-            isHoverable
-            title={
-              <Flex column gap={space(1)}>
-                <div>
-                  {tct(
-                    'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
-                    {
-                      dataDocs: (
-                        <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/#data-processing" />
+      {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
+        <SeerDrawerNavigator>
+          <Flex align="center" gap={space(1)}>
+            <Header>{t('Seer')}</Header>
+            <QuestionTooltip
+              isHoverable
+              title={
+                <Flex column gap={space(1)}>
+                  <div>
+                    {tct(
+                      'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
+                      {
+                        dataDocs: (
+                          <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/#data-processing" />
+                        ),
+                      }
+                    )}
+                  </div>
+                  <div>
+                    {tct('Seer can be turned off in [settingsDocs:Settings].', {
+                      settingsDocs: (
+                        <Link
+                          to={{
+                            pathname: `/settings/${organization.slug}/`,
+                            hash: '#hideAiFeatures',
+                          }}
+                        />
                       ),
+                    })}
+                  </div>
+                </Flex>
+              }
+              size="sm"
+            />
+          </Flex>
+          {!aiConfig.needsGenAiAcknowledgement && (
+            <ButtonBarWrapper data-test-id="seer-button-bar">
+              <ButtonBar gap={1}>
+                <Feature features={['organizations:autofix-seer-preferences']}>
+                  <LinkButton
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    size="xs"
+                    title={t('Project Settings for Seer')}
+                    aria-label={t('Project Settings for Seer')}
+                    icon={<IconSettings />}
+                  />
+                </Feature>
+                <AutofixFeedback />
+                {aiConfig.hasAutofix && (
+                  <Button
+                    size="xs"
+                    onClick={() => {
+                      reset();
+                      aiConfig.refetchAutofixSetup?.();
+                    }}
+                    title={
+                      autofixData?.last_triggered_at
+                        ? tct('Last run at [date]', {
+                            date: <DateTime date={lastTriggeredAt} />,
+                          })
+                        : null
                     }
-                  )}
-                </div>
-                <div>
-                  {tct('Seer can be turned off in [settingsDocs:Settings].', {
-                    settingsDocs: (
-                      <Link
-                        to={{
-                          pathname: `/settings/${organization.slug}/`,
-                          hash: '#hideAiFeatures',
-                        }}
-                      />
-                    ),
-                  })}
-                </div>
-              </Flex>
-            }
-            size="sm"
-          />
-        </Flex>
-        {!aiConfig.needsGenAiAcknowledgement && (
-          <ButtonBarWrapper data-test-id="seer-button-bar">
-            <ButtonBar gap={1}>
-              <Feature features={['organizations:autofix-seer-preferences']}>
-                <LinkButton
-                  to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                  size="xs"
-                  title={t('Project Settings for Seer')}
-                  aria-label={t('Project Settings for Seer')}
-                  icon={<IconSettings />}
-                />
-              </Feature>
-              <AutofixFeedback />
-              {aiConfig.hasAutofix && (
-                <Button
-                  size="xs"
-                  onClick={reset}
-                  title={
-                    autofixData?.last_triggered_at
-                      ? tct('Last run at [date]', {
-                          date: <DateTime date={lastTriggeredAt} />,
-                        })
-                      : null
-                  }
-                  disabled={!autofixData}
-                >
-                  {t('Start Over')}
-                </Button>
-              )}
-            </ButtonBar>
-          </ButtonBarWrapper>
-        )}
-      </SeerDrawerNavigator>
+                    disabled={!autofixData}
+                  >
+                    {t('Start Over')}
+                  </Button>
+                )}
+              </ButtonBar>
+            </ButtonBarWrapper>
+          )}
+        </SeerDrawerNavigator>
+      )}
 
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
-          <div data-test-id="ai-setup-loading-indicator">
-            <LoadingIndicator />
-          </div>
-        ) : aiConfig.needsGenAiAcknowledgement ? (
+          <PlaceholderStack data-test-id="ai-setup-loading-indicator">
+            <Placeholder height="10rem" />
+            <Placeholder height="15rem" />
+            <Placeholder height="15rem" />
+          </PlaceholderStack>
+        ) : showWelcomeScreen ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
@@ -289,6 +312,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     groupId={group.id}
                     runId={autofixData.run_id}
                   />
+                ) : autofixDataPending ? (
+                  <PlaceholderStack>
+                    <Placeholder height="15rem" />
+                    <Placeholder height="15rem" />
+                  </PlaceholderStack>
                 ) : (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
@@ -349,6 +377,13 @@ export const useOpenSeerDrawer = ({
 
   return {openSeerDrawer};
 };
+
+const PlaceholderStack = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  margin-top: ${space(2)};
+`;
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};

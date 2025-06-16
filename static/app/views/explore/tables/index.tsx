@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -106,7 +106,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   return (
     <Fragment>
       <SamplesTableHeader>
-        <Tabs value={tab} onChange={setTab}>
+        <Tabs value={tab} onChange={setTab} size="sm">
           <TabList hideBorder variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
