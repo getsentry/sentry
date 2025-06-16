@@ -11,12 +11,7 @@ import {space} from 'sentry/styles/space';
 
 import {IconBranch} from './iconBranch';
 
-const SAMPLE_BRANCH_ITEMS = [
-  'main',
-  'branch-1',
-  'branch-2',
-  'this-is-a-really-long-branch-name-that-keeps-going-on-and-on-and-on',
-];
+const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
 
 export function BranchSelector() {
   const {branch} = useCodecovContext();

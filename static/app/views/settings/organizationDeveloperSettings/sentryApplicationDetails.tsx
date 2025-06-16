@@ -394,10 +394,9 @@ export default function SentryApplicationDetails(props: Props) {
     const avatarStyle = isColor ? 'color' : 'simple';
     return (
       <AvatarChooser
-        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-        allowGravatar={false}
-        allowLetter={false}
         endpoint={`/sentry-apps/${app.slug}/avatar/`}
+        supportedTypes={['default', 'upload']}
+        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
         model={getAvatarModel(isColor)}
         onSave={addAvatar}
         title={isColor ? t('Logo') : t('Small Icon')}
@@ -406,7 +405,6 @@ export default function SentryApplicationDetails(props: Props) {
         )}
         savedDataUrl={undefined}
         defaultChoice={{
-          allowDefault: true,
           choiceText: isColor ? t('Default logo') : t('Default small icon'),
           preview: getAvatarPreview(isColor),
         }}

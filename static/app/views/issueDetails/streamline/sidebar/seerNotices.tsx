@@ -31,6 +31,33 @@ interface SeerNoticesProps {
   hasGithubIntegration?: boolean;
 }
 
+function CustomStepButtons({
+  showBack,
+  showNext,
+  showSkip,
+  onSkip,
+  children,
+}: {
+  showBack: boolean;
+  showNext: boolean;
+  showSkip: boolean;
+  children?: React.ReactNode;
+  onSkip?: () => void;
+}) {
+  return (
+    <GuidedSteps.ButtonWrapper>
+      {showBack && <GuidedSteps.BackButton />}
+      {showNext && <GuidedSteps.NextButton />}
+      {showSkip && (
+        <Button onClick={onSkip} size="sm">
+          {t('Skip for Now')}
+        </Button>
+      )}
+      {children}
+    </GuidedSteps.ButtonWrapper>
+  );
+}
+
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
@@ -95,8 +122,12 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     needsAutomation,
     needsFixabilityView,
   ];
-  const incompleteSteps = stepConditions.filter(Boolean).length;
-  const anyStepIncomplete = incompleteSteps > 0;
+  const incompleteStepIndices = stepConditions
+    .map((needed, idx) => (needed ? idx : null))
+    .filter(idx => idx !== null);
+  const firstIncompleteIdx = incompleteStepIndices[0];
+  const lastIncompleteIdx = incompleteStepIndices[incompleteStepIndices.length - 1];
+  const anyStepIncomplete = incompleteStepIndices.length > 0;
 
   return (
     <NoticesContainer>
@@ -107,8 +138,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
           <span>
             {t(
               'Only %s step%s left to get the most out of Seer.',
-              incompleteSteps,
-              incompleteSteps === 1 ? '' : 's'
+              incompleteStepIndices.length,
+              incompleteStepIndices.length === 1 ? '' : 's'
             )}
           </span>
           <IconChevron direction="down" style={{marginLeft: 'auto'}} />
@@ -158,7 +189,11 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <CardIllustration src={addIntegrationProvider} alt="Add Integration" />
                 </StepImageCol>
               </StepContentRow>
-              <GuidedSteps.StepButtons>
+              <CustomStepButtons
+                showBack={false}
+                showNext={firstIncompleteIdx !== 0}
+                showSkip={false}
+              >
                 <LinkButton
                   href={`/settings/${organization.slug}/integrations/github/`}
                   size="sm"
@@ -166,7 +201,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                 >
                   {t('Set Up Integration')}
                 </LinkButton>
-              </GuidedSteps.StepButtons>
+              </CustomStepButtons>
             </GuidedSteps.Step>
 
             {/* Step 2: Repo Selection */}
@@ -191,7 +226,12 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <CardIllustration src={onboardingCompass} alt="Compass" />
                 </StepImageCol>
               </StepContentRow>
-              <GuidedSteps.StepButtons>
+              <CustomStepButtons
+                showBack={firstIncompleteIdx !== 1 && incompleteStepIndices.includes(1)}
+                showNext={lastIncompleteIdx !== 1 && incompleteStepIndices.includes(1)}
+                showSkip={lastIncompleteIdx === 1}
+                onSkip={() => setStepsCollapsed(true)}
+              >
                 <LinkButton
                   to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   size="sm"
@@ -199,7 +239,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                 >
                   {t('Configure Repos')}
                 </LinkButton>
-              </GuidedSteps.StepButtons>
+              </CustomStepButtons>
             </GuidedSteps.Step>
 
             {/* Step 3: Unleash Automation */}
@@ -224,7 +264,12 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                     <CardIllustration src={waitingForEventImg} alt="Waiting for Event" />
                   </StepImageCol>
                 </StepContentRow>
-                <GuidedSteps.StepButtons>
+                <CustomStepButtons
+                  showBack={firstIncompleteIdx !== 2 && incompleteStepIndices.includes(2)}
+                  showNext={lastIncompleteIdx !== 2 && incompleteStepIndices.includes(2)}
+                  showSkip={lastIncompleteIdx === 2}
+                  onSkip={() => setStepsCollapsed(true)}
+                >
                   <LinkButton
                     to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                     size="sm"
@@ -232,7 +277,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   >
                     {t('Enable Automation')}
                   </LinkButton>
-                </GuidedSteps.StepButtons>
+                </CustomStepButtons>
               </GuidedSteps.Step>
             )}
 
@@ -263,15 +308,17 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                     <CardIllustration src={feedbackOnboardingImg} alt="Feedback" />
                   </StepImageCol>
                 </StepContentRow>
-                <GuidedSteps.StepButtons>
-                  <Button onClick={() => setStepsCollapsed(true)} size="sm">
-                    {t('Skip for Now')}
-                  </Button>
+                <CustomStepButtons
+                  showBack={firstIncompleteIdx !== 3 && incompleteStepIndices.includes(3)}
+                  showNext={lastIncompleteIdx !== 3 && incompleteStepIndices.includes(3)}
+                  showSkip={lastIncompleteIdx === 3}
+                  onSkip={() => setStepsCollapsed(true)}
+                >
                   <StarFixabilityViewButton
                     isCompleted={!needsFixabilityView}
                     project={project}
                   />
-                </GuidedSteps.StepButtons>
+                </CustomStepButtons>
               </GuidedSteps.Step>
             )}
           </GuidedSteps>
