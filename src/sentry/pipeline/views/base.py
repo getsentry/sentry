@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.db.models.base import Model
+from sentry.pipeline.store import PipelineSessionStore
 from sentry.utils import json
 from sentry.web.helpers import render_to_response
 
@@ -14,14 +16,14 @@ if TYPE_CHECKING:
     from sentry.pipeline.base import Pipeline
 
 
-class PipelineView(abc.ABC):
+class PipelineView[M: Model, S: PipelineSessionStore](abc.ABC):
     """
     A class implementing the PipelineView may be used in a PipelineProviders
     get_pipeline_views list.
     """
 
     @abc.abstractmethod
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[M, S]) -> HttpResponseBase:
         """
         Called on request, the active pipeline is passed in which can and
         should be used to bind data and traverse the pipeline.

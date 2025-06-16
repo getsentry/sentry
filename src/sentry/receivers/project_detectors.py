@@ -8,6 +8,7 @@ from sentry import features
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.project import Project
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ def create_project_detectors(instance, created, **kwargs):
                 "organizations:workflow-engine-issue-alert-dual-write", instance.organization
             ):
                 Detector.objects.create(
-                    name="Error Detector", type=ErrorGroupType.slug, project=instance, config={}
+                    name=ERROR_DETECTOR_NAME, type=ErrorGroupType.slug, project=instance, config={}
                 )
                 logger.info("project.detector-created", extra={"project_id": instance.id})
         except IntegrityError as e:

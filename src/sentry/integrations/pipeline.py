@@ -16,10 +16,11 @@ from sentry.integrations.base import IntegrationData
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline_types import IntegrationPipelineT
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
+from sentry.pipeline import PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -88,7 +89,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     return mapping.region_name not in region_names
 
 
-class IntegrationPipeline(Pipeline):
+class IntegrationPipeline(IntegrationPipelineT):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 

@@ -7,6 +7,13 @@ describe('ProjectSecurityHeaders', function () {
   const {organization, project} = initializeOrg();
   const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/security-headers/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/security-headers/',
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -19,11 +26,8 @@ describe('ProjectSecurityHeaders', function () {
   it('renders', async function () {
     render(<ProjectSecurityHeaders />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
-
-    // Renders the loading indication initially
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // Heading
     expect(
@@ -40,7 +44,7 @@ describe('ProjectSecurityHeaders', function () {
     });
     render(<ProjectSecurityHeaders />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     expect(

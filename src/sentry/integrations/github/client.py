@@ -195,7 +195,6 @@ class GithubProxyClient(IntegrationProxyClient):
         if should_refresh:
             access_token = self._refresh_access_token()
 
-        logger.info("token.access_token", extra=logger_extra)
         return access_token
 
     @control_silo_function

@@ -352,7 +352,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     start=start,
                     end=end,
                     environment_id=environment_id,
-                    referrer_suffix="batch_alert_event_frequency",
+                    referrer_suffix="wf_batch_alert_event_frequency",
                     filters=filters,
                     group_on_time=False,
                 )
@@ -398,7 +398,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     start=start,
                     end=end,
                     environment_id=environment_id,
-                    referrer_suffix="batch_alert_event_uniq_user_frequency",
+                    referrer_suffix="wf_batch_alert_event_uniq_user_frequency",
                     filters=filters,
                     group_on_time=False,
                 )
@@ -488,7 +488,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="batch_alert_event_frequency",
+                referrer_suffix="wf_batch_alert_event_frequency_percent",
                 filters=filters,
                 group_on_time=False,
             )

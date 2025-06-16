@@ -25,7 +25,19 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not features.has("organizations:trigger-autofix-on-issue-summary", group.organization):
         return None
+    project = group.project
+    if not project.get_option("sentry:seer_scanner_automation"):
+        return None
     if not get_seer_org_acknowledgement(org_id=group.organization.id):
+        return None
+
+    from sentry import quotas
+    from sentry.constants import DataCategory
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
         return None
 
     timeout = options.get("alerts.issue_summary_timeout") or 5

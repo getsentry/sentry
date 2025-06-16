@@ -2,8 +2,11 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+// eslint-disable-next-line boundaries/element-types
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+// eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+// eslint-disable-next-line boundaries/element-types
 import {space} from 'sentry/styles/space';
 
 import {

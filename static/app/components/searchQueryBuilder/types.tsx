@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import {type ParseResult, TermOperator} from 'sentry/components/searchSyntax/parser';
+import type {ParseResult, TermOperator} from 'sentry/components/searchSyntax/parser';
 import type {FieldDefinition} from 'sentry/utils/fields';
 
 export type FilterKeySection = {
@@ -38,8 +38,10 @@ export enum WildcardOperators {
   ENDS_WITH = 'ends with',
 }
 
-export function isTermOperator(op: SearchQueryBuilderOperators): op is TermOperator {
-  return typeof op === 'string' && Object.values(TermOperator).includes(op as any);
+export function isWildcardOperator(
+  op: SearchQueryBuilderOperators
+): op is WildcardOperators {
+  return typeof op === 'string' && Object.values(WildcardOperators).includes(op as any);
 }
 
 export type SearchQueryBuilderOperators = TermOperator | WildcardOperators;

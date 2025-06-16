@@ -1,12 +1,36 @@
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {tct} from 'sentry/locale';
+import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {ServiceField} from 'sentry/views/automations/components/actions/serviceField';
 
 const PAGERDUTY_SEVERITIES = ['default', 'critical', 'warning', 'error', 'info'];
+
+export function PagerdutyDetails({
+  action,
+  handler,
+}: {
+  action: Action;
+  handler: ActionHandler;
+}) {
+  const integration = handler.integrations?.find(i => i.id === action.integrationId);
+  const service = integration?.services?.find(
+    s => s.id === action.config.target_identifier
+  );
+
+  return tct(
+    'Send a [logo] PagerDuty notification to [account] and service [service] with [severity] severity',
+    {
+      logo: ActionMetadata[ActionType.PAGERDUTY]?.icon,
+      account: integration?.name || action.integrationId,
+      service: service?.name || action.config.target_identifier,
+      severity: String(action.data.priority),
+    }
+  );
+}
 
 export function PagerdutyNode() {
   return tct(
@@ -24,15 +48,15 @@ function SeverityField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderSelectField
-      name={`${actionId}.data.severity`}
-      value={action.data.severity}
+      name={`${actionId}.data.priority`}
+      value={action.data.priority}
       options={PAGERDUTY_SEVERITIES.map(severity => ({
         label: severity,
         value: severity,
       }))}
       onChange={(value: string) => {
         onUpdate({
-          data: {severity: value},
+          data: {priority: value},
         });
       }}
     />

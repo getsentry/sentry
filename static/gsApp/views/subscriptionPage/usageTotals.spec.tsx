@@ -1092,6 +1092,38 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
   });
 
+  it('uses billed usage for accepted counts in expanded table', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandMaxSpend: 10_00,
+    });
+    seerSubscription.planTier = 'am3'; // TODO: fix subscription fixture to set planTier properly
+    seerSubscription.categories.seerAutofix!.usage = 1;
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+
+    // Expand usage table
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+    expect(
+      screen.getByRole('row', {name: 'Issue Fixes Quantity % of Issue Fixes'})
+    ).toBeInTheDocument();
+    // used accepted info from BMH, all other info from totals
+    expect(screen.getByRole('row', {name: 'Accepted 1 9%'})).toBeInTheDocument();
+  });
+
   it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async function () {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
@@ -1418,6 +1450,99 @@ describe('Subscription > CombinedUsageTotals', function () {
     );
 
     expect(screen.queryByTestId('usage-card-seer')).not.toBeInTheDocument();
+  });
+
+  it('renders PAYG legend with per-category', function () {
+    organization.features.push('ondemand-budgets');
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am2_business',
+      onDemandBudgets: {
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        attachmentsBudget: 0,
+        errorsBudget: 0,
+        replaysBudget: 0,
+        transactionsBudget: 0,
+        budgets: {
+          [DataCategory.SEER_AUTOFIX]: 4,
+          [DataCategory.SEER_SCANNER]: 5,
+        },
+        attachmentSpendUsed: 0,
+        errorSpendUsed: 0,
+        transactionSpendUsed: 0,
+        usedSpends: {
+          [DataCategory.SEER_AUTOFIX]: 4,
+          [DataCategory.SEER_SCANNER]: 5,
+        },
+        enabled: true,
+      },
+    });
+    seerSubscription.planTier = 'am2'; // TODO: fix subscription fixture to set planTier properly
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByTestId('reserved-seer')).toHaveTextContent('$25.00 Reserved');
+    expect(screen.getByText('Issue Fixes Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Issue Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Issue Scans')).toBeInTheDocument();
+
+    organization.features.pop();
+  });
+
+  it('shows accepted rows but hides dropped rows for SEER categories', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    seerSubscription.planTier = 'am3';
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+
+    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 0 0%'});
+    expect(acceptedRows).toHaveLength(2);
+
+    // Should NOT show dropped rows for SEER categories
+    expect(
+      screen.queryByRole('row', {name: 'Total Dropped 10 100%'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: 'Over Quota 7 70%'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Spike Protection 1 10%'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: 'Other 2 20%'})).not.toBeInTheDocument();
+
+    expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
+
+    const seerAutofixTable = screen.getByTestId('category-table-seerAutofix');
+    const seerScannerTable = screen.getByTestId('category-table-seerScanner');
+
+    expect(within(seerAutofixTable).getAllByRole('row')).toHaveLength(2);
+    expect(within(seerScannerTable).getAllByRole('row')).toHaveLength(2);
   });
 });
 

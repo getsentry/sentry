@@ -19,8 +19,8 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataConditionGroup,
     DataConditionGroupAction,
+    Detector,
     Workflow,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
@@ -32,7 +32,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     process_workflows,
 )
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -97,14 +97,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
-        mock_logger.info.assert_called_with(
-            "workflow_engine.process_workflows.triggered_actions (batch)",
+        mock_logger.info.assert_any_call(
+            "workflow_engine.evaluate_workflows_action_filters",
             extra={
                 "group_id": self.group.id,
                 "event_id": self.event.event_id,
                 "workflow_ids": [self.error_workflow.id],
-                "action_ids": [self.action.id],
-                "detector_type": self.error_detector.type,
+                "action_conditions": [self.action_group.id],
+                "filtered_action_groups": [self.action_group.id],
             },
         )
 
@@ -227,16 +227,16 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow, workflow}
 
-    @patch("sentry.workflow_engine.processors.workflow.metrics")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_no_detector(self, mock_logger, mock_metrics):
+    @patch("sentry.utils.metrics.incr")
+    @patch("sentry.workflow_engine.processors.detector.logger")
+    def test_no_detector(self, mock_logger, mock_incr):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         triggered_workflows = process_workflows(self.event_data)
 
         assert not triggered_workflows
 
-        mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_incr.assert_called_once_with("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once_with(
             "Detector not found for event",
             extra={
@@ -246,27 +246,29 @@ class TestProcessWorkflows(BaseWorkflowTest):
             },
         )
 
-    @patch("sentry.workflow_engine.processors.workflow.metrics")
+    @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_no_environment(self, mock_logger, mock_metrics):
+    def test_no_environment(self, mock_logger, mock_incr):
         Environment.objects.all().delete()
         triggered_workflows = process_workflows(self.event_data)
 
         assert not triggered_workflows
 
-        mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_incr.assert_called_once_with(
+            "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
+        )
         mock_logger.exception.assert_called_once_with(
             "Missing environment for event",
             extra={"event_id": self.event.event_id},
         )
 
     @patch("sentry.utils.metrics.incr")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
+    @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_metrics_triggered(self, mock_logger, mock_incr):
         self.event_data.event.project_id = 0
 
         process_workflows(self.event_data)
-        mock_incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_incr.assert_called_once_with("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once()
 
     @patch("sentry.utils.metrics.incr")
@@ -290,16 +292,38 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
     @with_feature("organizations:workflow-engine-process-workflows")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.utils.metrics.incr")
     def test_metrics_triggered_actions(self, mock_incr):
         # add actions to the workflow
-
-        process_workflows(self.event_data)
-        mock_incr.assert_any_call(
-            "workflow_engine.process_workflows.triggered_actions",
-            amount=0,
-            tags={"detector_type": self.error_detector.type},
+        self.action_group, self.action = self.create_workflow_action(
+            workflow=self.error_workflow,
         )
+
+        # mock the handler to get a fake noop handler
+        with patch(
+            "sentry.workflow_engine.models.action.action_handler_registry.get"
+        ) as mock_handler:
+
+            class MockHandler(ActionHandler):
+                @staticmethod
+                def execute(
+                    event_data: WorkflowEventData, action: Action, detector: Detector
+                ) -> None:
+                    return None
+
+            mock_handler.return_value = MockHandler
+
+            # process the workflows
+            process_workflows(self.event_data)
+            mock_incr.assert_any_call(
+                "workflow_engine.action.trigger",
+                1,
+                tags={
+                    "detector_type": self.error_detector.type,
+                    "action_type": self.action.type,
+                },
+            )
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
@@ -538,14 +562,18 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         process_workflows(self.event_data)
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.fired_actions",
+            1,
             tags={
                 "detector_type": self.detector.type,
             },
         )
 
-    def test_basic__no_filter(self):
+    def test_basic__no_filter(self) -> None:
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action}
+        assert set(triggered_actions) == {self.action_group}
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -556,7 +584,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action}
+        assert set(triggered_actions) == {self.action_group}
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group
@@ -595,38 +626,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         # TODO @saponifi3d - Add a check to ensure the second condition is enqueued for later evaluation
 
-    def test_creates_histories(self):
-        self.create_data_condition(
-            condition_group=self.action_group,
-            type=Condition.EVENT_SEEN_COUNT,
-            comparison=1,
-            condition_result=True,
-        )
-
-        workflow = self.create_workflow()
-        action_group, _ = self.create_workflow_action(workflow=workflow)
-        self.create_data_condition(
-            condition_group=action_group,
-            type=Condition.EVENT_SEEN_COUNT,
-            comparison=5,
-            condition_result=True,
-        )  # condition is not met
-
-        triggered_actions = evaluate_workflows_action_filters(
-            {self.workflow, workflow}, self.event_data
-        )
-        assert set(triggered_actions) == {self.action}
-
-        assert WorkflowFireHistory.objects.all().count() == 1
-        assert (
-            WorkflowFireHistory.objects.filter(
-                workflow=self.workflow,
-                group=self.group,
-                event_id=self.group_event.event_id,
-            ).count()
-            == 1
-        )
-
 
 class TestEnqueueWorkflows(BaseWorkflowTest):
     def setUp(self):
@@ -657,17 +656,23 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash, mock_push_to_sorted_set
     ):
+        condition2 = self.create_data_condition(condition_group=self.create_data_condition_group())
+        condition3 = self.create_data_condition(condition_group=self.create_data_condition_group())
         enqueue_workflow(
             self.workflow,
-            [self.condition],
+            [self.condition, condition2, condition3],
             self.group_event,
             WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
         )
 
+        condition_group_ids = ",".join(
+            str(condition.condition_group_id)
+            for condition in [self.condition, condition2, condition3]
+        )
         mock_push_to_sorted_set.assert_called_once_with(
             model=Workflow,
             filters={"project_id": self.group_event.project_id},
-            field=f"{self.workflow.id}:{self.group_event.group_id}:{self.condition.condition_group_id}:workflow_trigger",
+            field=f"{self.workflow.id}:{self.group_event.group_id}:{condition_group_ids}:workflow_trigger",
             value=json.dumps(
                 {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}
             ),

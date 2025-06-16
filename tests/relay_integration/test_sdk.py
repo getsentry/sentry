@@ -108,7 +108,7 @@ def test_bind_organization_context(default_organization):
 
     bind_organization_context(default_organization)
 
-    scope = sentry_sdk.Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
     assert scope._tags["organization"] == default_organization.id
     assert scope._tags["organization.slug"] == default_organization.slug
     assert scope._contexts["organization"] == {
@@ -130,7 +130,7 @@ def test_bind_organization_context_with_callback(default_organization):
     with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
         bind_organization_context(default_organization)
 
-        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         assert scope._tags["organization.test"] == "1"
 
 
@@ -146,5 +146,5 @@ def test_bind_organization_context_with_callback_error(default_organization):
     with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
         bind_organization_context(default_organization)
 
-        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         assert scope._tags["organization"] == default_organization.id

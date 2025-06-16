@@ -330,6 +330,7 @@ class FunctionRegressionDetector(RegressionDetector):
     max_retries=0,
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def detect_transaction_trends(

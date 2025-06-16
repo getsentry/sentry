@@ -644,6 +644,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.svelte",
             "sentry.javascript.sveltekit",
             "sentry.javascript.vue",
+            "sentry.javascript.serverless",
         ]
 
     if sdk_name not in official_sdks or sdk_name is None:

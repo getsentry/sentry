@@ -59,7 +59,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * can't re-use because this will eventually be a bit different,
  * especially with the in-drawer navigation.
  */
-export function ReleaseDrawerTable({
+export function ReleasesDrawerTable({
   datetime,
   environments,
   projects,
@@ -203,6 +203,7 @@ export function ReleaseDrawerTable({
         emptyMessage={tableEmptyMessage}
         columnSortBy={[]}
         stickyHeader
+        scrollable
         grid={{
           renderHeadCell,
           renderBodyCell,

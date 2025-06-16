@@ -2,12 +2,13 @@ from typing import Any
 
 from django.conf import settings
 from django.core.management.commands import migrate
+from django.db import connections
 
 
 class Command(migrate.Command):
     help = "Create db skipping migrations"
 
-    def handle(self, *args: Any, **options: Any) -> str | None:
+    def handle(self, *args: Any, **options: Any) -> None:
         class DisableMigrations:
             def __contains__(self, item: str) -> bool:
                 return True
@@ -21,6 +22,8 @@ class Command(migrate.Command):
         options["run_syncdb"] = True
 
         try:
-            return super().handle(*args, **options)
+            for database in tuple(connections):
+                options["database"] = database
+                super().handle(*args, **options)
         finally:
             settings.MIGRATION_MODULES = orig

@@ -2,10 +2,12 @@ from unittest.mock import patch
 
 import responses
 
+from sentry import audit_log
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
@@ -65,6 +67,13 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         )
 
         assert org_integration.config == config
+
+        assert AuditLogEntry.objects.filter(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("INTEGRATION_EDIT"),
+            target_object=self.integration.id,
+            data={"provider": self.integration.provider, "name": "config"},
+        ).exists()
 
     @patch.object(IntegrationInstallation, "update_organization_config")
     def test_update_config_error(self, mock_update_config):

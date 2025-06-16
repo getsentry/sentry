@@ -1,14 +1,16 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.rules.history.base import TimeSeriesValue
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import default_detector_config_data
+from sentry.workflow_engine.endpoints.serializers import TimeSeriesValueSerializer
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -476,3 +478,15 @@ class TestWorkflowSerializer(TestCase):
             "environment": self.environment.name,
             "detectorIds": [str(detector.id)],
         }
+
+
+class TimeSeriesValueSerializerTest(TestCase):
+    def test(self):
+        time_series_value = TimeSeriesValue(datetime.now(), 30)
+        result = serialize([time_series_value], self.user, TimeSeriesValueSerializer())
+        assert result == [
+            {
+                "date": time_series_value.bucket,
+                "count": time_series_value.count,
+            }
+        ]

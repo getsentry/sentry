@@ -27,16 +27,22 @@ SENTRY_BUILTIN_SOURCES_TEST = {
         "name": "aaa",
         "type": "gcs",
         "client_email": "application@project-id.iam.gserviceaccount.com",
-        "private_key": "FAKE_PRIVATE_KEY_STRING",
     },
     "bbb": {
         "id": "sentry:builtin-bbb",
         "name": "bbb",
         "type": "gcs",
         "client_email": "application@project-id.iam.gserviceaccount.com",
-        "private_key": "FAKE_PRIVATE_KEY_STRING",
     },
     "ccc": {"id": "sentry:builtin-ccc", "name": "ccc", "type": "alias", "sources": ["aaa", "bbb"]},
+    "ddd": {
+        "id": "sentry:builtin-ddd",
+        "name": "ddd",
+        "type": "gcs",
+        "client_email": "application@project-id.iam.gserviceaccount.com",
+        "private_key": "FAKE_PRIVATE_KEY_STRING",
+    },
+    "eee": {"id": "sentry:builtin-eee", "name": "eee", "type": "alias", "sources": ["ddd", "aaa"]},
 }
 
 
@@ -48,7 +54,6 @@ class TestGcpBearerAuthentication:
         mock_get_gcp_token.return_value = "ya29.TOKEN"
         features = {
             "organizations:symbol-sources": True,
-            "organizations:gcp-bearer-token-authentication": True,
         }
         default_project.update_option("sentry:builtin_symbol_sources", ["aaa", "bbb"])
 
@@ -67,7 +72,6 @@ class TestGcpBearerAuthentication:
         mock_get_gcp_token.return_value = "ya29.TOKEN"
         features = {
             "organizations:symbol-sources": True,
-            "organizations:gcp-bearer-token-authentication": True,
         }
         default_project.update_option("sentry:builtin_symbol_sources", ["ccc"])
 
@@ -90,6 +94,47 @@ class TestGcpBearerAuthentication:
             assert "client_email" not in sources[i]
             assert "private_key" not in sources[i]
             assert sources[i]["bearer_token"] == "ya29.TOKEN"
+
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
+    @patch("sentry.lang.native.sources.get_gcp_token")
+    @django_db_all
+    def test_source_with_private_key(self, mock_get_gcp_token, default_project):
+        mock_get_gcp_token.return_value = "ya29.TOKEN"
+        features = {
+            "organizations:symbol-sources": True,
+        }
+        default_project.update_option("sentry:builtin_symbol_sources", ["ddd"])
+
+        with Feature(features):
+            sources = get_sources_for_project(default_project)
+
+        assert sources[1]["name"] == "ddd"
+        assert sources[1]["client_email"] == "application@project-id.iam.gserviceaccount.com"
+        assert sources[1]["private_key"] == "FAKE_PRIVATE_KEY_STRING"
+
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
+    @patch("sentry.lang.native.sources.get_gcp_token")
+    @django_db_all
+    def test_mixed_sources(self, mock_get_gcp_token, default_project):
+        """
+        Tests the combination of sources where one uses credentials for authentication and the other one
+        uses pre-fetched token.
+        """
+        mock_get_gcp_token.return_value = "ya29.TOKEN"
+        features = {
+            "organizations:symbol-sources": True,
+        }
+        default_project.update_option("sentry:builtin_symbol_sources", ["eee"])
+
+        with Feature(features):
+            sources = get_sources_for_project(default_project)
+
+        assert sources[1]["name"] == "ddd"
+        assert "token" not in sources[1]
+        assert sources[1]["client_email"] == "application@project-id.iam.gserviceaccount.com"
+        assert sources[1]["private_key"] == "FAKE_PRIVATE_KEY_STRING"
+        assert sources[2]["name"] == "aaa"
+        assert sources[2]["bearer_token"] == "ya29.TOKEN"
 
 
 class TestIgnoredSourcesFiltering:

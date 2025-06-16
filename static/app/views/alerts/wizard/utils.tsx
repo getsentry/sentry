@@ -1,4 +1,6 @@
+import type {Organization} from 'sentry/types/organization';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
 
@@ -38,7 +40,13 @@ const alertTypeIdentifiers: Record<
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
   [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
-    throughput: 'count(span.duration)',
+    trace_item_throughput: 'count(span.duration)',
+    trace_item_duration: 'span.duration',
+    trace_item_apdex: 'apdex',
+    trace_item_failure_rate: 'failure_rate()',
+    trace_item_lcp: 'measurements.lcp',
+    trace_item_fid: 'measurements.fid',
+    trace_item_cls: 'measurements.cls',
   },
 };
 
@@ -50,11 +58,10 @@ const alertTypeIdentifiers: Record<
 export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
-}: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
-  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-    return 'eap_metrics';
-  }
-
+  organization,
+}: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'> & {
+  organization?: Organization;
+}): MetricAlertType {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const identifierForDataset = alertTypeIdentifiers[dataset];
   const matchingAlertTypeEntry = Object.entries(identifierForDataset).find(
@@ -62,5 +69,12 @@ export function getAlertTypeFromAggregateDataset({
   );
   const alertType =
     matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as MetricAlertType);
+
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    if (organization && deprecateTransactionAlerts(organization)) {
+      return alertType ?? 'eap_metrics';
+    }
+    return 'eap_metrics';
+  }
   return alertType ? alertType : 'custom_transactions';
 }

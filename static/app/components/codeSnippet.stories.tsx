@@ -60,6 +60,16 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
 const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
+        <h2>with filename</h2>
+        <CodeSnippet filename="index.tsx" language="javascript">
+          {`const myVariable = 'testing';`}
+        </CodeSnippet>
+        <br />
+        <h2>dark filename</h2>
+        <CodeSnippet dark filename="index.tsx" language="javascript">
+          {`const myVariable = 'testing';`}
+        </CodeSnippet>
+        <br />
         <h2>with tabs</h2>
         <CodeSnippet
           tabs={[
@@ -127,6 +137,19 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
           <Storybook.JSXProperty name="icon" value />
         </h2>
         <CodeSnippet icon={<IconStar />} language="javascript">{`Sentry.init({
+  // Note, Replay is NOT instantiated below:
+  integrations: [],
+});
+
+// Sometime later
+const { replayIntegration } = await import("@sentry/browser");
+Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+        <br />
+        <CodeSnippet
+          icon={<IconStar />}
+          filename="yourModule.tsx"
+          language="javascript"
+        >{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });

@@ -10,17 +10,16 @@ const testCIEfficiencyData = {
 };
 
 describe('CIEfficiency', () => {
-  it('renders formatted total tests run time', () => {
+  it('renders formatted total tests run time with 2 largest units', () => {
     render(<CIEfficiency {...testCIEfficiencyData} isLoading={false} />);
 
-    const formattedTotalTestsRunTime = screen.getByText('3h 25m 0s');
+    const formattedTotalTestsRunTime = screen.getByText('3h 25m');
     expect(formattedTotalTestsRunTime).toBeInTheDocument();
   });
-
-  it('renders the slowest tests with a filter link', () => {
+  it('renders the slowest tests duration with a filter link', () => {
     render(<CIEfficiency {...testCIEfficiencyData} isLoading={false} />);
 
-    const formattedSlowestTests = screen.getByRole('link', {name: '100'});
+    const formattedSlowestTests = screen.getByRole('link', {name: '10s'});
     expect(formattedSlowestTests).toBeInTheDocument();
     expect(formattedSlowestTests).toHaveAttribute(
       'href',

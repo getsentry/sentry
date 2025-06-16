@@ -20,6 +20,7 @@ class OrgAuthTokenTokenTest(TestCase):
         token = generate_token("test-org", "https://test-region.sentry.io")
         token_payload = parse_token(token)
 
+        assert token_payload is not None
         assert token_payload["org"] == "test-org"
         assert token_payload["url"] == "http://testserver"
         assert token_payload["region_url"] == "https://test-region.sentry.io"

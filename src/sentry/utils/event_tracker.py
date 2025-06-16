@@ -42,15 +42,13 @@ def track_sampled_event(
 
     event_float = (int(event_id, 16) % 10000) / 10000
     if event_float < sample_rate:
-        extra = {
-            "event_id": event_id,
-            "consumer_type": consumer_type,
-            "status": status,
-        }
-        _do_record(extra)
-
-
-def _do_record(extra):
-    # All Python logs will be picked up by Google Cloud Logging.
-    # TODO: make a google Cloud Sink to filter for these EventTracker logs and put them into BigQuery and do data analysis downstream
-    logger.info("EventTracker.recorded", extra=extra)
+        # All Python logs will be picked up by Google Cloud Logging.
+        # TODO: make a google Cloud Sink to filter for these EventTracker logs and put them into BigQuery and do data analysis downstream
+        logger.info(
+            "EventTracker.recorded",
+            extra={
+                "event_id": event_id,
+                "consumer_type": consumer_type,
+                "status": status,
+            },
+        )

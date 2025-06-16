@@ -39,6 +39,7 @@ export default function ReleaseNewIssuesChartWidget(props: LoadableChartWidgetPr
       )}
       isPending={isPending}
       error={error}
+      hideReleaseLines
       legendSelection={{
         // disable the 'other' series by default since its large values can cause the other lines to be insignificant
         other: false,

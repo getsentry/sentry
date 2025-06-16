@@ -154,6 +154,10 @@ const formGroups: JsonFormObject[] = [
         extraHelp: t(
           'Note: These fields will be used in addition to project specific fields.'
         ),
+        saveOnBlur: false,
+        saveMessage: t(
+          'Changes to your scrubbing configuration will apply to all new events.'
+        ),
         getValue: val => extractMultilineFields(val),
         setValue: val => convertMultilineFieldValue(val),
       },
@@ -174,6 +178,10 @@ const formGroups: JsonFormObject[] = [
         ),
         extraHelp: t(
           'Note: These fields will be used in addition to project specific fields'
+        ),
+        saveOnBlur: false,
+        saveMessage: t(
+          'Changes to your scrubbing configuration will apply to all new events.'
         ),
         getValue: val => extractMultilineFields(val),
         setValue: val => convertMultilineFieldValue(val),

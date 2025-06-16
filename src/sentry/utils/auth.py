@@ -401,9 +401,6 @@ def is_user_signed_request(request: Request) -> bool:
 
 
 def set_active_org(request: HttpRequest, org_slug: str) -> None:
-    if options.get("demo-mode.disable-sandbox-redirect"):
-        if org_slug in ("sandbox", "telemetry-experience"):
-            return
     # even if the value being set is the same this will trigger a session
     # modification and reset the users expiry, so check if they are different first.
     if hasattr(request, "session") and request.session.get("activeorg") != org_slug:

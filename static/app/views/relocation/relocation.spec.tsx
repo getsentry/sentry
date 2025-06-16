@@ -431,7 +431,7 @@ describe('Relocation', function () {
         screen.getByLabelText('file-upload'),
         new File(['hello'], 'hello.tar', {type: 'file'})
       );
-      await userEvent.click(screen.getByText('Remove file'));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove file'}));
       expect(screen.queryByText('hello.tar')).not.toBeInTheDocument();
       expect(
         await screen.findByText('Upload Tarball to begin the relocation process')

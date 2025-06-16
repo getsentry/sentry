@@ -57,10 +57,10 @@ def bad_code():
 
     errors = _run(S003_py)
     assert errors == [
-        "t.py:1:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:2:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:3:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:4:0: S003 Use ``from sentry.utils import json`` instead.",
+        "t.py:1:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:2:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:3:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:4:0: S003 Use `from sentry.utils import json` instead.",
     ]
 
 
@@ -221,6 +221,14 @@ from rest_framework.permissions import BasePermission, IsAuthenticated, SAFE_MET
 """
 
     expected = [
-        "t.py:1:0: S012 Use ``from sentry.api.permissions import SentryIsAuthenticated`` instead"
+        "t.py:1:0: S012 Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
     ]
-    assert _run(src, filename="tests/test_example.py") == expected
+    assert _run(src) == expected
+
+
+def test_S013():
+    src = """\
+from sentry.db.models.fields.array import ArrayField
+"""
+    expected = ["t.py:1:0: S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"]
+    assert _run(src) == expected

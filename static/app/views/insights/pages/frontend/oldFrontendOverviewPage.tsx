@@ -39,7 +39,6 @@ import {
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
-import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateFrontendOtherPerformanceEventView,
@@ -206,10 +205,7 @@ export function OldFrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader
-        headerTitle={FRONTEND_LANDING_TITLE}
-        headerActions={<NewNextJsExperienceButton />}
-      />
+      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

@@ -16,14 +16,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
-import {
-  useHasDynamicSamplingReadAccess,
-  useHasDynamicSamplingWriteAccess,
-} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {useHasDynamicSamplingReadAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
-  const hasWriteAccess = useHasDynamicSamplingWriteAccess();
   const hasReadAccess = useHasDynamicSamplingReadAccess();
 
   if (
@@ -86,15 +83,7 @@ export default function DynamicSamplingSettings() {
           </LinkButton>
         }
       />
-      {!hasWriteAccess && (
-        <Alert.Container>
-          <Alert type="warning">
-            {t(
-              'These settings can only be edited by users with the organization owner or manager role.'
-            )}
-          </Alert>
-        </Alert.Container>
-      )}
+      <OrganizationPermissionAlert />
       {hasReadAccess ? (
         <Fragment>
           <Paragraph>

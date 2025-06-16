@@ -159,7 +159,6 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
         event_data = WorkflowEventData(
             event=test_event,
-            workflow_id=workflow.id,
         )
 
         for action_blob in actions:
@@ -168,6 +167,8 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                     [action_blob], skip_failures=False
                 )[0]
                 action.id = -1
+                # Annotate the action with the workflow id
+                setattr(action, "workflow_id", workflow.id)
             except Exception as e:
                 action_exceptions.append(str(e))
                 sentry_sdk.capture_exception(e)

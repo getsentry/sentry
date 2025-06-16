@@ -121,6 +121,7 @@ def process_detection_bucket(bucket: str):
     queue="uptime",
     taskworker_config=TaskworkerConfig(
         namespace=uptime_tasks,
+        processing_deadline_duration=20,
     ),
 )
 def process_organization_url_ranking(organization_id: int):

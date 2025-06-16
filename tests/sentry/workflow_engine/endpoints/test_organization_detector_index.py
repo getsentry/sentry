@@ -274,7 +274,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricIssue.slug,
+            "type": MetricIssue.slug,
             "projectId": self.project.id,
             "dataSource": {
                 "queryType": SnubaQuery.Type.ERROR.value,
@@ -306,35 +306,35 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
     def test_missing_group_type(self):
         data = {**self.valid_data}
-        del data["detectorType"]
+        del data["type"]
         response = self.get_error_response(
             self.organization.slug,
             **data,
             status_code=400,
         )
-        assert response.data == {"detectorType": ["This field is required."]}
+        assert response.data == {"type": ["This field is required."]}
 
     def test_invalid_group_type(self):
-        data = {**self.valid_data, "detectorType": "invalid_type"}
+        data = {**self.valid_data, "type": "invalid_type"}
         response = self.get_error_response(
             self.organization.slug,
             **data,
             status_code=400,
         )
-        assert response.data == {"detectorType": ["Unknown detector type"]}
+        assert response.data == {
+            "type": ["Unknown detector type 'invalid_type'. Must be one of: error"]
+        }
 
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_settings=None)
-            data = {**self.valid_data, "detectorType": "incompatible_type"}
+            data = {**self.valid_data, "type": "incompatible_type"}
             response = self.get_error_response(
                 self.organization.slug,
                 **data,
                 status_code=400,
             )
-            assert response.data == {
-                "detectorType": ["Detector type not compatible with detectors"]
-            }
+            assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
     def test_missing_project_id(self):
         data = {**self.valid_data}
@@ -426,7 +426,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug,
             status_code=400,
         )
-        assert response.data == {"detectorType": ["This field is required."]}
+        assert response.data == {"type": ["This field is required."]}
 
     def test_missing_name(self):
         data = {**self.valid_data}
@@ -437,3 +437,20 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+    def test_empty_query_string(self):
+        data = {**self.valid_data}
+        data["dataSource"]["query"] = ""
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+
+        assert query_sub.snuba_query.query == ""

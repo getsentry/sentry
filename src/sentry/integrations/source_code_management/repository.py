@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import quote as urlquote
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import unquote, urlparse, urlunparse
 
 import sentry_sdk
 
@@ -197,14 +197,18 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     "organization_id": repo.organization_id,
                 }
             )
-            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
 
             def encode_url(url: str) -> str:
                 parsed = urlparse(url)
+                # Decode the path first to avoid double-encoding
+                decoded_path = unquote(parsed.path)
+                # Encode only unencoded elements
+                encoded_path = urlquote(decoded_path, safe="/")
                 # Encode elements of the filepath like square brackets
                 # Preserve path separators and query params etc.
-                return urlunparse(parsed._replace(path=urlquote(parsed.path, safe="/")))
+                return urlunparse(parsed._replace(path=encoded_path))
 
             if version:
                 scope.set_tag("stacktrace_link.tried_version", True)

@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 
 import type {CodecovContextData} from 'sentry/components/codecov/context/codecovContext';
 import {CodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import type {CodecovPeriodOptions} from 'sentry/components/codecov/datePicker/dateSelector';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -64,9 +65,9 @@ export default function CodecovQueryParamsProvider({
           : null,
     codecovPeriod:
       typeof location.query.codecovPeriod === 'string'
-        ? decodeURIComponent(location.query.codecovPeriod)
+        ? (decodeURIComponent(location.query.codecovPeriod) as CodecovPeriodOptions)
         : 'codecovPeriod' in localStorageState
-          ? (localStorageState.codecovPeriod as string)
+          ? (localStorageState.codecovPeriod as CodecovPeriodOptions)
           : '24h',
   };
 

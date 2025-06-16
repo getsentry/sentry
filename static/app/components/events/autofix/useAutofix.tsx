@@ -24,8 +24,13 @@ export type AutofixResponse = {
 
 const POLL_INTERVAL = 500;
 
-export const makeAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
+export const makeAutofixQueryKey = (
+  orgSlug: string,
+  groupId: string,
+  isUserWatching = false
+): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  {query: {isUserWatching: isUserWatching ? true : false}},
 ];
 
 const makeInitialAutofixData = (): AutofixResponse => ({
@@ -137,7 +142,7 @@ const isPolling = (
 };
 
 export const useAutofixRepos = (groupId: string) => {
-  const {data} = useAutofixData({groupId});
+  const {data} = useAutofixData({groupId, isUserWatching: true});
 
   return useMemo(() => {
     const repos = data?.request?.repos ?? [];
@@ -154,11 +159,17 @@ export const useAutofixRepos = (groupId: string) => {
   }, [data]);
 };
 
-export const useAutofixData = ({groupId}: {groupId: string}) => {
+export const useAutofixData = ({
+  groupId,
+  isUserWatching = false,
+}: {
+  groupId: string;
+  isUserWatching?: boolean;
+}) => {
   const orgSlug = useOrganization().slug;
 
   const {data, isPending} = useApiQuery<AutofixResponse>(
-    makeAutofixQueryKey(orgSlug, groupId),
+    makeAutofixQueryKey(orgSlug, groupId, isUserWatching),
     {
       staleTime: Infinity,
       enabled: false,
@@ -180,13 +191,14 @@ export const useAiAutofix = (
   const api = useApi();
   const queryClient = useQueryClient();
   const orgSlug = useOrganization().slug;
+  const isUserWatching = !options.isSidebar;
 
   const [isReset, setIsReset] = useState<boolean>(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
 
   const {data: apiData, isPending} = useApiQuery<AutofixResponse>(
-    makeAutofixQueryKey(orgSlug, group.id),
+    makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
     {
       staleTime: 0,
       retry: false,
@@ -212,7 +224,7 @@ export const useAiAutofix = (
       setWaitingForNextRun(true);
       setApiQueryData<AutofixResponse>(
         queryClient,
-        makeAutofixQueryKey(orgSlug, group.id),
+        makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
         makeInitialAutofixData()
       );
 
@@ -228,17 +240,19 @@ export const useAiAutofix = (
           }
         );
         setCurrentRunId(response.run_id ?? null);
-        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, group.id)});
+        queryClient.invalidateQueries({
+          queryKey: makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
+        });
       } catch (e) {
         setWaitingForNextRun(false);
         setApiQueryData<AutofixResponse>(
           queryClient,
-          makeAutofixQueryKey(orgSlug, group.id),
+          makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
           makeErrorAutofixData(e?.responseJSON?.detail ?? 'An error occurred')
         );
       }
     },
-    [queryClient, group.id, api, event.id, orgSlug]
+    [queryClient, group.id, api, event.id, orgSlug, isUserWatching]
   );
 
   const reset = useCallback(() => {

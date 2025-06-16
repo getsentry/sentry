@@ -48,8 +48,6 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
-    "organizations:continuous-profiling-beta",
-    "organizations:continuous-profiling-beta-ingest",
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",

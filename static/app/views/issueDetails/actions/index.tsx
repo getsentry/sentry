@@ -558,9 +558,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             key: 'delete-issue',
             priority: 'danger',
             label: t('Delete'),
-            hidden: !hasDeleteAccess,
-            disabled: !deleteCap.enabled,
-            details: deleteCap.disabledReason,
+            disabled: !hasDeleteAccess || !deleteCap.enabled,
+            details: hasDeleteAccess
+              ? deleteCap.disabledReason
+              : t('Only admins can delete issues'),
             onAction: openDeleteModal,
           },
           {

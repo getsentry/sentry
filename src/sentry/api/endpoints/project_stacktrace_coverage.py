@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import Scope, start_span
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -58,14 +58,14 @@ class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
 
         # Post-processing before exiting scope context
         if result["current_config"]:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
 
             serialized_config = serialize(result["current_config"]["config"], request.user)
             provider = serialized_config["provider"]["key"]
             # Use the provider key to split up stacktrace-link metrics by integration type
             scope.set_tag("integration_provider", provider)  # e.g. github
 
-            with start_span(op="fetch_codecov_data"):
+            with sentry_sdk.start_span(op="fetch_codecov_data"):
                 with metrics.timer("issues.stacktrace.fetch_codecov_data"):
                     codecov_data = fetch_codecov_data(
                         config={

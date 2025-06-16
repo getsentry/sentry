@@ -1,11 +1,11 @@
 import {motion} from 'framer-motion';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import ContinueButton from 'sentry/views/relocation/components/continueButton';
-import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCodeBlock';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
 
@@ -36,14 +36,9 @@ export function PublicKey({publicKeys, relocationState, onComplete}: StepProps) 
               "To do so, you'll need to save the following public key to a file accessible from wherever your self-hosted repository is currently installed. You'll need to have this public key file available for the next step."
             )}
           </p>
-          <RelocationCodeBlock
-            dark
-            filename="key.pub"
-            icon={<IconFile />}
-            hideCopyButton={false}
-          >
+          <CodeSnippet dark filename="key.pub" icon={<IconFile />} hideCopyButton={false}>
             {publicKey}
-          </RelocationCodeBlock>
+          </CodeSnippet>
           <ContinueButton priority="primary" type="submit" onClick={handleContinue} />
         </motion.div>
       ) : (

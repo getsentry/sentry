@@ -4,7 +4,8 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.issues.occurrence_consumer import _process_message
-from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
+from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints, update_status
+from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
@@ -20,6 +21,7 @@ def get_test_message_status_change(
     fingerprint: list[str] | None = None,
     new_status: int = GroupStatus.RESOLVED,
     new_substatus: int | None = None,
+    detector_id: int | None = None,
 ) -> dict[str, Any]:
     payload = {
         "project_id": project_id,
@@ -27,6 +29,7 @@ def get_test_message_status_change(
         "new_status": new_status,
         "new_substatus": new_substatus,
         "payload_type": "status_change",
+        "detector_id": detector_id,
     }
 
     return payload
@@ -345,3 +348,119 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
                 tuple([*other_occurrence.fingerprint, *self.occurrence.fingerprint]),
             ): other_group
         }
+
+
+class TestStatusChangeRegistry(IssueOccurrenceTestBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.detector = self.create_detector()
+        self.group = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+        )
+
+        status_change = get_test_message_status_change(
+            self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            detector_id=self.detector.id,
+        )
+
+        self.message = StatusChangeMessageData(
+            id="test-id",
+            project_id=status_change["project_id"],
+            fingerprint=status_change["fingerprint"],
+            new_status=status_change["new_status"],
+            new_substatus=status_change.get("new_substatus"),
+            detector_id=status_change.get("detector_id"),
+        )
+
+    def get_latest_activity(self, activity_type: ActivityType) -> Activity:
+        latest_activity = (
+            Activity.objects.filter(group_id=self.group.id, type=activity_type.value)
+            .order_by("-datetime")
+            .first()
+        )
+
+        if latest_activity is None:
+            raise AssertionError(f"No activity found for type {activity_type}")
+
+        return latest_activity
+
+    def test_handler_is_called__resolved(self) -> None:
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {
+                "test_status_change": mock_handler,
+            }
+
+            update_status(self.group, self.message)
+            latest_activity = self.get_latest_activity(ActivityType.SET_RESOLVED)
+
+            mock_handler.assert_called_once_with(self.group, self.message, latest_activity)
+
+    def test_handler_is_not_called__unresolved_escalating(self) -> None:
+        # There will be an issue occurrence that triggers this instead
+
+        self.message["new_status"] = GroupStatus.UNRESOLVED
+        self.message["new_substatus"] = GroupSubStatus.ESCALATING
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {
+                "test_status_change": mock_handler,
+            }
+
+            update_status(self.group, self.message)
+            assert mock_handler.call_count == 0
+
+    def test_handler_is_called_unresolved_ongoing(self) -> None:
+        self.message["new_status"] = GroupStatus.UNRESOLVED
+        self.message["new_substatus"] = GroupSubStatus.ONGOING
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {
+                "test_status_change": mock_handler,
+            }
+
+            update_status(self.group, self.message)
+            latest_activity = self.get_latest_activity(ActivityType.AUTO_SET_ONGOING)
+            mock_handler.assert_called_once_with(self.group, self.message, latest_activity)
+
+    def test_handler_is_called__unresolved_regressed(self) -> None:
+        self.message["new_status"] = GroupStatus.UNRESOLVED
+        self.message["new_substatus"] = GroupSubStatus.REGRESSED
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {
+                "test_status_change": mock_handler,
+            }
+
+            update_status(self.group, self.message)
+            latest_activity = self.get_latest_activity(ActivityType.SET_REGRESSION)
+            mock_handler.assert_called_once_with(self.group, self.message, latest_activity)
+
+    def test_handler_is_called__ignored(self) -> None:
+        self.message["new_status"] = GroupStatus.IGNORED
+        self.message["new_substatus"] = GroupSubStatus.FOREVER
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {
+                "test_status_change": mock_handler,
+            }
+
+            update_status(self.group, self.message)
+            latest_activity = self.get_latest_activity(ActivityType.SET_IGNORED)
+            mock_handler.assert_called_once_with(self.group, self.message, latest_activity)

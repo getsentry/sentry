@@ -141,7 +141,10 @@ class OnDemandBudgets extends Component<Props> {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       return (
         <PerCategoryBudgetContainer data-test-id="per-category-budget-info">
-          {subscription.planDetails.onDemandCategories.map(category => (
+          {getOnDemandCategories({
+            plan: subscription.planDetails,
+            budgetMode: onDemandBudgets.budgetMode,
+          }).map(category => (
             <Category key={category}>
               <DetailTitle>
                 {getPlanCategoryName({plan: subscription.planDetails, category})}
@@ -201,13 +204,16 @@ class OnDemandBudgets extends Component<Props> {
       return this.renderNeedsPaymentSource();
     }
 
+    const onDemandBudgets = subscription.onDemandBudgets!;
     const oxfordCategories = listDisplayNames({
       plan: subscription.planDetails,
-      categories: getOnDemandCategories(subscription.planDetails),
+      categories: getOnDemandCategories({
+        plan: subscription.planDetails,
+        budgetMode: onDemandBudgets.budgetMode,
+      }),
     });
     let description = t('Applies to %s.', oxfordCategories);
 
-    const onDemandBudgets = subscription.onDemandBudgets!;
     if (
       onDemandBudgets.budgetMode === OnDemandBudgetMode.SHARED &&
       onDemandBudgets.sharedMaxBudget > 0

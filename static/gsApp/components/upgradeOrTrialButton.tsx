@@ -159,7 +159,7 @@ function UpgradeOrTrialButton({
     return (
       <LinkButton
         onClick={handleSuccess}
-        to={`${baseUrl}?referrer=upgrade-${source}`}
+        href={`${baseUrl}?referrer=upgrade-${source}`}
         priority={buttonPriority}
         {...(props as LinkButtonProps)}
       >

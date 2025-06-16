@@ -192,6 +192,9 @@ register(
 # Dynamic sampling rate in project-level "manual" configuration mode
 register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 
+# Dynamic sampling minimum sample rate
+register(key="sentry:dynamic_sampling_minimum_sample_rate", default=False)
+
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
@@ -200,3 +203,6 @@ register(key="sentry:tempest_fetch_dumps", default=False)
 
 # Should autofix run automatically on new issues
 register(key="sentry:autofix_automation_tuning", default="off")
+
+# Should seer scanner run automatically on new issues
+register(key="sentry:seer_scanner_automation", default=False)

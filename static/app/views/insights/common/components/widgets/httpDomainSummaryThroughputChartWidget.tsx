@@ -10,13 +10,16 @@ export default function HttpDomainSummaryThroughputChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const chartFilters = useHttpDomainSummaryChartFilter();
+  const referrer = Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART;
+  const search = MutableSearch.fromQueryObject(chartFilters);
+
   const {
     isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject(chartFilters),
+      search,
       yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
@@ -29,6 +32,7 @@ export default function HttpDomainSummaryThroughputChartWidget(
       {...props}
       id="httpDomainSummaryThroughputChartWidget"
       title={getThroughputChartTitle('http')}
+      queryInfo={{search, referrer}}
       series={[throughputData['epm()']]}
       isLoading={isThroughputDataLoading}
       error={throughputError}

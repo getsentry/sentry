@@ -57,6 +57,8 @@ export function OverviewTimeline({uptimeRules}: Props) {
         showCursor
         cursorOffsets={{right: 40}}
         timeWindowConfig={timeWindowConfig}
+        cursorOverlayAnchor="top"
+        cursorOverlayAnchorOffset={10}
       />
       <UptimeAlertRow>
         {uptimeRules.map(uptimeRule => (

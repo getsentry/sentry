@@ -291,7 +291,7 @@ function ReleaseCard({
   );
 }
 
-export const VersionWrapper = styled('div')`
+const VersionWrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
@@ -324,7 +324,7 @@ const ReleaseInfo = styled('div')`
   }
 `;
 
-export const ReleaseInfoSubheader = styled('div')`
+const ReleaseInfoSubheader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray400};
   flex-grow: 1;
@@ -379,7 +379,7 @@ const ReleaseProjects = styled('div')`
   }
 `;
 
-export const ReleaseInfoHeader = styled('div')`
+const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;

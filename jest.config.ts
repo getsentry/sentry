@@ -246,6 +246,10 @@ const config: Config.InitialOptions = {
     // transform
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // Disabled @sentry/toolbar in tests. It depends on iframes and global
+    // window/cookies state.
+    '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',

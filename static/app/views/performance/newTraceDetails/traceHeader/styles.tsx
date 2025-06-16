@@ -48,7 +48,10 @@ function ToggleTraceFormatButton({
   );
 
   return (
-    <Feature organization={organization} features="trace-spans-format">
+    <Feature
+      organization={organization}
+      features={['trace-spans-format', 'trace-view-admin-ui']}
+    >
       <Button
         size="xs"
         aria-label="toggle-trace-format-btn"

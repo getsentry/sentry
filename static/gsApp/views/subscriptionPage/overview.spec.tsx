@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {InvoicePreviewFixture} from 'getsentry-test/fixtures/invoicePreview';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
@@ -20,6 +21,8 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {DataCategory} from 'sentry/types/core';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -213,6 +216,41 @@ describe('Subscription > Overview', () => {
     expect(screen.getByText('Seer')).toBeInTheDocument();
     expect(screen.getByText('Issue Fixes Included in Subscription')).toBeInTheDocument();
     expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
+  });
+
+  it('does not render Seer on developer plan', async function () {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+    });
+
+    subscription.categories = {
+      ...subscription.categories,
+      seerAutofix: MetricHistoryFixture({
+        category: DataCategory.SEER_AUTOFIX,
+        reserved: 0,
+        prepaid: 0,
+        order: 27,
+      }),
+      seerScanner: MetricHistoryFixture({
+        category: DataCategory.SEER_SCANNER,
+        reserved: 0,
+        prepaid: 0,
+        order: 28,
+      }),
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(await screen.findByText('Overview')).toBeInTheDocument();
+    expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    assertUsageCards(subscription);
+
+    expect(screen.queryByTestId('usage-card-seerAutofix')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('usage-card-seerScanner')).not.toBeInTheDocument();
   });
 
   it('renders for am3', async function () {

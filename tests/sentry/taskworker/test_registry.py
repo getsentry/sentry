@@ -287,6 +287,14 @@ def test_registry_create_namespace_simple() -> None:
 
 
 @pytest.mark.django_db
+def test_registry_create_namespace_duplicate() -> None:
+    registry = TaskRegistry()
+    registry.create_namespace(name="tests")
+    with pytest.raises(ValueError, match="tests already exists"):
+        registry.create_namespace(name="tests")
+
+
+@pytest.mark.django_db
 def test_registry_create_namespace_route_setting() -> None:
     with override_settings(TASKWORKER_ROUTES='{"profiling":"profiles", "lol":"nope"}'):
         registry = TaskRegistry()

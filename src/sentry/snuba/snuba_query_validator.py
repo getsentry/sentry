@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import override
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -61,14 +62,18 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.ERROR,
         SnubaQueryEventType.EventType.DEFAULT,
     },
-    SnubaQuery.Type.PERFORMANCE: {SnubaQueryEventType.EventType.TRANSACTION},
+    SnubaQuery.Type.PERFORMANCE: {
+        SnubaQueryEventType.EventType.TRANSACTION,
+        SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
+        SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+    },
 }
 
 
 class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
     environment = EnvironmentField(required=True, allow_null=True)
@@ -119,12 +124,21 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def validate_event_types(self, value: Sequence[str]) -> list[SnubaQueryEventType.EventType]:
         try:
-            return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
+            validated = [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
         except KeyError:
             raise serializers.ValidationError(
                 "Invalid event_type, valid values are %s"
                 % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
+
+        if not features.has(
+            "organizations:ourlogs-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
+            raise serializers.ValidationError("You do not have access to the log alerts feature.")
+
+        return validated
 
     def validate(self, data):
         data = super().validate(data)
@@ -140,6 +154,13 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
+                % sorted(et.name.lower() for et in valid_event_types)
+            )
+
+        dataset = data.get("dataset")
+        if dataset == Dataset.EventsAnalyticsPlatform and event_types and len(event_types) > 1:
+            raise serializers.ValidationError(
+                "Multiple event types not allowed. Valid event types are %s"
                 % sorted(et.name.lower() for et in valid_event_types)
             )
 
@@ -321,6 +342,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return dataset
 
+    @override
     def create_source(self, validated_data) -> QuerySubscription:
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],

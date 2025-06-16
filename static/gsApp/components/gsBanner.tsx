@@ -47,6 +47,7 @@ import {
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -54,7 +55,6 @@ import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
-  PlanTier,
   type Promotion,
   type PromotionClaimed,
   type Subscription,
@@ -1056,23 +1056,8 @@ class GSBanner extends Component<Props, State> {
 
   renderProductTrialAlerts() {
     const {subscription, organization, api} = this.props;
-    if (subscription.planTier === PlanTier.AM3) {
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/database/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/profiling/'] = {
-        product: DataCategory.PROFILES,
-        categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
-      };
-    }
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    const productPath = this.PATHS_FOR_PRODUCT_TRIALS[window.location.pathname] || null;
 
+    const productPath = getProductForPath(subscription, window.location.pathname);
     if (!productPath) {
       return null;
     }

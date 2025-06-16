@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import re
 from abc import ABC
-from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
+from sentry import features
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 
 stackframe_function_name = lambda i: Function(
     "arrayElement",
@@ -262,7 +264,63 @@ class PHPParser(LanguageParser):
     ]
 
 
-PATCH_PARSERS: dict[str, Any] = {
+class CSharpParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+    function_prefix = "."
+
+    r"""
+    Type of method declaration                           Example
+    Regular method:                                     public void MethodName()
+    Static method:                                      public static int Calculate(int x)
+    Async method:                                       public async Task<string> ProcessAsync()
+    Constructor:                                        public ClassName()
+    Static constructor:                                 static ClassName()
+    Destructor/Finalizer:                              ~ClassName()
+    Operator overload:                                  public static ClassName operator+(ClassName a)
+    Expression-bodied method:                           public int Add(int x) => x + 1;
+    Property getter/setter:                             get { return _value; }
+    Local function:                                     void LocalFunction()
+    Interface method implementation:                    void IInterface.Method()
+    """
+
+    # Regular method declarations with access modifiers - exclude operator declarations
+    method_declaration_regex = r"^@@.*@@(?!.*\boperator\b)[^=]*?\s*(?:\[[^\]]*\]\s*)?(?:public|private|protected|internal)?\s*(?:static|virtual|override|abstract|async|extern|unsafe)?\s*(?:async)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)\s*\("
+
+    # Constructor declarations (including static constructors) - exclude operator declarations
+    constructor_regex = r"^@@.*@@(?!.*\boperator\b)[^=]*?\s*(?:public|private|protected|internal)?\s*(?:static)?\s*(?P<fnc>\w+)\s*\([^)]*\)\s*(?::\s*(?:base|this)\([^)]*\))?\s*$"
+
+    # Destructor/Finalizer
+    destructor_regex = r"^@@.*@@[^=]*?\s*~(?P<fnc>\w+)\s*\(\s*\)"
+
+    # Operator overloads - split into standard operators and conversion operators
+    operator_standard_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*static\s*\w+\s*operator\s*(?P<fnc>[+\-*/=<>!&|^%~]+)\s*\("
+    operator_conversion_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*static\s*(?P<fnc>implicit|explicit)\s*operator\s+\w+\s*\("
+
+    # Property accessors (get/set)
+    property_accessor_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>get|set)\s*[{(]"
+
+    # Expression-bodied methods and properties
+    expression_bodied_method_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*(?:static|virtual|override|abstract|async)?\s*(?:async)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)\s*\([^)]*\)\s*=>"
+    expression_bodied_property_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*(?:static|virtual|override|abstract)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)\s*=>"
+
+    # Local functions (no access modifiers) - exclude operator declarations
+    local_function_regex = r"^@@.*@@(?!.*\boperator\b)[^=]*?\s*(?:static|async)?\s*(?:async)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)(?:<[^>]*>)?\s*\([^)]*\)\s*$"
+
+    regexes = [
+        method_declaration_regex,
+        constructor_regex,
+        destructor_regex,
+        operator_standard_regex,
+        operator_conversion_regex,
+        property_accessor_regex,
+        expression_bodied_method_regex,
+        expression_bodied_property_regex,
+        local_function_regex,
+    ]
+
+
+PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
@@ -271,3 +329,21 @@ PATCH_PARSERS: dict[str, Any] = {
     "php": PHPParser,
     "rb": RubyParser,
 }
+
+# Beta parsers for experimental language support
+BETA_PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
+    "cs": CSharpParser,
+}
+
+
+def get_patch_parsers_for_organization(organization: Organization | RpcOrganization | None = None):
+    """
+    Returns the appropriate patch parsers based on feature flags.
+    Falls back to the standard parsers if no organization is provided.
+    """
+    if organization and features.has("organizations:csharp-open-pr-comments", organization):
+        # Merge stable and beta parsers when feature flag is enabled
+        return {**PATCH_PARSERS, **BETA_PATCH_PARSERS}
+    else:
+        # Return only stable parsers when feature flag is disabled or no organization context
+        return {k: v for k, v in PATCH_PARSERS.items() if k not in BETA_PATCH_PARSERS}

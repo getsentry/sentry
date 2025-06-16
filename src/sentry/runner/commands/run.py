@@ -255,6 +255,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
     from django.conf import settings
 
+    from sentry import options as featureflags
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
@@ -266,8 +267,10 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
+        enabled_schedules = set(featureflags.get("taskworker.scheduler.rollout", []))
         for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            runner.add(key, schedule_data)
+            if key in enabled_schedules:
+                runner.add(key, schedule_data)
 
         runner.log_startup()
         while True:
@@ -477,12 +480,23 @@ def cron(**options: Any) -> None:
     "Run periodic task dispatcher."
     from django.conf import settings
 
+    from sentry import options as featureflags
+
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException(
             "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
         )
 
     from sentry.celery import app
+
+    old_schedule = app.conf.CELERYBEAT_SCHEDULE
+    new_schedule = {}
+    task_schedules = set(featureflags.get("taskworker.scheduler.rollout", []))
+    for key, schedule_data in old_schedule.items():
+        if key not in task_schedules:
+            new_schedule[key] = schedule_data
+
+    app.conf.update(CELERYBEAT_SCHEDULE=new_schedule)
 
     with managed_bgtasks(role="cron"):
         app.Beat(

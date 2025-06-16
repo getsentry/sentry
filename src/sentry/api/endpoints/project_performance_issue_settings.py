@@ -27,7 +27,7 @@ from sentry.issues.grouptype import (
     PerformanceUncompressedAssetsGroupType,
     ProfileFunctionRegressionType,
 )
-from sentry.utils.performance_issues.performance_detection import get_merged_settings
+from sentry.performance_issues.performance_detection import get_merged_settings
 
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds

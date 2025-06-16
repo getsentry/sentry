@@ -217,7 +217,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
-    "standalone-spans.drop-in-buffer": KillswitchInfo(
+    "spans.drop-in-buffer": KillswitchInfo(
         description="""
         Drop spans.
         """,

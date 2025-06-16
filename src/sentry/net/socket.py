@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import ipaddress
 import socket
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -10,6 +11,7 @@ from django.conf import settings
 from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
+from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT
 
 from sentry.exceptions import RestrictedIPAddress
 
@@ -104,12 +106,12 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 # Modifed version of urllib3.util.connection.create_connection.
 def safe_create_connection(
-    address,
-    timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
-    source_address=None,
-    socket_options=None,
+    address: tuple[str, int],
+    timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,
+    source_address: str | None = None,
+    socket_options: Sequence[tuple[int, int, int | bytes]] | None = None,
     is_ipaddress_permitted: IsIpAddressPermitted = None,
-):
+) -> socket.socket:
     if is_ipaddress_permitted is None:
         is_ipaddress_permitted = is_ipaddress_allowed
 
@@ -137,6 +139,7 @@ def safe_create_connection(
 
         # Begin custom code.
         ip = sa[0]
+        assert isinstance(ip, str), ip  # we aren't running ipv6-disabled python
         if not is_ipaddress_permitted(ip):
             # I am explicitly choosing to be overly aggressive here. This means
             # the first IP that matches that hits our restricted set of IP networks,
@@ -155,7 +158,7 @@ def safe_create_connection(
             # If provided, set socket level options before connecting.
             _set_socket_options(sock, socket_options)
 
-            if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+            if timeout is not _DEFAULT_TIMEOUT:
                 sock.settimeout(timeout)
             if source_address:
                 sock.bind(source_address)

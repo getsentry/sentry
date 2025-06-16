@@ -149,7 +149,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          referrer: 'api.insights.database.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'epm()',
@@ -176,7 +176,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          referrer: 'api.insights.database.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -267,7 +267,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          referrer: 'api.insights.database.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'epm()',
@@ -294,7 +294,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
-          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          referrer: 'api.insights.database.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',

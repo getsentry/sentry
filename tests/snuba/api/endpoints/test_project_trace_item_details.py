@@ -238,7 +238,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
-            {"name": "is_segment", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response_content_length", "type": "float", "value": 100.0},
             {"name": "is_transaction", "type": "float", "value": 0.0},
@@ -310,7 +309,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         )
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
-            {"name": "is_segment", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response.body.size", "type": "float", "value": 100.0},
             {"name": "is_transaction", "type": "float", "value": 0.0},
@@ -344,7 +342,11 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 "type": "str",
                 "value": span_1["event_id"],
             },
-            {"name": "transaction.span_id", "type": "str", "value": span_1["segment_id"]},
+            {
+                "name": "transaction.span_id",
+                "type": "str",
+                "value": span_1["segment_id"],
+            },
         ]
         assert trace_details_response.data["itemId"] == item_id
         assert (

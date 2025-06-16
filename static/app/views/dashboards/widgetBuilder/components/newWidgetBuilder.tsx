@@ -323,9 +323,9 @@ export function WidgetPreviewContainer({
   };
 
   const animatedProps = {
-    initial: {opacity: 0, x: '50%', y: 0},
+    initial: {opacity: 0, x: '100%', y: 0},
     animate: {opacity: 1, x: 0, y: 0},
-    exit: {opacity: 0, x: '50%', y: 0},
+    exit: {opacity: 0, x: '100%', y: 0},
     transition: animationTransitionSettings,
   };
 

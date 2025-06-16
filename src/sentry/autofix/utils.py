@@ -85,7 +85,11 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
 
 def get_autofix_state(
-    *, group_id: int | None = None, run_id: int | None = None, check_repo_access: bool = False
+    *,
+    group_id: int | None = None,
+    run_id: int | None = None,
+    check_repo_access: bool = False,
+    is_user_fetching: bool = False,
 ) -> AutofixState | None:
     path = "/v1/automation/autofix/state"
     body = orjson.dumps(
@@ -93,6 +97,7 @@ def get_autofix_state(
             "group_id": group_id,
             "run_id": run_id,
             "check_repo_access": check_repo_access,
+            "is_user_fetching": is_user_fetching,
         }
     )
 

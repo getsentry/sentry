@@ -10,11 +10,15 @@ export function useUpdateProjectSeerPreferences(project: Project) {
 
   return useMutation({
     mutationFn: (data: ProjectSeerPreferences) => {
+      const payload: ProjectSeerPreferences = {
+        repositories: data.repositories,
+        automated_run_stopping_point: data.automated_run_stopping_point ?? 'solution',
+      };
       return api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         {
           method: 'POST',
-          data,
+          data: payload,
         }
       );
     },

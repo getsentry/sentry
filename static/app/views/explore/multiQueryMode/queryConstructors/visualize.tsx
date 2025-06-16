@@ -36,7 +36,6 @@ export function VisualizeSection({query, index}: Props) {
   const options: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
-    yAxes: query.yAxes,
     parsedFunction,
   });
 

@@ -117,6 +117,7 @@ export interface Monitor {
   environments: MonitorEnvironment[];
   id: string;
   isMuted: boolean;
+  isUpserting: boolean;
   name: string;
   owner: Actor;
   project: Project;

@@ -44,7 +44,6 @@ from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
 from sentry.utils import json, snuba_rpc
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -412,7 +411,6 @@ def process_table_response(
             assert len(column_value.results) == len(column_value.reliabilities), Exception(
                 "Length of rpc results do not match length of rpc reliabilities"
             )
-        set_span_attribute(f"SearchResolver.result_size.{attribute}", len(column_value.results))
 
         while len(final_data) < len(column_value.results):
             final_data.append({})
@@ -430,7 +428,6 @@ def process_table_response(
                 final_confidence[index][attribute] = CONFIDENCES.get(
                     column_value.reliabilities[index], None
                 )
-    set_span_attribute("SearchResolver.result_size.final_data", len(final_data))
 
     if debug:
         final_meta["query"] = json.loads(MessageToJson(table_request.rpc_request))

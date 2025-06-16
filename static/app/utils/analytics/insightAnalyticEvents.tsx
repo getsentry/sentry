@@ -47,6 +47,7 @@ export type InsightEventParameters = {
     page: ModuleName | 'overview';
     view: DomainView | undefined;
   };
+  'insights.open_in_explore': {organization: string; referrer: string};
   'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
   'insights.session_health_tour.dismissed': Record<string, unknown>;
 };
@@ -98,4 +99,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.general.create_alert': 'Insights: Create Alert clicked',
   'insights.session_health_tour.dismissed': 'Insights: Session Health Tour Dismissed',
   'insights.eap.toggle': 'Insights: EAP Toggle',
+  'insights.open_in_explore': 'Insights: Open in Explore',
 };

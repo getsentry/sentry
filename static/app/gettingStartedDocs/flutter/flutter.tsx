@@ -105,6 +105,35 @@ child: ElevatedButton(
 )
 `;
 
+const getFeedbackConfigureSnippet = () => `
+// The example uses the NavigatorState to present the widget. Adapt as needed to your navigation stack.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+...
+
+await SentryFlutter.init((options) {
+  options.beforeSend = (event, hint) async {
+    // Filter here what kind of events you want users to give you feedback.
+
+    final screenshot = await SentryFlutter.captureScreenshot();
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SentryFeedbackWidget(
+            associatedEventId: event.eventId,
+            screenshot: screenshot,
+          ),
+          fullscreenDialog: true,
+        ),
+      );
+    }
+  };
+});
+`;
+
 const getPerformanceSnippet = () => `
 import 'package:sentry/sentry.dart';
 
@@ -431,9 +460,52 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        "Use the [code:SentryFeedbackWidget] to let users send feedback data to Sentry. [break] [break] The widget requests and collects the user's name, email address, and a description of what occurred. When an event identifier is provided, Sentry pairs the feedback with the original event, giving you additional insights into issues. Additionally, you can provide a screenshot that will be sent to Sentry. Learn more about how to enable screenshots in our [screenshotsDocs:screenshots documentation].",
+        {
+          screenshotsDocs: (
+            <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/enriching-events/screenshots/" />
+          ),
+          break: <br />,
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          description: tct(
+            'One possible use for the [code:SentryFeedbackWidget] is to listen for specific Sentry events in the [code:beforeSend] callback and show the widget to users.',
+            {
+              code: <code />,
+            }
+          ),
+          configurations: [
+            {
+              code: [
+                {
+                  label: 'Dart',
+                  value: 'dart',
+                  language: 'dart',
+                  code: getFeedbackConfigureSnippet(),
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
+  feedbackOnboardingNpm: feedbackOnboarding,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
   platformOptions,
   replayOnboarding,

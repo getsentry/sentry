@@ -193,6 +193,7 @@ def group_was_recently_resolved(group: Group) -> bool:
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    processing_deadline_duration=150,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
         retry=Retry(

@@ -26,6 +26,7 @@ class SeerProjectPreference(BaseModel):
     organization_id: int
     project_id: int
     repositories: list[SeerRepoDefinition]
+    automated_run_stopping_point: str | None = None
 
 
 class PreferenceResponse(BaseModel):

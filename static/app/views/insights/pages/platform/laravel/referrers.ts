@@ -7,5 +7,7 @@ export enum Referrer {
   WEB_VITALS_CHART = 'api.performance.backend.overview.web-vitals-chart',
   PATHS_TABLE = 'api.performance.backend.overview.paths-table',
   SLOW_SSR_CHART = 'api.performance.backend.overview.slow-ssr-chart',
-  PAGES_TABLE = 'api.performance.backend.overview.pages-table',
+  CLIENT_TABLE = 'api.performance.backend.overview.client-table',
+  API_TABLE = 'api.performance.backend.overview.api-table',
+  NEXTJS_API_TREE = 'api.performance.nextjs.overview.api-tree',
 }

@@ -5,10 +5,10 @@ from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
+from sentry.performance_issues.performance_detection import get_merged_settings
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 
 class ProjectPerformanceIssueSettingsTest(APITestCase):

@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   FieldKind,
@@ -19,11 +18,6 @@ import {SpanIndexedField} from 'sentry/views/insights/types';
 interface UseVisualizeFieldsProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
-  /**
-   * All the aggregates that are in use. The arguments will be extracted
-   * and injected as options if they are compatible.
-   */
-  yAxes: string[];
   parsedFunction?: ParsedFunction | null;
 }
 
@@ -31,7 +25,6 @@ export function useVisualizeFields({
   parsedFunction,
   numberTags,
   stringTags,
-  yAxes,
 }: UseVisualizeFieldsProps) {
   const [kind, tags]: [FieldKind, TagCollection] = useMemo(() => {
     if (parsedFunction?.name === AggregationKey.COUNT) {
@@ -61,18 +54,12 @@ export function useVisualizeFields({
     return [FieldKind.MEASUREMENT, numberTags];
   }, [parsedFunction?.name, numberTags, stringTags]);
 
-  const parsedYAxes: ParsedFunction[] = useMemo(() => {
-    return yAxes.map(parseFunction).filter(defined);
-  }, [yAxes]);
+  const unknownField = parsedFunction?.arguments[0];
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
-    const unknownOptions = parsedYAxes
-      .flatMap(entry => {
-        return entry.arguments;
-      })
-      .filter(option => {
-        return !tags.hasOwnProperty(option);
-      });
+    const unknownOptions = [unknownField]
+      .filter(defined)
+      .filter(option => !tags.hasOwnProperty(option));
 
     const options = [
       ...unknownOptions.map(option => {
@@ -115,7 +102,7 @@ export function useVisualizeFields({
     });
 
     return options;
-  }, [kind, tags, parsedYAxes]);
+  }, [kind, tags, unknownField]);
 
   return fieldOptions;
 }

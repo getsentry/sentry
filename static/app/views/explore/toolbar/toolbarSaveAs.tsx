@@ -289,12 +289,15 @@ export function ToolbarSaveAs() {
             organization,
             mode,
             location,
-            query,
-            yAxes: [visualizeYAxes[0]!],
-            groupBys,
-            fields,
-            sortBys,
-            chartType: visualizes[0]!.chartType,
+            queries: [
+              {
+                query,
+                groupBys,
+                sortBys,
+                yAxes: [visualizeYAxes[0]!],
+                chartType: visualizes[0]!.chartType,
+              },
+            ],
           })}
         >
           {`${t('Compare Queries')}`}

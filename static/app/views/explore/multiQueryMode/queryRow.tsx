@@ -1,10 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {IconDelete} from 'sentry/icons/iconDelete';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -17,9 +14,9 @@ import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks
 import {
   getQueryMode,
   type ReadableExploreQueryParts,
-  useDeleteQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {GroupBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/groupBy';
+import {MenuSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/menu';
 import {SearchBarSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/search';
 import {SortBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/sortBy';
 import {VisualizeSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/visualize';
@@ -33,8 +30,6 @@ type Props = {
 };
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
-  const deleteQuery = useDeleteQueryAtIndex();
-
   const {groupBys, query, yAxes, sortBys} = queryParts;
   const mode = getQueryMode(groupBys);
 
@@ -80,14 +75,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
           <VisualizeSection query={queryParts} index={index} />
           <GroupBySection query={queryParts} index={index} />
           <SortBySection query={queryParts} index={index} />
-          <DeleteButton
-            borderless
-            icon={<IconDelete />}
-            size="zero"
-            disabled={totalQueryRows === 1}
-            onClick={() => deleteQuery(index)}
-            aria-label={t('Delete Query')}
-          />
+          <MenuSection index={index} totalQueryRows={totalQueryRows} />
         </DropDownGrid>
       </QueryConstructionSection>
       <QueryVisualizationSection data-test-id={`section-visualization-${index}`}>
@@ -125,13 +113,9 @@ const QueryConstructionSection = styled('div')`
 
 const DropDownGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto)) ${space(2)};
-  align-items: center;
+  grid-template-columns: repeat(3, minmax(0, auto)) min-content;
+  align-items: end;
   gap: ${space(1)};
-`;
-
-const DeleteButton = styled(Button)`
-  margin-top: ${space(2)};
 `;
 
 const QueryVisualizationSection = styled('div')`

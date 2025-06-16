@@ -524,14 +524,18 @@ export function Provider({
   // Initialize replayer for Video Replays
   useEffect(() => {
     const instance =
-      isVideoReplay && rootEl && !replayerRef.current && initVideoRoot(rootEl);
+      isVideoReplay &&
+      rootEl &&
+      !replay?.isFetching() &&
+      !replayerRef.current &&
+      initVideoRoot(rootEl);
 
     return () => {
       if (instance && !rootEl) {
         instance.destroy();
       }
     };
-  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents]);
+  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player
   useEffect(() => {

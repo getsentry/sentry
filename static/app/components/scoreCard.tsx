@@ -19,7 +19,7 @@ type ScoreCardProps = {
   trendStatus?: 'good' | 'bad';
 };
 
-function ScoreCard({
+export function ScoreCard({
   title,
   score,
   help,
@@ -124,5 +124,3 @@ export const Trend = styled('div')<TrendProps>`
   line-height: 1;
   overflow: hidden;
 `;
-
-export default ScoreCard;

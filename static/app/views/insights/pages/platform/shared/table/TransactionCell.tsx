@@ -9,6 +9,16 @@ import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+interface TransactionCellProps {
+  column: GridColumnOrder<string>;
+  dataRow: Record<string, any>;
+  projectId: string;
+  targetView: 'backend' | 'frontend';
+  transaction: string;
+  details?: React.ReactNode;
+  query?: string;
+}
+
 export function TransactionCell({
   transaction,
   projectId,
@@ -16,14 +26,8 @@ export function TransactionCell({
   dataRow,
   details,
   targetView,
-}: {
-  column: GridColumnOrder<string>;
-  dataRow: Record<string, any>;
-  projectId: string;
-  targetView: 'backend' | 'frontend';
-  transaction: string;
-  details?: React.ReactNode;
-}) {
+  query,
+}: TransactionCellProps) {
   const organization = useOrganization();
   const {setTransactionFilter} = useTransactionNameQuery();
 
@@ -32,7 +36,9 @@ export function TransactionCell({
     transaction,
     view: targetView,
     projectID: projectId,
-    query: {},
+    query: {
+      query: query || '',
+    },
   });
 
   return (

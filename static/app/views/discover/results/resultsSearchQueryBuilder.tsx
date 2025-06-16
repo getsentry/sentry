@@ -191,8 +191,8 @@ function ResultsSearchQueryBuilder(props: Props) {
   const featureFlagTags: TagCollection = useMemo(
     () =>
       featureFlagsQuery.data?.reduce<TagCollection>((acc, tag) => {
-        // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
-        const key = `flags["${tag.key}"]`;
+        // flags[] is required for the search endpoint
+        const key = `flags[${tag.key}]`;
         acc[key] = {...tag, kind: FieldKind.FEATURE_FLAG, key};
         return acc;
       }, {}) || {},

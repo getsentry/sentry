@@ -1,8 +1,7 @@
 from sentry.spans.consumers.process_segments.enrichment import (
-    compute_breakdowns,
-    set_exclusive_time,
+    Enricher,
+    segment_span_measurement_updates,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.spans.consumers.process import build_mock_span
 
 # Tests ported from Relay
@@ -40,9 +39,9 @@ def test_childless_spans():
         ),
     ]
 
-    set_exclusive_time(spans)
+    _, enriched = Enricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in spans}
+    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 1123.0,
         "bbbbbbbbbbbbbbbb": 3000.0,
@@ -83,9 +82,9 @@ def test_nested_spans():
         ),
     ]
 
-    set_exclusive_time(spans)
+    _, enriched = Enricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in spans}
+    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -126,9 +125,9 @@ def test_overlapping_child_spans():
         ),
     ]
 
-    set_exclusive_time(spans)
+    _, enriched = Enricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in spans}
+    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -169,9 +168,9 @@ def test_child_spans_dont_intersect_parent():
         ),
     ]
 
-    set_exclusive_time(spans)
+    _, enriched = Enricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in spans}
+    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 1000.0,
@@ -212,9 +211,9 @@ def test_child_spans_extend_beyond_parent():
         ),
     ]
 
-    set_exclusive_time(spans)
+    _, enriched = Enricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in spans}
+    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 200.0,
@@ -255,9 +254,9 @@ def test_child_spans_consumes_all_of_parent():
         ),
     ]
 
-    set_exclusive_time(spans)
+    _, enriched = Enricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in spans}
+    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 0.0,
@@ -298,9 +297,9 @@ def test_only_immediate_child_spans_affect_calculation():
         ),
     ]
 
-    set_exclusive_time(spans)
+    _, enriched = Enricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in spans}
+    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 600.0,
@@ -309,8 +308,7 @@ def test_only_immediate_child_spans_affect_calculation():
     }
 
 
-@django_db_all
-def test_emit_ops_breakdown(default_project):
+def test_emit_ops_breakdown():
     segment_span = build_mock_span(
         project_id=1,
         is_segment=True,
@@ -367,18 +365,18 @@ def test_emit_ops_breakdown(default_project):
         "span_ops": {"type": "spanOperations", "matches": ["http", "db"]},
         "span_ops_2": {"type": "spanOperations", "matches": ["http", "db"]},
     }
-    default_project.update_option("sentry:breakdowns", breakdowns_config)
 
     # Compute breakdowns for the segment span
-    compute_breakdowns(segment_span, spans, default_project)
-    measurements = segment_span["measurements"]
+    enriched_segment, _ = Enricher.enrich_spans(spans)
+    assert enriched_segment is not None
+    updates = segment_span_measurement_updates(enriched_segment, spans, breakdowns_config)
 
-    assert measurements["span_ops.ops.http"]["value"] == 3600000.0
-    assert measurements["span_ops.ops.db"]["value"] == 7200000.0
-    assert measurements["span_ops_2.ops.http"]["value"] == 3600000.0
-    assert measurements["span_ops_2.ops.db"]["value"] == 7200000.0
+    assert updates["span_ops.ops.http"]["value"] == 3600000.0
+    assert updates["span_ops.ops.db"]["value"] == 7200000.0
+    assert updates["span_ops_2.ops.http"]["value"] == 3600000.0
+    assert updates["span_ops_2.ops.db"]["value"] == 7200000.0
 
     # NOTE: Relay used to extract a total.time breakdown, which is no longer
     # included in span breakdowns.
-    # assert measurements["span_ops.total.time"]["value"] == 14400000.01
-    # assert measurements["span_ops_2.total.time"]["value"] == 14400000.01
+    # assert updates["span_ops.total.time"]["value"] == 14400000.01
+    # assert updates["span_ops_2.total.time"]["value"] == 14400000.01

@@ -19,7 +19,7 @@ const OPEN_STYLES = {
 const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
-  left: {opacity: 0, x: -200, y: 0},
+  left: {opacity: 0, x: '-100%', y: 0},
 };
 
 type SlideOverPanelProps = {

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db.models import F
 from django.dispatch import Signal
 
 from sentry.models.project import Project
 
 
-def set_project_flag_and_signal(project: Project, flag_name: str, signal: Signal, **kwargs) -> bool:
+def set_project_flag_and_signal(
+    project: Project, flag_name: str, signal: Signal, **kwargs: Any
+) -> bool:
     """
     Helper function to set a project flag and send a signal.
     Returns True if the flag was set, False if it was already set.

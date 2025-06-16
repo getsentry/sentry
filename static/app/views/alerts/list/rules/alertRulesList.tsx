@@ -132,7 +132,7 @@ function AlertRulesList() {
 
     const endpoint =
       rule.type === 'alert_rule'
-        ? `/organizations/${organization.slug}/alert-rules/${rule.id}`
+        ? `/organizations/${organization.slug}/alert-rules/${rule.id}/`
         : `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
 

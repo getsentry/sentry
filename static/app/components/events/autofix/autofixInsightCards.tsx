@@ -595,7 +595,12 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
       addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {

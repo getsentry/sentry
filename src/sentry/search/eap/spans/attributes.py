@@ -332,6 +332,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         simple_sentry_field("browser.name"),
+        simple_sentry_field("file_extension"),
         simple_sentry_field("device.family"),
         simple_sentry_field("device.arch"),
         simple_sentry_field("device.battery_level"),

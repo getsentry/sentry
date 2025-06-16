@@ -19,13 +19,14 @@ import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDeta
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export interface TraceTreeNodeDetailsProps<T> {
-  manager: VirtualizedViewManager;
+  manager: VirtualizedViewManager | null;
   node: T;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   replay: ReplayRecord | null;
   traceId: string;
+  hideNodeActions?: boolean;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
