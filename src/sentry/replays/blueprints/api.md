@@ -584,7 +584,7 @@ A POST request is issued with no body. The URL and authorization context is used
 
 - Response 204
 
-## Replay Delete Jobs [/organizations/<organization_id_or_slug>/replays/jobs/delete/]
+## Replay Deletion Jobs [/organizations/<organization_id_or_slug>/replays/jobs/delete/]
 
 - Parameters
 
