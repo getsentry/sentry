@@ -1354,7 +1354,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_NAME]: {
-    desc: t('Descriptor details'),
+    desc: t('Model name as advertised on the market'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
