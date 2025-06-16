@@ -5,6 +5,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/database/referrers';
+import {FIELD_ALIASES} from 'sentry/views/insights/database/settings';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 export default function DatabaseSummaryThroughputChartWidget(
@@ -30,6 +31,7 @@ export default function DatabaseSummaryThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
+      aliases={FIELD_ALIASES}
       queryInfo={{search, referrer}}
       id="databaseSummaryThroughputChartWidget"
       title={getThroughputChartTitle('db')}
