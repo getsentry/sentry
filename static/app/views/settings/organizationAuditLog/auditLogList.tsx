@@ -304,7 +304,7 @@ function AuditLogList({
         relative={statsPeriod || allTime}
         onChange={onDateSelect}
         relativeOptions={{
-          allTime: t('All time'),
+          allTime,
         }}
         utc={utc}
         maxPickableDays={Infinity}
@@ -319,7 +319,7 @@ function AuditLogList({
             // Fallback to regular start/end if display values not available
             displayLabel = getAbsoluteSummary(start, end, utc);
           } else if (currentValue === allTime) {
-            displayLabel = t('All time');
+            displayLabel = allTime;
           }
 
           return (
