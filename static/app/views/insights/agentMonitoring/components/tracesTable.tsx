@@ -8,16 +8,18 @@ import GridEditable, {
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {getAITracesFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
 
@@ -42,14 +44,36 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 ];
 
 export function TracesTable() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
   const tracesRequest = useTraces({
     dataset: DiscoverDatasets.SPANS_EAP,
     query: `${getAITracesFilter()}`,
-    sort: '-timestamp',
+    sort: `-timestamp`,
+    keepPreviousData: true,
+    cursor:
+      typeof location.query.tableCursor === 'string'
+        ? location.query.tableCursor
+        : undefined,
     limit: 10,
   });
+
+  const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
+
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
+    navigate(
+      {
+        pathname,
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
+      },
+      {replace: true, preventScrollReset: true}
+    );
+  };
 
   const tableData = useMemo(() => {
     if (!tracesRequest.data) {
@@ -68,9 +92,10 @@ export function TracesTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell sortKey={column.key} forceCellGrow={column.key === 'agentFlow'}>
+      <HeadCell>
         {column.name}
-      </HeadSortCell>
+        {column.key === 'agentFlow' && <CellExpander />}
+      </HeadCell>
     );
   }, []);
 
@@ -99,7 +124,7 @@ export function TracesTable() {
         />
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={'#'} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -161,4 +186,17 @@ const LoadingOverlay = styled('div')`
   background-color: ${p => p.theme.background};
   opacity: 0.5;
   z-index: 1;
+`;
+
+/**
+ * Used to force the cell to expand take as much width as possible in the table layout
+ * otherwise grid editable will let the last column grow
+ */
+const CellExpander = styled('div')`
+  width: 100vw;
+`;
+
+const HeadCell = styled('div')`
+  display: flex;
+  align-items: center;
 `;
