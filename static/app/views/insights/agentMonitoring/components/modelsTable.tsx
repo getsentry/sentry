@@ -1,6 +1,5 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -70,11 +69,14 @@ export function ModelsTable() {
 
   const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
 
-  const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
       {
         pathname,
-        search: qs.stringify({...transactionQuery, modelsCursor: cursor}),
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
       },
       {replace: true, preventScrollReset: true}
     );

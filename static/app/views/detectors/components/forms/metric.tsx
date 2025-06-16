@@ -157,9 +157,6 @@ function PrioritizeSection() {
 
 function DetectSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
-  const conditionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionType
-  );
 
   const aggregateOptions: Array<[string, string]> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -205,8 +202,6 @@ function DetectSection() {
                   hideLabel
                   inline
                   flexibleControlStateSize
-                  // For some reason, not setting a default value empties the form field
-                  defaultValue={conditionType}
                   choices={
                     [
                       [DataConditionType.GREATER, t('Above')],
@@ -214,6 +209,7 @@ function DetectSection() {
                     ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
                   }
                   required
+                  preserveOnUnmount
                 />
                 <ThresholdField
                   flexibleControlStateSize
@@ -223,6 +219,7 @@ function DetectSection() {
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
                   suffix="s"
                   required
+                  preserveOnUnmount
                 />
               </Flex>
             </Flex>
@@ -237,6 +234,7 @@ function DetectSection() {
                   hideLabel
                   inline
                   required
+                  preserveOnUnmount
                 />
                 <span>{t('percent')}</span>
                 <DirectionField
@@ -244,8 +242,6 @@ function DetectSection() {
                   hideLabel
                   inline
                   flexibleControlStateSize
-                  // For some reason, not setting a default value empties the form field
-                  defaultValue={conditionType}
                   choices={
                     [
                       [DataConditionType.GREATER, t('higher')],
@@ -253,6 +249,7 @@ function DetectSection() {
                     ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
                   }
                   required
+                  preserveOnUnmount
                 />
                 <span>{t('than the previous')}</span>
                 <StyledSelectField
@@ -272,6 +269,7 @@ function DetectSection() {
                       [MetricDetectorFormData['conditionComparisonAgo'], string]
                     >
                   }
+                  preserveOnUnmount
                   required
                 />
               </Flex>
@@ -293,6 +291,7 @@ function DetectSection() {
                     [AlertRuleSensitivity.LOW, t('Low')],
                   ] satisfies Array<[MetricDetectorFormData['sensitivity'], string]>
                 }
+                preserveOnUnmount
               />
               <SelectField
                 required
@@ -308,6 +307,7 @@ function DetectSection() {
                     [AlertRuleThresholdType.BELOW, t('Below')],
                   ] satisfies Array<[MetricDetectorFormData['thresholdType'], string]>
                 }
+                preserveOnUnmount
               />
             </Flex>
           )}

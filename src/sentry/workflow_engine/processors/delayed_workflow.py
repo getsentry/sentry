@@ -475,7 +475,7 @@ def fire_actions_for_groups(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
                         "workflow_ids": [workflow.id for workflow in workflows],
-                        "actions": filtered_actions,
+                        "actions": [action.id for action in filtered_actions],
                         "event_data": event_data,
                         "group_id": group.id,
                         "event_id": event_data.event.event_id,
