@@ -73,6 +73,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             # Run test case
             yield
 
+    @pytest.mark.skip(reason="flaky: #93636")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_adds_contexts_without_device(self):
