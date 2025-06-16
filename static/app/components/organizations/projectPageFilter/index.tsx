@@ -35,7 +35,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
-interface ProjectPageFilterProps
+export interface ProjectPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<number>,
@@ -99,6 +99,7 @@ export function ProjectPageFilter({
   projectOverride,
   resetParamsOnChange,
   footerMessage,
+  storageNamespace,
   ...selectProps
 }: ProjectPageFilterProps) {
   const user = useUser();
@@ -219,6 +220,7 @@ export function ProjectPageFilter({
         save: true,
         resetParams: resetParamsOnChange,
         environments: [], // Clear environments when switching projects
+        storageNamespace,
       });
     },
     [
@@ -230,6 +232,7 @@ export function ProjectPageFilter({
       routes,
       onChange,
       mapNormalValueToURLValue,
+      storageNamespace,
     ]
   );
 
