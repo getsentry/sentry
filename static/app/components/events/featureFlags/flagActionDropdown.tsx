@@ -60,7 +60,7 @@ export default function FlagActionDropdown({
           key: 'view-issues',
           label: t('Search issues for this flag value'),
           to: generateAction({
-            key: `flags["${flag}"]`,
+            key: `flags[${flag}]`,
             value: result.toString(),
           }),
         },
