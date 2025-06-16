@@ -1,14 +1,12 @@
-import {Fragment, lazy} from 'react';
+import {Fragment} from 'react';
 import memoize from 'lodash/memoize';
 
-import LazyLoad from 'sentry/components/lazyLoad';
 import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
@@ -39,44 +37,9 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import {IndexRedirect, IndexRoute, Redirect, Route} from './components/route';
+import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
-
-// LazyExoticComponent Props get crazy when wrapped in an additional layer
-const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
-  typeof LazyLoad
->;
-
-// NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
-// pirvate routing tree.
-
-/**
- * Factory function to produce a component that will render the SafeLazyLoad
- * _with_ the required props.
- */
-export function makeLazyloadComponent<C extends React.ComponentType<any>>(
-  resolve: () => Promise<{default: C}>,
-  loadingFallback?: React.ReactNode
-) {
-  const LazyComponent = lazy<C>(() => retryableImport(resolve));
-  // XXX: Assign the component to a variable so it has a displayname
-  function RouteLazyLoad(props: React.ComponentProps<C>) {
-    // we can use this hook to set the organization as it's
-    // a child of the organization context
-    return (
-      <SafeLazyLoad
-        {...props}
-        LazyComponent={LazyComponent}
-        loadingFallback={loadingFallback}
-      />
-    );
-  }
-
-  return RouteLazyLoad;
-}
-
-// Shorthand to avoid extra line wrapping
-const make = makeLazyloadComponent;
 
 function buildRoutes() {
   // Read this to understand where to add new routes, how / why the routing
