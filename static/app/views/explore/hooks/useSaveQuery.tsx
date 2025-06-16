@@ -5,7 +5,10 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
-import {isVisualize} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {
+  isGroupBy,
+  isVisualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   type SavedQuery,
@@ -40,9 +43,18 @@ export function useSaveQuery() {
       environment: environments,
       query: [
         {
-          aggregateField: aggregateFields.map(aggregateField => {
-            return isVisualize(aggregateField) ? aggregateField.toJSON() : aggregateField;
-          }),
+          aggregateField: aggregateFields
+            .filter(aggregateField => {
+              if (isGroupBy(aggregateField)) {
+                return aggregateField.groupBy !== '';
+              }
+              return true;
+            })
+            .map(aggregateField => {
+              return isVisualize(aggregateField)
+                ? aggregateField.toJSON()
+                : aggregateField;
+            }),
           fields,
           orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
           query: query ?? '',
