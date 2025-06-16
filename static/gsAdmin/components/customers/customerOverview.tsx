@@ -441,11 +441,11 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
     categoryInfo =>
       categoryInfo.canProductTrial &&
-      customer.planDetails.categories.includes(categoryInfo.plural)
+      customer.planDetails?.categories.includes(categoryInfo.plural)
   );
 
   const productTrialCategoryGroups = Object.values(
-    customer.planDetails.availableReservedBudgetTypes
+    customer.planDetails?.availableReservedBudgetTypes || []
   ).filter(group => group.canProductTrial);
 
   function updateCustomerStatus(action: string, type: string) {
