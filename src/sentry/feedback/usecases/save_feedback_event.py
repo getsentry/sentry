@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
-from sentry.feedback.lib.utils import check_feedback_quota_granted
+from sentry.feedback.lib.quotas import check_feedback_quota_granted
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment

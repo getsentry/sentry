@@ -14,8 +14,8 @@ from sentry import eventstore, options
 from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.quotas import check_feedback_quota_granted
 from sentry.feedback.lib.types import UserReportDict
-from sentry.feedback.lib.utils import check_feedback_quota_granted
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,

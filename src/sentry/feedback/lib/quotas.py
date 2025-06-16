@@ -8,11 +8,13 @@ from sentry.constants import DataCategory
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
-from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
-feedback_rate_limiter = RedisSlidingWindowRateLimiter(
+_ABUSE_QUOTA = Quota(86400, 60, 1000)  # 1000 per day, sliding window granularity of 60 seconds.
+
+_feedback_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_USER_FEEDBACK_RATE_LIMITER_OPTIONS
 )
 
@@ -29,12 +31,13 @@ def check_feedback_quota_granted(
     Checks the feedback rate limiter, emitting an outcome, metric, log, and returning False if exceeded.
     We apply this in creation sources to prevent abuse of the feedback system and protect downstream infra.
     """
-    granted_quota = feedback_rate_limiter.check_and_use_quotas(
+    granted_quota = _feedback_rate_limiter.check_and_use_quotas(
         [
             RequestedQuota(
+                # TODO: Update key. Do redis keys/prefixes have to be configured somewhere?
                 f"issue-platform-issues:{project_id}:{FeedbackGroup.slug}",  # noqa E231 missing whitespace after ':'
                 1,
-                [FeedbackGroup.creation_quota],
+                [_ABUSE_QUOTA],
             )
         ]
     )[0]
