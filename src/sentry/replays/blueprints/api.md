@@ -630,17 +630,17 @@ Retrieve a collection of replay delete jobs.
 
 **Attributes**
 
-| Column      | Type             | Description                                                                                                                |
-| ----------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| id          | number           | -                                                                                                                          |
-| dateCreated | string           | -                                                                                                                          |
-| dateUpdated | string           | -                                                                                                                          |
-| rangeStart  | string           | The minimum UTC timestamp in the deletion range.                                                                           |
-| rangeEnd    | string           | The maximum UTC timestamp in the deletion range.                                                                           |
-| environment | optional[string] | The environment to delete replays from. If not specified, applies to all environments                                      |
-| projects    | list[number]     | The projects to delete replays from.                                                                                       |
-| status      | string           | The status of the deletion job. One of `pending`, `in-progress`, and `completed`.                                          |
-| query       | optional[string] | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax |
+| Column       | Type             | Description                                                                                                                |
+| ------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| id           | number           | -                                                                                                                          |
+| dateCreated  | string           | -                                                                                                                          |
+| dateUpdated  | string           | -                                                                                                                          |
+| rangeStart   | string           | The minimum UTC timestamp in the deletion range.                                                                           |
+| rangeEnd     | string           | The maximum UTC timestamp in the deletion range.                                                                           |
+| environments | list[string]     | The environment to delete replays from. If not specified, applies to all environments                                      |
+| projects     | list[number]     | The projects to delete replays from.                                                                                       |
+| status       | string           | The status of the deletion job. One of `pending`, `in-progress`, and `completed`.                                          |
+| query        | optional[string] | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax |
 
 - Response 200
 
@@ -653,7 +653,7 @@ Retrieve a collection of replay delete jobs.
         "dateUpdated": "2025-06-06T14:05:57.909921",
         "rangeStart": "2025-06-01T00:00:00.000000",
         "rangeEnd": "2025-06-04T00:00:00.000000",
-        "environment": "production",
+        "environments": ["production"],
         "projects": [11276],
         "status": "in-progress",
         "query": "release:2.3.0 AND url:*/billing*"
@@ -673,7 +673,7 @@ Delete a collection of replays. Deletes are throttled and will take some time to
     "data": {
       "rangeStart": "2025-06-01T00:00:00.000000",
       "rangeEnd": "2025-06-04T00:00:00.000000",
-      "environment": "production",
+      "environments": ["production"],
       "projects": [11276],
       "query": "release:2.3.0 AND url:*/billing*"
     }
@@ -690,7 +690,7 @@ Delete a collection of replays. Deletes are throttled and will take some time to
       "dateUpdated": "2025-06-06T14:05:57.909921",
       "rangeStart": "2025-06-01T00:00:00.000000",
       "rangeEnd": "2025-06-04T00:00:00.000000",
-      "environment": "prod",
+      "environments": ["production"],
       "projects": [11276],
       "status": "pending",
       "query": "release:2.3.0 AND url:*/billing*"
@@ -712,15 +712,21 @@ Fetch a replay delete job instance.
   ```json
   {
     "data": {
-      "title": "Something Happened",
-      "summary": "The application broke",
-      "time_ranges": [
-        {
-          "period_start": 1749584581.5356228,
-          "period_end": 1749584992.912,
-          "period_title": "Second Replay Load Failure"
-        }
-      ]
+      "id": 23,
+      "dateCreated": "2025-06-06T14:05:57.909921",
+      "dateUpdated": "2025-06-06T14:05:57.909921",
+      "rangeStart": "2025-06-01T00:00:00.000000",
+      "rangeEnd": "2025-06-04T00:00:00.000000",
+      "environments": ["production"],
+      "projects": [11276],
+      "status": "pending",
+      "query": "release:2.3.0 AND url:*/billing*"
     }
   }
   ```
+
+### Schedule Replay Collection Deletion [PUT]
+
+An empty PUT request is made to the endpoint. The instance is scheduled for processing if it was in a pending state.
+
+- Response 202
