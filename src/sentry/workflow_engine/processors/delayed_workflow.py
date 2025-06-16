@@ -83,7 +83,18 @@ class UniqueConditionQuery:
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
-    filters: list[dict[str, Any]] | None = None
+    filters: tuple[frozenset[tuple[str, Any]], ...] | None = None
+
+    def __post_init__(self):
+        if self.filters is None:
+            return
+        # Convert list/iterable of dicts to tuple of frozensets of items
+        if not isinstance(self.filters, tuple):
+            converted_filters = tuple(
+                frozenset(filter_dict.items()) if isinstance(filter_dict, dict) else frozenset()
+                for filter_dict in self.filters
+            )
+            object.__setattr__(self, "filters", converted_filters)
 
     def __repr__(self):
         return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
@@ -198,12 +209,22 @@ def generate_unique_queries(
         )
         return []
 
+    raw_filters = condition.comparison.get("filters")
+    processed_filters: tuple[frozenset[tuple[str, Any]], ...] | None = None
+
+    if raw_filters is not None:
+        # Convert iterable of dictionaries to tuple of frozensets of items
+        processed_filters = tuple(
+            frozenset(filter_dict.items()) if isinstance(filter_dict, dict) else frozenset()
+            for filter_dict in raw_filters
+        )
+
     unique_queries = [
         UniqueConditionQuery(
             handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
-            filters=condition.comparison.get("filters"),
+            filters=processed_filters,
         )
     ]
     if condition_type in PERCENT_CONDITIONS:
@@ -213,7 +234,7 @@ def generate_unique_queries(
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
-                filters=condition.comparison.get("filters"),
+                filters=processed_filters,
             )
         )
     return unique_queries
