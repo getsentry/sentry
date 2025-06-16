@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("project.transferred")
 class ProjectTransferredEvent(analytics.Event):
-    type = "project.transferred"
-
-    attributes = (
-        analytics.Attribute("old_organization_id"),
-        analytics.Attribute("new_organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("platform", required=False),
-    )
+    old_organization_id: str
+    new_organization_id: str
+    project_id: str
+    platform: str | None = None
 
 
 analytics.register(ProjectTransferredEvent)

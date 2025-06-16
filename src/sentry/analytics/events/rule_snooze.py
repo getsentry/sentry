@@ -1,25 +1,26 @@
 from sentry import analytics
 
 
+@analytics.eventclass()
 class RuleSnoozeAction(analytics.Event):
-    attributes: tuple[analytics.Attribute, ...] = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("rule_type"),
-        analytics.Attribute("target"),
-        # maps to AlertRule or Rule
-        analytics.Attribute("rule_id"),
-    )
+    user_id: str
+    organization_id: str
+    project_id: str
+    rule_type: str
+    target: str
+    # maps to AlertRule or Rule
+    rule_id: str
 
 
+@analytics.eventclass("rule.snoozed")
 class RuleSnoozed(RuleSnoozeAction):
-    type = "rule.snoozed"
-    attributes = (*RuleSnoozeAction.attributes, analytics.Attribute("until", required=False))
+
+    until: str | None = None
 
 
+@analytics.eventclass("rule.unsnoozed")
 class RuleUnSnoozed(RuleSnoozeAction):
-    type = "rule.unsnoozed"
+    pass
 
 
 analytics.register(RuleSnoozed)

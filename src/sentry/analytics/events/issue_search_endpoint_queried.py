@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue_search.endpoint_queried")
 class IssueSearchEndpointQueriedEvent(analytics.Event):
-    type = "issue_search.endpoint_queried"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_ids"),  # This is a list of project ids
-        analytics.Attribute("full_query_params"),
-        analytics.Attribute("query"),
-    )
+    user_id: str
+    organization_id: str
+    project_ids: str  # This is a list of project ids
+    full_query_params: str
+    query: str
 
 
 analytics.register(IssueSearchEndpointQueriedEvent)

@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("advanced_search.feature_gated")
 class AdvancedSearchFeatureGateEvent(analytics.Event):
-    type = "advanced_search.feature_gated"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-        analytics.Attribute("organization_id"),
-    )
+    user_id: str | None = None
+    default_user_id: str
+    organization_id: str
 
 
 analytics.register(AdvancedSearchFeatureGateEvent)

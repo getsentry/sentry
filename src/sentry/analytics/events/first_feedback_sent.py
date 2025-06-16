@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("first_feedback.sent")
 class FirstFeedbackSentEvent(analytics.Event):
-    type = "first_feedback.sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("platform", required=False),
-        analytics.Attribute("user_id", required=False),
-    )
+    organization_id: str
+    project_id: str
+    platform: str | None = None
+    user_id: str | None = None
 
 
 analytics.register(FirstFeedbackSentEvent)
