@@ -3,6 +3,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import orjson
+import requests
 import sentry_sdk
 from django.db.models import Case, CharField, Min, Subquery, Value, When
 from django.utils import timezone
@@ -584,23 +585,18 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                 headers=headers,
             )
 
-            if response is None:
+            if response.status_code != 200:
                 metrics.incr(
                     "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
                 )
                 logger.warning(
                     "deliver_webhooks.send_request_to_codecov.failure",
-                    extra={"error": "response is None", **logging_context},
+                    extra={
+                        "error": "unexpected status code",
+                        "status_code": response.status_code,
+                        **logging_context,
+                    },
                 )
-            else:
-                metrics.incr(
-                    "hybridcloud.deliver_webhooks.send_request_to_codecov.success",
-                )
-                logger.debug(
-                    "deliver_webhooks.send_request_to_codecov.success",
-                    extra={**logging_context},
-                )
-
         except ConfigurationError as err:
             metrics.incr(
                 "hybridcloud.deliver_webhooks.send_request_to_codecov.configuration_error",
@@ -615,5 +611,13 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             )
             logger.warning(
                 "deliver_webhooks.send_request_to_codecov.json_decode_error",
+                extra={"error": str(err), **logging_context},
+            )
+        except requests.exceptions.RequestException as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.failure",
                 extra={"error": str(err), **logging_context},
             )
