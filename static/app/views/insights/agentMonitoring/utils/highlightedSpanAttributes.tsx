@@ -109,7 +109,7 @@ export function getHighlightedSpanAttributes({
     });
   }
 
-  const toolName = getAttribute(attributeObject, 'ai.toolCall.name');
+  const toolName = getAttribute(attributeObject, 'gen_ai.tool.name');
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
