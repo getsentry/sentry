@@ -158,7 +158,7 @@ export function SeerSearch() {
         datetime: {
           start: pageFilters.selection.datetime.start,
           end: pageFilters.selection.datetime.end,
-          period: statsPeriod,
+          period: statsPeriod || pageFilters.selection.datetime.period,
           utc: pageFilters.selection.datetime.utc,
         },
       };
