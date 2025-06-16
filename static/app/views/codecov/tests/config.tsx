@@ -11,6 +11,10 @@ export const SUMMARY_TO_TABLE_FILTER_KEY = {
   flakyTests: 'FLAKY_TESTS',
   failedTests: 'FAILED_TESTS',
   skippedTests: 'SKIPPED_TESTS',
+  uncoveredLines: 'UNCOVERED_LINES',
+  indirectChanges: 'INDIRECT_CHANGES',
+  filesChanged: 'FILES_CHANGED',
+  uploadsCount: 'UPLOAD_COUNT',
 };
 
 export type SummaryFilterKey = keyof typeof SUMMARY_TO_TABLE_FILTER_KEY;
