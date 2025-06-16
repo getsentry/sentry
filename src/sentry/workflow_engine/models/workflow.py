@@ -31,6 +31,7 @@ class WorkflowManager(BaseManager["Workflow"]):
             super()
             .get_queryset()
             .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+            .select_related("environment")
         )
 
 
