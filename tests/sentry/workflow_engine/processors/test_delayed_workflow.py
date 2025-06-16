@@ -372,6 +372,40 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         dc.update(type=Condition.NOT_EQUAL)
         assert generate_unique_queries(dc, None) == []
 
+    def test_unique_condition_query_hashable_with_filters(self):
+        """Test that UniqueConditionQuery is hashable when filters contain lists"""
+        # Create a data condition with filters that would normally be unhashable
+        dc_with_filters = self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+                "filters": [{"field": "value1"}, {"another_field": "value2"}]
+            },
+            condition_result=True,
+        )
+        
+        queries = generate_unique_queries(dc_with_filters, None)
+        assert len(queries) == 1
+        
+        query = queries[0]
+        
+        # This should not raise a TypeError
+        hash_value = hash(query)
+        assert isinstance(hash_value, int)
+        
+        # Should be usable as dictionary key
+        test_dict = {query: "test_value"}
+        assert test_dict[query] == "test_value"
+        
+        # Test that the filters are converted to the expected hashable format
+        expected_filters = tuple([
+            frozenset([("field", "value1")]),
+            frozenset([("another_field", "value2")])
+        ])
+        assert query.filters == expected_filters
+
     def test_get_condition_query_groups(self):
         group2 = self.create_group()
         group3 = self.create_group()
