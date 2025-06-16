@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -19,7 +18,6 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
-import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
@@ -61,23 +59,9 @@ export function PlatformLandingPageLayout({
       renderDisabled={NoAccess}
     >
       {performanceType === 'backend' ? (
-        <BackendHeader
-          headerTitle={BACKEND_LANDING_TITLE}
-          headerActions={
-            <Fragment>
-              <NewNextJsExperienceButton />
-            </Fragment>
-          }
-        />
+        <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       ) : (
-        <FrontendHeader
-          headerTitle={FRONTEND_LANDING_TITLE}
-          headerActions={
-            <Fragment>
-              <NewNextJsExperienceButton />
-            </Fragment>
-          }
-        />
+        <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       )}
       <Layout.Body>
         <Layout.Main fullWidth>

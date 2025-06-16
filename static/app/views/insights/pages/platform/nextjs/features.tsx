@@ -1,12 +1,8 @@
-import {useCallback} from 'react';
-
 import type {Organization} from 'sentry/types/organization';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 
 function hasNextJsInsightsFeature(organization: Organization) {
   return organization.features.includes('nextjs-insights');
@@ -24,29 +20,4 @@ export function useIsNextJsInsightsAvailable() {
   );
 
   return hasNextJsInsightsFeature(organization) && isOnlyNextJsSelected;
-}
-
-export function useIsNextJsInsightsEnabled() {
-  const organization = useOrganization();
-  const user = useUser();
-  const isAvailable = useIsNextJsInsightsAvailable();
-
-  const isEnabled = isAvailable && (user.options.prefersNextjsInsightsOverview ?? true);
-
-  const {mutate: mutateUserOptions} = useMutateUserOptions();
-
-  const setIsEnabled = useCallback(
-    (enabled: boolean) => {
-      if (!hasNextJsInsightsFeature(organization)) {
-        return;
-      }
-
-      mutateUserOptions({
-        prefersNextjsInsightsOverview: enabled,
-      });
-    },
-    [mutateUserOptions, organization]
-  );
-
-  return [isEnabled, setIsEnabled] as const;
 }

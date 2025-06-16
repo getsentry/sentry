@@ -5,12 +5,12 @@ import {
   hasLaravelInsightsFeature,
   useIsLaravelInsightsAvailable,
 } from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 
 export function useProjectDetailsRedirect(project?: Project): string | null {
   const organization = useOrganization();
   const location = useLocation();
-  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsInsightsEnabled = useIsNextJsInsightsAvailable();
   if (!project) {
     return null;
   }
@@ -31,7 +31,7 @@ export function useProjectDetailsRedirect(project?: Project): string | null {
 export function useIsProjectDetailsRedirectActive() {
   const location = useLocation();
   const isLaravelActive = useIsLaravelInsightsAvailable();
-  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsInsightsEnabled = useIsNextJsInsightsAvailable();
 
   const isSingleProjectSelected =
     typeof location.query.project === 'string' && location.query.project !== '-1';
