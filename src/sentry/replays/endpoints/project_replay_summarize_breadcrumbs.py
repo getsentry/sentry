@@ -77,6 +77,11 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[dict[str,
                 # see create_feedback.py
                 is_feedback = event.title == "User Feedback"
                 error_category = "feedback" if is_feedback else "error"
+                error_message = (
+                    event.data.get("contexts", {}).get("feedback", {}).get("message", "")
+                    if is_feedback
+                    else event.message or ""
+                )
 
                 error_details.append(
                     {
@@ -84,7 +89,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[dict[str,
                         "id": error_id,
                         "title": event.title or "",
                         "timestamp": event.datetime.isoformat() if event.datetime else "",
-                        "message": event.message or "",
+                        "message": error_message,
                     }
                 )
         except Exception as e:

@@ -382,7 +382,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             return None
         case EventType.USER_FEEDBACK:
             message = event["message"]
-            return f"User gave feedback: '{message}' at {timestamp}"
+            return f"User gave feedback: '{message}' on the product at {timestamp}"
         case EventType.ERROR:
             message = event["message"]
             title = event["title"]
