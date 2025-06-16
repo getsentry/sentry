@@ -19,7 +19,7 @@ function getDefaultProject(projects: Project[]) {
 
 export function DetectorTypeForm() {
   return (
-    <Flex column>
+    <FormContainer>
       <Header>
         <h3>{t('Project and Environment')}</h3>
       </Header>
@@ -35,7 +35,7 @@ export function DetectorTypeForm() {
         </p>
       </Header>
       <MonitorTypeField />
-    </Flex>
+    </FormContainer>
   );
 }
 
@@ -137,6 +137,12 @@ function MonitorTypeField() {
     />
   );
 }
+
+const FormContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  max-width: ${p => p.theme.breakpoints.xlarge};
+`;
 
 const StyledProjectField = styled(SentryProjectSelectorField)`
   flex-grow: 1;

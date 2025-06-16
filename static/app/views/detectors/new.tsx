@@ -19,7 +19,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
-import {EditableDetectorTitle} from 'sentry/views/detectors/components/forms/editableDetectorTitle';
+import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 function NewDetectorBreadcrumbs() {
@@ -63,7 +63,7 @@ export default function DetectorNew() {
       initialData={{
         detectorType: 'metric',
         project: defaultProject?.id,
-        title: '',
+        name: '',
         environment: '',
       }}
     >
@@ -73,7 +73,7 @@ export default function DetectorNew() {
           <Layout.HeaderContent>
             <NewDetectorBreadcrumbs />
             <Layout.Title>
-              <EditableDetectorTitle />
+              <EditableDetectorName />
             </Layout.Title>
           </Layout.HeaderContent>
         </StyledLayoutHeader>

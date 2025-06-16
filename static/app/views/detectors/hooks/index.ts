@@ -10,6 +10,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {NewMetricDetector} from 'sentry/views/detectors/components/forms/metricFormData';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 interface UseDetectorsQueryKeyOptions {
@@ -74,7 +75,7 @@ export function useCreateDetector() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Detector, void, Detector>({
+  return useMutation<Detector, void, NewMetricDetector>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/`, {
         method: 'POST',
