@@ -155,14 +155,13 @@ export interface NewMetricDetector {
   conditionGroup: NewConditionGroup;
   // TODO: config types don't exist yet
   config: {
-    // TODO: what is the shape of config?
     detection_type: any;
     threshold_period: number;
   };
   dataSource: NewDataSource; // Single data source object (not array)
-  detectorType: Detector['type'];
   name: string;
   projectId: Detector['projectId'];
+  type: Detector['type'];
 }
 
 /**
@@ -240,7 +239,7 @@ export function getNewMetricDetectorData(
 
   return {
     name: data.name || 'New Monitor',
-    detectorType: 'metric_issue',
+    type: 'metric_issue',
     projectId: data.projectId,
     conditionGroup: {
       // TODO: Can this be different values?
