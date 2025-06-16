@@ -6,7 +6,6 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -15,7 +14,7 @@ import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreat
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -135,7 +134,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       {/* Collapsed summary */}
       {anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
-          <SeerWaitingIcon size="lg" style={{marginRight: 8}} />
+          <IconSeer variant="waiting" size="lg" style={{marginRight: 8}} />
           <span>
             {t(
               'Only %s step%s left to get the most out of Seer.',
@@ -150,7 +149,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       {anyStepIncomplete && !stepsCollapsed && (
         <Fragment>
           <StepsHeader>
-            <SeerWaitingIcon size="xl" />
+            <IconSeer variant="waiting" size="xl" />
             Debug Faster with Seer
           </StepsHeader>
           <GuidedSteps>
