@@ -228,13 +228,7 @@
     "overrides": {
       "react-mentions>@babel/runtime": "7.26.10",
       "react-is": "19.1.0"
-    },
-    "onlyBuiltDependencies": [
-      "@sentry-internal/node-cpu-profiler",
-      "@sentry/cli",
-      "core-js",
-      "esbuild"
-    ]
+    }
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
@@ -265,8 +259,8 @@
     "diff-docs": "pnpm run install-api-docs && node --experimental-transform-types api-docs/openapi-diff.ts",
     "deref-api-docs": "node --experimental-transform-types api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
     "build-chartcuterie-config": "node --experimental-transform-types config/build-chartcuterie.ts",
-    "build-acceptance": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production rspack",
-    "build-production": "NODE_ENV=production rspack --mode production",
+    "build-acceptance": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production pnpm run build",
+    "build-production": "NODE_OPTIONS='--experimental-transform-types' NODE_ENV=production rspack --mode production --config ./rspack.config.ts",
     "build": "NODE_OPTIONS='--max-old-space-size=4096 --experimental-transform-types' rspack --config ./rspack.config.ts",
     "build-js-loader": "node --experimental-transform-types scripts/build-js-loader.ts",
     "build-js-po": "node --experimental-transform-types build-utils/ts-extract-gettext.ts",
