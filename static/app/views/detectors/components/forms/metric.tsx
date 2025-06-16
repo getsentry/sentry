@@ -63,7 +63,7 @@ function MonitorKind() {
 
   return (
     <MonitorKindField
-      label={t('...and monitor for changes in the following way:')}
+      label={t('\u2026and monitor for changes in the following way:')}
       flexibleControlStateSize
       inline={false}
       name={METRIC_DETECTOR_FORM_FIELDS.kind}
