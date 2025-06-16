@@ -47,7 +47,7 @@ describe('DetectorNew', function () {
           detectorType: 'uptime',
           project: '2',
           environment: 'prod-2',
-          title: 'test-title',
+          name: 'test-title',
         },
       })
     );
