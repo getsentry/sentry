@@ -30,6 +30,7 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 logger = logging.getLogger(__name__)
@@ -257,13 +258,13 @@ def _get_associated_workflows(
                 "event_environment_id": environment.id,
                 "workflows": [workflow.id for workflow in workflows],
                 "detector_type": detector.type,
-                "detector_id": detector.id,
             },
         )
 
     return workflows
 
 
+@log_context.root()
 def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
@@ -274,7 +275,13 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     """
     try:
         detector = get_detector_by_event(event_data)
+        log_context.add_extras(detector_id=detector.id)
         organization = detector.project.organization
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
+        ):
+            log_context.set_verbose(True)
+
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
         WorkflowEventContext.set(
             WorkflowEventContextData(
@@ -331,7 +338,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 logger.info(
                     "workflow_engine.action.trigger",
                     extra={
-                        "detector_id": detector.id,
                         "action_id": action.id,
                         "event_data": asdict(event_data),
                     },
@@ -340,8 +346,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             logger.info(
                 "workflow_engine.triggered_actions",
                 extra={
-                    "detector_id": detector.id,
-                    "detector_type": detector.type,
                     "action_ids": [action.id for action in actions],
                     "event_data": asdict(event_data),
                 },
@@ -353,18 +357,13 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                     1,
                     tags={"action_type": action.type},
                 )
-                if features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
-                ):
-                    logger.info(
-                        "workflow_engine.action.would-trigger",
-                        extra={
-                            "detector_id": detector.id,
-                            "detector_type": detector.type,
-                            "action_id": action.id,
-                            "event_data": asdict(event_data),
-                        },
-                    )
+                logger.debug(
+                    "workflow_engine.action.would-trigger",
+                    extra={
+                        "action_id": action.id,
+                        "event_data": asdict(event_data),
+                    },
+                )
 
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
     if len(actions) > 0:
