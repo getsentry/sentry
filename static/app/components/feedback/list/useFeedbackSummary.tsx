@@ -1,5 +1,3 @@
-// import {useEffect, useMemo, useRef, useState} from 'react';
-
 import {useMemo} from 'react';
 
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
@@ -21,20 +19,6 @@ export default function useFeedbackSummary(): {
   summary: string | null;
   tooFewFeedbacks: boolean | null;
 } {
-  // const [response, setResponse] = useState<string | null>(null);
-  // const [loading, setLoading] = useState(false);
-  // const [error, setError] = useState<Error | null>(null);
-  // const requestMadeRef = useRef(false);
-  // const prevIsHelpfulRef = useRef<boolean | null>(isHelpful);
-
-  // const finalResultRef = useRef<{
-  //   keySentiments: Sentiment[];
-  //   summary: string | null;
-  // }>({
-  //   summary: null,
-  //   keySentiments: [],
-  // });
-
   const queryView = useLocationQuery({
     fields: {
       end: decodeScalar,
@@ -59,8 +43,6 @@ export default function useFeedbackSummary(): {
     });
   }, [listHeadTime, queryView]);
 
-  // console.log('queryViewWithStatsPeriod', queryViewWithStatsPeriod);
-
   const {
     data: feedbackSummaryData,
     isPending: isFeedbackSummaryLoading,
@@ -75,7 +57,7 @@ export default function useFeedbackSummary(): {
         },
       },
     ],
-    {staleTime: 5000, enabled: Boolean(queryViewWithStatsPeriod), retry: 1} // Only retry once if the request fails
+    {staleTime: 5000, enabled: Boolean(queryViewWithStatsPeriod), retry: 1}
   );
 
   if (isFeedbackSummaryLoading) {
@@ -92,7 +74,7 @@ export default function useFeedbackSummary(): {
       summary: null,
       loading: false,
       error: feedbackSummaryError,
-      tooFewFeedbacks: null,
+      tooFewFeedbacks: false,
     };
   }
 
@@ -100,6 +82,6 @@ export default function useFeedbackSummary(): {
     summary: feedbackSummaryData.summary,
     loading: false,
     error: null,
-    tooFewFeedbacks: feedbackSummaryData.num_feedbacks_used === 0,
+    tooFewFeedbacks: feedbackSummaryData.num_feedbacks_used === 0, // Maybe we should surface this in the endpoint, this seems hacky
   };
 }

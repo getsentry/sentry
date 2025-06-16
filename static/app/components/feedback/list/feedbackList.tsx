@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {
   AutoSizer,
@@ -10,21 +10,17 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-// import Feature from 'sentry/components/acl/feature';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
-// import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-// import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -45,8 +41,6 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
 }
 
 export default function FeedbackList() {
-  // const feedbackSummary = useFeedbackSummary();
-
   const {listQueryKey} = useFeedbackQueryKeys();
   const {
     isFetchingNextPage,
@@ -62,16 +56,6 @@ export default function FeedbackList() {
     uniqueField: 'id',
     enabled: Boolean(listQueryKey),
   });
-
-  const location = useLocation();
-
-  // const {summary, loading: summaryLoading} = feedbackSummary;
-
-  const locationRef = useRef({pathname: location.pathname, query: location.query});
-
-  useEffect(() => {
-    locationRef.current = {pathname: location.pathname, query: location.query};
-  }, [location]);
 
   const checkboxState = useListItemCheckboxState({
     hits,
