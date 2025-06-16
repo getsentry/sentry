@@ -1,3 +1,4 @@
+import {AuditLogsFixture} from 'sentry-fixture/auditLogs';
 import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNames';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -14,30 +15,7 @@ describe('OrganizationAuditLog', function () {
       url: `/organizations/org-slug/audit-logs/`,
       method: 'GET',
       body: {
-        rows: [
-          {
-            id: '4500000',
-            actor: UserFixture(),
-            event: 'project.remove',
-            ipAddress: '127.0.0.1',
-            note: 'removed project test',
-            targetObject: 5466660,
-            targetUser: null,
-            data: {},
-            dateCreated: '2021-09-28T00:29:33.940848Z',
-          },
-          {
-            id: '430000',
-            actor: UserFixture(),
-            event: 'org.create',
-            ipAddress: '127.0.0.1',
-            note: 'created the organization',
-            targetObject: 54215,
-            targetUser: null,
-            data: {},
-            dateCreated: '2016-11-21T04:02:45.929313Z',
-          },
-        ],
+        rows: AuditLogsFixture(),
         options: AuditLogsApiEventNamesFixture(),
       },
     });
@@ -51,10 +29,17 @@ describe('OrganizationAuditLog', function () {
 
     render(<OrganizationAuditLog location={router.location} />);
 
-    expect(await screen.findByText('project.remove')).toBeInTheDocument();
-    expect(screen.getByText('org.create')).toBeInTheDocument();
+    expect(await screen.findByText('project.edit')).toBeInTheDocument();
+    expect(screen.getByText('org.edit')).toBeInTheDocument();
     expect(screen.getAllByText('127.0.0.1')).toHaveLength(2);
-    expect(screen.getByText('12:29 AM UTC')).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('edited project ludic-science'))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'edited the organization setting(s): accountRateLimit from 1000 to 0'
+      )
+    ).toBeInTheDocument();
   });
 
   it('Displays pretty dynamic sampling logs', async function () {
@@ -144,19 +129,7 @@ describe('OrganizationAuditLog', function () {
       url: `/organizations/org-slug/audit-logs/`,
       method: 'GET',
       body: {
-        rows: [
-          {
-            id: '4500002',
-            actor: UserFixture(),
-            event: 'member.invite',
-            ipAddress: '10.0.0.1',
-            note: 'invited member test@example.com',
-            targetObject: 5466662,
-            targetUser: null,
-            data: {},
-            dateCreated: '2021-09-30T00:29:33.940848Z',
-          },
-        ],
+        rows: AuditLogsFixture(),
         options: AuditLogsApiEventNamesFixture(),
       },
     });
@@ -167,8 +140,8 @@ describe('OrganizationAuditLog', function () {
         params: {orgId: 'org-slug'},
         location: {
           query: {
-            start: '2021-09-01T00:00:00.000Z',
-            end: '2021-09-30T23:59:59.999Z',
+            start: '2018-02-01T00:00:00.000Z',
+            end: '2018-02-28T23:59:59.999Z',
           },
         },
       },
@@ -182,15 +155,23 @@ describe('OrganizationAuditLog', function () {
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
-            start: '2021-09-01T00:00:00.000Z',
-            end: '2021-09-30T23:59:59.999Z',
+            start: '2018-02-01T00:00:00.000Z',
+            end: '2018-02-28T23:59:59.999Z',
           }),
         })
       );
     });
 
-    expect(await screen.findByText('member.invite')).toBeInTheDocument();
-    expect(screen.getByText('invited member test@example.com')).toBeInTheDocument();
-    expect(screen.getByText('10.0.0.1')).toBeInTheDocument();
+    expect(await screen.findByText('project.edit')).toBeInTheDocument();
+    expect(screen.getByText('org.edit')).toBeInTheDocument();
+    expect(screen.getAllByText('127.0.0.1')).toHaveLength(2);
+    expect(
+      screen.getByText(textWithMarkupMatcher('edited project ludic-science'))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'edited the organization setting(s): accountRateLimit from 1000 to 0'
+      )
+    ).toBeInTheDocument();
   });
 });
