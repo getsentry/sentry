@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import orjson
+import responses
 from urllib3.response import HTTPResponse
 
 from sentry.incidents.models.alert_rule import (
@@ -11,6 +12,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.integrations.discord.client import CHANNEL_URL, DISCORD_BASE_URL
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import with_feature
@@ -59,6 +61,7 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
         )
         return dynamic_rule
 
+    @responses.activate
     def setup_initial_state(self):
         self.valid_rule = self.create_dynamic_alert()
         self.valid_trigger = self.create_alert_rule_trigger(
@@ -107,6 +110,41 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
             alert_rule=self.dual_written_rule, label="critical", alert_threshold=0
         )
         dual_write_alert_rule(self.dual_written_rule)
+
+        # discord action
+        self.guild_id = "guild-id"
+        self.channel_id = "12345678910"
+        self.discord_user_id = "user1234"
+
+        responses.add(
+            method=responses.GET,
+            url=f"{DISCORD_BASE_URL}{CHANNEL_URL.format(channel_id=self.channel_id)}",
+            json={"type": 0, "guild_id": self.guild_id},
+            status=200,
+        )
+
+        self.discord_integration = self.create_integration(
+            provider="discord",
+            name="Cool server",
+            external_id=self.guild_id,
+            organization=self.organization,
+        )
+        self.provider = self.create_identity_provider(integration=self.discord_integration)
+        self.identity = self.create_identity(
+            user=self.user, identity_provider=self.provider, external_id=self.discord_user_id
+        )
+
+        self.discord_rule = self.create_dynamic_alert()
+        self.discord_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.discord_rule, alert_threshold=0
+        )
+        self.discord_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.discord_trigger,
+            target_identifier=self.channel_id,
+            type=AlertRuleTriggerAction.Type.DISCORD,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.discord_integration,
+        )
 
     def test_valid_rule(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
@@ -227,6 +265,14 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
         assert action.config.get("target_display") is None
         assert action.config.get("target_identifier") == self.email_action.target_identifier
         assert action.config.get("target_type") == self.email_action.target_type
+
+    def test_discord_action(self):
+        aarta = ActionAlertRuleTriggerAction.objects.get(
+            alert_rule_trigger_action_id=self.discord_action.id
+        )
+        action = aarta.action
+
+        assert action.type == Action.Type.DISCORD
 
     def test_create_with_incident(self):
         alert_rule_detector = AlertRuleDetector.objects.get(
