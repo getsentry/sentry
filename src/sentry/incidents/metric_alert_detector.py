@@ -74,7 +74,13 @@ class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=True)
+    data_sources = serializers.ListField(
+        child=SnubaQueryValidator(),
+        required=True,
+        min_length=1,
+        max_length=1,
+        help_text="List of data sources to monitor",
+    )
     condition_group = MetricAlertConditionGroupValidator(required=True)
 
     def validate(self, attrs):
@@ -165,9 +171,9 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         if data_conditions:
             self.update_data_conditions(instance, data_conditions)
 
-        data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
-        if data_source:
-            self.update_data_source(instance, data_source)
+        data_sources: list[SnubaQueryDataSourceType] = validated_data.pop("data_sources", [])
+        if len(data_sources) > 0:
+            self.update_data_source(instance, data_sources[0])
 
         instance.save()
 

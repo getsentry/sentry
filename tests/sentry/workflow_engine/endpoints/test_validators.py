@@ -101,7 +101,11 @@ class MockConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MockDetectorValidator(BaseDetectorTypeValidator):
-    data_source = MockDataSourceValidator()
+    data_sources = serializers.ListField(
+        child=MockDataSourceValidator(),
+        required=True,
+        min_length=1,
+    )
     condition_group = MockConditionGroupValidator()
 
 
@@ -165,10 +169,12 @@ class DetectorValidatorTest(BaseValidatorTest):
         self.valid_data = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
-            "dataSource": {
-                "field1": "test",
-                "field2": 123,
-            },
+            "dataSources": [
+                {
+                    "field1": "test",
+                    "field2": 123,
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
