@@ -77,7 +77,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         if groups.count() < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize")
-            return Response({"summary": None, "success": False, "num_feedbacks_used": 0})
+            return Response({"summary": None, "success": False, "numFeedbacksUsed": 0})
 
         # Also cap the number of characters that we send to the LLM
         group_feedbacks = []
@@ -100,5 +100,5 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             return Response({"detail": "Error generating summary"}, status=500)
 
         return Response(
-            {"summary": summary, "success": True, "num_feedbacks_used": len(group_feedbacks)}
+            {"summary": summary, "success": True, "numFeedbacksUsed": len(group_feedbacks)}
         )
