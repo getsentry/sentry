@@ -159,7 +159,7 @@ export function EventGraph({
     },
   });
 
-  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
+  const hasReleaseBubblesSeries = true;
   const shouldShowBubbles = hasReleaseBubblesSeries && showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
