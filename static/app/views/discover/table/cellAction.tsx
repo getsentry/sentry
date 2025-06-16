@@ -1,10 +1,8 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -26,6 +24,14 @@ export enum Actions {
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
+  COPY_TEXT = 'copy_text',
+  OPEN_URL = 'open_url',
+}
+
+function stringify(value: string | number | string[] | undefined) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.toString();
 }
 
 export function updateQuery(
@@ -83,6 +89,10 @@ export function updateQuery(
     }
     // these actions do not modify the query in any way,
     // instead they have side effects
+    case Actions.COPY_TEXT:
+      navigator.clipboard.writeText(stringify(value));
+      break;
+    case Actions.OPEN_URL:
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
       break;
@@ -143,6 +153,8 @@ type CellActionsOpts = {
    */
   allowActions?: Actions[];
   children?: React.ReactNode;
+  hasUrl?: boolean;
+  openUrlInNewTab?: boolean;
 };
 
 function makeCellActions({
@@ -150,6 +162,8 @@ function makeCellActions({
   column,
   handleCellAction,
   allowActions,
+  hasUrl,
+  openUrlInNewTab = false,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
   if (isRelativeSpanOperationBreakdownField(column.name)) {
@@ -232,6 +246,16 @@ function makeCellActions({
     );
   }
 
+  if (hasUrl && !openUrlInNewTab) {
+    addMenuItem(Actions.OPEN_URL, t('Open url'));
+  }
+
+  if (hasUrl && openUrlInNewTab) {
+    addMenuItem(Actions.OPEN_URL, t('Open url in new tab'));
+  }
+
+  addMenuItem(Actions.COPY_TEXT, t('Copy text'));
+
   if (actions.length === 0) {
     return null;
   }
@@ -248,14 +272,15 @@ type State = {
 
 class CellAction extends Component<Props, State> {
   render() {
-    const {children} = this.props;
+    const {children, dataRow, column} = this.props;
     const cellActions = makeCellActions(this.props);
+
+    const rowText = stringify(dataRow[column.key]);
 
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
-        {children}
         {cellActions?.length && (
           <DropdownMenu
             items={cellActions}
@@ -263,7 +288,7 @@ class CellAction extends Component<Props, State> {
             size="sm"
             offset={4}
             position="bottom"
-            preventOverflowOptions={{padding: 4}}
+            preventOverflowOptions={{mainAxis: false}}
             flipOptions={{
               fallbackPlacements: [
                 'top',
@@ -274,13 +299,11 @@ class CellAction extends Component<Props, State> {
               ],
             }}
             trigger={triggerProps => (
-              <ActionMenuTrigger
-                {...triggerProps}
-                translucentBorder
-                aria-label={t('Actions')}
-                icon={<IconEllipsis size="xs" />}
-                size="zero"
-              />
+              <div style={{display: 'block'}}>
+                <TriggerWrapper {...triggerProps} text={rowText}>
+                  {children}
+                </TriggerWrapper>
+              </div>
             )}
           />
         )}
@@ -300,21 +323,11 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const ActionMenuTrigger = styled(Button)`
-  position: absolute;
-  top: 50%;
-  right: -1px;
-  transform: translateY(-50%);
-  padding: ${space(0.5)};
-
-  display: flex;
-  align-items: center;
-
-  opacity: 0;
-  transition: opacity 0.1s;
-  &:focus-visible,
-  &[aria-expanded='true'],
-  ${Container}:hover & {
-    opacity: 1;
+const TriggerWrapper = styled('div')<{text?: string}>`
+  :hover {
+    cursor: pointer;
+    text-shadow: 0.5px 0 0 currentColor;
   }
+  margin: -${space(1)} -${space(2)};
+  padding: ${space(1)} ${space(2)};
 `;

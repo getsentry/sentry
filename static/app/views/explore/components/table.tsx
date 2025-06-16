@@ -53,6 +53,7 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.EXCLUDE,
   Actions.SHOW_GREATER_THAN,
   Actions.SHOW_LESS_THAN,
+  Actions.COPY_TEXT,
 ];
 
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;

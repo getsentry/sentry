@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -130,8 +131,10 @@ function BaseExploreFieldRenderer({
     rendered = <StyledTimeSince unitStyle="extraShort" date={date} tooltipShowSeconds />;
   }
 
+  let target: LocationDescriptorObject | LocationDescriptor | undefined = undefined;
+
   if (field === 'trace') {
-    const target = getTraceDetailsUrl({
+    target = getTraceDetailsUrl({
       traceSlug: data.trace,
       timestamp: data.timestamp,
       organization,
@@ -145,7 +148,7 @@ function BaseExploreFieldRenderer({
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
-    const target = generateLinkToEventInTraceView({
+    target = generateLinkToEventInTraceView({
       projectSlug: data.project,
       traceSlug: data.trace,
       timestamp: data.timestamp,
@@ -161,7 +164,7 @@ function BaseExploreFieldRenderer({
   }
 
   if (field === 'profile.id') {
-    const target = generateProfileFlamechartRouteWithQuery({
+    target = generateProfileFlamechartRouteWithQuery({
       organization,
       projectSlug: data.project,
       profileId: data['profile.id'],
@@ -224,7 +227,7 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
           showOnlyOnOverflow
           maxWidth={400}
         >
-          <Description>
+          <Description text={value}>
             {project && (
               <ProjectBadge
                 project={project ? project : {slug: data.project}}
@@ -252,7 +255,7 @@ const StyledTimeSince = styled(TimeSince)`
   width: fit-content;
 `;
 
-const Description = styled('div')`
+const Description = styled('div')<{text?: string}>`
   ${p => p.theme.overflowEllipsis};
   display: flex;
   flex-direction: row;

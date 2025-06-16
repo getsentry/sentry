@@ -623,6 +623,12 @@ function TableView(props: TableViewProps) {
 
           return;
         }
+        case Actions.OPEN_URL: {
+          return;
+        }
+        case Actions.COPY_TEXT: {
+          return;
+        }
         default: {
           // Some custom perf metrics have units.
           // These custom perf metrics need to be adjusted to the correct value.
