@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+from sentry.feedback.lib.utils import check_feedback_quota_granted
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
@@ -21,6 +22,15 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
     """
     if not isinstance(event_data, dict):
         event_data = dict(event_data)
+
+    # Rate limiting.
+    if not check_feedback_quota_granted(
+        project_id,
+        event_data["event_id"],
+        FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        datetime.fromtimestamp(event_data["timestamp"], UTC),
+    ):
+        return
 
     # Produce to issue platform
     fixed_event_data = create_feedback_issue(

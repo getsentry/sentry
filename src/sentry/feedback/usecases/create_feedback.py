@@ -8,7 +8,6 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import jsonschema
-from django.conf import settings
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -22,7 +21,6 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
-from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
@@ -33,10 +31,6 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
-
-feedback_rate_limiter = RedisSlidingWindowRateLimiter(
-    **settings.SENTRY_USER_FEEDBACK_RATE_LIMITER_OPTIONS
-)
 
 
 class FeedbackCreationSource(Enum):
@@ -286,33 +280,7 @@ def create_feedback_issue(
 
     project = Project.objects.get_from_cache(id=project_id)
 
-    # Rate limiting. We apply the issue rate limiter in create_feedback_issue, to
-    # mitigate load on downstream infra (spam detection LLM and issue platform).
-    granted_quota = feedback_rate_limiter.check_and_use_quotas(
-        [
-            RequestedQuota(
-                f"issue-platform-issues:{project.id}:{FeedbackGroup.slug}",  # noqa E231 missing whitespace after ':'
-                1,
-                [FeedbackGroup.creation_quota],
-            )
-        ]
-    )[0]
-
-    if not granted_quota.granted:
-        metrics.incr("feedback.create_feedback_issue.rate_limited")
-        track_outcome(
-            org_id=project.organization_id,
-            project_id=project_id,
-            key_id=None,
-            outcome=Outcome.RATE_LIMITED,
-            reason="group_type_rate_limit",
-            timestamp=datetime.fromtimestamp(event["timestamp"]),
-            event_id=event["event_id"],
-            category=DataCategory.USER_REPORT_V2,
-            quantity=1,
-        )
-        return None
-
+    # Filtering.
     should_filter, filter_reason = should_filter_feedback(event, project, source)
     if should_filter:
         track_outcome(
@@ -346,6 +314,8 @@ def create_feedback_issue(
             },
             sample_rate=1.0,
         )
+
+    # Reformatting.
 
     # Removes associated_event_id from event if it is invalid
     associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
@@ -409,7 +379,7 @@ def create_feedback_issue(
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
-    # Analytics
+    # Analytics.
     set_project_flag_and_signal(project, "has_feedbacks", first_feedback_received)
 
     if source == FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE:

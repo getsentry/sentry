@@ -15,6 +15,7 @@ from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
+from sentry.feedback.lib.utils import check_feedback_quota_granted
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
@@ -44,6 +45,10 @@ def save_userreport(
     with metrics.timer("sentry.ingest.userreport.save_userreport", tags={"referrer": source.value}):
         if start_time is None:
             start_time = timezone.now()
+
+        # Rate limiting.
+        if not check_feedback_quota_granted(project.id, None, source, start_time):
+            return
 
         if is_in_feedback_denylist(project.organization):
             metrics.incr(
