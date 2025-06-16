@@ -6,7 +6,11 @@ class Config(AppConfig):
 
     def ready(self):
         # Register the NotificationProviders for the platform
-        from .platform.discord.provider import DiscordNotificationProvider  # NOQA
-        from .platform.email.provider import EmailNotificationProvider  # NOQA
-        from .platform.msteams.provider import MSTeamsNotificationProvider  # NOQA
-        from .platform.slack.provider import SlackNotificationProvider  # NOQA
+        from sentry.notifications.platform.discord.provider import (  # NOQA
+            DiscordNotificationProvider,
+        )
+        from sentry.notifications.platform.email.provider import EmailNotificationProvider  # NOQA
+        from sentry.notifications.platform.msteams.provider import (  # NOQA
+            MSTeamsNotificationProvider,
+        )
+        from sentry.notifications.platform.slack.provider import SlackNotificationProvider  # NOQA
