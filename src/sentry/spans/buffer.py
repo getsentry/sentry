@@ -66,7 +66,6 @@ from __future__ import annotations
 import itertools
 import logging
 import math
-import os
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -91,14 +90,6 @@ SegmentKey = bytes
 QueueKey = bytes
 
 logger = logging.getLogger(__name__)
-
-
-def _load_zstd_dictionary() -> zstandard.ZstdCompressionDict:
-    """Load the zstd dictionary for span compression."""
-    dict_path = os.path.join(os.path.dirname(__file__), "zstd_dict.bin")
-    with open(dict_path, "rb") as f:
-        dict_data = f.read()
-    return zstandard.ZstdCompressionDict(dict_data)
 
 
 def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
@@ -163,10 +154,9 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
-        # Load custom dictionary and create compressor/decompressor objects
-        self._zstd_dict = _load_zstd_dictionary()
-        self._zstd_compressor = zstandard.ZstdCompressor(level=0, dict_data=self._zstd_dict)
-        self._zstd_decompressor = zstandard.ZstdDecompressor(dict_data=self._zstd_dict)
+        # Reuse compressor/decompressor objects for better performance
+        self._zstd_compressor = zstandard.ZstdCompressor(level=0)
+        self._zstd_decompressor = zstandard.ZstdDecompressor()
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
