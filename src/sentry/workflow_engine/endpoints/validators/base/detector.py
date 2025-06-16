@@ -1,4 +1,5 @@
 import builtins
+from typing import Any
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -9,6 +10,7 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
+    BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
     BaseDataSourceValidator,
 )
@@ -20,13 +22,14 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.types import DataConditionType
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
         max_length=200,
-        help_text="Name of the uptime monitor",
+        help_text="Name of the monitor",
     )
     type = serializers.CharField()
     config = serializers.JSONField(default={})
@@ -54,8 +57,26 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
 
-    def update(self, instance, validated_data):
-        raise NotImplementedError
+    def update(self, instance: Detector, validated_data: dict[str, Any]):
+        instance.name = validated_data.get("name", instance.name)
+        instance.type = validated_data.get("detector_type", instance.group_type).slug
+        condition_group = validated_data.pop("condition_group")
+        data_conditions: list[DataConditionType] = condition_group.get("conditions")
+
+        if data_conditions and instance.workflow_condition_group:
+            group_validator = BaseDataConditionGroupValidator()
+            group_validator.update(instance.workflow_condition_group, condition_group)
+
+        instance.save()
+
+        create_audit_entry(
+            request=self.context["request"],
+            organization=self.context["organization"],
+            target_object=instance.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=instance.get_audit_log_data(),
+        )
+        return instance
 
     def create(self, validated_data):
         with transaction.atomic(router.db_for_write(Detector)):

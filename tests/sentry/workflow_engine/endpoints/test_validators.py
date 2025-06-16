@@ -6,9 +6,9 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.metric_alert_detector import (
-    MetricAlertComparisonConditionValidator,
-    MetricAlertsDetectorValidator,
+from sentry.incidents.metric_issue_detector import (
+    MetricIssueComparisonConditionValidator,
+    MetricIssueDetectorValidator,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
@@ -85,7 +85,7 @@ class TestBaseDataSourceValidator(TestCase):
         )
 
 
-class MockDataConditionValidator(MetricAlertComparisonConditionValidator):
+class MockDataConditionValidator(MetricIssueComparisonConditionValidator):
     supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
     supported_condition_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
 
@@ -120,7 +120,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 description="no handler",
                 category=GroupCategory.METRIC_ALERT.value,
                 category_v2=GroupCategory.METRIC.value,
-                detector_settings=DetectorSettings(validator=MetricAlertsDetectorValidator),
+                detector_settings=DetectorSettings(validator=MetricIssueDetectorValidator),
             )
             validator = self.validator_class()
             result = validator.validate_type("test_type")
