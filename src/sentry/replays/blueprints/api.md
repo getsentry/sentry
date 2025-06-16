@@ -614,3 +614,113 @@ A POST request is issued with no body. The URL and authorization context is used
     }
   }
   ```
+
+## Replay Deletion Jobs [/organizations/<organization_id_or_slug>/replays/jobs/delete/]
+
+- Parameters
+
+  - per_page (optional, number)
+    Default: 10
+  - offset (optional, number)
+    Default: 0
+
+### List Replay Deletion Jobs [GET]
+
+Retrieve a collection of replay delete jobs.
+
+**Attributes**
+
+| Column       | Type             | Description                                                                                                                |
+| ------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| id           | number           | -                                                                                                                          |
+| dateCreated  | string           | -                                                                                                                          |
+| dateUpdated  | string           | -                                                                                                                          |
+| rangeStart   | string           | The minimum UTC timestamp in the deletion range.                                                                           |
+| rangeEnd     | string           | The maximum UTC timestamp in the deletion range.                                                                           |
+| environments | list[string]     | The environment to delete replays from. If not specified, applies to all environments                                      |
+| projects     | list[number]     | The projects to delete replays from.                                                                                       |
+| status       | string           | The status of the deletion job. One of `pending`, `in-progress`, and `completed`.                                          |
+| query        | optional[string] | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "id": 23,
+        "dateCreated": "2025-06-06T14:05:57.909921",
+        "dateUpdated": "2025-06-06T14:05:57.909921",
+        "rangeStart": "2025-06-01T00:00:00.000000",
+        "rangeEnd": "2025-06-04T00:00:00.000000",
+        "environments": ["production"],
+        "projects": [11276],
+        "status": "in-progress",
+        "query": "release:2.3.0 AND url:*/billing*"
+      }
+    ]
+  }
+  ```
+
+### Create a Replay Batch Deletion Job [POST]
+
+Delete a collection of replays. Deletes are throttled and will take some time to complete. The number of events expected to be deleted is returned on the meta object. This number is ephemeral and can change. It is only returned for informational reasons.
+
+- Request
+
+  ```json
+  {
+    "data": {
+      "rangeStart": "2025-06-01T00:00:00.000000",
+      "rangeEnd": "2025-06-04T00:00:00.000000",
+      "environments": ["production"],
+      "projects": [11276],
+      "query": "release:2.3.0 AND url:*/billing*"
+    }
+  }
+  ```
+
+- Response 201
+
+  ```json
+  {
+    "data": {
+      "id": 23,
+      "dateCreated": "2025-06-06T14:05:57.909921",
+      "dateUpdated": "2025-06-06T14:05:57.909921",
+      "rangeStart": "2025-06-01T00:00:00.000000",
+      "rangeEnd": "2025-06-04T00:00:00.000000",
+      "environments": ["production"],
+      "projects": [11276],
+      "status": "pending",
+      "query": "release:2.3.0 AND url:*/billing*"
+    },
+    "meta": {
+      "count": 13922
+    }
+  }
+  ```
+
+## Replay Delete Job [/organizations/<organization_id_or_slug>/replays/jobs/delete/<id>/]
+
+### Get Replay Delete Job [GET]
+
+Fetch a replay delete job instance.
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "id": 23,
+      "dateCreated": "2025-06-06T14:05:57.909921",
+      "dateUpdated": "2025-06-06T14:05:57.909921",
+      "rangeStart": "2025-06-01T00:00:00.000000",
+      "rangeEnd": "2025-06-04T00:00:00.000000",
+      "environments": ["production"],
+      "projects": [11276],
+      "status": "pending",
+      "query": "release:2.3.0 AND url:*/billing*"
+    }
+  }
+  ```
