@@ -54,13 +54,34 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
-            on_results=analyze_recording_segments,
+            on_results=functools.partial(analyze_recording_segments, project.id, replay_id),
         )
 
 
 @sentry_sdk.trace
-def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> dict[str, Any]:
-    request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments))})
+def analyze_recording_segments(
+    project_id: int, replay_id: str, segments: list[RecordingSegmentStorageMeta]
+) -> dict[str, Any]:
+    # Get error IDs from the project replay details endpoint
+    from sentry.replays.post_process import process_raw_response
+    from sentry.replays.query import query_replay_instance
+
+    snuba_response = query_replay_instance(
+        project_id=project_id,
+        replay_id=replay_id,
+        start=None,  # We don't need time filtering for this
+        end=None,
+        organization=None,  # We don't need org filtering for this
+        request_user_id=None,  # We don't need user filtering for this
+    )
+
+    response = process_raw_response(snuba_response)
+    error_ids = response[0].get("error_ids", []) if response else []
+
+    # Get the breadcrumb data
+    request_data = json.dumps(
+        {"logs": get_request_data(iter_segment_data(segments)), "error_ids": error_ids}
+    )
 
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
     # paginate method. This is less than ideal.
@@ -94,3 +115,22 @@ def gen_request_data(segments: Iterator[memoryview]) -> Generator[str]:
             message = as_log_message(event)
             if message:
                 yield message
+
+            # Get error information if present
+            if "error" in event:
+                error = event["error"]
+                error_message = f"Error: {error.get('message', '')}"
+                if "type" in error:
+                    error_message += f" (Type: {error['type']})"
+                yield error_message
+
+            # Check for user feedback issues
+            if "issue" in event:
+                issue = event["issue"]
+                if issue.get("title") == "User Feedback":
+                    feedback_message = "User Feedback"
+                    if "message" in issue:
+                        feedback_message += f": {issue['message']}"
+                    if "name" in issue:
+                        feedback_message += f" (from {issue['name']})"
+                    yield feedback_message
