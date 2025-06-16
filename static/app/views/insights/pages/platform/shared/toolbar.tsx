@@ -15,11 +15,19 @@ type ExploreParams = Parameters<typeof getExploreUrl>[0];
 
 interface ToolbarProps {
   onOpenFullScreen: () => void;
+  aliases?: Record<string, string>;
   exploreParams?: Omit<ExploreParams, 'organization' | 'selection'>;
   loaderSource?: LoadableChartWidgetProps['loaderSource'];
+  showCreateAlert?: boolean; // TODO: this is temporary so we can slowly add create alert functionality, in the future all charts that can open in explore can be alerted
 }
 
-export function Toolbar({exploreParams, onOpenFullScreen, loaderSource}: ToolbarProps) {
+export function Toolbar({
+  exploreParams,
+  onOpenFullScreen,
+  loaderSource,
+  aliases,
+  showCreateAlert = false,
+}: ToolbarProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const project = useAlertsProject();
@@ -30,9 +38,10 @@ export function Toolbar({exploreParams, onOpenFullScreen, loaderSource}: Toolbar
   const yAxes = exploreParams?.visualize?.flatMap(v => v.yAxes) || [];
 
   const alertsUrls = yAxes.map((yAxis, index) => {
+    const label = aliases?.[yAxis] ?? yAxis;
     return {
       key: `${yAxis}-${index}`,
-      label: yAxis,
+      label,
       to: getAlertsUrl({
         project,
         query: exploreParams?.query,
@@ -49,7 +58,7 @@ export function Toolbar({exploreParams, onOpenFullScreen, loaderSource}: Toolbar
       {exploreUrl ? (
         <BaseChartActionDropdown
           exploreUrl={exploreUrl}
-          alertMenuOptions={alertsUrls}
+          alertMenuOptions={showCreateAlert ? alertsUrls : []}
           referrer={loaderSource || 'insights.platform.toolbar'}
         />
       ) : null}

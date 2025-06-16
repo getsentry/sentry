@@ -28,6 +28,11 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
+const ALIASES = {
+  'count(span.duration)': t('Jobs'),
+  'trace_status_rate(internal_error)': t('Error Rate'),
+};
+
 export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps) {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
@@ -54,11 +59,11 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
   const plottables = useMemo(() => {
     return [
       new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
-        alias: t('Jobs'),
+        alias: ALIASES['count(span.duration)'],
         color: theme.gray200,
       }),
       new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
-        alias: t('Error Rate'),
+        alias: ALIASES['trace_status_rate(internal_error)'],
         color: theme.error,
       }),
     ];
@@ -139,6 +144,8 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
         organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
+            showCreateAlert
+            aliases={ALIASES}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
