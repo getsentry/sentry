@@ -107,17 +107,6 @@ def enqueue_workflows(
     )
 
 
-def enqueue_workflow(
-    workflow: Workflow,
-    delayed_conditions: list[DataCondition],
-    event: GroupEvent,
-    source: WorkflowDataConditionGroupType,
-) -> None:
-    enqueue_workflows(
-        {event.group.project.id: [DelayedWorkflowItem(workflow, delayed_conditions, event, source)]}
-    )
-
-
 @sentry_sdk.trace
 def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
