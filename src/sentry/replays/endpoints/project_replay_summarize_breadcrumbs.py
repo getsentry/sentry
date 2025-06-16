@@ -71,10 +71,11 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[dict[str,
         try:
             event = eventstore.get_event_by_id(project_id, error_id)
             if event:
-                # Create a derived error event, similar to the other breadcrumb events,
-                # so that it can be passed into as_log_message to be included in the LLM context.
+                # Create a derived error event with a few choice fields,
+                # similar to the other breadcrumb events, so that it can be passed
+                # into as_log_message to be included in the LLM context.
 
-                # see create_feedback.py
+                # See create_feedback.py
                 is_feedback = event.title == "User Feedback"
                 error_category = "feedback" if is_feedback else "error"
                 error_message = (
@@ -132,11 +133,10 @@ def analyze_recording_segments(
     filter_params: dict[str, Any],
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
-    # Fetch the replay's error IDs from the replay_id
     from sentry.replays.post_process import process_raw_response
     from sentry.replays.query import query_replay_instance
 
-    # Params differ slightly from the project replay details endpoint
+    # Fetch the replay's error IDs from the replay_id.
     snuba_response = query_replay_instance(
         project_id=project.id,
         replay_id=replay_id,
@@ -154,11 +154,7 @@ def analyze_recording_segments(
 
     # Combine breadcrumbs and error details
     request_data = json.dumps(
-        {
-            "breadcrumbs": get_request_data(
-                iter_segment_data(segments), error_ids, project_id=project.id
-            )
-        }
+        {"logs": get_request_data(iter_segment_data(segments), error_ids, project_id=project.id)}
     )
 
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the

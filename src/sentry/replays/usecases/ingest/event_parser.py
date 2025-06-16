@@ -260,7 +260,7 @@ def which(event: dict[str, Any]) -> EventType:
     """
     # These two cases are derived specificlly for the replay summarize breadcrumbs endpoint,
     # which combines error and breadcrumb events into a single context for LLM.
-    # Error and user feedback events are not ingested the same way as other breadcrumbs.
+    # Error and user feedback events are not normally ingested the same way as other breadcrumbs.
     if event.get("category") == "feedback":
         return EventType.USER_FEEDBACK
     elif event.get("category") == "error":
