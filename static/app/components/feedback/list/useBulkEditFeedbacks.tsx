@@ -57,7 +57,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
   const mutationOptions = useMemo(
     () => ({
       onError: () => {
-        addErrorMessage(t('An error occurred while updating the feedbacks.'));
+        addErrorMessage(t('An error occurred while updating the feedbacks'));
       },
       onSuccess: () => {
         addSuccessMessage(t('Updated feedbacks'));
@@ -115,7 +115,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
           addLoadingMessage(t('Updating feedbacks...'));
           markAsRead(false, {
             onError: () => {
-              addErrorMessage(t('An error occurred while updating the feedbacks.'));
+              addErrorMessage(t('An error occurred while updating the feedbacks'));
             },
             onSuccess: () => {
               addSuccessMessage(t('Updated feedbacks'));

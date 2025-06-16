@@ -149,7 +149,7 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
             onAction: onDelete,
             tooltip: enableDelete
               ? undefined
-              : t('You must be an admin to delete feedback.'),
+              : t('You must be an admin to delete feedback'),
           },
         ]}
       />
@@ -207,7 +207,7 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           onAction: onDelete,
           tooltip: enableDelete
             ? undefined
-            : t('You must be an admin to delete feedback.'),
+            : t('You must be an admin to delete feedback'),
         },
       ]}
     />

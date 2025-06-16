@@ -108,7 +108,7 @@ export default function FeedbackListBulkSelection({
                 onAction: onDelete,
                 tooltip: enableDelete
                   ? undefined
-                  : t('You must be an admin to delete feedback.'),
+                  : t('You must be an admin to delete feedback'),
               },
             ]}
           />
