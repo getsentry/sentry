@@ -44,7 +44,7 @@ class MockEventFrequencyQueryHandler:
 
 def generate_unique_queries_mock(filters_list):
     """Mock the generate_unique_queries function that creates UniqueConditionQuery with filters"""
-    
+
     # This simulates the original code where filters come from condition.comparison.get("filters")
     raw_filters = filters_list
     processed_filters: tuple[frozenset[tuple[str, Any]], ...] | None = None
@@ -67,19 +67,19 @@ def generate_unique_queries_mock(filters_list):
 def simulate_error_scenario():
     """Simulate the exact error scenario from the traceback"""
     print("Simulating the error scenario...")
-    
+
     # This would be the problematic case - filters as a list
     problematic_filters = [{"key1": "value1"}, {"key2": "value2"}]
-    
+
     # Create the query (this step was successful in the original error)
     condition_query = generate_unique_queries_mock(problematic_filters)
     print(f"Created condition_query: {condition_query}")
     print(f"Query filters type: {type(condition_query.filters)}")
     print(f"Query filters value: {condition_query.filters}")
-    
+
     # Simulate the line that was failing: condition_groups[condition_query].update(...)
     condition_groups = defaultdict(set)
-    
+
     # This is the exact line that was causing the error
     try:
         condition_groups[condition_query].update({6683664939})  # Using the group ID from the error
@@ -94,11 +94,11 @@ def simulate_error_scenario():
 def test_hash_directly():
     """Test hashing directly"""
     print("\nTesting direct hashing...")
-    
+
     # Test with list filters
     filters = [{"key": "value"}]
     query = generate_unique_queries_mock(filters)
-    
+
     try:
         hash_val = hash(query)
         print(f"✅ Direct hash successful: {hash_val}")
@@ -111,11 +111,11 @@ def test_hash_directly():
 if __name__ == "__main__":
     print("Testing the UniqueConditionQuery fix...")
     print("=" * 50)
-    
+
     success = True
     success &= test_hash_directly()
     success &= simulate_error_scenario()
-    
+
     print("\n" + "=" * 50)
     if success:
         print("🎉 ALL TESTS PASSED! The fix resolves the issue.")
