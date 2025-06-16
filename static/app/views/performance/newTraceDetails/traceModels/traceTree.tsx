@@ -1610,24 +1610,38 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const index = this.list.indexOf(node);
 
     // Expanding is not allowed for zoomed in nodes
-    if (expanded === node.expanded || node.zoomedIn || index === -1) {
+    if (expanded === node.expanded || node.zoomedIn) {
       return false;
     }
 
     if (isParentAutogroupedNode(node)) {
       if (expanded) {
-        this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+        // Adding the index check here because the node may not be in the list,
+        // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
+        // The node is part of the tree, but not visible yet. Check can be pushed to the top of the function
+        // when we don't have to support non-eap traces.
+        if (index !== -1) {
+          this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+        }
+
         // When the node is collapsed, children point to the autogrouped node.
         // We need to point them back to the tail node which is now visible
         for (const c of node.tail.children) {
           c.parent = node.tail;
         }
-        this.list.splice(
-          index + 1,
-          0,
-          node.head,
-          ...TraceTree.VisibleChildren(node.head)
-        );
+
+        // Adding the index check here because the node may not be in the list,
+        // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
+        // The node is part of the tree, but not visible yet.Check can be pushed to the top of the function
+        // when we don't have to support non-eap traces.
+        if (index !== -1) {
+          this.list.splice(
+            index + 1,
+            0,
+            node.head,
+            ...TraceTree.VisibleChildren(node.head)
+          );
+        }
       } else {
         this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
 
