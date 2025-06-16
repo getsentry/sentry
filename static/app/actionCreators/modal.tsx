@@ -63,6 +63,17 @@ export async function openEmailVerification({
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
+export async function openMissingPrimaryEmailModal({
+  onClose,
+  ...args
+}: EmailVerificationModalOptions = {}) {
+  const {default: Modal} = await import(
+    'sentry/components/modals/missingPrimaryEmailModal'
+  );
+
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
+}
+
 type OpenDiffModalOptions = {
   baseIssueId: Group['id'];
   location: Location;
