@@ -79,7 +79,7 @@ RUN : double-check some built files are available \
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT exec /docker-entrypoint.sh "$0" "$@"
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
