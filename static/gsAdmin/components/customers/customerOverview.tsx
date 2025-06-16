@@ -31,7 +31,12 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {formatBalance, formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  formatBalance,
+  formatReservedWithUnits,
+  getActiveProductTrial,
+  getProductTrial,
+} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
@@ -452,6 +457,16 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       )
     : [];
 
+  const categoryHasActiveProductTrial = (category: DataCategory) => {
+    return !!getActiveProductTrial(customer.productTrials ?? [], category);
+  };
+
+  const categoryHasUsedProductTrial = (category: DataCategory) => {
+    const trial = getProductTrial(customer.productTrials ?? [], category);
+
+    return trial?.isStarted;
+  };
+
   function updateCustomerStatus(action: string, type: string) {
     const data = {
       [action]: true,
@@ -469,18 +484,31 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     });
   }
 
-  const getTrialManagementActions = (apiName: string, trialName: string) => {
+  const getTrialManagementActions = (
+    category: DataCategory,
+    apiName: string,
+    trialName: string
+  ) => {
     const formattedApiName = upperFirst(apiName);
+    const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
+    const hasActiveProductTrial = categoryHasActiveProductTrial(category);
+    const hasUsedProductTrial =
+      hasActiveProductTrial || categoryHasUsedProductTrial(category);
     return (
-      <DetailLabel
-        key={apiName}
-        title={toTitleCase(trialName, {allowInnerUpperCase: true})}
-      >
+      <DetailLabel key={apiName} title={formattedTrialName}>
         <TrialActions>
           <Button
             size="xs"
             onClick={() =>
               updateCustomerStatus(`allowTrial${formattedApiName}`, 'product trial')
+            }
+            disabled={!hasUsedProductTrial || hasActiveProductTrial}
+            title={
+              hasActiveProductTrial
+                ? `A product trial is currently active for ${formattedTrialName}`
+                : hasUsedProductTrial
+                  ? undefined
+                  : `A product trial is already available for ${formattedTrialName}`
             }
           >
             Allow Trial
@@ -490,6 +518,12 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             onClick={() =>
               updateCustomerStatus(`startTrial${formattedApiName}`, 'product trial')
             }
+            disabled={hasActiveProductTrial}
+            title={
+              hasActiveProductTrial
+                ? `A product trial is already active for ${formattedTrialName}`
+                : undefined
+            }
           >
             Start Trial
           </Button>
@@ -497,6 +531,12 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             size="xs"
             onClick={() =>
               updateCustomerStatus(`stopTrial${formattedApiName}`, 'product trial')
+            }
+            disabled={!hasActiveProductTrial}
+            title={
+              hasActiveProductTrial
+                ? undefined
+                : `No product trial is active for ${formattedTrialName}`
             }
           >
             Stop Trial
@@ -696,10 +736,22 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                   category: categoryInfo.plural,
                   title: true,
                 });
-                return getTrialManagementActions(categoryInfo.plural, categoryName);
+                return getTrialManagementActions(
+                  categoryInfo.plural,
+                  categoryInfo.plural,
+                  categoryName
+                );
               })}
               {productTrialCategoryGroups.map(group => {
-                return getTrialManagementActions(group.apiName, group.productName);
+                const category = group.dataCategories[0]; // doesn't matter which category we use
+                if (category) {
+                  return getTrialManagementActions(
+                    category,
+                    group.apiName,
+                    group.productName
+                  );
+                }
+                return null;
               })}
             </ProductTrialsDetailListContainer>
           </Fragment>
