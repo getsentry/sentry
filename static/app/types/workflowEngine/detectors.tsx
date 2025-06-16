@@ -68,14 +68,14 @@ interface BaseDetectorConfig {
 /**
  * Configuration for static/threshold-based detection
  */
-export interface StaticDetectorConfig extends BaseDetectorConfig {
+interface StaticDetectorConfig extends BaseDetectorConfig {
   detection_type: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-export interface PercentDetectorConfig extends BaseDetectorConfig {
+interface PercentDetectorConfig extends BaseDetectorConfig {
   comparison_delta: number;
   detection_type: 'percent';
 }
@@ -83,7 +83,7 @@ export interface PercentDetectorConfig extends BaseDetectorConfig {
 /**
  * Configuration for dynamic/anomaly detection
  */
-export interface DynamicDetectorConfig extends BaseDetectorConfig {
+interface DynamicDetectorConfig extends BaseDetectorConfig {
   detection_type: 'dynamic';
   seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
   sensitivity?: AlertRuleSensitivity;
