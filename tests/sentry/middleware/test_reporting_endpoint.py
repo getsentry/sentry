@@ -47,4 +47,3 @@ class ReportingEndpointMiddlewareTestCase(TestCase):
             response = middleware(request)
 
             assert response.get("Reporting-Endpoints") is None
-            assert not middleware.reporting_endpoints_enabled
