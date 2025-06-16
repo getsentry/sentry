@@ -108,22 +108,23 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                             for project_team in unkeyed_project_teams
                         ]
                     )
-                    try:
-                        InsightsStarredSegment.objects.bulk_create(
-                            [
-                                InsightsStarredSegment.objects.create(
-                                    organization=organization,
-                                    user_id=request.user.id,
-                                    project=project,
-                                    segment_name=data["transaction"],
-                                    project=project_team.project,
-                                )
-                                for project_team in unkeyed_project_teams
-                            ]
-                        )
-                    except IntegrityError:
-                        # We don't want the request to fail if the double write failed
-                        return Response(status=201)
+                    if request.user.id:
+                        try:
+                            InsightsStarredSegment.objects.bulk_create(
+                                [
+                                    InsightsStarredSegment.objects.create(
+                                        organization=organization,
+                                        user_id=request.user.id,
+                                        project=project,
+                                        segment_name=data["transaction"],
+                                        project=project_team.project,
+                                    )
+                                    for project_team in unkeyed_project_teams
+                                ]
+                            )
+                        except IntegrityError:
+                            # We don't want the request to fail if the double write failed
+                            return Response(status=201)
                     return Response(status=201)
                 # Even though we tried to avoid it, the TeamKeyTransaction was created already
                 except IntegrityError:
