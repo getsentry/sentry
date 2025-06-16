@@ -8,13 +8,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export default function FeedbackSummary() {
-  const {error, loading, summary, tooFewFeedbacks} = useFeedbackSummary();
+  const {error, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
 
   if (error) {
     return <LoadingError message={t('There was an error loading the summary')} />;
   }
 
-  if (loading) {
+  if (isPending) {
     return <Placeholder height="100px" />;
   }
 

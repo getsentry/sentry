@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -56,6 +55,10 @@ export default function FeedbackListPage() {
     feedbackWidgetPlatforms.includes(p.platform!)
   );
 
+  const hasFeedbackSummaryEnabled = organization.features.includes(
+    'user-feedback-ai-summaries'
+  );
+
   const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -87,12 +90,12 @@ export default function FeedbackListPage() {
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <SummaryListContainer style={{gridArea: 'list'}}>
-                        <Feature features="organizations:user-feedback-ai-summaries">
-                          {/* is this bad design? FeedbackSummary conditionally renders itself if there is a summary, but should that decision be made in its parent instead? causes weird issues like we can't wrap FeedbackSummary with a Container here, it must be wrapped inside the component itself */}
-                          {/* the reason i don't generate the summary here instead of in FeedbackSummary is that useFeedbackSummary requires the FeedbackQueryKeys context to be present to be able to parse the start/end date */}
-                          {/* another option is to create a new component that wraps the summary and the list, and generate the summary in that new component so the parent would conditionally render the child instead of the child conditionally rendering itself */}
+                        {hasFeedbackSummaryEnabled && (
+                          /* is this bad design? FeedbackSummary conditionally renders itself if there is a summary, but should that decision be made in its parent instead? causes weird issues like we can't wrap FeedbackSummary with a Container here, it must be wrapped inside the component itself */
+                          /* the reason i don't generate the summary here instead of in FeedbackSummary is that useFeedbackSummary requires the FeedbackQueryKeys context to be present to be able to parse the start/end date */
+                          /* another option is to create a new component that wraps the summary and the list, and generate the summary in that new component so the parent would conditionally render the child instead of the child conditionally rendering itself */
                           <FeedbackSummary />
-                        </Feature>
+                        )}
                         <Container>
                           <FeedbackList />
                         </Container>

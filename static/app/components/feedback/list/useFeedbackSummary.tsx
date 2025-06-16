@@ -15,7 +15,7 @@ type FeedbackSummaryResponse = {
 
 export default function useFeedbackSummary(): {
   error: Error | null;
-  loading: boolean;
+  isPending: boolean;
   summary: string | null;
   tooFewFeedbacks: boolean | null;
 } {
@@ -31,7 +31,7 @@ export default function useFeedbackSummary(): {
 
   const organization = useOrganization();
 
-  // This is similar to what is done in useMailboxCounts.tsx, and is also why we can't use useFeedbackSummary in feedbackListPage.tsx
+  // This is similar to what is done in useMailboxCounts.tsx, we can't use useFeedbackSummary in feedbackListPage.tsx because we require the FeedbackQueryKeys context to be present to be able to parse the start/end date
   const {listHeadTime} = useFeedbackQueryKeys();
 
   const queryViewWithStatsPeriod = useMemo(() => {
@@ -43,12 +43,7 @@ export default function useFeedbackSummary(): {
     });
   }, [listHeadTime, queryView]);
 
-  const {
-    data: feedbackSummaryData,
-    isPending: isFeedbackSummaryLoading,
-    isError: isFeedbackSummaryError,
-    error: feedbackSummaryError,
-  } = useApiQuery<FeedbackSummaryResponse>(
+  const {data, isPending, isError, error} = useApiQuery<FeedbackSummaryResponse>(
     [
       `/organizations/${organization.slug}/feedback-summary/`,
       {
@@ -60,30 +55,28 @@ export default function useFeedbackSummary(): {
     {staleTime: 5000, enabled: Boolean(queryViewWithStatsPeriod), retry: 1}
   );
 
-  if (isFeedbackSummaryLoading) {
+  if (isPending) {
     return {
       summary: null,
-      loading: true,
+      isPending: true,
       error: null,
       tooFewFeedbacks: false,
     };
   }
 
-  if (isFeedbackSummaryError) {
+  if (isError) {
     return {
       summary: null,
-      loading: false,
-      error: feedbackSummaryError,
+      isPending: false,
+      error,
       tooFewFeedbacks: false,
     };
   }
 
   return {
-    summary: feedbackSummaryData.summary,
-    loading: false,
+    summary: data.summary,
+    isPending: false,
     error: null,
-    tooFewFeedbacks:
-      feedbackSummaryData.num_feedbacks_used === 0 &&
-      feedbackSummaryData.success === false,
+    tooFewFeedbacks: data.num_feedbacks_used === 0 && data.success === false,
   };
 }
