@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0005_add_git_sha_fk
+preprod: 0005_add_git_commit
 
 replays: 0001_squashed_0005_drop_replay_index
 
