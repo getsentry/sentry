@@ -132,7 +132,7 @@ eslint.config.mjs                                        @getsentry/owners-js-bu
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
-.node-version                                            @getsentry/owners-js-deps
+.volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
