@@ -66,7 +66,7 @@ export default function FeedbackListPage() {
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip
                   title={t(
-                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that is not working as expected.'
+                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
                   )}
                   docsUrl="https://docs.sentry.io/product/user-feedback/"
                 />

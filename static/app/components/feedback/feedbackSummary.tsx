@@ -18,8 +18,6 @@ export default function FeedbackSummary() {
     return <Placeholder height="100px" />;
   }
 
-  // Maybe this is bad; parent should probably conditionally render the component based on the summary
-  // check feedbackListPage.tsx for a potential alternative
   if (tooFewFeedbacks) {
     return null;
   }
