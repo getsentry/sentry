@@ -72,8 +72,9 @@ class Event:
 
     type: ClassVar[str]
 
-    uuid: UUID = Field(default_factory=lambda: uuid1())
-    datetime: dt = Field(default_factory=timezone.now)
+    # we use the _ postfix to avoid name conflicts inheritors fields
+    uuid_: UUID = Field(default_factory=lambda: uuid1())
+    datetime_: dt = Field(default_factory=timezone.now)
 
     def serialize(self) -> dict[str, Any]:
         return serialize_event(self)
@@ -93,7 +94,7 @@ class Event:
 def serialize_event(event: Event) -> dict[str, Any]:
     return {
         "type": event.type,
-        "uuid": b64encode(event.uuid.bytes),
-        "timestamp": event.datetime.timestamp(),
-        "data": {k: v for k, v in asdict(event).items() if k not in ("type", "uuid", "datetime")},
+        "uuid": b64encode(event.uuid_.bytes),
+        "timestamp": event.datetime_.timestamp(),
+        "data": {k: v for k, v in asdict(event).items() if k not in ("type", "uuid_", "datetime_")},
     }

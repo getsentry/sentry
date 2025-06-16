@@ -30,14 +30,13 @@ class EventTest(TestCase):
             map={"key": "value"},
             optional=False,
         )
-        result.datetime = datetime(2001, 4, 18, tzinfo=timezone.utc)
+        result.datetime_ = datetime(2001, 4, 18, tzinfo=timezone.utc)
 
         assert result.serialize() == {
             "data": {
                 "id": 1,
                 "map": {"key": "value"},
                 "optional": False,
-                "schema": "schema",
             },
             "type": "example",
             "timestamp": 987552000,
