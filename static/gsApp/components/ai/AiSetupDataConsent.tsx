@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/core/button';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconRefresh, IconSeerWaiting} from 'sentry/icons';
+import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
@@ -106,7 +106,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap={space(1)}>
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeerWaiting color="subText" size="lg" />
+          <IconSeer variant="waiting" color="subText" size="lg" />
         </Flex>
         <Paragraph>
           {t(

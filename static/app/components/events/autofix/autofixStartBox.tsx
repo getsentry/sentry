@@ -5,7 +5,7 @@ import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import {IconArrow, IconSeerWaiting} from 'sentry/icons';
+import {IconArrow, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -59,7 +59,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }}
             />
             <StartTextRow>
-              <IconSeerWaiting color="textColor" size="lg" />
+              <IconSeer variant="waiting" color="textColor" size="lg" />
               <Fragment>{t('Need help digging deeper?')}</Fragment>
             </StartTextRow>
           </AutofixStartText>

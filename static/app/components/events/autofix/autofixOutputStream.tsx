@@ -15,7 +15,7 @@ import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
-import {IconRefresh, IconSeerLoading, IconSeerWaiting} from 'sentry/icons';
+import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -154,7 +154,7 @@ function ActiveLogDisplay({
     return (
       <ActiveLogWrapper>
         <SeerIconContainer>
-          <IconSeerWaiting size="lg" />
+          <IconSeer variant="waiting" size="lg" />
         </SeerIconContainer>
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
@@ -186,7 +186,7 @@ function ActiveLogDisplay({
           )}
         >
           <SeerIconContainer ref={seerIconRef}>
-            <StyledAnimatedSeerIcon size="lg" />
+            <StyledAnimatedSeerIcon variant="loading" size="lg" />
             {seerIconRef?.current && isInitializingRun && (
               <FlyingLinesEffect targetElement={seerIconRef.current} />
             )}
@@ -461,7 +461,7 @@ const SeerIconContainer = styled('div')`
   flex-shrink: 0;
 `;
 
-const StyledAnimatedSeerIcon = styled(IconSeerLoading)`
+const StyledAnimatedSeerIcon = styled(IconSeer)`
   position: relative;
   transition: opacity 0.2s ease;
   top: 0;

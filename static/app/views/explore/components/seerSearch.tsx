@@ -5,13 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {
-  IconClose,
-  IconMegaphone,
-  IconSearch,
-  IconSeer,
-  IconSeerLoading,
-} from 'sentry/icons';
+import {IconClose, IconMegaphone, IconSearch, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -47,7 +41,7 @@ interface SeerSearchResults {
 function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
   return (
     <QueryResultsHeader>
-      {loading ? <IconSeerLoading color="purple300" /> : <IconSeer color="purple300" />}
+      <IconSeer variant={loading ? 'loading' : 'default'} color="purple300" />
       <QueryResultsTitle>{title}</QueryResultsTitle>
     </QueryResultsHeader>
   );

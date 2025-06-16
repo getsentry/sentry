@@ -14,7 +14,7 @@ import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreat
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconChevron, IconSeerWaiting} from 'sentry/icons';
+import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -103,7 +103,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       {/* Collapsed summary */}
       {anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
-          <IconSeerWaiting size="lg" style={{marginRight: 8}} />
+          <IconSeer variant="waiting" size="lg" style={{marginRight: 8}} />
           <span>
             {t(
               'Only %s step%s left to get the most out of Seer.',
@@ -118,7 +118,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       {anyStepIncomplete && !stepsCollapsed && (
         <Fragment>
           <StepsHeader>
-            <IconSeerWaiting size="xl" />
+            <IconSeer variant="waiting" size="xl" />
             Debug Faster with Seer
           </StepsHeader>
           <GuidedSteps>
