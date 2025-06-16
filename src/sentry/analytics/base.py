@@ -34,7 +34,7 @@ class Analytics(Service, abc.ABC):
 
     @overload
     @deprecated("Use the `record` method with an event class instead.")
-    def record(self, event: str, instance: Any, **kwargs: Any) -> None:
+    def record(self, event: str, instance: Any | None = None, **kwargs: Any) -> None:
         """
         Record an event, using its `type` name and kwargs. Deprecated, the version of this function
         where an event is directly passed is preferred, as it is more type-safe.

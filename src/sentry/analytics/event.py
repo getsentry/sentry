@@ -4,7 +4,7 @@ from base64 import b64encode
 from collections.abc import Callable
 from dataclasses import asdict, fields
 from datetime import datetime as dt
-from typing import Any, ClassVar, Self, dataclass_transform, overload
+from typing import Any, ClassVar, Self, cast, dataclass_transform, overload
 from uuid import UUID, uuid1
 
 from django.utils import timezone
@@ -53,7 +53,7 @@ def eventclass(
         # set the Event subclass `type` attribute, if it is set to anything
         if isinstance(event_name_or_class, str):
             cls.type = event_name_or_class
-        return dataclass(kw_only=True)(cls)
+        return cast(type[Event], dataclass(kw_only=True)(cls))
 
     # for using without parenthesis, wrap the passed class
     if isinstance(event_name_or_class, type) and issubclass(event_name_or_class, Event):
