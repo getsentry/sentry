@@ -7,7 +7,7 @@ statusProvider:
   config:
     contexts:
       - 'self-hosted-ubuntu-24.04-amd64'
-      - 'self-hosted-ubuntu-24.04-arm64'
+      - 'self-hosted-ubuntu-24.04-arm-arm64'
 artifactProvider:
   name: none
 targets:
