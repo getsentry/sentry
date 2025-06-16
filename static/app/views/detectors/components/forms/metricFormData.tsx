@@ -10,6 +10,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -346,10 +347,11 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
       : undefined;
 
   // Extract aggregate and visualize from the aggregate string
-  // Format is typically "count(transaction.duration)"
-  const aggregateMatch = snubaQuery?.aggregate?.match(/^(\w+)\(([^)]+)\)$/);
-  const aggregate = aggregateMatch?.[1] || 'count';
-  const visualize = aggregateMatch?.[2] || 'transaction.duration';
+  const parsedFunction = snubaQuery?.aggregate
+    ? parseFunction(snubaQuery.aggregate)
+    : null;
+  const aggregate = parsedFunction?.name || 'count';
+  const visualize = parsedFunction?.arguments[0] || 'transaction.duration';
 
   // Process conditions using the extracted function
   const conditionData = processDetectorConditions(detector);
