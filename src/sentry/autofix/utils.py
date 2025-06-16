@@ -186,7 +186,7 @@ def is_seer_scanner_rate_limited(
     return is_rate_limited, current, limit
 
 
-def is_seer_autofix_rate_limited(
+def is_seer_autotriggered_autofix_rate_limited(
     project: Project, organization: Organization
 ) -> tuple[bool, int, int]:
     """

@@ -16,7 +16,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.autofix.utils import (
     SeerAutomationSource,
     get_autofix_state,
-    is_seer_autofix_rate_limited,
+    is_seer_autotriggered_autofix_rate_limited,
 )
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
@@ -311,7 +311,9 @@ def _run_automation(
 
     if _is_issue_fixable(group, issue_summary.scores.fixability_score):
 
-        is_rate_limited, current, limit = is_seer_autofix_rate_limited(project, organization)
+        is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
+            project, organization
+        )
         if is_rate_limited:
             sentry_sdk.set_tags(
                 {
