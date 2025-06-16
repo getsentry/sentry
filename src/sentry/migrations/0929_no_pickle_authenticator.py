@@ -4,6 +4,7 @@ from django.db import migrations
 
 import sentry.users.models.authenticator
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,7 +20,7 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    is_post_deployment = False
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0928_move_notifications_models"),
@@ -30,5 +31,14 @@ class Migration(CheckedMigration):
             model_name="authenticator",
             name="config",
             field=sentry.users.models.authenticator.AuthenticatorConfig(),
+        ),
+        SafeRunSQL(
+            """
+            ALTER TABLE auth_authenticator ALTER COLUMN config TYPE jsonb USING config::jsonb;
+            """,
+            reverse_sql="""
+            ALTER TABLE auth_authenticator ALTER COLUMN config TYPE text;
+            """,
+            hints={"tables": ["auth_authenticator"]},
         ),
     ]
