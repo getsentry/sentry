@@ -8,13 +8,13 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget, 
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
+    NotificationType,
 )
 from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 
 
 class NotificationProviderTest(TestCase):
-
     def setUp(self):
         self.slack_integration = self.create_integration(
             organization=self.organization, provider="slack", external_id="ext-123"
@@ -33,7 +33,7 @@ class NotificationProviderTest(TestCase):
             for resource_type in provider.target_resource_types:
                 assert resource_type in NotificationTargetResourceType
             # Ensures the default renderer links back to its connected provider key
-            assert provider.default_renderer.provider_key == provider.key
+            assert provider.default_renderer == provider.get_renderer(type=NotificationType.DEBUG)
             assert isinstance(provider.is_available(), bool)
             assert isinstance(
                 provider.is_available(
