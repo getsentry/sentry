@@ -37,6 +37,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
@@ -274,7 +275,11 @@ function VitalDetailContent(props: Props) {
           <ButtonBar gap={1}>
             {renderVitalSwitcher()}
             <Feature organization={organization} features="incidents">
-              {({hasFeature}) => hasFeature && renderCreateAlertButton()}
+              {({hasFeature}) =>
+                hasFeature &&
+                !deprecateTransactionAlerts(organization) &&
+                renderCreateAlertButton()
+              }
             </Feature>
           </ButtonBar>
         </Layout.HeaderActions>

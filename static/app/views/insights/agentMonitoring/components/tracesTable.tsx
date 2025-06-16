@@ -1,14 +1,14 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -16,15 +16,12 @@ import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {getAITracesFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
   agentFlow: string;
@@ -47,14 +44,36 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 ];
 
 export function TracesTable() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
   const tracesRequest = useTraces({
     dataset: DiscoverDatasets.SPANS_EAP,
     query: `${getAITracesFilter()}`,
-    sort: '-timestamp',
+    sort: `-timestamp`,
+    keepPreviousData: true,
+    cursor:
+      typeof location.query.tableCursor === 'string'
+        ? location.query.tableCursor
+        : undefined,
     limit: 10,
   });
+
+  const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
+
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
+    navigate(
+      {
+        pathname,
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
+      },
+      {replace: true, preventScrollReset: true}
+    );
+  };
 
   const tableData = useMemo(() => {
     if (!tracesRequest.data) {
@@ -73,9 +92,10 @@ export function TracesTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell sortKey={column.key} forceCellGrow={column.key === 'agentFlow'}>
+      <HeadCell>
         {column.name}
-      </HeadSortCell>
+        {column.key === 'agentFlow' && <CellExpander />}
+      </HeadCell>
     );
   }, []);
 
@@ -104,7 +124,7 @@ export function TracesTable() {
         />
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={'#'} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -116,28 +136,22 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: TableData;
 }) {
-  const location = useLocation();
-  const organization = useOrganization();
+  const {openTraceViewDrawer} = useTraceViewDrawer({});
+
   const {projects} = useProjects();
-  const {selection} = usePageFilters();
 
   const project = useMemo(
     () => projects.find(p => p.slug === dataRow.project),
     [projects, dataRow.project]
   );
 
-  const traceViewTarget = getTraceDetailsUrl({
-    eventId: dataRow.traceId,
-    source: TraceViewSources.LLM_MODULE, // TODO: change source to AGENT_MONITORING
-    organization,
-    location,
-    traceSlug: dataRow.traceId,
-    dateSelection: normalizeDateTimeParams(selection),
-  });
-
   switch (column.key) {
     case 'traceId':
-      return <Link to={traceViewTarget}>{dataRow.traceId.slice(0, 8)}</Link>;
+      return (
+        <Button priority="link" onClick={() => openTraceViewDrawer(dataRow.traceId)}>
+          {dataRow.traceId.slice(0, 8)}
+        </Button>
+      );
     case 'project':
       return project ? (
         <ProjectBadge project={project} avatarSize={16} />
@@ -172,4 +186,17 @@ const LoadingOverlay = styled('div')`
   background-color: ${p => p.theme.background};
   opacity: 0.5;
   z-index: 1;
+`;
+
+/**
+ * Used to force the cell to expand take as much width as possible in the table layout
+ * otherwise grid editable will let the last column grow
+ */
+const CellExpander = styled('div')`
+  width: 100vw;
+`;
+
+const HeadCell = styled('div')`
+  display: flex;
+  align-items: center;
 `;

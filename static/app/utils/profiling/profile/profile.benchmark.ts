@@ -1,7 +1,7 @@
 // Benchmarks allow us to make changes and evaluate performance before the code gets shipped to production.
 // They can be used to make performance improvements or to test impact of newly added functionality.
 
-// Run with: yarn run ts-node --project ./config/tsconfig.benchmark.json -r tsconfig-paths/register static/app/utils/profiling/profile/profile.benchmark.ts
+// Run with: pnpm run ts-node --project ./config/tsconfig.benchmark.json -r tsconfig-paths/register static/app/utils/profiling/profile/profile.benchmark.ts
 
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'benc... Remove this comment to see the full error message
 import benchmarkjs from 'benchmark';
