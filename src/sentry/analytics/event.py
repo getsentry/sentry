@@ -22,7 +22,7 @@ def eventclass(event_name_or_class: str | None = None) -> Callable[[type[Event]]
 def eventclass(event_name_or_class: type[Event]) -> type[Event]: ...
 
 
-@dataclass_transform()
+@dataclass_transform(kw_only_default=True)
 def eventclass(
     event_name_or_class: str | type[Event] | None = None,
 ) -> Callable[[type[Event]], type[Event]] | type[Event]:
