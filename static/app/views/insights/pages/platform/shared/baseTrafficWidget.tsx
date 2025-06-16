@@ -55,6 +55,11 @@ export function BaseTrafficWidget({
     props.pageFilters
   );
 
+  const aliases = {
+    'count(span.duration)': trafficSeriesName,
+    'trace_status_rate(internal_error)': t('Error Rate'),
+  };
+
   const plottables = useMemo(() => {
     return [
       new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
@@ -100,6 +105,8 @@ export function BaseTrafficWidget({
         organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
+            aliases={aliases}
+            showCreateAlert
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
