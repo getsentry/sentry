@@ -10,7 +10,6 @@ from uuid import UUID, uuid1
 from django.utils import timezone
 from pydantic import Field
 from pydantic.dataclasses import dataclass
-from typing_extensions import deprecated
 
 
 # for using it with parenthesis, first parameter is optional
@@ -80,7 +79,7 @@ class Event:
         return serialize_event(self)
 
     @classmethod
-    @deprecated("This constructor function is discuraged, as it is not type-safe.")
+    # @deprecated("This constructor function is discuraged, as it is not type-safe.")
     def from_instance(cls, instance: Any, **kwargs: Any) -> Self:
         return cls(
             **{
