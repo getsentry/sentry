@@ -609,7 +609,7 @@ Retrieve a collection of replay delete jobs.
 | environment | optional[string] | The environment to delete replays from.  If not specified, applies to all environments               |
 | projects    | list[number]     | The projects to delete replays from.                                        |
 | status      | string           | The status of the deletion job. One of `pending`, `in-progress`, and `completed`. |
-| query       | optional[string] | The query string which matches the to-be-deleted replays.                   |
+| query       | optional[string] | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax                  |
 
 - Response 200
 
