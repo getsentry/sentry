@@ -6,7 +6,7 @@ class CheckinProcessingErrorStored(analytics.Event):
     organization_id: str
     project_id: str
     monitor_slug: str
-    error_types: list
+    error_types: list[str]
 
 
 analytics.register(CheckinProcessingErrorStored)
