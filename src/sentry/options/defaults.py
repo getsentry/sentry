@@ -1402,7 +1402,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
-register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "api.deprecation.brownout-duration-seconds",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)

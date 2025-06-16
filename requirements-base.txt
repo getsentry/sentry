@@ -31,7 +31,6 @@ google-cloud-storage>=2.18.0
 googleapis-common-protos>=1.63.2
 google-crc32c>=1.6.0
 grpc-google-iam-v1>=0.13.1
-isodate>=0.6.1
 jsonschema>=3.2.0
 lxml>=5.3.0
 maxminddb>=2.3
