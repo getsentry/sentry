@@ -1,15 +1,15 @@
 import type {Dispatch, SetStateAction} from 'react';
 
 import {Button} from 'sentry/components/core/button';
+import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
-import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type Props = {
@@ -41,12 +41,13 @@ export default function ConnectedMonitorsList({
   const data = monitors.map(monitor => ({
     title: {
       name: monitor.name,
+      createdBy: monitor.createdBy,
       projectId: monitor.projectId,
       link: makeMonitorDetailsPathname(organization.slug, monitor.id),
     },
     type: monitor.type,
     lastIssue: undefined, // TODO: call API to get last issue
-    createdBy: monitor.createdBy,
+    owner: monitor.owner,
     connected: canEdit
       ? {
           isConnected: connectedIds?.has(monitor.id),
@@ -69,9 +70,9 @@ export default function ConnectedMonitorsList({
 }
 
 interface BaseMonitorsData {
-  createdBy: Detector['createdBy'];
   lastIssue: Group | undefined;
-  title: {link: string; name: string; projectId: string};
+  owner: Detector['owner'];
+  title: {createdBy: string | null; link: string; name: string; projectId: string};
   type: Detector['type'];
 }
 
@@ -79,13 +80,18 @@ const baseColumns = defineColumns<BaseMonitorsData>({
   title: {
     Header: () => t('Name'),
     Cell: ({value}) => (
-      <TitleCell name={value.name} projectId={value.projectId} link={value.link} />
+      <TitleCell
+        name={value.name}
+        createdBy={value.createdBy}
+        projectId={value.projectId}
+        link={value.link}
+      />
     ),
     width: '4fr',
   },
   type: {
     Header: () => t('Type'),
-    Cell: ({value}) => <TypeCell type={value} />,
+    Cell: ({value}) => <DetectorTypeCell type={value} />,
     width: '1fr',
   },
   lastIssue: {
@@ -93,12 +99,24 @@ const baseColumns = defineColumns<BaseMonitorsData>({
     Cell: ({value}) => <IssueCell group={value} />,
     width: '1.5fr',
   },
-  createdBy: {
-    Header: () => t('Creator'),
-    Cell: ({value}) => (value ? <UserCell user={value} /> : null),
+  owner: {
+    Header: () => t('Assignee'),
+    Cell: ({value}) => <MonitorOwner owner={value} />,
     width: '1fr',
   },
 });
+
+function MonitorOwner({owner}: {owner: string | null}) {
+  if (!owner) {
+    return t('Unassigned');
+  }
+
+  const [ownerType, ownerId] = owner.split(':');
+  if (!ownerId || (ownerType !== 'user' && ownerType !== 'team')) {
+    return t('Unknown Owner');
+  }
+  return <ActorBadge actor={{id: ownerId, name: '', type: ownerType}} />;
+}
 
 interface ConnectedMonitorsData extends BaseMonitorsData {
   connected?: {

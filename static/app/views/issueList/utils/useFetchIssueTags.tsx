@@ -167,8 +167,8 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
-      const key = `flags["${tag.key}"]`;
+      // flags[] is required for the search endpoint.
+      const key = `flags[${tag.key}]`;
       if (allTagsCollection[key]) {
         allTagsCollection[key].totalValues =
           (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -24,6 +24,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
+import {RequestSdkAccessButton} from './RequestSdkAccessButton';
+
 interface Props {
   organization: Organization;
   project: Project;
@@ -37,16 +39,6 @@ export default function DevKitSettings({organization, project}: Props) {
     orgSlug: organization.slug,
     projSlug: project.slug,
   });
-
-  const playstationURL = useMemo(() => {
-    if (!projectKeys) {
-      return null;
-    }
-
-    // xxx (vgrozdanic): this is a temporary hack since the playstation URL is almost the same as for the minidump
-    const primaryKey = projectKeys[0];
-    return primaryKey?.dsn?.minidump.replace('minidump', 'playstation');
-  }, [projectKeys]);
 
   if (isLoadingKeys) {
     return <LoadingIndicator />;
@@ -84,7 +76,7 @@ export default function DevKitSettings({organization, project}: Props) {
                 >
                   <GuidedSteps.Step
                     stepKey="step-1"
-                    title={t('Copy Playstation Ingestion URL')}
+                    title={t('Copy PlayStation Ingestion URL')}
                   >
                     <DescriptionWrapper>
                       <p>
@@ -92,7 +84,7 @@ export default function DevKitSettings({organization, project}: Props) {
                       </p>
                       <CodeSnippetWrapper>
                         <OnboardingCodeSnippet>
-                          {playstationURL || ''}
+                          {projectKeys?.[0]?.dsn?.playstation || ''}
                         </OnboardingCodeSnippet>
                       </CodeSnippetWrapper>
                     </DescriptionWrapper>
@@ -101,7 +93,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
                   <GuidedSteps.Step
                     stepKey="step-2"
-                    title={t('Using Windows tool set up Upload URL')}
+                    title={t('Using Windows tool to set up Upload URL')}
                   >
                     <DescriptionWrapper>
                       <StepContentColumn>
@@ -125,7 +117,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
                   <GuidedSteps.Step
                     stepKey="step-3"
-                    title={t('Using DevKit Directly set up Upload URL')}
+                    title={t('Using DevKit Directly to set up Upload URL')}
                   >
                     <DescriptionWrapper>
                       <StepContentColumn>
@@ -169,7 +161,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
                       <p>
                         {t(
-                          'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. Short videos should be supposed so configuring the DevKit to keep them short is a temporary solution.'
+                          'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. During the first setup it is recommended to not send any videos, and once you made sure everything works, you can start sending larger attachments.'
                         )}
                       </p>
                     </DescriptionWrapper>
@@ -200,10 +192,11 @@ export default function DevKitSettings({organization, project}: Props) {
   );
 }
 
-export const getDevKitHeaderAction = () => {
+export const getDevKitHeaderAction = (organization: Organization, project: Project) => {
   return (
     <ButtonBar gap={1.5}>
       <FeedbackWidgetButton />
+      <RequestSdkAccessButton organization={organization} project={project} />
     </ButtonBar>
   );
 };

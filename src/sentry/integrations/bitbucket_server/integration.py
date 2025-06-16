@@ -24,6 +24,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -34,7 +35,6 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
@@ -150,12 +150,12 @@ class InstallationForm(forms.Form):
         return data
 
 
-class InstallationConfigView(PipelineView):
+class InstallationConfigView(IntegrationPipelineViewT):
     """
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -173,14 +173,14 @@ class InstallationConfigView(PipelineView):
         )
 
 
-class OAuthLoginView(PipelineView):
+class OAuthLoginView(IntegrationPipelineViewT):
     """
     Start the OAuth dance by creating a request token
     and redirecting the user to approve it.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_LOGIN,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -214,14 +214,14 @@ class OAuthLoginView(PipelineView):
             return HttpResponseRedirect(authorize_url)
 
 
-class OAuthCallbackView(PipelineView):
+class OAuthCallbackView(IntegrationPipelineViewT):
     """
     Complete the OAuth dance by exchanging our request token
     into an access token.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_CALLBACK,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -378,7 +378,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     )
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[IntegrationPipelineViewT]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def post_install(

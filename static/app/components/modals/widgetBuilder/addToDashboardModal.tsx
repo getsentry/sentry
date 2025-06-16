@@ -189,6 +189,7 @@ function AddToDashboardModal({
         pathname,
         query: {
           ...widgetAsQueryParams,
+          title: newWidgetTitle,
           ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
         },
       })

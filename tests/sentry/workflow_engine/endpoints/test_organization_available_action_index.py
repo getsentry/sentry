@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -29,7 +29,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-        self.registry = Registry[ActionHandler](enable_reverse_lookup=False)
+        self.registry = Registry[type[ActionHandler]](enable_reverse_lookup=False)
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_available_action_index.action_handler_registry",
             new=self.registry,
@@ -190,12 +190,13 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             slug=self.no_component_sentry_app.slug, organization=self.organization
         )
 
+        self.sentry_app_settings_schema = self.create_alert_rule_action_schema()
         self.sentry_app = self.create_sentry_app(
             name="Moo Deng's Fire Sentry App",
             organization=self.organization,
             schema={
                 "elements": [
-                    self.create_alert_rule_action_schema(),
+                    self.sentry_app_settings_schema,
                 ]
             },
             is_alertable=True,
@@ -335,7 +336,8 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
-    def test_sentry_apps(self):
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_sentry_apps(self, mock_sentry_app_component_preparer):
         self.setup_sentry_apps()
 
         response = self.get_success_response(
@@ -353,9 +355,10 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
-                    "settings": ANY,
-                    "title": ANY,
+                    "settings": self.sentry_app_settings_schema["settings"],
+                    "title": self.sentry_app_settings_schema["title"],
                 },
             },
             {
@@ -367,6 +370,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
@@ -393,7 +397,8 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             }
         ]
 
-    def test_actions_sorting(self):
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_actions_sorting(self, mock_sentry_app_component_preparer):
 
         self.setup_sentry_apps()
         self.setup_integrations()
@@ -457,9 +462,10 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
-                    "settings": ANY,
-                    "title": ANY,
+                    "settings": self.sentry_app_settings_schema["settings"],
+                    "title": self.sentry_app_settings_schema["title"],
                 },
             },
             {
@@ -471,6 +477,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },

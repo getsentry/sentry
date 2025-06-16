@@ -27,6 +27,7 @@ import {
   MODULE_FEATURES as CACHE_MODULE_FEATURES,
   MODULE_TITLE as CACHE_MODULE_TITLE,
 } from 'sentry/views/insights/cache/settings';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
   DATA_TYPE as DB_DATA_TYPE,
   DATA_TYPE_PLURAL as DB_DATA_TYPE_PLURAL,
@@ -100,6 +101,7 @@ import {
   MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
 
+import type {SpanMetricsProperty} from './types';
 import {ModuleName} from './types';
 
 export const INSIGHTS_TITLE = t('Insights');
@@ -238,3 +240,11 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
 ]);
 
 export const INGESTION_DELAY = 90;
+
+// Base aliases used to map insights yAxis to human readable name
+export const BASE_FIELD_ALIASES: Partial<Record<SpanMetricsProperty, string>> = {
+  'avg(span.duration)': DataTitles.avg,
+  'avg(span.self_time)': DataTitles.avg,
+  'epm()': t('Requests Per Minute'),
+  'cache_miss_rate()': t('Cache Miss Rate'),
+};

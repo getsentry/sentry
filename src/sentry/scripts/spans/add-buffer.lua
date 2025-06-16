@@ -20,6 +20,7 @@ local num_spans = ARGV[1]
 local parent_span_id = ARGV[2]
 local has_root_span = ARGV[3] == "true"
 local set_timeout = tonumber(ARGV[4])
+local NUM_ARGS = 4
 
 local set_span_id = parent_span_id
 local redirect_depth = 0
@@ -52,7 +53,7 @@ if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
     table.insert(sunionstore_args, parent_key)
 end
 
-for i = 5, num_spans + 4 do
+for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     local is_root_span = span_id == parent_span_id
 

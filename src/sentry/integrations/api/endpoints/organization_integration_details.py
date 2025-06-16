@@ -145,14 +145,22 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         integration_id: int,
         **kwds: Any,
     ) -> Response:
-        integration = self.get_integration(organization_context.organization.id, integration_id)
-        installation = integration.get_installation(
-            organization_id=organization_context.organization.id
-        )
+        organization = organization_context.organization
+
+        integration = self.get_integration(organization.id, integration_id)
+        installation = integration.get_installation(organization_id=organization.id)
         try:
             installation.update_organization_config(request.data)
         except (IntegrationError, ApiError) as e:
             sentry_sdk.capture_exception(e)
             return self.respond({"detail": [str(e)]}, status=400)
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=integration.id,
+            event=audit_log.get_event_id("INTEGRATION_EDIT"),
+            data={"provider": integration.provider, "name": "config"},
+        )
 
         return self.respond(status=200)

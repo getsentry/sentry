@@ -14,6 +14,7 @@ from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.rules.processing.buffer_processing import (
@@ -43,13 +44,16 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.processors.action import filter_recently_fired_actions
+from sentry.workflow_engine.processors.action import (
+    create_workflow_fire_histories,
+    filter_recently_fired_actions,
+)
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.processors.log_util import track_batch_performance
+from sentry.workflow_engine.processors.log_util import log_if_slow, track_batch_performance
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     evaluate_workflows_action_filters,
@@ -147,7 +151,7 @@ def fetch_workflows_envs(
     workflows = list(Workflow.objects.filter(id__in=workflow_ids))
 
     for workflow in workflows:
-        workflows_to_envs[workflow.id] = workflow.environment.id if workflow.environment else None
+        workflows_to_envs[workflow.id] = workflow.environment_id
         workflow_ids_to_workflows[workflow.id] = workflow
 
     return workflow_ids_to_workflows, workflows_to_envs
@@ -404,6 +408,7 @@ def get_group_to_groupevent(
 
 @sentry_sdk.trace
 def fire_actions_for_groups(
+    organization: Organization,
     groups_to_fire: dict[int, set[DataConditionGroup]],
     trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
@@ -420,7 +425,7 @@ def fire_actions_for_groups(
     )
 
     with track_batch_performance(
-        "workflow_engine.delayed_workflow.group_to_groupevent.loop",
+        "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
         logger,
         threshold=timedelta(seconds=40),
     ) as tracker:
@@ -443,20 +448,22 @@ def fire_actions_for_groups(
                     ):
                         action_filters.add(dcg)
 
-                # process action filters
-                filtered_actions = filter_recently_fired_actions(action_filters, event_data)
-
                 # process workflow_triggers
                 workflows = set(
                     Workflow.objects.filter(when_condition_group_id__in=workflow_triggers)
                 )
 
-                filtered_actions = filtered_actions.union(
-                    evaluate_workflows_action_filters(workflows, event_data)
+                with log_if_slow(
+                    logger,
+                    "workflow_engine.delayed_workflow.slow_evaluate_workflows_action_filters",
+                    extra={"group_id": group.id, "event_data": event_data},
+                    threshold_seconds=1,
+                ):
+                    workflows_actions = evaluate_workflows_action_filters(workflows, event_data)
+                filtered_actions = filter_recently_fired_actions(
+                    action_filters | workflows_actions, event_data
                 )
-
-                # temporary fetching of organization, so not passing in as parameter
-                organization = group.project.organization
+                create_workflow_fire_histories(filtered_actions, event_data)
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -468,7 +475,7 @@ def fire_actions_for_groups(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
                         "workflow_ids": [workflow.id for workflow in workflows],
-                        "actions": filtered_actions,
+                        "actions": [action.id for action in filtered_actions],
                         "event_data": event_data,
                         "group_id": group.id,
                         "event_id": event_data.event.event_id,
@@ -570,7 +577,13 @@ def process_delayed_workflows(
         },
     )
 
-    condition_group_results = get_condition_group_results(condition_groups)
+    with metrics.timer(
+        "workflow_engine.delayed_workflow.get_condition_group_results",
+        # We want this to be accurate enough for alerting, so sample 100%
+        sample_rate=1.0,
+    ):
+        condition_group_results = get_condition_group_results(condition_groups)
+
     logger.info(
         "delayed_workflow.condition_group_results",
         extra={
@@ -604,7 +617,9 @@ def process_delayed_workflows(
             project_id,
         )
 
-    fire_actions_for_groups(groups_to_dcgs, trigger_group_to_dcg_model, group_to_groupevent)
+    fire_actions_for_groups(
+        project.organization, groups_to_dcgs, trigger_group_to_dcg_model, group_to_groupevent
+    )
     cleanup_redis_buffer(project_id, workflow_event_dcg_data, batch_key)
 
 

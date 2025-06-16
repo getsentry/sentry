@@ -791,7 +791,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_trigger.call_count == 2
@@ -809,7 +812,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         # enqueue the IF DCGs with slow conditions!
 
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_enqueue.call_count == 2
@@ -844,7 +850,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2.id: {self.workflow2_dcgs[1]},
         }
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert WorkflowFireHistory.objects.filter(
@@ -872,14 +881,16 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         assert data == {}
 
     @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.delay")
+    @patch(
+        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.apply_async"
+    )
     def test_batched_cleanup(self, mock_process_delayed):
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
         process_in_batches(self.project.id, "delayed_workflow")
-        batch_one_key = mock_process_delayed.call_args_list[0][0][1]
-        batch_two_key = mock_process_delayed.call_args_list[1][0][1]
+        batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
+        batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify we removed the data from the buffer
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
