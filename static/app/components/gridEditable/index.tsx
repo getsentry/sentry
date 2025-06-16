@@ -465,6 +465,7 @@ class GridEditable<
       height,
       'aria-label': ariaLabel,
       bodyStyle,
+      stickyHeader,
     } = this.props;
     const showHeader = title || headerButtons;
     return (
@@ -486,7 +487,7 @@ class GridEditable<
               height={height}
               ref={this.refGrid}
             >
-              <GridHead>{this.renderGridHead()}</GridHead>
+              <GridHead sticky={stickyHeader}>{this.renderGridHead()}</GridHead>
               <GridBody>{this.renderGridBody()}</GridBody>
             </Grid>
           </Body>

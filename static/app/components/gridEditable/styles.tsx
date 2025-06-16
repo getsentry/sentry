@@ -110,7 +110,7 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
  * Grid. As the entirety of the add/remove/resize actions are performed on the
  * header, most of the elements behave different for each stage.
  */
-export const GridHead = styled('thead')`
+export const GridHead = styled('thead')<{sticky?: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
@@ -126,6 +126,8 @@ export const GridHead = styled('thead')`
 
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
+
+  ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_GRID + 1}` : '')}
 `;
 
 export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
