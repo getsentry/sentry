@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
 UNSUPPORTED_QUERIES = {"release:latest"}
 
-# Allowed time windows (in minutes) for crash rate alerts
+# Allowed time windows (in seconds) for crash rate alerts
 CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [1800, 3600, 7200, 14400, 43200, 86400]
 
 
