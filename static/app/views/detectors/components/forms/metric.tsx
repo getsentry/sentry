@@ -16,7 +16,10 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   FieldKey,
@@ -145,7 +148,9 @@ function PrioritizeSection() {
             : t('Update issue priority when the following thresholds are met:')
         }
       >
-        {kind !== 'dynamic' && <PriorityControl />}
+        {kind !== 'dynamic' && (
+          <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
+        )}
       </Section>
     </Container>
   );

@@ -66,12 +66,10 @@ function ChangePriority() {
 }
 
 interface PriorityControlProps {
-  minimumPriority?: DetectorPriorityLevel;
+  minimumPriority: DetectorPriorityLevel;
 }
 
-export default function PriorityControl({
-  minimumPriority = DetectorPriorityLevel.LOW,
-}: PriorityControlProps) {
+export default function PriorityControl({minimumPriority}: PriorityControlProps) {
   // TODO: kind type not yet available from detector types
   const detectorKind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const initialPriorityLevel = useMetricDetectorFormField(
