@@ -372,7 +372,7 @@ class ExhaustiveFixtures(Fixtures):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
-        Authenticator.objects.create(user=user, type=1)
+        Authenticator.objects.create(user=user, type=1, config={})
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
