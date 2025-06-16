@@ -6,6 +6,15 @@ export const TABLE_FIELD_NAME_TO_SORT_KEY = {
   testName: 'NAME',
 };
 
+export const SUMMARY_TO_TABLE_FILTER_KEY = {
+  slowestTests: 'SLOWEST_TESTS',
+  flakyTests: 'FLAKY_TESTS',
+  failedTests: 'FAILED_TESTS',
+  skippedTests: 'SKIPPED_TESTS',
+};
+
+export type SummaryFilterKey = keyof typeof SUMMARY_TO_TABLE_FILTER_KEY;
+
 export const DATE_TO_QUERY_INTERVAL = {
   '24h': 'INTERVAL_1_DAY',
   '7d': 'INTERVAL_7_DAY',

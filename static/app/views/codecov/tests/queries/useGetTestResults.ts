@@ -9,8 +9,10 @@ import {
   type QueryKeyEndpointOptions,
   useInfiniteQuery,
 } from 'sentry/utils/queryClient';
+import type {SummaryFilterKey} from 'sentry/views/codecov/tests/config';
 import {
   DATE_TO_QUERY_INTERVAL,
+  SUMMARY_TO_TABLE_FILTER_KEY,
   TABLE_FIELD_NAME_TO_SORT_KEY,
 } from 'sentry/views/codecov/tests/config';
 import type {SortableTAOptions} from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
@@ -59,6 +61,8 @@ export function useInfiniteTestResults() {
   const [searchParams] = useSearchParams();
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
+  const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
+  const mappedFilterBy = filterBy && SUMMARY_TO_TABLE_FILTER_KEY[filterBy];
 
   const {data, ...rest} = useInfiniteQuery<
     ApiResult<TestResults>,
@@ -68,7 +72,7 @@ export function useInfiniteTestResults() {
   >({
     queryKey: [
       `/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy}},
+      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy}},
     ],
     queryFn: async ({
       queryKey: [url],
@@ -84,6 +88,7 @@ export function useInfiniteTestResults() {
               interval: DATE_TO_QUERY_INTERVAL[codecovPeriod],
               sortBy: signedSortBy,
               branch,
+              ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
             },
           },
         ],
