@@ -21,6 +21,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
@@ -50,7 +51,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
-from sentry.types.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
