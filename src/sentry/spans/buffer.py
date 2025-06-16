@@ -66,11 +66,11 @@ from __future__ import annotations
 import itertools
 import logging
 import math
+import zlib
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
 import rapidjson
-import zstandard
 from django.conf import settings
 from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -154,9 +154,7 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
-        # Reuse compressor/decompressor objects for better performance
-        self._zstd_compressor = zstandard.ZstdCompressor(level=0)
-        self._zstd_decompressor = zstandard.ZstdDecompressor()
+        # LZ4 doesn't need persistent compressor/decompressor objects
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -321,7 +319,7 @@ class SpansBuffer:
         original_size = len(combined)
 
         with metrics.timer("spans.buffer.compression.cpu_time"):
-            compressed = self._zstd_compressor.compress(combined)
+            compressed = zlib.compress(combined)
 
         compressed_size = len(compressed)
 
@@ -333,13 +331,13 @@ class SpansBuffer:
         return compressed
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
-        # Check for zstd magic header (0xFD2FB528 in little-endian) --
+        # Check for zlib magic header (0x789C for default compression) --
         # backwards compat with code that did not write compressed payloads.
         with metrics.timer("spans.buffer.decompression.cpu_time"):
-            if not compressed_data.startswith(b"\x28\xb5\x2f\xfd"):
+            if not compressed_data.startswith(b"\x78\x9c"):
                 return [compressed_data]
 
-            decompressed_buffer = self._zstd_decompressor.decompress(compressed_data)
+            decompressed_buffer = zlib.decompress(compressed_data)
             return decompressed_buffer.split(b"\x00")
 
     def record_stored_segments(self):
