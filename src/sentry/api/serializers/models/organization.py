@@ -35,10 +35,12 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -513,6 +515,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     effectiveSampleRate: float
     planSampleRate: float
     desiredSampleRate: float
+    ingestThroughTrustedRelaysOnly: bool
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -548,6 +551,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
+    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -557,6 +561,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     rollbackEnabled: bool
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
+    defaultSeerScannerAutomation: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -688,6 +693,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
             "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
+            "gitlabOpenPRBot": bool(
+                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
+            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -706,6 +714,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultAutofixAutomationTuning": obj.get_option(
                 "sentry:default_autofix_automation_tuning",
                 DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+            ),
+            "defaultSeerScannerAutomation": obj.get_option(
+                "sentry:default_seer_scanner_automation",
+                DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
@@ -726,6 +738,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             )
             context["samplingMode"] = str(
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            )
+
+        if features.has("organizations:ingest-through-trusted-relays-only", obj):
+            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
+                "sentry:ingest-through-trusted-relays-only",
+                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
         if access.role is not None:
@@ -761,6 +779,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "quota",
         "rollbackEnabled",
         "streamlineOnly",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

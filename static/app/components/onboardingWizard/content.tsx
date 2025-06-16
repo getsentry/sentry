@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -25,7 +24,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
-import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -104,20 +102,24 @@ interface TaskStatusIconProps {
 
 function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
   const theme = useTheme();
-  const commonStyle = css`
-    opacity: 50%;
-    color: ${theme.tokens.content.accent};
-  `;
   return (
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
         <IconCheckmark
           data-test-id="task-status-icon-complete"
-          css={commonStyle}
+          css={css`
+            color: ${theme.tokens.content.accent};
+          `}
           size="sm"
         />
       ) : (
-        <IconNot data-test-id="task-status-icon-skipped" css={commonStyle} size="sm" />
+        <IconNot
+          data-test-id="task-status-icon-skipped"
+          css={css`
+            color: ${theme.tokens.content.accent};
+          `}
+          size="sm"
+        />
       )}
     </Tooltip>
   );
@@ -258,37 +260,28 @@ function Task({task, hidePanel}: TaskProps) {
     }
   }, [task.status]);
 
+  if (task.status === 'complete' || task.status === 'skipped') {
+    return (
+      <TaskWrapper
+        css={css`
+          opacity: 50%;
+        `}
+      >
+        <TaskCard
+          icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
+          description={task.description}
+          title={<strong>{<s>{task.title}</s>}</strong>}
+        />
+      </TaskWrapper>
+    );
+  }
+
   return (
-    <TaskWrapper
-      initial
-      animate="animate"
-      layout={showSkipConfirmation ? false : true}
-      variants={{
-        initial: {
-          opacity: 0,
-          y: 40,
-        },
-        animate: {
-          opacity: 1,
-          y: 0,
-          transition: testableTransition({
-            delay: 0.8,
-            when: 'beforeChildren',
-            staggerChildren: 0.3,
-          }),
-        },
-      }}
-    >
+    <TaskWrapper>
       <TaskCard
-        onClick={
-          task.status === 'complete' || task.status === 'skipped'
-            ? undefined
-            : handleClick
-        }
+        onClick={handleClick}
         icon={
-          task.status === 'complete' || task.status === 'skipped' ? (
-            <TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />
-          ) : task.skippable ? (
+          task.skippable ? (
             <Button
               icon={<IconNot size="sm" color="subText" />}
               aria-label={t('Skip Task')}
@@ -305,11 +298,9 @@ function Task({task, hidePanel}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          task.status === 'complete' || task.status === 'skipped' ? undefined : (
-            <ClickIndicator>
-              <IconChevron direction="right" size="xs" color="subText" />
-            </ClickIndicator>
-          )
+          <ClickIndicator>
+            <IconChevron direction="right" size="xs" color="subText" />
+          </ClickIndicator>
         }
       />
       {showSkipConfirmation && (
@@ -327,17 +318,17 @@ function Task({task, hidePanel}: TaskProps) {
 
 interface ExpandedTaskGroupProps {
   hidePanel: () => void;
-  sortedTasks: OnboardingTask[];
+  tasks: OnboardingTask[];
 }
 
-function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
+function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
   const mutateOnboardingTasks = useMutateOnboardingTasks();
 
   const markCompletionTimeout = useRef<number | undefined>(undefined);
 
   const unseenDoneTasks = useMemo(
-    () => sortedTasks.filter(task => taskIsDone(task) && !task.completionSeen),
-    [sortedTasks]
+    () => tasks.filter(task => taskIsDone(task) && !task.completionSeen),
+    [tasks]
   );
 
   function completionTimeout(time: number): Promise<void> {
@@ -348,7 +339,7 @@ function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
   }
 
   const markTasksAsSeen = useCallback(() => {
-    const tasksToMarkComplete = sortedTasks
+    const tasksToMarkComplete = tasks
       .filter(task => taskIsDone(task) && !task.completionSeen)
       .map(task => ({...task, completionSeen: true}));
 
@@ -359,7 +350,7 @@ function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
     } else {
       mutateOnboardingTasks.mutate(tasksToMarkComplete);
     }
-  }, [mutateOnboardingTasks, sortedTasks]);
+  }, [mutateOnboardingTasks, tasks]);
 
   const markSeenOnOpen = useCallback(
     async function () {
@@ -385,11 +376,9 @@ function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
     <Fragment>
       <hr />
       <TaskGroupBody>
-        <AnimatePresence initial={false}>
-          {sortedTasks.map(sortedTask => (
-            <Task key={sortedTask.task} task={sortedTask} hidePanel={hidePanel} />
-          ))}
-        </AnimatePresence>
+        {tasks.map(task => (
+          <Task key={task.task} task={task} hidePanel={hidePanel} />
+        ))}
       </TaskGroupBody>
     </Fragment>
   );
@@ -418,7 +407,7 @@ function TaskGroup({
   const theme = useTheme();
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
-  const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+  const {completedTasks} = groupTasksByCompletion(tasks);
 
   const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
     `quick-start:${organization.slug}:${group}-completed`,
@@ -494,12 +483,7 @@ function TaskGroup({
           />
         }
       />
-      {isExpanded && (
-        <ExpandedTaskGroup
-          sortedTasks={[...incompletedTasks, ...completedTasks]}
-          hidePanel={hidePanel}
-        />
-      )}
+      {isExpanded && <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} />}
     </TaskGroupWrapper>
   );
 }
@@ -601,7 +585,7 @@ const TaskGroupBody = styled('ul')`
   margin: 0;
 `;
 
-const TaskWrapper = styled(motion.li)`
+const TaskWrapper = styled('li')`
   gap: ${space(1)};
   p {
     color: ${p => p.theme.subText};

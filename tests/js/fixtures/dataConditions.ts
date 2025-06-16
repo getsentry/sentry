@@ -7,9 +7,9 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 
-export function DataConditionFixture(params: Partial<DataCondition> = {}): DataCondition {
+function DataConditionFixture(params: Partial<DataCondition> = {}): DataCondition {
   return {
-    comparison_type: DataConditionType.EQUAL,
+    type: DataConditionType.EQUAL,
     comparison: '8',
     id: '1',
     ...params,

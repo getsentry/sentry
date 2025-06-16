@@ -20,8 +20,9 @@
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
-/src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/                               @getsentry/owners-snuba
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/extraction.py                  @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 /tests/snuba/test_snql_snuba.py                          @getsentry/owners-snuba
@@ -48,6 +49,7 @@
 /src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
 /src/sentry/api/endpoints/event_reprocessable.py         @getsentry/ingest
 /src/sentry/api/endpoints/project_reprocessing.py        @getsentry/ingest
+/tests/symbolicator/*                                    @getsentry/ingest
 
 
 ## Security
@@ -132,7 +134,7 @@ tsconfig.*                                               @getsentry/owners-js-bu
 webpack.config.*                                         @getsentry/owners-js-build
 .volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
-yarn.lock                                                @getsentry/owners-js-deps
+pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
 ## Design
 /static/app/icons/                                       @getsentry/design
@@ -144,12 +146,6 @@ yarn.lock                                                @getsentry/owners-js-de
 # The following ownership rules are specific to particular features of the
 # Sentry product. These rules generally map to a signle team, but that may not
 # always be the case.
-
-# Demo Mode - moved upwards because it wraps other parts of the codebase
-# and was assigned many issues to telemetry-experience that should not have been
-/src/sentry/demo_mode/                                   @getsentry/telemetry-experience
-/tests/sentry/demo_mode/                                 @getsentry/telemetry-experience
-/static/app/utils/demoMode/                              @getsentry/telemetry-experience
 
 ## Crons
 /static/app/views/monitors                               @getsentry/crons
@@ -242,9 +238,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
 
-/src/sentry/spans/                                                          @getsentry/visibility
-/tests/sentry/spans/                                                        @getsentry/visibility
-
 /src/sentry/api/serializers/snuba.py                                        @getsentry/visibility
 
 /src/sentry/snuba/discover.py                                               @getsentry/visibility
@@ -256,7 +249,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/search/events/                                                  @getsentry/visibility
 /src/sentry/search/eap/                                                  @getsentry/visibility
 
-/src/sentry/utils/performance_issues/                                       @getsentry/performance
+/src/sentry/performance_issues/                                             @getsentry/performance @getsentry/issue-detection-backend
+/tests/sentry/performance_issues/                                           @getsentry/performance @getsentry/issue-detection-backend
 
 /static/app/components/events/eventStatisticalDetector/                     @getsentry/visibility @getsentry/profiling
 
@@ -381,6 +375,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/utils/codecov/       @getsentry/codecov-merge-ux
 /static/app/views/codecov/       @getsentry/codecov-merge-ux
 ## End of Codecov Merge UX
+
+/src/sentry/codecov/ @getsentry/codecov
 
 ## Frontend
 /static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
@@ -510,8 +506,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
-/src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
-/tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
@@ -545,6 +539,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
+/src/sentry/middleware/reporting_endpoint.py                @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
@@ -673,6 +668,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tempest/                                       @getsentry/gdx
 /tests/sentry/tempest/                                     @getsentry/gdx
 
+# Span buffer + process-segments are co-owned by streaming platform and vis for now.
+/src/sentry/spans/                                @getsentry/visibility @getsentry/streaming-platform
+/tests/sentry/spans/                              @getsentry/visibility @getsentry/streaming-platform
+
 # Workflow engine
 /src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
 /tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
@@ -687,7 +686,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
 
 # Preprod build artifact analysis
-/src/sentry/preprod                                   @getsentry/emerge-tool
+/src/sentry/preprod                                   @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)

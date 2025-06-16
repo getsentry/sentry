@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:33:57.645767+00:00'
+created: '2025-05-12T23:40:58.941841+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,21 +10,21 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no contributing frames)
-          frame (marked out of app by stack trace rule (function:runApp -app -group))
+          frame (marked out of app by stack trace rule (function:runApp -app))
             filename*
               "app.js"
             function*
               "runApp"
             context-line*
               "return server.serve(port);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (function:handleRequest -app))
             filename*
               "router.js"
             function*
               "handleRequest"
             context-line*
               "return handler(request);"
-          frame (ignored by stack trace rule (function:recordMetrics +app -group))
+          frame (marked in-app by stack trace rule (function:recordMetrics +app) but ignored by stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
@@ -43,7 +43,7 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (function:runApp -app -group))
+          frame (ignored by stack trace rule (function:runApp -group))
             filename*
               "app.js"
             function*
@@ -57,7 +57,7 @@ system:
               "handleRequest"
             context-line*
               "return handler(request);"
-          frame (ignored by stack trace rule (function:recordMetrics +app -group))
+          frame (ignored by stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*

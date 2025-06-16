@@ -182,6 +182,9 @@ function NPlusOneDBQueriesSpanEvidence({
         getSpanEvidenceValue(span)
       )
     );
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  const patternSize = evidenceData.patternSize ?? 0;
+  const patternSpanIds = (evidenceData.patternSpanIds ?? []).join(', ');
 
   return (
     <PresortedKeyValueList
@@ -193,6 +196,10 @@ function NPlusOneDBQueriesSpanEvidence({
             ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]!))
             : null,
           ...repeatingSpanRows,
+          patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
+          patternSpanIds.length > 0
+            ? makeRow(t('Pattern Span IDs'), patternSpanIds)
+            : null,
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -207,10 +214,14 @@ function NPlusOneAPICallsSpanEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const requestEntry = event?.entries?.find(isRequestEntry);
+  const occurrence = event?.occurrence;
+  const evidenceData = occurrence?.evidenceData ?? {};
   const baseURL = requestEntry?.data?.url;
 
-  const problemParameters = formatChangingQueryParameters(offendingSpans, baseURL);
-  const commonPathPrefix = formatBasePath(offendingSpans[0]!, baseURL);
+  const queryParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const pathParameters = evidenceData.pathParameters ?? [];
+  const commonPathPrefix =
+    occurrence?.subtitle ?? formatBasePath(offendingSpans[0]!, baseURL);
 
   return (
     <PresortedKeyValueList
@@ -224,16 +235,24 @@ function NPlusOneAPICallsSpanEvidence({
                   <AnnotatedText
                     value={
                       <Fragment>
-                        {commonPathPrefix}
-                        <HighlightedEvidence>[Parameters]</HighlightedEvidence>
+                        {commonPathPrefix.split('').map((char, i) => {
+                          return char === '*' ? (
+                            <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
+                          ) : (
+                            char
+                          );
+                        })}
                       </Fragment>
                     }
                   />
                 </pre>
               )
             : null,
-          problemParameters.length > 0
-            ? makeRow(t('Parameters'), problemParameters)
+          queryParameters.length > 0
+            ? makeRow(t('Query Parameters'), queryParameters)
+            : null,
+          pathParameters.length > 0
+            ? makeRow(t('Path Parameters'), pathParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
@@ -292,6 +311,25 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
+function DBQueryInjectionVulnerabilityEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(t('Vulnerable Parameters'), evidenceData.vulnerableParameters),
+        makeRow(t('Request URL'), evidenceData.requestUrl),
+      ]}
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -311,6 +349,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
+  [IssueType.DB_QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -540,7 +579,7 @@ function getSpanEvidenceValue(span: Span | null) {
     return span.op;
   }
 
-  if (span.op === 'db' && span.description) {
+  if (span.op && span.op.startsWith('db') && span.description) {
     return (
       <NoPaddingClippedBox clipHeight={200}>
         <StyledCodeSnippet language="sql">

@@ -11,10 +11,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
 import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
 
 const organization = OrganizationFixture({
-  features: ['enforce-stacked-navigation'],
+  features: ['enforce-stacked-navigation', 'issue-views'],
 });
 
 describe('IssueViewsList', function () {
@@ -64,6 +65,14 @@ describe('IssueViewsList', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
+    });
+
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user').options,
+        prefersStackedNavigation: true,
+      },
     });
   });
 

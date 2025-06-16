@@ -217,7 +217,12 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));

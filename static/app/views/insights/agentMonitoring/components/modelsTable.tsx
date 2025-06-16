@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import GridEditable, {
@@ -6,52 +6,130 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import useOrganization from 'sentry/utils/useOrganization';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {
+  CellLink,
+  GridEditableContainer,
+  LoadingOverlay,
+} from 'sentry/views/insights/agentMonitoring/components/common';
+import {
+  HeadSortCell,
+  useTableSortParams,
+} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {
+  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_MODEL_ID_ATTRIBUTE,
+  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  getAIGenerationsFilter,
+} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
-  duration: number;
-  errorRate: string;
+  avg: number;
+  errorRate: number;
+  inputTokens: number;
   model: string;
+  outputTokens: number;
+  p95: number;
   requests: number;
-  tokens: number;
-  tools: string;
 }
 
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
-  {key: 'requests', name: t('Requests'), width: 120},
-  {key: 'duration', name: t('Duration'), width: 100},
-  {key: 'errorRate', name: t('Error Rate'), width: 140},
-  {key: 'tools', name: t('Tool calls'), width: 120},
-  {key: 'tokens', name: t('Tokens used'), width: 140},
+  {key: 'count()', name: t('Requests'), width: 120},
+  {key: 'avg(span.duration)', name: t('Avg'), width: 100},
+  {key: 'p95(span.duration)', name: t('P95'), width: 100},
+  {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens'), width: 140},
+  {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens'), width: 140},
+  {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
 export function ModelsTable() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {query} = useTransactionNameQuery();
 
-  // TODO: Replace with actual request
-  const modelsRequest = {
-    data: [],
-    isPending: false,
-    error: false,
-    pageLinks: null,
-    isPlaceholderData: false,
+  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
+
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
+    navigate(
+      {
+        pathname,
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
+      },
+      {replace: true, preventScrollReset: true}
+    );
   };
 
-  const tableData = modelsRequest.data;
+  const {sortField, sortOrder} = useTableSortParams();
+
+  const modelsRequest = useEAPSpans(
+    {
+      fields: [
+        AI_MODEL_ID_ATTRIBUTE,
+        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+        'count()',
+        'avg(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+      ],
+      sorts: [{field: sortField, kind: sortOrder}],
+      search: fullQuery,
+      limit: 10,
+      cursor:
+        typeof location.query.modelsCursor === 'string'
+          ? location.query.modelsCursor
+          : undefined,
+      keepPreviousData: true,
+    },
+    Referrer.MODELS_TABLE
+  );
+
+  const tableData = useMemo(() => {
+    if (!modelsRequest.data) {
+      return [];
+    }
+
+    return modelsRequest.data.map(span => ({
+      model: `${span[AI_MODEL_ID_ATTRIBUTE]}`,
+      requests: span['count()'],
+      avg: span['avg(span.duration)'],
+      p95: span['p95(span.duration)'],
+      errorRate: span['failure_rate()'],
+      inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
+      outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
+    }));
+  }, [modelsRequest.data]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'model' && <CellExpander />}
+      <HeadSortCell
+        sortKey={column.key}
+        cursorParamName="modelsCursor"
+        forceCellGrow={column.key === 'model'}
+      >
         {column.name}
       </HeadSortCell>
     );
@@ -82,18 +160,7 @@ export function ModelsTable() {
         />
         {modelsRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination
-        pageLinks={modelsRequest.pageLinks}
-        onCursor={(cursor, path, currentQuery) => {
-          navigate(
-            {
-              pathname: path,
-              query: {...currentQuery, pathsCursor: cursor},
-            },
-            {replace: true, preventScrollReset: true}
-          );
-        }}
-      />
+      <Pagination pageLinks={modelsRequest.pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -105,44 +172,45 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: TableData;
 }) {
+  const organization = useOrganization();
+
+  const exploreUrl = getExploreUrl({
+    organization,
+    mode: Mode.AGGREGATE,
+    visualize: [
+      {
+        chartType: ChartType.BAR,
+        yAxes: ['count(span.duration)'],
+      },
+    ],
+    query: `${AI_MODEL_ID_ATTRIBUTE}:${dataRow.model}`,
+    sort: `-count(span.duration)`,
+  });
+
   switch (column.key) {
     case 'model':
-      return dataRow.model;
-    case 'requests':
+      return (
+        <ModelCell to={exploreUrl}>
+          <ModelName modelId={dataRow.model} provider={'openai'} />
+        </ModelCell>
+      );
+    case 'count()':
       return dataRow.requests;
-    case 'duration':
-      return dataRow.duration;
-    case 'errorRate':
-      return dataRow.errorRate;
-    case 'tokens':
-      return dataRow.tokens;
-    case 'tools':
-      return dataRow.tools;
+    case 'avg(span.duration)':
+      return getDuration(dataRow.avg / 1000, 2, true);
+    case 'p95(span.duration)':
+      return getDuration(dataRow.p95 / 1000, 2, true);
+    case 'failure_rate()':
+      return formatPercentage(dataRow.errorRate ?? 0);
+    case AI_INPUT_TOKENS_ATTRIBUTE_SUM:
+      return formatAbbreviatedNumber(dataRow.inputTokens);
+    case AI_OUTPUT_TOKENS_ATTRIBUTE_SUM:
+      return formatAbbreviatedNumber(dataRow.outputTokens);
     default:
       return null;
   }
 });
 
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
-const GridEditableContainer = styled('div')`
-  position: relative;
-  margin-bottom: ${space(1)};
-`;
-
-const LoadingOverlay = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: ${p => p.theme.background};
-  opacity: 0.5;
-  z-index: 1;
+const ModelCell = styled(CellLink)`
+  line-height: 1.1;
 `;

@@ -11,15 +11,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
-  const {state, dispatch} = useWidgetBuilderContext();
+  const {state} = useWidgetBuilderContext();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
+  const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
 
   const datasetChoices: Array<RadioOption<WidgetType>> = [];
   datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
@@ -48,17 +49,21 @@ function WidgetBuilderDatasetSelector() {
         label={t('Dataset')}
         value={state.dataset ?? WidgetType.ERRORS}
         choices={datasetChoices}
-        onChange={(newValue: WidgetType) => {
-          dispatch({
-            type: BuilderStateAction.SET_DATASET,
-            payload: newValue,
-          });
+        onChange={(newDataset: WidgetType) => {
+          // Set the current dataset state in local storage for recovery
+          // when the user navigates back to this dataset
+          cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
+
+          // Restore the builder state for the new dataset
+          // or set the dataset if there is no cached state
+          restoreOrSetBuilderState(newDataset);
+
           trackAnalytics('dashboards_views.widget_builder.change', {
             from: source,
             widget_type: state.dataset ?? '',
             builder_version: WidgetBuilderVersion.SLIDEOUT,
             field: 'dataSet',
-            value: newValue,
+            value: newDataset,
             new_widget: !isEditing,
             organization,
           });

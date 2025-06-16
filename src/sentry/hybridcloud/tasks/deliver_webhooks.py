@@ -93,10 +93,13 @@ def schedule_webhook_delivery() -> None:
 
     Triggered frequently by celery beat.
     """
+    # Se use the replica for any read queries to webhook payload
+    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
+
     # The double call to .values() ensures that the group by includes mailbox_name
     # but only id_min is selected
     head_of_line = (
-        WebhookPayload.objects.all()
+        WebhookPayloadReplica.all()
         .values("mailbox_name")
         .annotate(id_min=Min("id"))
         .values("id_min")
@@ -105,7 +108,7 @@ def schedule_webhook_delivery() -> None:
     # Get any heads that are scheduled to run
     # Use provider field directly, with default priority for null values
     scheduled_mailboxes = (
-        WebhookPayload.objects.filter(
+        WebhookPayloadReplica.filter(
             schedule_for__lte=timezone.now(),
             id__in=Subquery(head_of_line),
         )
@@ -134,7 +137,7 @@ def schedule_webhook_delivery() -> None:
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
         mailbox_batch = (
-            WebhookPayload.objects.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
+            WebhookPayloadReplica.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
             .order_by("id")
             .values("id")[:MAX_MAILBOX_DRAIN]
         )
@@ -163,8 +166,10 @@ def drain_mailbox(payload_id: int) -> None:
     Messages will be delivered in order until one fails or 50 are delivered.
     Once messages have successfully been delivered or discarded, they are deleted.
     """
+    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
+
     try:
-        payload = WebhookPayload.objects.get(id=payload_id)
+        payload = WebhookPayloadReplica.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
@@ -197,7 +202,7 @@ def drain_mailbox(payload_id: int) -> None:
 
         # Fetch records from the batch in slices of 100. This avoids reading
         # redundant data should we hit an error and should help keep query duration low.
-        query = WebhookPayload.objects.filter(
+        query = WebhookPayloadReplica.filter(
             id__gte=payload.id, mailbox_name=payload.mailbox_name
         ).order_by("id")
 

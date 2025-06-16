@@ -1,3 +1,4 @@
+import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const productionEntryPoints = [
@@ -31,9 +32,7 @@ const testingEntryPoints = [
 
 const storyBookEntryPoints = [
   // our storybook implementation is here
-  'static/app/stories/storyBook.tsx',
-  // custom webpack loaders for stories
-  'static/app/stories/*loader.ts',
+  'static/app/stories/storybook.tsx',
 ];
 
 const config: KnipConfig = {
@@ -45,23 +44,44 @@ const config: KnipConfig = {
   storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
+    'config/**/*.ts',
     'tests/js/**/*.{js,mjs,ts,tsx}',
-    // exclude this directory because it's how you set up mocks in jest (https://jestjs.io/docs/manual-mocks)
-    '!static/{app,gsApp}/**/__mocks__/**',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
     // helper files for tests - it's fine that they are only used in tests
     '!static/**/*{t,T}estUtils*.{js,mjs,ts,tsx}!',
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
-    '!static/app/{components,views}/stories/*.{js,mjs,ts,tsx}!',
+    '!static/app/stories/*.{js,mjs,ts,tsx}!',
+  ],
+  compilers: {
+    mdx: async text => String(await compile(text)),
+  },
+  ignoreDependencies: [
+    'core-js',
+    '@babel/runtime', // used implicitly alongside @babel/plugin-transform-runtime
+    'tsconfig-paths', // passed as cli arg to benchmarking
+    'eslint-import-resolver-typescript', // used in eslint config
+    'jest-environment-jsdom', // used as testEnvironment in jest config
+    'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
+    '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
+    'buffer', // rspack.ProvidePlugin, needs better knip plugin
+    'process', // rspack.ProvidePlugin, needs better knip plugin
+    '@types/webpack-env', // needed to make require.context work
+    '@types/stripe-v3', // needed for global `stripe` namespace typings
+    '@types/gtag.js', // needed for global `gtag` namespace typings
+    '@babel/plugin-transform-runtime', // Still used in jest
+    '@babel/preset-env', // Still used in jest
+    '@babel/preset-react', // Still used in jest
+    '@babel/preset-typescript', // Still used in jest
+    '@emotion/babel-plugin', // Still used in jest
+    'ts-node', // Still used implicitly
+    'terser', // Still used in a loader
   ],
   rules: {
     binaries: 'off',
-    dependencies: 'off',
     enumMembers: 'off',
     unlisted: 'off',
-    unresolved: 'off',
   },
 };
 

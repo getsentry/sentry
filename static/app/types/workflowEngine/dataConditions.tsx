@@ -52,17 +52,21 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export const enum DetectorPriorityLevel {
-  HIGH = 75,
-  MEDIUM = 50,
+export enum DetectorPriorityLevel {
+  OK = 0,
   LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
 }
 
+/**
+ * See DataConditionSerializer
+ */
 export interface DataCondition {
   comparison: any;
-  comparison_type: DataConditionType;
   id: string;
-  condition_result?: any;
+  type: DataConditionType;
+  conditionResult?: DetectorPriorityLevel;
 }
 
 export interface DataConditionGroup {
@@ -70,4 +74,23 @@ export interface DataConditionGroup {
   id: string;
   logicType: DataConditionGroupLogicType;
   actions?: Action[];
+}
+
+export enum DataConditionHandlerGroupType {
+  DETECTOR_TRIGGER = 'detector_trigger',
+  WORKFLOW_TRIGGER = 'workflow_trigger',
+  ACTION_FILTER = 'action_filter',
+}
+
+export enum DataConditionHandlerSubgroupType {
+  ISSUE_ATTRIBUTES = 'issue_attributes',
+  FREQUENCY = 'frequency',
+  EVENT_ATTRIBUTES = 'event_attributes',
+}
+
+export interface DataConditionHandler {
+  comparisonJsonSchema: Record<string, any>;
+  handlerGroup: DataConditionHandlerGroupType;
+  handlerSubgroup: DataConditionHandlerSubgroupType;
+  type: DataConditionType;
 }

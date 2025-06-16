@@ -1,6 +1,6 @@
 from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2Provider
-from sentry.pipeline.views.base import PipelineView
+from sentry.identity.pipeline_types import IdentityPipelineViewT
 
 
 class VercelIdentityProvider(OAuth2Provider):
@@ -19,7 +19,7 @@ class VercelIdentityProvider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
         return [
             OAuth2CallbackView(
                 access_token_url=self.oauth_access_token_url,

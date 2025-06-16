@@ -2,9 +2,9 @@ import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 
 export function ServiceField() {
-  const {action, actionId, onUpdate, integrations} = useActionNodeContext();
+  const {action, actionId, onUpdate, handler} = useActionNodeContext();
   const integrationId = action.integrationId;
-  const integration = integrations?.find(i => i.id === integrationId);
+  const integration = handler.integrations?.find(i => i.id === integrationId);
 
   if (!integration || !integrationId) {
     return null;
@@ -12,15 +12,15 @@ export function ServiceField() {
 
   return (
     <AutomationBuilderSelectField
-      name={`${actionId}.data.targetId`}
-      value={action.data.targetId}
+      name={`${actionId}.config.target_identifier`}
+      value={action.config.target_identifier}
       options={integration.services?.map(service => ({
         label: service.name,
         value: service.id,
       }))}
       onChange={(value: string) => {
         onUpdate({
-          targetId: value,
+          config: {target_identifier: value},
         });
       }}
     />

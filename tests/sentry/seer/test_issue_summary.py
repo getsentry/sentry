@@ -4,6 +4,7 @@ import time
 from unittest.mock import ANY, Mock, call, patch
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.autofix.utils import SeerAutomationSource
 from sentry.locks import locks
 from sentry.seer.issue_summary import (
     _get_event,
@@ -548,9 +549,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score is None
 
-        _run_automation(self.group, mock_user, mock_event, source="issue_details")
+        _run_automation(
+            self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
+        )
 
-        mock_generate_fixability_score.assert_called_once_with(self.group.id)
+        mock_generate_fixability_score.assert_called_once_with(self.group)
 
         mock_trigger_autofix_task.assert_called_once_with(
             group_id=self.group.id,
@@ -582,7 +585,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             ("low", 0.6, False),
             ("low", 0.7, True),
             ("low", 0.8, True),
-            ("medium", 0.4, False),
+            ("medium", 0.39, False),
             ("medium", 0.5, True),
             ("medium", 0.6, True),
             ("high", 0.2, False),
@@ -613,9 +616,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
             with self.subTest(option=option_value, score=score, should_trigger=should_trigger):
                 self.group.project.update_option("sentry:autofix_automation_tuning", option_value)
-                _run_automation(self.group, mock_user, mock_event, source="issue_details")
+                _run_automation(
+                    self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
+                )
 
-                mock_generate_fixability_score.assert_called_once_with(self.group.id)
+                mock_generate_fixability_score.assert_called_once_with(self.group)
                 self.group.refresh_from_db()
                 assert self.group.seer_fixability_score == score
 

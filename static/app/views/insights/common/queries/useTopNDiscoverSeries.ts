@@ -67,9 +67,15 @@ export const useTopNSpanEAPSeries = <
     | string[],
 >(
   options: UseMetricsSeriesOptions<Fields>,
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
-  return useTopNDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
+  return useTopNDiscoverSeries<Fields>(
+    options,
+    DiscoverDatasets.SPANS_EAP_RPC,
+    referrer,
+    pageFilters
+  );
 };
 
 const useTopNDiscoverSeries = <T extends string[]>(

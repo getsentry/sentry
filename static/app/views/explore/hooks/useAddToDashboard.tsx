@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -10,6 +9,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {
   DashboardWidgetSource,
+  DEFAULT_WIDGET_NAME,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
@@ -62,7 +62,7 @@ export function useAddToDashboard() {
       const search = new MutableSearch(query);
 
       const discoverQuery: NewQuery = {
-        name: t('Custom Widget'),
+        name: DEFAULT_WIDGET_NAME,
         fields,
         orderby: sortBys.map(formatSort),
         query: search.formatString(),

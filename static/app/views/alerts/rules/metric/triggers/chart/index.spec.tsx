@@ -213,50 +213,6 @@ describe('Incident Rules Create', () => {
     );
   });
 
-  it('does a 7 day query for confidence data on the EAP dataset', async () => {
-    const {organization, project, router} = initializeOrg({
-      organization: {features: ['visibility-explore-view']},
-    });
-
-    render(
-      <TriggersChart
-        theme={theme}
-        api={api}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        query=""
-        timeWindow={1}
-        aggregate="count(span.duration)"
-        dataset={Dataset.EVENTS_ANALYTICS_PLATFORM}
-        triggers={[]}
-        environment={null}
-        comparisonType={AlertRuleComparisonType.COUNT}
-        resolveThreshold={null}
-        thresholdType={AlertRuleThresholdType.BELOW}
-        newAlertOrQuery
-        onDataLoaded={() => {}}
-        isQueryValid
-        showTotalCount
-        includeConfidence
-      />
-    );
-
-    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
-    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
-
-    expect(eventStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: 'spans',
-          statsPeriod: '9998m',
-          yAxis: 'count(span.duration)',
-        }),
-      })
-    );
-  });
-
   it('uses normal sampling for span alerts', async () => {
     const {organization, project, router} = initializeOrg();
 

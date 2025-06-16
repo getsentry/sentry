@@ -433,7 +433,11 @@ class DashboardDetail extends Component<Props, State> {
   handleBeforeUnload = (event: BeforeUnloadEvent) => {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
-    if (defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard)) {
+    if (
+      defined(modifiedDashboard) &&
+      !isEqual(modifiedDashboard, dashboard) &&
+      this.isEditingDashboard
+    ) {
       event.preventDefault();
       event.returnValue = '';
     }
@@ -1133,7 +1137,9 @@ class DashboardDetail extends Component<Props, State> {
               (checkDashboardRoute(locationChange.currentLocation.pathname) &&
                 checkDashboardRoute(locationChange.nextLocation.pathname));
             const hasUnsavedChanges =
-              defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard);
+              defined(modifiedDashboard) &&
+              !isEqual(modifiedDashboard, dashboard) &&
+              this.isEditingDashboard;
             return (
               locationChange.currentLocation.pathname !==
                 locationChange.nextLocation.pathname &&
@@ -1249,7 +1255,7 @@ class DashboardDetail extends Component<Props, State> {
                                     },
                                   });
                                 }}
-                                onSave={() => {
+                                onSave={async () => {
                                   const newModifiedDashboard = {
                                     ...cloneDashboard(modifiedDashboard ?? dashboard),
                                     ...getCurrentPageFilters(location),
@@ -1259,7 +1265,7 @@ class DashboardDetail extends Component<Props, State> {
                                   };
                                   this.setState({isSavingDashboardFilters: true});
                                   addLoadingMessage(t('Saving dashboard filters'));
-                                  updateDashboard(
+                                  await updateDashboard(
                                     api,
                                     organization.slug,
                                     newModifiedDashboard

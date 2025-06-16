@@ -48,8 +48,6 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
-    "organizations:continuous-profiling-beta",
-    "organizations:continuous-profiling-beta-ingest",
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
@@ -1058,7 +1056,8 @@ def _get_project_config(
     add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
     # Rules to replace high cardinality transaction names
-    add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
+    if not features.has("projects:transaction-name-clustering-disabled", project):
+        add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.

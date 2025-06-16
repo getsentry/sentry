@@ -1,21 +1,42 @@
-import {Fragment, memo, useCallback} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import useOrganization from 'sentry/utils/useOrganization';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {
+  CellLink,
+  GridEditableContainer,
+  LoadingOverlay,
+} from 'sentry/views/insights/agentMonitoring/components/common';
+import {
+  HeadSortCell,
+  useTableSortParams,
+} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {
+  AI_TOOL_NAME_ATTRIBUTE,
+  getAIToolCallsFilter,
+} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
   avg: number;
-  errorRate: string;
+  errorRate: number;
   p95: number;
   requests: number;
   tool: string;
@@ -25,31 +46,78 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'tool', name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
-  {key: 'requests', name: t('Requests'), width: 120},
-  {key: 'avg', name: t('Avg'), width: 100},
-  {key: 'p95', name: t('P95'), width: 100},
-  {key: 'errorRate', name: t('Error Rate'), width: 100},
+  {key: 'count()', name: t('Requests'), width: 120},
+  {key: 'avg(span.duration)', name: t('Avg'), width: 100},
+  {key: 'p95(span.duration)', name: t('P95'), width: 100},
+  {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
 export function ToolsTable() {
   const navigate = useNavigate();
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const location = useLocation();
 
-  // TODO: Replace with actual request
-  const toolsRequest = {
-    data: [],
-    isPending: false,
-    error: false,
-    pageLinks: null,
-    isPlaceholderData: false,
+  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {query} = useTransactionNameQuery();
+
+  const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
+
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
+    navigate(
+      {
+        pathname,
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
+      },
+      {replace: true, preventScrollReset: true}
+    );
   };
 
-  const tableData = toolsRequest.data;
+  const {sortField, sortOrder} = useTableSortParams();
+
+  const toolsRequest = useEAPSpans(
+    {
+      fields: [
+        AI_TOOL_NAME_ATTRIBUTE,
+        'count()',
+        'avg(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+      ],
+      sorts: [{field: sortField, kind: sortOrder}],
+      search: fullQuery,
+      limit: 10,
+      cursor:
+        typeof location.query.toolsCursor === 'string'
+          ? location.query.toolsCursor
+          : undefined,
+      keepPreviousData: true,
+    },
+    Referrer.TOOLS_TABLE
+  );
+
+  const tableData = useMemo(() => {
+    if (!toolsRequest.data) {
+      return [];
+    }
+
+    return toolsRequest.data.map(span => ({
+      tool: `${span[AI_TOOL_NAME_ATTRIBUTE]}`,
+      requests: span['count()'],
+      avg: span['avg(span.duration)'],
+      p95: span['p95(span.duration)'],
+      errorRate: span['failure_rate()'],
+    }));
+  }, [toolsRequest.data]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'tool' && <CellExpander />}
+      <HeadSortCell
+        sortKey={column.key}
+        cursorParamName="toolsCursor"
+        forceCellGrow={column.key === 'tool'}
+      >
         {column.name}
       </HeadSortCell>
     );
@@ -80,18 +148,7 @@ export function ToolsTable() {
         />
         {toolsRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination
-        pageLinks={toolsRequest.pageLinks}
-        onCursor={(cursor, path, currentQuery) => {
-          navigate(
-            {
-              pathname: path,
-              query: {...currentQuery, pathsCursor: cursor},
-            },
-            {replace: true, preventScrollReset: true}
-          );
-        }}
-      />
+      <Pagination pageLinks={toolsRequest.pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -103,42 +160,33 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: TableData;
 }) {
+  const organization = useOrganization();
+
+  const exploreUrl = getExploreUrl({
+    organization,
+    mode: Mode.AGGREGATE,
+    visualize: [
+      {
+        chartType: ChartType.BAR,
+        yAxes: ['count(span.duration)'],
+      },
+    ],
+    query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,
+    sort: `-count(span.duration)`,
+  });
+
   switch (column.key) {
     case 'tool':
-      return dataRow.tool;
-    case 'requests':
+      return <CellLink to={exploreUrl}>{dataRow.tool}</CellLink>;
+    case 'count()':
       return dataRow.requests;
-    case 'avg':
-      return dataRow.avg;
-    case 'p95':
-      return dataRow.p95;
-    case 'errorRate':
-      return dataRow.errorRate;
+    case 'avg(span.duration)':
+      return getDuration(dataRow.avg / 1000, 2, true);
+    case 'p95(span.duration)':
+      return getDuration(dataRow.p95 / 1000, 2, true);
+    case 'failure_rate()':
+      return formatPercentage(dataRow.errorRate ?? 0);
     default:
       return null;
   }
 });
-
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
-const GridEditableContainer = styled('div')`
-  position: relative;
-  margin-bottom: ${space(1)};
-`;
-
-const LoadingOverlay = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: ${p => p.theme.background};
-  opacity: 0.5;
-  z-index: 1;
-`;

@@ -27,7 +27,7 @@ type Props = {
   value?: string;
 };
 
-const WEB_VITAL_FULL_NAME_MAP = {
+export const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
   inp: t('Interaction to Next Paint'),

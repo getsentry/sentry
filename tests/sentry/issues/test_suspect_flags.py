@@ -123,4 +123,20 @@ class SnubaTest(TestCase, SnubaTestCase):
         )
 
         results = get_suspect_flag_scores(1, 1, before, later, envs=[], group_id=1)
-        assert results == [("key", 2.7622287114272543, 0.5), ("other", 0.0, 0.0)]
+        assert results == [
+            {
+                "flag": "key",
+                "score": 0.01634056054997356,
+                "baseline_percent": 0.5,
+                "distribution": {
+                    "baseline": {"false": 1, "true": 1},
+                    "outliers": {"true": 1},
+                },
+            },
+            {
+                "flag": "other",
+                "score": 0.016181914331041776,
+                "baseline_percent": 0,
+                "distribution": {"baseline": {"false": 2}, "outliers": {"false": 1}},
+            },
+        ]

@@ -235,7 +235,7 @@ class Project(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = SentrySlugField(null=True, max_length=PROJECT_SLUG_MAX_LENGTH)
+    slug = SentrySlugField(max_length=PROJECT_SLUG_MAX_LENGTH)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)

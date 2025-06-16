@@ -163,7 +163,7 @@ describe('projectPerformance', function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
-      body: {n_plus_one_db_queries_detection_enabled: false},
+      body: {transaction_duration_regression_detection_enabled: false},
       statusCode: 200,
     });
     const performanceIssuesPutMock = MockApiClient.addMockResponse({
@@ -173,22 +173,23 @@ describe('projectPerformance', function () {
 
     render(<ProjectPerformance />, {
       organization: org,
-
       initialRouterConfig,
     });
 
-    expect(await screen.findByText('N+1 DB Queries Detection')).toBeInTheDocument();
-    expect(screen.getByText('Slow DB Queries Detection')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Transaction Duration Regression Enabled')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Function Duration Regression Enabled')).toBeInTheDocument();
 
     const toggle = screen.getByRole('checkbox', {
-      name: 'N+1 DB Queries Detection',
+      name: 'Transaction Duration Regression Enabled',
     });
     await userEvent.click(toggle);
 
     expect(performanceIssuesPutMock).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/performance-issues/configure/',
       expect.objectContaining({
-        data: {n_plus_one_db_queries_detection_enabled: true},
+        data: {transaction_duration_regression_detection_enabled: true},
       })
     );
   });
@@ -462,7 +463,7 @@ describe('projectPerformance', function () {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view', 'performance-manage-detectors'],
+          features: ['performance-view'],
         }),
         initialRouterConfig,
       });
@@ -525,7 +526,7 @@ describe('projectPerformance', function () {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view', 'performance-manage-detectors'],
+          features: ['performance-view'],
           access: ['project:read'],
         }),
         initialRouterConfig,

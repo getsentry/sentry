@@ -8,7 +8,7 @@ export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
 const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
 
-function getParser(local = false): typeof moment | typeof moment.utc {
+export function getParser(local = false): typeof moment | typeof moment.utc {
   return local ? moment : moment.utc;
 }
 
@@ -208,17 +208,27 @@ export function getTimeFormat({
   clock24Hours,
   seconds,
   timeZone,
+  milliseconds,
 }: {
   clock24Hours?: boolean;
+  milliseconds?: boolean;
   seconds?: boolean;
   timeZone?: boolean;
 } = {}) {
   let format = '';
 
   if (clock24Hours ?? shouldUse24Hours()) {
-    format = seconds ? 'HH:mm:ss' : 'HH:mm';
+    if (milliseconds) {
+      format = 'HH:mm:ss.SSS';
+    } else {
+      format = seconds ? 'HH:mm:ss' : 'HH:mm';
+    }
   } else {
-    format = seconds ? 'LTS' : 'LT';
+    if (milliseconds) {
+      format = 'h:mm:ss.SSS A';
+    } else {
+      format = seconds ? 'LTS' : 'LT';
+    }
   }
 
   if (timeZone) {
@@ -237,6 +247,10 @@ interface FormatProps {
    * If true, will only return the date part, e.g. "Jan 1".
    */
   dateOnly?: boolean;
+  /**
+   * Whether to show the milliseconds.
+   */
+  milliseconds?: boolean;
   /**
    * Whether to show the seconds.
    */
@@ -264,6 +278,7 @@ export function getFormat({
   seconds,
   timeZone,
   clock24Hours,
+  milliseconds,
 }: FormatProps = {}) {
   if (dateOnly) {
     return getDateFormat({year});
@@ -277,6 +292,7 @@ export function getFormat({
   const timeFormat = getTimeFormat({
     clock24Hours,
     seconds,
+    milliseconds,
     timeZone,
   });
 

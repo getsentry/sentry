@@ -36,7 +36,6 @@ import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
@@ -103,19 +102,12 @@ export function CacheSamplePanel() {
     'project.id': query.project,
   };
 
-  const {data: cacheHitRateData, isPending: isCacheHitRateLoading} = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
-      yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.SAMPLES_CACHE_HIT_MISS_CHART
-  );
+  const search = MutableSearch.fromQueryObject(filters);
 
   const {data: cacheTransactionMetrics, isFetching: areCacheTransactionMetricsFetching} =
     useSpanMetrics(
       {
-        search: MutableSearch.fromQueryObject(filters),
+        search,
         fields: [
           `${SpanFunction.EPM}()`,
           `${SpanFunction.CACHE_MISS_RATE}()`,
@@ -199,7 +191,7 @@ export function CacheSamplePanel() {
 
   const transactionIds = cacheSamples?.map(span => span[transactionIdField]) || [];
   const traceIds = cacheSamples?.map(span => span.trace) || [];
-  const search = useEap
+  const transactionDurationSearch = useEap
     ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] trace:[${traceIds.join(',')}] is_transaction:true`
     : `id:[${transactionIds.join(',')}]`;
 
@@ -209,7 +201,7 @@ export function CacheSamplePanel() {
     isFetching: isFetchingTransactions,
   } = useDiscoverOrEap(
     {
-      search,
+      search: transactionDurationSearch,
       enabled: Boolean(transactionIds.length),
       fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
     },
@@ -357,10 +349,7 @@ export function CacheSamplePanel() {
               />
             </ModuleLayout.Full>
             <ModuleLayout.Half>
-              <CacheHitMissChart
-                isLoading={isCacheHitRateLoading}
-                series={cacheHitRateData[`cache_miss_rate()`]}
-              />
+              <CacheHitMissChart search={search} />
             </ModuleLayout.Half>
             <ModuleLayout.Half>
               <TransactionDurationChartWithSamples samples={samplesPlottable} />

@@ -52,7 +52,7 @@ function bfsFilter(root: ProcessedTreeCoverageSunburstData, maxDepth: number) {
  *   children: <recursive structure>[] | undefined - only dir nodes should have the children field;
  * }
  */
-export interface TreeCoverageSunburstData {
+interface TreeCoverageSunburstData {
   children: TreeCoverageSunburstData[];
   coverage: number;
   fullPath: string;
@@ -134,7 +134,11 @@ export function TreeCoverageSunburstChart({
         <ReactEchartsCore
           echarts={echarts}
           onEvents={{
-            mouseover: (params: Parameters<EChartMouseOverHandler>[0]) => {
+            mouseover: (
+              params: Parameters<
+                EChartMouseOverHandler<ProcessedTreeCoverageSunburstData>
+              >[0]
+            ) => {
               const splitPaths = params.data.fullPath.split('/');
 
               if (splitPaths.length > 2) {
@@ -143,7 +147,9 @@ export function TreeCoverageSunburstChart({
                 setBreadCrumbs(params.data.fullPath);
               }
             },
-            click: (params: Parameters<EChartClickHandler>[0]) => {
+            click: (
+              params: Parameters<EChartClickHandler<ProcessedTreeCoverageSunburstData>>[0]
+            ) => {
               if (params?.data?.type === 'dir') {
                 const parent = rootNode.edges.get(params.data.fullPath);
                 const node = rootNode.nodeMap.get(params.data?.fullPath);
@@ -152,8 +158,8 @@ export function TreeCoverageSunburstChart({
                 }
 
                 setRenderData(() => {
-                  if (params.data.depth > 0 && parent) {
-                    const children = bfsFilter(node, params.data?.depth + 1);
+                  if ((params.data.depth ?? 0) > 0 && parent) {
+                    const children = bfsFilter(node, (params.data?.depth ?? 0) + 1);
 
                     return {
                       ...parent,
@@ -163,7 +169,7 @@ export function TreeCoverageSunburstChart({
                     } satisfies ProcessedTreeCoverageSunburstData;
                   }
 
-                  return bfsFilter(node, params.data?.depth + 2);
+                  return bfsFilter(node, (params.data?.depth ?? 0) + 2);
                 });
               }
             },

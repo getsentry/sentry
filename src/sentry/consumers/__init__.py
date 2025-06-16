@@ -315,6 +315,15 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "events_analytics_platform"},
     },
+    "subscription-results-eap-items": {
+        "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,
+        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "static_args": {
+            "dataset": "events_analytics_platform",
+            "topic_override": "subscription-results-eap-items",
+        },
+    },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
@@ -416,24 +425,13 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "process-spans": {
         "topic": Topic.INGEST_SPANS,
+        "dlq_topic": Topic.INGEST_SPANS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": [
-            click.Option(
-                ["--max-flush-segments", "max_flush_segments"],
-                type=int,
-                default=100,
-                help="The number of segments to download from redis at once. Defaults to 100.",
-            ),
-            click.Option(
-                ["--max-memory-percentage", "max_memory_percentage"],
-                default=1.0,
-                help="Maximum memory usage of the Redis cluster in % (0.0-1.0) before the consumer backpressures.",
-            ),
-            *multiprocessing_options(default_max_batch_size=100),
-        ],
+        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
+        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": [
             click.Option(

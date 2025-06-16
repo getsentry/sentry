@@ -49,6 +49,7 @@ import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
 import FirstPartyIntegrationAdditionalCTA from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
 import FirstPartyIntegrationAlertHook from 'getsentry/hooks/firstPartyIntegrationAlertHook';
+import GithubInstallationSelectInstallButton from 'getsentry/hooks/githubInstallationSelectInstall';
 import handleGuideUpdate from 'getsentry/hooks/handleGuideUpdate';
 import {handleMonitorCreated} from 'getsentry/hooks/handleMonitorCreated';
 import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
@@ -247,6 +248,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
   'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
+  'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
 
   /**
    * Augment disable feature hooks for augmenting with upsell interfaces
@@ -351,7 +353,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   ),
   'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
   'feature-disabled:issue-views': p => (
-    <PowerFeatureHovercard features={['organizations:issue-views']} id="issue-views">
+    <PowerFeatureHovercard
+      features={['organizations:issue-views']}
+      id="issue-views"
+      useLearnMoreLink
+    >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>
   ),

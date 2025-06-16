@@ -189,7 +189,7 @@ class DuplicateDisplayNameError(IntegrationError):
 
 
 class IntegrationFormError(IntegrationError):
-    def __init__(self, field_errors: Mapping[str, Any]) -> None:
+    def __init__(self, field_errors: Mapping[str, Any] | None = None) -> None:
         error = "Invalid integration action"
         if field_errors:
             error = str(field_errors)

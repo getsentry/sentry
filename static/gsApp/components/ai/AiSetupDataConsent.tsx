@@ -1,19 +1,30 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
-import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
+import StartTrialButton from 'getsentry/components/startTrialButton';
+import useSubscription from 'getsentry/hooks/useSubscription';
+import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {getPotentialProductTrial} from 'getsentry/utils/billing';
+import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
   groupId: string;
@@ -23,7 +34,29 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {data: autofixSetupData} = useAutofixSetup({groupId});
+  const {data: autofixSetupData, hasAutofixQuota, refetch} = useAutofixSetup({groupId});
+  const navigate = useNavigate();
+  const subscription = useSubscription();
+
+  const trial = getPotentialProductTrial(
+    subscription?.productTrials ?? null,
+    DataCategory.SEER_AUTOFIX
+  );
+
+  const orgHasAcknowledged = autofixSetupData?.setupAcknowledgement.orgHasAcknowledged;
+  const shouldShowBilling =
+    organization.features.includes('seer-billing') && !hasAutofixQuota;
+  const canStartTrial = Boolean(trial && !trial.isStarted);
+  const hasSeerButNeedsPayg =
+    shouldShowBilling && organization.features.includes('seer-added');
+
+  const isTouchCustomer = subscription?.type === BillingType.INVOICED;
+  const isSponsoredCustomer = Boolean(subscription?.isSponsored);
+
+  const isPerCategoryOnDemand =
+    subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY;
+
+  const userHasBillingAccess = organization.access.includes('org:billing');
 
   const autofixAcknowledgeMutation = useMutation({
     mutationFn: () => {
@@ -43,75 +76,217 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     },
   });
 
+  function handlePurchaseSeer() {
+    navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);
+  }
+
+  function handleAddBudget() {
+    if (!subscription) {
+      return;
+    }
+    if (isPerCategoryOnDemand) {
+      // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
+      navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent#step3`);
+      return;
+    }
+    openOnDemandBudgetEditModal({
+      organization,
+      subscription,
+    });
+  }
+
   return (
     <ConsentItemsContainer>
       <Flex align="center" gap={space(1)}>
-        <SeerWaitingIcon size="xl" />
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
       <Flex align="center" justify="center" gap={space(1)}>
         <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
       </Flex>
-      <HeaderItem>
-        <Title>{t('With Seer you get:')}</Title>
-      </HeaderItem>
-      <ConsentItem>
-        <ConsentTitle>{t('Issue Summaries')}</ConsentTitle>
+      <SingleCard>
+        <Flex align="center" gap={space(1)}>
+          <MeetSeerHeader>MEET SEER</MeetSeerHeader>
+          <IconSeer variant="waiting" color="subText" size="lg" />
+        </Flex>
         <Paragraph>
           {t(
-            "The fastest way to see what's going on, incorporating all data in the issue."
+            "Seer is Sentry's AI agent that helps you troubleshoot and fix problems with your applications, including bugs and performance issues. Seer includes:"
           )}
         </Paragraph>
-      </ConsentItem>
-      <ConsentItem>
-        <ConsentTitle>{t('Root Cause Analysis')}</ConsentTitle>
-        <Paragraph>
-          {t('A streamlined, collaborative workflow to find the root cause.')}
-        </Paragraph>
-      </ConsentItem>
-      <ConsentItem>
-        <ConsentTitle>{t('Solutions & Code Changes')}</ConsentTitle>
-        <Paragraph>
-          {t('Proposed fixes with test cases, ready to merge as draft pull requests.')}
-        </Paragraph>
-      </ConsentItem>
-      <ButtonWrapper>
-        <Button
-          priority="primary"
-          onClick={() => autofixAcknowledgeMutation.mutate()}
-          disabled={autofixAcknowledgeMutation.isPending}
-          analyticsEventKey="gen_ai_consent.in_drawer_clicked"
-          analyticsEventName="Gen AI Consent: Clicked In Drawer"
-          analyticsParams={{
-            is_first_user_in_org:
-              !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged,
-          }}
-          size="sm"
-        >
-          {autofixAcknowledgeMutation.isPending ? (
-            <StyledLoadingIndicator size={14} />
-          ) : autofixSetupData?.setupAcknowledgement.orgHasAcknowledged ? (
-            t('Try Seer')
+        <BulletList>
+          <li>{t('Issue Triage')}</li>
+          <li>{t('Root Cause Analysis')}</li>
+          <li>{t('Solutions & Code Changes')}</li>
+        </BulletList>
+        {shouldShowBilling ? (
+          isTouchCustomer || isSponsoredCustomer ? (
+            <TouchCustomerMessage>
+              {isTouchCustomer
+                ? tct(
+                    'Contact your customer success manager to get access to Seer.[break]Send us an [link:email] if you need help.',
+                    {
+                      link: <ExternalLink href="mailto:sales@sentry.io" />,
+                      break: <br />,
+                    }
+                  )
+                : tct(
+                    'Seer is not available on Sponsored plans.[break]Send us an [link:email] if you need help.',
+                    {
+                      link: <ExternalLink href="mailto:support@sentry.io" />,
+                      break: <br />,
+                    }
+                  )}
+            </TouchCustomerMessage>
           ) : (
-            t('Enable Seer')
-          )}
-        </Button>
-        {autofixAcknowledgeMutation.isError && (
-          <ErrorText>{t('Something went wrong.')}</ErrorText>
+            <Fragment>
+              <ButtonWrapper>
+                {canStartTrial ? (
+                  <StartTrialButton
+                    organization={organization}
+                    source="ai-setup-consent"
+                    requestData={{
+                      productTrial: {
+                        category: DataCategory.SEER_AUTOFIX,
+                        reasonCode: trial?.reasonCode,
+                      },
+                    }}
+                    busy={autofixAcknowledgeMutation.isPending}
+                    handleClick={() => autofixAcknowledgeMutation.mutate()}
+                    size="md"
+                    priority="primary"
+                    analyticsEventKey="seer_drawer.free_trial_clicked"
+                    analyticsEventName="Seer Drawer: Clicked Free Trial"
+                  >
+                    {t('Try Seer for Free')}
+                  </StartTrialButton>
+                ) : hasSeerButNeedsPayg ? (
+                  <Flex gap={space(2)} column>
+                    <ErrorText>
+                      {tct(
+                        "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
+                        {
+                          budgetTerm: subscription?.planDetails.budgetTerm,
+                        }
+                      )}
+                    </ErrorText>
+                    <Flex>
+                      {userHasBillingAccess ? (
+                        <AddBudgetButton
+                          priority="primary"
+                          onClick={() => {
+                            handleAddBudget();
+                            autofixAcknowledgeMutation.mutate();
+                          }}
+                          size="md"
+                          analyticsEventKey="seer_drawer.add_budget_clicked"
+                          analyticsEventName="Seer Drawer: Clicked Add Budget"
+                        >
+                          {t('Add Budget')}
+                        </AddBudgetButton>
+                      ) : (
+                        <Button
+                          priority="primary"
+                          onClick={async () => {
+                            await sendAddEventsRequest({
+                              api,
+                              organization,
+                              eventTypes: [DataCategoryExact.SEER_AUTOFIX],
+                            });
+                            autofixAcknowledgeMutation.mutate();
+                          }}
+                          size="md"
+                          analyticsEventKey="seer_drawer.request_budget_clicked"
+                          analyticsEventName="Seer Drawer: Clicked Request Budget"
+                        >
+                          {t('Request Budget')}
+                        </Button>
+                      )}
+                      <Button
+                        icon={<IconRefresh size="xs" />}
+                        onClick={async () => {
+                          await refetch();
+                          addSuccessMessage(t('Refreshed Seer quota'));
+                        }}
+                        size="md"
+                        priority="default"
+                        aria-label={t('Refresh')}
+                        borderless
+                      />
+                    </Flex>
+                  </Flex>
+                ) : (
+                  <Button
+                    priority="primary"
+                    onClick={() => {
+                      autofixAcknowledgeMutation.mutate();
+                      handlePurchaseSeer();
+                    }}
+                    disabled={autofixAcknowledgeMutation.isPending}
+                    size="md"
+                    analyticsEventKey="seer_drawer.checkout_clicked"
+                    analyticsEventName="Seer Drawer: Clicked Checkout"
+                  >
+                    {autofixAcknowledgeMutation.isPending ? (
+                      <StyledLoadingIndicator size={14} />
+                    ) : (
+                      t('Purchase Seer')
+                    )}
+                  </Button>
+                )}
+                {autofixAcknowledgeMutation.isError && (
+                  <ErrorText>{t('Something went wrong.')}</ErrorText>
+                )}
+              </ButtonWrapper>
+              {canStartTrial && (
+                <LegalText>
+                  {t(
+                    'By clicking above, you will begin a 14 day free trial. After the trial ends, it will not auto-renew.'
+                  )}
+                </LegalText>
+              )}
+            </Fragment>
+          )
+        ) : (
+          <Fragment>
+            <ButtonWrapper>
+              <Button
+                priority="primary"
+                onClick={() => autofixAcknowledgeMutation.mutate()}
+                disabled={autofixAcknowledgeMutation.isPending}
+                analyticsEventKey="gen_ai_consent.in_drawer_clicked"
+                analyticsEventName="Gen AI Consent: Clicked In Drawer"
+                analyticsParams={{
+                  is_first_user_in_org: !orgHasAcknowledged,
+                }}
+                size="md"
+              >
+                {autofixAcknowledgeMutation.isPending ? (
+                  <StyledLoadingIndicator size={14} />
+                ) : orgHasAcknowledged ? (
+                  t('Try Seer')
+                ) : (
+                  t('Enable Seer')
+                )}
+              </Button>
+              {autofixAcknowledgeMutation.isError && (
+                <ErrorText>{t('Something went wrong.')}</ErrorText>
+              )}
+            </ButtonWrapper>
+          </Fragment>
         )}
-      </ButtonWrapper>
-      {!autofixSetupData?.setupAcknowledgement.orgHasAcknowledged && (
-        <Paragraph>
-          {tct(
-            'Seer models are powered by generative Al. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
-            {
-              dataLink: (
-                <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
-              ),
-            }
-          )}
-        </Paragraph>
-      )}
+        {!orgHasAcknowledged && (
+          <LegalText>
+            {tct(
+              'Seer models are powered by generative AI. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
+              {
+                dataLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
+                ),
+              }
+            )}
+          </LegalText>
+        )}
+      </SingleCard>
     </ConsentItemsContainer>
   );
 }
@@ -124,40 +299,46 @@ const ConsentItemsContainer = styled('div')`
   gap: ${space(2)};
 `;
 
-const HeaderItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  margin-top: ${space(2)};
-`;
-
-const ConsentItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  background-color: ${p => p.theme.background};
-  padding: ${space(1)} ${space(1.5)};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-`;
-
 const SayHelloHeader = styled('h3')`
   margin: 0;
 `;
 
-const Title = styled('h5')`
-  margin: 0;
+const SingleCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+  background-color: ${p => p.theme.background};
+  padding: ${space(2)} ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  margin-top: ${space(2)};
+  box-shadow: ${p => p.theme.dropShadowMedium};
+`;
+
+const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.subText};
+`;
+
+const BulletList = styled('ul')`
+  margin: 0 0 ${space(1)} 0;
 `;
 
 const Paragraph = styled('p')`
   margin: 0;
 `;
 
-const ConsentTitle = styled('h4')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+const TouchCustomerMessage = styled('p')`
+  color: ${p => p.theme.pink400};
   font-weight: ${p => p.theme.fontWeightBold};
+  margin-top: ${space(2)};
+`;
+
+const LegalText = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(1)};
 `;
 
 const ButtonWrapper = styled('div')`
@@ -174,4 +355,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ErrorText = styled('div')`
   color: ${p => p.theme.error};
+`;
+
+const AddBudgetButton = styled(Button)`
+  width: fit-content;
 `;

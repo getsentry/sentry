@@ -53,6 +53,7 @@ import {
   isAmPlan,
   isBizPlanFamily,
   isNewPayingCustomer,
+  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
@@ -126,11 +127,30 @@ class AMCheckout extends Component<Props, State> {
         }
       }
     } else if (
-      // skip 'Choose Your Plan' if customer is already on Business plan
+      // skip 'Choose Your Plan' if customer is already on Business plan and they have all additional products enabled
       isBizPlanFamily(props.subscription.planDetails) &&
       props.checkoutTier === props.subscription.planTier
     ) {
-      step = 2;
+      // TODO(billing): cleanup condition after backfill
+      const selectedAll = props.organization.features.includes('seer-billing')
+        ? props.subscription.reservedBudgets &&
+          props.subscription.reservedBudgets.length > 0
+          ? props.subscription.reservedBudgets.every(budget => {
+              if (
+                Object.values(SelectableProduct).includes(
+                  budget.apiName as string as SelectableProduct
+                )
+              ) {
+                return budget.reservedBudget > 0;
+              }
+              return !props.organization.features.includes(budget.billingFlag || '');
+            })
+          : false // don't skip before backfill
+        : true; // skip if seer hasn't launched
+
+      if (selectedAll) {
+        step = 2;
+      }
     }
     this.initialStep = step;
     this.state = {
@@ -403,7 +423,8 @@ class AMCheckout extends Component<Props, State> {
           const currentHistory = subscription.categories[category];
           // When introducing a new category before backfilling, the reserved value from the billing metric
           // history is not available, so we default to 0.
-          let events = currentHistory?.reserved || 0;
+          // Skip trial volumes - don't pre-fill with trial reserved amounts
+          let events = (!subscription.isTrial && currentHistory?.reserved) || 0;
 
           if (canComparePrices) {
             const price = getBucket({events, buckets: eventBuckets}).price;
@@ -460,17 +481,20 @@ class AMCheckout extends Component<Props, State> {
       };
     }
 
-    subscription.reservedBudgets?.forEach(budget => {
-      if (
-        Object.values(SelectableProduct).includes(
-          budget.apiName as string as SelectableProduct
-        )
-      ) {
-        data.selectedProducts[budget.apiName as string as SelectableProduct] = {
-          enabled: budget.reservedBudget > 0,
-        };
-      }
-    });
+    if (!isTrialPlan(subscription.plan)) {
+      // don't prepopulate selected products from trial state
+      subscription.reservedBudgets?.forEach(budget => {
+        if (
+          Object.values(SelectableProduct).includes(
+            budget.apiName as string as SelectableProduct
+          )
+        ) {
+          data.selectedProducts[budget.apiName as string as SelectableProduct] = {
+            enabled: budget.reservedBudget > 0,
+          };
+        }
+      });
+    }
 
     return this.getValidData(initialPlan, data);
   }
@@ -548,7 +572,10 @@ class AMCheckout extends Component<Props, State> {
 
     if (this.state.currentStep === 1) {
       trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
-    } else if (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3) {
+    } else if (
+      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
+      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
+    ) {
       trackGetsentryAnalytics('checkout.ondemand_changed', {
         ...analyticsParams,
         cents: validData.onDemandMaxSpend || 0,

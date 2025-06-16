@@ -11,7 +11,6 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
@@ -155,10 +154,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const heading = await screen.findByText('Review & Confirm');
@@ -174,9 +170,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
   it('renders closed', function () {
     const {mockPreview} = mockPreviewGet();
-    render(<ReviewAndConfirm {...stepProps} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...stepProps} />);
 
     // Submit should not be visible
     expect(screen.queryByText('Confirm Changes')).not.toBeInTheDocument();
@@ -185,9 +179,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
   it('renders open when active', async function () {
     const {preview, mockPreview} = mockPreviewGet();
-    render(<ReviewAndConfirm {...stepProps} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...stepProps} isActive />);
 
     expect(
       await screen.findByText(preview.invoiceItems[0]!.description)
@@ -213,9 +205,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
   it('requests preview with ondemand spend', async function () {
     const {mockPreview, preview} = mockPreviewGet();
     const updatedData = {...formData, onDemandMaxSpend: 5000};
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
 
     expect(
       await screen.findByText(preview.invoiceItems[0]!.description)
@@ -232,9 +222,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
   it('updates preview with formData change when active', async function () {
     const {preview, mockPreview} = mockPreviewGet();
-    const {rerender} = render(<ReviewAndConfirm {...stepProps} />, {
-      deprecatedRouterMocks: true,
-    });
+    const {rerender} = render(<ReviewAndConfirm {...stepProps} />);
     expect(await screen.findByText('Review & Confirm')).toBeInTheDocument();
     expect(screen.queryByText('Confirm Changes')).not.toBeInTheDocument();
     expect(mockPreview).not.toHaveBeenCalled();
@@ -271,9 +259,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         },
       },
     };
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} formData={updatedData} isActive />
+    );
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
     expect(mockConfirm).toHaveBeenCalledWith(
@@ -288,8 +276,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?referrer=billing`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -366,9 +357,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       subscription: partnerSub,
     };
 
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />
+    );
     expect(
       await screen.findByText(
         `These changes will take effect at the end of your current FOO sponsored plan on ${moment(partnerSub.contractPeriodEnd).add(1, 'days').format('ll')}. If you want these changes to apply immediately, select Migrate Now.`
@@ -388,8 +379,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${partnerOrg.slug}/billing/overview/?referrer=billing`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${partnerOrg.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -463,9 +457,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       subscription: partnerSub,
     };
 
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />
+    );
     expect(
       await screen.findByText(
         `These changes will take effect at the end of your current FOO sponsored plan on ${moment(partnerSub.contractPeriodEnd).add(1, 'days').format('ll')}. If you want these changes to apply immediately, select Migrate Now.`
@@ -485,8 +479,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${partnerOrg.slug}/billing/overview/?referrer=billing`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${partnerOrg.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -538,9 +535,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       },
     };
 
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
     expect(
       await screen.findByText(
         `These changes will apply immediately, and you will be billed today.`
@@ -563,9 +558,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       },
     };
 
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
     expect(
       await screen.findByText(
         `This change will take effect at the end of your current contract period.`
@@ -609,9 +602,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       subscription: partnerSub,
     };
 
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
     expect(
       await screen.findByText(
         `These changes will apply immediately, and you will be billed by FOO monthly for any recurring subscription fees and incurred pay-as-you-go fees.`
@@ -656,9 +647,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       subscription: partnerSub,
     };
 
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
     expect(
       await screen.findByText(
         `These changes will apply on the date above, and you will be billed by FOO monthly for any recurring subscription fees and incurred pay-as-you-go fees.`
@@ -686,9 +675,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const updatedData = {...formData, plan: 'am1_business'};
     const props = {...stepProps, subscription: sub, formData: updatedData};
 
-    render(<ReviewAndConfirm {...props} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(<ReviewAndConfirm {...props} isActive />);
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
@@ -704,8 +691,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?referrer=billing`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -753,9 +743,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const updatedData = {...formData};
     const props = {...stepProps, subscription: sub, formData: updatedData};
-    render(<ReviewAndConfirm {...props} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(<ReviewAndConfirm {...props} isActive />);
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
     expect(mockConfirm).toHaveBeenCalledWith(
@@ -770,8 +758,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?referrer=billing`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -805,9 +796,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
-    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} isActive formData={updatedData} />
+    );
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
     expect(mockConfirm).toHaveBeenCalledWith(
@@ -822,8 +813,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?referrer=billing`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
   });
@@ -840,9 +834,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reservedErrors: 100000};
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} formData={updatedData} isActive />
+    );
     expect(mockPreview).toHaveBeenCalledTimes(1);
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
@@ -864,7 +858,12 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(addErrorMessage).toHaveBeenCalledWith(
       'Your preview expired, please review changes and submit again'
     );
-    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/mock-pathname/`,
+        query: {},
+      })
+    );
   });
 
   it('handles unknown error when updating subscription', async function () {
@@ -876,11 +875,17 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reservedTransactions: 1500000};
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} formData={updatedData} isActive />
+    );
 
     expect(mockPreview).toHaveBeenCalledTimes(1);
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/mock-pathname/`,
+        query: {},
+      })
+    );
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
@@ -901,7 +906,12 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(addErrorMessage).toHaveBeenCalledWith(
       'An unknown error occurred while saving your subscription'
     );
-    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/mock-pathname/`,
+        query: {},
+      })
+    );
   });
 
   it('handles completing a card action when required', async function () {
@@ -924,15 +934,18 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
-    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} isActive formData={updatedData} />
+    );
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
     // Wait for URL to change as that signals completion.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?referrer=billing`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -971,9 +984,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
-    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />);
     const button = await screen.findByRole('button', {name: 'Confirm Changes'});
     await userEvent.click(button);
 
@@ -995,9 +1006,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
-    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />);
     const button = await screen.findByRole('button', {name: 'Confirm Changes'});
     await userEvent.click(button);
 

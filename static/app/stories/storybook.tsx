@@ -64,7 +64,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   );
 }
 
-export const StorySection = styled('section')`
+const StorySection = styled('section')`
   margin-top: ${space(4)};
 
   & > p {
@@ -72,7 +72,7 @@ export const StorySection = styled('section')`
   }
 `;
 
-export const StoryTitle = styled('h3')`
+const StoryTitle = styled('h3')`
   border-bottom: 1px solid ${p => p.theme.border};
   scroll-margin-top: ${space(2)};
 `;

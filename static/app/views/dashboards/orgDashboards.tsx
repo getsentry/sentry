@@ -7,7 +7,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -18,7 +18,7 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
-import {hasSavedPageFilters} from './utils';
+import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
@@ -38,6 +38,7 @@ function OrgDashboards(props: Props) {
   const navigate = useNavigate();
   const {dashboardId} = useParams<{dashboardId: string}>();
   const dashboardRedirectRef = useRef<string | null>(null);
+  const queryClient = useQueryClient();
 
   const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
 
@@ -93,11 +94,15 @@ function OrgDashboards(props: Props) {
   useEffect(() => {
     // Only redirect if there are saved filters and none of the filters
     // appear in the query params
+
+    // current filters based on location
+    const locationFilters = getCurrentPageFilters(location);
     if (
       !selectedDashboard ||
       !hasSavedPageFilters(selectedDashboard) ||
       // Apply redirect once for each dashboard id
-      dashboardRedirectRef.current === selectedDashboard.id
+      dashboardRedirectRef.current === selectedDashboard.id ||
+      hasSavedPageFilters(locationFilters)
     ) {
       return;
     }
@@ -134,6 +139,16 @@ function OrgDashboards(props: Props) {
       );
     }
   }, [location.query, navigate, organization]);
+
+  useEffect(() => {
+    // Clean up the query cache when the dashboard unmounts to prevent
+    // a flicker from stale data on refetch
+    return () => {
+      queryClient.removeQueries({
+        queryKey: [`${ENDPOINT}${dashboardId}/`],
+      });
+    };
+  }, [dashboardId, ENDPOINT, queryClient]);
 
   if (isDashboardsPending || isSelectedDashboardLoading) {
     return (

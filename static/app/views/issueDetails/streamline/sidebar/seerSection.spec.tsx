@@ -53,11 +53,13 @@ describe('SeerSection', () => {
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
-    const mockSummary = 'This is a test summary';
+    const mockWhatHappened = 'This is a test what happened';
+    const mockTrace = 'This is a test trace';
+    const mockCause = 'This is a test cause';
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
-      body: {whatsWrong: mockSummary},
+      body: {possibleCause: mockCause, whatsWrong: mockWhatHappened, trace: mockTrace},
     });
 
     render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -65,8 +67,10 @@ describe('SeerSection', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(mockSummary)).toBeInTheDocument();
+      expect(screen.getByText(mockCause)).toBeInTheDocument();
     });
+    expect(screen.queryByText(mockWhatHappened)).not.toBeInTheDocument();
+    expect(screen.queryByText(mockTrace)).not.toBeInTheDocument();
   });
 
   it('renders resources section when AI features are disabled', () => {

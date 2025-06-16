@@ -59,6 +59,10 @@ const PREDEFINED_FIELDS = {
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
 
+const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
+  category => category !== IssueCategory.FEEDBACK
+);
+
 /**
  * Certain field keys may conflict with custom tags. In this case, the tag will be
  * renamed, e.g. `platform` -> `tags[platform]`
@@ -163,8 +167,8 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
-      const key = `flags["${tag.key}"]`;
+      // flags[] is required for the search endpoint.
+      const key = `flags[${tag.key}]`;
       if (allTagsCollection[key]) {
         allTagsCollection[key].totalValues =
           (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);
@@ -285,7 +289,7 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: organization.features.includes('issue-taxonomy')
-        ? VALID_ISSUE_CATEGORIES_V2.map(value => ({
+        ? SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
             icon: null,
             title: value,
             name: value,
@@ -332,8 +336,8 @@ function builtInIssuesFields({
     [FieldKey.FIRST_RELEASE]: {
       ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
-      values: ['latest'],
-      predefined: true,
+      values: [],
+      predefined: false,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
       ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
@@ -360,6 +364,7 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
       name: 'Issue Fixability',
       values: [
+        FixabilityScoreThresholds.SUPER_HIGH,
         FixabilityScoreThresholds.HIGH,
         FixabilityScoreThresholds.MEDIUM,
         FixabilityScoreThresholds.LOW,

@@ -61,28 +61,21 @@ class AmazonSQSPluginTest(PluginTestCase):
             ).decode(),
         )
 
-    @patch("sentry_plugins.amazon_sqs.plugin.logger")
     @patch("boto3.client")
-    def test_token_error(self, mock_client, logger):
+    def test_token_error(self, mock_client):
         mock_client.return_value.send_message.side_effect = ClientError(
             {"Error": {"Code": "Hello", "Message": "hello"}}, "SendMessage"
         )
         with pytest.raises(ClientError):
             self.run_test()
-        assert len(logger.info.call_args_list) == 0
 
         mock_client.return_value.send_message.side_effect = ClientError(
             {"Error": {"Code": "AccessDenied", "Message": "Hello"}}, "SendMessage"
         )
         self.run_test()
-        assert len(logger.info.call_args_list) == 1
-        assert (
-            logger.info.call_args_list[0][0][0] == "sentry_plugins.amazon_sqs.access_token_invalid"
-        )
 
-    @patch("sentry_plugins.amazon_sqs.plugin.logger")
     @patch("boto3.client")
-    def test_message_group_error(self, mock_client, logger):
+    def test_message_group_error(self, mock_client):
         mock_client.return_value.send_message.side_effect = ClientError(
             {
                 "Error": {
@@ -94,12 +87,6 @@ class AmazonSQSPluginTest(PluginTestCase):
         )
 
         self.run_test()
-
-        assert len(logger.info.call_args_list) == 1
-        assert (
-            logger.info.call_args_list[0][0][0]
-            == "sentry_plugins.amazon_sqs.missing_message_group_id"
-        )
 
     @patch("uuid.uuid4")
     @patch("boto3.client")
@@ -144,7 +131,6 @@ class AmazonSQSPluginTest(PluginTestCase):
             Key=key,
         )
 
-    @patch("sentry_plugins.amazon_sqs.plugin.logger")
     @patch("boto3.client")
     @pytest.mark.skip(reason="https://github.com/getsentry/sentry/issues/44858")
     def test_invalid_s3_bucket(self, mock_client, logger):
@@ -154,5 +140,3 @@ class AmazonSQSPluginTest(PluginTestCase):
             "PutObject",
         )
         self.run_test()
-        assert len(logger.info.call_args_list) == 2
-        assert logger.info.call_args_list[1][0][0] == "sentry_plugins.amazon_sqs.s3_bucket_invalid"

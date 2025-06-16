@@ -20,12 +20,14 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
+import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
+import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
 import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
+import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -47,16 +49,9 @@ import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOve
 import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
-import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
-import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {
-  useIsNextJsInsightsAvailable,
-  useIsNextJsInsightsEnabled,
-} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -67,7 +62,7 @@ import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const isNewBackendExperienceEnabled = useInsightsEap();
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage />;
@@ -89,7 +84,6 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -202,13 +196,7 @@ function EAPBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={
-          isNextJsInsightsAvailable ? (
-            <NewNextJsExperienceButton />
-          ) : (
-            <EAPExperimentButton />
-          )
-        }
+        headerActions={<EAPExperimentButton />}
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -233,7 +221,9 @@ function EAPBackendOverviewPage() {
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
-            {!showOnboarding && (
+            {showOnboarding ? (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            ) : (
               <Fragment>
                 <ModuleLayout.Third>
                   <StackedWidgetWrapper>
@@ -247,13 +237,13 @@ function EAPBackendOverviewPage() {
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <JobsWidget />
+                      <OverviewJobsChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <QueriesWidget />
+                      <OverviewSlowQueriesChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <CachesWidget />
+                      <OverviewCacheMissChartWidget />
                     </ModuleLayout.Third>
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>
@@ -261,9 +251,6 @@ function EAPBackendOverviewPage() {
                   <BackendOverviewTable response={response} sort={sorts[1]} />
                 </ModuleLayout.Full>
               </Fragment>
-            )}
-            {showOnboarding && (
-              <LegacyOnboarding project={onboardingProject} organization={organization} />
             )}
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -273,18 +260,8 @@ function EAPBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
-  const organization = useOrganization();
-  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
-
-  const {maxPickableDays} = limitMaxPickableDays(organization);
-
   return (
-    <DomainOverviewPageProviders
-      maxPickableDays={
-        isLaravelPageAvailable || isNextJsPageEnabled ? maxPickableDays : undefined
-      }
-    >
+    <DomainOverviewPageProviders>
       <BackendOverviewPage />
     </DomainOverviewPageProviders>
   );
@@ -301,11 +278,12 @@ const StackedWidgetWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   height: 100%;
+  min-height: 502px;
 `;
 
 const TripleRowWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: 300px;
   gap: ${space(2)};
-  height: 300px;
 `;

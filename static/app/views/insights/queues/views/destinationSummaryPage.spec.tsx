@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {Referrer} from 'sentry/views/insights/queues/referrers';
 import PageWithProviders from 'sentry/views/insights/queues/views/destinationSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
@@ -41,7 +42,8 @@ describe('destinationSummaryPage', () => {
   });
 
   let eventsMock: jest.Mock;
-  let eventsStatsMock: jest.Mock;
+  let latencyEventsStatsMock: jest.Mock;
+  let throughputEventsStatsMock: jest.Mock;
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
@@ -51,18 +53,47 @@ describe('destinationSummaryPage', () => {
       body: {data: []},
     });
 
-    eventsStatsMock = MockApiClient.addMockResponse({
+    latencyEventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        data: [[1699907700, [{count: 0.2}]]],
-        meta: {
-          fields: {'avg(span.duration)': 'duration'},
-          units: {
-            'avg(span.duration)': 'millisecond',
+        'avg(span.duration)': {
+          data: [[1739378162, [{count: 1}]]],
+          meta: {
+            fields: {'avg(span.duration)': 'duration'},
+            units: {'avg(span.duration)': 'millisecond'},
           },
         },
+        'avg(messaging.message.receive.latency)': {
+          data: [[1739378162, [{count: 1}]]],
+          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
+        },
       },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.QUEUES_SUMMARY_LATENCY_CHART,
+        }),
+      ],
+    });
+
+    throughputEventsStatsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {
+        'queue.process': {
+          data: [[1739378162, [{count: 1}]]],
+          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
+        },
+        'queue.publish': {
+          data: [[1739378162, [{count: 1}]]],
+          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
+        },
+      },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.QUEUES_SUMMARY_THROUGHPUT_CHART,
+        }),
+      ],
     });
   });
 
@@ -72,7 +103,8 @@ describe('destinationSummaryPage', () => {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Average Duration');
     screen.getByText('Published vs Processed');
-    expect(eventsStatsMock).toHaveBeenCalled();
+    expect(latencyEventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(throughputEventsStatsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenCalled();
   });
 });

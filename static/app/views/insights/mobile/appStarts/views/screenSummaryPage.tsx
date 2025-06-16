@@ -13,7 +13,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
-import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -201,16 +200,6 @@ export function ScreenSummaryContentPage() {
     </Fragment>
   );
 }
-
-function PageWithProviders() {
-  return (
-    <ModulePageProviders moduleName="app_start" pageTitle={t('Screen Summary')}>
-      <ScreenSummary />
-    </ModulePageProviders>
-  );
-}
-
-export default PageWithProviders;
 
 const SamplesContainer = styled('div')`
   margin-top: ${space(2)};

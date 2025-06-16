@@ -91,6 +91,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import type {ReleaseWidgetQueriesProps} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -627,7 +628,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderReleaseTable: ReleaseWidgetQueries['props']['children'] = ({
+  const renderReleaseTable: ReleaseWidgetQueriesProps['children'] = ({
     tableResults,
     loading,
     pageLinks,
@@ -1190,6 +1191,10 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 export const modalCss = css`
   width: 100%;
   max-width: 1200px;
+`;
+
+export const backdropCss = css`
+  z-index: 9998;
 `;
 
 const Container = styled('div')<{height?: number | null}>`

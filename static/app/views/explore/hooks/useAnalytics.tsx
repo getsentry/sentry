@@ -25,7 +25,10 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {
+  UseInfiniteLogsQueryResult,
+  UseLogsQueryResult,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   combineConfidenceForSeries,
@@ -397,7 +400,7 @@ export function useLogAnalytics({
   logsTableResult,
   source,
 }: {
-  logsTableResult: UseExploreLogsTableResult;
+  logsTableResult: UseLogsQueryResult | UseInfiniteLogsQueryResult;
   source: LogsAnalyticsPageSource;
 }) {
   const organization = useOrganization();

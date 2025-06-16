@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:07.989953+00:00'
+created: '2025-05-12T23:41:14.689837+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -422,7 +422,7 @@ system:
               "thread.java"
             function*
               "run"
-          frame
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
@@ -793,7 +793,7 @@ system:
               "nativemethodaccessorimpl.java"
             function*
               "invoke0"
-          frame
+          frame (ignored by stack trace rule (module:io.sentry.* -group))
             module*
               "io.sentry.example.Application"
             filename (module takes precedence)

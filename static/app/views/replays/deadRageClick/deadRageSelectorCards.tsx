@@ -227,6 +227,7 @@ function SearchButton({
   return (
     <StyledLinkButton
       {...props}
+      priority="transparent"
       size="md"
       to={{
         pathname,
@@ -276,12 +277,8 @@ const CenteredContentContainer = styled(ContentContainer)`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  width: 100%;
-  padding: ${space(1.5)};
-  border: none;
   border-top: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledAccordionHeader = styled('div')`

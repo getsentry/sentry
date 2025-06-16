@@ -11,6 +11,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import useProjects from 'sentry/utils/useProjects';
@@ -885,6 +887,25 @@ describe('trace view', () => {
     globalThis.ResizeObserver = MockResizeObserver as any;
     mockQueryString('');
     MockDate.reset();
+
+    const {project} = initializeOrg({});
+
+    ProjectsStore.loadInitialData([project]);
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(project.id, 10)],
+        environments: [],
+        datetime: {
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
+        },
+      },
+      new Set()
+    );
     mockUseProjects.mockReturnValue({
       projects: [
         {

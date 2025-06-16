@@ -96,7 +96,6 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
   setActiveOrganization(data: Organization): void;
   setForceHide(forceHide: boolean): void;
   teardown(): void;
-  toStep(step: number): void;
   unregisterAnchor(target: string): void;
   updateCurrentGuide(dismissed?: boolean): void;
   updatePrevGuide(nextGuide: Guide | null): void;
@@ -204,11 +203,6 @@ const storeConfig: GuideStoreDefinition = {
 
   nextStep() {
     this.state = {...this.state, currentStep: this.state.currentStep + 1};
-    this.trigger(this.state);
-  },
-
-  toStep(step: number) {
-    this.state = {...this.state, currentStep: step};
     this.trigger(this.state);
   },
 

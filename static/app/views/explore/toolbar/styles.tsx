@@ -27,10 +27,6 @@ export const ToolbarLabel = styled('h6')<{disabled?: boolean; underlined?: boole
       : ''};
 `;
 
-export const ToolbarHeaderButton = styled(Button)<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray500)};
-`;
-
 export const ToolbarFooterButton = styled(Button)<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.linkColor)};
 `;

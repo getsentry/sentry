@@ -13,6 +13,7 @@ import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import Header from 'sentry/views/organizationStats/header';
 
 import TeamStatsControls from './controls';
@@ -28,6 +29,7 @@ type Props = RouteComponentProps;
 function TeamStatsIssues({location, router}: Props) {
   const organization = useOrganization();
   const {teams, isLoading, isError} = useUserTeams();
+  const prefersStackedNav = usePrefersStackedNav();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
@@ -58,12 +60,14 @@ function TeamStatsIssues({location, router}: Props) {
     return <LoadingError />;
   }
 
+  const BodyWrapper = prefersStackedNav ? NewLayoutBody : Body;
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Team Issues')} orgSlug={organization.slug} />
       <Header organization={organization} activeTab="issues" />
 
-      <Body>
+      <BodyWrapper>
         <TeamStatsControls
           showEnvironment
           location={location}
@@ -159,7 +163,7 @@ function TeamStatsIssues({location, router}: Props) {
             </DescriptionCard>
           </Layout.Main>
         )}
-      </Body>
+      </BodyWrapper>
     </Fragment>
   );
 }
@@ -171,3 +175,5 @@ const Body = styled(Layout.Body)`
     display: block;
   }
 `;
+
+const NewLayoutBody = styled('div')``;

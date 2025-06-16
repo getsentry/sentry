@@ -1,6 +1,7 @@
 from collections.abc import MutableMapping
 from typing import Any
 
+import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import (
@@ -11,7 +12,9 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
     TraceItem,
 )
 
-from sentry.spans.consumers.process_segments.types import Span
+from sentry.spans.consumers.process_segments.enrichment import Span
+
+I64_MAX = 2**63 - 1
 
 FIELD_TO_ATTRIBUTE = {
     "description": "sentry.raw_description",
@@ -38,7 +41,11 @@ def convert_span_to_item(span: Span) -> TraceItem:
     server_sample_rate = 1.0
 
     for k, v in (span.get("data") or {}).items():
-        attributes[k] = _anyvalue(v)
+        if v is not None:
+            try:
+                attributes[k] = _anyvalue(v)
+            except Exception:
+                sentry_sdk.capture_exception()
 
     for k, v in (span.get("measurements") or {}).items():
         if k is not None and v is not None:
@@ -87,6 +94,8 @@ def _anyvalue(value: Any) -> AnyValue:
     elif isinstance(value, bool):
         return AnyValue(bool_value=value)
     elif isinstance(value, int):
+        if value > I64_MAX:
+            return AnyValue(double_value=float(value))
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)

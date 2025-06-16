@@ -1,4 +1,12 @@
-import {DataCategory} from 'sentry/types/core';
+import {
+  SEER_TIERS,
+  SEER_TIERS_ANNUAL,
+  SEER_TIERS_DEVELOPER,
+  SEER_TIERS_TRIAL_OR_ENTERPRISE,
+} from 'getsentry-test/fixtures/am3Plans';
+import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
+
+import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
@@ -35,23 +43,12 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
-  seerAutoFix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  [ReservedBudgetCategoryType.SEER]: {
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: true,
-    apiName: ReservedBudgetCategoryType.SEER,
-    billingFlag: 'seer-billing',
-  },
+  [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
 const AM2_FREE_FEATURES = [
@@ -80,6 +77,7 @@ const AM2_TEAM_FEATURES = [
   'sso-basic',
   'weekly-reports',
   'on-demand-metrics-prefill',
+  'seer-billing',
 ];
 
 const AM2_BUSINESS_FEATURES = [
@@ -112,68 +110,6 @@ const AM2_TRIAL_FEATURES = AM2_BUSINESS_FEATURES.filter(
 );
 
 const BUDGET_TERM = 'on-demand';
-
-const SEER_TIERS = {
-  seerAutofix: [
-    {
-      events: -2,
-      unitPrice: 0,
-      price: 20_00,
-      onDemandPrice: 125,
-    },
-    {
-      events: 0,
-      unitPrice: 0,
-      price: 0,
-      onDemandPrice: 125,
-    },
-  ],
-  seerScanner: [
-    {
-      events: -2,
-      unitPrice: 0,
-      price: 0,
-      onDemandPrice: 1.25,
-    },
-    {
-      events: 0,
-      unitPrice: 0,
-      price: 0,
-      onDemandPrice: 1.25,
-    },
-  ],
-};
-
-const SEER_TIERS_ANNUAL = {
-  seerAutofix: [
-    {
-      events: -2,
-      unitPrice: 0,
-      price: 216_00,
-      onDemandPrice: 125,
-    },
-    {
-      events: 0,
-      unitPrice: 0,
-      price: 0,
-      onDemandPrice: 125,
-    },
-  ],
-  seerScanner: [
-    {
-      events: -2,
-      unitPrice: 0,
-      price: 0,
-      onDemandPrice: 1.25,
-    },
-    {
-      events: 0,
-      unitPrice: 0,
-      price: 0,
-      onDemandPrice: 1.25,
-    },
-  ],
-};
 
 // TODO: Update with correct pricing and structure
 const AM2_PLANS: Record<string, Plan> = {
@@ -980,6 +916,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_DEVELOPER,
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1788,6 +1725,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -3196,7 +3134,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    availableReservedBudgetTypes: {},
   },
   am2_sponsored_team_auf: {
     id: 'am2_sponsored_team_auf',
@@ -3235,7 +3173,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    availableReservedBudgetTypes: {},
   },
   am2_business_bundle: {
     id: 'am2_business_bundle',
@@ -3726,6 +3664,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
@@ -4268,6 +4207,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
@@ -4825,6 +4765,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
@@ -4999,6 +4940,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },

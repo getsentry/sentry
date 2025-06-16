@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import {useEffect} from 'react';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
@@ -11,12 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props {
-  className?: string;
-  style?: CSSProperties;
-}
-
-export default function FeedbackWhatsNewBanner({className, style}: Props) {
+export default function FeedbackWhatsNewBanner() {
   const organization = useOrganization();
 
   const {dismiss, isDismissed} = useDismissAlert({
@@ -37,8 +31,6 @@ export default function FeedbackWhatsNewBanner({className, style}: Props) {
 
   return (
     <PageBanner
-      className={className}
-      style={style}
       button={
         <LinkButton
           external

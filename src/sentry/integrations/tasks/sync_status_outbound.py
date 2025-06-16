@@ -1,6 +1,8 @@
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
@@ -66,26 +68,33 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         action_type=ProjectManagementActionType.OUTBOUND_STATUS_SYNC, integration=integration
     ).capture() as lifecycle:
         lifecycle.add_extra("sync_task", "sync_status_outbound")
-        if installation.should_sync("outbound_status"):
-            lifecycle.add_extras(
-                {
-                    "organization_id": external_issue.organization_id,
-                    "integration_id": integration.id,
-                    "external_issue": external_issue_id,
-                    "status": group.status,
-                }
-            )
-            try:
+        try:
+            if installation.should_sync("outbound_status"):
+                lifecycle.add_extras(
+                    {
+                        "organization_id": external_issue.organization_id,
+                        "integration_id": integration.id,
+                        "external_issue": external_issue_id,
+                        "status": group.status,
+                    }
+                )
+
                 installation.sync_status_outbound(
                     external_issue, group.status == GroupStatus.RESOLVED, group.project_id
                 )
-            except (IntegrationFormError, ApiUnauthorized) as e:
-                lifecycle.record_halt(halt_reason=e)
-                return None
-            analytics.record(
-                "integration.issue.status.synced",
-                provider=integration.provider,
-                id=integration.id,
-                organization_id=external_issue.organization_id,
-            )
+
+                analytics.record(
+                    "integration.issue.status.synced",
+                    provider=integration.provider,
+                    id=integration.id,
+                    organization_id=external_issue.organization_id,
+                )
+        except (
+            IntegrationFormError,
+            ApiUnauthorized,
+            OrganizationIntegrationNotFound,
+            InvalidIdentity,
+        ) as e:
+            lifecycle.record_halt(halt_reason=e)
+            return None
     return None

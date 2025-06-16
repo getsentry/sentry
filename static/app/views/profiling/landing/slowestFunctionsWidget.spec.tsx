@@ -237,19 +237,18 @@ describe('SlowestFunctionsWidget', function () {
 
     render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
-    // starts by rendering loading
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-
     // switches to the functions-chart  once the api responds with data
     expect(await screen.findByTestId('function-chart')).toBeInTheDocument();
 
-    const items = screen.getAllByRole('listitem', {});
+    const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(2);
 
-    const buttons = within(items[0]!).getAllByRole('button');
-    expect(buttons).toHaveLength(2);
-    await userEvent.click(buttons[1]!);
+    const button = within(items[0]!).getByRole('button', {name: 'Example Profiles'});
+    expect(button).toBeInTheDocument();
+    // Open example profiles dropdown
+    await userEvent.click(button);
 
+    // Check items in example profiles dropdown
     expect(screen.getByText('1'.repeat(8))).toBeInTheDocument();
     expect(screen.getByText('2'.repeat(8))).toBeInTheDocument();
   });

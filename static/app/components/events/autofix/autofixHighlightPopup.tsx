@@ -13,7 +13,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -22,9 +21,10 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -85,7 +85,12 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending your comment.'));
@@ -121,7 +126,12 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when resolving the thread.'));
@@ -140,6 +150,8 @@ function AutofixHighlightPopupContent({
   isFocused,
   onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
+  const organization = useOrganization();
+
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
 
@@ -157,7 +169,7 @@ function AutofixHighlightPopupContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const {data: autofixData} = useAutofixData({groupId});
+  const {data: autofixData} = useAutofixData({groupId, isUserWatching: true});
   const currentStep = isAgentComment
     ? autofixData?.steps?.[stepIndex + 1]
     : autofixData?.steps?.[stepIndex];
@@ -247,6 +259,14 @@ function AutofixHighlightPopupContent({
       is_agent_comment: isAgentComment ?? false,
     });
     setComment('');
+
+    trackAnalytics('autofix.comment_thread.submit', {
+      organization,
+      group_id: groupId,
+      run_id: runId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+    });
   };
 
   const handleContainerClick = (e: React.MouseEvent) => {
@@ -264,6 +284,10 @@ function AutofixHighlightPopupContent({
 
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
+    resolveThread();
+  };
+
+  const resolveThread = () => {
     setHidden(true);
     closeCommentThread({
       thread_id: threadId,
@@ -309,7 +333,7 @@ function AutofixHighlightPopupContent({
             <Message key={i} role={message.role}>
               {message.role === 'assistant' ? (
                 <CircularSeerIcon>
-                  <SeerIcon />
+                  <IconSeer />
                 </CircularSeerIcon>
               ) : (
                 <UserAvatar user={currentUser} size={24} />
@@ -346,6 +370,9 @@ function AutofixHighlightPopupContent({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit(e);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                resolveThread();
               }
             }}
           />
@@ -355,7 +382,7 @@ function AutofixHighlightPopupContent({
             borderless
             aria-label={t('Submit Comment')}
           >
-            <IconChevron direction="right" />
+            {'\u23CE'}
           </StyledButton>
         </InputWrapper>
       )}
@@ -592,7 +619,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-
+  color: ${p => p.theme.subText};
   z-index: 2;
 `;
 

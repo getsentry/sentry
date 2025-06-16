@@ -65,6 +65,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 
@@ -264,7 +265,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   }
 
   return (
-    <Fragment>
+    <PerformanceOnboardingContainer>
       {noPerformanceSupport && (
         <UnsupportedAlert projectSlug={project.slug} featureName="Performance" />
       )}
@@ -306,9 +307,13 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
           )}
         </FeatureTourModal>
       </LegacyOnboardingPanel>
-    </Fragment>
+    </PerformanceOnboardingContainer>
   );
 }
+
+const PerformanceOnboardingContainer = styled('div')`
+  grid-column: 1/-1;
+`;
 
 const PerfImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -484,6 +489,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
+  const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
@@ -632,7 +638,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
         setReceived(true);
       }}
     >
-      {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      {({firstIssue}) =>
+        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
+      }
     </EventWaiter>
   );
 
@@ -729,14 +737,36 @@ export function Onboarding({organization, project}: OnboardingProps) {
             </div>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
-              <SampleButton
-                triggerText={t('Take me to an example')}
-                loadingMessage={t('Processing sample trace...')}
-                errorMessage={t('Failed to create sample trace')}
-                organization={organization}
-                project={project}
-                api={api}
-              />
+              {received ? (
+                <Button
+                  priority="primary"
+                  onClick={() => {
+                    navigate(
+                      {
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          guidedStep: undefined,
+                          table: Tab.TRACE,
+                        },
+                      },
+                      {replace: true}
+                    );
+                    window.location.reload();
+                  }}
+                >
+                  {t('Take me to traces')}
+                </Button>
+              ) : isEAPTraceEnabled ? null : (
+                <SampleButton
+                  triggerText={t('Take me to an example')}
+                  loadingMessage={t('Processing sample trace...')}
+                  errorMessage={t('Failed to create sample trace')}
+                  organization={organization}
+                  project={project}
+                  api={api}
+                />
+              )}
             </GuidedSteps.ButtonWrapper>
           </GuidedSteps.Step>
         ) : (

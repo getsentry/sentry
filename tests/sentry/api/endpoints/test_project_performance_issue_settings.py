@@ -5,10 +5,10 @@ from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
+from sentry.performance_issues.performance_detection import get_merged_settings
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 
 class ProjectPerformanceIssueSettingsTest(APITestCase):
@@ -285,7 +285,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert response.data == {"detail": "Invalid settings option"}
 
     @with_feature("organizations:performance-view")
-    @with_feature("organizations:performance-manage-detectors")
     def test_project_admins_can_manage_detectors(self):
         self.login_as(user=self.user, superuser=False)
         response = self.get_success_response(
@@ -299,7 +298,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not response.data["n_plus_one_db_queries_detection_enabled"]
 
     @with_feature("organizations:performance-view")
-    @with_feature("organizations:performance-manage-detectors")
     def test_project_members_cannot_manage_detectors(self):
         user = self.create_user("member@localhost")
         self.create_member(

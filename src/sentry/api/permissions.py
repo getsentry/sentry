@@ -167,26 +167,32 @@ class SentryPermission(ScopedPermission):
         organization = org_context.organization
         extra = {"organization_id": organization.id, "user_id": user_id}
 
-        is_token_access_allowed = False
-        if request.auth and request.user and request.user.is_authenticated:
-            request.access = access.from_request_org_and_scopes(
-                request=request,
-                rpc_user_org_context=org_context,
-                scopes=request.auth.get_scopes(),
-            )
-            is_token_access_allowed = True
-        elif request.auth:
-            request.access = access.from_rpc_auth(
-                auth=request.auth, rpc_user_org_context=org_context
-            )
-            is_token_access_allowed = True
+        if request.auth:
+            if request.user and request.user.is_authenticated:
+                request.access = access.from_request_org_and_scopes(
+                    request=request,
+                    rpc_user_org_context=org_context,
+                    scopes=request.auth.get_scopes(),
+                )
+            else:
+                request.access = access.from_rpc_auth(
+                    auth=request.auth, rpc_user_org_context=org_context
+                )
 
-        if is_token_access_allowed:
-            if self.is_not_2fa_compliant(request, organization):
+            if org_context.member and self.is_not_2fa_compliant(request, organization):
                 logger.info(
-                    "access.not-2fa-compliant.dry-run",
+                    "access.not-2fa-compliant.auth-token",
                     extra=extra,
                 )
+                raise TwoFactorRequired()
+
+            if self.is_member_disabled_from_limit(request, org_context):
+                logger.info(
+                    "access.member-disabled-from-limit",
+                    extra=extra,
+                )
+                raise MemberDisabledOverLimit(organization)
+
             return
 
         request.access = access.from_request_org_and_scopes(
