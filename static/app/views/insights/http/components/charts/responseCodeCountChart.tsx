@@ -63,6 +63,7 @@ export function ResponseCodeCountChart({
     return transformedSeries;
   });
 
+  // TODO: kinda ugly, the series names have the format `count() 200` for 200 reponse codes
   const topResponseCodes = seriesWithMeta
     .map(s => s.seriesName.replace('count()', '').trim())
     .filter(isNumeric);
