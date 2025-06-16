@@ -314,6 +314,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 "workflow_engine.triggered_actions",
                 extra={
                     "detector_id": detector.id,
+                    "detector_type": detector.type,
                     "action_ids": [action.id for action in actions],
                     "event_data": asdict(event_data),
                 },
@@ -332,6 +333,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                         "workflow_engine.action.would-trigger",
                         extra={
                             "detector_id": detector.id,
+                            "detector_type": detector.type,
                             "action_id": action.id,
                             "event_data": asdict(event_data),
                         },
