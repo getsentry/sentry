@@ -26,7 +26,8 @@ MAX_FEEDBACKS_TO_SUMMARIZE = 1000
 # Token limit is 1,048,576 tokens, see https://ai.google.dev/gemini-api/docs/models#gemini-2.0-flash
 MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 
-SUMMARY_CACHE_TIMEOUT = 3600
+# One day since the cache key includes the start and end dates at hour granularity
+SUMMARY_CACHE_TIMEOUT = 86400
 
 
 @region_silo_endpoint
@@ -74,9 +75,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         project_ids = [str(project_id) for project_id in numeric_project_ids]
         hashed_project_ids = hash_from_values(project_ids)
 
-        # Cache key should be the filters that were selected by the user, and the cache should time out after 1 hour
-        # For date range, only use year, month, and day since including the time would make the cache useless
-        summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
+        # Cache key should be the filters that were selected by the user, start and end dates at hour granularity
+        summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         summary_cache = cache.get(summary_cache_key)
         if summary_cache:
             return Response(
