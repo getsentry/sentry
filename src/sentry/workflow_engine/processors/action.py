@@ -1,10 +1,9 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.utils import timezone
-from django_stubs_ext import WithAnnotations
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -32,6 +31,9 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import WorkflowEventData
+
+if TYPE_CHECKING:
+    from django_stubs_ext import WithAnnotations
 
 logger = logging.getLogger(__name__)
 
