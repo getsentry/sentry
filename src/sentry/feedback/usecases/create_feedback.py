@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import jsonschema
+from django.conf import settings
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -15,14 +16,13 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
-from sentry.issues.ingest import issue_rate_limiter
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
-from sentry.ratelimits.sliding_windows import RequestedQuota
+from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
@@ -33,6 +33,10 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
+
+feedback_rate_limiter = RedisSlidingWindowRateLimiter(
+    **settings.SENTRY_USER_FEEDBACK_RATE_LIMITER_OPTIONS
+)
 
 
 class FeedbackCreationSource(Enum):
@@ -284,7 +288,7 @@ def create_feedback_issue(
 
     # Rate limiting. We apply the issue rate limiter in create_feedback_issue, to
     # mitigate load on downstream infra (spam detection LLM and issue platform).
-    granted_quota = issue_rate_limiter.check_and_use_quotas(
+    granted_quota = feedback_rate_limiter.check_and_use_quotas(
         [
             RequestedQuota(
                 f"issue-platform-issues:{project.id}:{FeedbackGroup.slug}",  # noqa E231 missing whitespace after ':'
