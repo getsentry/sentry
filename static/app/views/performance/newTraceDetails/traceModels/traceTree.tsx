@@ -1607,6 +1607,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return false;
     }
 
+    const index = this.list.indexOf(node);
+
     // Expanding is not allowed for zoomed in nodes
     if (expanded === node.expanded || node.zoomedIn) {
       return false;
@@ -1614,8 +1616,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     if (isParentAutogroupedNode(node)) {
       if (expanded) {
-        const index = this.list.indexOf(node);
-        this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+        // Adding the index check here because the node may not be in the list,
+        // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
+        // The node is part of the tree, but not visible yet. Check can be pushed to the top of the function
+        // when we no longer have to support non-eap traces.
+        if (index !== -1) {
+          this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+        }
 
         // When the node is collapsed, children point to the autogrouped node.
         // We need to point them back to the tail node which is now visible
@@ -1623,14 +1630,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.parent = node.tail;
         }
 
-        this.list.splice(
-          index + 1,
-          0,
-          node.head,
-          ...TraceTree.VisibleChildren(node.head)
-        );
+        // Adding the index check here because the node may not be in the list,
+        // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
+        // The node is part of the tree, but not visible yet.Check can be pushed to the top of the function
+        // when we no longer have to support non-eap traces.
+        if (index !== -1) {
+          this.list.splice(
+            index + 1,
+            0,
+            node.head,
+            ...TraceTree.VisibleChildren(node.head)
+          );
+        }
       } else {
-        const index = this.list.indexOf(node);
         this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
 
         // When we collapse the autogroup, we need to point the tail children
@@ -1649,7 +1661,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     if (expanded) {
       if (isEAPTransactionNode(node)) {
-        const index = this.list.indexOf(node);
         this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
       }
 
@@ -1663,7 +1674,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         TraceTree.ReparentEAPTransactions(
           node,
           t => t.children.filter(c => isEAPTransactionNode(c)),
-          t => TraceTree.FindByID(node, t.value.parent_span_id)
+          t =>
+            TraceTree.Find(node, n => {
+              if (isEAPSpanNode(n)) {
+                return n.value.event_id === t.value.parent_span_id;
+              }
+              return false;
+            })
         );
 
         const browserRequestSpan = node.children.find(
@@ -1675,10 +1692,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       // Flip expanded so that we can collect visible children
-      const index = this.list.indexOf(node);
       this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
     } else {
-      const index = this.list.indexOf(node);
       this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
 
       node.expanded = expanded;
