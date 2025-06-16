@@ -176,7 +176,7 @@ def is_seer_scanner_rate_limited(
     if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
         return False, 0, 0
 
-    limit = options.get("seer.max_num_scanner_autotriggered_per_hour") or 1000
+    limit = options.get("seer.max_num_scanner_autotriggered_per_hour", 1000)
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
         key="seer.scanner.auto_triggered",
@@ -201,7 +201,7 @@ def is_seer_autofix_rate_limited(
     if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
         return False, 0, 0
 
-    limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
+    limit = options.get("seer.max_num_autofix_autotriggered_per_hour", 20)
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
         key="autofix.auto_triggered",
