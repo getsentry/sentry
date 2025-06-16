@@ -111,6 +111,8 @@ class PreprodArtifact(DefaultFieldsModel):
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
 
+    git_sha = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
