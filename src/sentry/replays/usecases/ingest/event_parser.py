@@ -339,11 +339,21 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             parsed_url = urlparse(payload["description"])
 
             path = f"{parsed_url.path}?{parsed_url.query}"
-            size = payload["data"]["response"]["size"]
+
+            # Safely get request and response sizes using the existing helper
+            sizes_tuple = _get_request_response_sizes(event)
+            size_for_log = "N/A"  # Default placeholder
+
+            # Check if the tuple is valid and response size exists
+            if sizes_tuple and sizes_tuple[1] is not None:
+                size_for_log = str(sizes_tuple[1])
+
             status_code = payload["data"]["statusCode"]
             duration = payload["endTimestamp"] - payload["startTimestamp"]
             method = payload["data"]["method"]
-            return f'Application initiated request: "{method} {path} HTTP/2.0" {status_code} {size}; took {duration} milliseconds at {timestamp}'
+
+            # Use the safely determined size_for_log in the message
+            return f'Application initiated request: "{method} {path} HTTP/2.0" {status_code} {size_for_log}; took {duration} milliseconds at {timestamp}'
         case EventType.RESOURCE_XHR:
             return None
         case EventType.LCP:
