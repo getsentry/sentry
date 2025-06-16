@@ -23,6 +23,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {testableWindowLocationAssign} from 'sentry/utils/testableLocation';
 import useApi from 'sentry/utils/useApi';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
@@ -61,7 +62,7 @@ function AccountSecurity({
         method: 'DELETE',
         data: {all: true},
       });
-      window.location.assign('/auth/login/');
+      testableWindowLocationAssign('/auth/login/');
     } catch (err) {
       addErrorMessage(t('There was a problem closing all sessions'));
       throw err;
