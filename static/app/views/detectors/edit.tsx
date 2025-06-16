@@ -2,7 +2,6 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
-import FormModel from 'sentry/components/forms/model';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
@@ -17,7 +16,6 @@ export default function DetectorEdit() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
   const [title, setTitle] = useState(t('Edit Monitor'));
-  const [model] = useState(() => new FormModel());
 
   return (
     <SentryDocumentTitle title={title} noSuffix>
@@ -26,7 +24,7 @@ export default function DetectorEdit() {
       >
         <ActionsProvider actions={<Actions />}>
           <EditLayout onTitleChange={setTitle}>
-            <MetricDetectorForm model={model} />
+            <MetricDetectorForm />
           </EditLayout>
         </ActionsProvider>
       </BreadcrumbsProvider>

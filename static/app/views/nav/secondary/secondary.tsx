@@ -349,7 +349,7 @@ const TrailingItems = styled('div')`
 `;
 
 const SeparatorWrapper = styled('div')`
-  padding: ${space(1.5)} 0;
+  margin: ${space(1.5)} 0;
   display: none;
 `;
 
@@ -366,7 +366,7 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;

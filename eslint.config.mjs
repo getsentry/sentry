@@ -216,7 +216,6 @@ export default typescript.config([
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
-    '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
     'tests/**/fixtures/**/*',
@@ -965,7 +964,7 @@ export default typescript.config([
         // --- stories ---
         {
           type: 'story-files',
-          pattern: 'static/**/*.stories.{ts,tsx}',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
           mode: 'full',
         },
         {

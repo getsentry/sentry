@@ -9,7 +9,10 @@ import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
+export type CodecovPeriodOptions = '24h' | '7d' | '30d';
+type CodecovPeriods = Record<CodecovPeriodOptions, string>;
+
+export const CODECOV_DEFAULT_RELATIVE_PERIODS: CodecovPeriods = {
   '24h': t('Last 24 hours'),
   '7d': t('Last 7 days'),
   '30d': t('Last 30 days'),

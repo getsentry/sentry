@@ -7,7 +7,6 @@ import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
@@ -26,7 +25,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
-import {IconMegaphone} from 'sentry/icons';
+import {IconMegaphone, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -236,7 +235,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           <SeerButtonWrapper>
             <SeerFullWidthButton
               size="md"
-              icon={<SeerIcon />}
+              icon={<IconSeer />}
               onClick={() => {
                 trackAnalytics('trace.explorer.ai_query_interface', {
                   organization,
@@ -540,7 +539,7 @@ const RecentFilterPill = styled('li')`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0 ${space(1.5)} 0 ${space(0.75)};
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   cursor: pointer;
@@ -610,14 +609,14 @@ const SeerButtonWrapper = styled('div')`
   justify-content: flex-start;
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.purple100};
   width: 100%;
 `;
 
 const SeerFullWidthButton = styled(Button)`
   width: 100%;
   border-radius: 0;
-  background: none;
+  background-color: none;
   box-shadow: none;
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -630,7 +629,7 @@ const SeerFullWidthButton = styled(Button)`
   gap: ${space(1)};
   &:hover,
   &:focus {
-    background: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.purple100};
     color: ${p => p.theme.purple400};
     box-shadow: none;
   }

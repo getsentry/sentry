@@ -40,7 +40,7 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
     return (
       <NumberContainer>
         {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
-        {value}%
+        {Number(value).toFixed(2)}%
       </NumberContainer>
     );
   }

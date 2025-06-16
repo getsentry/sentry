@@ -4,12 +4,29 @@ import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const makeAutomationsQueryKey = (orgSlug: string): ApiQueryKey => [
+const makeAutomationsQueryKey = ({
+  orgSlug,
+  query,
+  sort,
+  ids,
+  limit,
+  cursor,
+  projects,
+}: {
+  orgSlug: string;
+  cursor?: string;
+  ids?: string[];
+  limit?: number;
+  projects?: number[];
+  query?: string;
+  sort?: string;
+}): ApiQueryKey => [
   `/organizations/${orgSlug}/workflows/`,
+  {query: {query, sort, id: ids, per_page: limit, cursor, project: projects}},
 ];
 
 const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
@@ -17,15 +34,23 @@ const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQuery
 ];
 
 interface UseAutomationsQueryOptions {
+  cursor?: string;
+  ids?: string[];
+  limit?: number;
+  projects?: number[];
   query?: string;
   sort?: string;
 }
-export function useAutomationsQuery(_options: UseAutomationsQueryOptions = {}) {
-  const {slug} = useOrganization();
+export function useAutomationsQuery(
+  options: UseAutomationsQueryOptions = {},
+  queryOptions: Partial<UseApiQueryOptions<Automation[]>> = {}
+) {
+  const {slug: orgSlug} = useOrganization();
 
-  return useApiQuery<Automation[]>(makeAutomationsQueryKey(slug), {
+  return useApiQuery<Automation[]>(makeAutomationsQueryKey({orgSlug, ...options}), {
     staleTime: 0,
     retry: false,
+    ...queryOptions,
   });
 }
 
@@ -57,16 +82,4 @@ export function useAvailableActionsQuery() {
     staleTime: Infinity,
     retry: false,
   });
-}
-
-export function useDetectorQueriesByIds(automationIds: string[]) {
-  const org = useOrganization();
-
-  return useApiQueries<Automation>(
-    automationIds.map(id => makeAutomationQueryKey(org.slug, id)),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
 }
