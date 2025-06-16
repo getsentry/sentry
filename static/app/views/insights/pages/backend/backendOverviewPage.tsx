@@ -51,7 +51,7 @@ import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/vie
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -62,7 +62,7 @@ import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const isNewBackendExperienceEnabled = useInsightsEap();
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage />;

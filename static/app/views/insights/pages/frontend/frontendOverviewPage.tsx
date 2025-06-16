@@ -54,7 +54,7 @@ import {
 } from 'sentry/views/insights/pages/frontend/settings';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
@@ -323,7 +323,7 @@ function EAPOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
-  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
 
   return (
