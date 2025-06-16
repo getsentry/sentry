@@ -1,3 +1,4 @@
+import pytest
 from django.urls import reverse
 
 from sentry.models.apikey import ApiKey
@@ -6,6 +7,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
+@pytest.mark.django_db
 @control_silo_test
 def test_anonymous(client):
     response = client.get(reverse("sentry-api-index"))
