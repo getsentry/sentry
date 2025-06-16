@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0926_dashboard_favorite_defer_position_constraint"),
+        ("sentry", "0929_no_pickle_authenticator"),
     ]
 
     operations = [
