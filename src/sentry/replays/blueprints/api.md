@@ -595,7 +595,7 @@ A POST request is issued with no body. The URL and authorization context is used
 
 ### List Replay Deletion Jobs [GET]
 
-Retrieve a collection of replays.
+Retrieve a collection of replay delete jobs.
 
 **Attributes**
 
