@@ -72,6 +72,11 @@ jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');
 jest.mock('getsentry/utils/trackMetric');
 
+jest.mock('sentry/utils/testableLocation', () => ({
+  testableWindowLocationReplace: jest.fn(),
+  testableWindowLocationAssign: jest.fn(),
+}));
+
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
   push: jest.fn(),
