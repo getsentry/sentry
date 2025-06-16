@@ -8,7 +8,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type FeedbackSummaryResponse = {
-  num_feedbacks_used: number;
+  numFeedbacksUsed: number;
   success: boolean;
   summary: string | null;
 };
@@ -77,6 +77,6 @@ export default function useFeedbackSummary(): {
     summary: data.summary,
     isPending: false,
     error: null,
-    tooFewFeedbacks: data.num_feedbacks_used === 0 && data.success === false,
+    tooFewFeedbacks: data.numFeedbacksUsed === 0 && data.success === false,
   };
 }
