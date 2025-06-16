@@ -184,3 +184,29 @@ def is_seer_scanner_rate_limited(
         )
         return is_rate_limited, current, limit
     return False, 0, 0
+
+
+def is_seer_autofix_rate_limited(
+    project: Project, organization: Organization
+) -> tuple[bool, int, int]:
+    """
+    Check if Seer Autofix automation is rate limited for a given project and organization.
+
+    Returns:
+        tuple[bool, int, int]:
+            - is_rate_limited: Whether Autofix is rate limited.
+            - current: The current number of Autofix runs.
+            - limit: The limit for Autofix runs.
+    """
+    from sentry import features, options, ratelimits
+
+    if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
+        limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
+        is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
+            project=project,
+            key="autofix.auto_triggered",
+            limit=limit,
+            window=60 * 60,  # 1 hour
+        )
+        return is_rate_limited, current, limit
+    return False, 0, 0
