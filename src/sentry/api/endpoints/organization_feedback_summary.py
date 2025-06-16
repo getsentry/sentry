@@ -70,8 +70,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
 
         # Sort first, then convert each element to a string
-        project_ids = sorted([project.id for project in projects])
-        project_ids = [str(project_id) for project_id in project_ids]
+        numeric_project_ids = sorted([project.id for project in projects])
+        project_ids = [str(project_id) for project_id in numeric_project_ids]
         hashed_project_ids = hash_from_values(project_ids)
 
         # Cache key should be the filters that were selected by the user, and the cache should time out after 1 hour
