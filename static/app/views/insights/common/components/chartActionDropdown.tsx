@@ -63,7 +63,7 @@ export function ChartActionDropdown({
       to: getAlertsUrl({
         project,
         query: search?.formatString(),
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        dataset: Dataset.SPANS,
         pageFilters: selection,
         aggregate: yAxis,
         organization,

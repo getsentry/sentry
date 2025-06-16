@@ -87,7 +87,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
           aggregate: query.yAxes[0]!,
           organization,
           pageFilters: selection,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          dataset: Dataset.SPANS,
           query: query.query,
         }),
       }))}

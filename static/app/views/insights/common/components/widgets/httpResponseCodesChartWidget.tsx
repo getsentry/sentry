@@ -85,7 +85,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
           aggregate: query.yAxes[0]!,
           organization,
           pageFilters: selection,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          dataset: Dataset.SPANS,
           query: query.query,
         }),
       }))}

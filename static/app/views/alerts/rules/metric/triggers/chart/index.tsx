@@ -273,7 +273,7 @@ class TriggersChart extends PureComponent<Props, State> {
       };
     }
 
-    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    if (this.props.dataset === Dataset.SPANS) {
       return EAP_AVAILABLE_TIME_PERIODS;
     }
 
@@ -439,7 +439,7 @@ class TriggersChart extends PureComponent<Props, State> {
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
+              {dataset === Dataset.SPANS ? (
                 <ConfidenceFooter
                   sampleCount={seriesSamplingInfo?.sampleCount}
                   isSampled={seriesSamplingInfo?.isSampled}
@@ -685,11 +685,7 @@ class TriggersChart extends PureComponent<Props, State> {
           {...baseProps}
           period={period}
           dataLoadedCallback={onDataLoaded}
-          sampling={
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-              ? SAMPLING_MODE.NORMAL
-              : undefined
-          }
+          sampling={dataset === Dataset.SPANS ? SAMPLING_MODE.NORMAL : undefined}
         >
           {({
             loading,

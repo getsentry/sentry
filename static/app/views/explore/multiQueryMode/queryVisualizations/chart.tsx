@@ -202,7 +202,7 @@ export function MultiQueryModeChart({
         pageFilters: pageFilters.selection,
         aggregate: yAxes[0],
         organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        dataset: Dataset.SPANS,
         interval,
       }),
       onAction: () => {

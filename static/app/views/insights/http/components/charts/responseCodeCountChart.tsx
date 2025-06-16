@@ -107,7 +107,7 @@ export function ResponseCodeCountChart({
           aggregate: yAxis,
           organization,
           pageFilters: selection,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          dataset: Dataset.SPANS,
           query: query.query,
         }),
       }))}

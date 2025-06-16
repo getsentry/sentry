@@ -39,7 +39,7 @@ const alertTypeIdentifiers: Record<
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
-  [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
+  [Dataset.SPANS]: {
     trace_item_throughput: 'count(span.duration)',
     trace_item_duration: 'span.duration',
     trace_item_apdex: 'apdex',
@@ -70,7 +70,7 @@ export function getAlertTypeFromAggregateDataset({
   const alertType =
     matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as MetricAlertType);
 
-  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+  if (dataset === Dataset.SPANS) {
     if (organization && deprecateTransactionAlerts(organization)) {
       return alertType ?? 'eap_metrics';
     }

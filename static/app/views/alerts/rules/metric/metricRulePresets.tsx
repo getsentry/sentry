@@ -48,7 +48,7 @@ export function makeDefaultCta({
       to: '',
     };
   }
-  if (rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+  if (rule.dataset === Dataset.SPANS) {
     return {
       buttonText: t('Open in Explore'),
       to: getAlertRuleExploreUrl({

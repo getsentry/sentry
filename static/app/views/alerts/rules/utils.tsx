@@ -131,7 +131,7 @@ export function getAlertRuleExploreUrl({
   rule: MetricRule;
   timePeriod: TimePeriodType;
 }) {
-  if (rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM) {
+  if (rule.dataset !== Dataset.SPANS) {
     return '';
   }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

@@ -34,10 +34,10 @@ describe('getAlertsUrl', function () {
       query,
       organization: OrganizationFixture({slug: orgSlug}),
       pageFilters,
-      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      dataset: Dataset.SPANS,
     });
     expect(url).toBe(
-      '/organizations/orgSlug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=project-slug&query=span.op%3Ahttp.client&statsPeriod=7d'
+      '/organizations/orgSlug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=spans&eventTypes=transaction&interval=1h&project=project-slug&query=span.op%3Ahttp.client&statsPeriod=7d'
     );
   });
 });

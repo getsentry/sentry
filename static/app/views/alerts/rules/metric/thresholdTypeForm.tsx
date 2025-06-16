@@ -59,7 +59,7 @@ function ThresholdTypeForm({
   );
 
   let comparisonDeltaOptions = COMPARISON_DELTA_OPTIONS;
-  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+  if (dataset === Dataset.SPANS) {
     // Don't allow comparisons over a week for span alerts
     comparisonDeltaOptions = comparisonDeltaOptions.filter(delta => delta.value <= 10080);
   }

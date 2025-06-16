@@ -7,7 +7,7 @@ import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
 describe('getExploreUrl', () => {
   it('should return the correct url', () => {
     const rule = MetricRuleFixture();
-    rule.dataset = Dataset.EVENTS_ANALYTICS_PLATFORM;
+    rule.dataset = Dataset.SPANS;
     rule.timeWindow = TimeWindow.THIRTY_MINUTES;
     rule.aggregate = 'p75(span.duration)';
     rule.query = 'span.op:http.client';
@@ -31,7 +31,7 @@ describe('getExploreUrl', () => {
   });
   it('should return the correct url for 9998m', () => {
     const rule = MetricRuleFixture();
-    rule.dataset = Dataset.EVENTS_ANALYTICS_PLATFORM;
+    rule.dataset = Dataset.SPANS;
     rule.timeWindow = TimeWindow.THIRTY_MINUTES;
     rule.aggregate = 'p75(span.duration)';
     rule.query = 'span.op:http.client';
@@ -55,7 +55,7 @@ describe('getExploreUrl', () => {
   });
   it('should respect custom time ranges', () => {
     const rule = MetricRuleFixture();
-    rule.dataset = Dataset.EVENTS_ANALYTICS_PLATFORM;
+    rule.dataset = Dataset.SPANS;
     rule.timeWindow = TimeWindow.THIRTY_MINUTES;
     rule.aggregate = 'p75(span.duration)';
     rule.query = 'span.op:http.client';

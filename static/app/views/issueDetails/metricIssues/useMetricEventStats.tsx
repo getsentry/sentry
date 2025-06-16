@@ -73,7 +73,7 @@ export function useMetricEventStats(
   const eventType = extractEventTypeFilterFromRule(rule);
 
   const query =
-    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+    dataset === Dataset.SPANS
       ? ruleQuery
       : (ruleQuery ? `(${ruleQuery}) AND (${eventType})` : eventType).trim();
 

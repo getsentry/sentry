@@ -151,7 +151,7 @@ export function getTimeWindowOptions(
       TimeWindow.THIRTY_MINUTES,
       TimeWindow.ONE_HOUR,
     ]);
-  } else if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+  } else if (dataset === Dataset.SPANS) {
     options = pick(TIME_WINDOW_MAP, [
       TimeWindow.FIVE_MINUTES,
       TimeWindow.TEN_MINUTES,

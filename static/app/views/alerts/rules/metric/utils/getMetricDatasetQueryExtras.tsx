@@ -23,7 +23,7 @@ export function getMetricDatasetQueryExtras({
   query?: string;
   useOnDemandMetrics?: boolean;
 }) {
-  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+  if (dataset === Dataset.SPANS) {
     return {
       dataset: DiscoverDatasets.SPANS_EAP,
     };

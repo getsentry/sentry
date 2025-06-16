@@ -110,7 +110,7 @@ export default function MetricDetailsBody({
 
   const eventType = extractEventTypeFilterFromRule(rule);
   const queryWithTypeFilter =
-    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+    dataset === Dataset.SPANS
       ? query
       : (query ? `(${query}) AND (${eventType})` : eventType).trim();
   const relativeOptions = {

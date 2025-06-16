@@ -60,7 +60,7 @@ export function getPeriodInterval(timePeriod: TimePeriodType, rule: MetricRule) 
 export function getFilter(rule: MetricRule): string[] | null {
   const {dataset, query} = rule;
 
-  if (isCrashFreeAlert(dataset) || dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+  if (isCrashFreeAlert(dataset) || dataset === Dataset.SPANS) {
     return query.trim().split(' ');
   }
 
@@ -105,7 +105,7 @@ export function getViableDateRange({
   // 14 day 10m and 7 day 5m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
   // We push forward the start date by a bucket to counteract this and return to 2016 buckets.
   if (
-    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+    dataset === Dataset.SPANS &&
     timePeriod.usingPeriod &&
     ((timePeriod.period === TimePeriod.FOURTEEN_DAYS && interval === '10m') ||
       (timePeriod.period === TimePeriod.SEVEN_DAYS && interval === '5m'))

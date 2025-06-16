@@ -82,7 +82,7 @@ export function ToolbarSaveAs() {
         pageFilters: pageFilters.selection,
         aggregate: yAxis,
         organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        dataset: Dataset.SPANS,
         interval,
       }),
       onAction: () => {

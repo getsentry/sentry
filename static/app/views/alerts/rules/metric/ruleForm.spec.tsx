@@ -388,7 +388,7 @@ describe('Incident Rules Form', () => {
           id: undefined,
           eventTypes: [],
           aggregate: 'count(span.duration)',
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          dataset: Dataset.SPANS,
         },
       });
 
@@ -432,7 +432,7 @@ describe('Incident Rules Form', () => {
           id: undefined,
           eventTypes: [],
           aggregate: 'count(span.duration)',
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          dataset: Dataset.SPANS,
         },
       });
 

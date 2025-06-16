@@ -458,10 +458,7 @@ export default function MetricChart({
       rule,
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
-      samplingMode:
-        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-          ? SAMPLING_MODE.NORMAL
-          : undefined,
+      samplingMode: rule.dataset === Dataset.SPANS ? SAMPLING_MODE.NORMAL : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );

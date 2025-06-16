@@ -99,7 +99,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
           to: getAlertsUrl({
             project,
             query: 'span.op:queue.publish',
-            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            dataset: Dataset.SPANS,
             pageFilters: selection,
             aggregate: yAxis,
             organization,
@@ -111,7 +111,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
           to: getAlertsUrl({
             project,
             query: 'span.op:queue.process',
-            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            dataset: Dataset.SPANS,
             pageFilters: selection,
             aggregate: yAxis,
             organization,

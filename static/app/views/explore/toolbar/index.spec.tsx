@@ -527,7 +527,7 @@ describe('ExploreToolbar', function () {
     );
     expect(router.push).toHaveBeenCalledWith({
       pathname:
-        '/organizations/org-slug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
+        '/organizations/org-slug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=spans&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
     });
   });
 
