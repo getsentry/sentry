@@ -6,7 +6,8 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'self-hosted'
+      - 'self-hosted-ubuntu-24.04-amd64'
+      - 'self-hosted-ubuntu-24.04-arm64'
 artifactProvider:
   name: none
 targets:
