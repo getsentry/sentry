@@ -593,7 +593,7 @@ A POST request is issued with no body. The URL and authorization context is used
   - offset (optional, number)
     Default: 0
 
-### Browse Replay Delete Jobs [GET]
+### List Replay Deletion Jobs [GET]
 
 Retrieve a collection of replays.
 
