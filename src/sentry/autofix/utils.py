@@ -163,6 +163,15 @@ class SeerAutomationSource(enum.Enum):
 def is_seer_scanner_rate_limited(
     project: Project, organization: Organization
 ) -> tuple[bool, int, int]:
+    """
+    Check if Seer Scanner automation is rate limited for a given project and organization.
+
+    Returns:
+        tuple[bool, int, int]:
+            - is_rate_limited: Whether the seer scanner is rate limited.
+            - current: The current number of seer scanner runs.
+            - limit: The limit for seer scanner runs.
+    """
     from sentry import features, options, ratelimits
 
     if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
