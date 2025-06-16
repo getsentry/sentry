@@ -1,3 +1,5 @@
+import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -60,6 +62,7 @@ interface UseTracesOptions {
   dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
+  keepPreviousData?: boolean;
   limit?: number;
   query?: string | string[];
   sort?: 'timestamp' | '-timestamp';
@@ -77,6 +80,7 @@ export function useTraces({
   limit,
   query,
   sort,
+  keepPreviousData,
 }: UseTracesOptions): UseTracesResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -103,6 +107,7 @@ export function useTraces({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: false,
+    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     enabled,
   });
 

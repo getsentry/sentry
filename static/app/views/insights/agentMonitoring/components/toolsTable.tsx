@@ -1,5 +1,4 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -62,11 +61,14 @@ export function ToolsTable() {
 
   const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
 
-  const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
       {
         pathname,
-        search: qs.stringify({...transactionQuery, toolsCursor: cursor}),
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
       },
       {replace: true, preventScrollReset: true}
     );
