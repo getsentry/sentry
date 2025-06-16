@@ -724,9 +724,3 @@ Fetch a replay delete job instance.
     }
   }
   ```
-
-### Schedule Replay Collection Deletion [PUT]
-
-An empty PUT request is made to the endpoint. The instance is scheduled for processing if it was in a pending state.
-
-- Response 202
