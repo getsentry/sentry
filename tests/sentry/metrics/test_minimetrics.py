@@ -43,14 +43,14 @@ class DummyTransport(Transport):
 
 @pytest.fixture(scope="function")
 def scope():
-    scope = sentry_sdk.Scope(
-        ty=sentry_sdk.scope.ScopeType.CURRENT,
-        client=Client(
-            dsn="http://foo@example.invalid/42",
-            transport=DummyTransport,
-            traces_sample_rate=1.0,
-        ),
+    scope = sentry_sdk.Scope(ty=sentry_sdk.scope.ScopeType.CURRENT)
+    client = Client(
+        dsn="http://foo@example.invalid/42",
+        transport=DummyTransport,
+        traces_sample_rate=1.0,
     )
+    scope.set_client(client)
+
     with sentry_sdk.use_scope(scope):
         yield scope
 
