@@ -63,7 +63,7 @@ export enum DetectorPriorityLevel {
  * See DataConditionSerializer
  */
 export interface DataCondition {
-  comparison: any;
+  comparison: number;
   id: string;
   type: DataConditionType;
   conditionResult?: DetectorPriorityLevel;

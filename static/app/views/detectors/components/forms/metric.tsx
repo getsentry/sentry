@@ -48,12 +48,8 @@ export function MetricDetectorForm() {
 
 function MonitorKind() {
   const options: Array<[MetricDetectorFormData['kind'], string, string]> = [
-    [
-      'threshold',
-      t('Threshold'),
-      t('Absolute-valued thresholds, for non-seasonal data.'),
-    ],
-    ['change', t('Change'), t('Percentage changes over defined time windows.')],
+    ['static', t('Threshold'), t('Absolute-valued thresholds, for non-seasonal data.')],
+    ['percent', t('Change'), t('Percentage changes over defined time windows.')],
     [
       'dynamic',
       t('Dynamic'),
@@ -193,7 +189,7 @@ function DetectSection() {
         </FirstRow>
         <MonitorKind />
         <Flex column>
-          {(!kind || kind === 'threshold') && (
+          {(!kind || kind === 'static') && (
             <Flex column>
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
@@ -224,7 +220,7 @@ function DetectSection() {
               </Flex>
             </Flex>
           )}
-          {kind === 'change' && (
+          {kind === 'percent' && (
             <Flex column>
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
