@@ -1,8 +1,10 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, TypedDict
 
 from django.utils import timezone
+from django_stubs_ext import WithAnnotations
 
 from sentry import features
 from sentry.constants import ObjectStatus
