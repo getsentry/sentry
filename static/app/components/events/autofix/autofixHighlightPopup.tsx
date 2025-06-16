@@ -13,7 +13,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -22,7 +21,7 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconClose} from 'sentry/icons';
+import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -334,7 +333,7 @@ function AutofixHighlightPopupContent({
             <Message key={i} role={message.role}>
               {message.role === 'assistant' ? (
                 <CircularSeerIcon>
-                  <SeerIcon />
+                  <IconSeer />
                 </CircularSeerIcon>
               ) : (
                 <UserAvatar user={currentUser} size={24} />
