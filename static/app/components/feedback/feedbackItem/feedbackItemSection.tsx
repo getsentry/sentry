@@ -60,6 +60,7 @@ const SectionTitle = styled('h3')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: capitalize;
+  user-select: none;
 
   display: flex;
   gap: ${space(0.5)};

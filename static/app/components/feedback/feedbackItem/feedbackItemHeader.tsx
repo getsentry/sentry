@@ -54,12 +54,14 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
               project={feedbackItem.project}
               event={eventData}
             />
-            <Flex justify="flex-end">
-              <Flex gap={space(1)} align="center">
-                <SeenBy>{t('Seen by')}</SeenBy>
-                <FeedbackViewers feedbackItem={feedbackItem} />
+            {feedbackItem.seenBy.length ? (
+              <Flex justify="flex-end">
+                <Flex gap={space(1)} align="center">
+                  <SeenBy>{t('Seen by')}</SeenBy>
+                  <FeedbackViewers feedbackItem={feedbackItem} />
+                </Flex>
               </Flex>
-            </Flex>
+            ) : null}
           </Flex>
         </ErrorBoundary>
       ) : null}
