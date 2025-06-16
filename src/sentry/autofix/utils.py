@@ -7,6 +7,7 @@ import requests
 from django.conf import settings
 from pydantic import BaseModel
 
+from sentry import features, options, ratelimits
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -172,18 +173,17 @@ def is_seer_scanner_rate_limited(
             - current: The current number of seer scanner runs.
             - limit: The limit for seer scanner runs.
     """
-    from sentry import features, options, ratelimits
+    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
+        return False, 0, 0
 
-    if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        limit = options.get("seer.max_num_scanner_autotriggered_per_hour") or 1000
-        is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
-            project=project,
-            key="seer.scanner.auto_triggered",
-            limit=limit,
-            window=60 * 60,  # 1 hour
-        )
-        return is_rate_limited, current, limit
-    return False, 0, 0
+    limit = options.get("seer.max_num_scanner_autotriggered_per_hour") or 1000
+    is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
+        project=project,
+        key="seer.scanner.auto_triggered",
+        limit=limit,
+        window=60 * 60,  # 1 hour
+    )
+    return is_rate_limited, current, limit
 
 
 def is_seer_autofix_rate_limited(
@@ -198,15 +198,14 @@ def is_seer_autofix_rate_limited(
             - current: The current number of Autofix runs.
             - limit: The limit for Autofix runs.
     """
-    from sentry import features, options, ratelimits
+    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
+        return False, 0, 0
 
-    if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
-        is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
-            project=project,
-            key="autofix.auto_triggered",
-            limit=limit,
-            window=60 * 60,  # 1 hour
-        )
-        return is_rate_limited, current, limit
-    return False, 0, 0
+    limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
+    is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
+        project=project,
+        key="autofix.auto_triggered",
+        limit=limit,
+        window=60 * 60,  # 1 hour
+    )
+    return is_rate_limited, current, limit
