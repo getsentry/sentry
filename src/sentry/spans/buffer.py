@@ -70,6 +70,7 @@ from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
 import rapidjson
+import zstandard
 from django.conf import settings
 from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -153,6 +154,9 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
+        # Reuse compressor/decompressor objects for better performance
+        self._zstd_compressor = zstandard.ZstdCompressor(level=0)
+        self._zstd_decompressor = zstandard.ZstdDecompressor()
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -187,7 +191,9 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = self._get_span_key(project_and_trace, parent_span_id)
-                    p.sadd(set_key, *[span.payload for span in subsegment])
+                    # Compress multiple spans together into batches
+                    compressed = self._compress_span_payloads([span.payload for span in subsegment])
+                    p.sadd(set_key, compressed)
 
                 p.execute()
 
@@ -309,6 +315,32 @@ class SpansBuffer:
             subsegment.append(span)
 
         return trees
+
+    def _compress_span_payloads(self, payloads: list[bytes]) -> bytes:
+        combined = b"\x00".join(payloads)
+        original_size = len(combined)
+
+        with metrics.timer("spans.buffer.compression.cpu_time"):
+            compressed = self._zstd_compressor.compress(combined)
+
+        compressed_size = len(compressed)
+
+        compression_ratio = compressed_size / original_size if original_size > 0 else 0
+        metrics.timing("spans.buffer.compression.original_size", original_size)
+        metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
+        metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
+
+        return compressed
+
+    def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
+        # Check for zstd magic header (0xFD2FB528 in little-endian) --
+        # backwards compat with code that did not write compressed payloads.
+        with metrics.timer("spans.buffer.decompression.cpu_time"):
+            if not compressed_data.startswith(b"\x28\xb5\x2f\xfd"):
+                return [compressed_data]
+
+            decompressed_buffer = self._zstd_decompressor.decompress(compressed_data)
+            return decompressed_buffer.split(b"\x00")
 
     def record_stored_segments(self):
         with metrics.timer("spans.buffer.get_stored_segments"):
@@ -438,7 +470,12 @@ class SpansBuffer:
                 results = p.execute()
 
             for key, (cursor, spans) in zip(current_keys, results):
-                sizes[key] += sum(len(span) for span in spans)
+                decompressed_spans = []
+
+                for span_data in spans:
+                    decompressed_spans.extend(self._decompress_batch(span_data))
+
+                sizes[key] += sum(len(span) for span in decompressed_spans)
                 if sizes[key] > max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.warning("Skipping too large segment, byte size %s", sizes[key])
@@ -447,7 +484,7 @@ class SpansBuffer:
                     del cursors[key]
                     continue
 
-                payloads[key].extend(spans)
+                payloads[key].extend(decompressed_spans)
                 if len(payloads[key]) > max_segment_spans:
                     metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
                     logger.warning("Skipping too large segment, span count %s", len(payloads[key]))

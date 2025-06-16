@@ -513,3 +513,75 @@ def test_flush_rebalance(buffer: SpansBuffer):
     assert not rv
 
     assert_clean(buffer.client)
+
+
+def test_compression_functionality(buffer):
+    """Test that compression is working correctly."""
+
+    def make_payload(span_id: str):
+        return rapidjson.dumps(
+            {
+                "span_id": span_id,
+                "trace_id": "a" * 32,
+                "data": {"message": "x" * 1000},  # Large payload to compress well
+                "extra_data": {"field": "y" * 500},
+            }
+        ).encode("ascii")
+
+    spans = [
+        Span(
+            payload=make_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,  # This will be the root span
+            parent_span_id=None,
+            project_id=1,
+            is_segment_span=True,
+        ),
+        Span(
+            payload=make_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            project_id=1,
+        ),
+        Span(
+            payload=make_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+            project_id=1,
+        ),
+    ]
+
+    # Process spans - should compress them together
+    buffer.process_spans(spans, now=0)
+
+    # Verify data is stored (and compressed internally)
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    stored_data = buffer.client.smembers(segment_key)
+
+    # Should have stored data (compressed or uncompressed fallback)
+    assert len(stored_data) > 0
+
+    # Verify we can flush and get back the original data
+    segments = buffer.flush_segments(now=11)
+    assert len(segments) == 1
+
+    segment = list(segments.values())[0]
+    assert len(segment.spans) == 3
+
+    # Verify the payloads are correctly reconstructed
+    span_ids = set()
+    for span in segment.spans:
+        assert "data" in span.payload
+        assert "extra_data" in span.payload
+        assert span.payload["data"]["message"] == "x" * 1000
+        assert span.payload["extra_data"]["field"] == "y" * 500
+        span_ids.add(span.payload["span_id"])
+
+    # Verify we got all expected span IDs
+    expected_span_ids = {"a" * 16, "b" * 16, "c" * 16}
+    assert span_ids == expected_span_ids
+
+    buffer.done_flush_segments(segments)
+    assert_clean(buffer.client)
