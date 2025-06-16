@@ -53,9 +53,9 @@ describe('SeerAutomation', function () {
       select.focus();
     });
 
-    // Open the menu and select a new value (e.g., 'Only Super Highly Actionable Issues')
+    // Open the menu and select a new value (e.g., 'Only the Most Actionable Issues')
     await userEvent.click(select);
-    const option = await screen.findByText('Only Super Highly Actionable Issues');
+    const option = await screen.findByText('Only the Most Actionable Issues');
     await userEvent.click(option);
 
     act(() => {
