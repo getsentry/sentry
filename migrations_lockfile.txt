@@ -23,7 +23,7 @@ preprod: 0004_add_django_jsonfield
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0926_dashboard_favorite_defer_position_constraint
+sentry: 0927_add_last_and_times_seen_to_group_tombstone
 
 social_auth: 0001_squashed_0002_default_auto_field
 

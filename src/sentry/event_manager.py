@@ -96,6 +96,7 @@ from sentry.models.groupopenperiod import (
 )
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -510,7 +511,23 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded:
+        except HashDiscarded as e:
+            tombstone_id = getattr(e, "tombstone_id", None)
+            if tombstone_id:
+                try:
+                    group_tombstone = GroupTombstone.objects.get(id=tombstone_id)
+                    group_tombstone.last_seen = max(
+                        job["event"].datetime, group_tombstone.last_seen
+                    )
+                    group_tombstone.times_seen += 1
+                    group_tombstone.save(update_fields=["last_seen", "times_seen"])
+                except GroupTombstone.DoesNotExist:
+                    # This can happen due to a race condition with deletion.
+                    pass
+                except Exception:
+                    logger.exception(
+                        "Failed to update GroupTombstone count for id: %s", tombstone_id
+                    )
             discard_event(job, attachments)
             raise
 

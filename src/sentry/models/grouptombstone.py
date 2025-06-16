@@ -17,7 +17,15 @@ from sentry.db.models import (
     region_silo_model,
 )
 
-TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "data")
+TOMBSTONE_FIELDS_FROM_GROUP = (
+    "project_id",
+    "level",
+    "message",
+    "culprit",
+    "data",
+    "last_seen",
+    "times_seen",
+)
 
 
 @region_silo_model
@@ -39,6 +47,8 @@ class GroupTombstone(Model):
         blank=True, null=True
     )
     actor_id = BoundedPositiveIntegerField(null=True)
+    times_seen = BoundedPositiveIntegerField(default=0)
+    last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
