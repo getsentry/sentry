@@ -17,15 +17,7 @@ from sentry.db.models import (
     region_silo_model,
 )
 
-TOMBSTONE_FIELDS_FROM_GROUP = (
-    "project_id",
-    "level",
-    "message",
-    "culprit",
-    "data",
-    "last_seen",
-    "times_seen",
-)
+TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "data")
 
 
 @region_silo_model
