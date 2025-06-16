@@ -13,7 +13,7 @@ flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
 hybridcloud: 0001_squashed_0021_django_arrayfield_scope_list
 
-insights: 0001_squashed_0001_add_starred_transactions_model
+insights: 0002_backfill_team_starred
 
 monitors: 0006_add_is_upserting
 
