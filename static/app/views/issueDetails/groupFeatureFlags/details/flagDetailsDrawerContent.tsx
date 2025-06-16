@@ -196,7 +196,7 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
           label: t('Search issues where this flag value is TRUE'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `flags["${key}"]:"true"`},
+            query: {query: `flags[${key}]:"true"`},
           },
         },
         {
@@ -204,7 +204,7 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
           label: t('Search issues where this flag value is FALSE'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `flags["${key}"]:"false"`},
+            query: {query: `flags[${key}]:"false"`},
           },
         },
         {
