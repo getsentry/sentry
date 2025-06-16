@@ -83,11 +83,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                     "organization": organization,
                     "transaction": data["transaction"],
                 }
-                base_star_segment_filters = {
-                    "organizaton": organization,
-                    "user_id": request.user.id,
-                    "segment_name": data["transaction"],
-                }
 
                 project_teams = ProjectTeam.objects.filter(project=project, team__in=data["team"])
                 if len(project_teams) < len(data["team"]):
@@ -117,7 +112,11 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                         InsightsStarredSegment.objects.bulk_create(
                             [
                                 InsightsStarredSegment.objects.create(
-                                    **base_star_segment_filters, project=project_team.project
+                                    organization=organization,
+                                    user_id=request.user.id,
+                                    project=project,
+                                    segment_name=data["transaction"],
+                                    project=project_team.project,
                                 )
                                 for project_team in unkeyed_project_teams
                             ]
