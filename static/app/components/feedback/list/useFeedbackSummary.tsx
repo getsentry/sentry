@@ -82,6 +82,8 @@ export default function useFeedbackSummary(): {
     summary: feedbackSummaryData.summary,
     loading: false,
     error: null,
-    tooFewFeedbacks: feedbackSummaryData.num_feedbacks_used === 0, // Maybe we should surface this in the endpoint, this seems hacky
+    tooFewFeedbacks:
+      feedbackSummaryData.num_feedbacks_used === 0 &&
+      feedbackSummaryData.success === false,
   };
 }
