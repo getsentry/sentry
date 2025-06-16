@@ -159,8 +159,7 @@ export function EventGraph({
     },
   });
 
-  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
-  const shouldShowBubbles = hasReleaseBubblesSeries && showReleasesAs !== 'line';
+  const shouldShowBubbles = showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
