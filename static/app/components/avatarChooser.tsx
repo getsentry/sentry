@@ -206,7 +206,7 @@ function AvatarChooser(props: AvatarChooserProps) {
                 model={model}
                 savedDataUrl={savedDataUrl}
                 uploadDomain={uploadDomain ?? ''}
-                updateDataUrlState={({savedDataUrl: newDataUrl}) =>
+                updateDataUrlState={({dataUrl: newDataUrl}) =>
                   setNewAvatar(newDataUrl ?? null)
                 }
               />
