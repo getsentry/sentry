@@ -205,6 +205,7 @@ export default class ReplayReader {
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
     this._fetching = fetching;
+    this._attachments = attachments;
 
     if (replayRecord.is_archived) {
       this._replayRecord = replayRecord;

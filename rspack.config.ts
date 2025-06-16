@@ -734,6 +734,10 @@ if (IS_UI_DEV_ONLY) {
         },
       },
       {
+        context: ['/v1/automation/**'],
+        target: 'http://127.0.0.1:9091',
+      },
+      {
         // Handle dev-ui region silo requests.
         // Normally regions act as subdomains, but doing so in dev-ui
         // would result in requests bypassing webpack proxy and being sent
