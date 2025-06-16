@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.http import HttpResponse
 from django.test import RequestFactory
@@ -10,36 +10,41 @@ from sentry.testutils.helpers.options import override_options
 
 class ReportingEndpointMiddlewareTestCase(TestCase):
     def setUp(self) -> None:
-        self.middleware = ReportingEndpointMiddleware(lambda request: HttpResponse())
         self.factory = RequestFactory()
 
-    def test_obeys_option(self) -> None:
+    def test_obeys_option_when_enabled(self) -> None:
         with override_options(
             {"issues.browser_reporting.reporting_endpoints_header_enabled": True}
         ):
+            # Create middleware with option enabled
+            middleware = ReportingEndpointMiddleware(lambda request: HttpResponse())
             request = self.factory.get("/")
-            response = self.middleware.process_response(request, HttpResponse())
+            response = middleware(request)
 
             assert (
                 response.get("Reporting-Endpoints")
                 == "default=https://sentry.my.sentry.io/api/0/reporting-api-experiment/"
             )
 
+    def test_obeys_option_when_disabled(self) -> None:
         with override_options(
             {"issues.browser_reporting.reporting_endpoints_header_enabled": False}
         ):
+            # Create middleware with option disabled
+            middleware = ReportingEndpointMiddleware(lambda _: HttpResponse())
             request = self.factory.get("/")
-            response = self.middleware.process_response(request, HttpResponse())
+            response = middleware(request)
 
             assert response.get("Reporting-Endpoints") is None
 
-    @patch("src.sentry.middleware.reporting_endpoint.options.get")
-    def test_no_options_check_in_relay_endpoints(self, mock_options_get: MagicMock) -> None:
-        with override_options(
-            {"issues.browser_reporting.reporting_endpoints_header_enabled": True}
-        ):
-            request = self.factory.get("/api/0/relays/register/challenge/")
-            response = self.middleware.process_response(request, HttpResponse())
+    def test_handles_option_fetch_failure(self) -> None:
+        with patch("sentry.middleware.reporting_endpoint.options.get") as mock_options_get:
+            mock_options_get.side_effect = Exception("Database error")
 
-            mock_options_get.assert_not_called()
+            # Should handle the exception gracefully and default to disabled
+            middleware = ReportingEndpointMiddleware(lambda _: HttpResponse())
+            request = self.factory.get("/")
+            response = middleware(request)
+
             assert response.get("Reporting-Endpoints") is None
+            assert not middleware.reporting_endpoints_enabled
