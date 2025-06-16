@@ -686,7 +686,7 @@ Fetch a replay delete job instance.
       "dateUpdated": "2025-06-06T14:05:57.909921",
       "rangeStart": "2025-06-01T00:00:00.000000",
       "rangeEnd": "2025-06-04T00:00:00.000000",
-      "environment": "prod",
+      "environment": "production",
       "projects": [11276],
       "status": "pending",
       "query": "release:2.3.0 AND url:*/billing*"
