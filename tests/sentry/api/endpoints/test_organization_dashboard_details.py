@@ -8,7 +8,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.discover.models import DatasetSourcesTypes
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -3282,3 +3282,130 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
         assert response.status_code == 204
         assert self.user_2.id not in self.dashboard.favorited_by
+
+
+class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTestCase):
+    """
+    These tests are intended to cover and eventually replace the existing
+    OrganizationDashboardFavoriteTest cases.
+
+    They are updated as necessary to match the new functionality and
+    constraints regarding the position maintenance of the dashboard favorites.
+    """
+
+    features = ["organizations:dashboards-starred-reordering"]
+
+    def do_request(self, *args, **kwargs):
+        with self.feature(self.features):
+            return super().do_request(*args, **kwargs)
+
+    def setUp(self):
+        super().setUp()
+        # Create two additional users
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.user_2 = self.create_user(email="user2@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+        self.create_member(user=self.user_2, organization=self.organization)
+
+        # Both users have favorited the dashboard
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user_1.id,
+            dashboard=self.dashboard,
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            dashboard=self.dashboard,
+        )
+
+    def url(self, dashboard_id):
+        return reverse(
+            "sentry-api-0-organization-dashboard-favorite",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    # PUT tests
+    def test_favorite_dashboard(self):
+        assert self.user.id not in self.dashboard.favorited_by
+        self.login_as(user=self.user)
+
+        # Insert an initial starred dashboard for this user
+        initial_dashboard = Dashboard.objects.create(
+            title="Other Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=initial_dashboard,
+        )
+        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": "true"})
+        assert response.status_code == 204
+
+        # Assert that the dashboard is added to the end of the list by its position
+        assert list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization,
+                user_id=self.user.id,
+            )
+            .order_by("position")
+            .values_list("dashboard_id", flat=True)
+        ) == [
+            initial_dashboard.id,
+            self.dashboard.id,
+        ]
+
+    def test_unfavorite_dashboard(self):
+        assert self.user_1.id in self.dashboard.favorited_by
+        self.login_as(user=self.user_1)
+        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        assert response.status_code == 204
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization,
+                user_id=self.user_1.id,
+                dashboard=self.dashboard,
+            )
+            is None
+        )
+
+    def test_favorite_dashboard_no_dashboard_edit_access(self):
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
+        self.login_as(user=self.user_2)
+        dashboard_detail_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+        response = self.do_request("put", dashboard_detail_url, data={"title": "New Dashboard 9"})
+        # assert user cannot edit dashboard
+        assert response.status_code == 403
+
+        # assert if user can edit the favorite status of the dashboard
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization,
+                user_id=self.user_2.id,
+                dashboard=self.dashboard,
+            )
+            is not None
+        )
+        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+
+        # The dashboard was successfully unfavorited
+        assert response.status_code == 204
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization,
+                user_id=self.user_2.id,
+                dashboard=self.dashboard,
+            )
+            is None
+        )
