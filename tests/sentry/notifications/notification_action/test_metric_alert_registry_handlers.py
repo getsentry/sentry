@@ -36,7 +36,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Condition
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -107,13 +107,13 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "id": 1,
                     "type": Condition.GREATER_OR_EQUAL,
                     "comparison": 123,
-                    "condition_result": PriorityLevel.HIGH.value,
+                    "condition_result": DetectorPriorityLevel.HIGH.value,
                 },
                 {
                     "id": 2,
                     "type": Condition.GREATER_OR_EQUAL,
                     "comparison": 100,
-                    "condition_result": PriorityLevel.MEDIUM.value,
+                    "condition_result": DetectorPriorityLevel.MEDIUM.value,
                 },
             ],
             alert_id=self.alert_rule.id,

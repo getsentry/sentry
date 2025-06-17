@@ -105,7 +105,7 @@ class AlertContext:
         for condition in evidence_data.conditions:
             # The condition.condition_result is of type DetectorPriorityLevel
             if (
-                condition["condition_result"]
+                DetectorPriorityLevel(condition["condition_result"])
                 == PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL[PriorityLevel(priority_level)]
             ):
                 threshold_type = fetch_threshold_type(Condition(condition["type"]))
