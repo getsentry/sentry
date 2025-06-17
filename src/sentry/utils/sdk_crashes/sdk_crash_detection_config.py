@@ -192,7 +192,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     fallback_path="sentry-react-native",
                 ),
             ),
-            sdk_crash_ignore_matchers=set(),
+            sdk_crash_ignore_matchers={
+                # sentryWrapped rethrows the original error
+                # https://github.com/getsentry/sentry-javascript/blob/a67ebc4f56fd20259bffbe194e8e92e968589c12/packages/browser/src/helpers.ts#L107
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="sentryWrapped",
+                ),
+            },
         )
         configs.append(react_native_config)
 
