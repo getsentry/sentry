@@ -26,7 +26,6 @@ interface SummaryResponse {
   };
 }
 
-
 function createAISummaryQueryKey(
   orgSlug: string,
   projectSlug: string | undefined,
