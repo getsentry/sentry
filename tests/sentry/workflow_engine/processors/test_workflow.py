@@ -108,7 +108,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             },
         )
 
-    @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_actions")
+    @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
     def test_populate_workflow_env_for_filters(self, mock_filter):
         # this should not pass because the environment is not None
         self.error_workflow.update(environment=self.group_event.get_environment())

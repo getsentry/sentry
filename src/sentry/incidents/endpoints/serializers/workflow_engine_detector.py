@@ -24,13 +24,13 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
     Action,
-    ActionGroupStatus,
     AlertRuleDetector,
     DataCondition,
     DataConditionGroupAction,
     DataSourceDetector,
     Detector,
 )
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -177,20 +177,22 @@ class WorkflowEngineDetectorSerializer(Serializer):
         for action_ids in detector_to_action_ids.values():
             all_action_ids.extend(action_ids)
 
-        action_group_statuses = ActionGroupStatus.objects.filter(action_id__in=all_action_ids)
+        wf_action_group_statuses = WorkflowActionGroupStatus.objects.filter(
+            action_id__in=all_action_ids
+        )
 
-        detector_to_group_ids = defaultdict(list)
-        for action_group_status in action_group_statuses:
+        detector_to_group_ids = defaultdict(set)
+        for wf_action_group_status in wf_action_group_statuses:
             for detector, action_ids in detector_to_action_ids.items():
-                if action_group_status.action_id in action_ids:
-                    detector_to_group_ids[detector].append(action_group_status.group_id)
+                if wf_action_group_status.action_id in action_ids:
+                    detector_to_group_ids[detector].add(wf_action_group_status.group_id)
 
         open_periods = None
-        group_ids = [action_group_status.group_id for action_group_status in action_group_statuses]
+        group_ids = {
+            wf_action_group_status.group_id for wf_action_group_status in wf_action_group_statuses
+        }
         if group_ids:
-            open_periods = GroupOpenPeriod.objects.filter(
-                group__in=[group_id for group_id in group_ids]
-            )
+            open_periods = GroupOpenPeriod.objects.filter(group__in=group_ids)
 
         for detector in detectors.values():
             # TODO: this serializer is half baked

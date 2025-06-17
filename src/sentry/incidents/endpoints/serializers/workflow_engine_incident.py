@@ -27,7 +27,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import (
     Action,
-    ActionGroupStatus,
     AlertRuleDetector,
     DataCondition,
     DataConditionGroupAction,
@@ -37,6 +36,7 @@ from sentry.workflow_engine.models import (
     IncidentGroupOpenPeriod,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 
 
 class WorkflowEngineIncidentSerializer(Serializer):
@@ -191,14 +191,14 @@ class WorkflowEngineIncidentSerializer(Serializer):
     def get_open_periods_to_detectors(
         self, open_periods: Sequence[GroupOpenPeriod]
     ) -> dict[GroupOpenPeriod, Detector]:
-        action_group_statuses = ActionGroupStatus.objects.filter(
+        wf_action_group_statuses = WorkflowActionGroupStatus.objects.filter(
             group__in=[open_period.group for open_period in open_periods]
         )
         open_periods_to_actions: DefaultDict[GroupOpenPeriod, Action] = defaultdict()
         for open_period in open_periods:
-            for action_group_status in action_group_statuses:
-                if action_group_status.group == open_period.group:
-                    open_periods_to_actions[open_period] = action_group_status.action
+            for wf_action_group_status in wf_action_group_statuses:
+                if wf_action_group_status.group == open_period.group:
+                    open_periods_to_actions[open_period] = wf_action_group_status.action
                     break
 
         dcgas = DataConditionGroupAction.objects.filter(
