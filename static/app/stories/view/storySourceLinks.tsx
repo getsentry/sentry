@@ -1,9 +1,9 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
-import {IconGithub} from 'sentry/icons';
+import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
 
@@ -29,31 +29,22 @@ export function StorySourceLinks(props: {story: StoryDescriptor}) {
   const committerDate = data?.[0]?.commit.committer.date;
 
   return (
-    <Fragment>
-      {committerDate ? (
-        <LastEdited>
-          Last Edited: <DateTime date={committerDate} />
-        </LastEdited>
-      ) : null}
+    <Flex align="center" justify="space-between" flex={1}>
       <LinkButton
-        href={`https://github.com/getsentry/sentry/blob/master/static/${props.story.filename}`}
-        external
-        icon={<IconGithub />}
-        size="xs"
-        aria-label={t('View on GitHub')}
-      >
-        {t('View')}
-      </LinkButton>
-      <LinkButton
+        priority="transparent"
         href={`https://github.com/getsentry/sentry/edit/master/static/${props.story.filename}`}
         external
-        icon={<IconGithub />}
+        icon={<IconEdit />}
         size="xs"
         aria-label={t('Edit on GitHub')}
       >
-        {t('Edit')}
+        {t('Edit on GitHub')}
       </LinkButton>
-    </Fragment>
+
+      <LastEdited>
+        Last Edited: {committerDate ? <DateTime date={committerDate} /> : 'Unknown'}
+      </LastEdited>
+    </Flex>
   );
 }
 

@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {space} from 'sentry/styles/space';
 
 import * as Storybook from './';
@@ -54,17 +55,26 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   return (
     <StorySection>
       <StoryTitle>{props.name}</StoryTitle>
-      {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
+      {isOneChild ? (
+        <Flex gap={space(2)} column>
+          {children}
+        </Flex>
+      ) : (
+        <Storybook.SideBySide>
+          <Flex gap={space(2)} column>
+            {children}
+          </Flex>
+        </Storybook.SideBySide>
+      )}
     </StorySection>
   );
 }
 
 const StorySection = styled('section')`
   margin-top: ${space(4)};
-
-  & > p {
-    margin: ${space(3)} 0;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 `;
 
 const StoryTitle = styled('h3')`

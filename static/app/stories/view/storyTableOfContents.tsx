@@ -119,7 +119,7 @@ export function StoryTableOfContents() {
 
   return (
     <StoryIndexContainer>
-      <StoryIndexTitle>Contents</StoryIndexTitle>
+      <StoryIndexTitle>On this page</StoryIndexTitle>
       <StoryIndexListContainer>
         <StoryIndexList>
           {nestedEntries.map(entry => (
@@ -152,46 +152,58 @@ const StoryIndexContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     display: none;
   }
+  position: sticky;
 `;
 
 const StoryIndexListContainer = styled('div')`
+  color: ${p => p.theme.tokens.content.muted};
+  a {
+    color: inherit;
+    padding: ${space(1)};
+  }
+
   > ul {
-    padding-left: 0;
     margin-top: ${space(1)};
+    padding-left: ${space(0.75)};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   > ul > li {
     padding-left: 0;
     margin-top: ${space(1)};
-
-    > a {
-      margin-bottom: ${space(0.5)};
-    }
   }
 `;
 
 const StoryIndexTitle = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0 ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  padding: ${space(0.5)} 0 ${space(1)} ${space(0.75)};
   margin-bottom: ${space(1)};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StoryIndexList = styled('ul')`
   list-style: none;
-  padding-left: ${space(0.75)};
+  padding-left: 0;
   margin: 0;
   width: 160px;
 
   li {
-    &:hover {
-      background: ${p => p.theme.backgroundSecondary};
-    }
-
     a {
-      padding: ${space(0.25)} 0;
       display: block;
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.muted};
       text-decoration: none;
+      border-radius: ${p => p.theme.borderRadius};
+
+      &:hover {
+        background: ${p => p.theme.tokens.background.secondary};
+      }
+      &:active {
+        color: ${p => p.theme.tokens.content.accent};
+      }
+      &:target {
+        color: ${p => p.theme.tokens.content.accent};
+      }
     }
   }
 `;
