@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';

@@ -2,8 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
@@ -31,7 +31,7 @@ export default function AutomationBuilder() {
   }, [api, organization]);
 
   return (
-    <Flex column gap={space(1)}>
+    <Flex direction="column" gap={space(1)}>
       <Step>
         <StepLead>
           {/* TODO: Only make this a selector of "all" is originally selected */}
@@ -106,7 +106,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   return (
     <IfThenWrapper>
       <Step>
-        <Flex column gap={space(0.75)}>
+        <Flex direction="column" gap={space(0.75)}>
           <Flex justify="space-between">
             <StepLead>
               {tct('[if: If] [selector] of these filters match', {

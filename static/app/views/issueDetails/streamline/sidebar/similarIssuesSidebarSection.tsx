@@ -1,4 +1,4 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';

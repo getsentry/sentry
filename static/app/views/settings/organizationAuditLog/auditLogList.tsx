@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {Flex} from 'sentry/components/container/flex';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';

@@ -16,9 +16,9 @@ import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
@@ -611,7 +611,7 @@ function GraphButton({
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <Flex column>
+      <Flex direction="column">
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>

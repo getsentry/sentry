@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -51,7 +51,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
     : (allEnvironments?.lastSeen ?? lastSeen);
 
   return (
-    <Flex column gap={space(0.75)}>
+    <Flex direction="column" gap={space(0.75)}>
       <div>
         <Flex gap={space(0.5)}>
           <Title>{t('Last seen')}</Title>

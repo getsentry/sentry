@@ -1,4 +1,4 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {IconClaude} from 'sentry/icons/iconClaude';
 import {IconGemini} from 'sentry/icons/iconGemini';
 import {IconOpenAI} from 'sentry/icons/iconOpenAI';

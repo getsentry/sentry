@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';

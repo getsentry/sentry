@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Key} from '@react-types/shared';
 import * as Sentry from '@sentry/react';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';

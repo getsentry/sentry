@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -193,9 +193,9 @@ function DetectSection() {
           </Flex>
         </FirstRow>
         <MonitorKind />
-        <Flex column>
+        <Flex direction="column">
           {(!kind || kind === 'static') && (
-            <Flex column>
+            <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <DirectionField
@@ -226,7 +226,7 @@ function DetectSection() {
             </Flex>
           )}
           {kind === 'percent' && (
-            <Flex column>
+            <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <ChangePercentField
@@ -277,7 +277,7 @@ function DetectSection() {
             </Flex>
           )}
           {kind === 'dynamic' && (
-            <Flex column>
+            <Flex direction="column">
               <SelectField
                 required
                 name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
@@ -431,7 +431,7 @@ const MutedText = styled('p')`
 
 function FilterField() {
   return (
-    <Flex column gap={space(0.5)} style={{paddingTop: 16, flex: 1}}>
+    <Flex direction="column" gap={space(0.5)} style={{paddingTop: 16, flex: 1}}>
       <span>Filter</span>
       <SearchQueryBuilder
         initialQuery=""

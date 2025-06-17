@@ -1,5 +1,5 @@
-import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';

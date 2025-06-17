@@ -1,5 +1,5 @@
-import {Flex} from 'sentry/components/container/flex';
 import {Badge} from 'sentry/components/core/badge';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';

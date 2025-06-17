@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {
   StickyFooter,
@@ -37,7 +37,7 @@ export default function AutomationNew() {
   return (
     <NewAutomationLayout>
       <ContentWrapper>
-        <Flex column gap={space(1.5)} style={{padding: space(2)}}>
+        <Flex direction="column" gap={space(1.5)} style={{padding: space(2)}}>
           <Card>
             <EditConnectedMonitors
               connectedIds={connectedIds}

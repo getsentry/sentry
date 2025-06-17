@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';

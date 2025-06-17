@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import FormModel from 'sentry/components/forms/model';
 import {
   StickyFooter,
