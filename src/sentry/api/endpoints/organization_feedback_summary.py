@@ -75,7 +75,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         project_ids = [str(project_id) for project_id in numeric_project_ids]
         hashed_project_ids = hash_from_values(project_ids)
 
-        # Cache key should be the filters that were selected by the user, start and end dates at hour granularity
         summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         summary_cache = cache.get(summary_cache_key)
         if summary_cache:
