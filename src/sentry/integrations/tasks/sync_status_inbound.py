@@ -196,6 +196,7 @@ def group_was_recently_resolved(group: Group) -> bool:
     processing_deadline_duration=150,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=30,
         retry=Retry(
             times=5,
             delay=60 * 5,
