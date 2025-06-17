@@ -13,6 +13,13 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
+    snuba-profiling:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes profiling consumers
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized-profiles
     relay:
       description: Service event forwarding and ingestion service
       remote:
@@ -148,7 +155,21 @@ x-sentry-service-config:
         process-segments,
         worker,
       ]
-    profiling: [postgres, snuba, vroom, spotlight]
+    profiling:
+      [
+        postgres,
+        snuba-profiling,
+        relay,
+        vroom,
+        spotlight,
+        ingest-events,
+        ingest-transactions,
+        ingest-profiles,
+        ingest-occurrences,
+        worker,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+      ]
     ingest:
       [
         snuba,
