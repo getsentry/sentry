@@ -109,6 +109,8 @@ class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
         return "slack"
 
     def unpack_payload(self, response: Response) -> Any:
+        if not response.content:
+            return None
         return orjson.loads(response.content)
 
 
