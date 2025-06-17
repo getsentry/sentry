@@ -1,4 +1,5 @@
 import functools
+import logging
 from collections.abc import Generator, Iterator
 from typing import Any
 
@@ -20,6 +21,8 @@ from sentry.replays.usecases.ingest.event_parser import as_log_message
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -79,7 +82,7 @@ def make_seer_request(request_data: str) -> bytes:
     )
 
     if response.status_code != 200:
-        sentry_sdk.logger.warning(
+        logger.warning(
             "Replay: Failed to produce a summary for a replay breadcrumbs request",
             extra={
                 "status_code": response.status_code,
