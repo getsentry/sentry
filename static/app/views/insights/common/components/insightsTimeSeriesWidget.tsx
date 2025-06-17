@@ -170,12 +170,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  const enableReleaseBubblesProps = {
-    releases,
-    showReleaseAs: props.showReleaseAs || 'bubble',
-    onZoom: props.onZoom,
-  } as const;
-
   let chartType = ChartType.LINE;
   if (props.visualizationType === 'area') {
     chartType = ChartType.AREA;
@@ -194,7 +188,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             chartRef={props.chartRef}
             id={props.id}
             pageFilters={props.pageFilters}
-            {...enableReleaseBubblesProps}
+            releases={releases}
+            showReleaseAs={props.showReleaseAs || 'bubble'}
+            onZoom={props.onZoom}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
@@ -231,10 +227,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                         <TimeSeriesWidgetVisualization
                           id={props.id}
                           {...visualizationProps}
-                          {...enableReleaseBubblesProps}
                           onZoom={() => {}}
                           legendSelection={props.legendSelection}
                           onLegendSelectionChange={props.onLegendSelectionChange}
+                          showReleaseAs={props.showReleaseAs || 'bubble'}
                           releases={releases ?? []}
                         />
                       </ModalChartContainer>
