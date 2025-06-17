@@ -75,22 +75,15 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[dict[str,
                 # similar to the other breadcrumb events, so that it can be passed
                 # into as_log_message to be included in the LLM context.
 
-                # See create_feedback.py
-                is_feedback = event.title == "User Feedback"
-                error_category = "feedback" if is_feedback else "error"
-                error_message = (
-                    event.data.get("contexts", {}).get("feedback", {}).get("message", "")
-                    if is_feedback
-                    else event.message or ""
-                )
+                timestamp = event.datetime.timestamp() if event.datetime else 0.0
 
                 error_details.append(
                     {
-                        "category": error_category,
+                        "category": "error",
                         "id": error_id,
                         "title": event.title or "",
-                        "timestamp": event.datetime.isoformat() if event.datetime else "",
-                        "message": error_message,
+                        "timestamp": timestamp,
+                        "message": event.message or "",
                     }
                 )
         except Exception as e:

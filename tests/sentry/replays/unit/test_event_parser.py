@@ -652,15 +652,6 @@ def test_which():
     assert which(event) == EventType.MUTATIONS
 
     event = {
-        "category": "feedback",
-        "timestamp": 0.0,
-        "message": "Great website",
-        "title": "User Feedback",
-        "id": "123",
-    }
-    assert which(event) == EventType.USER_FEEDBACK
-
-    event = {
         "category": "error",
         "timestamp": 0.0,
         "message": "Some error happened",
@@ -837,15 +828,6 @@ def test_as_log_message():
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
     }
     assert as_log_message(event) is None
-
-    event = {
-        "category": "feedback",
-        "timestamp": 0.0,
-        "message": "Great website",
-        "title": "User Feedback",
-        "id": "123",
-    }
-    assert as_log_message(event) is not None
 
     event = {
         "category": "error",
