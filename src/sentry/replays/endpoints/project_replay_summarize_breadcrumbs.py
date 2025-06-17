@@ -1,6 +1,6 @@
 import functools
 from collections.abc import Generator, Iterator
-from typing import Any
+from typing import Any, TypedDict
 
 import requests
 import sentry_sdk
@@ -25,6 +25,14 @@ from sentry.replays.usecases.ingest.event_parser import as_log_message
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
+
+
+class ErrorEvent(TypedDict):
+    id: str
+    title: str
+    message: str
+    timestamp: float
+    category: str
 
 
 @region_silo_endpoint
@@ -82,20 +90,20 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         )
 
 
-def fetch_error_details(project_id: int, error_ids: list[str]) -> list[dict[str, Any]]:
-    """Fetch error details given error IDs."""
+def fetch_error_details(project_id: int, error_ids: list[str]) -> list[ErrorEvent]:
+    """Fetch error details given error IDs and return a list of ErrorEvent objects."""
     try:
         node_ids = [Event.generate_node_id(project_id, event_id=id) for id in error_ids]
         events = nodestore.backend.get_multi(node_ids)
 
         return [
-            {
-                "category": "error",
-                "id": event_id,
-                "title": data.get("title", ""),
-                "timestamp": data.get("timestamp", 0.0),
-                "message": data.get("message", ""),
-            }
+            ErrorEvent(
+                category="error",
+                id=event_id,
+                title=data.get("title", ""),
+                timestamp=data.get("timestamp", 0.0),
+                message=data.get("message", ""),
+            )
             for event_id, data in zip(error_ids, events.values())
             if data is not None
         ]
@@ -104,24 +112,24 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[dict[str,
         return []
 
 
-def generate_error_log_message(error: dict[str, Any]) -> str:
-    title = error.get("title", "")
-    message = error.get("message", "")
-    timestamp = error.get("timestamp", 0)
+def generate_error_log_message(error: ErrorEvent) -> str:
+    title = error["title"]
+    message = error["message"]
+    timestamp = error["timestamp"]
 
     return f"User experienced an error: '{title}: {message}' at {timestamp}"
 
 
 def get_request_data(
-    iterator: Iterator[tuple[int, memoryview]], error_events: list[dict[str, Any]]
+    iterator: Iterator[tuple[int, memoryview]], error_events: list[ErrorEvent]
 ) -> list[str]:
     # Sort error events by timestamp
-    error_events.sort(key=lambda x: x.get("timestamp", 0))
+    error_events.sort(key=lambda x: x["timestamp"])
     return list(gen_request_data(iterator, error_events))
 
 
 def gen_request_data(
-    iterator: Iterator[tuple[int, memoryview]], error_events: list[dict[str, Any]]
+    iterator: Iterator[tuple[int, memoryview]], error_events: list[ErrorEvent]
 ) -> Generator[str]:
     """Generate log messages from events and errors in chronological order."""
     error_idx = 0
@@ -151,7 +159,7 @@ def gen_request_data(
 
 @sentry_sdk.trace
 def analyze_recording_segments(
-    error_events: list[dict[str, Any]],
+    error_events: list[ErrorEvent],
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details

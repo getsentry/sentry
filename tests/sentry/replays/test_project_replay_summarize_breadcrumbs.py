@@ -144,7 +144,6 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         now = datetime.now(timezone.utc)
         event_id = uuid.uuid4().hex
         error_timestamp = now.timestamp() - 1
-
         self.store_event(
             data={
                 "event_id": event_id,
