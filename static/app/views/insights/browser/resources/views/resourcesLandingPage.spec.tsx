@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -21,7 +22,7 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
 } = SpanMetricsField;
-const {EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {EPM} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -44,7 +45,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   it('renders a list of resources', async () => {
-    render(<ResourcesLandingPage />, {organization});
+    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
@@ -57,7 +58,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   it('fetches domain data', async () => {
-    render(<ResourcesLandingPage />, {organization});
+    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.domainSelector!.mock.calls).toMatchInlineSnapshot(`
@@ -76,7 +77,7 @@ describe('ResourcesLandingPage', function () {
         ],
         "per_page": 100,
         "project": [],
-        "query": "has:sentry.normalized_description span.module:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
+        "query": "has:sentry.normalized_description span.category:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.starfish.get-span-domains",
         "sort": "-count()",
         "statsPeriod": "10d",
@@ -90,7 +91,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   it('contains correct query in charts', async () => {
-    render(<ResourcesLandingPage />, {organization});
+    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.mainTable!.mock.calls).toMatchInlineSnapshot(`
@@ -112,14 +113,13 @@ describe('ResourcesLandingPage', function () {
           "span.group",
           "avg(http.response_content_length)",
           "project.id",
-          "time_spent_percentage()",
           "sum(span.self_time)",
         ],
         "per_page": 100,
         "project": [],
         "query": "!sentry.normalized_description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
         "referrer": "api.performance.browser.resources.main-table",
-        "sort": "-time_spent_percentage()",
+        "sort": "-sum(span.self_time)",
         "statsPeriod": "10d",
       },
       "skipAbort": undefined,
@@ -132,22 +132,20 @@ describe('ResourcesLandingPage', function () {
 });
 
 const setupMocks = () => {
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -192,7 +190,6 @@ const setupMockRequests = (organization: Organization) => {
           [SPAN_OP]: 'resource.script',
           [SPAN_GROUP]: 'group123',
           [`${EPM}()`]: 123,
-          [`${TIME_SPENT_PERCENTAGE}()`]: 0.5,
           [`sum(${SPAN_SELF_TIME})`]: 123,
           'count()': 123,
         },
@@ -206,7 +203,6 @@ const setupMockRequests = (organization: Organization) => {
           [SPAN_OP]: 'resource.script',
           [SPAN_GROUP]: 'group123',
           [`${EPM}()`]: 123,
-          [`${TIME_SPENT_PERCENTAGE}()`]: 0.5,
           [`sum(${SPAN_SELF_TIME})`]: 123,
           'count()': 123,
         },
@@ -255,7 +251,11 @@ const setupMockRequests = (organization: Organization) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-stats/`,
     method: 'GET',
-    match: [MockApiClient.matchQuery({referrer: 'api.starfish.span-time-charts'})],
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.performance.resource.resource-landing-series',
+      }),
+    ],
     body: {
       [`${EPM}()`]: {
         data: [

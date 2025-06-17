@@ -35,7 +35,10 @@ describe('Commits', () => {
       >
         <Commits />
       </ReleaseContext>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 
@@ -174,7 +177,10 @@ describe('Commits', () => {
       >
         <Commits />
       </ReleaseContext>,
-      {router: newRouterContext}
+      {
+        router: newRouterContext,
+        deprecatedRouterMocks: true,
+      }
     );
     expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);
     expect(screen.queryByText('example/repo-name')).not.toBeInTheDocument();

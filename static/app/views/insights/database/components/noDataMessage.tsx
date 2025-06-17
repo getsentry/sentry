@@ -100,7 +100,7 @@ function ProjectList({projects, limit = MAX_LISTED_PROJECTS}: ProjectListProps) 
             <Link
               to={makeProjectsPathname({
                 path: `/${project.slug}/`,
-                orgSlug: organization.slug,
+                organization,
               })}
             >
               {project.name}

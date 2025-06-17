@@ -10,9 +10,11 @@ from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
 
 
+@exclude_experimental_detectors
 class TestSpansTask(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -93,7 +95,7 @@ class TestSpansTask(TestCase):
         assert child_tags["transaction"] == segment_tags["transaction"]
         assert child_tags["transaction.method"] == segment_tags["transaction.method"]
         assert child_tags["transaction.op"] == segment_tags["transaction.op"]
-        assert child_tags["user"] == segment_tags["user"]  # type: ignore[typeddict-item]
+        assert child_tags["user"] == segment_tags["user"]
 
     def test_enrich_spans_no_segment(self):
         spans = self.generate_basic_spans()
@@ -123,14 +125,14 @@ class TestSpansTask(TestCase):
         )
         assert release.date_added.timestamp() == spans[0]["end_timestamp_precise"]
 
-    @override_options({"standalone-spans.detect-performance-problems.enable": True})
+    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream):
         spans = self.generate_n_plus_one_spans()
         with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
-        ) as mock_released:
-            mock_released.return_value = True
+            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
+            return_value=True,
+        ):
             process_segment(spans)
 
         mock_eventstream.assert_called_once()
@@ -143,7 +145,7 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
-    @override_options({"standalone-spans.detect-performance-problems.enable": True})
+    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(self, mock_eventstream):

@@ -1,8 +1,7 @@
-export enum StarfishType {
-  BACKEND = 'backend',
-  MOBILE = 'mobile',
-  FRONTEND = 'frontend',
-}
+import type {PlatformKey} from 'sentry/types/project';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {Flatten} from 'sentry/utils/types/flatten';
+import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
   HTTP = 'http',
@@ -14,11 +13,10 @@ export enum ModuleName {
   APP_START = 'app_start',
   RESOURCE = 'resource',
   AI = 'ai',
+  AGENTS = 'agents',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
-  CRONS = 'crons',
-  UPTIME = 'uptime',
   SESSIONS = 'sessions',
   OTHER = 'other',
 }
@@ -27,7 +25,7 @@ export enum SpanMetricsField {
   SPAN_OP = 'span.op',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
   SPAN_DESCRIPTION = 'span.description',
-  SPAN_MODULE = 'span.module',
+  SPAN_CATEGORY = 'span.category',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
   SPAN_GROUP = 'span.group',
@@ -74,15 +72,46 @@ export enum SpanMetricsField {
 
 // TODO: This will be the final field type for eap spans
 export enum SpanFields {
+  TRANSACTION = 'transaction',
   IS_TRANSACTION = 'is_transaction',
+  CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  SPAN_DURATION = 'span.duration',
+  USER = 'user',
+  MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
+  MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
+  MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
+  RAW_DOMAIN = 'raw_domain',
+  PROJECT = 'project',
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  SPAN_DESCRIPTION = 'span.description',
+  SPAN_GROUP = 'span.group',
+  SPAN_OP = 'span.op',
+  RELEASE = 'release',
+  PROJECT_ID = 'project.id',
+  RESPONSE_CODE = 'span.status_code',
+  DEVICE_CLASS = 'device.class',
+  SPAN_SYSTEM = 'span.system',
+  SPAN_CATEGORY = 'span.category',
 }
 
-export type SpanBooleanFields =
+type WebVitalsMeasurements =
+  | 'measurements.score.cls'
+  | 'measurements.score.fcp'
+  | 'measurements.score.inp'
+  | 'measurements.score.lcp'
+  | 'measurements.score.ttfb'
+  | 'measurements.score.total';
+
+type SpanBooleanFields =
+  | SpanFields.CACHE_HIT
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
-export type SpanNumberFields =
+type SpanNumberFields =
   | SpanMetricsField.AI_TOTAL_COST
   | SpanMetricsField.AI_TOTAL_TOKENS_USED
   | SpanMetricsField.SPAN_SELF_TIME
@@ -98,16 +127,24 @@ export type SpanNumberFields =
   | SpanMetricsField.MOBILE_FROZEN_FRAMES
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
+  | SpanMetricsField.SPAN_DURATION
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES
+  | SpanFields.FROZEN_FRAMES_RATE
+  | SpanFields.SLOW_FRAMES_RATE
+  | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
   | DiscoverNumberFields;
 
-export type SpanStringFields =
+type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | SpanFields.RAW_DOMAIN
   | 'id'
   | 'span_id'
   | 'span.op'
   | 'span.description'
   | 'sentry.normalized_description'
-  | 'span.module'
   | 'span.action'
   | 'span.group'
   | 'span.category'
@@ -119,11 +156,14 @@ export type SpanStringFields =
   | 'transaction.id'
   | 'transaction.method'
   | 'release'
+  | 'request.method'
   | 'os.name'
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
+  | 'http.request.method'
   | 'messaging.destination.name'
+  | 'command'
   | 'user'
   | 'user.display'
   | 'user.id'
@@ -133,7 +173,8 @@ export type SpanStringFields =
   | 'replayId'
   | 'profile.id'
   | 'profiler.id'
-  | 'thread.id';
+  | 'thread.id'
+  | 'span.domain'; // TODO: With `useInsightsEap` we get a string, without it we get an array
 
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
@@ -144,18 +185,30 @@ export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> 
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
-export type SpanStringArrayFields = 'span.domain';
+type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
 
-export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
+export type Aggregate =
+  | (typeof COUNTER_AGGREGATES)[number]
+  | (typeof DISTRIBUTION_AGGREGATES)[number];
 
-export type Aggregate = (typeof AGGREGATES)[number];
-
-export type ConditionalAggregate =
+type CounterConditionalAggregate =
+  | `sum_if`
   | `avg_if`
+  | `count_if`
+  | `p50_if`
+  | `p75_if`
+  | `p90_if`
+  | `p95_if`
+  | `p99_if`;
+
+type ConditionalAggregate =
+  | `avg_if`
+  | `division_if`
   | `count_op`
+  | `failure_rate_if`
   | 'trace_status_rate'
   | 'time_spent_percentage';
 
@@ -163,6 +216,7 @@ export const SPAN_FUNCTIONS = [
   'sps',
   'spm',
   'epm',
+  'tpm',
   'count',
   'time_spent_percentage',
   'http_response_rate',
@@ -185,7 +239,9 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-export type SpanMetricsResponse = {
+type WebVitalsFunctions = 'performance_score' | 'count_scores';
+
+type SpanMetricsResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -204,6 +260,8 @@ export type SpanMetricsResponse = {
     'http_response_rate(3)': number;
     'http_response_rate(4)': number;
     'http_response_rate(5)': number;
+    'ttfd_contribution_rate()': number;
+    'ttid_contribution_rate()': number;
   } & {
     ['project']: string;
     ['project.id']: number;
@@ -215,17 +273,20 @@ export type SpanMetricsResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
-export type MetricsFilters = {
-  [Property in SpanStringFields as `${Property}`]?: string | string[];
-};
+
+export type SpanMetricsResponse = Flatten<SpanMetricsResponseRaw>;
 
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
-export type EAPSpanResponse = {
+type EAPSpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in WebVitalsMeasurements as `${WebVitalsFunctions}(${Property})`]: number;
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
@@ -242,13 +303,22 @@ export type EAPSpanResponse = {
     [Property in ConditionalAggregate as
       | `${Property}(${string})`
       | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`]: number;
+      | `${Property}(${string},${string},${string})`
+      | `${Property}(${string},${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
+  } & {
+    [Property in SpanFields as `count_unique(${Property})`]: number;
+  } & {
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
+  } & {
+    [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
-export type EAPSpanProperty = keyof EAPSpanResponse;
+export type EAPSpanResponse = Flatten<EAPSpanResponseRaw>;
+export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
 
 export enum SpanIndexedField {
   ENVIRONMENT = 'environment',
@@ -258,7 +328,6 @@ export enum SpanIndexedField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
-  SPAN_MODULE = 'span.module',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
@@ -266,11 +335,11 @@ export enum SpanIndexedField {
   SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
-  SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
-  TRANSACTION_ID = 'transaction.id',
+  TRANSACTION_ID = 'transaction.id', // TODO - remove this with `useInsightsEap`
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
@@ -279,9 +348,12 @@ export enum SpanIndexedField {
   PROJECT = 'project',
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
+  PROFILEID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
+  REPLAYID = 'replayId',
   REPLAY_ID = 'replay.id',
   REPLAY = 'replay', // Field alias that coalesces `replay.id` and `replayId`
   BROWSER_NAME = 'browser.name',
@@ -323,6 +395,11 @@ export enum SpanIndexedField {
   CLS_SOURCE = 'cls.source.1',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  DB_SYSTEM = 'db.system',
+  CODE_FILEPATH = 'code.filepath',
+  CODE_LINENO = 'code.lineno',
+  CODE_FUNCTION = 'code.function',
+  PLATFORM = 'platform',
 }
 
 export type SpanIndexedResponse = {
@@ -336,7 +413,6 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
-  [SpanIndexedField.SPAN_MODULE]: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
@@ -358,11 +434,11 @@ export type SpanIndexedResponse = {
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
-  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
   [SpanIndexedField.TRANSACTION_ID]: string;
+  [SpanIndexedField.TRANSACTION_SPAN_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string[];
@@ -371,10 +447,13 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
   [SpanIndexedField.PROFILE_ID]: string;
+  [SpanIndexedField.PROFILEID]: string;
+  [SpanIndexedField.PROFILER_ID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
   [SpanIndexedField.REPLAY_ID]: string;
+  [SpanIndexedField.REPLAYID]: string;
   [SpanIndexedField.REPLAY]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
@@ -414,9 +493,12 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.LCP_ELEMENT]: string;
   [SpanIndexedField.CLS_SOURCE]: string;
   [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
-  [SpanIndexedField.PROJECT]: string;
-  [SpanIndexedField.SPAN_GROUP]: string;
   'any(id)': string;
+  [SpanIndexedField.DB_SYSTEM]: SupportedDatabaseSystem;
+  [SpanIndexedField.CODE_FILEPATH]: string;
+  [SpanIndexedField.CODE_LINENO]: number;
+  [SpanIndexedField.CODE_FUNCTION]: string;
+  [SpanIndexedField.PLATFORM]: PlatformKey;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;
@@ -424,11 +506,11 @@ export type SpanIndexedProperty = keyof SpanIndexedResponse;
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
 export type SpanIndexedFieldTypes = SpanIndexedResponse;
 
-export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
-
 export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
+  TPM = 'tpm',
+  COUNT = 'count',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
@@ -436,18 +518,18 @@ export enum SpanFunction {
   CACHE_MISS_RATE = 'cache_miss_rate',
   COUNT_OP = 'count_op',
   TRACE_STATUS_RATE = 'trace_status_rate',
+  FAILURE_RATE_IF = 'failure_rate_if',
 }
 
 // TODO - add more functions and fields, combine shared ones, etc
 
-export const METRICS_FUNCTIONS = [
-  'count',
-  'performance_score',
-  'count_scores',
-  'opportunity_score',
-  'total_opportunity_score',
-  'p75',
-] as const;
+type MetricsFunctions =
+  | 'count'
+  | 'performance_score'
+  | 'count_scores'
+  | 'opportunity_score'
+  | 'total_opportunity_score'
+  | 'p75';
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
@@ -483,9 +565,10 @@ export enum MetricsFields {
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   RELEASE = 'release',
+  DEVICE_CLASS = 'device.class',
 }
 
-export type MetricsNumberFields =
+type MetricsNumberFields =
   | MetricsFields.TRANSACTION_DURATION
   | MetricsFields.SPAN_DURATION
   | MetricsFields.LCP_SCORE
@@ -510,7 +593,7 @@ export type MetricsNumberFields =
   | MetricsFields.TIME_TO_INITIAL_DISPLAY
   | MetricsFields.TIME_TO_FULL_DISPLAY;
 
-export type MetricsStringFields =
+type MetricsStringFields =
   | MetricsFields.TRANSACTION
   | MetricsFields.PROJECT
   | MetricsFields.ID
@@ -518,11 +601,10 @@ export type MetricsStringFields =
   | MetricsFields.USER_DISPLAY
   | MetricsFields.PROFILE_ID
   | MetricsFields.RELEASE
-  | MetricsFields.TIMESTAMP;
+  | MetricsFields.TIMESTAMP
+  | MetricsFields.DEVICE_CLASS;
 
-export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
-
-export type MetricsResponse = {
+type MetricsResponseRaw = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
@@ -535,8 +617,9 @@ export type MetricsResponse = {
 } & {
   ['project.id']: number;
 };
+export type MetricsResponse = Flatten<MetricsResponseRaw>;
 
-export enum DiscoverFields {
+enum DiscoverFields {
   ID = 'id',
   TRACE = 'trace',
   USER_DISPLAY = 'user.display',
@@ -545,6 +628,7 @@ export enum DiscoverFields {
   FCP = 'measurements.fcp',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   TRANSACTION_DURATION = 'transaction.duration',
   SPAN_DURATION = 'span.duration',
   REPLAY_ID = 'replayId',
@@ -567,11 +651,14 @@ export enum DiscoverFields {
   SCORE_RATIO_CLS = 'measurements.score.ratio.cls',
   SCORE_RATIO_TTFB = 'measurements.score.ratio.ttfb',
   SCORE_RATIO_INP = 'measurements.score.ratio.inp',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
 }
 
 export type MetricsProperty = keyof MetricsResponse;
 
-export type DiscoverNumberFields =
+type DiscoverNumberFields =
+  | DiscoverFields.INP
   | DiscoverFields.CLS
   | DiscoverFields.FCP
   | DiscoverFields.LCP
@@ -593,9 +680,11 @@ export type DiscoverNumberFields =
   | DiscoverFields.SCORE_RATIO_FCP
   | DiscoverFields.SCORE_RATIO_CLS
   | DiscoverFields.SCORE_RATIO_TTFB
-  | DiscoverFields.SCORE_RATIO_INP;
+  | DiscoverFields.SCORE_RATIO_INP
+  | DiscoverFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
+  | DiscoverFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY;
 
-export type DiscoverStringFields =
+type DiscoverStringFields =
   | DiscoverFields.ID
   | DiscoverFields.TRACE
   | DiscoverFields.USER_DISPLAY
@@ -605,15 +694,22 @@ export type DiscoverStringFields =
   | DiscoverFields.PROFILE_ID
   | DiscoverFields.PROJECT;
 
-export type DiscoverResponse = {
+type DiscoverResponseRaw = {
   [Property in DiscoverNumberFields as `${Property}`]: number;
 } & {
   [Property in DiscoverStringFields as `${Property}`]: string;
 };
 
+export type DiscoverResponse = Flatten<DiscoverResponseRaw>;
+
 export type DiscoverProperty = keyof DiscoverResponse;
 
 export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
+  [SpanIndexedField.PROJECT_ID]?: string;
+};
+
+export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
+  is_transaction?: 'true' | 'false';
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
@@ -645,3 +741,5 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type SearchHook = {search: MutableSearch; enabled?: boolean};

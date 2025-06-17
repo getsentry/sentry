@@ -1,11 +1,11 @@
-import useExternalIssueDataFeedback from 'sentry/components/feedback/list/useHasLinkedIssues';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import useHasLinkedIssues from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,
   PluginActionComponent,
   PluginIssueComponent,
   SentryAppIssueComponent,
 } from 'sentry/components/group/externalIssuesList/types';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -54,7 +54,7 @@ function getAppIntegrationNames(integrationIssue: SentryAppIssueComponent) {
 }
 
 export default function IssueTrackingSignals({group}: Props) {
-  const {linkedIssues} = useExternalIssueDataFeedback({
+  const {linkedIssues} = useHasLinkedIssues({
     group,
     event: {} as Event,
     project: group.project,

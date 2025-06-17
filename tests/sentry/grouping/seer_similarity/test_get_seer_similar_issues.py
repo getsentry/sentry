@@ -109,7 +109,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "referrer": "ingest",
                 "use_reranking": True,
             },
-            {"hybrid_fingerprint": False},
+            {"platform": "python", "hybrid_fingerprint": False},
         )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -164,7 +164,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest",
                         "use_reranking": True,
                     },
-                    {"hybrid_fingerprint": False},
+                    {"platform": "python", "hybrid_fingerprint": False},
                 ),
                 # Second call to store the event's data since the match that came back from Seer
                 # wasn't usable
@@ -174,7 +174,8 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "k": 0,
                         "referrer": "ingest_follow_up",
                         "use_reranking": False,
-                    }
+                    },
+                    {"platform": "python"},
                 ),
             ]
 

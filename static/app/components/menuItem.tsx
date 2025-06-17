@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -179,7 +179,7 @@ interface MenuListItemProps extends React.HTMLAttributes<HTMLLIElement> {
 }
 
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
-  const common = `
+  const common = css`
     display: block;
     padding: ${space(0.5)} ${space(2)};
     &:focus {
@@ -188,7 +188,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   `;
 
   if (props.disabled) {
-    return `
+    return css`
       ${common}
       color: ${props.theme.disabled};
       background: transparent;
@@ -197,7 +197,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   }
 
   if (props.isActive) {
-    return `
+    return css`
       ${common}
       color: ${props.theme.white};
       background: ${props.theme.active};
@@ -208,7 +208,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     `;
   }
 
-  return `
+  return css`
     ${common}
 
     &:hover {
@@ -222,7 +222,7 @@ function getChildStyles(props: MenuListItemProps & {theme: Theme}) {
     return '';
   }
 
-  return `
+  return css`
     & a {
       ${getListItemStyles(props)}
     }
@@ -241,29 +241,29 @@ const MenuListItem = styled('li')<MenuListItemProps>`
 
   ${p =>
     p.withBorder &&
-    `
-    border-bottom: 1px solid ${p.theme.innerBorder};
+    css`
+      border-bottom: 1px solid ${p.theme.innerBorder};
 
-    &:last-child {
-      border-bottom: none;
-    }
-  `};
+      &:last-child {
+        border-bottom: none;
+      }
+    `};
   ${p =>
     p.divider &&
-    `
-    height: 1px;
-    margin: ${space(0.5)} 0;
-    overflow: hidden;
-    background-color: ${p.theme.innerBorder};
-  `}
+    css`
+      height: 1px;
+      margin: ${space(0.5)} 0;
+      overflow: hidden;
+      background-color: ${p.theme.innerBorder};
+    `}
   ${p =>
     p.header &&
-    `
-    padding: ${space(0.25)} ${space(0.5)};
-    font-size: ${p.theme.fontSizeSmall};
-    line-height: 1.4;
-    color: ${p.theme.subText};
-  `}
+    css`
+      padding: ${space(0.25)} ${space(0.5)};
+      font-size: ${p.theme.fontSizeSmall};
+      line-height: 1.4;
+      color: ${p.theme.subText};
+    `}
 
   ${getChildStyles}
 `;

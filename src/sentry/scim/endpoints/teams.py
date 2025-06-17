@@ -4,6 +4,7 @@ from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
+from django.http.response import HttpResponseBase
 from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema, extend_schema_serializer, inline_serializer
 from rest_framework import serializers, status
@@ -39,7 +40,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from ...signals import team_created
 from ...utils.snowflake import MaxSnowflakeRetryError
@@ -271,7 +271,6 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                     sender=None,
                 )
             except (IntegrityError, MaxSnowflakeRetryError):
-                incr_rollback_metrics(Team)
                 return Response(
                     {
                         "non_field_errors": [CONFLICTING_SLUG_ERROR],
@@ -338,7 +337,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         },
         examples=SCIMExamples.QUERY_INDIVIDUAL_TEAM,
     )
-    def get(self, request: Request, organization, team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
+    def get(self, request: Request, organization: Organization, team: Team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
         """
         Query an individual team with a SCIM Group GET Request.
         - Note that the members field will only contain up to 10000 members.
@@ -488,14 +487,14 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, team) -> Response:
+    def delete(self, request: Request, organization: Organization, team: Team) -> HttpResponseBase:  # type: ignore[override]  # convert_args changed shape from baseclass
         """
         Delete a team with a SCIM Group DELETE Request.
         """
         metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)
 
-    def put(self, request: Request, organization, team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
+    def put(self, request: Request, organization: Organization, team: Team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

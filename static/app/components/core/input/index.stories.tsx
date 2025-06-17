@@ -3,21 +3,20 @@ import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input';
 
-export default storyBook('Input', (story, APIReference) => {
+export default Storybook.story('Input', (story, APIReference) => {
   APIReference(types.Input);
 
   story('Sizes', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Input" /> component comes in different sizes:
+          The <Storybook.JSXNode name="Input" /> component comes in different sizes:
         </p>
         <Grid>
           <Label>
@@ -41,7 +40,7 @@ export default storyBook('Input', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="Input" /> can either be <code>disabled</code> or{' '}
+          <Storybook.JSXNode name="Input" /> can either be <code>disabled</code> or{' '}
           <code>readonly</code> to make them non-editable. <code>aria-disabled</code>{' '}
           fields are styled like a <code>disabled</code> field, but they remain
           interactive like a <code>readonly</code> field:
@@ -99,10 +98,10 @@ export default storyBook('Input', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Input" /> component can automatically resize its width to fit
-          its content when used with the <code>useAutosizeInput</code> hook. This hook
-          provides a ref that should be passed to the input component. The input will
-          expand horizontally while maintaining its height as the user types. See the
+          The <Storybook.JSXNode name="Input" /> component can automatically resize its
+          width to fit its content when used with the <code>useAutosizeInput</code> hook.
+          This hook provides a ref that should be passed to the input component. The input
+          will expand horizontally while maintaining its height as the user types. See the
           examples below for how to use the hook with controlled and uncontrolled inputs.
         </p>
 

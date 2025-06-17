@@ -152,38 +152,53 @@ class SentryPermission(ScopedPermission):
     ) -> None:
         from sentry.api.base import logger
 
+        user_id = request.user.id if request.user else None
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
         else:
             org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization), user_id=request.user.id if request.user else None
+                id=extract_id_from(organization), user_id=user_id
             )
 
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
         organization = org_context.organization
-        if request.auth and request.user and request.user.is_authenticated:
-            request.access = access.from_request_org_and_scopes(
-                request=request,
-                rpc_user_org_context=org_context,
-                scopes=request.auth.get_scopes(),
-            )
-            return
+        extra = {"organization_id": organization.id, "user_id": user_id}
 
         if request.auth:
-            request.access = access.from_rpc_auth(
-                auth=request.auth, rpc_user_org_context=org_context
-            )
+            if request.user and request.user.is_authenticated:
+                request.access = access.from_request_org_and_scopes(
+                    request=request,
+                    rpc_user_org_context=org_context,
+                    scopes=request.auth.get_scopes(),
+                )
+            else:
+                request.access = access.from_rpc_auth(
+                    auth=request.auth, rpc_user_org_context=org_context
+                )
+
+            if org_context.member and self.is_not_2fa_compliant(request, organization):
+                logger.info(
+                    "access.not-2fa-compliant.auth-token",
+                    extra=extra,
+                )
+                raise TwoFactorRequired()
+
+            if self.is_member_disabled_from_limit(request, org_context):
+                logger.info(
+                    "access.member-disabled-from-limit",
+                    extra=extra,
+                )
+                raise MemberDisabledOverLimit(organization)
+
             return
 
         request.access = access.from_request_org_and_scopes(
             request=request,
             rpc_user_org_context=org_context,
         )
-
-        extra = {"organization_id": org_context.organization.id, "user_id": request.user.id}
 
         if auth.is_user_signed_request(request):
             # if the user comes from a signed request
@@ -194,7 +209,7 @@ class SentryPermission(ScopedPermission):
             )
         elif request.user.is_authenticated:
             # session auth needs to confirm various permissions
-            if self.needs_sso(request, org_context.organization):
+            if self.needs_sso(request, organization):
                 logger.info(
                     "access.must-sso",
                     extra=extra,
@@ -212,7 +227,7 @@ class SentryPermission(ScopedPermission):
                     after_login_redirect=after_login_redirect,
                 )
 
-            if self.is_not_2fa_compliant(request, org_context.organization):
+            if self.is_not_2fa_compliant(request, organization):
                 logger.info(
                     "access.not-2fa-compliant",
                     extra=extra,

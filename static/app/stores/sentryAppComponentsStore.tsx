@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 
 import type {SentryAppComponent} from 'sentry/types/integrations';
 
-export interface SentryAppComponentsStoreDefinition extends StoreDefinition {
+interface SentryAppComponentsStoreDefinition extends StoreDefinition {
   get: (uuid: string) => SentryAppComponent | undefined;
   getAll: () => SentryAppComponent[];
   getInitialState: () => SentryAppComponent[];

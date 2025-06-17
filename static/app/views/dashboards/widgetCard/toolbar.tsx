@@ -87,14 +87,3 @@ const IconContainer = styled('div')`
 const GrabbableButton = styled(Button)`
   cursor: grab;
 `;
-
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
-export const WidgetDescription = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
-`;

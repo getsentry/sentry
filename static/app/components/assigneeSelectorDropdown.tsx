@@ -10,13 +10,13 @@ import {
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -58,7 +58,7 @@ type AssignableTeam = {
   team: Team;
 };
 
-export interface AssigneeSelectorDropdownProps {
+interface AssigneeSelectorDropdownProps {
   /**
    * The group (issue) that the assignee selector is for
    * TODO: generalize this for alerts
@@ -112,7 +112,7 @@ export interface AssigneeSelectorDropdownProps {
   ) => React.ReactNode;
 }
 
-export function AssigneeAvatar({
+function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
 }: {
@@ -545,7 +545,7 @@ export default function AssigneeSelectorDropdown({
         size="xs"
         aria-label={t('Invite Member')}
         disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
         }}
@@ -581,6 +581,7 @@ export default function AssigneeSelectorDropdown({
         menuFooter={footerInviteButton}
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
+        strategy="fixed"
       />
     </AssigneeWrapper>
   );
@@ -589,6 +590,7 @@ export default function AssigneeSelectorDropdown({
 export const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
+  text-align: left;
 `;
 
 const AssigneeDropdownButton = styled(DropdownButton)`

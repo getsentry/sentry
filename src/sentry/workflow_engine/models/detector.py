@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -12,8 +12,11 @@ from django.dispatch import receiver
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
@@ -26,9 +29,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class DetectorManager(BaseManager["Detector"]):
+    def get_queryset(self) -> BaseQuerySet[Detector]:
+        return (
+            super()
+            .get_queryset()
+            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+        )
+
+
 @region_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
+
+    objects: ClassVar[DetectorManager] = DetectorManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
@@ -40,6 +55,9 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
     enabled = models.BooleanField(db_default=True)
+
+    # The detector's status - used for tracking deletion state
+    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
     # Optionally set a description of the detector, this will be used in notifications
     description = models.TextField(null=True)
@@ -87,7 +105,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
             return None
 
-        if not group_type.detector_handler:
+        if not group_type.detector_settings or not group_type.detector_settings.handler:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
                 extra={
@@ -97,7 +115,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 },
             )
             return None
-        return group_type.detector_handler(self)
+        return group_type.detector_settings.handler(self)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
@@ -121,8 +139,10 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
 
+    if not group_type.detector_settings:
+        return
+
     if not isinstance(instance.config, dict):
         raise ValidationError("Detector config must be a dictionary")
 
-    config_schema = group_type.detector_config_schema
-    instance.validate_config(config_schema)
+    instance.validate_config(group_type.detector_settings.config_schema)

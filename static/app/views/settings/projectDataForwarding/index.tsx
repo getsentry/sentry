@@ -129,7 +129,6 @@ function ProjectDataForwarding({project}: Props) {
     setPluginState(newPlugins);
   };
 
-  const onEnablePlugin = (plugin: Plugin) => updatePlugin(plugin, true);
   const onDisablePlugin = (plugin: Plugin) => updatePlugin(plugin, false);
 
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
@@ -140,7 +139,6 @@ function ProjectDataForwarding({project}: Props) {
         organization={organization}
         project={project}
         pluginList={forwardingPlugins()}
-        onEnablePlugin={onEnablePlugin}
         onDisablePlugin={onDisablePlugin}
       />
     ) : (

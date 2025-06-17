@@ -34,7 +34,9 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
 
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         fallback_text = self.mock_post.call_args.kwargs["text"]
-        notification_uuid = self.get_notification_uuid(fallback_text)
+        notification_uuid = self.get_notification_uuid(
+            blocks[1]["elements"][0]["elements"][-1]["url"]
+        )
         issue_link = (
             f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}"
         )
@@ -43,10 +45,12 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             == f"{self.name} marked <{issue_link}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.short_id}> as resolved"
         )
         assert blocks[0]["text"]["text"] == fallback_text
-        assert (
-            blocks[1]["text"]["text"]
-            == f":red_circle: <{issue_link}/?referrer=resolved_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
-        )
+        emoji = "red_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved_activity-slack&notification_uuid={notification_uuid}"
+        text = f"{self.group.title}"
+        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"

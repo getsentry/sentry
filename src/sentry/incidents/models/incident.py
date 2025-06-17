@@ -12,17 +12,10 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
+from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import (
-    ArrayField,
-    FlexibleForeignKey,
-    Model,
-    OneToOneCascadeDeletes,
-    UUIDField,
-    region_silo_model,
-)
+from sentry.db.models import FlexibleForeignKey, Model, UUIDField, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
@@ -144,8 +137,8 @@ class IncidentStatus(Enum):
 
 
 class IncidentStatusMethod(Enum):
-    MANUAL = 1
-    RULE_UPDATED = 2
+    MANUAL = 1  # not in use
+    RULE_UPDATED = 2  # always corresponds with IncidentStatus.CLOSED
     RULE_TRIGGERED = 3
 
 
@@ -227,58 +220,6 @@ class Incident(Model):
         if self.detection_uuid:
             self.detection_uuid = uuid4()
         return old_pk
-
-
-@region_silo_model
-class PendingIncidentSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Global
-
-    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
-    target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_pendingincidentsnapshot"
-
-
-@region_silo_model
-class IncidentSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Global
-
-    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", db_constraint=False)
-    unique_users = models.IntegerField()
-    total_events = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentsnapshot"
-
-
-@region_silo_model
-class TimeSeriesSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Global
-    __relocation_dependencies__ = {"sentry.Incident"}
-
-    start = models.DateTimeField()
-    end = models.DateTimeField()
-    values = ArrayField(of=ArrayField(models.FloatField()))
-    period = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_timeseriessnapshot"
-
-    @classmethod
-    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        pks = IncidentSnapshot.objects.filter(
-            incident__in=pk_map.get_pks(get_model_name(Incident))
-        ).values_list("event_stats_snapshot_id", flat=True)
-
-        return q & models.Q(pk__in=pks)
 
 
 class IncidentActivityType(Enum):

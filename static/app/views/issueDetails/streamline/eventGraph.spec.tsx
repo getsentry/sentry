@@ -68,7 +68,7 @@ describe('EventGraph', () => {
   it('displays allows toggling data sets', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      enableRouterMocks: false,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -109,7 +109,7 @@ describe('EventGraph', () => {
   it('renders the graph using a discover event stats query', async function () {
     render(<EventGraph {...defaultProps} />, {
       organization,
-      enableRouterMocks: false,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -142,7 +142,7 @@ describe('EventGraph', () => {
   it('allows filtering by environment, and shows unfiltered stats', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      enableRouterMocks: false,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -185,7 +185,7 @@ describe('EventGraph', () => {
 
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      enableRouterMocks: false,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -217,7 +217,7 @@ describe('EventGraph', () => {
   it('allows filtering by date', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      enableRouterMocks: false,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -251,7 +251,7 @@ describe('EventGraph', () => {
 
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      enableRouterMocks: false,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',

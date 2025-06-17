@@ -24,7 +24,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
@@ -214,16 +214,34 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         Toggle favorite status for current user by adding or removing
         current user from dashboard favorites
         """
-        if not features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            return Response(status=404)
-
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
+
+        if not request.user.is_authenticated:
+            return Response(status=401)
 
         if isinstance(dashboard, dict):
             return Response(status=204)
 
         is_favorited = request.data.get("isFavorited")
+
+        if features.has(
+            "organizations:dashboards-starred-reordering", organization, actor=request.user
+        ):
+            if is_favorited:
+                DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                    organization=organization,
+                    user_id=request.user.id,
+                    dashboard=dashboard,
+                )
+            else:
+                DashboardFavoriteUser.objects.delete_favorite_dashboard(
+                    organization=organization,
+                    user_id=request.user.id,
+                    dashboard=dashboard,
+                )
+            return Response(status=204)
+
         current_favorites = set(dashboard.favorited_by)
 
         if is_favorited and request.user.id not in current_favorites:

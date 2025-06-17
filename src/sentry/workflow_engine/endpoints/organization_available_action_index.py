@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
 
@@ -25,9 +26,15 @@ from sentry.workflow_engine.endpoints.serializers import (
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import (
     get_available_action_integrations_for_org,
+    get_integration_services,
     get_notification_plugins_for_org,
 )
 from sentry.workflow_engine.registry import action_handler_registry
+
+
+class AvailableIntegration(TypedDict):
+    integration: RpcIntegration
+    services: list[tuple[int, str]]
 
 
 @region_silo_endpoint
@@ -56,9 +63,14 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of available actions for a given org
         """
-        provider_integrations: dict[str, list[RpcIntegration]] = defaultdict(list)
+        integration_services = get_integration_services(organization.id)
+
+        provider_integrations: dict[str, list[AvailableIntegration]] = defaultdict(list)
         for integration in get_available_action_integrations_for_org(organization):
-            provider_integrations[integration.provider].append(integration)
+            services = integration_services.get(integration.id, [])
+            provider_integrations[integration.provider].append(
+                AvailableIntegration(integration=integration, services=services)
+            )
 
         sentry_app_component_contexts = app_service.get_installation_component_contexts(
             filter={"organization_id": organization.id},

@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+import base64
 import logging
 from datetime import UTC, datetime
 from io import BytesIO
@@ -28,7 +29,6 @@ from sentry.relocation.tasks.process import fulfill_cross_region_export_request,
 from sentry.relocation.tasks.transfer import process_relocation_transfer_control
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.utils.db import atomic_transaction
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry.relocation")
 
@@ -65,7 +65,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
                 requesting_region_name,
                 replying_region_name,
                 org_slug,
-                encrypt_with_public_key,
+                base64.b64encode(encrypt_with_public_key).decode("utf8"),
                 int(round(datetime.now(tz=UTC).timestamp())),
             ]
         )
@@ -124,7 +124,6 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
                     kind=RelocationFile.Kind.RAW_USER_DATA.value,
                 )
             except IntegrityError:
-                incr_rollback_metrics(RelocationFile)
                 # We already have the file, we can proceed.
                 pass
 

@@ -1,4 +1,4 @@
-import {User} from 'sentry/types/user';
+import type {User} from 'sentry/types/user';
 
 export function UserDetailsFixture(params: Partial<User> = {}): User {
   return {
@@ -42,7 +42,6 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
     permissions: new Set(),
     email: 'billyfirefox@test.com',
     canReset2fa: false,
-    experiments: [],
     flags: {newsletter_consent_prompt: false},
     hasPasswordAuth: false,
     ...params,

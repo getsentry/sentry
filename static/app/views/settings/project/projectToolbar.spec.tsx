@@ -4,9 +4,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectToolbarSettings from 'sentry/views/settings/project/projectToolbar';
 
 describe('ProjectToolbarSettings', function () {
-  const {routerProps, organization, project, router} = initializeOrg({
+  const {routerProps, organization, project} = initializeOrg({
     organization: {
-      features: ['dev-toolbar-ui'],
+      features: ['sentry-toolbar-ui'],
     },
   });
   const url = `/projects/${organization.slug}/${project.slug}/`;
@@ -23,10 +23,7 @@ describe('ProjectToolbarSettings', function () {
         {...routerProps}
         organization={organization}
         project={project}
-      />,
-      {
-        router,
-      }
+      />
     );
     expect(screen.getByRole('textbox')).toHaveValue(initialOptionValue);
   });
@@ -37,10 +34,7 @@ describe('ProjectToolbarSettings', function () {
         {...routerProps}
         organization={organization}
         project={project}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     const mockPut = MockApiClient.addMockResponse({
@@ -74,10 +68,7 @@ describe('ProjectToolbarSettings', function () {
         {...routerProps}
         organization={organization}
         project={project}
-      />,
-      {
-        router,
-      }
+      />
     );
     expect(screen.getByRole('textbox')).toHaveValue('');
   });
@@ -89,10 +80,7 @@ describe('ProjectToolbarSettings', function () {
         {...routerProps}
         organization={organization}
         project={project}
-      />,
-      {
-        router,
-      }
+      />
     );
     expect(screen.getByRole('textbox')).toHaveValue('');
   });

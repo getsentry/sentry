@@ -1,11 +1,13 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ButtonProps} from 'sentry/components/core/button';
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
+export interface DropdownButtonProps
+  extends Omit<ButtonProps, 'type' | 'prefix' | 'onClick'> {
   /**
    * Whether or not the button should render as open
    */
@@ -14,10 +16,6 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
    * The fixed prefix text to show in the button eg: 'Sort By'
    */
   prefix?: React.ReactNode;
-  /**
-   * Forward a ref to the button's root
-   */
-  ref?: React.Ref<HTMLButtonElement>;
   /**
    * Should a chevron icon be shown?
    */
@@ -50,7 +48,9 @@ function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <IconChevron
-            color="subText"
+            color={
+              !props.priority || props.priority === 'default' ? 'subText' : undefined
+            }
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
@@ -78,8 +78,16 @@ const StyledButton = styled(Button)<StyledButtonProps>`
   max-width: 100%;
   z-index: 2;
 
-  ${p => (p.isOpen || p.disabled) && 'box-shadow: none;'}
-  ${p => p.hasPrefix && `${ButtonLabel} {font-weight: ${p.theme.fontWeightNormal};}`}
+  ${p =>
+    (p.isOpen || p.disabled) &&
+    css`
+      box-shadow: none;
+    `}
+  ${p =>
+    p.hasPrefix &&
+    css`
+      font-weight: ${p.theme.fontWeightNormal};
+    `}
 `;
 
 const LabelText = styled('span')`

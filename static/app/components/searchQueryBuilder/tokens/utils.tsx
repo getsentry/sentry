@@ -133,16 +133,6 @@ export function getInitialFilterText(
   }
 }
 
-export function mergeSets<T>(...sets: Array<Set<T>>) {
-  const combinedSet = new Set<T>();
-  for (const set of sets) {
-    for (const value of set) {
-      combinedSet.add(value);
-    }
-  }
-  return combinedSet;
-}
-
 export function itemIsSection(
   item: SelectOptionOrSectionWithKey<string>
 ): item is SelectSectionWithKey<string> {

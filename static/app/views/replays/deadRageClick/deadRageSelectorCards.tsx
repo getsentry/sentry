@@ -3,7 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -227,7 +227,8 @@ function SearchButton({
   return (
     <StyledLinkButton
       {...props}
-      size="zero"
+      priority="transparent"
+      size="md"
       to={{
         pathname,
         query: {
@@ -276,12 +277,8 @@ const CenteredContentContainer = styled(ContentContainer)`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  width: 100%;
-  padding: ${space(1.5)};
-  border: none;
   border-top: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledAccordionHeader = styled('div')`
@@ -329,7 +326,7 @@ const LoadingContainer = styled(ContentContainer)`
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  height: 34px;
+  height: ${p => (p.theme.isChonk ? '39px' : '34px')};
 `;
 
 const EmptyHeader = styled(Flex)`

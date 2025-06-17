@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useLayoutEffect, useRef} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
@@ -74,6 +74,7 @@ function PageFiltersContainer({
   const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const {isReady} = usePageFilters();
 
@@ -121,6 +122,8 @@ function PageFiltersContainer({
   //
   // This happens when we mount the container.
   useLayoutEffect(() => {
+    setHasInitialized(true);
+
     if (!projectsLoaded) {
       return;
     }
@@ -170,7 +173,10 @@ function PageFiltersContainer({
     // Do not pass router to these actionCreators, as we do not want to update
     // routes since these state changes are happening due to a change of routes
     if (!noProjectChange) {
-      updateProjects(newState.project || [], null, {environments: newEnvironments});
+      updateProjects(newState.project || [], null, {
+        environments: newEnvironments,
+        storageNamespace,
+      });
     }
 
     // When the project stays the same, it's still possible that the
@@ -188,9 +194,11 @@ function PageFiltersContainer({
   }, [location.query]);
 
   // Wait for global selection to be ready before rendering children
+  // Also wait for the container to be initialized, because otherwise on first render
+  // the children may have the wrong page filters
   // TODO: Not waiting for projects to be ready but initializing the correct page filters
   // would speed up orgs with tons of projects
-  if (!isReady) {
+  if (!isReady || !hasInitialized) {
     return (
       <Layout.Page withPadding>
         <LoadingIndicator />

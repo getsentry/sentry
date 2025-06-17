@@ -1,4 +1,5 @@
 import invariant from 'invariant';
+import isPlainObject from 'lodash/isPlainObject';
 import {duration} from 'moment-timezone';
 
 import {deviceNameMapper} from 'sentry/components/deviceName';
@@ -10,13 +11,23 @@ const defaultValues = {
   has_viewed: false,
 };
 
+function mapUser(user: any): ReplayRecord['tags'] {
+  return Object.fromEntries(
+    Object.entries(user)
+      .filter(([key, value]) => key !== 'display_name' && value)
+      .flatMap(([key, value]) => {
+        if (isPlainObject(value)) {
+          return Object.entries(value as Record<PropertyKey, unknown>).map(
+            ([subKey, subValue]) => [`user.${key}.${subKey}`, [String(subValue)]]
+          );
+        }
+        return [[`user.${key}`, [String(value)]]];
+      })
+  );
+}
+
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
-  const user = Object.fromEntries(
-    Object.entries(apiResponse.user)
-      .filter(([key, value]) => key !== 'display_name' && value)
-      .map(([key, value]) => [`user.${key}`, [value]])
-  );
   const unorderedTags: ReplayRecord['tags'] = {
     ...apiResponse.tags,
     ...(apiResponse.browser?.name ? {'browser.name': [apiResponse.browser.name]} : {}),
@@ -40,8 +51,23 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
-    ...user,
+    ...mapUser(apiResponse.user ?? {}),
   };
+
+  // Stringify everything, so we don't try to render objects or something strange
+  // an error boundary will save us, but that's not useful to see
+  const stringifiedTags = Object.fromEntries(
+    Object.entries(unorderedTags).map(([key, value]) => [
+      key,
+      value.map((v: unknown) => {
+        try {
+          return v instanceof Object ? JSON.stringify(v) : v;
+        } catch (e) {
+          return v;
+        }
+      }),
+    ])
+  );
 
   const startedAt = new Date(apiResponse.started_at);
   invariant(isValidDate(startedAt), 'replay.started_at is invalid');
@@ -55,7 +81,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.duration === undefined
       ? {}
       : {duration: duration(apiResponse.duration * 1000)}),
-    tags: unorderedTags,
+    tags: stringifiedTags,
   };
 }
 

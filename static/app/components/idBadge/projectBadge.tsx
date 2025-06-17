@@ -75,7 +75,7 @@ function ProjectBadge({
     const defaultTo =
       makeProjectsPathname({
         path: `/${project.slug}/`,
-        orgSlug: organization.slug,
+        organization,
       }) + (project.id ? `?project=${project.id}` : '');
 
     return (

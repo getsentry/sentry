@@ -22,7 +22,6 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
@@ -162,7 +161,6 @@ def set_commit(idx, data, release):
                 order=idx,
             )
     except IntegrityError:
-        incr_rollback_metrics(ReleaseCommit)
         pass
 
     return commit
@@ -180,7 +178,6 @@ def fill_in_missing_release_head_commits(release, head_commit_by_repo):
                     commit_id=commit_id,
                 )
         except IntegrityError:
-            incr_rollback_metrics(ReleaseHeadCommit)
             pass
 
 

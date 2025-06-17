@@ -28,7 +28,8 @@ function LegacyComponentWithRef({ref}: {ref?: React.Ref<HTMLDivElement>}) {
 
 function ChonkComponentWithRef({
   ref,
-}: {theme: DO_NOT_USE_ChonkTheme} & {
+}: {
+  theme: DO_NOT_USE_ChonkTheme;
   ref?: React.Ref<HTMLDivElement>;
 }) {
   const theme = useTheme();

@@ -911,7 +911,7 @@ class GroupDeleteTest(APITestCase):
             )
 
     def test_delete_performance_issue(self) -> None:
-        """Test that a performance issue cannot be deleted"""
+        """Test that a performance issue can be deleted"""
         self.login_as(user=self.user)
 
         group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
@@ -919,12 +919,12 @@ class GroupDeleteTest(APITestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        response = self.client.delete(url, format="json")
-        assert response.status_code == 400, response.content
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202, response.content
 
-        # Ensure it's still there
-        assert Group.objects.filter(id=group.id).exists()
-        assert GroupHash.objects.filter(group_id=group.id).exists()
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self) -> None:

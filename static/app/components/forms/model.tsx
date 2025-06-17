@@ -2,9 +2,10 @@ import isEqual from 'lodash/isEqual';
 import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {APIRequestMethod} from 'sentry/api';
 import {Client} from 'sentry/api';
+import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
@@ -24,6 +25,7 @@ export type FieldValue =
   | boolean
   | Record<PropertyKey, unknown>
   | Choice
+  | null
   | undefined; // is undefined valid here?
 
 export type FormOptions = {
@@ -280,11 +282,27 @@ class FormModel {
    * Remove a field from the descriptor map and errors.
    */
   removeField(id: string) {
+    const descriptor = this.fieldDescriptor.get(id);
+    if (descriptor?.preserveOnUnmount) {
+      this.softRemoveField(id);
+      return;
+    }
+
     this.fields.delete(id);
     this.fieldState.delete(id);
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
     delete this.initialData[id];
+  }
+
+  /**
+   * The field is no longer being rendered, but we still want to keep the value
+   * in the form model. Useful for fields that might disappear and reappear.
+   */
+  softRemoveField(id: string) {
+    this.fieldState.delete(id);
+    this.fieldDescriptor.delete(id);
+    this.errors.delete(id);
   }
 
   /**
@@ -552,7 +570,7 @@ class FormModel {
 
         // Only use `allowUndo` option if explicitly defined
         if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
-          saveOnBlurUndoMessage(change, this, id);
+          addUndoableFormChangeMessage(change, this, id);
         }
 
         if (this.options.onSubmitSuccess) {

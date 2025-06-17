@@ -71,9 +71,7 @@ export function EventList({group}: EventListProps) {
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 
-  const isRegressionIssue =
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+  const isRegressionIssue = group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   return (
     <EventListTable pagination={{enabled: false}}>

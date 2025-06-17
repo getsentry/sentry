@@ -13,27 +13,22 @@ import {
   GridHead,
   GridHeadCell,
   GridRow,
-  Header,
-  HeaderButtonContainer,
-  HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
-interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
-
-export function Table({
-  ref,
-  children,
-  styles,
-  ...props
-}: TableProps & {
+interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
   ref?: React.Ref<HTMLTableElement>;
-}) {
+  showVerticalScrollbar?: boolean;
+  // Size of the loading element in order to match the height of the row.
+  size?: number;
+}
+
+export function Table({ref, children, style, ...props}: TableProps) {
   return (
     <_TableWrapper {...props}>
-      <_Table ref={ref} style={styles}>
+      <_Table ref={ref} style={style}>
         {children}
       </_Table>
     </_TableWrapper>
@@ -42,12 +37,13 @@ export function Table({
 
 interface TableStatusProps {
   children: React.ReactNode;
+  size?: number;
 }
 
-export function TableStatus({children}: TableStatusProps) {
+export function TableStatus({children, size}: TableStatusProps) {
   return (
     <GridRow>
-      <GridBodyCellStatus>{children}</GridBodyCellStatus>
+      <GridBodyCellStatus size={size}>{children}</GridBodyCellStatus>
     </GridRow>
   );
 }
@@ -164,9 +160,6 @@ export const TableRow = GridRow;
 export const TableBodyCell = GridBodyCell;
 
 export const TableHead = GridHead;
-export const TableHeader = Header;
-export const TableHeaderActions = HeaderButtonContainer;
-export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
 `;

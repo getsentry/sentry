@@ -6,7 +6,6 @@ import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert'
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -114,20 +113,7 @@ function TriggerDescription({
       <TriggerStep>
         <TriggerTitleText>{t('When')}</TriggerTitleText>
         <TriggerActions>
-          <TriggerText>
-            {thresholdText}
-            {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
-              <FeatureBadge
-                type="beta"
-                tooltipProps={{
-                  title: t(
-                    'Anomaly detection is in beta and may produce unexpected results'
-                  ),
-                  isHoverable: true,
-                }}
-              />
-            ) : null}
-          </TriggerText>
+          <TriggerText>{thresholdText}</TriggerText>
         </TriggerActions>
       </TriggerStep>
       <TriggerStep>

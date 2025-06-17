@@ -6,8 +6,8 @@ import type {LocationDescriptor} from 'history';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -246,7 +246,7 @@ function TagFacetsDistributionMeter({
     <TagSummary>
       <details open aria-expanded={expanded} onClick={e => e.preventDefault()}>
         <StyledSummary>
-          <TagHeader clickable onClick={() => setExpanded(!expanded)}>
+          <TagHeader onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
             {renderSegments()}
           </TagHeader>
@@ -263,8 +263,8 @@ const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const TagHeader = styled('span')<{clickable?: boolean}>`
-  ${p => (p.clickable ? 'cursor: pointer' : null)};
+const TagHeader = styled('span')`
+  cursor: pointer;
 `;
 
 const SegmentBar = styled('div')`

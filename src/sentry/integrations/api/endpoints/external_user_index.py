@@ -15,6 +15,7 @@ from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
+    ExternalUserPermission,
     ExternalUserSerializer,
 )
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
@@ -26,10 +27,11 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    owner = ApiOwner.ECOSYSTEM
+    permission_classes = (ExternalUserPermission,)
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
         operation_id="Create an External User",

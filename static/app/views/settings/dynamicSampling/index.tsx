@@ -3,29 +3,63 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {
+  hasDynamicSamplingCustomFeature,
+  hasDynamicSamplingFeature,
+} from 'sentry/utils/dynamicSampling/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
-import {
-  useHasDynamicSamplingReadAccess,
-  useHasDynamicSamplingWriteAccess,
-} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {useHasDynamicSamplingReadAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
-  const hasWriteAccess = useHasDynamicSamplingWriteAccess();
   const hasReadAccess = useHasDynamicSamplingReadAccess();
+
+  if (
+    hasDynamicSamplingFeature(organization) &&
+    !hasDynamicSamplingCustomFeature(organization)
+  ) {
+    return (
+      <Alert.Container>
+        <Alert type="warning">
+          {tct(
+            'Custom Sample Rates for Dynamic Sampling are not available on your current plan. Check our [documentation] for information about how to set Sampling Priorities.',
+            {
+              documentation: (
+                <Link to="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities">
+                  {t('documentation')}
+                </Link>
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
 
   if (!hasDynamicSamplingCustomFeature(organization)) {
     return (
       <Alert.Container>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert type="warning">
+          {tct(
+            'Dynamic Sampling is not available on your current plan. Check our [documentation] for more information about Dynamic Sampling.',
+            {
+              documentation: (
+                <Link to="https://docs.sentry.io/organization/dynamic-sampling/">
+                  {t('documentation')}
+                </Link>
+              ),
+            }
+          )}
+        </Alert>
       </Alert.Container>
     );
   }
@@ -49,16 +83,7 @@ export default function DynamicSamplingSettings() {
           </LinkButton>
         }
       />
-      {!hasWriteAccess && (
-        <Alert.Container>
-          <Alert type="warning">
-            {t(
-              'These settings can only be edited by users with the organization owner or manager role.'
-            )}
-          </Alert>
-        </Alert.Container>
-      )}
-
+      <OrganizationPermissionAlert />
       {hasReadAccess ? (
         <Fragment>
           <Paragraph>

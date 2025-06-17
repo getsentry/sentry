@@ -205,6 +205,7 @@ export function EventSearch({
 
   return (
     <SearchQueryBuilder
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       initialQuery={query}
       onSearch={handleSearch}
       filterKeys={filterKeys}

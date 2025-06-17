@@ -69,7 +69,7 @@ describe('ProjectInstallPlatform', function () {
   });
 
   it('should render NotFound if no matching integration/platform', async function () {
-    const {organization, routerProps, project, router} = initializeOrg({
+    const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
           projectId: ProjectFixture().slug,
@@ -82,14 +82,12 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={undefined}
         currentPlatformKey={'lua' as PlatformKey}
         project={project}
       />,
       {
         organization,
-        router,
       }
     );
 
@@ -121,7 +119,6 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={platform}
         project={project}
         currentPlatformKey={platform.id}
@@ -139,7 +136,7 @@ describe('ProjectInstallPlatform', function () {
   it('should not render performance/session replay buttons for errors only self-hosted', async function () {
     const project = ProjectFixture({platform: 'javascript'});
 
-    const {routerProps, router} = initializeOrg({
+    const {routerProps} = initializeOrg({
       router: {
         params: {
           projectId: project.slug,
@@ -164,13 +161,9 @@ describe('ProjectInstallPlatform', function () {
       <ProjectInstallPlatform
         {...routerProps}
         project={project}
-        loading={false}
         platform={platform}
         currentPlatformKey={platform.id}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     expect(

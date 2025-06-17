@@ -37,13 +37,16 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
 
     def has_feature(self, organization, request):
         return features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+            "organizations:visibility-explore-view", organization, actor=request.user
         )
 
     def post(self, request: Request, organization: Organization, id: int) -> Response:
         """
         Update the starred status of a saved Explore query for the current organization member.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
@@ -57,6 +60,18 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
             query = ExploreSavedQuery.objects.get(id=id, organization=organization)
         except ExploreSavedQuery.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+        # When unstarring a prebuilt query, we don't delete the starred row from the table.
+        # This is because prebuilt queries are lazily starred by default for all users when
+        # fetching saved queries for the first time. We need the starred row to exist to
+        # prevent the initial lazy-starring from happening again.
+        if query.prebuilt_id is not None:
+            if ExploreSavedQueryStarred.objects.updated_starred_query(
+                organization, request.user.id, query, bool(is_starred)
+            ):
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_404_NOT_FOUND)
 
         if is_starred:
             if ExploreSavedQueryStarred.objects.insert_starred_query(

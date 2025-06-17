@@ -31,7 +31,7 @@ type TourSetRegistrationAction = {
   type: 'SET_REGISTRATION';
 };
 
-export type TourAction<T extends TourEnumType> =
+type TourAction<T extends TourEnumType> =
   | TourStartAction<T>
   | TourNextStepAction
   | TourPreviousStepAction

@@ -12,6 +12,7 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import {IconAdd, IconInfo, IconLock, IconSentry, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
@@ -56,11 +57,17 @@ function SetPayAsYouGo({
     return activePlan.checkoutCategories;
   }, [activePlan]);
 
+  const availableReservedBudgetTypes = useMemo(() => {
+    return activePlan.availableReservedBudgetTypes;
+  }, [activePlan]);
+
   const paygOnlyCategories = useMemo(() => {
     return activePlan.categories.filter(
-      category => !checkoutCategories.includes(category)
+      category =>
+        activePlan.planCategories[category]?.length === 1 &&
+        activePlan.planCategories[category][0]?.events === 0
     );
-  }, [activePlan, checkoutCategories]);
+  }, [activePlan]);
 
   const suggestedBudgetForPlan = useMemo(() => {
     return isBizPlanFamily(activePlan) ? PAYG_BUSINESS_DEFAULT : PAYG_TEAM_DEFAULT;
@@ -136,10 +143,25 @@ function SetPayAsYouGo({
           <Title>{coveredProductsTitle}</Title>
           <CategoryInfoDescription>{coveredProductsSubtitle}</CategoryInfoDescription>
           <CategoryInfoList>
-            {checkoutCategories.map(category => (
-              <li key={category}>
+            {checkoutCategories
+              .filter(category => !paygOnlyCategories.includes(category))
+              .map(category => (
+                <li key={category}>
+                  <IconSubtract size="xs" />
+                  <span>
+                    {getPlanCategoryName({
+                      plan: activePlan,
+                      category,
+                    })}
+                  </span>
+                </li>
+              ))}
+            {Object.values(availableReservedBudgetTypes).map(product => (
+              <li key={product.apiName}>
                 <IconSubtract size="xs" />
-                <span>{getPlanCategoryName({plan: activePlan, category})}</span>
+                <span>
+                  {toTitleCase(product.productCheckoutName, {allowInnerUpperCase: true})}
+                </span>
               </li>
             ))}
           </CategoryInfoList>
@@ -157,7 +179,12 @@ function SetPayAsYouGo({
                     ) : (
                       <IconSubtract size="xs" />
                     )}
-                    <span>{getPlanCategoryName({plan: activePlan, category})}</span>
+                    <span>
+                      {getPlanCategoryName({
+                        plan: activePlan,
+                        category,
+                      })}
+                    </span>
                   </li>
                 ))}
               </CategoryInfoList>

@@ -38,6 +38,7 @@ from sentry.snuba.tasks import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
@@ -273,45 +274,59 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert sub.subscription_id is not None
 
     def test_eap_rpc_query_count(self):
-        time_window = 3600
-        sub = self.create_subscription(
-            QuerySubscription.Status.CREATING,
-            query="span.op:http.client",
-            aggregate="count(span.duration)",
-            dataset=Dataset.EventsAnalyticsPlatform,
-            time_window=time_window,
-        )
-        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
-            create_subscription_in_snuba(sub.id)
+        for eap_items_enabled in [True, False]:
+            with override_options(
+                {
+                    "alerts.spans.use-eap-items": eap_items_enabled,
+                },
+            ):
+                time_window = 3600
+                sub = self.create_subscription(
+                    QuerySubscription.Status.CREATING,
+                    query="span.op:http.client",
+                    aggregate="count(span.duration)",
+                    dataset=Dataset.EventsAnalyticsPlatform,
+                    time_window=time_window,
+                )
+                with patch.object(
+                    _snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen
+                ) as urlopen:
+                    create_subscription_in_snuba(sub.id)
 
-            rpc_request_body = urlopen.call_args[1]["body"]
-            createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
+                    rpc_request_body = urlopen.call_args[1]["body"]
+                    createSubscriptionRequest = CreateSubscriptionRequest.FromString(
+                        rpc_request_body
+                    )
 
-            assert createSubscriptionRequest.time_window_secs == time_window
-            assert (
-                createSubscriptionRequest.time_series_request.filter.comparison_filter.op
-                == ComparisonFilter.Op.OP_EQUALS
-            )
-            assert (
-                createSubscriptionRequest.time_series_request.filter.comparison_filter.key.name
-                == "sentry.op"
-            )
-            assert (
-                createSubscriptionRequest.time_series_request.filter.comparison_filter.value.val_str
-                == "http.client"
-            )
-            assert (
-                createSubscriptionRequest.time_series_request.expressions[0].aggregation.aggregate
-                == FUNCTION_COUNT
-            )
-            assert (
-                createSubscriptionRequest.time_series_request.expressions[0].aggregation.key.name
-                == "sentry.duration_ms"
-            )
-            # Validate that the spm function uses the correct time window
-            sub = QuerySubscription.objects.get(id=sub.id)
-            assert sub.status == QuerySubscription.Status.ACTIVE.value
-            assert sub.subscription_id is not None
+                    assert createSubscriptionRequest.time_window_secs == time_window
+                    assert (
+                        createSubscriptionRequest.time_series_request.filter.comparison_filter.op
+                        == ComparisonFilter.Op.OP_EQUALS
+                    )
+                    assert (
+                        createSubscriptionRequest.time_series_request.filter.comparison_filter.key.name
+                        == "sentry.op"
+                    )
+                    assert (
+                        createSubscriptionRequest.time_series_request.filter.comparison_filter.value.val_str
+                        == "http.client"
+                    )
+                    assert (
+                        createSubscriptionRequest.time_series_request.expressions[
+                            0
+                        ].aggregation.aggregate
+                        == FUNCTION_COUNT
+                    )
+                    assert (
+                        createSubscriptionRequest.time_series_request.expressions[
+                            0
+                        ].aggregation.key.name
+                        == "sentry.duration_ms"
+                    )
+                    # Validate that the spm function uses the correct time window
+                    sub = QuerySubscription.objects.get(id=sub.id)
+                    assert sub.status == QuerySubscription.Status.ACTIVE.value
+                    assert sub.subscription_id is not None
 
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
@@ -359,34 +374,51 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.subscription_id is not None
 
     def test_eap_rpc_query_count(self):
-        sub = self.create_subscription(
-            QuerySubscription.Status.CREATING,
-            query="span.op:http.client",
-            aggregate="count(span.duration)",
-            dataset=Dataset.EventsAnalyticsPlatform,
-        )
-        with patch("sentry.utils.snuba_rpc._snuba_pool") as rpc_pool:
-            with patch("sentry.snuba.tasks._snuba_pool") as pool:
-                resp = Mock()
-                resp.status = 202
-                resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-                rpc_pool.urlopen.return_value = resp
-                pool.urlopen.return_value = resp
+        for eap_items_enabled, entity_key in [
+            (True, EntityKey.EAPItems),
+            (False, EntityKey.EAPItemsSpan),
+        ]:
+            with override_options(
+                {
+                    "alerts.spans.use-eap-items": eap_items_enabled,
+                },
+            ):
+                with patch.object(
+                    _snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen
+                ) as urlopen:
+                    sub = self.create_subscription(
+                        QuerySubscription.Status.CREATING,
+                        query="span.op:http.client",
+                        aggregate="count(span.duration)",
+                        dataset=Dataset.EventsAnalyticsPlatform,
+                    )
+                    create_subscription_in_snuba(sub.id)
+                    sub = QuerySubscription.objects.get(id=sub.id)
+                    assert sub.status == QuerySubscription.Status.ACTIVE.value
+                    assert sub.subscription_id is not None
 
-                create_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
+                    subscription_id = sub.subscription_id
 
-                sub.status = QuerySubscription.Status.UPDATING.value
-                sub.update(
-                    status=QuerySubscription.Status.UPDATING.value,
-                    subscription_id=sub.subscription_id,
-                )
-                update_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
+                    sub.update(
+                        status=QuerySubscription.Status.UPDATING.value,
+                    )
+                    update_subscription_in_snuba(sub.id)
+                    sub = QuerySubscription.objects.get(id=sub.id)
+                    assert sub.status == QuerySubscription.Status.ACTIVE.value
+                    assert sub.subscription_id is not None
+
+                    (method, url) = urlopen.call_args_list[1][0]
+                    assert method == "DELETE"
+                    assert (
+                        url
+                        == f"/{Dataset.EventsAnalyticsPlatform.value}/{entity_key.value}/subscriptions/{subscription_id}"
+                    )
+
+                    sub.update(
+                        status=QuerySubscription.Status.DELETING.value,
+                    )
+                    delete_subscription_from_snuba(sub.id)
+                    assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
@@ -414,28 +446,35 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
     def test_eap_rpc_query_count(self):
-        subscription_id = f"1/{uuid4().hex}"
-        sub = self.create_subscription(
-            QuerySubscription.Status.DELETING,
-            subscription_id=subscription_id,
-            query="span.module:db",
-            aggregate="count(span.duration)",
-            dataset=Dataset.EventsAnalyticsPlatform,
-        )
-        with patch("sentry.snuba.tasks._snuba_pool") as pool:
-            resp = Mock()
-            resp.status = 202
-            pool.urlopen.return_value = resp
-
-            delete_subscription_from_snuba(sub.id)
-            assert not QuerySubscription.objects.filter(id=sub.id).exists()
-
-            (method, url) = pool.urlopen.call_args[0]
-            assert method == "DELETE"
-            assert (
-                url
-                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPSpans.value}/subscriptions/{subscription_id}"
+        for eap_items_enabled, entity_key in [
+            (True, EntityKey.EAPItems),
+            (False, EntityKey.EAPItemsSpan),
+        ]:
+            subscription_id = f"1/{uuid4().hex}"
+            sub = self.create_subscription(
+                QuerySubscription.Status.DELETING,
+                subscription_id=subscription_id,
+                query="span.module:db",
+                aggregate="count(span.duration)",
+                dataset=Dataset.EventsAnalyticsPlatform,
             )
+            with override_options(
+                {
+                    "alerts.spans.use-eap-items": eap_items_enabled,
+                },
+            ):
+                with patch.object(
+                    _snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen
+                ) as urlopen:
+                    delete_subscription_from_snuba(sub.id)
+                    assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+                    (method, url) = urlopen.call_args[0]
+                    assert method == "DELETE"
+                    assert (
+                        url
+                        == f"/{Dataset.EventsAnalyticsPlatform.value}/{entity_key.value}/subscriptions/{subscription_id}"
+                    )
 
     def test_no_subscription_id(self):
         sub = self.create_subscription(QuerySubscription.Status.DELETING)

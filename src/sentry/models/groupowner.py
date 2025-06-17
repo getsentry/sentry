@@ -9,6 +9,10 @@ from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import models
+from django.db.models import BigIntegerField, F
+from django.db.models import JSONField as DjangoJSONField
+from django.db.models.fields.json import KeyTextTransform
+from django.db.models.functions import Cast
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -76,6 +80,20 @@ class GroupOwner(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupowner"
+
+        indexes = [
+            models.Index(
+                F("type"),
+                Cast(
+                    KeyTextTransform(
+                        "commitId",
+                        Cast(F("context"), DjangoJSONField()),
+                    ),
+                    BigIntegerField(),
+                ),
+                name="groupowner_type_json_commitid",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         keys = [k for k in (self.user_id, self.team_id) if k is not None]

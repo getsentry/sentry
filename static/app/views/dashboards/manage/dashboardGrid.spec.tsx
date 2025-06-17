@@ -143,8 +143,7 @@ describe('Dashboards - DashboardGrid', function () {
         location={router.location}
         columnCount={3}
         rowCount={3}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -166,8 +165,7 @@ describe('Dashboards - DashboardGrid', function () {
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
         columnCount={3}
         rowCount={3}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -185,8 +183,7 @@ describe('Dashboards - DashboardGrid', function () {
         onDashboardsChange={dashboardUpdateMock}
         columnCount={3}
         rowCount={3}
-      />,
-      {router}
+      />
     );
     renderGlobalModal();
 
@@ -327,9 +324,8 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />,
       {
-        router,
         organization: {
-          features: ['dashboards-favourite', ...organization.features],
+          features: organization.features,
         },
       }
     );
@@ -371,9 +367,8 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />,
       {
-        router,
         organization: {
-          features: ['dashboards-favourite', ...organization.features],
+          features: organization.features,
         },
       }
     );

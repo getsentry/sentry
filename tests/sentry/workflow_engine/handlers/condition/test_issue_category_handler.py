@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from jsonschema import ValidationError
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -89,3 +89,15 @@ class TestIssueCategoryCondition(ConditionTestCase):
         mock_get_by_type_id.side_effect = ValueError("Invalid group type")
 
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event))
+
+    def test_category_v2(self):
+        perf_group, perf_event, perf_group_event = self.create_group_event(
+            group_type_id=PerformanceNPlusOneGroupType.type_id
+        )
+
+        # N+1 DB query issue should pass for 'PERFORMANCE' (deprecated) as well as 'DB_QUERY' (category_v2)
+        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value})
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event))
+
+        self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event))

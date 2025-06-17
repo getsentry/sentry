@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -26,22 +27,8 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -75,7 +62,7 @@ describe('PageOverview', function () {
   });
 
   it('renders', () => {
-    render(<PageOverview />, {organization});
+    render(<PageOverview />, {organization, deprecatedRouterMocks: true});
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -143,7 +130,10 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -156,8 +146,13 @@ describe('PageOverview', function () {
               'measurements.score.total',
               'trace',
               'profile_id',
-              'replay',
-              'user.display',
+              'profile.id',
+              'replay.id',
+              'replayId',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
               'span.description',
               'timestamp',
@@ -191,7 +186,10 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -204,8 +202,13 @@ describe('PageOverview', function () {
               'measurements.score.total',
               'trace',
               'profile_id',
-              'replay',
-              'user.display',
+              'profile.id',
+              'replay.id',
+              'replayId',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
               'span.description',
               'timestamp',

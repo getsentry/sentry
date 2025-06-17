@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
@@ -11,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
@@ -35,10 +35,12 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {decodeBoolean} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,6 +51,7 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
@@ -57,15 +60,15 @@ import {
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
+import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/useGroupDistributionsDrawer';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -232,6 +235,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const navigate = useNavigate();
   const defaultIssueEvent = useDefaultIssueEvent();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -396,17 +400,11 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       return;
     }
 
-    if (!group.hasSeen) {
+    const project = projects.find(p => p.id === group?.project.id);
+    if (!group.hasSeen && project?.isMember) {
       markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
     }
-  }, [
-    api,
-    group?.hasSeen,
-    group?.project?.id,
-    group?.project?.slug,
-    organization.slug,
-    params.groupId,
-  ]);
+  }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
 
   useEffect(() => {
     const locationQuery = qs.parse(window.location.search) || {};
@@ -661,14 +659,29 @@ function GroupDetailsContent({
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
   const {isDrawerOpen} = useDrawer();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const {seerDrawer} = useLocationQuery({
+    fields: {
+      seerDrawer: decodeBoolean,
+    },
+  });
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   useEffect(() => {
-    if (!hasStreamlinedUI || isDrawerOpen) {
+    if (isDrawerOpen) {
+      return;
+    }
+
+    if (seerDrawer) {
+      openSeerDrawer();
+      return;
+    }
+
+    if (!hasStreamlinedUI) {
       return;
     }
 
@@ -686,10 +699,12 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
+    seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
     openIssueActivityDrawer,
+    openSeerDrawer,
   ]);
 
   useTrackView({group, event, project, tab: currentTab, organization});
@@ -765,7 +780,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   const projectWithFallback = project ?? projects[0];
 
   const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
     props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   useEffect(() => {

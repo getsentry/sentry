@@ -13,7 +13,7 @@ describe('EAPField', () => {
 
   beforeEach(() => {
     fieldsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
     });
   });
@@ -25,18 +25,76 @@ describe('EAPField', () => {
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
+        query: expect.objectContaining({attributeType: 'number'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
+        query: expect.objectContaining({attributeType: 'string'}),
       })
     );
     expect(screen.getByText('count')).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(2);
+    // this corresponds to the `count` input
+    expect(inputs[0]).toBeEnabled();
+    // this corresponds to the `spans` input
+    expect(inputs[1]).toBeDisabled();
+  });
+
+  it('renders epm with argument disabled', () => {
+    render(
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <EAPField aggregate={'epm()'} onChange={() => {}} />
+      </SpanTagsProvider>
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string'}),
+      })
+    );
+    expect(screen.getByText('epm')).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(2);
+    // this corresponds to the `count` input
+    expect(inputs[0]).toBeEnabled();
+    // this corresponds to the `spans` input
+    expect(inputs[1]).toBeDisabled();
+  });
+
+  it('renders failure_rate with argument disabled', () => {
+    render(
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <EAPField aggregate={'failure_rate()'} onChange={() => {}} />
+      </SpanTagsProvider>
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string'}),
+      })
+    );
+    expect(screen.getByText('failure_rate')).toBeInTheDocument();
     expect(screen.getByText('spans')).toBeInTheDocument();
 
     const inputs = screen.getAllByRole('textbox');
@@ -55,15 +113,15 @@ describe('EAPField', () => {
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
+        query: expect.objectContaining({attributeType: 'number'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
+        query: expect.objectContaining({attributeType: 'string'}),
       })
     );
     await userEvent.click(screen.getByText('count'));

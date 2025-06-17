@@ -1,10 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,27 +24,29 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+// TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
+// eslint-disable-next-line no-restricted-imports
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
-import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
-import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
+import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
+  getDurationChartTitle,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {ResponseCodeCountChart} from 'sentry/views/insights/http/components/charts/responseCodeCountChart';
 import {SpanSamplesTable} from 'sentry/views/insights/http/components/tables/spanSamplesTable';
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
@@ -52,9 +55,10 @@ import {Referrer} from 'sentry/views/insights/http/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {
   ModuleName,
+  SpanFields,
   SpanFunction,
   SpanIndexedField,
   SpanMetricsField,
@@ -65,6 +69,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
   const location = useLocation();
+  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {
@@ -86,11 +91,8 @@ export function HTTPSamplesPanel() {
 
   const project = projects.find(p => query.project === p.id);
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-
-    SAMPLE_HOVER_DEBOUNCE
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
@@ -183,7 +185,6 @@ export function HTTPSamplesPanel() {
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       ],
       enabled: isPanelOpen,
     },
@@ -199,6 +200,7 @@ export function HTTPSamplesPanel() {
       search,
       yAxis: [`avg(span.self_time)`],
       enabled: isPanelOpen && query.panel === 'duration',
+      transformAliasToInputFormat: true,
     },
     Referrer.SAMPLES_PANEL_DURATION_CHART
   );
@@ -207,20 +209,20 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsTopNSeries({
-    search,
-    fields: ['span.status_code', 'count()'],
-    yAxis: ['count()'],
-    topEvents: 5,
-    sorts: [
-      {
+  } = useTopNSpanMetricsSeries(
+    {
+      search,
+      fields: [SpanFields.RESPONSE_CODE, 'count()'],
+      yAxis: ['count()'],
+      topN: 5,
+      sort: {
         kind: 'desc',
         field: 'count()',
       },
-    ],
-    enabled: isPanelOpen && query.panel === 'status',
-    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
-  });
+      enabled: isPanelOpen && query.panel === 'status',
+    },
+    Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART
+  );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
@@ -232,6 +234,7 @@ export function HTTPSamplesPanel() {
   } = useSpanSamples({
     search,
     fields: [
+      SpanIndexedField.ID,
       SpanIndexedField.TRACE,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
@@ -242,7 +245,9 @@ export function HTTPSamplesPanel() {
     referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
   });
 
-  const durationSamplesData = spanSamplesData?.data ?? [];
+  const spanSamplesById = useMemo(() => {
+    return keyBy(spanSamplesData?.data ?? [], 'id');
+  }, [spanSamplesData]);
 
   const {
     data: responseCodeSamplesData,
@@ -255,7 +260,7 @@ export function HTTPSamplesPanel() {
       fields: [
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
-        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.TRANSACTION_SPAN_ID,
         SpanIndexedField.SPAN_ID,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_DESCRIPTION,
@@ -266,12 +271,6 @@ export function HTTPSamplesPanel() {
       enabled: isPanelOpen && query.panel === 'status',
     },
     Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES
-  );
-
-  const sampledSpanDataSeries = useSampleScatterPlotSeries(
-    durationSamplesData,
-    domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
-    highlightedSpanId
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
@@ -290,232 +289,251 @@ export function HTTPSamplesPanel() {
     }
   };
 
+  const avg = domainTransactionMetrics?.[0]?.['avg(span.self_time)'] ?? 0;
+
+  const samplesPlottable = useMemo(() => {
+    if (!spanSamplesData) {
+      return undefined;
+    }
+
+    return new Samples(spanSamplesData as TabularData, {
+      attributeName: 'span.self_time',
+      baselineValue: avg,
+      baselineLabel: t('Average'),
+      onHighlight: sample => {
+        setHighlightedSpanId(sample.id);
+      },
+      onDownplay: () => {
+        setHighlightedSpanId(undefined);
+      },
+    });
+  }, [avg, spanSamplesData, setHighlightedSpanId]);
+
+  useEffect(() => {
+    if (highlightedSpanId && samplesPlottable) {
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable.highlight(spanSample);
+    }
+
+    return () => {
+      if (!highlightedSpanId) {
+        return;
+      }
+
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable?.downplay(spanSample);
+    };
+  }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
+
   return (
     <PageAlertProvider>
-      <DrawerHeader>
-        <SampleDrawerHeaderTransaction
-          project={project}
-          transaction={query.transaction}
-          transactionMethod={query.transactionMethod}
-        />
-      </DrawerHeader>
+      <InsightsSpanTagProvider>
+        <EventDrawerHeader>
+          <SampleDrawerHeaderTransaction
+            project={project}
+            transaction={query.transaction}
+            transactionMethod={query.transactionMethod}
+          />
+        </EventDrawerHeader>
 
-      <SampleDrawerBody>
-        <ModuleLayout.Layout>
-          <ModuleLayout.Full>
-            <ReadoutRibbon>
-              <MetricReadout
-                title={getThroughputTitle('http')}
-                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
-                unit={RateUnit.PER_MINUTE}
-                isLoading={areDomainTransactionMetricsFetching}
-              />
-
-              <MetricReadout
-                title={DataTitles.avg}
-                value={
-                  domainTransactionMetrics?.[0]?.[
-                    `avg(${SpanMetricsField.SPAN_SELF_TIME})`
-                  ]
-                }
-                unit={DurationUnit.MILLISECOND}
-                isLoading={areDomainTransactionMetricsFetching}
-              />
-
-              <MetricReadout
-                title={t('3XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
-                unit="percentage"
-                isLoading={areDomainTransactionMetricsFetching}
-              />
-
-              <MetricReadout
-                title={t('4XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
-                unit="percentage"
-                isLoading={areDomainTransactionMetricsFetching}
-              />
-
-              <MetricReadout
-                title={t('5XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
-                unit="percentage"
-                isLoading={areDomainTransactionMetricsFetching}
-              />
-
-              <MetricReadout
-                title={DataTitles.timeSpent}
-                value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
-                unit={DurationUnit.MILLISECOND}
-                tooltip={getTimeSpentExplanation(
-                  domainTransactionMetrics?.[0]?.['time_spent_percentage()']!,
-                  'http.client'
-                )}
-                isLoading={areDomainTransactionMetricsFetching}
-              />
-            </ReadoutRibbon>
-          </ModuleLayout.Full>
-
-          <ModuleLayout.Full>
-            <PanelControls>
-              <SegmentedControl
-                value={query.panel}
-                onChange={handlePanelChange}
-                aria-label={t('Choose breakdown type')}
-              >
-                <SegmentedControl.Item key="duration">
-                  {t('By Duration')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="status">
-                  {t('By Response Code')}
-                </SegmentedControl.Item>
-              </SegmentedControl>
-
-              <CompactSelect
-                value={query.responseCodeClass}
-                options={HTTP_RESPONSE_CODE_CLASS_OPTIONS}
-                onChange={handleResponseCodeClassChange}
-                triggerProps={{
-                  prefix: t('Response Code'),
-                }}
-              />
-            </PanelControls>
-          </ModuleLayout.Full>
-
-          {query.panel === 'duration' && (
-            <Fragment>
-              <ModuleLayout.Full>
-                <DurationChartWithSamples
-                  series={[
-                    {
-                      ...durationData[`avg(span.self_time)`],
-                      markLine: AverageValueMarkLine(),
-                    },
-                  ]}
-                  scatterPlot={sampledSpanDataSeries}
-                  onHighlight={highlights => {
-                    const firstHighlight = highlights[0];
-
-                    if (!firstHighlight || !firstHighlight.dataPoint) {
-                      setHighlightedSpanId(undefined);
-                      return;
-                    }
-
-                    const sample = findSampleFromDataPoint<
-                      (typeof durationSamplesData)[0]
-                    >(
-                      firstHighlight.dataPoint,
-                      durationSamplesData,
-                      SpanIndexedField.SPAN_SELF_TIME
-                    );
-
-                    setHighlightedSpanId(sample?.span_id);
-                  }}
-                  isLoading={isDurationDataFetching}
-                  error={durationError}
+        <SampleDrawerBody>
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <ReadoutRibbon>
+                <MetricReadout
+                  title={getThroughputTitle('http')}
+                  value={domainTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
+                  unit={RateUnit.PER_MINUTE}
+                  isLoading={areDomainTransactionMetricsFetching}
                 />
-              </ModuleLayout.Full>
-            </Fragment>
-          )}
 
-          {query.panel === 'status' && (
-            <Fragment>
-              <ModuleLayout.Full>
-                <ResponseCodeCountChart
-                  series={Object.values(responseCodeData).filter(Boolean)}
-                  isLoading={isResponseCodeDataLoading}
-                  error={responseCodeError}
+                <MetricReadout
+                  title={DataTitles.avg}
+                  value={
+                    domainTransactionMetrics?.[0]?.[
+                      `avg(${SpanMetricsField.SPAN_SELF_TIME})`
+                    ]
+                  }
+                  unit={DurationUnit.MILLISECOND}
+                  isLoading={areDomainTransactionMetricsFetching}
                 />
-              </ModuleLayout.Full>
-            </Fragment>
-          )}
 
-          <ModuleLayout.Full>
-            <SpanSearchQueryBuilder
-              projects={selection.projects}
-              initialQuery={query.spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              searchSource={`${ModuleName.HTTP}-sample-panel`}
-            />
-          </ModuleLayout.Full>
-
-          {query.panel === 'duration' && (
-            <Fragment>
-              <ModuleLayout.Full>
-                <SpanSamplesTable
-                  data={durationSamplesData}
-                  isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
-                  highlightedSpanId={highlightedSpanId}
-                  onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
-                  onSampleMouseOut={() => setHighlightedSpanId(undefined)}
-                  error={durationSamplesDataError}
-                  // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
-                  meta={{
-                    fields: {
-                      'span.response_code': 'number',
-                    },
-                    units: {},
-                  }}
-                  referrer={TraceViewSources.REQUESTS_MODULE}
+                <MetricReadout
+                  title={t('3XXs')}
+                  value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
+                  unit="percentage"
+                  isLoading={areDomainTransactionMetricsFetching}
                 />
-              </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                <Button
-                  onClick={() => {
-                    trackAnalytics(
-                      'performance_views.sample_spans.try_different_samples_clicked',
-                      {organization, source: ModuleName.HTTP}
-                    );
-                    refetchDurationSpanSamples();
-                  }}
+                <MetricReadout
+                  title={t('4XXs')}
+                  value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
+                  unit="percentage"
+                  isLoading={areDomainTransactionMetricsFetching}
+                />
+
+                <MetricReadout
+                  title={t('5XXs')}
+                  value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
+                  unit="percentage"
+                  isLoading={areDomainTransactionMetricsFetching}
+                />
+
+                <MetricReadout
+                  title={DataTitles.timeSpent}
+                  value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
+                  unit={DurationUnit.MILLISECOND}
+                  isLoading={areDomainTransactionMetricsFetching}
+                />
+              </ReadoutRibbon>
+            </ModuleLayout.Full>
+
+            <ModuleLayout.Full>
+              <PanelControls>
+                <SegmentedControl
+                  value={query.panel}
+                  onChange={handlePanelChange}
+                  aria-label={t('Choose breakdown type')}
                 >
-                  {t('Try Different Samples')}
-                </Button>
-              </ModuleLayout.Full>
-            </Fragment>
-          )}
+                  <SegmentedControl.Item key="duration">
+                    {t('By Duration')}
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="status">
+                    {t('By Response Code')}
+                  </SegmentedControl.Item>
+                </SegmentedControl>
 
-          {query.panel === 'status' && (
-            <Fragment>
-              <ModuleLayout.Full>
-                <SpanSamplesTable
-                  data={responseCodeSamplesData ?? []}
-                  isLoading={isResponseCodeSamplesDataFetching}
-                  error={responseCodeSamplesDataError}
-                  // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
-                  meta={{
-                    fields: {
-                      'span.response_code': 'number',
-                    },
-                    units: {},
+                <CompactSelect
+                  value={query.responseCodeClass}
+                  options={HTTP_RESPONSE_CODE_CLASS_OPTIONS}
+                  onChange={handleResponseCodeClassChange}
+                  triggerProps={{
+                    prefix: t('Response Code'),
                   }}
                 />
-              </ModuleLayout.Full>
+              </PanelControls>
+            </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                <Button
-                  onClick={() => {
-                    trackAnalytics(
-                      'performance_views.sample_spans.try_different_samples_clicked',
-                      {organization, source: ModuleName.HTTP}
-                    );
-                    refetchResponseCodeSpanSamples();
-                  }}
-                >
-                  {t('Try Different Samples')}
-                </Button>
-              </ModuleLayout.Full>
-            </Fragment>
-          )}
-        </ModuleLayout.Layout>
-      </SampleDrawerBody>
+            {query.panel === 'duration' && (
+              <Fragment>
+                <ModuleLayout.Full>
+                  <InsightsLineChartWidget
+                    showLegend="never"
+                    queryInfo={{
+                      search,
+                      referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
+                    }}
+                    title={getDurationChartTitle('http')}
+                    isLoading={isDurationDataFetching}
+                    error={durationError}
+                    series={[durationData[`avg(span.self_time)`]]}
+                    samples={samplesPlottable}
+                  />
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+
+            {query.panel === 'status' && (
+              <Fragment>
+                <ModuleLayout.Full>
+                  <ResponseCodeCountChart
+                    search={search}
+                    referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
+                    groupBy={[SpanFields.RESPONSE_CODE]}
+                    series={Object.values(responseCodeData).filter(Boolean)}
+                    isLoading={isResponseCodeDataLoading}
+                    error={responseCodeError}
+                  />
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+
+            <ModuleLayout.Full>
+              <SpanSearchQueryBuilder
+                projects={selection.projects}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                searchSource={`${ModuleName.HTTP}-sample-panel`}
+                useEap={useEap}
+              />
+            </ModuleLayout.Full>
+
+            {query.panel === 'duration' && (
+              <Fragment>
+                <ModuleLayout.Full>
+                  <SpanSamplesTable
+                    data={spanSamplesData?.data ?? []}
+                    isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
+                    highlightedSpanId={highlightedSpanId}
+                    onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                    onSampleMouseOut={() => setHighlightedSpanId(undefined)}
+                    error={durationSamplesDataError}
+                    // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
+                    meta={{
+                      fields: {
+                        'span.response_code': 'number',
+                      },
+                      units: {},
+                    }}
+                    referrer={TraceViewSources.REQUESTS_MODULE}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <Button
+                    onClick={() => {
+                      trackAnalytics(
+                        'performance_views.sample_spans.try_different_samples_clicked',
+                        {organization, source: ModuleName.HTTP}
+                      );
+                      refetchDurationSpanSamples();
+                    }}
+                  >
+                    {t('Try Different Samples')}
+                  </Button>
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+
+            {query.panel === 'status' && (
+              <Fragment>
+                <ModuleLayout.Full>
+                  <SpanSamplesTable
+                    data={responseCodeSamplesData ?? []}
+                    isLoading={isResponseCodeSamplesDataFetching}
+                    error={responseCodeSamplesDataError}
+                    // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
+                    meta={{
+                      fields: {
+                        'span.response_code': 'number',
+                      },
+                      units: {},
+                    }}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <Button
+                    onClick={() => {
+                      trackAnalytics(
+                        'performance_views.sample_spans.try_different_samples_clicked',
+                        {organization, source: ModuleName.HTTP}
+                      );
+                      refetchResponseCodeSpanSamples();
+                    }}
+                  >
+                    {t('Try Different Samples')}
+                  </Button>
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+          </ModuleLayout.Layout>
+        </SampleDrawerBody>
+      </InsightsSpanTagProvider>
     </PageAlertProvider>
   );
 }
-
-const SAMPLE_HOVER_DEBOUNCE = 10;
 
 const SPAN_SAMPLE_LIMIT = 10;
 

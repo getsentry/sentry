@@ -1,12 +1,16 @@
 import enum
 import logging
 from datetime import timedelta
-from typing import ClassVar, Literal, Self, cast
+from typing import ClassVar, Literal, Self, cast, override
 
 from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -24,12 +28,23 @@ from sentry.deletions.base import ModelRelation
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    ProjectUptimeSubscriptionMode,
+)
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
-from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.models import (
+    Condition,
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler
+from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +56,11 @@ headers_json_encoder = JSONEncoder(
 
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
+
+
+class UptimeStatus(enum.IntEnum):
+    OK = 1
+    FAILED = 2
 
 
 @region_silo_model
@@ -69,10 +89,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The url to check
     url = models.CharField(max_length=255)
     # The domain of the url, extracted via TLDExtract
-    url_domain = models.CharField(max_length=255, db_index=True, default="")
+    url_domain = models.CharField(max_length=255, default="", db_default="")
     # The suffix of the url, extracted via TLDExtract. This can be a public
     # suffix, such as com, gov.uk, com.au, or a private suffix, such as vercel.dev
-    url_domain_suffix = models.CharField(max_length=255, db_index=True, default="")
+    url_domain_suffix = models.CharField(max_length=255, default="", db_default="")
     # A unique identifier for the provider hosting the domain
     host_provider_id = models.CharField(max_length=255, db_index=True, null=True)
     # The name of the provider hosting this domain
@@ -95,7 +115,13 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     body = models.TextField(null=True)
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
-    trace_sampling = models.BooleanField(default=False)
+    trace_sampling = models.BooleanField(default=False, db_default=False)
+    # Tracks the current status of this subscription. This is possibly going
+    # to be replaced in the future with open-periods as we replace
+    # ProjectUptimeSubscription with Detectors.
+    uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
+    # (Likely) temporary column to keep track of the current uptime status of this monitor
+    uptime_status_update_date = models.DateTimeField(db_default=Now())
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -106,7 +132,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         app_label = "uptime"
         db_table = "uptime_uptimesubscription"
 
-        indexes = (models.Index(fields=("url_domain_suffix", "url_domain")),)
+        indexes = [
+            models.Index(fields=("url_domain_suffix", "url_domain")),
+            models.Index(fields=("uptime_status", "uptime_status_update_date")),
+        ]
 
 
 @region_silo_model
@@ -139,20 +168,6 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
         ]
 
 
-class ProjectUptimeSubscriptionMode(enum.IntEnum):
-    # Manually created by a user
-    MANUAL = 1
-    # Auto-detected by our system and in the onboarding stage
-    AUTO_DETECTED_ONBOARDING = 2
-    # Auto-detected by our system and actively monitoring
-    AUTO_DETECTED_ACTIVE = 3
-
-
-class UptimeStatus(enum.IntEnum):
-    OK = 1
-    FAILED = 2
-
-
 @region_silo_model
 class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
@@ -168,10 +183,10 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     status = BoundedPositiveBigIntegerField(
         choices=ObjectStatus.as_choices(), db_default=ObjectStatus.ACTIVE
     )
-    mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
-    uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
-    # (Likely) temporary column to keep track of the current uptime status of this monitor
-    uptime_status_update_date = models.DateTimeField(db_default=Now())
+    mode = models.SmallIntegerField(
+        default=ProjectUptimeSubscriptionMode.MANUAL.value,
+        db_default=ProjectUptimeSubscriptionMode.MANUAL.value,
+    )
     # Date of the last time we updated the status for this monitor
     name = models.TextField()
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -187,7 +202,6 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("project", "mode")),
-            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
         constraints = [
@@ -230,15 +244,16 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         }
 
 
-def get_org_from_uptime_monitor(uptime_monitor: ProjectUptimeSubscription) -> tuple[Organization]:
-    return (uptime_monitor.project.organization,)
+def get_org_from_detector(detector: Detector) -> tuple[Organization]:
+    return (detector.project.organization,)
 
 
-@cache_func_for_models([(ProjectUptimeSubscription, get_org_from_uptime_monitor)])
+@cache_func_for_models([(Detector, get_org_from_detector)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
-    return ProjectUptimeSubscription.objects.filter(
+    return Detector.objects.filter(
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization=organization,
-        mode__in=[
+        config__mode__in=[
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
@@ -264,14 +279,15 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
     recalculate=False,
     cache_ttl=timedelta(hours=4),
 )
-def get_project_subscriptions_for_uptime_subscription(
+def get_project_subscription_for_uptime_subscription(
     uptime_subscription_id: int,
-) -> list[ProjectUptimeSubscription]:
-    return list(
-        ProjectUptimeSubscription.objects.filter(
-            uptime_subscription_id=uptime_subscription_id
-        ).select_related("project", "project__organization")
-    )
+) -> ProjectUptimeSubscription | None:
+    try:
+        return ProjectUptimeSubscription.objects.select_related(
+            "project", "project__organization"
+        ).get(uptime_subscription_id=uptime_subscription_id)
+    except ProjectUptimeSubscription.DoesNotExist:
+        return None
 
 
 @cache_func_for_models(
@@ -319,3 +335,92 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
+
+    @override
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return None
+
+    @override
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        # We don't have a limit at the moment, so no need to count.
+        raise NotImplementedError
+
+
+def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+    """
+    Fetches a workflow_engine Detector given an existing uptime_subscription.
+    This is used during the transition period moving uptime to detector.
+    """
+    try:
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            source_id=str(uptime_subscription.id),
+        )
+        return Detector.objects.get(
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source
+        )
+    except (DataSource.DoesNotExist, Detector.DoesNotExist):
+        return None
+
+
+def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
+    """
+    Given a detector get the matching uptime subscription
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return UptimeSubscription.objects.get_from_cache(id=int(data_source.source_id))
+
+
+def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
+    """
+    Given a detector get the matching project subscription
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return ProjectUptimeSubscription.objects.get(uptime_subscription_id=int(data_source.source_id))
+
+
+def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
+    """
+    Creates a uptime detector and associated data-source given a
+    ProjectUptimeSubscription.
+    """
+    data_source = DataSource.objects.create(
+        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        organization=project_sub.project.organization,
+        source_id=str(project_sub.uptime_subscription_id),
+    )
+    condition_group = DataConditionGroup.objects.create(
+        organization=project_sub.project.organization,
+    )
+    DataCondition.objects.create(
+        comparison=CHECKSTATUS_FAILURE,
+        type=Condition.EQUAL,
+        condition_result=DetectorPriorityLevel.HIGH,
+        condition_group=condition_group,
+    )
+    DataCondition.objects.create(
+        comparison=CHECKSTATUS_SUCCESS,
+        type=Condition.EQUAL,
+        condition_result=DetectorPriorityLevel.OK,
+        condition_group=condition_group,
+    )
+    env = project_sub.environment.name if project_sub.environment else None
+    detector = Detector.objects.create(
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        project=project_sub.project,
+        name=project_sub.name,
+        owner_user_id=project_sub.owner_user_id,
+        owner_team_id=project_sub.owner_team_id,
+        config={
+            "environment": env,
+            "mode": project_sub.mode,
+        },
+        workflow_condition_group=condition_group,
+    )
+    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+    return detector

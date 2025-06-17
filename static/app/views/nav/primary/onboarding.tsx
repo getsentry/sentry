@@ -3,12 +3,12 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import ProgressRing from 'sentry/components/progressRing';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -21,8 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
-  NavButton,
-  SidebarItem,
+  SidebarButton,
   SidebarItemUnreadIndicator,
 } from 'sentry/views/nav/primary/components';
 import {
@@ -48,7 +47,6 @@ function OnboardingItem({
   const theme = useTheme();
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
-  const showLabel = isMobile;
   const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
@@ -75,47 +73,45 @@ function OnboardingItem({
 
   return (
     <GuideAnchor target="onboarding_sidebar" position="right">
-      <SidebarItem label={label} showLabel={showLabel}>
-        <NavButton
-          {...overlayTriggerProps}
-          isMobile={isMobile}
-          aria-label={showLabel ? undefined : label}
-          onMouseEnter={refetch}
-        >
-          <InteractionStateLayer />
-          <ProgressRingWrapper isMobile={isMobile}>
-            <OnboardingProgressRing
-              isMobile={isMobile}
-              animate
-              textCss={() => css`
-                font-size: ${isMobile ? theme.fontSizeExtraSmall : theme.fontSizeSmall};
-                font-weight: ${theme.fontWeightBold};
-                color: ${theme.purple400};
-              `}
-              text={
-                doneTasks.length === allTasks.length ? (
+      <SidebarButton
+        analyticsKey="onboarding"
+        buttonProps={{...overlayTriggerProps, onMouseEnter: refetch}}
+        label={label}
+      >
+        <ProgressRingWrapper isMobile={isMobile}>
+          <OnboardingProgressRing
+            isMobile={isMobile}
+            animate
+            textCss={() => css`
+              font-size: ${theme.fontSizeSmall};
+              font-weight: ${theme.fontWeightBold};
+              color: ${theme.tokens.content.accent};
+              ${isMobile && 'display: none'};
+            `}
+            text={
+              doneTasks.length === allTasks.length ? (
+                <IconDefaultsProvider>
                   <IconCheckmark />
-                ) : (
-                  doneTasks.length
-                )
-              }
-              value={(doneTasks.length / allTasks.length) * 100}
-              backgroundColor={theme.gray200}
-              progressEndcaps="round"
-              progressColor={theme.purple400}
-              size={isMobile ? 22 : 26}
-              barWidth={4}
-            />
-          </ProgressRingWrapper>
-          {showLabel ? label : null}
-          {pendingCompletionSeen && (
-            <SidebarItemUnreadIndicator
-              data-test-id="pending-seen-indicator"
-              isMobile={isMobile}
-            />
-          )}
-        </NavButton>
-      </SidebarItem>
+                </IconDefaultsProvider>
+              ) : (
+                doneTasks.length
+              )
+            }
+            value={(doneTasks.length / allTasks.length) * 100}
+            backgroundColor={theme.gray200}
+            progressEndcaps="round"
+            progressColor={theme.tokens.content.accent}
+            size={isMobile ? 14 : 26}
+            barWidth={isMobile ? 2 : 4}
+          />
+        </ProgressRingWrapper>
+        {pendingCompletionSeen && (
+          <SidebarItemUnreadIndicator
+            data-test-id="pending-seen-indicator"
+            isMobile={isMobile}
+          />
+        )}
+      </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />

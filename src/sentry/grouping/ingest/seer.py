@@ -37,6 +37,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
+@sentry_sdk.tracing.trace
 def should_call_seer_for_grouping(
     event: Event, variants: dict[str, BaseVariant], event_grouphash: GroupHash
 ) -> bool:
@@ -249,6 +250,7 @@ def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant])
     return False
 
 
+@sentry_sdk.tracing.trace
 def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
@@ -280,9 +282,12 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
+    seer_request_metric_tags = {"platform": event.platform or "unknown"}
 
-    seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
+    seer_results = get_similarity_data_from_seer(
+        request_data,
+        {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
+    )
 
     # All of these will get overridden if we find a usable match
     matching_seer_result = None  # JSON of result data
@@ -347,7 +352,7 @@ def get_seer_similar_issues(
 
         # We only want this for the side effect, and we know it'll return no matches, so we don't
         # bother to capture the return value.
-        get_similarity_data_from_seer(request_data)
+        get_similarity_data_from_seer(request_data, seer_request_metric_tags)
 
     is_hybrid_fingerprint_case = (
         event_has_hybrid_fingerprint
@@ -460,6 +465,7 @@ def _should_use_seer_match_for_grouping(
     return fingerprints_match
 
 
+@sentry_sdk.tracing.trace
 def maybe_check_seer_for_matching_grouphash(
     event: Event,
     event_grouphash: GroupHash,

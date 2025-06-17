@@ -1,3 +1,67 @@
+25.5.1
+------
+
+### Various fixes & improvements
+
+- :wrench: chore(integrations): use `IntegrationProviderSlug` for Integration `key` (#91465) by @iamrajjoshi
+- ref: fix types for group_integration_details (#92026) by @asottile-sentry
+- Bump `devenv`/`devservices` to make Python SDK 3 compatible (#92028) by @antonpirker
+- build(ui): Remove react prod sourcemaps (#92006) by @scttcper
+- feat(spans): Produce items from process-segments (#91714) by @untitaker
+- feat(explore): Add attribute description throughout explore (#91829) by @Zylphrex
+- fix(symbolicator): check source credentials and not the credential token (#92024) by @Litarnus
+- feat(replay): Start bringing in new replay context wrappers to test (#91982) by @ryan953
+- feat(agents-insights): dashboard placeholder (#92021) by @obostjancic
+- ref: remove remote_subscriptions migrations (#92004) by @asottile-sentry
+- fix(apps): disallow Manager to rotate an app secret with org:admin scope (#92019) by @oioki
+- issues: remove custom save button styling (#91974) by @JonasBa
+- replay: replace colors for tokens on timeline (#91933) by @JonasBa
+- trace: fix buttons in chonk (#91878) by @JonasBa
+- tag: fix bad tag change and flickering text (#91927) by @JonasBa
+- chore(sdk): Use add_full_stack by default (#91939) by @armenzg
+- fix(codeowners): move demomode upwards in codewards to stop matching everything (#92020) by @shellmayr
+- fix(nextjs-insight): Filter spans without component type from tree view (#92017) by @ArthurKnaus
+- Add directory for preprod (#91961) by @chromy
+- fix(span-buffer): Fix crashing behavior in flusher (#91949) by @untitaker
+- feat(agents-insights): feature flag registration (#92014) by @obostjancic
+- fix(codeowners): add owner to demomode line (#92012) by @shellmayr
+- ref: add flags to migrations lockfile (#91991) by @asottile-sentry
+- feat(source-maps): Do not render source maps wizard if platform is react native (#91860) by @priscilawebdev
+
+_Plus 231 more_
+
+25.5.0
+------
+
+### Various fixes & improvements
+
+- chore(perf-issues): Add a flag and check it to allow customer to disable detectors (#91734) by @leeandher
+- feat(trace-tabs-ui): Adding ops to search on click and hiding trace level ops breakdown (#91684) by @Abdkhan14
+- build(ui): Add rspack as webpack alternative (#77077) by @scttcper
+- fix(taskworker) Fix async notification parameter serialization (#91720) by @markstory
+- fix(profiles): Set the proper span entity to insert data to in tests (#91736) by @phacops
+- fix(insights): line of code not working with db module on eap (#91654) by @DominikB2014
+- ref(reserved budgets): Update types + constants (#91606) by @isabellaenriquez
+- feat(taskworker) Check 2% of tasks for pickle (#91624) by @markstory
+- chore(github): Only support pagination for getting labels (#91570) by @armenzg
+- Skip test_queries_profile_candidates_from_spans (#91724) by @armenzg
+- fix(issue-details): Avoid persisting stacktrace folding behaviour (#91719) by @leeandher
+- feat(dashboards): Newly added widgets should scroll into view (#91721) by @narsaynorath
+- ref(crons): Use dateAdded over dateCreated (#91667) by @evanpurkhiser
+- fix(utils): return 0% for null and undefined values in formatpercentage (#91710) by @shellmayr
+- ref: fix nullability of requires_org_level_access (#91694) by @asottile-sentry
+- feat(explore): Flatten visualize yaxes into multiple (#91664) by @Zylphrex
+- fix(widget-library): Hide filters at top of panel if not small screen (#91716) by @narsaynorath
+- feat(attachments): Include all attachment with screenshot in name (#91602) by @armenzg
+- fix(insights): show - instead of null when metric value is null (#91656) by @DominikB2014
+- feat(ourlogs): Add a "new" badge for logs in the sidebar (#91674) by @colin-sentry
+- fix(nextjs-insights): remove project icon from rage/dead click widget (#91711) by @shellmayr
+- fix(nextjs-insights): show 0% for failure_rate()==0 instead of <0% (#91709) by @shellmayr
+- feat(nextjs-insights): add avg & p95 duration to navigations table (#91708) by @shellmayr
+- fix(sandbox): for debugging add telex org to exclude from redirect (#91704) by @constantinius
+
+_Plus 1819 more_
+
 25.4.0
 ------
 

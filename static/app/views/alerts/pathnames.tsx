@@ -13,7 +13,7 @@ export function makeAlertsPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${ALERTS_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_ALERTS_BASE_PATHNAME}${path}`
   );

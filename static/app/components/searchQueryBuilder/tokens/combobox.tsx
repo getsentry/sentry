@@ -9,7 +9,7 @@ import {
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
-import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
+import {type AriaComboBoxProps} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
@@ -28,6 +28,7 @@ import {
 import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
   findItemInSections,
   itemIsSection,
@@ -374,7 +375,7 @@ export function SearchQueryBuilderCombobox<
     ...comboBoxProps,
   });
 
-  const {inputProps, listBoxProps} = useComboBox<T>(
+  const {inputProps, listBoxProps} = useSearchTokenCombobox<T>(
     {
       ...comboBoxProps,
       'aria-label': inputLabel,
@@ -519,7 +520,7 @@ export function SearchQueryBuilderCombobox<
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, triggerProps.ref)}
+        ref={mergeRefs(ref, inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}

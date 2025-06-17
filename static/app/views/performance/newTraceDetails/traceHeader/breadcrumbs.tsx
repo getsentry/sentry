@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import type {
   RoutableModuleNames,
   URLBuilder,
@@ -25,6 +26,8 @@ import {ModuleName} from 'sentry/views/insights/types';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 export enum TraceViewSources {
   TRACES = 'traces',
@@ -48,6 +51,7 @@ export enum TraceViewSources {
   DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
   LOGS = 'logs',
+  AGENT_MONITORING = 'agent_monitoring',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
@@ -95,13 +99,9 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   logs: 'explore/logs',
 };
 
-function getBreadCrumbTarget(
-  path: string,
-  query: Location['query'],
-  organization: Organization
-) {
+function getBreadCrumbTarget(pathname: string, query: Location['query']) {
   return {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/${path}`),
+    pathname,
     // Remove traceView specific query parameters that are not needed when navigating back.
     query: {...omit(query, ['node', 'fov', 'timestamp', 'eventId'])},
   };
@@ -121,7 +121,10 @@ function getPerformanceBreadCrumbs(
   if (view) {
     crumbs.push({
       label: DOMAIN_VIEW_TITLES[view],
-      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
+      to: getBreadCrumbTarget(
+        normalizeUrl(`/organizations/${organization.slug}/${performanceUrl}`),
+        location.query
+      ),
     });
   } else {
     crumbs.push({
@@ -134,16 +137,20 @@ function getPerformanceBreadCrumbs(
     case Tab.EVENTS:
       crumbs.push({
         label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(`${transactionSummaryUrl}`, location.query, organization),
+        to: getBreadCrumbTarget(
+          normalizeUrl(`/organizations/${organization.slug}/${transactionSummaryUrl}`),
+          location.query
+        ),
       });
       break;
     case Tab.TAGS:
       crumbs.push({
         label: t('Tags'),
         to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/tags`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/${transactionSummaryUrl}/tags`
+          ),
+          location.query
         ),
       });
       break;
@@ -151,9 +158,10 @@ function getPerformanceBreadCrumbs(
       crumbs.push({
         label: t('Spans'),
         to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/spans`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/${transactionSummaryUrl}/spans`
+          ),
+          location.query
         ),
       });
 
@@ -162,9 +170,10 @@ function getPerformanceBreadCrumbs(
         crumbs.push({
           label: t('Span Summary'),
           to: getBreadCrumbTarget(
-            `${transactionSummaryUrl}/spans/${spanSlug}`,
-            location.query,
-            organization
+            normalizeUrl(
+              `/organizations/${organization.slug}/${transactionSummaryUrl}/spans/${spanSlug}`
+            ),
+            location.query
           ),
         });
       }
@@ -173,7 +182,10 @@ function getPerformanceBreadCrumbs(
     default:
       crumbs.push({
         label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(`${transactionSummaryUrl}`, location.query, organization),
+        to: getBreadCrumbTarget(
+          normalizeUrl(`/organizations/${organization.slug}/${transactionSummaryUrl}`),
+          location.query
+        ),
       });
       break;
   }
@@ -192,16 +204,20 @@ function getIssuesBreadCrumbs(
 
   crumbs.push({
     label: t('Issues'),
-    to: getBreadCrumbTarget(`issues`, location.query, organization),
+    to: getBreadCrumbTarget(
+      normalizeUrl(`/organizations/${organization.slug}/issues/`),
+      location.query
+    ),
   });
 
   if (location.query.groupId) {
     crumbs.push({
       label: t('Issue Details'),
       to: getBreadCrumbTarget(
-        `issues/${location.query.groupId}`,
-        location.query,
-        organization
+        normalizeUrl(
+          `/organizations/${organization.slug}/issues/${location.query.groupId}/`
+        ),
+        location.query
       ),
     });
   }
@@ -220,16 +236,20 @@ function getDashboardsBreadCrumbs(
 
   crumbs.push({
     label: t('Dashboards'),
-    to: getBreadCrumbTarget('dashboards', location.query, organization),
+    to: getBreadCrumbTarget(
+      normalizeUrl(`/organizations/${organization.slug}/dashboards/`),
+      location.query
+    ),
   });
 
   if (location.query.dashboardId) {
     crumbs.push({
       label: t('Widgets Legend'),
       to: getBreadCrumbTarget(
-        `dashboard/${location.query.dashboardId}`,
-        location.query,
-        organization
+        normalizeUrl(
+          `/organizations/${organization.slug}/dashboard/${location.query.dashboardId}/`
+        ),
+        location.query
       ),
     });
 
@@ -237,9 +257,10 @@ function getDashboardsBreadCrumbs(
       crumbs.push({
         label: t('Widget'),
         to: getBreadCrumbTarget(
-          `dashboard/${location.query.dashboardId}/widget/${location.query.widgetId}/`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${location.query.dashboardId}/widget/${location.query.widgetId}/`
+          ),
+          location.query
         ),
       });
     }
@@ -263,9 +284,10 @@ function getInsightsModuleBreadcrumbs(
     crumbs.push({
       label: DOMAIN_VIEW_TITLES[view],
       to: getBreadCrumbTarget(
-        `${DOMAIN_VIEW_BASE_URL}/${view}/`,
-        location.query,
-        organization
+        normalizeUrl(
+          `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${view}/`
+        ),
+        location.query
       ),
     });
   } else {
@@ -292,9 +314,10 @@ function getInsightsModuleBreadcrumbs(
       crumbs.push({
         label: t('Domain Summary'),
         to: getBreadCrumbTarget(
-          `${moduleURLBuilder(moduleName, view)}/domains`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/domains`
+          ),
+          location.query
         ),
       });
       break;
@@ -303,9 +326,10 @@ function getInsightsModuleBreadcrumbs(
         crumbs.push({
           label: t('Query Summary'),
           to: getBreadCrumbTarget(
-            `${moduleURLBuilder(moduleName, view)}/spans/span/${location.query.groupId}`,
-            location.query,
-            organization
+            normalizeUrl(
+              `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/spans/span/${location.query.groupId}`
+            ),
+            location.query
           ),
         });
       } else {
@@ -319,9 +343,10 @@ function getInsightsModuleBreadcrumbs(
         crumbs.push({
           label: t('Asset Summary'),
           to: getBreadCrumbTarget(
-            `${moduleURLBuilder(moduleName)}/spans/span/${location.query.groupId}`,
-            location.query,
-            organization
+            normalizeUrl(
+              `/organizations/${organization.slug}/${moduleURLBuilder(moduleName)}/spans/span/${location.query.groupId}`
+            ),
+            location.query
           ),
         });
       } else {
@@ -334,9 +359,10 @@ function getInsightsModuleBreadcrumbs(
       crumbs.push({
         label: t('Screen Summary'),
         to: getBreadCrumbTarget(
-          `${moduleURLBuilder(moduleName, view)}/spans`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/spans`
+          ),
+          location.query
         ),
       });
       break;
@@ -344,9 +370,10 @@ function getInsightsModuleBreadcrumbs(
       crumbs.push({
         label: t('Screen Summary'),
         to: getBreadCrumbTarget(
-          `${moduleURLBuilder(moduleName, view)}/spans`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/spans`
+          ),
+          location.query
         ),
       });
       break;
@@ -354,9 +381,10 @@ function getInsightsModuleBreadcrumbs(
       crumbs.push({
         label: t('Page Overview'),
         to: getBreadCrumbTarget(
-          `${moduleURLBuilder(moduleName, view)}/overview`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/overview`
+          ),
+          location.query
         ),
       });
       break;
@@ -364,9 +392,10 @@ function getInsightsModuleBreadcrumbs(
       crumbs.push({
         label: t('Destination Summary'),
         to: getBreadCrumbTarget(
-          `${moduleURLBuilder(moduleName, view)}/destination`,
-          location.query,
-          organization
+          normalizeUrl(
+            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/destination`
+          ),
+          location.query
         ),
       });
       break;
@@ -375,9 +404,10 @@ function getInsightsModuleBreadcrumbs(
         crumbs.push({
           label: t('Pipeline Summary'),
           to: getBreadCrumbTarget(
-            `${moduleURLBuilder(moduleName, view)}/pipeline-type/${location.query.groupId}`,
-            location.query,
-            organization
+            normalizeUrl(
+              `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/pipeline-type/${location.query.groupId}`
+            ),
+            location.query
           ),
         });
       }
@@ -421,6 +451,7 @@ function LeafBreadCrumbLabel({
         iconSize="xs"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
+          height: '18px',
         }}
       />
     </Wrapper>
@@ -481,7 +512,10 @@ export function getTraceViewBreadcrumbs({
       return [
         {
           label: t('Traces'),
-          to: getBreadCrumbTarget(`traces`, location.query, organization),
+          to: getBreadCrumbTarget(
+            makeTracesPathname({path: '/', organization}),
+            location.query
+          ),
         },
         leafBreadcrumb,
       ];
@@ -489,7 +523,10 @@ export function getTraceViewBreadcrumbs({
       return [
         {
           label: t('Discover'),
-          to: getBreadCrumbTarget(`discover/homepage`, location.query, organization),
+          to: getBreadCrumbTarget(
+            makeDiscoverPathname({path: '/homepage/', organization}),
+            location.query
+          ),
         },
         leafBreadcrumb,
       ];
@@ -497,7 +534,10 @@ export function getTraceViewBreadcrumbs({
       return [
         {
           label: t('Metrics'),
-          to: getBreadCrumbTarget(`metrics`, location.query, organization),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/metrics/`),
+            location.query
+          ),
         },
         leafBreadcrumb,
       ];
@@ -505,7 +545,10 @@ export function getTraceViewBreadcrumbs({
       return [
         {
           label: t('User Feedback'),
-          to: getBreadCrumbTarget(`feedback`, location.query, organization),
+          to: getBreadCrumbTarget(
+            makeFeedbackPathname({path: '/', organization}),
+            location.query
+          ),
         },
         leafBreadcrumb,
       ];
@@ -519,7 +562,10 @@ export function getTraceViewBreadcrumbs({
       return [
         {
           label: t('Logs'),
-          to: getBreadCrumbTarget(`explore/logs`, location.query, organization),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/explore/logs/`),
+            location.query
+          ),
         },
         leafBreadcrumb,
       ];

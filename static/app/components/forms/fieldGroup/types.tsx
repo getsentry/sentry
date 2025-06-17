@@ -1,4 +1,4 @@
-import type {TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
 
 /**
  * Props that control UI elements that are part of a Form Group

@@ -1,26 +1,31 @@
 import type {ReactNode} from 'react';
-import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
+import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {useHovercardContext} from 'sentry/components/hovercard';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Collapsible} from 'sentry/views/nav/collapsible';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
   children: ReactNode;
+  className?: string;
 };
 
 interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
@@ -42,17 +47,15 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   trailingItems?: ReactNode;
 }
 
-export function SecondaryNav({children}: SecondaryNavProps) {
-  const {secondaryNavEl} = useNavContext();
-
-  if (!secondaryNavEl) {
-    return null;
-  }
-
-  return createPortal(children, secondaryNavEl);
+export function SecondaryNav({children, className}: SecondaryNavProps) {
+  return (
+    <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
+      {children}
+    </Wrapper>
+  );
 }
 
-SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
+SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavContext();
 
   if (layout === NavLayout.MOBILE) {
@@ -81,27 +84,102 @@ SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode})
   return <Body layout={layout}>{children}</Body>;
 };
 
-SecondaryNav.Section = function SecondaryNavSection({
+function SectionTitle({
   title,
-  children,
   trailingItems,
+  canCollapse,
+  isCollapsed,
+  setIsCollapsed,
 }: {
-  children: ReactNode;
-  title?: ReactNode;
+  canCollapse: boolean;
+  isCollapsed: boolean;
+  setIsCollapsed: (isCollapsed: boolean) => void;
+  title: ReactNode;
   trailingItems?: ReactNode;
 }) {
   const {layout} = useNavContext();
 
+  if (canCollapse) {
+    return (
+      <SectionTitleCollapsible
+        size="sm"
+        borderless
+        isMobile={layout === NavLayout.MOBILE}
+        onClick={() => {
+          setIsCollapsed(!isCollapsed);
+        }}
+        isCollapsed={isCollapsed}
+      >
+        <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
+        <TrailingItems>
+          {trailingItems ? (
+            <div
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
+              {trailingItems}
+            </div>
+          ) : (
+            canCollapse && (
+              <IconChevron
+                direction={isCollapsed ? 'down' : 'up'}
+                size="xs"
+                color="subText"
+              />
+            )
+          )}
+        </TrailingItems>
+      </SectionTitleCollapsible>
+    );
+  }
+
   return (
-    <Section>
+    <SectionTitleUnCollapsible isMobile={layout === NavLayout.MOBILE}>
+      {title}
+      {trailingItems}
+    </SectionTitleUnCollapsible>
+  );
+}
+
+SecondaryNav.Section = function SecondaryNavSection({
+  id,
+  title,
+  children,
+  className,
+  trailingItems,
+  collapsible = true,
+}: {
+  children: ReactNode;
+  id: string;
+  className?: string;
+  collapsible?: boolean;
+  title?: ReactNode;
+  trailingItems?: ReactNode;
+}) {
+  const {layout} = useNavContext();
+  const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
+    `secondary-nav-section-${id}-collapsed`,
+    false
+  );
+  const canCollapse = collapsible && layout === NavLayout.SIDEBAR;
+  const isCollapsed = canCollapse ? isCollapsedState : false;
+
+  return (
+    <Section className={className} layout={layout} data-nav-section>
       <SectionSeparator />
-      {title && (
-        <SectionTitle layout={layout}>
-          {title}
-          {trailingItems}
-        </SectionTitle>
-      )}
-      {children}
+      {title ? (
+        <SectionTitle
+          title={title}
+          trailingItems={trailingItems}
+          canCollapse={canCollapse}
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsedState}
+        />
+      ) : null}
+      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+        {children}
+      </Collapsible>
     </Section>
   );
 };
@@ -116,6 +194,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   leadingItems,
   showInteractionStateLayer = true,
   trailingItems,
+  onClick,
   ...linkProps
 }: SecondaryNavItemProps) {
   const organization = useOrganization();
@@ -123,21 +202,29 @@ SecondaryNav.Item = function SecondaryNavItem({
   const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavContext();
+  const {reset: closeCollapsedNavHovercard} = useHovercardContext();
 
   return (
     <Item
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       {...linkProps}
       to={to}
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       layout={layout}
-      onClick={() => {
+      onClick={e => {
         if (analyticsItemName) {
           trackAnalytics('navigation.secondary_item_clicked', {
             item: analyticsItemName,
             organization,
           });
         }
+
+        // When this is rendered inside a hovercard (when the nav is collapsed)
+        // this will dismiss it when clicking on a link.
+        closeCollapsedNavHovercard();
+
+        onClick?.(e);
       }}
     >
       {leadingItems}
@@ -156,13 +243,25 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
   return <Footer layout={layout}>{children}</Footer>;
 };
 
+function SectionSeparator() {
+  return (
+    <SeparatorWrapper data-separator>
+      <Separator />
+    </SeparatorWrapper>
+  );
+}
+
+const Wrapper = styled('div')`
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+`;
+
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
   padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -173,8 +272,8 @@ const Header = styled('div')`
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)};
   overflow-y: auto;
+  overscroll-behavior: contain;
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
@@ -183,37 +282,81 @@ const Body = styled('div')<{layout: NavLayout}>`
     `}
 `;
 
-const Section = styled('div')`
-  & + & {
-    hr {
+const Section = styled('div')<{layout: NavLayout}>`
+  ${p =>
+    p.layout === NavLayout.SIDEBAR &&
+    css`
+      padding: 0 ${space(1)};
+    `}
+
+  &:first-child {
+    padding-top: ${space(1)};
+  }
+
+  &:last-child {
+    padding-bottom: ${space(1)};
+  }
+
+  /* Hide separators if there is not a previous section */
+  [data-nav-section] + & {
+    > [data-separator] {
       display: block;
     }
   }
 `;
 
-const SectionTitle = styled('div')<{layout: NavLayout}>`
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
-  padding: 0 ${space(1)};
-  margin: ${space(2)} 0 ${space(0.5)} 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  ${p =>
-    p.layout === NavLayout.MOBILE &&
-    css`
-      padding: 0 ${space(1.5)} 0 48px;
-    `}
+const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
+  font-weight: ${p.theme.fontWeightBold};
+  color: ${p.theme.textColor};
+  padding: ${space(0.75)} ${space(1)};
+  width: 100%;
+  ${p.isMobile &&
+  css`
+    padding: ${space(1)} ${space(1.5)} ${space(1)} 48px;
+  `}
 `;
 
-const SectionSeparator = styled('hr')`
-  display: none;
+const SectionTitleUnCollapsible = styled('div')<{isMobile: boolean}>`
+  ${sectionTitleStyles}
+  display: flex;
+  justify-content: space-between;
+`;
 
+const SectionTitleCollapsible = styled(Button, {
+  shouldForwardProp: (prop: string) => !['isMobile', 'isCollapsed'].includes(prop),
+})<{isCollapsed: boolean; isMobile: boolean}>`
+  ${sectionTitleStyles}
+  display: flex;
+  justify-content: space-between;
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  & > span:last-child {
+    flex: 1;
+    justify-content: space-between;
+    white-space: nowrap;
+  }
+`;
+
+const SectionTitleLabelWrap = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  text-align: left;
+`;
+
+const TrailingItems = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+`;
+
+const SeparatorWrapper = styled('div')`
+  margin: ${space(1.5)} 0;
+  display: none;
+`;
+
+const Separator = styled('hr')`
   height: 1px;
   background: ${p => p.theme.innerBorder};
-  margin: ${space(1.5)} ${space(1)};
+  margin: 0 ${space(1)};
   border: none;
 `;
 
@@ -223,13 +366,13 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.muted};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -245,14 +388,14 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     width: 4px;
     height: 20px;
     left: -${space(1.5)};
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.colors.blue400};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.muted};
     background-color: ${p => p.theme.colors.gray100};
   }
 
@@ -281,6 +424,12 @@ const StyledNavItem = styled(Link)<ItemProps>`
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
+  gap: ${space(0.75)};
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
+    color: currentColor;
+  }
 
   &[aria-selected='true'] {
     color: ${p => p.theme.purple400};
@@ -313,7 +462,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
     `}
 `;
 
-export const Item = withChonk(StyledNavItem, ChonkItem);
+const Item = withChonk(StyledNavItem, ChonkItem);
 
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}

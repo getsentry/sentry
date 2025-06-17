@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {ButtonProps} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -33,7 +33,7 @@ function TransactionToProfileButton({
   function handleGoToProfile() {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: 'transaction_details',
+      source: 'unknown',
     });
   }
 

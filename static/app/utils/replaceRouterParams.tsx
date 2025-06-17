@@ -10,7 +10,7 @@ export default function replaceRouterParams(
   // parse route params from route
   const matches = route.match(/:\w+/g);
 
-  if (!matches || !matches.length) {
+  if (!matches?.length) {
     return route;
   }
 

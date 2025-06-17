@@ -36,13 +36,13 @@ class SerializedEvent(TypedDict):
     event_type: str
     project_id: int
     project_slug: str
-    start_timestamp: datetime
     transaction: str
 
 
 class SerializedIssue(SerializedEvent):
     issue_id: int
     level: str
+    start_timestamp: float
     end_timestamp: NotRequired[datetime]
 
 
@@ -58,7 +58,9 @@ class SerializedSpan(SerializedEvent):
     profile_id: str
     profiler_id: str
     sdk_name: str
+    start_timestamp: datetime
     is_transaction: bool
+    transaction_id: str
 
 
 @region_silo_endpoint
@@ -108,11 +110,17 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_type="occurrence",
             )
         elif event.get("event_type") == "error":
+            timestamp = (
+                datetime.fromisoformat(event["timestamp_ms"]).timestamp()
+                if "timestamp_ms" in event and event["timestamp_ms"] is not None
+                else datetime.fromisoformat(event["timestamp"]).timestamp()
+            )
+
             return SerializedIssue(
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.name"],
-                start_timestamp=event["timestamp"],
+                start_timestamp=timestamp,
                 transaction=event["transaction"],
                 description=event["message"],
                 level=event["tags[level]"],
@@ -129,11 +137,16 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 errors=[self.serialize_rpc_issue(error) for error in event["errors"]],
                 occurrences=[self.serialize_rpc_issue(error) for error in event["occurrences"]],
                 event_id=event["id"],
+                transaction_id=event["transaction.event_id"],
                 project_id=event["project.id"],
                 project_slug=event["project.slug"],
                 profile_id=event["profile.id"],
                 profiler_id=event["profiler.id"],
-                parent_span_id=None if event["parent_span"] == "0" * 16 else event["parent_span"],
+                parent_span_id=(
+                    None
+                    if not event["parent_span"] or event["parent_span"] == "0" * 16
+                    else event["parent_span"]
+                ),
                 start_timestamp=event["precise.start_ts"],
                 end_timestamp=event["precise.finish_ts"],
                 measurements={
@@ -148,13 +161,12 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_type="span",
             )
         else:
-            raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
+            return self.serialize_rpc_issue(event)
 
-    @sentry_sdk.tracing.trace
-    def run_errors_query(self, snuba_params: SnubaParams, trace_id: str):
+    def errors_query(self, snuba_params: SnubaParams, trace_id: str) -> DiscoverQueryBuilder:
         """Run an error query, getting all the errors for a given trace id"""
         # TODO: replace this with EAP calls, this query is copied from the old trace view
-        error_query = DiscoverQueryBuilder(
+        return DiscoverQueryBuilder(
             Dataset.Events,
             params={},
             snuba_params=snuba_params,
@@ -164,6 +176,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 "project.name",
                 "project.id",
                 "timestamp",
+                "timestamp_ms",
                 "trace.span",
                 "transaction",
                 "issue",
@@ -178,14 +191,16 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 auto_fields=True,
             ),
         )
-        result = error_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
-        error_data = error_query.process_results(result)["data"]
+
+    @sentry_sdk.tracing.trace
+    def run_errors_query(self, errors_query: DiscoverQueryBuilder):
+        result = errors_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+        error_data = errors_query.process_results(result)["data"]
         for event in error_data:
             event["event_type"] = "error"
         return error_data
 
-    @sentry_sdk.tracing.trace
-    def run_perf_issues_query(self, snuba_params: SnubaParams, trace_id: str):
+    def perf_issues_query(self, snuba_params: SnubaParams, trace_id: str) -> DiscoverQueryBuilder:
         occurrence_query = DiscoverQueryBuilder(
             Dataset.IssuePlatform,
             params={},
@@ -206,7 +221,10 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             Column("occurrence_id"),
             Column("project_id"),
         ]
+        return occurrence_query
 
+    @sentry_sdk.tracing.trace
+    def run_perf_issues_query(self, occurrence_query: DiscoverQueryBuilder):
         result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
         occurrence_data = occurrence_query.process_results(result)["data"]
 
@@ -238,6 +256,14 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
         # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
         # parallelizing the queries here, but ideally this parallelization lives in the spans_rpc module instead
+
+        # There's a really subtle bug here where if the query builders were constructed within
+        # the thread pool, database connections can hang around as the threads are not cleaned
+        # up. Because of that, tests can fail during tear down as there are active connections
+        # to the database preventing a DROP.
+        errors_query = self.errors_query(snuba_params, trace_id)
+        occurrence_query = self.perf_issues_query(snuba_params, trace_id)
+
         spans_future = _query_thread_pool.submit(
             run_trace_query,
             trace_id,
@@ -245,10 +271,15 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             Referrer.API_TRACE_VIEW_GET_EVENTS.value,
             SearchResolverConfig(),
         )
-        errors_future = _query_thread_pool.submit(self.run_errors_query, snuba_params, trace_id)
-        occurrence_future = _query_thread_pool.submit(
-            self.run_perf_issues_query, snuba_params, trace_id
+        errors_future = _query_thread_pool.submit(
+            self.run_errors_query,
+            errors_query,
         )
+        occurrence_future = _query_thread_pool.submit(
+            self.run_perf_issues_query,
+            occurrence_query,
+        )
+
         spans_data = spans_future.result()
         errors_data = errors_future.result()
         occurrence_data = occurrence_future.result()

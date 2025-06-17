@@ -27,11 +27,6 @@ import type {
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
-export interface MetricTimeseriesRow {
-  [key: string]: number;
-  interval: number;
-}
-
 export type DiscoverSeries = Series & {
   meta: EventsMetaType;
 };
@@ -41,7 +36,7 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  samplingMode?: SamplingMode | 'NONE';
+  samplingMode?: SamplingMode;
   search?: MutableSearch | string;
   // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
@@ -71,20 +66,28 @@ export const useEAPSeries = <
     | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
+  return useDiscoverSeries<Fields>(
+    options,
+    DiscoverDatasets.SPANS_EAP_RPC,
+    referrer,
+    pageFilters
+  );
 };
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
-    referrer
+    referrer,
+    pageFilters
   );
 };
 
@@ -159,8 +162,7 @@ const useDiscoverSeries = <T extends string[]>(
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling:
-        samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
+      sampling: shouldSetSamplingMode ? samplingMode : undefined,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,

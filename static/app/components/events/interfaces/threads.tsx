@@ -407,6 +407,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       <InterimSection
         title={tn('Stack Trace', 'Stack Traces', threads.length)}
         type={SectionKey.STACKTRACE}
+        disableCollapsePersistence
       >
         <Flex column gap={space(2)}>
           {threadComponent}

@@ -1,12 +1,19 @@
 import ConfigStore from 'sentry/stores/configStore';
-import {useUser} from 'sentry/utils/useUser';
+import type {Organization} from 'sentry/types/organization';
 
-export function prefersStackedNav() {
-  return ConfigStore.get('user')?.options?.prefersStackedNavigation ?? false;
-}
+// IMPORTANT:
+// This function and the usePrefersStackedNav hook NEED to have the same logic.
+// Make sure to update both if you are changing this logic.
 
-export function usePrefersStackedNav() {
-  const user = useUser();
+export function prefersStackedNav(organization: Organization) {
+  const userStackedNavOption = ConfigStore.get('user')?.options?.prefersStackedNavigation;
 
-  return user?.options?.prefersStackedNavigation ?? false;
+  if (
+    userStackedNavOption !== false &&
+    organization.features.includes('enforce-stacked-navigation')
+  ) {
+    return true;
+  }
+
+  return userStackedNavOption ?? false;
 }

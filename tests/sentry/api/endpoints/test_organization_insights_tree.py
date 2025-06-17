@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 from django.urls import reverse
 
@@ -86,15 +84,13 @@ class OrganizationInsightsTreeEndpointTest(
             self.store_span(span, is_eap=True)
             spans.append(span)
 
-    @patch("sentry.snuba.spans_rpc.run_table_query")
-    def test_get_nextjs_function_data(self, mock_run_table_query):
+    def test_get_nextjs_function_data(self):
         self.login_as(user=self.user)
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
                 data={
                     "statsPeriod": "14d",
-                    "useRpc": True,
                     "noPagination": True,
                     "query": "span.op:function.nextjs",
                     "mode": "aggregate",
@@ -110,7 +106,7 @@ class OrganizationInsightsTreeEndpointTest(
         root_route_idx = span_descriptions.index("Page Server Component (/)")
         element = response.data["data"][root_route_idx]
         assert element["function.nextjs.component_type"] == "Page Server Component"
-        assert element["function.nextjs.path"] == ["/"]
+        assert element["function.nextjs.path"] == []
 
         unparameterized_route_idx = span_descriptions.index(
             "Page.generateMetadata (/app/dashboard/)"

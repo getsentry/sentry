@@ -210,6 +210,7 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
+        <div />
         <DisplayRole isHidden={teamRoleName === null}>{teamRoleName}</DisplayRole>
         <div>
           {this.state.loading ? (
@@ -272,7 +273,6 @@ const TeamLink = styled(Link)`
   }
 `;
 
-export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
 export const GRID_TEMPLATE = `

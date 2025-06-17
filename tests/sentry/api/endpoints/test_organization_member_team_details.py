@@ -913,9 +913,158 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         resp = self.get_response(self.org.slug, other_member.id, self.team.slug, teamRole="admin")
         assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
 
         target_omt = OrganizationMemberTeam.objects.get(
             team=self.team, organizationmember=other_member
         )
         assert target_omt.role is None
         assert target_omt.role is None
+
+    @with_feature("organizations:team-roles")
+    def test_org_write_scope_can_manage_team_roles(self):
+        """Test that org:write scope is sufficient for managing team roles"""
+        user = self.create_user()
+        member = self.create_member(
+            organization=self.org, user=user, role="member", teams=[self.team]
+        )
+        self.sentry_app = self.create_sentry_app(
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=["org:write"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
+        )
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
+        resp = self.get_response(
+            self.org.slug,
+            member.id,
+            self.team.slug,
+            teamRole="admin",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {self.api_token.token}"},
+        )
+        assert resp.status_code == 200
+
+    @with_feature("organizations:team-roles")
+    def test_member_write_scope_can_manage_team_roles(self):
+        """Test that member:write scope is sufficient for managing team roles"""
+        user = self.create_user()
+        member = self.create_member(
+            organization=self.org, user=user, role="member", teams=[self.team]
+        )
+        self.sentry_app = self.create_sentry_app(
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=["member:write"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
+        )
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
+
+        resp = self.get_response(
+            self.org.slug,
+            member.id,
+            self.team.slug,
+            teamRole="admin",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {self.api_token.token}"},
+        )
+        assert resp.status_code == 200
+
+    @with_feature("organizations:team-roles")
+    def test_team_write_scope_can_manage_team_roles(self):
+        """Test that team:write scope is sufficient for managing team roles"""
+        user = self.create_user()
+        member = self.create_member(
+            organization=self.org, user=user, role="member", teams=[self.team]
+        )
+        self.sentry_app = self.create_sentry_app(
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=["team:write"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
+        )
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
+
+        resp = self.get_response(
+            self.org.slug,
+            member.id,
+            self.team.slug,
+            teamRole="admin",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {self.api_token.token}"},
+        )
+        assert resp.status_code == 200
+
+    @with_feature("organizations:team-roles")
+    def test_org_read_scope_cannot_manage_team_roles(self):
+        """Test that org:read scope is insufficient for managing team roles"""
+        user = self.create_user()
+        member = self.create_member(
+            organization=self.org, user=user, role="member", teams=[self.team]
+        )
+        self.sentry_app = self.create_sentry_app(
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=["org:read"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
+        )
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
+
+        resp = self.get_response(
+            self.org.slug,
+            member.id,
+            self.team.slug,
+            teamRole="admin",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {self.api_token.token}"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+    @with_feature("organizations:team-roles")
+    def test_member_read_scope_cannot_manage_team_roles(self):
+        """Test that member:read scope is insufficient for managing team roles"""
+        user = self.create_user()
+        member = self.create_member(
+            organization=self.org, user=user, role="member", teams=[self.team]
+        )
+        self.sentry_app = self.create_sentry_app(
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=["member:read"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
+        )
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
+
+        resp = self.get_response(
+            self.org.slug,
+            member.id,
+            self.team.slug,
+            teamRole="admin",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {self.api_token.token}"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE

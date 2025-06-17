@@ -1,3 +1,4 @@
+import enum
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -12,6 +13,10 @@ The workflow engine DataSource type used for registering handlers and fetching
 the uptime sbuscription data source.
 """
 
+GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_failure"
+"""
+The GroupType slug for UptimeDomainCheckFailure GroupTypes.
+"""
 
 RegionScheduleMode = Literal["round_robin"]
 """
@@ -118,3 +123,12 @@ class EapCheckEntry:
     incident_status: IncidentStatus
     environment: str
     region: str
+
+
+class ProjectUptimeSubscriptionMode(enum.IntEnum):
+    # Manually created by a user
+    MANUAL = 1
+    # Auto-detected by our system and in the onboarding stage
+    AUTO_DETECTED_ONBOARDING = 2
+    # Auto-detected by our system and actively monitoring
+    AUTO_DETECTED_ACTIVE = 3

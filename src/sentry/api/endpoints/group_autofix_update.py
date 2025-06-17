@@ -6,6 +6,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -13,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,14 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
                 data={"error": "You must be authenticated to use this endpoint"},
             )
 
+        if not get_seer_org_acknowledgement(org_id=group.organization.id):
+            return Response(
+                status=403,
+                data={
+                    "error": "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
+                },
+            )
+
         path = "/v1/automation/autofix/update"
 
         body = orjson.dumps(
@@ -65,5 +75,7 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         )
 
         response.raise_for_status()
+
+        group.update(seer_autofix_last_triggered=timezone.now())
 
         return Response(status=202, data=response.json())

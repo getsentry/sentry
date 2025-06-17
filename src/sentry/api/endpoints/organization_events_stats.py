@@ -23,7 +23,6 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     ourlogs,
-    spans_eap,
     spans_indexed,
     spans_metrics,
     spans_rpc,
@@ -31,96 +30,8 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.utils.snuba import SnubaError, SnubaTSResult
-
-METRICS_ENHANCED_REFERRERS: set[str] = {
-    Referrer.API_PERFORMANCE_HOMEPAGE_WIDGET_CHART.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_DURATION_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_LCP_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FCP_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FID_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P95_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P99_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_LCP_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FAILURE_RATE_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_LCP_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_FCP_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_CLS_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_FID_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_IMRPOVED.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_REGRESSED.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_RELATED_ERRORS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_RELATED_ISSUES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_HTTP_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_DB_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_BROWSER_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_FRAMES_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
-    Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART.value,
-    Referrer.API_STARFISH_ENDPOINT_OVERVIEW.value,
-    Referrer.API_STARFISH_HTTP_ERROR_COUNT.value,
-    Referrer.API_STARFISH_SPAN_SUMMARY_PAGE_CHART.value,
-    Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS_CHART.value,
-    Referrer.API_STARFISH_SPAN_TIME_CHARTS.value,
-    Referrer.API_STARFISH_MOBILE_SCREEN_METRICS_SERIES.value,
-    Referrer.API_PERFORMANCE_MOBILE_UI_SERIES.value,
-}
-
-
-ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
-    Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-    Referrer.API_ALERTS_CHARTCUTERIE.value,
-    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
-    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
-    Referrer.DISCOVER_SLACK_UNFURL.value,
-    Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
-    Referrer.API_DASHBOARDS_WIDGET_BAR_CHART.value,
-    Referrer.API_DASHBOARDS_WIDGET_LINE_CHART.value,
-    Referrer.API_DASHBOARDS_TOP_EVENTS.value,
-    Referrer.API_DISCOVER_PREBUILT_CHART.value,
-    Referrer.API_DISCOVER_PREVIOUS_CHART.value,
-    Referrer.API_DISCOVER_DEFAULT_CHART.value,
-    Referrer.API_DISCOVER_DAILY_CHART.value,
-    Referrer.API_DISCOVER_TOP5_CHART.value,
-    Referrer.API_DISCOVER_DAILYTOP5_CHART.value,
-    Referrer.API_PERFORMANCE_HOMEPAGE_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HOMEPAGE_WIDGET_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_SIDEBAR_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_VITALS_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_TRENDS_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION.value,
-    Referrer.API_PROFILING_LANDING_CHART.value,
-    Referrer.API_PROFILING_PROFILE_SUMMARY_CHART.value,
-    Referrer.API_RELEASES_RELEASE_DETAILS_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_LANDING_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_LANDING_RESPONSE_CODE_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_LANDING_THROUGHPUT_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_RESPONSE_CODE_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_THROUGHPUT_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_CHART.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
-    Referrer.API_EXPLORE_COMPARE_SERIES.value,
-    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES.value,
-    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART.value,
-    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART.value,
-}
-
 
 SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ALERTS_CHARTCUTERIE.value,
@@ -223,13 +134,18 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             include_other = request.GET.get("excludeOther") != "1"
 
             referrer = request.GET.get("referrer")
-            referrer = (
-                referrer
-                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
-                else Referrer.API_ORGANIZATION_EVENT_STATS.value
-            )
+
+            # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
+            if request.auth:
+                referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+            elif referrer is None or not referrer:
+                referrer = Referrer.API_ORGANIZATION_EVENTS.value
+            elif not is_valid_referrer(referrer):
+                referrer = Referrer.API_ORGANIZATION_EVENTS.value
+
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
+
             batch_features = self.get_features(organization, request)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
@@ -260,7 +176,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         metrics_enhanced_performance,
                         spans_indexed,
                         spans_metrics,
-                        spans_eap,
+                        spans_rpc,
+                        ourlogs,
                         errors,
                         transactions,
                     ]
@@ -280,14 +197,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
-        use_rpc = (
-            request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
-        ) or dataset == ourlogs
-        sampling_mode = request.GET.get("sampling")
+        use_rpc = dataset in {spans_rpc, ourlogs}
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )
-        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
         def _get_event_stats(
             scoped_dataset: Any,
@@ -300,9 +213,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
                 if use_rpc:
-                    if scoped_dataset == ourlogs:
-                        raise NotImplementedError("You can not use top_events with logs for now.")
-                    return spans_rpc.run_top_events_timeseries_query(
+                    return scoped_dataset.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
                         y_axes=query_columns,
@@ -314,7 +225,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=False,
                             use_aggregate_conditions=True,
                         ),
-                        sampling_mode=sampling_mode,
+                        sampling_mode=snuba_params.sampling_mode,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -334,16 +245,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     include_other=include_other,
                     query_source=query_source,
                     transform_alias_to_input_format=transform_alias_to_input_format,
-                    fallback_to_transactions=features.has(
-                        "organizations:performance-discover-dataset-selector",
-                        organization,
-                        actor=request.user,
-                    ),
+                    fallback_to_transactions=True,
                 )
 
             if use_rpc:
-                if scoped_dataset == spans_eap:
-                    scoped_dataset = spans_rpc
                 return scoped_dataset.run_timeseries_query(
                     params=snuba_params,
                     query_string=query,
@@ -353,7 +258,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=True,
                     ),
-                    sampling_mode=sampling_mode,
+                    sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )
 
@@ -381,11 +286,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
                 transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
@@ -421,13 +322,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 try:
                     widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                     does_widget_have_split = widget.discover_widget_split is not None
-                    has_override_feature = features.has(
-                        "organizations:performance-discover-widget-split-override-save",
-                        organization,
-                        actor=request.user,
-                    )
 
-                    if does_widget_have_split and not has_override_feature:
+                    if does_widget_have_split:
                         # This is essentially cached behaviour and we skip the check
                         split_query = query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:

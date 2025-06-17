@@ -29,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
@@ -78,6 +79,7 @@ function FavoriteButton({
   dashboardId,
   onDashboardsChange,
 }: FavoriteButtonProps) {
+  const queryClient = useQueryClient();
   const [favorited, setFavorited] = useState(isFavorited);
   return (
     <Button
@@ -95,7 +97,13 @@ function FavoriteButton({
       onClick={async () => {
         try {
           setFavorited(!favorited);
-          await updateDashboardFavorite(api, organization.slug, dashboardId, !favorited);
+          await updateDashboardFavorite(
+            api,
+            queryClient,
+            organization.slug,
+            dashboardId,
+            !favorited
+          );
           onDashboardsChange();
           trackAnalytics('dashboards_manage.toggle_favorite', {
             organization,
@@ -331,7 +339,7 @@ function DashboardTable({
     <GridEditable
       data={dashboards ?? []}
       // necessary for edit access dropdown
-      bodyStyle={{overflow: 'visible'}}
+      bodyStyle={{overflow: 'scroll'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -339,9 +347,6 @@ function DashboardTable({
         renderHeadCell: column => renderHeadCell(column),
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
-          if (!organization.features.includes('dashboards-favourite')) {
-            return [];
-          }
           const favoriteColumn = {
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
@@ -361,9 +366,7 @@ function DashboardTable({
           }
           return [renderBodyCell(favoriteColumn, dataRow) as any];
         },
-        prependColumnWidths: organization.features.includes('dashboards-favourite')
-          ? ['max-content']
-          : [],
+        prependColumnWidths: ['max-content'],
       }}
       isLoading={isLoading}
       emptyMessage={

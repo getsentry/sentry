@@ -1,11 +1,12 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-export const ALLOWED_WILDCARD_FIELDS = [
+const ALLOWED_WILDCARD_FIELDS = [
   'span.description',
   'span.domain',
   'span.status_code',
   'log.body',
   'sentry.normalized_description',
+  'transaction',
 ];
 export const EMPTY_OPTION_VALUE = '(empty)';
 
@@ -15,7 +16,7 @@ export enum TokenType {
   FREE_TEXT = 2,
 }
 
-export type Token = {
+type Token = {
   type: TokenType;
   value: string;
   key?: string;
@@ -270,6 +271,10 @@ export class MutableSearch {
     return Object.keys(this.filters);
   }
 
+  getTokenKeys() {
+    return this.tokens.map(t => t.key);
+  }
+
   hasFilter(key: string): boolean {
     return this.getFilterValues(key).length > 0;
   }
@@ -473,7 +478,27 @@ function isSpace(s: string) {
  * both sides of the split as strings.
  */
 function parseFilter(filter: string) {
-  const idx = filter.indexOf(':');
+  let idx = 0;
+  let quoted = false;
+
+  // look for the first `:` that is not in quotes
+  for (; idx < filter.length; idx++) {
+    const c = filter[idx];
+
+    if (c === '"') {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (c === ':' && !quoted) {
+      const key = removeSurroundingQuotes(filter.slice(0, idx));
+      const value = removeSurroundingQuotes(filter.slice(idx + 1));
+      return [key, value];
+    }
+  }
+
+  // something went wrong, fallback to the naive approach of spliting the filter
+  idx = filter.indexOf(':');
   const key = removeSurroundingQuotes(filter.slice(0, idx));
   const value = removeSurroundingQuotes(filter.slice(idx + 1));
 

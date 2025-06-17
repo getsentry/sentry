@@ -8,11 +8,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 import CreditCardSetup from 'getsentry/components/creditCardSetup';
 import type {Subscription} from 'getsentry/types';
+import {FTCConsentLocation} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = ModalRenderProps & {
   onSuccess: (data: Subscription) => void;
   organization: Organization;
+  subscription: Subscription;
   location?: Location;
 };
 
@@ -23,8 +25,10 @@ function CreditCardEditModal({
   organization,
   onSuccess,
   location,
+  subscription,
 }: Props) {
   const referrer = decodeScalar(location?.query?.referrer);
+  const budgetModeText = subscription.planDetails.budgetTerm;
   return (
     <Fragment>
       <Header>{t('Update Credit Card')}</Header>
@@ -43,6 +47,8 @@ function CreditCardEditModal({
           }}
           buttonText={t('Save Changes')}
           referrer={referrer}
+          location={FTCConsentLocation.BILLING_DETAILS}
+          budgetModeText={budgetModeText}
         />
       </Body>
     </Fragment>

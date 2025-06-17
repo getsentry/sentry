@@ -1,78 +1,60 @@
-import type {Client} from 'sentry/api';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useParams} from 'sentry/utils/useParams';
 
 import DetailsPage from 'admin/components/detailsPage';
 
-type Props = DeprecatedAsyncComponent['props'] &
-  RouteComponentProps<
-    {artifactKind: string; fileName: string; regionName: string; relocationUuid: string},
-    unknown
-  > & {
-    api: Client;
-  };
-
-type State = DeprecatedAsyncComponent['state'] & {
-  data: any;
+type RelocationData = {
+  contents: string;
 };
 
-class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const region = ConfigStore.get('regions').find(
-      (r: any) => r.name === this.props.params.regionName
-    );
-    return [
-      [
-        'data',
-        `/relocations/${this.props.params.relocationUuid}/artifacts/${this.props.params.artifactKind}/${this.props.params.fileName}`,
-        {
-          host: region ? region.url : '',
-        },
-      ],
-    ];
-  }
+export default function RelocationArtifactDetails() {
+  const {artifactKind, fileName, regionName, relocationUuid} = useParams<{
+    artifactKind: string;
+    fileName: string;
+    regionName: string;
+    relocationUuid: string;
+  }>();
+  const region = ConfigStore.get('regions').find((r: any) => r.name === regionName);
 
-  componentDidMount() {
-    super.componentDidMount();
-    this.setState({
-      data: {contents: ''},
-    });
-  }
-
-  onRequestSuccess = ({stateKey, data}: any) => {
-    if (stateKey === 'data') {
-      this.setState({
-        data,
-      });
+  const {data, isPending, isError} = useApiQuery<RelocationData>(
+    [
+      `/relocations/${relocationUuid}/artifacts/${artifactKind}/${fileName}`,
+      {
+        host: region?.url,
+      },
+    ],
+    {
+      staleTime: 0,
     }
-  };
+  );
 
-  renderBody() {
-    return (
-      <DetailsPage
-        rootName="Relocation"
-        name={`${this.props.params.artifactKind}/${this.props.params.fileName}`}
-        crumbs={[this.props.params.relocationUuid]}
-        sections={[
-          {
-            content: (
-              <CodeSnippet
-                dark
-                filename={this.props.params.fileName}
-                hideCopyButton
-                icon={<IconFile />}
-              >
-                {this.state.data.contents}
-              </CodeSnippet>
-            ),
-          },
-        ]}
-      />
-    );
+  if (isPending) {
+    return <LoadingIndicator />;
   }
-}
 
-export default RelocationDetails;
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  return (
+    <DetailsPage
+      rootName="Relocation"
+      name={`${artifactKind}/${fileName}`}
+      crumbs={[relocationUuid]}
+      sections={[
+        {
+          content: (
+            <CodeSnippet dark filename={fileName} hideCopyButton icon={<IconFile />}>
+              {data?.contents ?? ''}
+            </CodeSnippet>
+          ),
+        },
+      ]}
+    />
+  );
+}

@@ -21,7 +21,6 @@ import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY,
   DANGEROUS_SET_TEST_HISTORY,
@@ -37,12 +36,11 @@ import {initializeOrg} from './initializeOrg';
 
 interface ProviderOptions {
   /**
-   * Do not shim the router use{Routes,Router,Navigate,Location} functions, and
-   * instead allow them to work as normal, rendering inside of a memory router.
+   * @deprecated do not use this option for new tests
    *
-   * When enabling this passing a `router` object *will do nothing*!
+   * If enabled, the router will be mocked and will not react to user events (links, navigations, etc).
    */
-  enableRouterMocks?: boolean;
+  deprecatedRouterMocks?: boolean;
   /**
    * Sets the history for the router.
    */
@@ -58,9 +56,14 @@ interface ProviderOptions {
 }
 
 interface BaseRenderOptions<T extends boolean = boolean>
-  extends Omit<ProviderOptions, 'history' | 'enableRouterMocks' | 'router'>,
+  extends Pick<ProviderOptions, 'organization'>,
     rtl.RenderOptions {
-  enableRouterMocks?: T;
+  /**
+   * @deprecated do not use this option for new tests
+   *
+   * If enabled, the router will be mocked and will not react to user events (links, navigations, etc).
+   */
+  deprecatedRouterMocks?: T;
 }
 
 type LocationConfig =
@@ -93,13 +96,13 @@ type RouterConfig = {
   routes?: string[];
 };
 
-type RenderOptions<T extends boolean = true> = T extends true
+type RenderOptions<T extends boolean = false> = T extends true
   ? BaseRenderOptions<T> & {router?: Partial<InjectedRouter>}
   : BaseRenderOptions<T> & {initialRouterConfig?: RouterConfig};
 
-type RenderReturn<T extends boolean = true> = T extends false
-  ? rtl.RenderResult & {router: TestRouter}
-  : rtl.RenderResult;
+type RenderReturn<T extends boolean = false> = T extends true
+  ? rtl.RenderResult
+  : rtl.RenderResult & {router: TestRouter};
 
 // Inject legacy react-router 3 style router mocked navigation functions
 // into the memory history used in react router 6
@@ -138,7 +141,7 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
 }
 
 function makeAllTheProviders(options: ProviderOptions) {
-  const enableRouterMocks = options.enableRouterMocks ?? true;
+  const enableRouterMocks = options.deprecatedRouterMocks ?? false;
   const {organization, router} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
     router: options.router,
@@ -194,12 +197,16 @@ function createRoutesFromConfig(
     throw useRouteError();
   }
 
-  const fallbackRoute = {path: '*', element: children, errorElement: <ErrorBoundary />};
+  const emptyRoute = {
+    path: '*',
+    element: <div>No routes match, check that your location matches your route</div>,
+    errorElement: <ErrorBoundary />,
+  };
 
   if (config?.route) {
     return [
       {path: config.route, element: children, errorElement: <ErrorBoundary />},
-      fallbackRoute,
+      emptyRoute,
     ];
   }
 
@@ -210,7 +217,7 @@ function createRoutesFromConfig(
         element: children,
         errorElement: <ErrorBoundary />,
       })),
-      fallbackRoute,
+      emptyRoute,
     ];
   }
 
@@ -295,14 +302,10 @@ function getInitialRouterConfig<T extends boolean = true>(
   initialEntry: InitialEntry;
   legacyRouterConfig?: Partial<InjectedRouter>;
 } {
-  if (options.enableRouterMocks === true || !defined(options.enableRouterMocks)) {
-    // Need to assert here because we want `enableRouterMocks` to default to true
-    const routerOptions = options as RenderOptions<true>;
-
+  if (options.deprecatedRouterMocks) {
     return {
-      initialEntry:
-        routerOptions.router?.location?.pathname ?? LocationFixture().pathname,
-      legacyRouterConfig: routerOptions.router,
+      initialEntry: options.router?.location?.pathname ?? LocationFixture().pathname,
+      legacyRouterConfig: options.router,
       config: undefined,
     };
   }
@@ -329,13 +332,11 @@ function getInitialRouterConfig<T extends boolean = true>(
  * navigate to a route. To set the initial location with mocks disabled,
  * pass an `initialRouterConfig`.
  */
-function render<T extends boolean = true>(
+function render<T extends boolean = false>(
   ui: React.ReactElement,
   options: RenderOptions<T> = {} as RenderOptions<T>
 ): RenderReturn<T> {
   const {initialEntry, config, legacyRouterConfig} = getInitialRouterConfig(options);
-
-  const enableRouterMocks = options.enableRouterMocks ?? true;
 
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
@@ -344,7 +345,7 @@ function render<T extends boolean = true>(
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     router: legacyRouterConfig,
-    enableRouterMocks,
+    deprecatedRouterMocks: options.deprecatedRouterMocks,
     history,
   });
 
@@ -354,9 +355,7 @@ function render<T extends boolean = true>(
     config,
   });
 
-  if (!enableRouterMocks) {
-    DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
-  }
+  DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
 
   const renderResult = rtl.render(
     <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
@@ -382,7 +381,7 @@ function render<T extends boolean = true>(
   return {
     ...renderResult,
     rerender,
-    ...(enableRouterMocks ? {} : {router: testRouter}),
+    ...(options.deprecatedRouterMocks ? {} : {router: testRouter}),
   } as RenderReturn<T>;
 }
 
@@ -431,12 +430,6 @@ instrumentUserEvent();
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
-/**
- * @deprecated Cleanup is called for you between each test.
- * If you are getting act errors in afterEach, try moving them to beforeEach.
- */
-const cleanup = rtl.cleanup;
-
 export {
   // eslint-disable-next-line import/export
   render,
@@ -446,6 +439,4 @@ export {
   fireEvent,
   waitForDrawerToHide,
   makeAllTheProviders,
-  // eslint-disable-next-line import/export
-  cleanup,
 };

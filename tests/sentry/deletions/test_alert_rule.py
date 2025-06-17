@@ -49,7 +49,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             project=self.project, group=group, user_id=self.user.id
         )
         IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id, group_open_period=group_open_period
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=group_open_period,
         )
 
         detector = self.create_detector()
@@ -68,7 +70,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not Incident.objects.filter(id=incident.id).exists()
         assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
         assert not IncidentGroupOpenPeriod.objects.filter(
-            incident_id=incident.id, group_open_period=group_open_period
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=group_open_period,
         ).exists()
         assert not GroupOpenPeriod.objects.filter(
             project=self.project, group=group, user_id=self.user.id
@@ -121,39 +125,3 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not Incident.objects.filter(id=incident.id).exists()
 
         assert mock_delete_request.call_count == 1
-
-    @patch("sentry.workflow_engine.migration_helpers.alert_rule.dual_delete_migrated_alert_rule")
-    def test_dual_delete(self, mock_dual_delete_call):
-        """
-        Test the that the pre delete signal deleting the ACI objects for a dual written alert rule is called.
-        """
-        organization = self.create_organization()
-        alert_rule = self.create_alert_rule(resolve_threshold=10, organization=organization)
-
-        self.ScheduledDeletion.schedule(instance=alert_rule, days=0)
-
-        with self.tasks():
-            run_scheduled_deletions()
-
-        assert mock_dual_delete_call.call_count == 1
-
-    @patch("sentry.incidents.models.alert_rule.logger")
-    @patch("sentry.workflow_engine.migration_helpers.alert_rule.dual_delete_migrated_alert_rule")
-    def test_dual_delete_error(self, mock_dual_delete_call, mock_logger):
-        """
-        Test that if an error happens in the dual delete helper, it is caught and logged.
-        """
-        mock_dual_delete_call.side_effect = Exception("bad stuff happened")
-        organization = self.create_organization()
-        alert_rule = self.create_alert_rule(resolve_threshold=10, organization=organization)
-
-        self.ScheduledDeletion.schedule(instance=alert_rule, days=0)
-
-        with self.tasks():
-            run_scheduled_deletions()
-
-        assert mock_dual_delete_call.call_count == 1
-        mock_logger.exception.assert_called_with(
-            "Error when dual deleting alert rule",
-            extra={"rule_id": alert_rule.id, "error": "bad stuff happened"},
-        )

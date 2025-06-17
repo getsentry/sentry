@@ -43,12 +43,14 @@ class TaskNamespace:
         retry: Retry | None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
+        app_feature: str | None = None,
     ):
         self.name = name
         self.router = router
         self.default_retry = retry
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
+        self.app_feature = app_feature or name
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
         self._producers: dict[Topic, SingletonProducer] = {}
 
@@ -158,6 +160,14 @@ class TaskNamespace:
                 KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
             )
 
+        metrics.incr(
+            "taskworker.registry.send_task.scheduled",
+            tags={
+                "namespace": activation.namespace,
+                "taskname": activation.taskname,
+                "topic": topic.value,
+            },
+        )
         # We know this type is futures.Future, but cannot assert so,
         # because it is also mock.Mock in tests.
         produce_future.add_done_callback(  # type:ignore[union-attr]
@@ -228,21 +238,25 @@ class TaskRegistry:
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
+        app_feature: str | None = None,
     ) -> TaskNamespace:
         """
-        Create a namespaces.
+        Create a task namespace.
 
         Namespaces are mapped onto topics through the configured router allowing
         infrastructure to be scaled based on a region's requirements.
 
         Namespaces can define default behavior for tasks defined within a namespace.
         """
+        if name in self._namespaces:
+            raise ValueError(f"Task namespace with name {name} already exists.")
         namespace = TaskNamespace(
             name=name,
             router=self._router,
             retry=retry,
             expires=expires,
             processing_deadline_duration=processing_deadline_duration,
+            app_feature=app_feature,
         )
         self._namespaces[name] = namespace
 

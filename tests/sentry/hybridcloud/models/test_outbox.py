@@ -6,11 +6,12 @@ from typing import Any
 from unittest.mock import Mock, call, patch
 
 import pytest
-from django.db import connections
+from django.db import OperationalError, connections
 from pytest import raises
 
 from sentry.hybridcloud.models.outbox import (
     ControlOutbox,
+    OutboxDatabaseError,
     OutboxFlushError,
     RegionOutbox,
     outbox_context,
@@ -517,6 +518,26 @@ class RegionOutboxTest(TestCase):
             # We expect the shard to be drained if at *least* one scheduled
             # message is in the past.
             assert RegionOutbox.objects.count() == 0
+
+    @patch("sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced")
+    def test_catches_random_database_errors(self, mock_process: Mock) -> None:
+        mock_process.side_effect = OperationalError("ruh roh")
+
+        with pytest.raises(OutboxDatabaseError) as e:
+            with outbox_context(flush=False):
+                Organization(id=10).outbox_for_update().save()
+            assert RegionOutbox.objects.count() == 1
+
+            with outbox_runner():
+                # drain outboxes
+                pass
+
+        assert (
+            str(e.value)
+            == f"Failed to process Outbox, {Organization(id=10).outbox_for_update().category.name} due to database error"
+        )
+
+        assert RegionOutbox.objects.count() == 1
 
 
 class TestOutboxesManager(TestCase):

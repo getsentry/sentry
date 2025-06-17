@@ -1,30 +1,24 @@
-import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 export default function useOrganizationReleases({
-  dateRange,
   filters,
+  pageFilters,
 }: {
   filters: string[];
-  dateRange?: Pick<PageFiltersStringified, 'start' | 'end' | 'statsPeriod'>;
+  pageFilters?: PageFilters;
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection: defaultPageFilters} = usePageFilters();
 
-  const locationWithoutWidth = {
-    ...location,
-    query: {
-      ...location.query,
-      ...dateRange,
-      width: undefined,
-    },
-  };
-
-  let finalizedQuery;
+  let finalizedQuery: string | undefined;
   const hasFinalized = filters.includes('Finalized');
   const hasNotFinalized = filters.includes('Not Finalized');
 
@@ -37,7 +31,7 @@ export default function useOrganizationReleases({
     finalizedQuery = undefined;
   }
 
-  let status;
+  let status: 'open' | 'archived' | undefined;
   const hasOpen = filters.includes('Open');
   const hasArchived = filters.includes('Archived');
 
@@ -74,7 +68,7 @@ export default function useOrganizationReleases({
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
           query: queryString,
           adoptionStages: 1,
           health: 1,

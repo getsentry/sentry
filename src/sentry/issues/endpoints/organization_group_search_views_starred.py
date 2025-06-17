@@ -8,10 +8,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchviewstarred import GroupSearchViewStarredSerializer
-from sentry.models.groupsearchview import DEFAULT_VIEWS
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -37,11 +35,6 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         """
         Retrieve a list of starred views for the current organization member.
         """
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
         has_global_views = features.has("organizations:global-views", organization)
 
         default_project = None
@@ -56,29 +49,6 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         starred_views = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
         )
-
-        # TODO(msun): Remove when tabbed views are deprecated
-        if not starred_views.exists():
-            return self.paginate(
-                request=request,
-                paginator=SequencePaginator(
-                    [
-                        (
-                            idx,
-                            {
-                                **view,
-                                "projects": (
-                                    []
-                                    if has_global_views
-                                    else [pick_default_project(organization, request.user)]
-                                ),
-                            },
-                        )
-                        for idx, view in enumerate(DEFAULT_VIEWS)
-                    ]
-                ),
-                on_results=lambda results: serialize(results, request.user),
-            )
 
         return self.paginate(
             request=request,

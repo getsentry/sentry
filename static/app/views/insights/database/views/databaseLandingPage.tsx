@@ -10,20 +10,19 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import DatabaseLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget';
+import DatabaseLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget';
+import {useDatabaseLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingChartFilter';
+import {useDatabaseLandingDurationQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery';
+import {useDatabaseLandingThroughputQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from 'sentry/views/insights/common/views/spans/types';
 import {DatabasePageFilters} from 'sentry/views/insights/database/components/databasePageFilters';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
@@ -44,6 +43,7 @@ export function DatabaseLandingPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const hasModuleData = useHasFirstSpan(moduleName);
+  const {search, enabled} = useDatabaseLandingChartFilter();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription =
@@ -83,13 +83,6 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const chartFilters = {
-    ...BASE_FILTERS,
-    'span.action': spanAction,
-    'span.domain': spanDomain,
-    'span.system': system,
-  };
-
   const tableFilters = {
     ...BASE_FILTERS,
     'span.action': spanAction,
@@ -111,7 +104,6 @@ export function DatabaseLandingPage() {
         'epm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
-        'time_spent_percentage()',
       ],
       sorts: [sort],
       limit: LIMIT,
@@ -120,31 +112,11 @@ export function DatabaseLandingPage() {
     'api.starfish.use-span-list'
   );
 
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isPending: isThroughputDataLoading, data: throughputData} =
+    useDatabaseLandingThroughputQuery({search, enabled});
 
-  const {
-    isPending: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isPending: isDurationDataLoading, data: durationData} =
+    useDatabaseLandingDurationQuery({search, enabled});
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isPending;
@@ -179,21 +151,11 @@ export function DatabaseLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.DB}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('db')}
-                    series={[throughputData['epm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <DatabaseLandingThroughputChartWidget />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getDurationChartTitle('db')}
-                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
-                    isLoading={isDurationDataLoading}
-                    error={durationError}
-                  />
+                  <DatabaseLandingDurationChartWidget />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
@@ -221,7 +183,7 @@ export function DatabaseLandingPage() {
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

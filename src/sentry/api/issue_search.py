@@ -19,11 +19,8 @@ from sentry.api.event_search import (
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import (
-    GroupCategory,
-    get_group_type_by_slug,
-    get_group_types_by_category,
-)
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_slug
+from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES
 from sentry.models.organization import Organization
@@ -40,6 +37,7 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -62,7 +60,7 @@ issue_search_config = SearchConfig.create_from(
     allow_boolean=False,
     is_filter_translation=is_filter_translation,
     numeric_keys=default_config.numeric_keys | {"times_seen"},
-    date_keys=default_config.date_keys | {"date", "first_seen", "last_seen"},
+    date_keys=default_config.date_keys | {"date", "first_seen", "last_seen", "issue.seer_last_run"},
     key_mappings={
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],
@@ -192,7 +190,7 @@ def convert_category_value(
         group_category = getattr(GroupCategory, category.upper(), None)
         if not group_category:
             raise InvalidSearchQuery(f"Invalid category value of '{category}'")
-        results.extend(get_group_types_by_category(group_category.value))
+        results.extend(GROUP_TYPE_REGISTRY.get_by_category(group_category.value))
     return results
 
 
@@ -244,6 +242,22 @@ def convert_device_class_value(
     return list(results)
 
 
+def convert_seer_actionability_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+):
+    """Convert high, medium, and low to fixability score thresholds"""
+    results: list[float] = []
+    for fixable in value:
+        fixability_score_threshold = FixabilityScoreThresholds.from_str(fixable)
+        if not fixability_score_threshold:
+            raise InvalidSearchQuery(f"Invalid fixable value of '{fixable}'")
+        results.append(fixability_score_threshold.value)
+    return results
+
+
 value_converters: Mapping[str, ValueConverter] = {
     "assigned_or_suggested": convert_actor_or_none_value,
     "assigned_to": convert_actor_or_none_value,
@@ -258,6 +272,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "issue.type": convert_type_value,
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,
+    "issue.seer_actionability": convert_seer_actionability_value,
 }
 
 

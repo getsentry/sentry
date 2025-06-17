@@ -3,12 +3,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 from urllib.parse import quote
 
 import orjson
-from isodate import parse_datetime
 
 from sentry.integrations.gitlab.utils import (
     GitLabApiClientPath,
@@ -200,7 +199,7 @@ def _create_commit_from_blame(
             commitMessage=commit.get("message"),
             commitAuthorName=commit.get("author_name"),
             commitAuthorEmail=commit.get("author_email"),
-            committedDate=parse_datetime(committed_date).replace(tzinfo=timezone.utc),
+            committedDate=datetime.fromisoformat(committed_date).replace(tzinfo=timezone.utc),
         )
     except Exception:
         logger.exception("get_blame_for_files.invalid_commit_response", extra=extra)

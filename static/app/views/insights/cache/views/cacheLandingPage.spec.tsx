@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
@@ -31,22 +32,20 @@ const requestMocks = {
 describe('CacheLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -87,7 +86,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -129,14 +128,13 @@ describe('CacheLandingPage', function () {
             'epm()',
             'cache_miss_rate()',
             'sum(span.self_time)',
-            'time_spent_percentage()',
             'avg(cache.item_size)',
           ],
           per_page: 20,
           project: [],
           query: 'span.op:[cache.get_item,cache.get]',
           referrer: 'api.performance.cache.landing-cache-transaction-list',
-          sort: '-time_spent_percentage()',
+          sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
       })
@@ -180,7 +178,6 @@ describe('CacheLandingPage', function () {
             'epm()': 123,
             'sum(span.self_time)': 123,
             'cache_miss_rate()': 0.123,
-            'time_spent_percentage()': 0.123,
           },
         ],
         meta: {
@@ -192,14 +189,13 @@ describe('CacheLandingPage', function () {
             'epm()': 'rate',
             'sum(span.self_time)': 'duration',
             'cache_miss_rate()': 'percentage',
-            'time_spent_percentage()': 'percentage',
           },
           units: {},
         },
       },
     });
 
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -223,7 +219,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('renders a list of transactions', async function () {
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
@@ -279,7 +275,7 @@ describe('CacheLandingPage', function () {
       }),
     ]);
 
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitFor(() => {
       expect(
@@ -382,7 +378,6 @@ const setRequestMocks = (organization: Organization) => {
           'epm()': 123,
           'sum(span.self_time)': 123,
           'cache_miss_rate()': 0.123,
-          'time_spent_percentage()': 0.123,
         },
       ],
       meta: {
@@ -394,7 +389,6 @@ const setRequestMocks = (organization: Organization) => {
           'epm()': 'rate',
           'sum(span.self_time)': 'duration',
           'cache_miss_rate()': 'percentage',
-          'time_spent_percentage()': 'percentage',
         },
         units: {},
       },

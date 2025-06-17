@@ -1,51 +1,65 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {
+  FrontendOverviewTable,
+  isAValidSort,
+  type ValidSort,
+} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
+import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
+  DEFAULT_SORT,
+  DEFAULT_SPAN_OP_SELECTION,
+  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
-  FRONTEND_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS,
+  PAGE_SPAN_OPS,
+  SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
+import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
-import {
-  generateFrontendOtherPerformanceEventView,
-  USER_MISERY_TOOLTIP,
-} from 'sentry/views/performance/data';
+import {categorizeProjects} from 'sentry/views/insights/pages/utils';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -53,65 +67,44 @@ import {
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const DURATION_TOOLTIP = tct(
-  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
-    ),
-  }
-);
-
-export const FRONTEND_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'p50()', tooltip: DURATION_TOOLTIP},
-  {title: 'p75()', tooltip: DURATION_TOOLTIP},
-  {title: 'p95()', tooltip: DURATION_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
-];
-
-function FrontendOverviewPage() {
+function EAPOverviewPage() {
   useOverviewPageTrackPageload();
-  const theme = useTheme();
-
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
-  const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
-  const useEap = useInsightsEap();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  const spanOp: PageSpanOps = getSpanOpFromQuery(
+    decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
+  );
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
     location,
     withStaticFilters,
-    useEap
+    true
   );
-  const searchBarEventView = eventView.clone();
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
-
-  const segmentOp = useEap ? 'span.op' : 'transaction.op';
+  const {query: searchBarQuery} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: segmentOp},
+    {field: 'span.op'},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
@@ -124,34 +117,46 @@ function FrontendOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedFrontendProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
-  );
+  const {
+    frontendProjects: selectedFrontendProjects,
+    otherProjects: selectedOtherProjects,
+  } = categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
-  const existingQuery = new MutableSearch(eventView.query);
+  const existingQuery = new MutableSearch(searchBarQuery);
+
   // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
-  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
-  // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
-  if (selectedFrontendProjects.length > 0) {
-    existingQuery.addOp('OR');
-    existingQuery.addFilterValue(
-      'project.id',
-      `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
-    );
+
+  if (spanOp === 'all') {
+    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation'];
+    existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
+    // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
+    if (selectedFrontendProjects.length > 0) {
+      existingQuery.addOp('OR');
+      existingQuery.addFilterValue(
+        'project.id',
+        `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
+      );
+    }
+  } else if (spanOp === 'pageload') {
+    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload'];
+    existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
+  } else if (spanOp === 'navigation') {
+    // navigation span ops doesn't work for web vitals, so we do need to filter for web vital spans
+    existingQuery.addFilterValue('span.op', 'navigation');
   }
+
   existingQuery.addOp(')');
-  existingQuery.addFilterValues(`!${segmentOp}`, BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+
+  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+    PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -166,12 +171,6 @@ function FrontendOverviewPage() {
     ],
     mepSetting
   );
-
-  if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
-  }
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -203,6 +202,45 @@ function FrontendOverviewPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
+  const sorts: [ValidSort, ValidSort] = [
+    {
+      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      kind: 'desc',
+    },
+    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+  ];
+
+  const displayPerfScore = ['pageload', 'all'].includes(spanOp);
+
+  const response = useEAPSpans(
+    {
+      search: existingQuery,
+      sorts,
+      cursor,
+      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
+      fields: [
+        'is_starred_transaction',
+        'transaction',
+        'project',
+        'tpm()',
+        'p50_if(span.duration,is_transaction,true)',
+        'p95_if(span.duration,is_transaction,true)',
+        'failure_rate_if(is_transaction,true)',
+        ...(displayPerfScore
+          ? (['performance_score(measurements.score.total)'] as const)
+          : []),
+        'count_unique(user)',
+        'sum_if(span.duration,is_transaction,true)',
+      ],
+    },
+    'api.performance.landing-table'
+  );
+
+  const searchBarProjectsIds = [
+    ...selectedFrontendProjects,
+    ...selectedOtherProjects,
+  ].map(project => project.id);
+
   return (
     <Feature
       features="performance-view"
@@ -216,25 +254,50 @@ function FrontendOverviewPage() {
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
+                  <InsightsProjectSelector />
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    eventView={searchBarEventView}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(derivedQuery)!}
-                  />
+                  <InsightsSpanTagProvider>
+                    <CompactSelect
+                      value={spanOp}
+                      menuTitle={t('Filter by operation')}
+                      options={[
+                        {value: 'all', label: t('All Transactions')},
+                        {value: 'pageload', label: t('Pageload')},
+                        {value: 'navigation', label: t('Navigation')},
+                      ]}
+                      onChange={(selectedOption: SelectOption<PageSpanOps>) => {
+                        navigate({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [SPAN_OP_QUERY_PARAM]: selectedOption.value,
+                          },
+                        });
+                      }}
+                    />
+                    <StyledTransactionNameSearchBar
+                      organization={organization}
+                      projectIds={searchBarProjectsIds}
+                      onSearch={(query: string) => {
+                        handleSearch(query);
+                      }}
+                      query={getFreeTextFromQuery(derivedQuery) ?? ''}
+                    />
+                  </InsightsSpanTagProvider>
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
                 >
@@ -244,28 +307,12 @@ function FrontendOverviewPage() {
                     eventView={doubleChartRowEventView}
                   />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <Table
-                      theme={theme}
-                      projects={projects}
-                      columnTitles={FRONTEND_COLUMN_TITLES}
-                      setError={setPageError}
-                      {...sharedProps}
-                    />
-                  </TeamKeyTransactionManager.Provider>
+                  <FrontendOverviewTable
+                    displayPerfScore={displayPerfScore}
+                    response={response}
+                    sort={sorts[1]}
+                  />
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
@@ -276,12 +323,28 @@ function FrontendOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
+  const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
+  const useEap = useInsightsEap();
+
   return (
     <DomainOverviewPageProviders>
-      <FrontendOverviewPage />
+      {isNextJsPageEnabled ? (
+        <NextJsOverviewPage performanceType="frontend" />
+      ) : useEap ? (
+        <EAPOverviewPage />
+      ) : (
+        <OldFrontendOverviewPage />
+      )}
     </DomainOverviewPageProviders>
   );
 }
+
+const getSpanOpFromQuery = (op?: string): PageSpanOps => {
+  if (op && op in PAGE_SPAN_OPS) {
+    return op as PageSpanOps;
+  }
+  return DEFAULT_SPAN_OP_SELECTION;
+};
 
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;

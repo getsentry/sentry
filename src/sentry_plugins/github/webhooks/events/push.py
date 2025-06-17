@@ -17,7 +17,6 @@ from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry_plugins.github.client import GithubPluginClient
 
 from . import Webhook, get_external_id, is_anonymous_email
@@ -163,7 +162,6 @@ class PushEventWebhook(Webhook):
                             organization_id=organization_id, commit=c, filename=fname, type="M"
                         )
             except IntegrityError:
-                incr_rollback_metrics(name="github_push_event")
                 pass
 
     # https://developer.github.com/v3/activity/events/types/#pushevent

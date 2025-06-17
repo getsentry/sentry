@@ -556,6 +556,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -610,6 +611,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -637,6 +639,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -665,6 +668,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -732,7 +736,11 @@ describe('Performance > TransactionSummary', function () {
           router={router}
           location={router.location}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       renderGlobalModal();
@@ -778,6 +786,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -814,6 +823,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -835,6 +845,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -874,6 +885,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -906,6 +918,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -945,6 +958,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -987,6 +1001,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1020,6 +1035,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1045,6 +1061,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1063,6 +1080,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1092,6 +1110,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1153,6 +1172,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1202,6 +1222,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1258,6 +1279,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1341,6 +1363,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 

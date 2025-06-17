@@ -24,7 +24,6 @@ from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
 from sentry.utils import metrics
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -357,7 +356,6 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                 try:
                     self._create_blob_index(blob=blob, offset=offset)
                 except IntegrityError:
-                    incr_rollback_metrics(name="file_assemble_from_file_blob_ids")
                     # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
                     # the blob we want to link does not exist anymore
                     logger.exception("`FileBlob` disappeared trying to link `FileBlobIndex`")

@@ -33,11 +33,11 @@ function mockSpanTags({
   type: 'string' | 'number';
 }) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/spans/fields/`,
+    url: `/organizations/org-slug/trace-items/attributes/`,
     body: mockedTags,
     match: [
       function (_url: string, options: Record<string, any>) {
-        return options.query.type === type;
+        return options.query.attributeType === type;
       },
     ],
   });
@@ -53,11 +53,11 @@ function mockSpanTagValues({
   type: 'string' | 'number';
 }) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/spans/fields/${tagKey}/values/`,
+    url: `/organizations/org-slug/trace-items/attributes/${tagKey}/values/`,
     body: mockedValues,
     match: [
       function (_url: string, options: Record<string, any>) {
-        return options.query.type === type;
+        return options.query.attributeType === type;
       },
     ],
   });
@@ -149,7 +149,7 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
-    await userEvent.type(searchInput, 'span.op:function');
+    await userEvent.type(searchInput, 'span.op:function{enter}');
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();

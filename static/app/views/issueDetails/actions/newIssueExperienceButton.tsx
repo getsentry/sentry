@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -25,17 +26,104 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTourModal';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-export function NewIssueExperienceButton() {
+/**
+ * This hook will cause the promotional modal to appear if:
+ *  - All the steps have been registered
+ *  - The tour has not been completed
+ *  - The tour is not currently active
+ *  - The streamline UI is enabled
+ *  - The user's browser has not stored that they've seen the promo
+ *
+ * Returns a function that can be used to reset the modal.
+ */
+function useIssueDetailsPromoModal() {
   const organization = useOrganization();
-  const isSuperUser = isActiveSuperuser();
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const {mutate: mutateAssistant} = useMutateAssistant();
   const {
-    endTour,
     startTour,
+    endTour,
     currentStepId,
     isRegistered: isTourRegistered,
     isCompleted: isTourCompleted,
   } = useIssueDetailsTour();
-  const {mutate: mutateAssistant} = useMutateAssistant();
+
+  const [localTourState, setLocalTourState] = useLocalStorageState(
+    ISSUE_DETAILS_TOUR_GUIDE_KEY,
+    {hasSeen: false}
+  );
+
+  const isPromoVisible =
+    isTourRegistered &&
+    !isTourCompleted &&
+    currentStepId === null &&
+    hasStreamlinedUI &&
+    !localTourState.hasSeen;
+
+  const handleEndTour = useCallback(() => {
+    setLocalTourState({hasSeen: true});
+    mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
+    endTour();
+    trackAnalytics('issue_details.tour.skipped', {organization});
+  }, [mutateAssistant, organization, endTour, setLocalTourState]);
+
+  useEffect(() => {
+    if (isPromoVisible) {
+      openModal(
+        props => (
+          <IssueDetailsTourModal
+            handleDismissTour={() => {
+              handleEndTour();
+              props.closeModal();
+            }}
+            handleStartTour={() => {
+              props.closeModal();
+              setLocalTourState({hasSeen: true});
+              startTour();
+              trackAnalytics('issue_details.tour.started', {
+                organization,
+                method: 'modal',
+              });
+            }}
+          />
+        ),
+        {
+          modalCss: IssueDetailsTourModalCss,
+          onClose: reason => {
+            if (reason) {
+              handleEndTour();
+            }
+          },
+        }
+      );
+    }
+  }, [
+    isPromoVisible,
+    mutateAssistant,
+    organization,
+    endTour,
+    startTour,
+    setLocalTourState,
+    handleEndTour,
+  ]);
+
+  const resetModal = useCallback(() => {
+    setLocalTourState({hasSeen: false});
+    mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'restart'});
+  }, [mutateAssistant, setLocalTourState]);
+
+  return {resetModal};
+}
+
+export function NewIssueExperienceButton() {
+  const organization = useOrganization();
+  const isSuperUser = isActiveSuperuser();
+  const {
+    startTour,
+    isRegistered: isTourRegistered,
+    isCompleted: isTourCompleted,
+  } = useIssueDetailsTour();
+  const {resetModal} = useIssueDetailsPromoModal();
 
   // XXX: We use a ref to track the previous state of tour completion
   // since we only show the banner when the tour goes from incomplete to complete
@@ -74,51 +162,6 @@ export function NewIssueExperienceButton() {
         userStreamlinePreference === null,
     });
   }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
-
-  // The promotional modal should only appear if:
-  //  - All the steps have been registered
-  //  - The tour has not been completed
-  //  - The tour is not currently active
-  //  - The streamline UI is enabled
-  const isPromoVisible =
-    isTourRegistered && !isTourCompleted && currentStepId === null && hasStreamlinedUI;
-
-  useEffect(() => {
-    if (isPromoVisible) {
-      openModal(
-        props => (
-          <IssueDetailsTourModal
-            handleDismissTour={() => {
-              mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
-              endTour();
-              trackAnalytics('issue_details.tour.skipped', {organization});
-              props.closeModal();
-            }}
-            handleStartTour={() => {
-              props.closeModal();
-              startTour();
-              trackAnalytics('issue_details.tour.started', {
-                organization,
-                method: 'modal',
-              });
-            }}
-          />
-        ),
-        {
-          modalCss: IssueDetailsTourModalCss,
-          onClose: reason => {
-            if (reason) {
-              mutateAssistant({
-                guide: ISSUE_DETAILS_TOUR_GUIDE_KEY,
-                status: 'dismissed',
-              });
-              endTour();
-            }
-          },
-        }
-      );
-    }
-  }, [isPromoVisible, mutateAssistant, organization, endTour, startTour]);
 
   if (!hasStreamlinedUI) {
     return (
@@ -173,9 +216,7 @@ export function NewIssueExperienceButton() {
       key: 'reset-tour-modal',
       label: t('Reset tour modal (Superuser only)'),
       hidden: !isSuperUser || !isTourCompleted,
-      onAction: () => {
-        mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'restart'});
-      },
+      onAction: resetModal,
     },
   ];
 
@@ -235,5 +276,8 @@ const TryNewButton = styled(Button)`
   &:active,
   &:focus {
     color: ${p => p.theme.white};
+  }
+  ::after {
+    background: linear-gradient(90deg, #3468d8, #248574);
   }
 `;

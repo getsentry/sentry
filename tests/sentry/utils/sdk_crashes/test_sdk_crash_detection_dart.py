@@ -254,3 +254,20 @@ def test_ignore_handle_draw_frame(mock_sdk_crash_reporter, mock_random, store_ev
     )
 
     assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_ignore_flutter_error_integration(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+):
+    event_data = get_crash_event(sdk_function="FlutterErrorIntegration.call.<fn>")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0

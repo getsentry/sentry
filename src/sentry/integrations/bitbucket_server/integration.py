@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -19,12 +19,12 @@ from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
     IntegrationDomain,
-    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -35,7 +35,6 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
@@ -61,6 +60,19 @@ FEATURES = [
         including `Fixes PROJ-ID` in the message
         """,
         IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket Server source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your Bitbucket Server [CODEOWNERS file](https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
     ),
 ]
 
@@ -138,12 +150,12 @@ class InstallationForm(forms.Form):
         return data
 
 
-class InstallationConfigView(PipelineView):
+class InstallationConfigView(IntegrationPipelineViewT):
     """
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -161,14 +173,14 @@ class InstallationConfigView(PipelineView):
         )
 
 
-class OAuthLoginView(PipelineView):
+class OAuthLoginView(IntegrationPipelineViewT):
     """
     Start the OAuth dance by creating a request token
     and redirecting the user to approve it.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_LOGIN,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -202,14 +214,14 @@ class OAuthLoginView(PipelineView):
             return HttpResponseRedirect(authorize_url)
 
 
-class OAuthCallbackView(PipelineView):
+class OAuthCallbackView(IntegrationPipelineViewT):
     """
     Complete the OAuth dance by exchanging our request token
     into an access token.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_CALLBACK,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -244,23 +256,20 @@ class BitbucketServerIntegration(RepositoryIntegration):
     IntegrationInstallation implementation for Bitbucket Server
     """
 
-    default_identity = None
+    codeowners_locations = [".bitbucket/CODEOWNERS"]
 
     @property
     def integration_name(self) -> str:
         return "bitbucket_server"
 
-    def get_client(self):
-        if self.default_identity is None:
-            try:
-                self.default_identity = self.get_default_identity()
-            except Identity.DoesNotExist:
-                raise IntegrationError("Identity not found.")
-
-        return BitbucketServerClient(
-            integration=self.model,
-            identity=self.default_identity,
-        )
+    def get_client(self) -> BitbucketServerClient:
+        try:
+            return BitbucketServerClient(
+                integration=self.model,
+                identity=self.default_identity,
+            )
+        except Identity.DoesNotExist:
+            raise IntegrationError("Identity not found.")
 
     # IntegrationInstallation methods
 
@@ -312,16 +321,40 @@ class BitbucketServerIntegration(RepositoryIntegration):
         return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
     def source_url_matches(self, url: str) -> bool:
-        raise IntegrationFeatureNotImplementedError
+        return url.startswith(self.model.metadata["base_url"])
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
-        raise IntegrationFeatureNotImplementedError
+        project = quote(repo.config["project"])
+        repo_name = quote(repo.config["repo"])
+        source_url = f"{self.model.metadata["base_url"]}/projects/{project}/repos/{repo_name}/browse/{filepath}"
+
+        if branch:
+            source_url += "?" + urlencode({"at": branch})
+
+        return source_url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        parsed_url = urlparse(url)
+        qs = parse_qs(parsed_url.query)
+
+        if "at" in qs and len(qs["at"]) == 1:
+            branch = qs["at"][0]
+
+            # branch name may be prefixed with refs/heads/, so we strip that
+            refs_prefix = "refs/heads/"
+            if branch.startswith(refs_prefix):
+                branch = branch[len(refs_prefix) :]
+
+            return branch
+
+        return ""
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        if repo.url is None:
+            return ""
+        parsed_repo_url = urlparse(repo.url)
+        parsed_url = urlparse(url)
+        return parsed_url.path.replace(parsed_repo_url.path + "/", "")
 
     # Bitbucket Server only methods
 
@@ -336,10 +369,16 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
-    features = frozenset([IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[IntegrationPipelineViewT]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def post_install(

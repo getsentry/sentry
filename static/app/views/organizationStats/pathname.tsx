@@ -13,7 +13,7 @@ export function makeStatsPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${STATS_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_STATS_BASE_PATHNAME}${path}`
   );

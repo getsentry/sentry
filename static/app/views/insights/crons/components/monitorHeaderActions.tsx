@@ -1,8 +1,9 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import Link from 'sentry/components/links/link';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
@@ -39,7 +40,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     await deleteMonitor(api, orgSlug, monitor);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${orgSlug}/insights/backend/crons/`,
+        pathname: `/organizations/${orgSlug}/insights/crons/`,
         query: endpointOptions.query,
       })
     );
@@ -59,7 +60,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   });
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
   const disableProps = {

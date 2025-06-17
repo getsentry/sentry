@@ -40,7 +40,6 @@ class SentryAppIdentifier(StrEnum):
     """
 
     SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
-    SENTRY_APP_SLUG = "sentry_app_slug"
     SENTRY_APP_ID = "sentry_app_id"
 
 
@@ -56,7 +55,7 @@ class ActionType(StrEnum):
     GITHUB_ENTERPRISE = "github_enterprise"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
-    AZURE_DEVOPS = "azure_devops"
+    AZURE_DEVOPS = "vsts"
 
     EMAIL = "email"
     SENTRY_APP = "sentry_app"
@@ -695,7 +694,7 @@ class TicketDataBlob(DataBlob):
     """
 
     # Dynamic form fields from customer configuration
-    dynamic_form_fields: list[dict] = field(default_factory=list)
+    dynamic_form_fields: list[dict[str, Any]] = field(default_factory=list)
     # Store any additional fields that aren't part of standard fields
     additional_fields: dict[str, Any] = field(default_factory=dict)
 
@@ -710,7 +709,7 @@ class SentryAppFormConfigDataBlob(DataBlob):
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SentryAppFormConfigDataBlob:
         if not isinstance(data.get("name"), str) or not isinstance(
-            data.get("value"), (str, type(None))
+            data.get("value"), (str, type(None), int)
         ):
             raise ValueError("Sentry app config must contain name and value keys")
         return cls(name=data["name"], value=data["value"], label=data.get("label"))

@@ -13,10 +13,10 @@ export const WIDGET_PREVIEW_DRAG_ID = 'widget-preview-draggable';
 
 export const SIDEBAR_HEIGHT = 54;
 
-export const DEFAULT_TRANSLATE_COORDINATES = {x: 0, y: 0};
+const DEFAULT_TRANSLATE_COORDINATES = {x: 0, y: 0};
 const DEFAULT_SPACING = parseInt(space(2).replace('px', ''), 10);
-export const DEFAULT_LEFT = DEFAULT_SPACING;
-export const DEFAULT_TOP = SIDEBAR_HEIGHT + DEFAULT_SPACING; // 54px sidebar + 16px space
+const DEFAULT_LEFT = DEFAULT_SPACING;
+const DEFAULT_TOP = SIDEBAR_HEIGHT + DEFAULT_SPACING; // 54px sidebar + 16px space
 
 export const DEFAULT_WIDGET_DRAG_POSITIONING: WidgetDragPositioning = {
   initialTranslate: DEFAULT_TRANSLATE_COORDINATES,
@@ -25,9 +25,9 @@ export const DEFAULT_WIDGET_DRAG_POSITIONING: WidgetDragPositioning = {
   top: DEFAULT_TOP,
 };
 
-export const DRAGGABLE_PREVIEW_HEIGHT = 200;
-export const DRAGGABLE_PREVIEW_WIDTH = 300;
-export const PREVIEW_HEIGHT = 400;
+const DRAGGABLE_PREVIEW_HEIGHT = 200;
+const DRAGGABLE_PREVIEW_WIDTH = 300;
+const PREVIEW_HEIGHT = 400;
 
 export const DRAGGABLE_PREVIEW_HEIGHT_PX = `${DRAGGABLE_PREVIEW_HEIGHT}px`;
 export const DRAGGABLE_PREVIEW_WIDTH_PX = `${DRAGGABLE_PREVIEW_WIDTH}px`;

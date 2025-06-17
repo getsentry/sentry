@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, NotRequired, Optional, TypedDict, Union
+from typing import Any, Literal, NotRequired, Optional, TypedDict, Union
 
 from django.utils import timezone as django_timezone
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -81,6 +81,9 @@ class EventsResponse(TypedDict):
     meta: EventsMeta
 
 
+SAMPLING_MODES = Literal["BEST_EFFORT", "PREFLIGHT", "NORMAL", "HIGHEST_ACCURACY"]
+
+
 @dataclass
 class SnubaParams:
     start: datetime | None = None
@@ -95,6 +98,7 @@ class SnubaParams:
     user: RpcUser | None = None
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
+    sampling_mode: SAMPLING_MODES | None = None
 
     def __post_init__(self) -> None:
         if self.start:

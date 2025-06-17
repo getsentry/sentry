@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
@@ -51,14 +52,14 @@ export default function FeedbackActions({
 
 function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
-    disableDelete,
-    hasDelete,
+    enableDelete,
     onDelete,
     isResolved,
     onResolveClick,
     isSpam,
     onSpamClick,
     hasSeen,
+    enableMarkAsRead,
     onMarkAsReadClick,
   } = useFeedbackActions({feedbackItem});
 
@@ -74,28 +75,36 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
       <Button size="xs" priority="default" onClick={onSpamClick}>
         {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
       </Button>
-      <Button size="xs" onClick={onMarkAsReadClick}>
-        {hasSeen ? t('Mark Unread') : t('Mark Read')}
-      </Button>
-      {hasDelete && (
-        <Button size="xs" onClick={onDelete} disabled={disableDelete}>
+      <Tooltip
+        disabled={enableMarkAsRead}
+        title={t('You must be a member of the project')}
+      >
+        <Button size="xs" onClick={onMarkAsReadClick} disabled={!enableMarkAsRead}>
+          {hasSeen ? t('Mark Unread') : t('Mark Read')}
+        </Button>
+      </Tooltip>
+      <Tooltip
+        disabled={enableDelete}
+        title={t('You must be an admin to delete feedback')}
+      >
+        <Button size="xs" onClick={onDelete} disabled={!enableDelete}>
           {t('Delete')}
         </Button>
-      )}
+      </Tooltip>
     </Fragment>
   );
 }
 
 function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
-    disableDelete,
-    hasDelete,
+    enableDelete,
     onDelete,
     isResolved,
     onResolveClick,
     isSpam,
     onSpamClick,
     hasSeen,
+    enableMarkAsRead,
     onMarkAsReadClick,
   } = useFeedbackActions({feedbackItem});
 
@@ -126,15 +135,21 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           {
             key: 'read',
             label: hasSeen ? t('Mark Unread') : t('Mark Read'),
+            disabled: !enableMarkAsRead,
             onAction: onMarkAsReadClick,
+            tooltip: enableMarkAsRead
+              ? undefined
+              : t('You must be a member of the project'),
           },
           {
             key: 'delete',
             priority: 'danger' as const,
             label: t('Delete'),
-            hidden: !hasDelete,
-            disabled: disableDelete,
+            disabled: !enableDelete,
             onAction: onDelete,
+            tooltip: enableDelete
+              ? undefined
+              : t('You must be an admin to delete feedback'),
           },
         ]}
       />
@@ -144,14 +159,14 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
-    disableDelete,
-    hasDelete,
+    enableDelete,
     onDelete,
     isResolved,
     onResolveClick,
     isSpam,
     onSpamClick,
     hasSeen,
+    enableMarkAsRead,
     onMarkAsReadClick,
   } = useFeedbackActions({feedbackItem});
 
@@ -178,15 +193,21 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
         {
           key: 'read',
           label: hasSeen ? t('Mark Unread') : t('Mark Read'),
+          disabled: !enableMarkAsRead,
           onAction: onMarkAsReadClick,
+          tooltip: enableMarkAsRead
+            ? undefined
+            : t('You must be a member of the project'),
         },
         {
           key: 'delete',
           priority: 'danger' as const,
           label: t('Delete'),
-          hidden: !hasDelete,
-          disabled: disableDelete,
+          disabled: !enableDelete,
           onAction: onDelete,
+          tooltip: enableDelete
+            ? undefined
+            : t('You must be an admin to delete feedback'),
         },
       ]}
     />

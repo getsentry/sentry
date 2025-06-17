@@ -1,6 +1,11 @@
+import calendar
 from unittest.mock import patch
 
+import orjson
+from django.utils import timezone
+
 from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -29,7 +34,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             stack_root="sentry/",
             source_root="sentry/",
         )
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
     def test_successful_setup(self):
         """
@@ -42,15 +46,72 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "genAIConsent": {
-                "ok": True,
-                "reason": None,
-            },
             "integration": {
                 "ok": True,
                 "reason": None,
             },
             "githubWriteIntegration": None,
+            "setupAcknowledgement": {
+                "orgHasAcknowledged": False,
+                "userHasAcknowledged": False,
+            },
+            "billing": {
+                "hasAutofixQuota": True,
+            },
+        }
+
+    def test_current_user_acknowledged_setup(self):
+        """
+        Test when the current user has acknowledged the setup.
+        """
+        group = self.create_group()
+        feature = "seer_autofix_setup_acknowledged"
+        PromptsActivity.objects.create(
+            user_id=self.user.id,
+            feature=feature,
+            organization_id=self.organization.id,
+            project_id=0,
+            data=orjson.dumps(
+                {"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}
+            ).decode("utf-8"),
+        )
+
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["setupAcknowledgement"] == {
+            "orgHasAcknowledged": True,
+            "userHasAcknowledged": True,
+        }
+
+    def test_org_acknowledged_not_user(self):
+        """
+        Test when another user in the org has acknowledged, but not the requesting user.
+        """
+        group = self.create_group()
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization, role="member")
+        feature = "seer_autofix_setup_acknowledged"
+        PromptsActivity.objects.create(
+            user_id=other_user.id,
+            feature=feature,
+            organization_id=self.organization.id,
+            project_id=0,
+            data=orjson.dumps(
+                {"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}
+            ).decode("utf-8"),
+        )
+
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["setupAcknowledgement"] == {
+            "orgHasAcknowledged": True,
+            "userHasAcknowledged": False,
         }
 
     @patch(
@@ -76,10 +137,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "genAIConsent": {
-                "ok": True,
-                "reason": None,
-            },
             "integration": {
                 "ok": True,
                 "reason": None,
@@ -96,24 +153,17 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                     }
                 ],
             },
+            "setupAcknowledgement": {
+                "orgHasAcknowledged": False,
+                "userHasAcknowledged": False,
+            },
+            "billing": {
+                "hasAutofixQuota": True,
+            },
         }
 
 
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
-    def test_no_gen_ai_consent(self):
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", False)
-
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["genAIConsent"] == {
-            "ok": False,
-            "reason": None,
-        }
-
     def test_missing_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.organization_integration.delete()

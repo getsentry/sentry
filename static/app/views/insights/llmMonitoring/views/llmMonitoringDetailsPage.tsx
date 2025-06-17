@@ -16,18 +16,10 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {
-  useEAPSpans,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  EAPNumberOfPipelinesChart,
-  EAPPipelineDurationChart,
-  EAPTotalTokensUsedChart,
-  NumberOfPipelinesChart,
-  PipelineDurationChart,
-  TotalTokensUsedChart,
-} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
+import LlmGroupNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget';
+import LlmGroupPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupPipelineDurationChartWidget';
+import LlmGroupTotalTokensUsedChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
@@ -48,7 +40,7 @@ type Query = {
   'span.description'?: string;
 };
 
-export function LLMMonitoringPage({params}: Props) {
+function LLMMonitoringPage({params}: Props) {
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -60,9 +52,8 @@ export function LLMMonitoringPage({params}: Props) {
     'span.group': groupId,
     'span.category': 'ai.pipeline',
   };
-  const useEAP = organization.features.includes('insights-use-eap');
 
-  const {data: spanMetricData, isPending: areSpanMetricsLoading} = useSpanMetrics(
+  const {data, isPending: areSpanMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -71,25 +62,12 @@ export function LLMMonitoringPage({params}: Props) {
         `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
       ],
-      enabled: Boolean(groupId) && !useEAP,
+      enabled: Boolean(groupId),
     },
     'api.ai-pipelines.details.view'
   );
 
-  const {data: eapData, isPending: isEAPPending} = useEAPSpans(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      fields: [
-        SpanMetricsField.SPAN_OP,
-        'count()',
-        `${SpanFunction.EPM}()`,
-        `avg(${SpanMetricsField.SPAN_DURATION})`,
-      ],
-      enabled: Boolean(groupId) && useEAP,
-    },
-    'api.ai-pipelines.details-eap.view'
-  );
-  const spanMetrics = (useEAP ? eapData[0] : spanMetricData[0]) ?? {};
+  const spanMetrics = data[0] ?? {};
 
   const {data: totalTokenData, isPending: isTotalTokenDataLoading} = useSpanMetrics(
     {
@@ -98,23 +76,12 @@ export function LLMMonitoringPage({params}: Props) {
         'span.ai.pipeline.group': groupId,
       }),
       fields: ['sum(ai.total_tokens.used)', 'sum(ai.total_cost)'],
-      enabled: Boolean(groupId) && !useEAP,
+      enabled: Boolean(groupId),
     },
     'api.ai-pipelines.details.view'
   );
 
-  const {data: eapTokenData, isPending: isEAPTotalTokenDataLoading} = useEAPSpans(
-    {
-      search: MutableSearch.fromQueryObject({
-        'span.category': 'ai',
-        'span.ai.pipeline.group': groupId,
-      }),
-      fields: ['sum(ai.total_tokens.used)', 'sum(ai.total_cost)'],
-      enabled: Boolean(groupId) && useEAP,
-    },
-    'api.ai-pipelines.details.view'
-  );
-  const tokenUsedMetric = (useEAP ? eapTokenData[0] : totalTokenData[0]) ?? {};
+  const tokenUsedMetric = totalTokenData[0] ?? {};
 
   return (
     <Layout.Page>
@@ -149,9 +116,7 @@ export function LLMMonitoringPage({params}: Props) {
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={tokenUsedMetric['sum(ai.total_tokens.used)']}
                         unit={'count'}
-                        isLoading={
-                          useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
-                        }
+                        isLoading={isTotalTokenDataLoading}
                       />
 
                       <MetricReadout
@@ -159,9 +124,7 @@ export function LLMMonitoringPage({params}: Props) {
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={tokenUsedMetric['sum(ai.total_cost)']}
                         unit={CurrencyUnit.USD}
-                        isLoading={
-                          useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
-                        }
+                        isLoading={isTotalTokenDataLoading}
                       />
 
                       <MetricReadout
@@ -169,7 +132,7 @@ export function LLMMonitoringPage({params}: Props) {
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]}
                         unit={DurationUnit.MILLISECOND}
-                        isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
+                        isLoading={areSpanMetricsLoading}
                       />
 
                       <MetricReadout
@@ -177,34 +140,22 @@ export function LLMMonitoringPage({params}: Props) {
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={spanMetrics?.[`${SpanFunction.EPM}()`]}
                         unit={RateUnit.PER_MINUTE}
-                        isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
+                        isLoading={areSpanMetricsLoading}
                       />
                     </ReadoutRibbon>
                   </HeaderContainer>
                 </ModuleLayout.Full>
                 <ModuleLayout.Third>
-                  {useEAP ? (
-                    <EAPTotalTokensUsedChart groupId={groupId} />
-                  ) : (
-                    <TotalTokensUsedChart groupId={groupId} />
-                  )}
+                  <LlmGroupTotalTokensUsedChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  {useEAP ? (
-                    <EAPNumberOfPipelinesChart groupId={groupId} />
-                  ) : (
-                    <NumberOfPipelinesChart groupId={groupId} />
-                  )}
+                  <LlmGroupNumberOfPipelinesChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  {useEAP ? (
-                    <EAPPipelineDurationChart groupId={groupId} />
-                  ) : (
-                    <PipelineDurationChart groupId={groupId} />
-                  )}
+                  <LlmGroupPipelineDurationChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
-                  <PipelineSpansTable groupId={groupId} useEAP={useEAP} />
+                  <PipelineSpansTable groupId={groupId} />
                 </ModuleLayout.Full>
               </ModuleLayout.Layout>
             </Layout.Main>

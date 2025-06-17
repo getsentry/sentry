@@ -211,23 +211,18 @@ def get_owners(
 
     if event:
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+        if not owners:
+            outcome = "empty"
+            recipients = []
+        else:
+            outcome = "match"
+            recipients = owners[-1:]
     else:
-        owners = ProjectOwnership.Everyone
-
-    if not owners:
-        outcome = "empty"
-        recipients: list[Actor] = list()
-
-    elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many_by_id(
             ids=list(project.member_set.values_list("user_id", flat=True))
         )
         recipients = Actor.many_from_object(users)
-
-    else:
-        outcome = "match"
-        recipients = owners[-1:]
     return (recipients, outcome)
 
 

@@ -17,7 +17,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ExploreContent} from 'sentry/views/explore/content';
+import {ExploreContent} from 'sentry/views/explore/spans/content';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
 import {usePageParams} from './hooks/usePageParams';

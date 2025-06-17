@@ -17,7 +17,6 @@ export const enum SectionKey {
   TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
-  LLM_MONITORING = 'llm-monitoring',
   SEER = 'seer',
   EXTERNAL_ISSUES = 'external-issues',
 
@@ -51,6 +50,7 @@ export const enum SectionKey {
 
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
+  SPAN_ATTRIBUTES = 'span-attributes',
   /**
    * Also called images loaded
    */
@@ -82,6 +82,9 @@ export const enum SectionKey {
   REGRESSION_EVENT_COMPARISON = 'regression-event-comparison',
   REGRESSION_POTENTIAL_CAUSES = 'regression-potential-causes',
   REGRESSION_AFFECTED_TRANSACTIONS = 'regression-affected-transactions',
+
+  AI_INPUT = 'ai-input',
+  AI_OUTPUT = 'ai-output',
 }
 
 /**
@@ -94,7 +97,7 @@ export interface SectionConfig {
   initialCollapse?: boolean;
 }
 
-export interface IssueDetailsContextType extends IssueDetailsState {
+interface IssueDetailsContextType extends IssueDetailsState {
   dispatch: Dispatch<IssueDetailsActions>;
 }
 
@@ -115,7 +118,7 @@ export function useIssueDetails() {
   return useContext(IssueDetailsContext);
 }
 
-export interface IssueDetailsState {
+interface IssueDetailsState {
   /**
    * Detector details for the current issue
    */
@@ -155,7 +158,7 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
-export type IssueDetailsActions =
+type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction

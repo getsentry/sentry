@@ -45,6 +45,7 @@ export type GridColumn<K = ObjectKey> = {
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
+  tooltip?: React.ReactNode;
 };
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
@@ -56,7 +57,7 @@ export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
 /**
  * Store state at the start of "resize" action
  */
-export type ColResizeMetadata = {
+type ColResizeMetadata = {
   columnIndex: number; // Column being resized
   columnWidth: number; // Column width at start of resizing
   cursorX: number; // X-coordinate of cursor on window
@@ -320,15 +321,7 @@ class GridEditable<
   }
 
   renderGridHead() {
-    const {
-      error,
-      isLoading,
-      columnOrder,
-      grid,
-      data,
-      stickyHeader,
-      resizable = true,
-    } = this.props;
+    const {error, isLoading, columnOrder, grid, data, resizable = true} = this.props;
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
@@ -353,7 +346,6 @@ class GridEditable<
               data-test-id="grid-head-cell"
               key={`${i}.${column.key}`}
               isFirst={i === 0}
-              sticky={stickyHeader}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
               {i !== numColumn - 1 && resizable && (
@@ -464,6 +456,7 @@ class GridEditable<
       height,
       'aria-label': ariaLabel,
       bodyStyle,
+      stickyHeader,
     } = this.props;
     const showHeader = title || headerButtons;
     return (
@@ -477,7 +470,7 @@ class GridEditable<
               )}
             </Header>
           )}
-          <Body style={bodyStyle}>
+          <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
             <Grid
               aria-label={ariaLabel}
               data-test-id="grid-editable"
@@ -485,7 +478,7 @@ class GridEditable<
               height={height}
               ref={this.refGrid}
             >
-              <GridHead>{this.renderGridHead()}</GridHead>
+              <GridHead sticky={stickyHeader}>{this.renderGridHead()}</GridHead>
               <GridBody>{this.renderGridBody()}</GridBody>
             </Grid>
           </Body>

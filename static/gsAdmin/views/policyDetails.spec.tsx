@@ -9,7 +9,7 @@ describe('PolicyDetails', function () {
   const revisions = PolicyRevisionsFixture();
   const policies = PoliciesFixture();
   const policy = policies.terms!;
-  const {routerProps, router} = initializeOrg({
+  const {routerProps} = initializeOrg({
     router: {params: {policySlug: policy.slug}},
   });
 
@@ -31,7 +31,7 @@ describe('PolicyDetails', function () {
       method: 'PUT',
     });
 
-    render(<PolicyDetails {...routerProps} />, {router});
+    render(<PolicyDetails {...routerProps} />);
 
     const buttons = await screen.findAllByText('Make current');
     // Update current version

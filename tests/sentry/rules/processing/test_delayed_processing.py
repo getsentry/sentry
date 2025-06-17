@@ -21,6 +21,7 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import (
     DataAndGroups,
+    LogConfig,
     UniqueConditionQuery,
     apply_delayed,
     bulk_fetch_events,
@@ -306,6 +307,9 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
+        self.log_config = LogConfig(
+            workflow_engine_process_workflows=True, num_events_issue_debugging=True
+        )
         self.rule = self.create_alert_rule(self.organization, [self.project])
 
         # Create some groups
@@ -337,13 +341,17 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
 
     def test_basic(self):
         self.parsed_data.pop((self.rule.id, self.group2.id))
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, {self.group1.id})
+        result = get_group_to_groupevent(
+            self.log_config, self.parsed_data, self.project.id, {self.group1.id}
+        )
 
         assert len(result) == 1
         assert result[self.group1] == self.event1
 
     def test_many(self):
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, self.group_ids)
+        result = get_group_to_groupevent(
+            self.log_config, self.parsed_data, self.project.id, self.group_ids
+        )
 
         assert len(result) == 2
         assert result[self.group1] == self.event1
@@ -361,22 +369,50 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
             },
         }
 
-        result = get_group_to_groupevent(parsed_data, self.project.id, self.group_ids)
+        result = get_group_to_groupevent(
+            self.log_config, parsed_data, self.project.id, self.group_ids
+        )
 
         assert len(result) == 1
         assert result[self.group1] == self.event1
 
     def test_invalid_project_id(self):
-        result = get_group_to_groupevent(self.parsed_data, 0, self.group_ids)
+        result = get_group_to_groupevent(self.log_config, self.parsed_data, 0, self.group_ids)
         assert len(result) == 0
 
     def test_empty_group_ids(self):
-        result = get_group_to_groupevent({}, self.project.id, set())
+        result = get_group_to_groupevent(self.log_config, self.parsed_data, self.project.id, set())
         assert len(result) == 0
 
     def test_invalid_group_ids(self):
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, {0})
+        result = get_group_to_groupevent(self.log_config, self.parsed_data, self.project.id, {0})
         assert len(result) == 0
+
+    def test_filtered_group_ids(self):
+        """Test that get_group_to_groupevent only requests events for specified group IDs."""
+        # Track which event IDs are requested
+        requested_event_ids = set()
+
+        original_bulk_fetch_events = bulk_fetch_events
+
+        def mock_bulk_fetch_events(event_ids, project_id):
+            requested_event_ids.update(event_ids)
+            return original_bulk_fetch_events(event_ids, project_id)
+
+        with patch(
+            "sentry.rules.processing.delayed_processing.bulk_fetch_events",
+            side_effect=mock_bulk_fetch_events,
+        ):
+            # Call get_group_to_groupevent with only group1
+            result = get_group_to_groupevent(
+                self.log_config, self.parsed_data, self.project.id, {self.group1.id}
+            )
+
+            # Verify only event1 was requested
+            assert requested_event_ids == {self.event1.event_id}
+            assert len(result) == 1
+            assert result[self.group1] == self.event1
+            assert self.group2 not in result
 
 
 class GetRulesToFireTest(TestCase):
@@ -1357,18 +1393,21 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.rule = self.create_alert_rule()
+        self.log_config = LogConfig(
+            workflow_engine_process_workflows=True, num_events_issue_debugging=True
+        )
 
     def test_cleanup_redis(self):
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, None)
+        cleanup_redis_buffer(self.log_config, self.project, rules_to_groups, None)
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
     @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
     def test_batched_cleanup(self, mock_apply_delayed):
         group_two = self.create_group(self.project)
         group_three = self.create_group(self.project)
@@ -1383,14 +1422,14 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_three.id)
 
         process_in_batches(self.project.id, "delayed_processing")
-        batch_one_key = mock_apply_delayed.call_args_list[0][0][1]
-        batch_two_key = mock_apply_delayed.call_args_list[1][0][1]
+        batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
+        batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify process_rulegroups_in_batches removed the data from the buffer
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, batch_one_key)
+        cleanup_redis_buffer(self.log_config, self.project, rules_to_groups, batch_one_key)
 
         # Verify the batch we "executed" is removed
         rule_group_data = buffer.backend.get_hash(

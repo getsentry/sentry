@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -17,22 +18,20 @@ describe('messageSpanSamplesPanel', () => {
   let samplesRequestMock: jest.Mock;
   let spanFieldTagsMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -50,7 +49,14 @@ describe('messageSpanSamplesPanel', () => {
       method: 'GET',
       body: {
         data: [[1699907700, [{count: 7810}]]],
-        meta: {},
+        meta: {
+          fields: {
+            count: 'number',
+          },
+          units: {
+            count: 'millisecond',
+          },
+        },
       },
     });
 
@@ -111,6 +117,10 @@ describe('messageSpanSamplesPanel', () => {
             'span.duration': 320.300102,
           },
         ],
+        meta: {
+          fields: {},
+          units: {},
+        },
       },
     });
 
@@ -130,7 +140,17 @@ describe('messageSpanSamplesPanel', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
   });
@@ -173,7 +193,6 @@ describe('messageSpanSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],
@@ -188,6 +207,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
+            'id',
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
@@ -196,6 +216,7 @@ describe('messageSpanSamplesPanel', () => {
             'messaging.message.id',
             'trace.status',
             'span.duration',
+            'transaction.span_id',
           ],
           firstBound: 2666.6666666666665,
           lowerBound: 0,
@@ -268,7 +289,6 @@ describe('messageSpanSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],
@@ -283,6 +303,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
+            'id',
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
@@ -291,6 +312,7 @@ describe('messageSpanSamplesPanel', () => {
             'messaging.message.id',
             'trace.status',
             'span.duration',
+            'transaction.span_id',
           ],
           firstBound: 2666.6666666666665,
           lowerBound: 0,

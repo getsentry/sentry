@@ -41,7 +41,7 @@ export interface KeyValueDataContentProps {
   expandLeft?: boolean;
   /**
    * Used for the feature flag section.
-   * If true, then the row will be highlighted in red.
+   * If true, then the row will be highlighted in yellow.
    */
   isSuspectFlag?: boolean;
   /**
@@ -119,7 +119,7 @@ export function Content({
   );
 }
 
-export interface KeyValueDataCardProps {
+interface KeyValueDataCardProps {
   /**
    * ContentProps items to be rendered in this card.
    */
@@ -163,8 +163,8 @@ export function Card({
     ? truncatedItems.sort((a, b) => a.item.subject.localeCompare(b.item.subject))
     : truncatedItems;
 
-  const componentItems = orderedItems.map((itemProps, i) => (
-    <Content expandLeft={expandLeft} key={`content-card-${title}-${i}`} {...itemProps} />
+  const componentItems = orderedItems.map((itemProps, index) => (
+    <Content expandLeft={expandLeft} key={String(index)} {...itemProps} />
   ));
 
   return (
@@ -195,7 +195,7 @@ const filterChildren = (children: ReactNode): ReactNode[] => {
 // Note: When conditionally rendering children, instead of returning
 // if(!condition) return null inside Component, we should render  {condition ? <Component/> : null}
 // where Component returns a <Card/>. {null} is ignored when distributing cards into columns.
-export function Container({children}: {children: React.ReactNode}) {
+function Container({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
 

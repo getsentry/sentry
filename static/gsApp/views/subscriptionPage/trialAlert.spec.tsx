@@ -79,7 +79,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features, and unlimited errors, transactions, replays, attachments, cron monitors, and uptime monitors."
+        "With your trial you have access to Sentry's business plan features."
       )
     ).toBeInTheDocument();
   });
@@ -97,7 +97,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features, and unlimited errors, replays, attachments, cron monitors, spans, uptime monitors, continuous profile hours, and UI profile hours."
+        "With your trial you have access to Sentry's business plan features."
       )
     ).toBeInTheDocument();
   });
@@ -134,7 +134,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Performance Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        `With your trial you have access to Sentry's performance features, and unlimited transactions and attachments.`
+        `With your trial you have access to Sentry's performance features.`
       )
     ).toBeInTheDocument();
   });

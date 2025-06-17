@@ -11,7 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {DataCategory, Outcome} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
@@ -199,19 +199,6 @@ type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
 
 type ValidLengthArgument = TupleOf<ColorLength>[number];
 
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
-  infer _First,
-  ...infer Rest,
-]
-  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    Record<A['length'], Rest extends [] ? never : Rest[0]> &
-      NextTuple<Rest, [...A, unknown]>
-  : Record<number, unknown>;
-
-type NextMap = NextTuple<TupleOf<ColorLength>>;
-type Next<R extends ValidLengthArgument> = NextMap[R];
-
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -220,24 +207,36 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  * return a single color, not two colors. It smells like either a bug or off by one error.
  * @param length - The number of series to return a color palette for?
  */
-function getChartColorPalette<Length extends ValidLengthArgument>(
-  length: Length | number
-): Exclude<ChartColorPalette[Next<Length>], undefined> {
-  // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
-  // the palette is not sparse, but we should probably add a runtime check here as well.
-  const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
-  return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
+  return function getChartColorPalette<Length extends ValidLengthArgument>(
+    length: Length | number
+  ): T[Length] {
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as T[Length];
+  };
 }
 
 const generateTokens = (colors: Colors) => ({
   content: {
     primary: colors.gray400, // theme.textColor
     muted: colors.gray300, // theme.subText
-    accent: colors.blue400, // new
+    accent: colors.purple400, // new
     promotion: colors.pink400, // new
     danger: colors.red400, // theme.errorText
     warning: colors.yellow400, // theme.warningText
     success: colors.green400, // theme.successText
+  },
+  graphics: {
+    muted: colors.gray300,
+    accent: colors.blue300,
+    promotion: colors.pink300,
+    danger: colors.red300,
+    warning: colors.yellow300,
+    success: colors.green300,
   },
   background: {
     primary: colors.surface300, // theme.background
@@ -561,6 +560,17 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
     border: alias.disabledBorder,
     borderActive: alias.disabledBorder,
     borderTranslucent: alias.translucentInnerBorder,
+    focusBorder: 'transparent',
+    focusShadow: 'transparent',
+  },
+  transparent: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: 'transparent',
+    backgroundActive: 'transparent',
+    border: 'transparent',
+    borderActive: 'transparent',
+    borderTranslucent: 'transparent',
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
@@ -942,7 +952,7 @@ type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'un
 type LevelColors = Record<Level, string>;
 
 // @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled';
+type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
   Button,
   {
@@ -1128,28 +1138,6 @@ const iconSizes: Sizes = {
   xxl: `${iconNumberSizes.xxl}px`,
 } as const;
 
-// @TODO(jonasbadalic): This was missing profiles, profileChunks, profileDuration, spans, spansIndexed, uptime, what do we do with them?
-const dataCategory: Record<
-  Exclude<
-    DataCategory,
-    | DataCategory.PROFILES
-    | DataCategory.PROFILE_CHUNKS
-    | DataCategory.PROFILE_DURATION
-    | DataCategory.PROFILE_CHUNKS_UI
-    | DataCategory.PROFILE_DURATION_UI
-    | DataCategory.SPANS
-    | DataCategory.SPANS_INDEXED
-    | DataCategory.UPTIME
-  >,
-  string
-> = {
-  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
-  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
-  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
-  [DataCategory.REPLAYS]: CHART_PALETTE[4][4],
-  [DataCategory.MONITOR_SEATS]: '#a397f7',
-};
-
 /**
  * Default colors for data usage outcomes.
  * Note: "Abuse" and "Cardinality Limited" are merged into "Rate Limited,"
@@ -1286,11 +1274,7 @@ const commonTheme = {
 
   // @TODO(jonasbadalic) Do these need to be here?
   outcome,
-  dataCategory,
 };
-
-// Redeclare as we dont want to use the deprecation
-const getColorPalette = getChartColorPalette;
 
 const lightTokens = generateTokens(lightColors);
 const darkTokens = generateTokens(darkColors);
@@ -1332,7 +1316,7 @@ export const lightTheme = {
   },
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
   prismVariables: generateThemePrismVariables(
     prismLight,
@@ -1391,7 +1375,7 @@ export const darkTheme: typeof lightTheme = {
   },
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: getChartColorPalette,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?

@@ -154,6 +154,15 @@ jest.mock('@sentry/react', function sentryReact() {
 
 ConfigStore.loadInitialData(ConfigFixture());
 
+// Default browser timezone to UTC
+jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
+  locale: 'en-US',
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+}));
+
 /**
  * Test Globals
  */

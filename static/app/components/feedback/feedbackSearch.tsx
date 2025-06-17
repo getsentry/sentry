@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
+import union from 'lodash/union';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -14,7 +16,9 @@ import {
   FieldKey,
   FieldKind,
   getFieldDefinition,
+  IsFieldValues,
 } from 'sentry/utils/fields';
+import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,44 +28,43 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const EXCLUDED_TAGS: string[] = [
-  FeedbackFieldKey.BROWSER_VERSION,
-  FeedbackFieldKey.LOCALE_LANG,
-  FeedbackFieldKey.LOCALE_TIMEZONE,
-  FieldKey.MESSAGE,
-  FieldKey.PLATFORM,
-  FeedbackFieldKey.OS_VERSION,
   // These are found in issue platform and redundant (= __.name, ex os.name)
   'browser',
   'device',
   'os',
   'user',
+  FieldKey.PLATFORM,
 ];
 
-const EXCLUDED_SUGGESTIONS: string[] = [
-  FeedbackFieldKey.MESSAGE, // Suggestions are too polluted by issue platform error messages.
+const NON_TAG_FIELDS: string[] = [
+  FieldKey.ASSIGNED,
+  FieldKey.HAS,
+  FieldKey.IS,
+  FieldKey.MESSAGE,
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
 
-function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(key => [
-      key,
-      {
-        key,
-        name: key,
-        ...getFeedbackFieldDefinition(key),
-      },
-    ])
+function getHasFieldValues(supportedTags: TagCollection): string[] {
+  const customTagKeys = Object.values(supportedTags)
+    .map(tag => tag.key)
+    .filter(key => !EXCLUDED_TAGS.includes(key));
+
+  // Ensure suggested fields are included.
+  const feedbackFieldKeys = FEEDBACK_FIELDS.map(String).filter(
+    key => !NON_TAG_FIELDS.includes(key)
   );
+
+  return union(customTagKeys, feedbackFieldKeys).sort();
 }
 
-const FEEDBACK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(FEEDBACK_FIELDS);
-
 /**
- * Merges a list of supported tags and feedback search properties into one collection.
+ * Get the full collection of feedback search properties and custom tags.
  */
-function getFeedbackFilterKeys(supportedTags: TagCollection) {
+function getFeedbackFilterKeys(
+  supportedTags: TagCollection,
+  assignedValues: SearchGroup[] | string[]
+) {
   const allTags = {
     ...Object.fromEntries(
       Object.keys(supportedTags)
@@ -70,18 +73,82 @@ function getFeedbackFilterKeys(supportedTags: TagCollection) {
           key,
           {
             ...supportedTags[key]!,
-            kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
+            kind: FieldKind.TAG,
           },
         ])
     ),
-    ...FEEDBACK_FIELDS_AS_TAGS,
+    ...Object.fromEntries(
+      FEEDBACK_FIELDS.map(key => {
+        const fieldDefinition = getFeedbackFieldDefinition(key);
+
+        if (key === FieldKey.ASSIGNED) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: assignedValues,
+            },
+          ];
+        }
+
+        if (key === FieldKey.HAS) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: getHasFieldValues(supportedTags),
+            },
+          ];
+        }
+
+        if (key === FieldKey.IS) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: Object.values(IsFieldValues),
+            },
+          ];
+        }
+
+        if (key === FeedbackFieldKey.MESSAGE) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: [], // message tag suggestions are not relevant to user feedback.
+            },
+          ];
+        }
+
+        return [
+          key,
+          {
+            key,
+            name: key,
+            ...fieldDefinition,
+          },
+        ];
+      })
+    ),
   };
 
   // A hack used to "sort" the dictionary for SearchQueryBuilder.
-  // Technically dicts are unordered but this works in dev.
+  // Technically dicts are unordered but this seems to work.
   // To guarantee ordering, we need to implement filterKeySections.
-  const keys = Object.keys(allTags);
-  keys.sort();
+  const keys = Object.keys(allTags).sort();
   return Object.fromEntries(keys.map(key => [key, allTags[key]!]));
 }
 
@@ -90,7 +157,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     tag =>
       tag.kind === FieldKind.TAG &&
       !EXCLUDED_TAGS.includes(tag.key) &&
-      !FEEDBACK_FIELDS.map(String).includes(tag.key)
+      !(FEEDBACK_FIELDS as string[]).includes(tag.key) // Sections can't overlap.
   );
 
   const orderedTagKeys: string[] = orderBy(
@@ -103,7 +170,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     {
       value: 'feedback_field',
       label: t('Suggested'),
-      children: Object.keys(FEEDBACK_FIELDS_AS_TAGS),
+      children: FEEDBACK_FIELDS,
     },
     {
       value: FieldKind.TAG,
@@ -147,11 +214,12 @@ export default function FeedbackSearch() {
       return acc;
     }, {});
   }, [tagQuery]);
-  // tagQuery.isLoading and tagQuery.isError are not used
+
+  const assignedValues = useAssignedSearchValues();
 
   const filterKeys = useMemo(
-    () => getFeedbackFilterKeys(issuePlatformTags),
-    [issuePlatformTags]
+    () => getFeedbackFilterKeys(issuePlatformTags, assignedValues),
+    [issuePlatformTags, assignedValues]
   );
 
   const filterKeySections = useMemo(() => {
@@ -163,10 +231,6 @@ export default function FeedbackSearch() {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
-        return Promise.resolve([]);
-      }
-
-      if (EXCLUDED_SUGGESTIONS.includes(tag.key)) {
         return Promise.resolve([]);
       }
 
@@ -212,6 +276,7 @@ export default function FeedbackSearch() {
 
   return (
     <SearchQueryBuilder
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       initialQuery={decodeScalar(locationQuery.query, '')}
       fieldDefinitionGetter={getFeedbackFieldDefinition}
       filterKeys={filterKeys}

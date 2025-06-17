@@ -34,7 +34,7 @@ function Filters({
         placeholder={t('Search Console Logs')}
         size="sm"
         query={searchTerm}
-        disabled={!frames || !frames.length}
+        disabled={!frames?.length}
       />
     </FiltersGrid>
   );

@@ -7,33 +7,6 @@ import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
-export type WebVitalsRow = {
-  'avg(measurements.score.cls)': number;
-  'avg(measurements.score.fcp)': number;
-  'avg(measurements.score.inp)': number;
-  'avg(measurements.score.lcp)': number;
-  'avg(measurements.score.total)': number;
-  'avg(measurements.score.ttfb)': number;
-  'count()': number;
-  'count_scores(measurements.score.cls)': number;
-  'count_scores(measurements.score.fcp)': number;
-  'count_scores(measurements.score.inp)': number;
-  'count_scores(measurements.score.lcp)': number;
-  'count_scores(measurements.score.total)': number;
-  'count_scores(measurements.score.ttfb)': number;
-  'performance_score(measurements.score.cls)': number;
-  'performance_score(measurements.score.fcp)': number;
-  'performance_score(measurements.score.inp)': number;
-  'performance_score(measurements.score.lcp)': number;
-  'performance_score(measurements.score.total)': number;
-  'performance_score(measurements.score.ttfb)': number;
-  'sum(measurements.score.weight.cls)': number | undefined;
-  'sum(measurements.score.weight.fcp)': number | undefined;
-  'sum(measurements.score.weight.inp)': number | undefined;
-  'sum(measurements.score.weight.lcp)': number | undefined;
-  'sum(measurements.score.weight.ttfb)': number | undefined;
-};
-
 type Props = {
   browserTypes?: BrowserType[];
   dataset?: DiscoverDatasets;

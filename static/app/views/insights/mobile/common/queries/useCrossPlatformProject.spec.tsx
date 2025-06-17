@@ -1,4 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
@@ -13,22 +14,20 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 function mockPageFilters(projects: number[]) {
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects,
       },
-      environments: [],
-      projects,
-    },
-  });
+    })
+  );
 }
 
 describe('useCrossPlatformProject', () => {

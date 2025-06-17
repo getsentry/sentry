@@ -2,7 +2,7 @@
 all: develop
 
 PIP := python -m pip --disable-pip-version-check
-WEBPACK := yarn build-acceptance
+WEBPACK := pnpm run build-acceptance
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
@@ -35,8 +35,7 @@ devenv-sync:
 
 build-js-po:
 	mkdir -p build
-	rm -rf node_modules/.cache/babel-loader
-	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+	pnpm run build-js-po
 
 build-spectacular-docs:
 	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"
@@ -44,19 +43,19 @@ build-spectacular-docs:
 
 build-deprecated-docs:
 	@echo "--> Building deprecated openapi spec from json files"
-	yarn build-deprecated-docs
+	pnpm run build-deprecated-docs
 
 build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
-	yarn deref-api-docs
+	pnpm run deref-api-docs
 
 watch-api-docs:
-	@cd api-docs/ && yarn install
-	@cd api-docs/ && ts-node ./watch.ts
+	@cd api-docs/ && pnpm install --frozen-lockfile
+	@cd api-docs/ && node --experimental-transform-types ./watch.ts
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
-	yarn diff-docs
+	pnpm run diff-docs
 
 build: locale
 
@@ -87,7 +86,7 @@ update-local-locales: pull-transifex compile-locale
 
 build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
-	yarn build-chartcuterie-config
+	pnpm run build-chartcuterie-config
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
@@ -101,24 +100,24 @@ test-cli: create-db
 	cd test_cli && sentry init test_conf
 	cd test_cli && sentry --config=test_conf help
 	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput
-	cd test_cli && sentry --config=test_conf export
+	cd test_cli && sentry --config=test_conf export --help
 	rm -r test_cli
 	@echo ""
 
 test-js-build:
 	@echo "--> Running type check"
-	@yarn run tsc -p config/tsconfig.build.json
+	@pnpm run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
-	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
+	@NODE_ENV=production pnpm run build-profile > .artifacts/webpack-stats.json
 
 test-js:
 	@echo "--> Running JavaScript tests"
-	@yarn run test
+	@pnpm run test
 	@echo ""
 
 test-js-ci:
 	@echo "--> Running CI JavaScript tests"
-	@yarn run test-ci
+	@pnpm run test-ci
 	@echo ""
 
 # COV_ARGS controls extra args passed to pytest to generate covereage
@@ -198,7 +197,7 @@ test-relay-integration:
 	@echo ""
 
 test-api-docs: build-api-docs
-	yarn run validate-api-examples
+	pnpm run validate-api-examples
 	python3 -b -m pytest tests/apidocs
 	@echo ""
 

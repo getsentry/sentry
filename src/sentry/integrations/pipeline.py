@@ -16,15 +16,15 @@ from sentry.integrations.base import IntegrationData
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline_types import IntegrationPipelineT
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
+from sentry.pipeline import PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.utils import metrics
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.web.helpers import render_to_response
 
 __all__ = ["IntegrationPipeline"]
@@ -89,7 +89,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     return mapping.region_name not in region_names
 
 
-class IntegrationPipeline(Pipeline):
+class IntegrationPipeline(IntegrationPipelineT):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 
@@ -214,7 +214,6 @@ class IntegrationPipeline(Pipeline):
                 # If the external_id is already used for a different user then throw an error
                 # otherwise we have the same user with a new external id
                 # and we update the identity with the new external_id and identity data
-                incr_rollback_metrics(Identity)
                 try:
                     matched_identity = Identity.objects.get(
                         idp=idp, external_id=identity["external_id"]

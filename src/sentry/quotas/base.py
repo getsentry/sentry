@@ -689,7 +689,12 @@ class Quota(Service):
 
     def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
         """
-        Removes an object from it's assigned seat.
+        Disables an assigned seat.
+        """
+
+    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+        """
+        Removes an assigned seat.
         """
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
@@ -731,3 +736,29 @@ class Quota(Service):
             new_role: The member's new role after the change
         """
         pass
+
+    def has_available_reserved_budget(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has enough reserved budget for the given data category operation.
+        """
+        return True
+
+    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+        """
+        Records a seer run for an organization.
+        """
+        return
+
+    def has_profile_duration_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has quota available for the given data category.
+
+        Args:
+            org_id: The ID of the organization to check
+            data_category: The data category to check quota for.
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+                  Always False if data category is not a profile duration category.
+        """
+        return True

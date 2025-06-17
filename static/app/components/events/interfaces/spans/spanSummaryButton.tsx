@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -28,7 +28,7 @@ function SpanSummaryButton(props: Props) {
   const {event, organization, span} = props;
 
   const sentryTags = span.sentry_tags;
-  if (!sentryTags || !sentryTags.group) {
+  if (!sentryTags?.group) {
     return null;
   }
 

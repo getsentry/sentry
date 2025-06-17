@@ -82,6 +82,61 @@ class RobotsTxtTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "text/plain"
 
+    def test_self_hosted_mode(self):
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/robots.txt")
+
+        assert response.status_code == 200
+        assert (
+            response.content
+            == b"""User-agent: *
+Disallow: /
+"""
+        )
+        assert response["Content-Type"] == "text/plain"
+
+    def test_saas_mode(self):
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/robots.txt")
+
+        assert response.status_code == 200
+        assert (
+            response.content
+            == b"""User-agent: *
+Disallow: /api/
+Allow: /
+
+Sitemap: https://sentry.io/sitemap-index.xml
+"""
+        )
+        assert response["Content-Type"] == "text/plain"
+
+    def test_region_domain(self):
+        HTTP_HOST = "us.testserver"
+        response = self.client.get("/robots.txt", HTTP_HOST=HTTP_HOST)
+
+        assert response.status_code == 200
+        assert (
+            response.content
+            == b"""User-agent: *
+Disallow: /
+"""
+        )
+        assert response["Content-Type"] == "text/plain"
+
+    def test_customer_domain(self):
+        HTTP_HOST = "albertos-apples.testserver"
+        response = self.client.get("/robots.txt", HTTP_HOST=HTTP_HOST)
+
+        assert response.status_code == 200
+        assert (
+            response.content
+            == b"""User-agent: *
+Disallow: /
+"""
+        )
+        assert response["Content-Type"] == "text/plain"
+
 
 @region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
 class ClientConfigViewTest(TestCase):
@@ -599,8 +654,7 @@ class ClientConfigViewTest(TestCase):
         assert "activeorg" not in self.client.session
 
         # Load client config
-        self.login_as(self.user)
-        response = self.client.get(self.path)
+        response = self.client.get(self.path, HTTP_AUTHORIZATION=HTTP_AUTHORIZATION)
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
 

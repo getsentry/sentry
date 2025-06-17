@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import * as useMedia from 'sentry/utils/useMedia';
@@ -68,7 +68,10 @@ describe('GroupEventCarousel', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {router});
+      render(<GroupEventCarousel {...defaultProps} />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /oldest/i}));
@@ -82,7 +85,10 @@ describe('GroupEventCarousel', () => {
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {router});
+      render(<GroupEventCarousel {...defaultProps} />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /latest/i}));
@@ -97,7 +103,10 @@ describe('GroupEventCarousel', () => {
       const newRouter = RouterFixture({params: {eventId: 'latest'}});
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {router: newRouter});
+      render(<GroupEventCarousel {...defaultProps} />, {
+        router: newRouter,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(screen.getByRole('button', {name: /latest/i}));
       await userEvent.click(screen.getByRole('option', {name: /recommended/i}));
@@ -111,7 +120,9 @@ describe('GroupEventCarousel', () => {
     it('will disable the dropdown if there is only one event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />);
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByRole('button', {name: 'Recommended'})).toBeDisabled();
     });
@@ -120,7 +131,9 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />);
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(
         await screen.findByRole('button', {name: 'Recommended'})
@@ -131,7 +144,9 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />);
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByRole('button', {name: 'Latest'})).toBeInTheDocument();
     });
@@ -140,14 +155,18 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />);
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByRole('button', {name: 'Oldest'})).toBeInTheDocument();
     });
   });
 
   it('can navigate next/previous events', () => {
-    render(<GroupEventCarousel {...defaultProps} />);
+    render(<GroupEventCarousel {...defaultProps} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
       'href',
@@ -160,7 +179,9 @@ describe('GroupEventCarousel', () => {
   });
 
   it('can copy event ID', async () => {
-    render(<GroupEventCarousel {...defaultProps} />);
+    render(<GroupEventCarousel {...defaultProps} />, {
+      deprecatedRouterMocks: true,
+    });
 
     await userEvent.click(screen.getByText(testEvent.id));
 
@@ -168,7 +189,9 @@ describe('GroupEventCarousel', () => {
   });
 
   it('can copy event link', async () => {
-    render(<GroupEventCarousel {...defaultProps} />);
+    render(<GroupEventCarousel {...defaultProps} />, {
+      deprecatedRouterMocks: true,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: /copy event link/i}));
@@ -181,19 +204,20 @@ describe('GroupEventCarousel', () => {
   it('links to full event details when org has discover', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
       organization: OrganizationFixture({features: ['discover-basic']}),
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
 
     expect(
-      within(screen.getByRole('menuitemradio', {name: /full event details/i})).getByRole(
-        'link'
-      )
+      screen.getByRole('menuitemradio', {name: /full event details/i})
     ).toHaveAttribute('href', `/organizations/org-slug/discover/project-slug:event-id/`);
   });
 
   it('can open event JSON', async () => {
-    render(<GroupEventCarousel {...defaultProps} />);
+    render(<GroupEventCarousel {...defaultProps} />, {
+      deprecatedRouterMocks: true,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7.0 B)'}));

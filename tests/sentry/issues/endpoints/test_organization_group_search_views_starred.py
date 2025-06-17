@@ -43,7 +43,7 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
             )
         return view
 
-    def star_view(self, user: User, view: GroupSearchView):
+    def star_view(self, user: User, view: GroupSearchView) -> None:
         GroupSearchViewStarred.objects.insert_starred_view(
             user_id=user.id,
             organization=self.organization,
@@ -52,7 +52,7 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    def test_simple_case(self):
+    def test_simple_case(self) -> None:
         self.login_as(user=self.user)
         view_1 = self.create_view(user=self.user, name="Starred View 1", starred=True)
         view_2 = self.create_view(user=self.user, name="Starred View 2", starred=True)
@@ -71,7 +71,7 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    def test_views_starred_by_many_users(self):
+    def test_views_starred_by_many_users(self) -> None:
         user_1 = self.user
         user_2 = self.create_user()
         self.create_member(user=user_2, organization=self.organization)

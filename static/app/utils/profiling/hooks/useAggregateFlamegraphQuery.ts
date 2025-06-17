@@ -40,7 +40,7 @@ export type AggregateFlamegraphQueryParameters =
   | TransactionsAggregateFlamegraphQueryParameters
   | ProfilesAggregateFlamegraphQueryParameters;
 
-export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
+type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
   Profiling.Schema,
   RequestError
 >;

@@ -1,5 +1,6 @@
 import type {ReactEventHandler} from 'react';
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
@@ -7,6 +8,11 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {
+  getInlineAttachmentRenderer,
+  imageMimeTypes,
+  webmMimeType,
+} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -20,8 +26,6 @@ import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-import ImageVisualization from './imageVisualization';
 
 type Props = {
   eventId: Event['id'];
@@ -50,9 +54,14 @@ function Screenshot({
   onDelete,
   openVisualizationModal,
 }: Props) {
-  const orgSlug = organization.slug;
-  const [loadingImage, setLoadingImage] = useState(true);
+  const [loadingImage, setLoadingImage] = useState(
+    imageMimeTypes.includes(screenshot.mimetype) || webmMimeType === screenshot.mimetype
+  );
+
   const {hasRole} = useRole({role: 'attachmentsRole'});
+  if (!hasRole) {
+    return null;
+  }
 
   function handleDelete(screenshotAttachmentId: string) {
     trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
@@ -62,7 +71,9 @@ function Screenshot({
   }
 
   function renderContent(screenshotAttachment: EventAttachment) {
-    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshotAttachment.id}/`;
+    const AttachmentComponent = getInlineAttachmentRenderer(screenshotAttachment)!;
+
+    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
 
     return (
       <Fragment>
@@ -94,20 +105,22 @@ function Screenshot({
               <LoadingIndicator mini />
             </StyledLoadingIndicator>
           )}
-          <StyledImageWrapper
+          <AttachmentComponentWrapper
             onClick={() =>
-              openVisualizationModal(screenshotAttachment, `${downloadUrl}?download=1`)
+              openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
             }
           >
-            <StyledImageVisualization
-              attachment={screenshotAttachment}
-              orgSlug={orgSlug}
+            <AttachmentComponent
+              orgSlug={organization.slug}
               projectSlug={projectSlug}
               eventId={eventId}
+              attachment={screenshot}
               onLoad={() => setLoadingImage(false)}
               onError={() => setLoadingImage(false)}
+              controls={false}
+              onCanPlay={() => setLoadingImage(false)}
             />
-          </StyledImageWrapper>
+          </AttachmentComponentWrapper>
         </StyledPanelBody>
         {!onlyRenderScreenshot && (
           <StyledPanelFooter>
@@ -165,10 +178,6 @@ function Screenshot({
     );
   }
 
-  if (!hasRole) {
-    return null;
-  }
-
   return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
 }
 
@@ -216,10 +225,10 @@ const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
 
   ${p =>
     !p.hasHeader &&
-    `
-  border-top-left-radius: ${p.theme.borderRadius};
-  border-top-right-radius: ${p.theme.borderRadius};
-  `}
+    css`
+      border-top-left-radius: ${p.theme.borderRadius};
+      border-top-right-radius: ${p.theme.borderRadius};
+    `}
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
@@ -239,14 +248,14 @@ const StyledLoadingIndicator = styled('div')`
   height: 100%;
 `;
 
-const StyledImageWrapper = styled('div')`
+const AttachmentComponentWrapper = styled('div')`
   :hover {
     cursor: pointer;
   }
-`;
-
-const StyledImageVisualization = styled(ImageVisualization)`
-  width: 100%;
-  z-index: 1;
-  border: 0;
+  & > * {
+    width: 100%;
+    z-index: 1;
+    border: 0;
+    padding: 0 !important;
+  }
 `;

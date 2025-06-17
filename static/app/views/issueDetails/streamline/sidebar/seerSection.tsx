@@ -1,19 +1,18 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';
-import {IconMegaphone} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -21,29 +20,6 @@ import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
-
-function SeerFeedbackButton({hidden}: {hidden: boolean}) {
-  const openFeedbackForm = useFeedbackForm();
-  if (hidden) {
-    return null;
-  }
-  return (
-    <Button
-      aria-label={t('Give feedback on Seer')}
-      icon={<IconMegaphone />}
-      size="xs"
-      onClick={() =>
-        openFeedbackForm?.({
-          messagePlaceholder: t('How can we make Issue Summary better for you?'),
-          tags: {
-            ['feedback.source']: 'issue_details_ai_autofix',
-            ['feedback.owner']: 'ml-ai',
-          },
-        })
-      }
-    />
-  );
-}
 
 function SeerSectionContent({
   group,
@@ -56,7 +32,7 @@ function SeerSectionContent({
 }) {
   const aiConfig = useAiConfig(group, project);
 
-  if (!event) {
+  if (!event || aiConfig.isAutofixSetupLoading) {
     return <Placeholder height="160px" />;
   }
 
@@ -99,26 +75,35 @@ export default function SeerSection({
 
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
+
+  const issueTypeDoesntHaveSeer =
+    !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
+
+  if (
+    (!aiConfig.areAiFeaturesAllowed || issueTypeDoesntHaveSeer) &&
+    !aiConfig.hasResources
+  ) {
+    return null;
+  }
+
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
+    aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
-  const titleComponent = (
+  const onlyHasResources =
+    issueTypeDoesntHaveSeer ||
+    (!aiConfig.needsGenAiAcknowledgement &&
+      !aiConfig.hasSummary &&
+      !aiConfig.hasAutofix &&
+      aiConfig.hasResources);
+
+  const titleComponent = onlyHasResources ? (
+    <HeaderContainer>{t('Resources')}</HeaderContainer>
+  ) : (
     <HeaderContainer>
       {t('Seer')}
-      {aiConfig.hasSummary && (
-        <StyledFeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: tct(
-              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {email: <a href="mailto:autofix@sentry.io" />}
-            ),
-            isHoverable: true,
-          }}
-        />
-      )}
+      <IconSeer />
     </HeaderContainer>
   );
 
@@ -126,14 +111,11 @@ export default function SeerSection({
     <SidebarFoldSection
       title={titleComponent}
       sectionKey={SectionKey.SEER}
-      actions={<SeerFeedbackButton hidden={!aiConfig.hasSummary} />}
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {aiConfig.needsGenAIConsent ? (
-          <Summary>
-            {t('Explore potential root causes and solutions with Autofix.')}
-          </Summary>
+        {aiConfig.orgNeedsGenAiAcknowledgement && !aiConfig.isAutofixSetupLoading ? (
+          <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
         ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
           <SeerSectionContent group={group} project={project} event={event} />
         ) : issueTypeConfig.resources ? (
@@ -189,17 +171,17 @@ const ResourcesContent = styled('div')<{isExpanded: boolean}>`
 
   ${p =>
     !p.isExpanded &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 40px;
-      background: linear-gradient(transparent, ${p.theme.background});
-    }
-  `}
+    css`
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: linear-gradient(transparent, ${p.theme.background});
+      }
+    `}
 `;
 
 const ExpandButton = styled(Button)`
@@ -220,9 +202,5 @@ const HeaderContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-bottom: 3px;
+  gap: ${space(0.5)};
 `;

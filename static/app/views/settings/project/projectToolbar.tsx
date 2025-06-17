@@ -4,7 +4,7 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -84,7 +84,7 @@ export default function ProjectToolbarSettings({
         }
       />
       <Feature
-        features="dev-toolbar-ui"
+        features="sentry-toolbar-ui"
         organization={organization}
         renderDisabled={NoAccess}
       >

@@ -10,7 +10,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverview', function () {
   const api = new MockApiClient();
@@ -173,5 +173,59 @@ describe('CheckoutOverview', function () {
 
     expect(screen.getByText('Team Plan')).toBeInTheDocument();
     expect(screen.queryByTestId('on-demand-additional-cost')).not.toBeInTheDocument();
+  });
+
+  it('displays product when selected', () => {
+    const orgWithSeerFeature = {...organization, features: ['seer-billing']};
+    const formData: CheckoutFormData = {
+      plan: 'am2_team',
+      reserved: {errors: 100000, transactions: 500000, attachments: 25},
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: true,
+        },
+      },
+    };
+
+    render(
+      <CheckoutOverview
+        activePlan={teamPlanMonthly}
+        billingConfig={billingConfig}
+        formData={formData}
+        onUpdate={jest.fn()}
+        organization={orgWithSeerFeature}
+        subscription={subscription}
+      />
+    );
+
+    expect(screen.getByTestId('seer-reserved')).toBeInTheDocument();
+    expect(screen.getByText('Seer AI Agent')).toBeInTheDocument();
+  });
+
+  it('does not display product when not selected', () => {
+    const orgWithSeerFeature = {...organization, features: ['seer-billing']};
+    const formData: CheckoutFormData = {
+      plan: 'am2_team',
+      reserved: {errors: 100000, transactions: 500000, attachments: 25},
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: false,
+        },
+      },
+    };
+
+    render(
+      <CheckoutOverview
+        activePlan={teamPlanMonthly}
+        billingConfig={billingConfig}
+        formData={formData}
+        onUpdate={jest.fn()}
+        organization={orgWithSeerFeature}
+        subscription={subscription}
+      />
+    );
+
+    expect(screen.queryByTestId('seer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer AI Agent')).not.toBeInTheDocument();
   });
 });

@@ -42,6 +42,27 @@ class ExploreSavedQueryProject(Model):
 
 
 @region_silo_model
+class ExploreSavedQueryLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    explore_saved_query = FlexibleForeignKey("explore.ExploreSavedQuery")
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_exploresavedquerylastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "explore_saved_query_id"],
+                name="explore_exploresavedquerylastvisited_unique_last_visited_per_org_user_query",
+            )
+        ]
+
+
+@region_silo_model
 class ExploreSavedQuery(DefaultFieldsModel):
     """
     A saved Explore query
@@ -60,10 +81,17 @@ class ExploreSavedQuery(DefaultFieldsModel):
         choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
     )
     is_multi_query = models.BooleanField(default=False)
+    # The corresponding prebuilt_id found in hardcoded prebuilt queries from src/sentry/explore/endpoints/explore_saved_queries.py
+    # If the saved query is not a prebuilt query, this will be None
+    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # The version of the prebuilt query. If the version found in the explore_saved_queries.py hardcoded list is greater, then the saved
+    # query out of date and should be updated..
+    prebuilt_version = BoundedPositiveIntegerField(null=True, db_default=None)
 
     class Meta:
         app_label = "explore"
         db_table = "explore_exploresavedquery"
+        unique_together = (("organization", "prebuilt_id"),)
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
@@ -94,10 +122,14 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         Returns the last position of a user's starred queries in an organization.
         """
         last_starred_query = (
-            self.filter(organization=organization, user_id=user_id).order_by("-position").first()
+            self.filter(
+                organization=organization, user_id=user_id, position__isnull=False, starred=True
+            )
+            .order_by("-position")
+            .first()
         )
         if last_starred_query:
-            return last_starred_query.position
+            return last_starred_query.position  # type: ignore[return-value]
         return 0
 
     def get_starred_query(
@@ -128,6 +160,8 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         existing_starred_queries = self.filter(
             organization=organization,
             user_id=user_id,
+            position__isnull=False,
+            starred=True,
         )
 
         existing_query_ids = {query.explore_saved_query.id for query in existing_starred_queries}
@@ -151,6 +185,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         organization: Organization,
         user_id: int,
         query: ExploreSavedQuery,
+        starred: bool = True,
     ) -> bool:
         """
         Inserts a new starred query at the end of the list.
@@ -174,6 +209,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
                 user_id=user_id,
                 explore_saved_query=query,
                 position=position,
+                starred=starred,
             )
             return True
 
@@ -204,6 +240,29 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             ).update(position=models.F("position") - 1)
             return True
 
+    def updated_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: ExploreSavedQuery,
+        starred: bool,
+    ) -> bool:
+        """
+        Updates the starred status of a query.
+        """
+        with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            starred_query.starred = starred
+            if starred:
+                starred_query.position = self.get_last_position(organization, user_id) + 1
+            else:
+                starred_query.position = None
+
+            starred_query.save()
+            return True
+
 
 @region_silo_model
 class ExploreSavedQueryStarred(DefaultFieldsModel):
@@ -213,7 +272,8 @@ class ExploreSavedQueryStarred(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
     explore_saved_query = FlexibleForeignKey("explore.ExploreSavedQuery")
 
-    position = models.PositiveSmallIntegerField()
+    position = models.PositiveSmallIntegerField(null=True, db_default=None)
+    starred = models.BooleanField(db_default=True)
 
     objects: ClassVar[ExploreSavedQueryStarredManager] = ExploreSavedQueryStarredManager()
 

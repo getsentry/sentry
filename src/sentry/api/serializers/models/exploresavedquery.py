@@ -6,6 +6,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
+    ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -35,6 +36,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     createdBy: UserSerializerResponse
     starred: bool
     position: int | None
+    isPrebuilt: bool
 
 
 @register(ExploreSavedQuery)
@@ -47,7 +49,15 @@ class ExploreSavedQueryModelSerializer(Serializer):
                 explore_saved_query__in=item_list,
                 user_id=user.id,
                 organization=item_list[0].organization if item_list else None,
+                starred=True,
             ).values_list("explore_saved_query_id", "position")
+        )
+        user_last_visited = dict(
+            ExploreSavedQueryLastVisited.objects.filter(
+                explore_saved_query__in=item_list,
+                user_id=user.id,
+                organization=item_list[0].organization if item_list else None,
+            ).values_list("explore_saved_query_id", "last_visited")
         )
 
         service_serialized = user_service.serialize_many(
@@ -72,6 +82,10 @@ class ExploreSavedQueryModelSerializer(Serializer):
             else:
                 result[explore_saved_query]["starred"] = False
                 result[explore_saved_query]["position"] = None
+            if explore_saved_query.id in user_last_visited:
+                result[explore_saved_query]["user_last_visited"] = user_last_visited[
+                    explore_saved_query.id
+                ]
 
         return result
 
@@ -92,10 +106,11 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "lastVisited": obj.last_visited,
+            "lastVisited": attrs.get("user_last_visited"),
             "createdBy": attrs.get("created_by"),
             "starred": attrs.get("starred"),
             "position": attrs.get("position"),
+            "isPrebuilt": obj.prebuilt_id is not None,
         }
 
         for key in query_keys:

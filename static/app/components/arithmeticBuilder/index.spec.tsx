@@ -72,8 +72,8 @@ describe('ArithmeticBuilder', function () {
       await waitFor(focus);
     }
 
-    expect(screen.queryAllByRole('row')).toHaveLength(1);
-  });
+    await waitFor(() => expect(screen.queryAllByRole('row')).toHaveLength(1));
+  }, 20_000);
 
   it('can delete tokens with backspace', async function () {
     const expression = '( sum(span.duration) + count(span.self_time) )';

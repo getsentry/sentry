@@ -21,7 +21,7 @@ export function getIntervalLine(
   transaction?: NormalizedTrendsTransaction,
   useRegressionFormat?: boolean
 ): LineChartSeries[] {
-  if (!transaction || !series.length || !series[0]!.data || !series[0]!.data.length) {
+  if (!transaction || !series.length || !series[0]!.data?.length) {
     return [];
   }
 

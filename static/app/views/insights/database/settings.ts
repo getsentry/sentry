@@ -9,15 +9,22 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {type Aggregate, ModuleName} from 'sentry/views/insights/types';
+import {
+  type Aggregate,
+  ModuleName,
+  type SpanMetricsProperty,
+} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
 export const DATA_TYPE_PLURAL = t('Queries');
 export const BASE_URL = 'database';
 
+export const EXCLUDED_DB_OPS = ['db.sql.room', 'db.redis'];
+
 export const BASE_FILTERS = {
-  'span.module': ModuleName.DB,
+  'span.category': ModuleName.DB,
+  '!span.op': `[${EXCLUDED_DB_OPS.join(',')}]`,
   has: 'sentry.normalized_description',
 };
 
@@ -56,9 +63,10 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
   [0, '1m'],
 ]);
 
-export const MODULE_DESCRIPTION = t(
-  'Investigate the performance of database queries and get the information necessary to improve them.'
-);
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/queries/';
 
 export const MODULE_FEATURES = ['insights-initial-modules'];
+
+export const FIELD_ALIASES = {
+  'epm()': t('Queries Per Minute'),
+} satisfies Partial<Record<SpanMetricsProperty, string>>;

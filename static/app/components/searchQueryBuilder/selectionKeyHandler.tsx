@@ -10,8 +10,10 @@ import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
 type SelectionKeyHandlerProps = {
+  gridRef: React.RefObject<HTMLDivElement | null>;
   state: ListState<ParseResultToken>;
   undo: () => void;
+  ref?: React.Ref<HTMLInputElement>;
 };
 
 /**
@@ -26,9 +28,8 @@ export function SelectionKeyHandler({
   ref,
   state,
   undo,
-}: SelectionKeyHandlerProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+  gridRef,
+}: SelectionKeyHandlerProps) {
   const {dispatch, disabled} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 
@@ -136,13 +137,14 @@ export function SelectionKeyHandler({
             return;
           }
 
-          // If th key pressed will generate a symbol, replace the selection with it
+          // If the key pressed will generate a symbol, replace the selection with it
           if (/^.$/u.test(e.key)) {
             dispatch({
               type: 'REPLACE_TOKENS_WITH_TEXT',
               text: e.key,
               tokens: selectedTokens,
             });
+            state.selectionManager.clearSelection();
             e.preventDefault();
             e.stopPropagation();
           }
@@ -151,6 +153,19 @@ export function SelectionKeyHandler({
       }
     },
     [dispatch, selectInDirection, selectedTokens, state, undo]
+  );
+
+  // Ensure that the selection is cleared when this input loses focus
+  const onBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      // React Aria will sometimes focus the grid element, which we handle in useQueryBuilderGrid().
+      // This should be ignored since focus will return here.
+      if (e.relatedTarget === gridRef.current) {
+        return;
+      }
+      state.selectionManager.clearSelection();
+    },
+    [state.selectionManager, gridRef]
   );
 
   // Using VisuallyHidden because display: none will not allow the input to be focused
@@ -163,6 +178,7 @@ export function SelectionKeyHandler({
         onPaste={onPaste}
         onKeyDown={onKeyDown}
         disabled={disabled}
+        onBlur={onBlur}
       />
     </VisuallyHidden>
   );

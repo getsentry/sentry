@@ -27,7 +27,6 @@ ERR_EDIT_WHEN_REINVITING = (
 )
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-ERR_INVITE_UNAPPROVED = "You cannot resend an invitation that has not been approved."
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -98,6 +97,14 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             "organizations:new-organization-member-invite", organization, actor=request.user
         ):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
+
+        if invited_member.partnership_restricted:
+            return Response(
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
 
         allowed_roles = get_allowed_org_roles(request, organization)
         validator = OrganizationMemberInviteRequestValidator(

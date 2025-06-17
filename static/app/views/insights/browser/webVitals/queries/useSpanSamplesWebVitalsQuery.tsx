@@ -104,8 +104,13 @@ export function useSpanSamplesWebVitalsQuery({
         SpanIndexedField.TOTAL_SCORE,
         SpanIndexedField.TRACE,
         SpanIndexedField.PROFILE_ID,
-        SpanIndexedField.REPLAY,
-        SpanIndexedField.USER_DISPLAY,
+        SpanIndexedField.PROFILEID,
+        SpanIndexedField.REPLAY_ID,
+        SpanIndexedField.REPLAYID,
+        SpanIndexedField.USER_EMAIL,
+        SpanIndexedField.USER_USERNAME,
+        SpanIndexedField.USER_ID,
+        SpanIndexedField.USER_IP,
         SpanIndexedField.PROJECT,
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.TIMESTAMP,
@@ -126,13 +131,20 @@ export function useSpanSamplesWebVitalsQuery({
           return {
             ...row,
             [`measurements.${webVital}`]: row[ratioField] > 0 ? row[field] : undefined,
-            'user.display': row[SpanIndexedField.USER_DISPLAY],
-            replayId: row[SpanIndexedField.REPLAY],
-            'profile.id': row[SpanIndexedField.PROFILE_ID],
+            'user.display':
+              row[SpanIndexedField.USER_EMAIL] ??
+              row[SpanIndexedField.USER_USERNAME] ??
+              row[SpanIndexedField.USER_ID] ??
+              row[SpanIndexedField.USER_IP],
+            replayId: row[SpanIndexedField.REPLAY_ID] ?? row[SpanIndexedField.REPLAYID],
+            'profile.id':
+              row[SpanIndexedField.PROFILEID] ?? row[SpanIndexedField.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
             inpScore: Math.round((row[SpanIndexedField.INP_SCORE_RATIO] ?? 0) * 100),
             lcpScore: Math.round((row[SpanIndexedField.LCP_SCORE_RATIO] ?? 0) * 100),
             clsScore: Math.round((row[SpanIndexedField.CLS_SCORE_RATIO] ?? 0) * 100),
+            fcpScore: Math.round((row[SpanIndexedField.FCP_SCORE_RATIO] ?? 0) * 100),
+            ttfbScore: Math.round((row[SpanIndexedField.TTFB_SCORE_RATIO] ?? 0) * 100),
             projectSlug: row[SpanIndexedField.PROJECT],
           };
         })

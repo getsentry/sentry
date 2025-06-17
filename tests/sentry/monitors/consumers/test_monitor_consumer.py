@@ -310,6 +310,44 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
+    def test_check_in_no_in_progress(self):
+        now = datetime.now()
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, ts=now, status="ok", duration=10)
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+
+    def test_check_date_updated(self):
+        now = datetime.now()
+        guid = uuid.uuid4().hex
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, guid=guid, ts=now, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+        assert checkin.date_updated == now.replace(tzinfo=UTC)
+
+        # Another in_progress moves the date_updated forward
+        self.send_checkin(
+            monitor.slug, guid=guid, ts=now + timedelta(seconds=10), status="in_progress"
+        )
+        checkin.refresh_from_db()
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+        assert checkin.date_updated == now.replace(tzinfo=UTC) + timedelta(seconds=10)
+
+        # Closing check in moves the date_updated forward
+        self.send_checkin(monitor.slug, guid=guid, ts=now + timedelta(seconds=20), status="ok")
+        checkin.refresh_from_db()
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+        assert checkin.date_updated == now.replace(tzinfo=UTC) + timedelta(seconds=20)
+
     def test_check_in_date_clock(self):
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
@@ -319,7 +357,39 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, ts=ts, item_ts=item_ts)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.date_added == ts.replace(tzinfo=UTC)
-        assert checkin.date_clock == item_ts.replace(tzinfo=UTC)
+        assert checkin.date_clock == item_ts.replace(second=0, microsecond=0, tzinfo=UTC)
+
+    def test_check_in_date_in_progress(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        now_tz = now.replace(tzinfo=UTC)
+
+        guid1 = uuid.uuid4().hex
+
+        # First check-in will not have a date_in_progress, since we never sent
+        # an in-progress check.
+        self.send_checkin(monitor.slug, guid=guid1, ts=now, status="ok")
+        checkin1 = MonitorCheckIn.objects.get(guid=guid1)
+        assert not checkin1.date_in_progress
+
+        # Second check-in does have a date_in_progress
+        guid2 = uuid.uuid4().hex
+
+        self.send_checkin(
+            monitor.slug,
+            guid=guid2,
+            ts=now + timedelta(minutes=1),
+            status="in_progress",
+        )
+        self.send_checkin(
+            monitor.slug,
+            guid=guid2,
+            ts=now + timedelta(minutes=1, seconds=25),
+            status="ok",
+        )
+
+        checkin2 = MonitorCheckIn.objects.get(guid=guid2)
+        assert checkin2.date_in_progress == now_tz + timedelta(minutes=1)
 
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -404,24 +474,37 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.IN_PROGRESS
 
     def test_check_in_update_terminal_in_progress(self):
+        now = datetime.now()
+        now_tz = now.replace(tzinfo=UTC)
+
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_checkin(monitor.slug, duration=10.0)
+        self.send_checkin(monitor.slug, duration=10.0, ts=now - timedelta(minutes=5))
         self.send_checkin(
             monitor.slug,
             guid=self.guid,
             status="in_progress",
             expected_error=ExpectNoProcessingError(),
+            ts=now - timedelta(minutes=4),
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
+
+        # date_in_progress and duration are updated
+        assert checkin.date_in_progress == now_tz - timedelta(minutes=4)
         assert checkin.duration == int(10.0 * 1000)
 
-        self.send_checkin(monitor.slug, duration=20.0, status="error")
+        self.send_checkin(
+            monitor.slug,
+            duration=20.0,
+            status="error",
+            ts=now - timedelta(minutes=3),
+        )
         self.send_checkin(
             monitor.slug,
             guid=self.guid,
             status="in_progress",
             expected_error=ExpectNoProcessingError(),
+            ts=now - timedelta(minutes=2),
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -809,11 +892,36 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
+        assert monitor.is_upserting
 
         env = Environment.objects.get(
             organization_id=monitor.organization_id, name="my-environment"
         )
         assert MonitorEnvironment.objects.filter(monitor=monitor, environment_id=env.id).exists()
+
+    def test_upsert_existing_monitor(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        assert not monitor.is_upserting
+
+        # Update schedule via upsert
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+        )
+
+        monitor.refresh_from_db()
+        assert monitor.is_upserting
+        assert monitor.schedule.type == "crontab"
+        assert monitor.schedule.crontab == "13 * * * *"
+
+        # Check-in does not upsert resets is_upserting back to false
+        self.send_checkin(monitor.slug)
+
+        monitor.refresh_from_db()
+        assert not monitor.is_upserting
+        assert monitor.schedule.crontab == "13 * * * *"
 
     def test_monitor_upsert_empty_timezone(self):
         self.send_checkin(

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
@@ -51,10 +51,10 @@ function FilterBar({
             }}
             menuFooter={
               <ButtonBar gap={1}>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/backend/crons/">
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
                 </LinkButton>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/backend/uptime/">
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/uptime/">
                   {t('Uptime Overview')}
                 </LinkButton>
               </ButtonBar>

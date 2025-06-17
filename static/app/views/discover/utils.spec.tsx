@@ -928,7 +928,7 @@ describe('constructAddQueryToDashboardLink', function () {
   describe('new widget builder', function () {
     beforeEach(() => {
       organization = OrganizationFixture({
-        features: ['dashboards-widget-builder-redesign'],
+        features: [],
       });
       location = LocationFixture();
     });
@@ -1065,7 +1065,7 @@ describe('handleAddQueryToDashboard', function () {
           queries: [
             {
               name: '',
-              fields: ['count()'],
+              fields: [],
               aggregates: ['count()'],
               columns: [],
               orderby: '',
@@ -1106,7 +1106,7 @@ describe('handleAddQueryToDashboard', function () {
               name: '',
               aggregates: ['count()'],
               columns: ['transaction'],
-              fields: ['transaction', 'count()'],
+              fields: ['transaction'],
               orderby: '',
               conditions: '',
             },
@@ -1144,7 +1144,7 @@ describe('handleAddQueryToDashboard', function () {
               name: '',
               aggregates: ['count()', 'count_unique(user)'],
               columns: [],
-              fields: ['count()', 'count_unique(user)'],
+              fields: [],
               orderby: '',
               conditions: '',
             },
@@ -1160,7 +1160,7 @@ describe('handleAddQueryToDashboard', function () {
   describe('new widget builder', function () {
     beforeEach(() => {
       organization = OrganizationFixture({
-        features: ['dashboards-widget-builder-redesign'],
+        features: [],
       });
     });
 

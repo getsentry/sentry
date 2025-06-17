@@ -4,7 +4,7 @@ import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {space} from 'sentry/styles/space';
 
-export interface WorkflowEngineListLayoutProps {
+interface WorkflowEngineListLayoutProps {
   /** The main content for this page */
   children: React.ReactNode;
 }
@@ -17,7 +17,7 @@ function WorkflowEngineListLayout({children}: WorkflowEngineListLayoutProps) {
   const title = useDocumentTitle();
   return (
     <Layout.Page>
-      <Layout.Header>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <Layout.Title>{title}</Layout.Title>
         </Layout.HeaderContent>

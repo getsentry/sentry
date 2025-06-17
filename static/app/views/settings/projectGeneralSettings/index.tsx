@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -9,7 +9,6 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -19,6 +18,8 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -27,90 +28,93 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type Props = DeprecatedAsyncComponent['props'] &
-  RouteComponentProps<{projectId: string}> & {
-    onChangeSlug: (slug: string) => void;
-    organization: Organization;
-  };
-
-type State = DeprecatedAsyncComponent['state'] & {
-  data: Project;
+type Props = {
+  onChangeSlug: (slug: string) => void;
 };
 
-class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
-  private _form: Record<string, FieldValue> = {};
+function ProjectGeneralSettings({onChangeSlug}: Props) {
+  const form: Record<string, FieldValue> = {};
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const api = useApi({persistInFlight: true});
 
-    return [['data', `/projects/${organization.slug}/${projectId}/`]];
+  const makeProjectSettingsQueryKey: ApiQueryKey = [
+    `/projects/${organization.slug}/${projectId}/`,
+  ];
+
+  const {
+    data: project,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Project>(makeProjectSettingsQueryKey, {
+    staleTime: 0,
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  handleTransferFieldChange = (id: string, value: FieldValue) => {
-    this._form[id] = value;
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const handleTransferFieldChange = (id: string, value: FieldValue) => {
+    form[id] = value;
   };
 
-  handleRemoveProject = () => {
-    const {organization} = this.props;
-    const project = this.state.data;
-
+  const handleRemoveProject = async () => {
     removePageFiltersStorage(organization.slug);
 
     if (!project) {
       return;
     }
 
-    removeProject({
-      api: this.api,
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      origin: 'settings',
-    })
-      .then(
-        () => {
-          addSuccessMessage(
-            tct('[project] was successfully removed', {project: project.slug})
-          );
-        },
-        err => {
-          addErrorMessage(tct('Error removing [project]', {project: project.slug}));
-          throw err;
-        }
-      )
-      .then(
-        () => {
-          // Need to hard reload because lots of components do not listen to Projects Store
-          window.location.assign('/');
-        },
-        (err: RequestError) => handleXhrErrorResponse('Unable to remove project', err)
-      );
+    try {
+      await removeProject({
+        api,
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        origin: 'settings',
+      });
+    } catch (err) {
+      addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+      throw err;
+    }
+
+    addSuccessMessage(tct('[project] was successfully removed', {project: project.slug}));
+    navigate(`/settings/${organization.slug}/projects/`);
   };
 
-  handleTransferProject = async () => {
-    const {organization} = this.props;
-    const project = this.state.data;
+  const handleTransferProject = async () => {
     if (!project) {
       return;
     }
-    if (typeof this._form.email !== 'string' || this._form.email.length < 1) {
+    if (typeof form.email !== 'string' || form.email.length < 1) {
       return;
     }
 
     try {
-      await transferProject(this.api, organization.slug, project, this._form.email);
+      await transferProject(api, organization.slug, project, form.email);
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
     } catch (err) {
@@ -120,15 +124,11 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
-  isProjectAdmin = () =>
-    hasEveryAccess(['project:admin'], {
-      organization: this.props.organization,
-      project: this.state.data,
+  const renderRemoveProject = () => {
+    const isProjectAdmin = hasEveryAccess(['project:admin'], {
+      organization,
+      project,
     });
-
-  renderRemoveProject() {
-    const project = this.state.data;
-    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
 
     return (
@@ -152,7 +152,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
 
         {isProjectAdmin && !isInternal && (
           <Confirm
-            onConfirm={this.handleRemoveProject}
+            onConfirm={handleRemoveProject}
             priority="danger"
             confirmText={t('Remove Project')}
             message={
@@ -175,13 +175,12 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
         )}
       </FieldGroup>
     );
-  }
+  };
 
-  renderTransferProject() {
-    const project = this.state.data;
+  const renderTransferProject = () => {
     const {isInternal} = project;
     const isOrgOwner = hasEveryAccess(['org:admin'], {
-      organization: this.props.organization,
+      organization,
     });
 
     return (
@@ -205,7 +204,9 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
 
         {isOrgOwner && !isInternal && (
           <Confirm
-            onConfirm={this.handleTransferProject}
+            onConfirm={() => {
+              handleTransferProject();
+            }}
             priority="danger"
             confirmText={t('Transfer project')}
             renderMessage={({confirm}) => (
@@ -223,7 +224,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
                 <Panel>
                   <Form
                     hideFooter
-                    onFieldChange={this.handleTransferFieldChange}
+                    onFieldChange={handleTransferFieldChange}
                     onSubmit={(_data, _onSuccess, _onError, e) => {
                       e.stopPropagation();
                       confirm();
@@ -250,182 +251,164 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
         )}
       </FieldGroup>
     );
-  }
+  };
 
-  renderBody() {
-    const {organization} = this.props;
-    const project = this.state.data;
-    const {projectId} = this.props.params;
-    const endpoint = `/projects/${organization.slug}/${projectId}/`;
-    const access = new Set(organization.access.concat(project.access));
+  const endpoint = `/projects/${organization.slug}/${projectId}/`;
+  const access = new Set(organization.access.concat(project.access));
 
-    const jsonFormProps = {
-      additionalFieldProps: {
-        organization,
-        project,
-      },
-      features: new Set(organization.features),
-      access,
-      disabled: !hasEveryAccess(['project:write'], {organization, project}),
-    };
+  const jsonFormProps = {
+    additionalFieldProps: {
+      organization,
+      project,
+    },
+    features: new Set(organization.features),
+    access,
+    disabled: !hasEveryAccess(['project:write'], {organization, project}),
+  };
 
-    const team = project.teams.length ? project.teams?.[0] : undefined;
+  const team = project.teams.length ? project.teams?.[0] : undefined;
 
-    // XXX: HACK
-    //
-    // The <Form /> component applies its props to its children meaning the
-    // hooked component would need to conform to the form settings applied in a
-    // separate repository. This is not feasible to maintain and may introduce
-    // compatability errors if something changes in either repository. For that
-    // reason, the Form component is split in two, since the fields do not
-    // depend on one another, allowing for the Hook to manage its own state.
-    const formProps: FormProps = {
-      saveOnBlur: true,
-      allowUndo: true,
-      initialData: {
-        ...project,
-        team,
-      },
-      apiMethod: 'PUT' as const,
-      apiEndpoint: endpoint,
-      onSubmitSuccess: resp => {
-        this.setState({data: resp});
-        if (projectId !== resp.slug) {
-          changeProjectSlug(projectId, resp.slug);
-          // Container will redirect after stores get updated with new slug
-          this.props.onChangeSlug(resp.slug);
-        }
-        // This will update our project context
-        ProjectsStore.onUpdateSuccess(resp);
-      },
-    };
+  // XXX: HACK
+  //
+  // The <Form /> component applies its props to its children meaning the
+  // hooked component would need to conform to the form settings applied in a
+  // separate repository. This is not feasible to maintain and may introduce
+  // compatibility errors if something changes in either repository. For that
+  // reason, the Form component is split in two, since the fields do not
+  // depend on one another, allowing for the Hook to manage its own state.
+  const formProps: FormProps = {
+    saveOnBlur: true,
+    allowUndo: true,
+    initialData: {
+      ...project,
+      team,
+    },
+    apiMethod: 'PUT' as const,
+    apiEndpoint: endpoint,
+    onSubmitSuccess: resp => {
+      setApiQueryData(queryClient, makeProjectSettingsQueryKey, resp);
+      if (projectId !== resp.slug) {
+        changeProjectSlug(projectId, resp.slug);
+        // Container will redirect after stores get updated with new slug
+        onChangeSlug(resp.slug);
+      }
+      // This will update our project context
+      ProjectsStore.onUpdateSuccess(resp);
+    },
+  };
 
-    const projectIdField: FieldObject = {
-      name: 'projectId',
-      type: 'string',
-      disabled: true,
-      label: t('Project ID'),
-      setValue(_, _name) {
-        return project.id;
-      },
-      help: `The unique identifier for this project. It cannot be modified.`,
-    };
+  const projectIdField: FieldObject = {
+    name: 'projectId',
+    type: 'string',
+    disabled: true,
+    label: t('Project ID'),
+    setValue(_, _name) {
+      return project.id;
+    },
+    help: t('The unique identifier for this project. It cannot be modified.'),
+  };
 
-    return (
-      <div>
-        <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
-        <SettingsPageHeader title={t('Project Settings')} />
-        <ProjectPermissionAlert project={project} />
-        <Form {...formProps}>
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Project Details')}
-            fields={[fields.name, projectIdField, fields.platform]}
-          />
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Email')}
-            fields={[fields.subjectPrefix]}
-          />
-        </Form>
-        <Hook
-          name="spend-visibility:spike-protection-project-settings"
-          project={project}
+  return (
+    <div>
+      <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
+      <SettingsPageHeader title={t('Project Settings')} />
+      <ProjectPermissionAlert project={project} />
+      <Form {...formProps}>
+        <JsonForm
+          {...jsonFormProps}
+          title={t('Project Details')}
+          fields={[fields.name, projectIdField, fields.platform]}
         />
-        <Form {...formProps}>
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Event Settings')}
-            fields={[fields.resolveAge]}
-          />
+        <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
+      </Form>
+      <Hook name="spend-visibility:spike-protection-project-settings" project={project} />
+      <Form {...formProps}>
+        <JsonForm
+          {...jsonFormProps}
+          title={t('Event Settings')}
+          fields={[fields.resolveAge]}
+        />
 
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Client Security')}
-            fields={[
-              fields.allowedDomains,
-              fields.scrapeJavaScript,
-              fields.securityToken,
-              fields.securityTokenHeader,
-              fields.verifySSL,
-            ]}
-            renderHeader={() => (
-              <PanelAlert type="info">
-                <TextBlock noMargin>
-                  {tct(
-                    'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
-                    {
-                      link: (
-                        <ExternalLink href="https://github.com/getsentry/sentry-javascript">
-                          sentry-javascript
-                        </ExternalLink>
-                      ),
-                    }
-                  )}{' '}
-                  {tct(
-                    'This will restrict requests based on the [Origin] and [Referer] headers.',
-                    {
-                      Origin: <code>Origin</code>,
-                      Referer: <code>Referer</code>,
-                    }
-                  )}
-                </TextBlock>
-              </PanelAlert>
-            )}
-          />
-        </Form>
+        <JsonForm
+          {...jsonFormProps}
+          title={t('Client Security')}
+          fields={[
+            fields.allowedDomains,
+            fields.scrapeJavaScript,
+            fields.securityToken,
+            fields.securityTokenHeader,
+            fields.verifySSL,
+          ]}
+          renderHeader={() => (
+            <PanelAlert type="info">
+              <TextBlock noMargin>
+                {tct(
+                  'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
+                  {
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-javascript">
+                        sentry-javascript
+                      </ExternalLink>
+                    ),
+                  }
+                )}{' '}
+                {tct(
+                  'This will restrict requests based on the [code:Origin] and [code:Referer] headers.',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </TextBlock>
+            </PanelAlert>
+          )}
+        />
+      </Form>
 
-        <Panel>
-          <PanelHeader>{t('Project Administration')}</PanelHeader>
-          {this.renderRemoveProject()}
-          {this.renderTransferProject()}
-        </Panel>
-      </div>
-    );
-  }
+      <Panel>
+        <PanelHeader>{t('Project Administration')}</PanelHeader>
+        {renderRemoveProject()}
+        {renderTransferProject()}
+      </Panel>
+    </div>
+  );
 }
 
-type ContainerProps = {
-  organization: Organization;
-} & RouteComponentProps<{projectId: string}>;
+function ProjectGeneralSettingsContainer() {
+  const routes = useRoutes();
+  const navigate = useNavigate();
+  const projects = useLegacyStore(ProjectsStore);
+  const organization = useOrganization();
+  const location = useLocation();
 
-class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
-  componentWillUnmount() {
-    this.unsubscribe();
-  }
+  // Use a ref to track the most current slug value
+  const changedSlugRef = useRef<string | undefined>(undefined);
 
-  changedSlug: string | undefined = undefined;
-  unsubscribe = ProjectsStore.listen(() => this.onProjectsUpdate(), undefined);
+  const setChangedSlug = useCallback((newSlug: string) => {
+    changedSlugRef.current = newSlug;
+  }, []);
 
-  onProjectsUpdate() {
-    if (!this.changedSlug) {
-      return;
+  useEffect(() => {
+    if (changedSlugRef.current) {
+      const project = projects.projects.find(p => p.slug === changedSlugRef.current);
+
+      if (project) {
+        navigate(
+          recreateRoute('', {
+            params: {
+              orgId: organization.slug,
+              projectId: changedSlugRef.current,
+            },
+            routes,
+            location,
+          }),
+          {replace: true}
+        );
+      }
     }
-    const project = ProjectsStore.getBySlug(this.changedSlug);
+  }, [projects, navigate, routes, location, organization.slug]);
 
-    if (!project) {
-      return;
-    }
-
-    browserHistory.replace(
-      recreateRoute('', {
-        ...this.props,
-        params: {
-          ...this.props.params,
-          projectId: this.changedSlug,
-        },
-      })
-    );
-  }
-
-  render() {
-    return (
-      <ProjectGeneralSettings
-        onChangeSlug={(newSlug: string) => (this.changedSlug = newSlug)}
-        {...this.props}
-      />
-    );
-  }
+  return <ProjectGeneralSettings onChangeSlug={setChangedSlug} />;
 }
 
-export default withOrganization(ProjectGeneralSettingsContainer);
+export {ProjectGeneralSettings};
+export default ProjectGeneralSettingsContainer;

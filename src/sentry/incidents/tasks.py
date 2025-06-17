@@ -5,25 +5,17 @@ from typing import Any
 
 from django.db import router, transaction
 
-from sentry.incidents.models.alert_rule import (
-    AlertRuleStatus,
-    AlertRuleTriggerAction,
-    AlertRuleTriggerActionMethod,
-)
+from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
     IncidentStatusMethod,
 )
-from sentry.incidents.utils.constants import (
-    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-    SUBSCRIPTION_METRICS_LOGGER,
-)
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
@@ -33,36 +25,6 @@ from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-@register_subscriber(SUBSCRIPTION_METRICS_LOGGER)
-def handle_subscription_metrics_logger(
-    subscription_update: QuerySubscriptionUpdate, subscription: QuerySubscription
-) -> None:
-    """
-    Logs results from a `QuerySubscription`.
-    """
-    from sentry.incidents.subscription_processor import SubscriptionProcessor
-
-    try:
-        if subscription.snuba_query.dataset == Dataset.Metrics.value:
-            processor = SubscriptionProcessor(subscription)
-            # XXX: Temporary hack so that we can extract these values without raising an exception
-            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore[method-assign]
-            aggregation_value = processor.get_aggregation_value(subscription_update)
-
-            logger.info(
-                "handle_subscription_metrics_logger.message",
-                extra={
-                    "subscription_id": subscription.id,
-                    "dataset": subscription.snuba_query.dataset,
-                    "snuba_subscription_id": subscription.subscription_id,
-                    "result": subscription_update,
-                    "aggregation_value": aggregation_value,
-                },
-            )
-    except Exception:
-        logger.exception("Failed to log subscription results")
 
 
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
@@ -85,13 +47,20 @@ def handle_snuba_query_update(
     default_retry_delay=60,
     max_retries=5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=60,
+        ),
+        processing_deadline_duration=60,
+    ),
 )
 def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: AlertRuleTriggerActionMethod,
+    method: str,
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,
@@ -145,7 +114,13 @@ def handle_trigger_action(
     default_retry_delay=60,
     max_retries=2,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=2)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=2,
+            delay=60,
+        ),
+    ),
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status

@@ -17,7 +17,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {TraceWarningComponents} from './styles';
 import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
@@ -198,7 +198,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
           },
         });
       }}
-      docsRoute={getDocsLinkForEventType(
+      docsRoute={getPricingDocsLinkForEventType(
         subscription?.categories && 'spans' in subscription.categories
           ? DataCategoryExact.SPAN
           : DataCategoryExact.TRANSACTION

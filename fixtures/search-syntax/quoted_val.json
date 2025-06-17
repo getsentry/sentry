@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "a release", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "a release",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +29,12 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "a release", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "a release",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -44,7 +54,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "a release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "a release",
+                "quoted": true,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -67,11 +82,21 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "a release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "a release",
+                "quoted": true,
+                "wildcard": false
+              }
             },
             {
               "separator": ",",
-              "value": {"type": "valueText", "value": "b release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "b release",
+                "quoted": true,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -94,15 +119,30 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "a release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "a release",
+                "quoted": true,
+                "wildcard": false
+              }
             },
             {
               "separator": ",    ",
-              "value": {"type": "valueText", "value": "b release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "b release",
+                "quoted": true,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "c release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "c release",
+                "quoted": true,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -125,11 +165,21 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "a release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "a release",
+                "quoted": true,
+                "wildcard": false
+              }
             },
             {
               "separator": ",",
-              "value": {"type": "valueText", "value": "b release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "b release",
+                "quoted": true,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -152,7 +202,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "a release", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "a release",
+                "quoted": true,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -169,7 +224,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "123", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "123",
+                "quoted": true,
+                "wildcard": false
+              }
             }
           ]
         }

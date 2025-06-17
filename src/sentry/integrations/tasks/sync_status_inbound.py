@@ -15,6 +15,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
+from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -192,9 +193,14 @@ def group_was_recently_resolved(group: Group) -> bool:
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    processing_deadline_duration=150,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        processing_deadline_duration=30,
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(Integration.DoesNotExist,))
@@ -204,15 +210,21 @@ def sync_status_inbound(
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
 
-    integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
-    )
+    integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise Integration.DoesNotExist
+    elif integration.status != ObjectStatus.ACTIVE:
+        return
 
-    organizations = Organization.objects.filter(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        return
+
     affected_groups = list(
-        Group.objects.get_groups_by_external_issue(integration, organizations, issue_key)
+        Group.objects.get_groups_by_external_issue(
+            integration=integration, organizations=[organization], external_issue_key=issue_key
+        )
     )
     if not affected_groups:
         return
@@ -234,13 +246,14 @@ def sync_status_inbound(
         "provider_key": provider.key,
         "integration_id": integration_id,
     }
+
     if action == ResolveSyncAction.RESOLVE:
         # Check if the group was recently resolved and we should skip the request
         # Avoid resolving the group in-app and then re-resolving via the integration webhook
         # which would override the in-app resolution
         resolvable_groups = []
         for group in affected_groups:
-            if not group_was_recently_resolved(group):
+            if not group_was_recently_resolved(group) and group.status == GroupStatus.UNRESOLVED:
                 resolvable_groups.append(group)
 
         if not resolvable_groups:
@@ -270,15 +283,19 @@ def sync_status_inbound(
                 if not created:
                     resolution.update(datetime=django_timezone.now(), **resolution_params)
 
-            try:
-                default_user_id = str(organizations[0].get_default_owner().id)
-            except IndexError:
-                logger.exception("Error getting default user")
-                default_user_id = "<unknown>"
+            issue_resolved.send_robust(
+                organization_id=organization_id,
+                user=None,
+                group=group,
+                project=group.project,
+                resolution_type=provider.key,
+                sender=f"resolved_with_{provider.key}",
+            )
+
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
-                default_user_id=default_user_id,
+                default_user_id="Sentry Jira",
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",
@@ -286,6 +303,7 @@ def sync_status_inbound(
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             )
+
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(
             groups=affected_groups,
@@ -294,3 +312,12 @@ def sync_status_inbound(
             activity_type=ActivityType.SET_UNRESOLVED,
             activity_data=activity_data,
         )
+
+        for group in affected_groups:
+            issue_unresolved.send_robust(
+                project=group.project,
+                user=None,
+                group=group,
+                transition_type=provider.key,
+                sender=f"unresolved_with_{provider.key}",
+            )

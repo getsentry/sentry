@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
@@ -22,8 +23,7 @@ from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
 from sentry.types.activity import ActivityType
-from sentry.utils.rollback_metrics import incr_rollback_metrics
-from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context
 
 
 @region_silo_endpoint
@@ -118,7 +118,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             data=request.data, context={"organization": project.organization}
         )
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         if serializer.is_valid():
             result = serializer.validated_data
@@ -149,7 +149,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                     )
                 was_released = False
             except IntegrityError:
-                incr_rollback_metrics(Release)
                 release, created = (
                     Release.objects.get(
                         organization_id=project.organization_id, version=result["version"]

@@ -169,7 +169,10 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should contain all transaction events', async () => {
     const data = initializeData();
 
-    render(<WrappedComponent data={data} />, {router: data.router});
+    render(<WrappedComponent data={data} />, {
+      router: data.router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(await screen.findByText('moreuhoh@example.com')).toBeInTheDocument();
   });
@@ -179,7 +182,10 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
       query: {project: '1', transaction: 'transaction', showTransactions: 'p50'},
     });
 
-    render(<WrappedComponent data={data} />, {router: data.router});
+    render(<WrappedComponent data={data} />, {
+      router: data.router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(screen.queryByText('moreuhoh@example.com')).not.toBeInTheDocument();
   });
@@ -187,7 +193,10 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should update transaction percentile query if selected', async () => {
     const data = initializeData();
 
-    render(<WrappedComponent data={data} />, {router: data.router});
+    render(<WrappedComponent data={data} />, {
+      router: data.router,
+      deprecatedRouterMocks: true,
+    });
     const percentileButton = await screen.findByRole('button', {
       name: /percentile p100/i,
     });

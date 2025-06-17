@@ -31,6 +31,33 @@ class SentryAppRotateSecretTest(APITestCase):
         response = self.client.post(self.url)
         assert response.status_code == 403
 
+    def test_manager_cannot_rotate_privileged_secret(self):
+        """
+        Tests that a Manager cannot rotate a secret with a high privileged scope
+        (such as org:admin)
+        """
+        other_application = ApiApplication.objects.create(owner=self.user)
+        other_app = SentryApp.objects.create(
+            application=other_application,
+            owner_id=self.organization.id,
+            name="b",
+            slug="b",
+            scope_list=("org:admin",),
+        )
+        self.url = reverse("sentry-api-0-sentry-app-rotate-secret", args=[other_app.slug])
+
+        other_user = self.create_user()
+        other_manager = self.create_member(
+            user=other_user, organization=self.organization, role="manager"
+        )
+        self.login_as(other_manager)
+        response = self.client.post(self.url)
+        assert response.status_code == 403
+        assert (
+            "Requested permission of org:admin exceeds requester's permission. Please contact an owner to make the requested change."
+            in response.data["detail"]
+        )
+
     def test_non_owner_call(self):
         """
         Tests that an authenticated user cannot rotate the secret for an app from other org.

@@ -339,7 +339,7 @@ const HighlightContextContent = styled(ContextCardContent)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export const highlightModalCss = (theme: Theme) => css`
+const highlightModalCss = (theme: Theme) => css`
   width: 850px;
   padding: 0 ${space(2)};
   margin: ${space(2)} 0;

@@ -1,4 +1,12 @@
-import {createContext, type Dispatch, useContext, useMemo, useRef} from 'react';
+import {
+  createContext,
+  type Dispatch,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
@@ -17,22 +25,27 @@ import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-export interface SearchQueryBuilderContextData {
+interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  committedQuery: string;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
+  displaySeerResults: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
+  getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   handleSearch: (query: string) => void;
+  parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   placeholder?: string;
@@ -69,6 +82,7 @@ export function SearchQueryBuilderProvider({
   filterKeys,
   filterKeyMenuWidth = 360,
   filterKeySections,
+  getSuggestedFilterKey,
   getTagValues,
   onSearch,
   placeholder,
@@ -79,15 +93,16 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
   });
 
-  const parsedQuery = useMemo(
-    () =>
-      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+  const parseQuery = useCallback(
+    (query: string) =>
+      parseQueryBuilderValue(query, fieldDefinitionGetter, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
@@ -97,17 +112,17 @@ export function SearchQueryBuilderProvider({
         invalidMessages,
       }),
     [
-      state.query,
-      fieldDefinitionGetter,
       disallowFreeText,
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
+      fieldDefinitionGetter,
       filterKeys,
-      invalidMessages,
       getFilterTokenWarning,
+      invalidMessages,
     ]
   );
+  const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,
@@ -125,10 +140,12 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
+      parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
       filterKeys,
+      getSuggestedFilterKey: getSuggestedFilterKey ?? ((key: string) => key),
       getTagValues,
       getFieldDefinition: fieldDefinitionGetter,
       dispatch,
@@ -140,6 +157,8 @@ export function SearchQueryBuilderProvider({
       searchSource,
       size,
       portalTarget,
+      displaySeerResults,
+      setDisplaySeerResults,
     };
   }, [
     state,
@@ -150,6 +169,7 @@ export function SearchQueryBuilderProvider({
     filterKeySections,
     filterKeyMenuWidth,
     filterKeys,
+    getSuggestedFilterKey,
     getTagValues,
     fieldDefinitionGetter,
     dispatch,
@@ -159,6 +179,9 @@ export function SearchQueryBuilderProvider({
     searchSource,
     size,
     portalTarget,
+    parseQuery,
+    displaySeerResults,
+    setDisplaySeerResults,
   ]);
 
   return (

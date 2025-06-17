@@ -7,8 +7,8 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {TooltipContext} from 'sentry/components/tooltip';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {space} from 'sentry/styles/space';
@@ -25,6 +25,11 @@ type ModalOptions = {
    * Set to `true` (the default) to show a translucent backdrop.
    */
   backdrop?: boolean;
+  /**
+   * Additional CSS which will be applied to the modal's backdrop.
+   * Allows specific control over the positioning of z-index for the entire modal
+   */
+  backdropCss?: ReturnType<typeof css>;
   /**
    * By default, the modal is closed when the backdrop is clicked or the
    * escape key is pressed. This prop allows you to modify that behavior.
@@ -152,6 +157,7 @@ function GlobalModal({onClose}: Props) {
       preventScroll: true,
       escapeDeactivates: false,
       fallbackFocus: portal,
+      allowOutsideClick: true,
     });
     ModalStore.setFocusTrap(focusTrap.current);
   }, [portal]);
@@ -216,13 +222,16 @@ function GlobalModal({onClose}: Props) {
   return createPortal(
     <Fragment>
       <Backdrop
+        data-overlay
         style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
+        css={options?.backdropCss}
       />
       <Container
         data-test-id="modal-backdrop"
         ref={containerRef}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
+        css={options?.backdropCss}
       >
         <TooltipContext
           value={{

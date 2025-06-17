@@ -6,7 +6,6 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DataTitles,
@@ -49,14 +48,11 @@ function SampleInfo(props: Props) {
         'epm()',
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        'time_spent_percentage()',
       ],
       enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
     },
     'api.starfish.span-summary-panel-metrics'
   );
-
-  const spanMetrics = data[0] ?? {};
 
   if (error) {
     setPageError(error.message);
@@ -65,33 +61,23 @@ function SampleInfo(props: Props) {
   return (
     <StyledReadoutRibbon>
       <MetricReadout
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        value={spanMetrics?.['epm()']}
+        title={getThroughputTitle(data[0]?.[SpanMetricsField.SPAN_OP])}
+        value={data[0]?.['epm()']}
         unit={RateUnit.PER_MINUTE}
         isLoading={isPending}
       />
 
       <MetricReadout
         title={DataTitles.avg}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        value={data[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         isLoading={isPending}
       />
 
       <MetricReadout
         title={DataTitles.timeSpent}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        value={spanMetrics?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        value={data[0]?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
-        tooltip={getTimeSpentExplanation(
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          spanMetrics?.['time_spent_percentage()'],
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          spanMetrics?.[SpanMetricsField.SPAN_OP]
-        )}
         isLoading={isPending}
       />
     </StyledReadoutRibbon>

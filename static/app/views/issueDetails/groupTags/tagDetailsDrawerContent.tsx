@@ -157,17 +157,25 @@ function TagDetailsRow({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
 
   const key = tagValue.key ?? tag.key;
   const query =
     key === 'environment'
       ? {
           environment: tagValue.value,
+          query: undefined,
         }
-      : {query: tagValue.query || `${key}:"${tagValue.value}"`};
+      : {
+          query: tagValue.query || `${key}:"${tagValue.value}"`,
+        };
+
   const allEventsLocation = {
-    pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-    query,
+    pathname: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+    query: {
+      ...location.query,
+      ...query,
+    },
   };
   const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
   const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;

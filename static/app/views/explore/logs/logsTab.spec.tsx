@@ -3,30 +3,90 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
+  LOGS_FIELDS_KEY,
+  LOGS_QUERY_KEY,
+  LogsPageParamsProvider,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
+const datePageFilterProps: PickableDays = {
+  defaultPeriod: '7d' as const,
+  maxPickableDays: 7,
+  relativeOptions: ({arbitraryOptions}) => ({
+    ...arbitraryOptions,
+    '1h': 'Last hour',
+    '24h': 'Last 24 hours',
+    '7d': 'Last 7 days',
+  }),
+};
+
 describe('LogsTabContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['ourlogs', 'ourlogs-graph'],
+      features: ['ourlogs-enabled'],
     },
   });
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
+
+  function ProviderWrapper({children}: {children: React.ReactNode}) {
+    return (
+      <OrganizationContext.Provider value={organization}>
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+            <LogsPageDataProvider>{children}</LogsPageDataProvider>
+          </TraceItemAttributeProvider>
+        </LogsPageParamsProvider>
+      </OrganizationContext.Provider>
+    );
+  }
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
+
+    ProjectsStore.loadInitialData([project]);
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(project.id, 10)],
+        environments: [],
+        datetime: {
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
+        },
+      },
+      new Set()
+    );
+
     mockUseLocation.mockReturnValue(
       LocationFixture({
         pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        query: {
+          [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
+          [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
+          [LOGS_QUERY_KEY]: 'severity:error',
+        },
       })
     );
     eventTableMock = MockApiClient.addMockResponse({
@@ -123,22 +183,9 @@ describe('LogsTabContent', function () {
 
   it('should call APIs as expected', async function () {
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <LogsTabContent
-            defaultPeriod="14d"
-            maxPickableDays={7}
-            relativeOptions={{
-              '1h': 'Last hour',
-              '24h': 'Last 24 hours',
-              '7d': 'Last 7 days',
-            }}
-          />
-        </LogsPageParamsProvider>
-      </TraceItemAttributeProvider>,
-      {enableRouterMocks: false, organization}
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>
     );
 
     expect(eventTableMock).toHaveBeenCalledWith(
@@ -148,6 +195,9 @@ describe('LogsTabContent', function () {
           environment: [],
           statsPeriod: '14d',
           dataset: 'ourlogs',
+          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+          sort: 'sentry.message.parameters.0',
+          query: 'severity:error',
         }),
       })
     );
@@ -159,6 +209,9 @@ describe('LogsTabContent', function () {
           environment: [],
           statsPeriod: '14d',
           dataset: 'ourlogs',
+          yAxis: 'count(message)',
+          interval: '1h',
+          query: 'severity:error',
         }),
       })
     );

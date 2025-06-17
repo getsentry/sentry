@@ -36,6 +36,9 @@ from sentry.tasks.summaries.utils import (
     project_key_performance_issues,
     user_project_ownership,
 )
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import reports_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
@@ -58,6 +61,7 @@ HOUR_TO_SEND_REPORT = 16
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
 )
 @retry
 def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
@@ -120,6 +124,10 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=reports_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry
 def prepare_summary_data(

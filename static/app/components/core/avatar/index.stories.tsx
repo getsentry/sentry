@@ -6,12 +6,12 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/avatar/projectAvatar';
 
-export default storyBook('Avatar', (story, APIReference) => {
+export default Storybook.story('Avatar', (story, APIReference) => {
   APIReference(types.Avatar);
   story('User', () => {
     return (
@@ -107,6 +107,7 @@ export default storyBook('Avatar', (story, APIReference) => {
             githubNudgeInvite: false,
             githubOpenPRBot: false,
             githubPRBot: false,
+            gitlabPRBot: false,
             hideAiFeatures: false,
             isEarlyAdopter: false,
             issueAlertsThreadFlag: false,

@@ -1,17 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {IconDelete} from 'sentry/icons/iconDelete';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -20,9 +14,9 @@ import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks
 import {
   getQueryMode,
   type ReadableExploreQueryParts,
-  useDeleteQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {GroupBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/groupBy';
+import {MenuSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/menu';
 import {SearchBarSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/search';
 import {SortBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/sortBy';
 import {VisualizeSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/visualize';
@@ -36,9 +30,6 @@ type Props = {
 };
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
-  const organization = useOrganization();
-  const deleteQuery = useDeleteQueryAtIndex();
-
   const {groupBys, query, yAxes, sortBys} = queryParts;
   const mode = getQueryMode(groupBys);
 
@@ -58,11 +49,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {
-    result: timeseriesResult,
-    canUsePreviousResults,
-    samplingMode: timeseriesSamplingMode,
-  } = useMultiQueryTimeseries({
+  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
@@ -80,14 +67,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     isTopN: mode === Mode.AGGREGATE,
   });
 
-  const tableIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    (mode === Mode.SAMPLES
-      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
-      : mode === Mode.AGGREGATE
-        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
-        : false);
-
   return (
     <Fragment>
       <QueryConstructionSection>
@@ -96,14 +75,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
           <VisualizeSection query={queryParts} index={index} />
           <GroupBySection query={queryParts} index={index} />
           <SortBySection query={queryParts} index={index} />
-          <DeleteButton
-            borderless
-            icon={<IconDelete />}
-            size="zero"
-            disabled={totalQueryRows === 1}
-            onClick={() => deleteQuery(index)}
-            aria-label={t('Delete Query')}
-          />
+          <MenuSection index={index} totalQueryRows={totalQueryRows} />
         </DropDownGrid>
       </QueryConstructionSection>
       <QueryVisualizationSection data-test-id={`section-visualization-${index}`}>
@@ -114,11 +86,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
-            isProgressivelyLoading={
-              organization.features.includes('visibility-explore-progressive-loading') &&
-              defined(timeseriesSamplingMode) &&
-              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
-            }
           />
           <MultiQueryTable
             confidences={[]}
@@ -127,7 +94,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             index={index}
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
-            isProgressivelyLoading={tableIsProgressivelyLoading}
           />
         </LazyRender>
       </QueryVisualizationSection>
@@ -147,13 +113,9 @@ const QueryConstructionSection = styled('div')`
 
 const DropDownGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto)) ${space(2)};
-  align-items: center;
+  grid-template-columns: repeat(3, minmax(0, auto)) min-content;
+  align-items: end;
   gap: ${space(1)};
-`;
-
-const DeleteButton = styled(Button)`
-  margin-top: ${space(2)};
 `;
 
 const QueryVisualizationSection = styled('div')`

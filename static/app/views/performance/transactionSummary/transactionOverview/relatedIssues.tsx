@@ -1,10 +1,10 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -28,10 +29,17 @@ type Props = {
   statsPeriod?: string | null;
 };
 
-class RelatedIssues extends Component<Props> {
-  getIssuesEndpointQueryParams() {
-    const {transaction, start, end, statsPeriod, location} = this.props;
+function RelatedIssues({
+  location,
+  organization,
+  transaction,
+  start,
+  end,
+  statsPeriod,
+}: Props) {
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
+  const getIssuesEndpointQueryParams = () => {
     const queryParams = {
       start,
       end,
@@ -52,19 +60,16 @@ class RelatedIssues extends Component<Props> {
         query: currentFilter.formatString(),
       },
     };
-  }
+  };
 
-  handleOpenClick = () => {
-    const {organization} = this.props;
+  const handleOpenClick = () => {
     trackAnalytics('performance_views.summary.open_issues', {
       organization: organization.id,
     });
   };
 
-  renderEmptyMessage = (isEAP: boolean) => {
-    const {statsPeriod} = this.props;
-
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const renderEmptyMessage = () => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expression of type 'string | null | undefined' can't be used to index type
     const selectedTimePeriod = statsPeriod && DEFAULT_RELATIVE_PERIODS[statsPeriod];
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
@@ -76,7 +81,9 @@ class RelatedIssues extends Component<Props> {
           <EmptyStateWarning>
             <p>
               {tct('No new issues for this [identifier] for the [timePeriod].', {
-                identifier: isEAP ? 'service entry span' : 'transaction',
+                identifier: shouldUseOTelFriendlyUI
+                  ? 'service entry span'
+                  : 'transaction',
                 timePeriod: displayedPeriod,
               })}
             </p>
@@ -86,43 +93,38 @@ class RelatedIssues extends Component<Props> {
     );
   };
 
-  render() {
-    const {organization} = this.props;
-    const {queryParams} = this.getIssuesEndpointQueryParams();
-    const issueSearch = {
-      pathname: `/organizations/${organization.slug}/issues/`,
-      query: {referrer: 'performance-related-issues', ...queryParams},
-    };
+  const {queryParams} = getIssuesEndpointQueryParams();
+  const issueSearch = {
+    pathname: `/organizations/${organization.slug}/issues/`,
+    query: {referrer: 'performance-related-issues', ...queryParams},
+  };
 
-    const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  return (
+    <Fragment>
+      <ControlsWrapper>
+        <SectionHeading>{t('Related Issues')}</SectionHeading>
+        <LinkButton
+          data-test-id="issues-open"
+          size="xs"
+          to={issueSearch}
+          onClick={handleOpenClick}
+        >
+          {t('Open in Issues')}
+        </LinkButton>
+      </ControlsWrapper>
 
-    return (
-      <Fragment>
-        <ControlsWrapper>
-          <SectionHeading>{t('Related Issues')}</SectionHeading>
-          <LinkButton
-            data-test-id="issues-open"
-            size="xs"
-            to={issueSearch}
-            onClick={this.handleOpenClick}
-          >
-            {t('Open in Issues')}
-          </LinkButton>
-        </ControlsWrapper>
-
-        <TableWrapper>
-          <GroupList
-            queryParams={queryParams}
-            canSelectGroups={false}
-            renderEmptyMessage={() => this.renderEmptyMessage(isEAP)}
-            withChart={false}
-            withPagination={false}
-            source="performance-related-issues"
-          />
-        </TableWrapper>
-      </Fragment>
-    );
-  }
+      <TableWrapper>
+        <GroupList
+          queryParams={queryParams}
+          canSelectGroups={false}
+          renderEmptyMessage={() => renderEmptyMessage()}
+          withChart={false}
+          withPagination={false}
+          source="performance-related-issues"
+        />
+      </TableWrapper>
+    </Fragment>
+  );
 }
 
 const ControlsWrapper = styled('div')`

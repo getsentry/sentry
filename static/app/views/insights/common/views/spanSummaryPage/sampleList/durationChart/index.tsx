@@ -1,18 +1,14 @@
-import {useTheme} from '@emotion/react';
+import {useEffect, useMemo} from 'react';
+import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
-import type {
-  EChartClickHandler,
-  EChartHighlightHandler,
-  Series,
-} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {AVG_COLOR} from 'sentry/views/insights/colors';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
+// TODO(release-drawer): Used in spanSummarPage/samplelist and spanSamplesPanelContainer
+// eslint-disable-next-line no-restricted-imports
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {
@@ -20,8 +16,6 @@ import type {
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
-import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -34,7 +28,7 @@ type Props = {
   additionalFilters?: Record<string, string>;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
-  onMouseLeaveSample?: () => void;
+  onMouseLeaveSample?: (sample: SpanSample) => void;
   onMouseOverSample?: (sample: SpanSample) => void;
   platform?: string;
   release?: string;
@@ -60,8 +54,6 @@ function DurationChart({
   additionalFilters,
 }: Props) {
   const {setPageError} = usePageAlert();
-  const theme = useTheme();
-  const pageFilter = usePageFilters();
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -85,19 +77,26 @@ function DurationChart({
     filters['os.name'] = platform;
   }
 
+  const search = MutableSearch.fromQueryObject({
+    ...filters,
+    ...additionalFilters,
+  });
+  const referrer = 'api.starfish.sidebar-span-metrics-chart';
+
   const {
     isPending,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      search,
       yAxis: [`avg(${SPAN_SELF_TIME})`],
       enabled: Object.values({...filters, ...additionalFilters}).every(value =>
         Boolean(value)
       ),
+      transformAliasToInputFormat: true,
     },
-    'api.starfish.sidebar-span-metrics-chart'
+    referrer
   );
 
   const {data, error: spanMetricsError} = useSpanMetrics(
@@ -109,16 +108,13 @@ function DurationChart({
     'api.starfish.span-summary-panel-samples-table-avg'
   );
 
-  const spanMetrics = data[0] ?? {};
+  if (spanMetricsSeriesError || spanMetricsError) {
+    setPageError(t('An error has occurred while loading chart data'));
+  }
 
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const avg = spanMetrics?.[`avg(${SPAN_SELF_TIME})`] || 0;
+  const avg = data.at(0)?.[`avg(${SPAN_SELF_TIME})`] ?? 0;
 
-  const {
-    data: spanSamplesData,
-    isPending: areSpanSamplesLoading,
-    isRefetching: areSpanSamplesRefetching,
-  } = useSpanSamples({
+  const {data: spanSamplesData} = useSpanSamples({
     groupId,
     transactionName,
     transactionMethod,
@@ -127,97 +123,64 @@ function DurationChart({
     additionalFields,
   });
 
-  const spans = spanSamplesData?.data ?? [];
+  const spanSamplesById = useMemo(() => {
+    return keyBy(spanSamplesData?.data ?? [], 'span_id');
+  }, [spanSamplesData]);
 
-  const baselineAvgSeries: Series = {
-    seriesName: 'Average',
-    data: [],
-    markLine: AverageValueMarkLine({
-      value: avg,
-    }),
-  };
+  const samplesPlottable = useMemo(() => {
+    if (!spanSamplesData) {
+      return undefined;
+    }
 
-  const sampledSpanDataSeries = useSampleScatterPlotSeries(spans, avg, highlightedSpanId);
+    return new Samples(spanSamplesData as TabularData, {
+      attributeName: SpanMetricsField.SPAN_SELF_TIME,
+      baselineValue: avg,
+      baselineLabel: t('Average'),
+      onClick: sample => {
+        onClickSample?.(spanSamplesById[sample.id]!);
+      },
+      onHighlight: sample => {
+        onMouseOverSample?.(spanSamplesById[sample.id]!);
+      },
+      onDownplay: sample => {
+        onMouseLeaveSample?.(spanSamplesById[sample.id]!);
+      },
+    });
+  }, [
+    onClickSample,
+    onMouseOverSample,
+    onMouseLeaveSample,
+    spanSamplesData,
+    spanSamplesById,
+    avg,
+  ]);
 
-  const getSample = (timestamp: string, duration: number) => {
-    return spans.find(s => s.timestamp === timestamp && s[SPAN_SELF_TIME] === duration);
-  };
+  useEffect(() => {
+    if (samplesPlottable && highlightedSpanId) {
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable.highlight(spanSample);
+    }
 
-  const handleChartClick: EChartClickHandler = e => {
-    const isSpanSample = e?.componentSubType === 'scatter';
-    if (isSpanSample && onClickSample) {
-      const [timestamp, duration] = e.value as [string, number];
-      const sample = getSample(timestamp, duration);
-      if (sample) {
-        onClickSample(sample);
+    return () => {
+      if (!highlightedSpanId) {
+        return;
       }
-    }
-  };
 
-  const handleChartHighlight: EChartHighlightHandler = event => {
-    // ignore mouse hovering over the chart legend
-    if (!event.batch) {
-      return;
-    }
-
-    const firstEventData = event.batch[0];
-
-    if (!defined(firstEventData)) {
-      return;
-    }
-
-    const {seriesIndex} = firstEventData;
-
-    const isSpanSample =
-      seriesIndex > 1 && seriesIndex < 2 + sampledSpanDataSeries.length;
-    if (isSpanSample && onMouseOverSample) {
-      const spanSampleData = sampledSpanDataSeries?.[seriesIndex - 2]?.data[0];
-      const {name: timestamp, value: duration} = spanSampleData!;
-      const sample = getSample(timestamp as string, duration);
-      if (sample) {
-        onMouseOverSample(sample);
-      }
-    }
-    if (!isSpanSample && onMouseLeaveSample) {
-      onMouseLeaveSample();
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (onMouseLeaveSample) {
-      onMouseLeaveSample();
-    }
-  };
-
-  if (spanMetricsSeriesError || spanMetricsError) {
-    setPageError(t('An error has occurred while loading chart data'));
-  }
-
-  const subtitle = pageFilter.selection.datetime.period
-    ? t('Last %s', pageFilter.selection.datetime.period)
-    : t('Last period');
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable?.downplay(spanSample);
+    };
+  }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
 
   return (
-    <ChartPanel title={t('Average Duration')} subtitle={subtitle}>
-      <div onMouseLeave={handleMouseLeave}>
-        <Chart
-          height={140}
-          onClick={handleChartClick}
-          onHighlight={handleChartHighlight}
-          aggregateOutputFormat="duration"
-          data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`], baselineAvgSeries]}
-          loading={isPending}
-          scatterPlot={
-            areSpanSamplesLoading || areSpanSamplesRefetching
-              ? undefined
-              : sampledSpanDataSeries
-          }
-          chartColors={[AVG_COLOR(theme), 'black']}
-          type={ChartType.LINE}
-          definedAxisTicks={4}
-        />
-      </div>
-    </ChartPanel>
+    <InsightsLineChartWidget
+      queryInfo={{search, referrer}}
+      showLegend="never"
+      title={t('Average Duration')}
+      isLoading={isPending}
+      error={spanMetricsSeriesError}
+      series={[spanMetricsSeriesData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
+      samples={samplesPlottable}
+    />
   );
 }
 

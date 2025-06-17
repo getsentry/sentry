@@ -275,6 +275,7 @@ export class VirtualizedViewManager {
 
   registerResetZoomRef(ref: HTMLButtonElement | null) {
     this.reset_zoom_button = ref;
+    this.syncResetZoomButton();
   }
 
   registerGhostRowRef(column: string, ref: HTMLElement | null) {

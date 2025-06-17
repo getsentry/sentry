@@ -5,28 +5,32 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0002_add_starred_explore_query_model
+explore: 0001_squashed_0004_add_explore_last_visited_table
 
-feedback: 0004_index_together
+feedback: 0001_squashed_0004_index_together
 
-hybridcloud: 0019_add_provider_webhook_payload
+flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-insights: 0001_add_starred_transactions_model
+hybridcloud: 0001_squashed_0021_django_arrayfield_scope_list
 
-monitors: 0001_initial
+insights: 0002_backfill_team_starred
 
-nodestore: 0002_nodestore_no_dictfield
+monitors: 0006_add_is_upserting
 
-remote_subscriptions: 0003_drop_remote_subscription
+nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-replays: 0004_index_together
+notifications: 0001_move_notifications_models
 
-sentry: 0865_file_offsets
+preprod: 0005_add_git_commit
 
-social_auth: 0002_default_auto_field
+replays: 0001_squashed_0005_drop_replay_index
 
-tempest: 0002_make_message_type_nullable
+sentry: 0929_no_pickle_authenticator
 
-uptime: 0031_translate_uptime_object_headers_to_lists_take_three
+social_auth: 0001_squashed_0002_default_auto_field
 
-workflow_engine: 0045_add_unique_constraint_alert_rule_detector
+tempest: 0001_squashed_0002_make_message_type_nullable
+
+uptime: 0001_squashed_0042_extra_uptime_indexes
+
+workflow_engine: 0070_migrate_remaining_anomaly_detection_alerts

@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -117,6 +117,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                hash: undefined,
               },
             },
             {
@@ -135,6 +136,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.replays.enabled,
             },
@@ -152,6 +154,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.attachments.enabled,
             },
@@ -166,6 +169,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.userFeedback.enabled,
             },

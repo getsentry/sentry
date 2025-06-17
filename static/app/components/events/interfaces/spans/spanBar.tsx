@@ -4,6 +4,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import AggregateSpanDetail from 'sentry/components/events/interfaces/spans/aggregateSpanDetail';
 import {
@@ -45,7 +46,6 @@ import {
   getHumanDuration,
   lightenBarColor,
 } from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -120,7 +120,7 @@ const INTERSECTION_THRESHOLDS: number[] = [
   0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
 ];
 
-export const MARGIN_LEFT = 0;
+const MARGIN_LEFT = 0;
 
 export type SpanBarProps = ScrollbarManagerChildrenProps & {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;

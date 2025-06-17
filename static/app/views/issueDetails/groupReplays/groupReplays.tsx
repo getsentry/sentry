@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
-import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -78,7 +79,10 @@ export default function GroupReplays({group}: Props) {
     location,
     organization,
   });
-  const {allMobileProj} = useAllMobileProj({});
+
+  const isMobilePlatform = replayMobilePlatforms.includes(
+    group.project.platform ?? 'other'
+  );
 
   useEffect(() => {
     trackAnalytics('replay.render-issues-group-list', {
@@ -110,7 +114,7 @@ export default function GroupReplays({group}: Props) {
           isFetching={isFetching}
           replays={[]}
           sort={undefined}
-          visibleColumns={visibleColumns(allMobileProj)}
+          visibleColumns={visibleColumns(isMobilePlatform)}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
@@ -141,25 +145,23 @@ function GroupReplaysTableInner({
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
-  const replayReaderData = useLoadReplayReader({
+  const readerResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {fetching, replay} = replayReaderData;
+  const {status, replay} = readerResult;
 
   return (
     <ReplayContextProvider
       analyticsContext="replay_tab"
-      isFetching={fetching}
+      isFetching={status === 'pending'}
       replay={replay}
       autoStart
     >
-      <ReplayClipPreviewPlayer
-        replayReaderResult={replayReaderData}
+      <GroupReplaysPlayer
+        replayReaderResult={readerResult}
         overlayContent={overlayContent}
-        orgSlug={orgSlug}
-        showNextAndPrevious
         handleForwardClick={
           replays && selectedReplayIndex + 1 < replays.length
             ? () => {
@@ -174,8 +176,7 @@ function GroupReplaysTableInner({
               }
             : undefined
         }
-        analyticsContext={'replay_tab'}
-        isLarge
+        analyticsContext="replay_tab"
       />
       {children}
     </ReplayContextProvider>

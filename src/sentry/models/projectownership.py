@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import enum
 import logging
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
@@ -15,10 +14,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.issues.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
-from sentry.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -35,9 +34,6 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
-_Everyone = enum.Enum("_Everyone", "EVERYONE")
-
-
 @region_silo_model
 class ProjectOwnership(Model):
     __relocation_scope__ = RelocationScope.Organization
@@ -52,10 +48,7 @@ class ProjectOwnership(Model):
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     codeowners_auto_sync = models.BooleanField(default=True, null=True)
-    suspect_committer_auto_assignment = models.BooleanField(default=False)
-
-    # An object to indicate ownership is implicitly everyone
-    Everyone = _Everyone.EVERYONE
+    suspect_committer_auto_assignment = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         app_label = "sentry"
@@ -110,7 +103,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> tuple[_Everyone | list[Actor], Sequence[Rule] | None]:
+    ) -> tuple[list[Actor], Sequence[Rule] | None]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.

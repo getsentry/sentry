@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
@@ -18,28 +19,33 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   // TODO(msun): Add tests for this component
   const organization = useOrganization();
   const [isEditing, setIsEditing] = useState(false);
+  const user = useUser();
 
-  const {mutate: updateGroupSearchView} = useUpdateGroupSearchView({
-    onSuccess: () => {
-      trackAnalytics('issue_views.renamed_view', {
-        leftNav: true,
-        organization: organization.slug,
-      });
-    },
-  });
+  const {mutate: updateGroupSearchView} = useUpdateGroupSearchView();
 
   const handleOnSave = (title: string) => {
     if (title !== view.name) {
-      updateGroupSearchView({
-        name: title,
-        id: view.id,
-        projects: view.projects,
-        query: view.query,
-        querySort: view.querySort,
-        timeFilters: view.timeFilters,
-        environments: view.environments,
-        optimistic: true,
-      });
+      updateGroupSearchView(
+        {
+          name: title,
+          id: view.id,
+          projects: view.projects,
+          query: view.query,
+          querySort: view.querySort,
+          timeFilters: view.timeFilters,
+          environments: view.environments,
+          optimistic: true,
+        },
+        {
+          onSuccess: () => {
+            trackAnalytics('issue_views.edit_name', {
+              organization,
+              ownership: user?.id === view.createdBy?.id ? 'personal' : 'organization',
+              surface: 'issue-view-details',
+            });
+          },
+        }
+      );
     }
     requestAnimationFrame(() => {
       setIsEditing(false);

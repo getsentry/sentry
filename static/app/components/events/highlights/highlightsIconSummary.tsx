@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -14,11 +15,9 @@ import {
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
 import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';
@@ -51,13 +50,15 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     projectSlug,
     eventId: event.id,
   });
-  const screenshot = attachments.find(({name}) => SCREENSHOT_NAMES.includes(name));
+  const screenshot = attachments.find(
+    ({name, mimetype}) => name.includes('screenshot') && mimetype.startsWith('image')
+  );
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
     isMobilePlatform(projectPlatform) || isNativePlatform(projectPlatform);
 
-  // Errors thrown on the backend of a Meta-Framework (e.g. Next.js) also include the client context
-  const isMetaFrameworkBackendIssue =
+  // Events from the backend of a Meta-Framework (e.g. Next.js) also include the client context
+  const isMetaFrameworkBackendEvent =
     Object.keys(event.contexts).includes('client_os') &&
     Object.keys(event.contexts).includes('os');
 
@@ -81,8 +82,8 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     }))
     .filter((item, _index, array) => {
       if (
-        // Hide client information in backend issues (always prefer `os` over `client_os`)
-        isMetaFrameworkBackendIssue &&
+        // Hide client information in backend events (always prefer `os` over `client_os`)
+        isMetaFrameworkBackendEvent &&
         (item.contextType === 'browser' || item.alias === 'client_os')
       ) {
         return false;
@@ -183,7 +184,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   ) : null;
 }
 
-export function ReleaseHighlight({
+function ReleaseHighlight({
   releaseTag,
   organization,
   projectSlug,
@@ -216,11 +217,7 @@ export function ReleaseHighlight({
   );
 }
 
-export function EnvironmentHighlight({
-  environmentTag,
-}: {
-  environmentTag: EventTag | undefined;
-}) {
+function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag | undefined}) {
   if (!environmentTag) {
     return null;
   }

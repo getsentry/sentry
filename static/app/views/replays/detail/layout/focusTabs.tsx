@@ -1,13 +1,11 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
@@ -33,8 +31,6 @@ type Props = {
 
 function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
-  const {pathname, query} = useLocation();
-  const navigate = useNavigate();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
 
@@ -47,11 +43,8 @@ function FocusTabs({isVideoReplay}: Props) {
       <Tabs
         value={activeTab}
         onChange={tab => {
+          // Navigation is handled by setActiveTab
           setActiveTab(tab);
-          navigate({
-            pathname,
-            query: {...query, t_main: tab},
-          });
           trackAnalytics('replay.details-tab-changed', {
             tab,
             organization,
@@ -72,7 +65,6 @@ function FocusTabs({isVideoReplay}: Props) {
 }
 
 const TabContainer = styled('div')`
-  margin-bottom: ${space(1)};
   padding-inline: ${space(1)};
   border-bottom: solid 1px #e0dce5;
 

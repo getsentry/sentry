@@ -1,4 +1,6 @@
+import {useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
@@ -23,13 +25,25 @@ const COMPONENT_MAP = {
     import(/* webpackChunkName: "SystemAlerts" */ 'sentry/views/app/systemAlerts'),
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
-  [SentryInitRenderReactComponent.U2F_SIGN]: () =>
-    import(/* webpackChunkName: "U2fSign" */ 'sentry/components/u2f/u2fsign'),
+  [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>
+    import(
+      /* webpackChunkName: "WebAuthnAssert" */ 'sentry/components/webAuthn/webAuthnAssert'
+    ),
   [SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM]: () =>
     import(
       /* webpackChunkName: "SuperuserStaffAccessForm" */ 'sentry/components/superuserStaffAccessForm'
     ),
 };
+
+interface SimpleRouterProps {
+  element: React.ReactNode;
+}
+
+function SimpleRouter({element}: SimpleRouterProps) {
+  const [router] = useState(() => createBrowserRouter([{path: '*', element}]));
+
+  return <RouterProvider router={router} />;
+}
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
   /**
@@ -96,7 +110,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            */
           <QueryClientProvider client={queryClient}>
             <ThemeAndStyleProvider>
-              <Component {...props} />
+              <SimpleRouter element={<Component {...props} />} />
             </ThemeAndStyleProvider>
           </QueryClientProvider>
         ),

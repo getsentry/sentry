@@ -1,13 +1,15 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -23,7 +25,7 @@ import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceA
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import {
-  loadTraceViewPreferences,
+  getInitialTracePreferences,
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -38,7 +40,6 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
-      'trace grid height': 150,
     },
     layoutOptions: [],
   },
@@ -73,9 +74,11 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
   const tree = useIssuesTraceTree({trace, meta, replay: null});
 
-  const shouldLoadTraceRoot = !trace.isPending && trace.data;
-
-  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
+  const rootEventResults = useTraceRootEvent({
+    tree,
+    logs: undefined,
+    traceId,
+  });
 
   const traceEventView = useTraceEventView(traceId, params);
 
@@ -91,7 +94,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
         tree={tree}
         trace={trace}
         traceSlug={traceId}
-        rootEvent={rootEvent}
+        rootEventResults={rootEventResults}
         organization={organization}
         traceEventView={traceEventView}
         meta={meta}
@@ -133,16 +136,20 @@ interface EventTraceViewProps {
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
   const traceId = event.contexts.trace?.trace_id;
   const location = useLocation();
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
+  // Span Evidence section contains the trace view already
   const preferences = useMemo(
     () =>
-      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
-      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+      getInitialTracePreferences(
+        TRACE_WATERFALL_PREFERENCES_KEY,
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+      ),
     []
   );
 
   // Performance issues have a Span Evidence section that contains the trace view
-  if (!traceId || group.issueCategory === IssueCategory.PERFORMANCE) {
+  if (!traceId || issueTypeConfig.spanEvidence.enabled) {
     return null;
   }
 
@@ -186,7 +193,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       {hasTracePreviewFeature && (
         <TraceStateProvider
           initialPreferences={preferences}
-          preferencesStorageKey="issue-details-view-preferences"
+          preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
         >
           <EventTraceViewInner
             event={event}

@@ -47,11 +47,11 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
     conf_key = "splunk"
     resource_links = [("Splunk Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
     required_field = "instance"
-    project_token = None
-    project_index = None
-    project_source = None
-    project_instance = None
-    host = None
+    project_token: str | None = None
+    project_index: str | None = None
+    project_source: str | None = None
+    project_instance: str | None = None
+    host: str | None = None
     feature_descriptions = [
         FeatureDescription(
             """
@@ -61,12 +61,9 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         )
     ]
 
-    def get_rate_limit(self):
+    def get_rate_limit(self) -> tuple[int, int]:
         # number of requests, number of seconds (window)
         return (1000, 1)
-
-    def get_client(self):
-        return SplunkApiClient(self.project_instance, self.project_token)
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
@@ -203,7 +200,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         if self.host:
             payload["host"] = self.host
 
-        client = self.get_client()
+        client = SplunkApiClient(self.project_instance, self.project_token)
 
         try:
             # https://docs.splunk.com/Documentation/Splunk/7.2.3/Data/TroubleshootHTTPEventCollector

@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Iterable, Mapping
 from dataclasses import field
-from itertools import chain
 from typing import Any
 
 import sentry_sdk
@@ -40,7 +39,6 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
@@ -64,13 +62,17 @@ def consolidate_events(raw_events: Iterable[str]) -> set[str]:
     }
 
 
-def expand_events(rolled_up_events: list[str]) -> set[str]:
+def expand_events(rolled_up_events: list[str]) -> list[str]:
     """
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
     """
-    return set(
-        chain.from_iterable([EVENT_EXPANSION.get(event, [event]) for event in rolled_up_events])
+    return sorted(
+        {
+            translated
+            for event in rolled_up_events
+            for translated in EVENT_EXPANSION.get(event, [event])
+        }
     )
 
 
@@ -365,7 +367,6 @@ class SentryAppCreator:
             "application_id": api_app.id,
             "owner_id": self.organization_id,
             "proxy_user_id": proxy.id,
-            "scope_list": self.scopes,
             "events": expand_events(self.events),
             "schema": self.schema or {},
             "webhook_url": self.webhook_url,
@@ -379,6 +380,8 @@ class SentryAppCreator:
             or user.username,  # email is not required for some users (sentry apps)
             "metadata": self.metadata if self.metadata else {},
         }
+        if self.scopes is not None:
+            kwargs["scope_list"] = self.scopes
 
         if self.is_internal:
             kwargs["status"] = SentryAppStatus.INTERNAL
@@ -403,7 +406,6 @@ class SentryAppCreator:
                     target_type=IntegrationTypes.SENTRY_APP.value,
                 )
         except IntegrityError:
-            incr_rollback_metrics(IntegrationFeature)
             with isolation_scope() as scope:
                 scope.set_tag("sentry_app", sentry_app.slug)
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")

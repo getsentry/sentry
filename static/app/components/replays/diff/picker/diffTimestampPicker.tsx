@@ -2,11 +2,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import CrumbItem from 'sentry/components/replays/diff/picker/crumbItem';
 import MutationOption from 'sentry/components/replays/diff/picker/mutationOption';
 import {After, Before} from 'sentry/components/replays/diff/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isHydrateCrumb, isRRWebChangeFrame} from 'sentry/utils/replays/types';

@@ -12,7 +12,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
-from sentry.uptime.models import ProjectUptimeSubscriptionMode, UptimeStatus
+from sentry.uptime.models import UptimeStatus
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 

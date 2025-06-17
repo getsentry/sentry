@@ -1,4 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -26,22 +27,7 @@ describe('Uptime Overview', function () {
   const project = ProjectFixture();
   const team = TeamFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   beforeEach(function () {
     OrganizationStore.init();
@@ -73,21 +59,18 @@ describe('Uptime Overview', function () {
   it('renders', async function () {
     const {organization, router} = initializeOrg({
       organization: {
-        features: ['insights-initial-modules', 'insights-entry-points', 'uptime'],
+        features: ['uptime'],
       },
       router: RouterFixture({
-        location: LocationFixture({pathname: '/insights/backend/uptime'}),
+        location: LocationFixture({pathname: '/insights/uptime'}),
       }),
     });
     OrganizationStore.onUpdate(organization);
 
-    render(<UptimeOverview />, {organization, router});
+    render(<UptimeOverview />, {organization, router, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Uptime Monitors');
-    const tab = screen.getByRole('tab', {name: 'Uptime Monitors'});
-    expect(tab).toBeInTheDocument();
-    expect(tab).toHaveAttribute('aria-selected', 'true');
   });
 });

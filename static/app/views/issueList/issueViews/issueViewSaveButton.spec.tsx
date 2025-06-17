@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -13,6 +15,10 @@ import GlobalModal from 'sentry/components/globalModal';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+const organization = OrganizationFixture({
+  features: ['issue-views'],
+});
 
 const defaultProps = {
   query: 'is:unresolved',
@@ -70,8 +76,8 @@ describe('IssueViewSaveButton', function () {
         <GlobalModal />
       </Fragment>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: initialRouterConfigFeed,
+        organization,
       }
     );
 
@@ -101,6 +107,7 @@ describe('IssueViewSaveButton', function () {
           projects: [1],
           environments: ['prod'],
           timeFilters: {period: '7d', utc: null, start: null, end: null},
+          starred: true,
         },
       })
     );
@@ -121,8 +128,8 @@ describe('IssueViewSaveButton', function () {
         <GlobalModal />
       </Fragment>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: initialRouterConfigView,
+        organization,
       }
     );
 
@@ -135,6 +142,8 @@ describe('IssueViewSaveButton', function () {
 
     const nameInput = within(modal).getByRole('textbox', {name: 'Name'});
 
+    expect(nameInput).toHaveValue(`${mockGroupSearchView.name} (Copy)`);
+    await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'My View');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create View'}));
@@ -153,12 +162,13 @@ describe('IssueViewSaveButton', function () {
           projects: [1],
           environments: ['prod'],
           timeFilters: {period: '7d', utc: null, start: null, end: null},
+          starred: true,
         },
       })
     );
   });
 
-  it('can save changes to a view', async function () {
+  it('can save changes to a view that user has edit access to', async function () {
     const mockUpdateIssueView = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/100/',
       method: 'PUT',
@@ -166,7 +176,6 @@ describe('IssueViewSaveButton', function () {
     });
 
     render(<IssueViewSaveButton {...defaultProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         ...initialRouterConfigView,
         location: {
@@ -180,6 +189,7 @@ describe('IssueViewSaveButton', function () {
           },
         },
       },
+      organization,
     });
 
     // Should show unsaved changes
@@ -203,11 +213,75 @@ describe('IssueViewSaveButton', function () {
     );
   });
 
+  it('can save as a new view when user has no edit access', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/100/',
+      body: {
+        ...mockGroupSearchView,
+        // Created by another user
+        createdBy: UserFixture({id: '98765'}),
+      },
+    });
+    const mockCreateIssueView = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      method: 'POST',
+      body: mockGroupSearchView,
+    });
+
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+
+    const {router} = render(
+      <Fragment>
+        <IssueViewSaveButton {...defaultProps} />
+        <GlobalModal />
+      </Fragment>,
+      {
+        organization: OrganizationFixture({
+          access: ['org:read'],
+          features: ['issue-views'],
+        }),
+        initialRouterConfig: initialRouterConfigView,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save As'}));
+
+    const modal = screen.getByRole('dialog');
+
+    expect(modal).toBeInTheDocument();
+
+    const nameInput = within(modal).getByRole('textbox', {name: 'Name'});
+
+    expect(nameInput).toHaveValue(`${mockGroupSearchView.name} (Copy)`);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'My View');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create View'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/views/100/');
+    });
+
+    expect(mockCreateIssueView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          name: 'My View',
+          query: 'is:unresolved',
+          querySort: IssueSortOptions.DATE,
+          projects: [1],
+          environments: ['prod'],
+          timeFilters: {period: '7d', utc: null, start: null, end: null},
+          starred: true,
+        },
+      })
+    );
+  });
+
   it('can discard unsaved changes', async function () {
     PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
     const {router} = render(<IssueViewSaveButton {...defaultProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         ...initialRouterConfigView,
         location: {
@@ -221,14 +295,13 @@ describe('IssueViewSaveButton', function () {
           },
         },
       },
+      organization,
     });
 
     await screen.findByTestId('save-button-unsaved');
 
     await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
-    await userEvent.click(
-      screen.getByRole('menuitemradio', {name: 'Discard unsaved changes'})
-    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Reset'}));
 
     // Discarding unsaved changes should reset URL query params
     await waitFor(() => {
@@ -245,5 +318,14 @@ describe('IssueViewSaveButton', function () {
 
     // The save button should no longer show unsaved changes
     expect(screen.getByTestId('save-button')).toBeInTheDocument();
+  });
+
+  it('shows a feature disabled hovercard when the feature is disabled', async function () {
+    render(<IssueViewSaveButton {...defaultProps} />, {
+      organization: OrganizationFixture({
+        features: [],
+      }),
+    });
+    expect(await screen.findByRole('button', {name: 'Save As'})).toBeDisabled();
   });
 });

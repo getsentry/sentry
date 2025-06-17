@@ -16,7 +16,7 @@ const propNamesToIgnore = ['api', 'children', 'organization'];
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-export type SessionsRequestRenderProps = {
+type SessionsRequestRenderProps = {
   errored: boolean;
   loading: boolean;
   reloading: boolean;

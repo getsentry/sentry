@@ -1,14 +1,12 @@
-import {Fragment, lazy} from 'react';
+import {Fragment} from 'react';
 import memoize from 'lodash/memoize';
 
-import LazyLoad from 'sentry/components/lazyLoad';
 import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
@@ -17,7 +15,7 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
-import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
@@ -29,6 +27,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
+import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
@@ -38,44 +37,9 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import {IndexRedirect, IndexRoute, Redirect, Route} from './components/route';
+import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
-
-// LazyExoticComponent Props get crazy when wrapped in an additional layer
-const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
-  typeof LazyLoad
->;
-
-// NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
-// pirvate routing tree.
-
-/**
- * Factory function to produce a component that will render the SafeLazyLoad
- * _with_ the required props.
- */
-export function makeLazyloadComponent<C extends React.ComponentType<any>>(
-  resolve: () => Promise<{default: C}>,
-  loadingFallback?: React.ReactNode
-) {
-  const LazyComponent = lazy<C>(() => retryableImport(resolve));
-  // XXX: Assign the component to a variable so it has a displayname
-  function RouteLazyLoad(props: React.ComponentProps<C>) {
-    // we can use this hook to set the organization as it's
-    // a child of the organization context
-    return (
-      <SafeLazyLoad
-        {...props}
-        LazyComponent={LazyComponent}
-        loadingFallback={loadingFallback}
-      />
-    );
-  }
-
-  return RouteLazyLoad;
-}
-
-// Shorthand to avoid extra line wrapping
-const make = makeLazyloadComponent;
 
 function buildRoutes() {
   // Read this to understand where to add new routes, how / why the routing
@@ -203,6 +167,8 @@ function buildRoutes() {
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
+      {/* Add redirect from old user feedback to new feedback */}
+      <Redirect from="/user-feedback/" to="/feedback/" />
       {/* TODO: remove share/issue orgless url */}
       <Route
         path="/share/issue/:shareId/"
@@ -304,7 +270,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="/stories/"
-        component={make(() => import('sentry/views/stories/index'))}
+        component={make(() => import('sentry/stories/view/index'))}
         withOrgPath
       />
     </Route>
@@ -412,18 +378,18 @@ function buildRoutes() {
       />
       <Route path="api/" name={t('API')}>
         <IndexRedirect to="auth-tokens/" />
-        <Route path="auth-tokens/" name={t('User Auth Tokens')}>
+        <Route path="auth-tokens/" name={t('Personal Tokens')}>
           <IndexRoute
             component={make(() => import('sentry/views/settings/account/apiTokens'))}
           />
           <Route
             path="new-token/"
-            name={t('Create New Token')}
+            name={t('Create Personal Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
           />
           <Route
             path=":tokenId/"
-            name={t('Edit User Auth Token')}
+            name={t('Edit Personal Token')}
             component={make(
               () => import('sentry/views/settings/account/apiTokenDetails')
             )}
@@ -526,6 +492,11 @@ function buildRoutes() {
         path="data-forwarding/"
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
+      />
+      <Route
+        path="seer/"
+        name={t('Seer')}
+        component={make(() => import('sentry/views/settings/projectSeer/index'))}
       />
       <Route
         path="user-feedback/"
@@ -975,20 +946,20 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="auth-tokens/" name={t('Auth Tokens')}>
+      <Route path="auth-tokens/" name={t('Organization Tokens')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationAuthTokens'))}
         />
         <Route
           path="new-token/"
-          name={t('Create New Auth Token')}
+          name={t('Create New Organization Token')}
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
           )}
         />
         <Route
           path=":tokenId/"
-          name={t('Edit Auth Token')}
+          name={t('Edit Organization Token')}
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           )}
@@ -1426,15 +1397,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  // XXX(epurkhiser): This is legacy until we remove crons from the sidebar
-  const cronsRoutes = (
-    <Route
-      path="/crons/"
-      component={make(() => import('sentry/views/monitors'))}
-      withOrgPath
-    />
-  );
-
   const replayChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
@@ -1720,74 +1682,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_RENDERING]}/`}>
-        <IndexRoute
-          component={make(
-            () =>
-              import(
-                'sentry/views/insights/mobile/screenRendering/screenRenderingLandingPage'
-              )
-          )}
-        />
-        <Route
-          path={`${SUMMARY_PAGE_BASE_URL}/`}
-          component={make(
-            () =>
-              import(
-                'sentry/views/insights/mobile/screenRendering/screenRenderingSummaryPage'
-              )
-          )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
-        <IndexRoute
-          component={make(
-            () =>
-              import('sentry/views/insights/mobile/appStarts/views/appStartsLandingPage')
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
-          )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
-          )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
-        <IndexRoute
-          component={make(
-            () =>
-              import(
-                'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
-              )
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () =>
-              import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
-          )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.UPTIME]}/`}>
-        <IndexRoute
-          component={make(() => import('sentry/views/insights/uptime/views/overview'))}
-        />
-      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(
@@ -1801,11 +1695,6 @@ function buildRoutes() {
             () =>
               import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
           )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.CRONS]}/`}>
-        <IndexRoute
-          component={make(() => import('sentry/views/insights/crons/views/overview'))}
         />
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`}>
@@ -1827,10 +1716,6 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${BACKEND_LANDING_SUB_PATH}/`}>
@@ -1841,10 +1726,6 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${MOBILE_LANDING_SUB_PATH}/`}>
@@ -1855,22 +1736,37 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
+        {moduleRoutes}
+      </Route>
+      <Route path={`${AGENTS_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
+          )}
         />
+        {transactionSummaryRoutes}
+        {traceViewRoute}
         {moduleRoutes}
       </Route>
       <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
         {projectsChildRoutes}
+      </Route>
+      <Redirect from={`${FRONTEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
+      <Redirect from={`${BACKEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
+      <Redirect from={`${BACKEND_LANDING_SUB_PATH}/crons/`} to="/insights/crons/" />
+      <Route path="uptime/">
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/uptime/views/overview'))}
+        />
+      </Route>
+      <Route path="crons/">
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/crons/views/overview'))}
+        />
       </Route>
     </Route>
   );
@@ -1882,10 +1778,6 @@ function buildRoutes() {
       withOrgPath
     >
       <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
@@ -2006,14 +1898,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const userFeedbackRoutes = (
-    <Route
-      path="/user-feedback/"
-      component={make(() => import('sentry/views/userFeedback'))}
-      withOrgPath
-    />
-  );
-
   const codecovCommitRoutes = (
     /* This is a layout route that will render a header for a commit */
     <Route
@@ -2085,18 +1969,30 @@ function buildRoutes() {
         {codecovPRRoutes}
       </Route>
       <Route path="tests/">
-        {/* Render tests onboarding with layout wrapper */}
+        {/* Render tests page with layout wrapper */}
         <Route component={make(() => import('sentry/views/codecov/tests/testsWrapper'))}>
           <IndexRoute
             component={make(() => import('sentry/views/codecov/tests/tests'))}
           />
         </Route>
-
-        {/* Render tests onboarding without any layout wrapping */}
+        {/* Render tests onboarding with layout wrapper */}
         <Route
           path="new/"
-          component={make(() => import('sentry/views/codecov/tests/onboarding'))}
-        />
+          component={make(() => import('sentry/views/codecov/tests/testsWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tests/onboarding'))}
+          />
+        </Route>
+      </Route>
+      <Route path="tokens/">
+        <Route
+          component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tokens/tokens'))}
+          />
+        </Route>
       </Route>
     </Fragment>
   );
@@ -2197,6 +2093,18 @@ function buildRoutes() {
   const issueRoutes = (
     <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route
+        path={`${IssueTaxonomy.ERRORS_AND_OUTAGES}/`}
+        component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
+      />
+      <Route
+        path={`${IssueTaxonomy.BREACHED_METRICS}/`}
+        component={make(() => import('sentry/views/issueList/pages/breachedMetrics'))}
+      />
+      <Route
+        path={`${IssueTaxonomy.WARNINGS}/`}
+        component={make(() => import('sentry/views/issueList/pages/warnings'))}
+      />
       <Route
         path="views/"
         component={make(
@@ -2338,6 +2246,7 @@ function buildRoutes() {
         <Redirect from="members/:memberId/" to="/settings/:orgId/members/:memberId/" />
         <Redirect from="rate-limits/" to="/settings/:orgId/rate-limits/" />
         <Redirect from="repos/" to="/settings/:orgId/repos/" />
+        <Redirect from="user-feedback/" to="/organizations/:orgId/feedback/" />
       </Route>
     </Fragment>
   );
@@ -2444,7 +2353,7 @@ function buildRoutes() {
         component={errorHandler(
           redirectDeprecatedProjectRoute(
             ({orgId, projectId}) =>
-              `/organizations/${orgId}/user-feedback/?project=${projectId}`
+              `/organizations/${orgId}/feedback/?project=${projectId}`
           )
         )}
       />
@@ -2501,12 +2410,10 @@ function buildRoutes() {
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
-      {userFeedbackRoutes}
       {feedbackv2Routes}
       {issueRoutes}
       {alertRoutes}
       {codecovRoutes}
-      {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
       {statsRoutes}

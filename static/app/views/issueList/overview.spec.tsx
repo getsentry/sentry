@@ -63,6 +63,7 @@ const initialRouterConfig = {
   routes: [
     '/organizations/:orgId/issues/',
     '/organizations/:orgId/issues/searches/:searchId/',
+    '/organizations/:orgId/issues/views/:viewId/',
   ],
   location: {
     pathname: '/organizations/org-slug/issues/',
@@ -198,7 +199,7 @@ describe('IssueList', function () {
     it('loads group rows with default query (no pinned queries, async and no query in URL)', async function () {
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/issues/',
@@ -241,7 +242,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -286,7 +287,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -327,7 +328,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {query: 'level:error'},
@@ -367,7 +368,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -415,7 +416,7 @@ describe('IssueList', function () {
 
       const {unmount} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig,
       });
 
@@ -428,7 +429,7 @@ describe('IssueList', function () {
       // Mount component again, getting from cache
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig,
       });
 
@@ -447,7 +448,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig,
       });
 
@@ -478,7 +479,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig,
       });
 
@@ -525,7 +526,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig,
       });
 
@@ -606,6 +607,7 @@ describe('IssueList', function () {
       render(<IssueListOverview {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -656,6 +658,7 @@ describe('IssueList', function () {
       render(<IssueListOverview {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -697,7 +700,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -775,7 +778,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -816,7 +819,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig,
       });
 
@@ -896,7 +899,6 @@ describe('IssueList', function () {
       });
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -918,7 +920,6 @@ describe('IssueList', function () {
 
   it('fetches members', async function () {
     render(<IssueListOverview {...routerProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig,
     });
 
@@ -942,7 +943,6 @@ describe('IssueList', function () {
 
     it('fetches data on selection change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -966,7 +966,6 @@ describe('IssueList', function () {
 
     it('fetches data on savedSearch change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -979,7 +978,6 @@ describe('IssueList', function () {
 
     it('uses correct statsPeriod when fetching issues list and no datetime given', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -1016,7 +1014,6 @@ describe('IssueList', function () {
   describe('componentDidUpdate fetching members', function () {
     it('fetches memberlist on project change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig,
       });
       // Called during componentDidMount
@@ -1057,7 +1054,6 @@ describe('IssueList', function () {
         statusCode: 500,
       });
       render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -1073,7 +1069,6 @@ describe('IssueList', function () {
         },
       });
       render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -1092,7 +1087,6 @@ describe('IssueList', function () {
       });
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -1139,7 +1133,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} {...moreProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig,
       });
 
@@ -1350,7 +1344,7 @@ describe('IssueList', function () {
 
     const {rerender} = render(<IssueListOverview {...routerProps} />, {
       organization,
-      enableRouterMocks: false,
+
       initialRouterConfig: merge({}, initialRouterConfig, {
         location: {
           query: {
@@ -1393,7 +1387,6 @@ describe('IssueList', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
       render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -1412,7 +1405,7 @@ describe('IssueList', function () {
 
         render(<IssueListOverview {...routerProps} />, {
           organization,
-          enableRouterMocks: false,
+
           initialRouterConfig,
         });
 
@@ -1456,7 +1449,7 @@ describe('IssueList', function () {
 
         render(<IssueListOverview {...routerProps} />, {
           organization,
-          enableRouterMocks: false,
+
           initialRouterConfig,
         });
 
@@ -1470,6 +1463,50 @@ describe('IssueList', function () {
           ).toBeInTheDocument();
         });
       });
+    });
+  });
+
+  describe('new view page', function () {
+    it('displays empty state when first loaded', async function () {
+      const fetchDataMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      const {router: testRouter} = render(
+        <IssueListOverview {...routerProps} initialQuery="" shouldFetchOnMount={false} />,
+        {
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              pathname: '/organizations/org-slug/issues/views/new/',
+              query: {new: 'true'},
+            },
+          },
+        }
+      );
+
+      await screen.findByText('Suggested Queries');
+      expect(fetchDataMock).not.toHaveBeenCalled();
+
+      const highVolumeIssuesQuery = screen.getByRole('button', {
+        name: 'High Volume Issues is:unresolved timesSeen:>100',
+      });
+
+      // Clicking query should add it, remove suggested queries, and search issues
+      await userEvent.click(highVolumeIssuesQuery);
+      await waitFor(() => {
+        expect(testRouter.location.query.query).toBe('is:unresolved timesSeen:>100');
+      });
+      // ?new=true should be removed
+      expect(testRouter.location.query.new).toBeUndefined();
+
+      expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });
   });
 });

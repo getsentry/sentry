@@ -8,7 +8,6 @@ import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {
   useMetrics,
   useSpanMetrics,
@@ -162,7 +162,7 @@ function ScreensLandingPage() {
     },
     {
       title: t('Avg. TTID'),
-      description: t('Average time to intial display.'),
+      description: t('Average time to initial display.'),
       docs: t('The average time it takes until your app is drawing the first frame.'),
       setup: undefined,
       platformDocLinks: {
@@ -211,7 +211,7 @@ function ScreensLandingPage() {
     vital: VitalItem | undefined;
   }>({status: undefined, vital: undefined});
 
-  const query = new MutableSearch(['transaction.op:ui.load']);
+  const query = new MutableSearch(['transaction.op:[ui.load,navigation]']);
   if (isProjectCrossPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }
@@ -274,7 +274,7 @@ function ScreensLandingPage() {
               <Layout.Main fullWidth>
                 <Container>
                   <PageFilterBar condensed>
-                    <ProjectPageFilter onChange={handleProjectChange} />
+                    <InsightsProjectSelector onChange={handleProjectChange} />
                     <EnvironmentPageFilter />
                     <DatePageFilter />
                   </PageFilterBar>

@@ -11,8 +11,10 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -37,11 +39,12 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,
@@ -70,7 +73,9 @@ const renderDisabled = (p: any) => (
 
 type SaveAsDropdownProps = {
   disabled: boolean;
-  modifiedHandleCreateQuery: (e: React.MouseEvent<Element>) => void;
+  modifiedHandleCreateQuery: (
+    e: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
+  ) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
 };
@@ -81,7 +86,9 @@ function SaveAsDropdown({
   onChangeInput,
   modifiedHandleCreateQuery,
 }: SaveAsDropdownProps) {
-  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay();
+  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({
+    position: 'bottom',
+  });
   const theme = useTheme();
 
   return (
@@ -97,27 +104,32 @@ function SaveAsDropdown({
       </Button>
       <AnimatePresence>
         {isOpen && (
-          <FocusScope contain restoreFocus autoFocus>
-            <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-              <StyledOverlay arrowProps={arrowProps} animated>
-                <SaveAsInput
-                  type="text"
-                  name="query_name"
-                  placeholder={t('Display name')}
-                  value={queryName || ''}
-                  onChange={onChangeInput}
-                  disabled={disabled}
-                />
-                <SaveAsButton
-                  onClick={modifiedHandleCreateQuery}
-                  priority="primary"
-                  disabled={disabled || !queryName}
-                >
-                  {t('Save for Org')}
-                </SaveAsButton>
-              </StyledOverlay>
-            </PositionWrapper>
-          </FocusScope>
+          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+            <StyledOverlay arrowProps={arrowProps} animated>
+              <FocusScope contain restoreFocus autoFocus>
+                <form onSubmit={modifiedHandleCreateQuery}>
+                  <Flex gap={space(1)} column>
+                    <Input
+                      type="text"
+                      name="query_name"
+                      placeholder={t('Display name')}
+                      value={queryName || ''}
+                      onChange={onChangeInput}
+                      disabled={disabled}
+                    />
+                    <SaveAsButton
+                      type="submit"
+                      onClick={modifiedHandleCreateQuery}
+                      priority="primary"
+                      disabled={disabled || !queryName}
+                    >
+                      {t('Save for Organization')}
+                    </SaveAsButton>
+                  </Flex>
+                </form>
+              </FocusScope>
+            </StyledOverlay>
+          </PositionWrapper>
         )}
       </AnimatePresence>
     </div>
@@ -245,7 +257,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
    * 1) Creating a query from scratch and saving it
    * 2) Modifying an existing query and saving it
    */
-  handleCreateQuery = (event: React.MouseEvent<Element>) => {
+  handleCreateQuery = (
+    event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -398,6 +412,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       location,
       savedQuery?.queryDataset
     );
+
+    if (
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      deprecateTransactionAlerts(organization)
+    ) {
+      return null;
+    }
 
     let alertType: any;
     let buttonEventView = eventView;
@@ -648,10 +669,6 @@ const StyledOverlay = styled(Overlay)`
 
 const SaveAsButton = styled(Button)`
   width: 100%;
-`;
-
-const SaveAsInput = styled(Input)`
-  margin-bottom: ${space(1)};
 `;
 
 const IconUpdate = styled('div')`

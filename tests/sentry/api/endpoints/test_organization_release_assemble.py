@@ -82,7 +82,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
                 "project_ids": [self.project.id],
-                "upload_as_artifact_bundle": True,
                 "is_release_bundle_migration": True,
             }
         )
@@ -100,7 +99,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             checksum=total_checksum,
             chunks=[blob1.checksum],
             project_ids=[self.project.id],
-            upload_as_artifact_bundle=True,
             is_release_bundle_migration=True,
         )
 
@@ -124,7 +122,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             checksum=total_checksum,
             chunks=[blob1.checksum],
             project_ids=[self.project.id],
-            upload_as_artifact_bundle=True,
             is_release_bundle_migration=True,
         )
 
@@ -164,7 +161,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             "checksum": total_checksum,
             "chunks": [blob1.checksum],
             "project_ids": [self.project.id],
-            "upload_as_artifact_bundle": True,
             "is_release_bundle_migration": True,
         }
         mock_assemble_artifacts.apply_async.assert_called_once_with(kwargs=kwargs)

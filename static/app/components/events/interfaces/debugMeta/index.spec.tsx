@@ -126,9 +126,7 @@ describe('DebugMeta', function () {
     const searchBar = screen.getByRole('textbox');
     await userEvent.type(searchBar, 'some jibberish');
     expect(screen.queryByText(imageName)).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Sorry, no images match your search query')
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no images match your search query/i)).toBeInTheDocument();
     await userEvent.clear(searchBar);
     expect(screen.getByText(imageName)).toBeInTheDocument();
     await userEvent.type(searchBar, codeFile);

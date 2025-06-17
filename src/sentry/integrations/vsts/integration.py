@@ -29,10 +29,12 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration as IntegrationModel
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineHaltReason,
     IntegrationPipelineViewEvent,
@@ -42,7 +44,7 @@ from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
+from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -75,7 +77,7 @@ FEATURES = [
         """
         Create and link Sentry issue groups directly to a Azure DevOps work item in any of
         your projects, providing a quick way to jump from Sentry bug to tracked
-        work item!
+        work item.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -100,6 +102,13 @@ FEATURES = [
         trace linking.
         """,
         IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your Azure DevOps codeowners file into Sentry and use it alongside your
+        ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
     ),
     FeatureDescription(
         """
@@ -130,9 +139,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.default_identity: RpcIdentity | None = None
+    codeowners_locations = ["CODEOWNERS", ".sentry/CODEOWNERS"]
 
     @property
     def integration_name(self) -> str:
@@ -141,8 +148,6 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     def get_client(self) -> VstsApiClient:
         base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
-            if self.default_identity is None:
-                self.default_identity = self.get_default_identity()
             self._check_domain_name(self.default_identity)
 
         if self.org_integration is None:
@@ -375,8 +380,12 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
         base_url = VstsIntegrationProvider.get_base_url(
             default_identity.data["access_token"], self.model.external_id
         )
-        self.model.metadata["domain_name"] = base_url
-        self.model.save()
+        metadata = self.model.metadata.copy()
+        metadata["domain_name"] = base_url
+        integration_service.update_integration(
+            integration_id=self.model.id,
+            metadata=metadata,
+        )
 
     @property
     def instance(self) -> str:
@@ -391,7 +400,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
 
 class VstsIntegrationProvider(IntegrationProvider):
-    key = "vsts"
+    key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
     metadata = metadata
     api_version = "4.1"
@@ -407,6 +416,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
             IntegrationFeatures.TICKET_RULES,
         ]
     )
@@ -456,20 +466,21 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
         identity_pipeline_config = {
             "redirect_url": absolute_uri(self.oauth_redirect_url),
             "oauth_scopes": self.get_scopes(),
         }
 
-        identity_pipeline_view = NestedPipelineView(
-            bind_key="identity",
-            provider_key=self.key,
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
-        )
-
-        return [identity_pipeline_view, AccountConfigView()]
+        return [
+            NestedPipelineView(
+                bind_key="identity",
+                provider_key=self.key,
+                pipeline_cls=IdentityProviderPipeline,
+                config=identity_pipeline_config,
+            ),
+            AccountConfigView(),
+        ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
@@ -523,10 +534,6 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "secret": subscription_secret,
                 }
 
-                integration["metadata"][
-                    "integration_migration_version"
-                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
-
                 logger.info(
                     "vsts.build_integration.migrated",
                     extra={
@@ -564,13 +571,6 @@ class VstsIntegrationProvider(IntegrationProvider):
         # Assertion error happens when org_integration does not exist
         # KeyError happens when subscription is not found
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
-            if features.has(
-                "organizations:migrate-azure-devops-integration", self.pipeline.organization
-            ):
-                # If there is a new integration, we need to set the migration version to 1
-                integration["metadata"][
-                    "integration_migration_version"
-                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
 
             logger.warning(
                 "vsts.build_integration.error",
@@ -591,6 +591,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 "id": subscription_id,
                 "secret": subscription_secret,
             }
+
+        # Ensure integration_migration_version is set if the feature flag is active.
+        # This guarantees that if the new scopes are in use (due to the flag),
+        # the metadata correctly reflects the current migration version, even if
+        # the integration was already considered "up-to-date" based on DB records.
+        if features.has(
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization
+        ):
+            integration["metadata"][
+                "integration_migration_version"
+            ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
 
         return integration
 
@@ -661,8 +672,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
 
 
-class AccountConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class AccountConfigView(IntegrationPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.ACCOUNT_CONFIG,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,

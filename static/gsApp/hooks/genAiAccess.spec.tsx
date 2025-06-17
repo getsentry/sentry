@@ -34,34 +34,11 @@ describe('useGenAiConsentButtonAccess', function () {
     mockGetRegionData.mockReset();
   });
 
-  describe('Region-based access', function () {
-    it('disables access for non-US regions', function () {
-      const organization = OrganizationFixture();
-      const subscription = SubscriptionFixture({organization});
-
-      mockGetRegionData.mockReturnValue({
-        name: 'de',
-        displayName: 'Germany',
-        url: 'https://sentry.io',
-      });
-      mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
-
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
-        wrapper: contextWrapper(organization),
-      });
-
-      expect(result.current).toEqual(
-        expect.objectContaining({
-          isDisabled: true,
-          message: 'This feature is not available in your region.',
-          isUsRegion: false,
-        })
-      );
-    });
-
-    it('enables access for US region with proper permissions', function () {
+  describe('Flag-based access', function () {
+    it('enables access for US region when flag is present', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -83,7 +60,6 @@ describe('useGenAiConsentButtonAccess', function () {
         expect.objectContaining({
           isDisabled: false,
           message: null,
-          isUsRegion: true,
         })
       );
     });
@@ -93,6 +69,7 @@ describe('useGenAiConsentButtonAccess', function () {
     it('disables access for users without billing access', function () {
       const organization = OrganizationFixture({
         access: [],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -123,6 +100,7 @@ describe('useGenAiConsentButtonAccess', function () {
     it('enables access for superusers regardless of billing access', function () {
       const organization = OrganizationFixture({
         access: [],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -153,6 +131,7 @@ describe('useGenAiConsentButtonAccess', function () {
     it('enables access for users with billing access', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -182,9 +161,10 @@ describe('useGenAiConsentButtonAccess', function () {
   });
 
   describe('Combined Conditions', function () {
-    it('shows region restriction for non-US regions', function () {
+    it('shows region restriction when feature flag is off', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: [],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -207,7 +187,6 @@ describe('useGenAiConsentButtonAccess', function () {
         expect.objectContaining({
           isDisabled: true,
           message: 'This feature is not available in your region.',
-          isUsRegion: false,
           isTouchCustomerAndNeedsMsaUpdate: true,
         })
       );
@@ -216,6 +195,7 @@ describe('useGenAiConsentButtonAccess', function () {
     it('allows access for invoiced customers with undefined msaUpdatedForDataConsent', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,

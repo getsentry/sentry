@@ -2,7 +2,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
 
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
@@ -23,6 +22,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.utils.sdk import set_span_attribute
 
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
@@ -39,7 +39,7 @@ def add_comparison_to_event(event, average_columns, request: Request):
             group_to_span_map[group].append(span)
 
     # Nothing to add comparisons to
-    sentry_sdk.set_measurement("query.groups", len(group_to_span_map))
+    set_span_attribute("query.groups", len(group_to_span_map))
     if len(group_to_span_map) == 0:
         return
 
@@ -77,7 +77,7 @@ def add_comparison_to_event(event, average_columns, request: Request):
                 ),
             )
         )
-        sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
+        set_span_attribute("query.groups_found", len(result["data"]))
         for row in result["data"]:
             group = row["span.group"]
             for span in group_to_span_map[group]:

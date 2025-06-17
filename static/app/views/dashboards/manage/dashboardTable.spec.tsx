@@ -148,8 +148,7 @@ describe('Dashboards - DashboardTable', function () {
         organization={organization}
         dashboards={dashboards}
         location={router.location}
-      />,
-      {router}
+      />
     );
 
     expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -169,8 +168,7 @@ describe('Dashboards - DashboardTable', function () {
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
-      />,
-      {router}
+      />
     );
 
     expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -186,8 +184,7 @@ describe('Dashboards - DashboardTable', function () {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-      />,
-      {router}
+      />
     );
     renderGlobalModal();
 
@@ -327,7 +324,6 @@ describe('Dashboards - DashboardTable', function () {
         'dashboards-edit',
         'discover-query',
         'dashboards-table-view',
-        'dashboards-favourite',
       ],
     });
 

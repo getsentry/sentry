@@ -2,6 +2,7 @@ import type React from 'react';
 import {createContext, useContext, useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   SENTRY_LOG_NUMBER_TAGS,
@@ -11,7 +12,6 @@ import {
 } from 'sentry/views/explore/constants';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 type TypedTraceItemAttributes = {number: TagCollection; string: TagCollection};
 
@@ -23,7 +23,7 @@ type TypedTraceItemAttributesStatus = {
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
-export const TraceItemAttributeContext = createContext<
+const TraceItemAttributeContext = createContext<
   TypedTraceItemAttributesResult | undefined
 >(undefined);
 
@@ -31,22 +31,21 @@ interface TraceItemAttributeProviderProps {
   children: React.ReactNode;
   enabled: boolean;
   traceItemType: TraceItemDataset;
+  projects?: Project[];
 }
 
 export function TraceItemAttributeProvider({
   children,
   traceItemType,
   enabled,
+  projects,
 }: TraceItemAttributeProviderProps) {
-  const {data: indexedTags} = useSpanFieldCustomTags({
-    enabled: traceItemType === TraceItemDataset.SPANS && enabled,
-  });
-
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
       type: 'number',
       traceItemType,
+      projects,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -54,6 +53,7 @@ export function TraceItemAttributeProvider({
       enabled,
       type: 'string',
       traceItemType,
+      projects,
     });
 
   const allNumberAttributes = useMemo(() => {
@@ -71,12 +71,8 @@ export function TraceItemAttributeProvider({
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
 
-    if (traceItemType === TraceItemDataset.SPANS) {
-      return {...indexedTags, ...stringAttributes, ...Object.fromEntries(tags)};
-    }
-
     return {...stringAttributes, ...Object.fromEntries(tags)};
-  }, [traceItemType, indexedTags, stringAttributes]);
+  }, [traceItemType, stringAttributes]);
 
   const attributesResult = useMemo(() => {
     return {
@@ -118,13 +114,6 @@ export function useTraceItemAttributes(type?: 'number' | 'string') {
     attributes: typedAttributesResult.string,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };
-}
-
-export function useTraceItemAttribute(key: string) {
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-
-  return stringAttributes[key] ?? numberAttributes[key] ?? null;
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

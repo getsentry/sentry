@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -24,22 +25,8 @@ describe('WebVitalsDetailPanel', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -49,7 +36,12 @@ describe('WebVitalsDetailPanel', function () {
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: {},
+      body: {
+        data: [
+          [1543449600, [20, 12]],
+          [1543449601, [10, 5]],
+        ],
+      },
     });
   });
 
@@ -61,7 +53,7 @@ describe('WebVitalsDetailPanel', function () {
     render(<WebVitalsDetailPanel webVital="lcp" />, {
       organization,
     });
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -149,7 +141,7 @@ describe('WebVitalsDetailPanel', function () {
       })
     );
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Largest Contentful Paint (P75)')).toBeInTheDocument();
+    expect(screen.getAllByText('Largest Contentful Paint (P75)')).toHaveLength(2);
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(
       screen.getByText(/Largest Contentful Paint \(LCP\) measures the render/)

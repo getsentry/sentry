@@ -1,5 +1,5 @@
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 
 export const spanSamplesWithDurations: TabularData = {
   meta: {

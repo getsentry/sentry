@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.auth.google")
 
 
 class FetchUser(AuthView):
-    def __init__(self, domains, version, *args, **kwargs):
+    def __init__(self, domains, version, *args, **kwargs) -> None:
         self.domains = domains
         self.version = version
         super().__init__(*args, **kwargs)
@@ -33,13 +33,13 @@ class FetchUser(AuthView):
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
+            _, payload_b, _ = map(urlsafe_b64decode, id_token.split(".", 2))
         except Exception as exc:
             logger.exception("Unable to decode id_token: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            payload = orjson.loads(payload)
+            payload = orjson.loads(payload_b)
         except Exception as exc:
             logger.exception("Unable to decode id_token payload: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)

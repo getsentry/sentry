@@ -8,6 +8,8 @@ describe('OrganizationBadge', function () {
   it('renders with Avatar and organization name', function () {
     render(<OrganizationBadge organization={OrganizationFixture()} />);
     expect(screen.getByTestId('default-avatar')).toBeInTheDocument();
-    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('org-slug');
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent(
+      'Organization Name'
+    );
   });
 });

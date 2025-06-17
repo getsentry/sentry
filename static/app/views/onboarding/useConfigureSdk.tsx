@@ -9,12 +9,10 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -28,11 +26,11 @@ export function useConfigureSdk({
 }: {
   onComplete: (selectedPlatform: OnboardingSelectedSDK) => void;
 }) {
-  const api = useApi();
   const {teams, fetching: isLoadingTeams} = useTeams();
-  const {projects} = useProjects();
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
+  const createProject = useCreateProject();
 
   const firstAccessTeam = teams.find(team => team.access.includes('team:admin'));
   const firstTeamSlug = firstAccessTeam?.slug;
@@ -63,48 +61,35 @@ export function useConfigureSdk({
 
       try {
         addLoadingMessage(t('Loading SDK configuration\u2026'));
-
-        // A default team should always be created for a new organization.
-        // If teams are loaded but no first team is found, fallback to the experimental project.
-        if (!firstTeamSlug) {
-          Sentry.captureException('No team slug found for new org during onboarding');
-        }
-        const url = firstTeamSlug
-          ? `/teams/${organization.slug}/${firstTeamSlug}/projects/`
-          : `/organizations/${organization.slug}/experimental/projects/`;
-
-        const response = (await api.requestPromise(url, {
-          method: 'POST',
-          data: {
-            platform: createProjectForPlatform.key,
-            name: createProjectForPlatform.key,
-            default_rules: true,
-            origin: 'ui',
-          },
-        })) as Project;
-
-        ProjectsStore.onCreateSuccess(response, organization.slug);
-
+        await createProject.mutateAsync({
+          name: createProjectForPlatform.key,
+          platform: createProjectForPlatform,
+          firstTeamSlug,
+        });
         onboardingContext.setSelectedPlatform(createProjectForPlatform);
-
         trackAnalytics('growth.onboarding_set_up_your_project', {
-          platform: selectedPlatform.key,
+          platform: createProjectForPlatform.key,
           organization,
         });
-
-        clearIndicators();
         setTimeout(() => onComplete(createProjectForPlatform));
-      } catch (err) {
+      } catch (error) {
         addErrorMessage(t('Failed to load SDK configuration'));
-        Sentry.captureException(err);
+        Sentry.captureException(error);
+      } finally {
+        clearIndicators();
       }
     },
-    [onboardingContext, api, organization, firstTeamSlug, projects, onComplete]
+    [createProject, firstTeamSlug, onboardingContext, onComplete, projects, organization]
   );
 
   const configureSdk = useCallback(
     async (selectedPlatform?: OnboardingSelectedSDK) => {
       if (!selectedPlatform) {
+        return;
+      }
+
+      if (createProject.isPending) {
+        // prevent multiple submissions at the same time
         return;
       }
 
@@ -147,8 +132,11 @@ export function useConfigureSdk({
         }
       );
     },
-    [createPlatformProject, onboardingContext, organization]
+    [createPlatformProject, onboardingContext, organization, createProject]
   );
 
-  return {configureSdk, isLoadingData: isLoadingTeams};
+  return {
+    configureSdk,
+    isLoadingData: isLoadingTeams || !projectsLoaded || createProject.isPending,
+  };
 }

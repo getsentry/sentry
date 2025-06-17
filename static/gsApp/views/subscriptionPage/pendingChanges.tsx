@@ -6,9 +6,9 @@ import {Alert} from 'sentry/components/core/alert';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {PendingOnDemandBudgets, Subscription} from 'getsentry/types';
@@ -16,10 +16,10 @@ import {
   displayBudgetName,
   formatReservedWithUnits,
   hasPerformance,
-  isAm3DsPlan,
 } from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
+  getReservedBudgetCategoryFromCategories,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -162,7 +162,7 @@ class PendingChanges extends Component<Props> {
       );
     }
 
-    if (isAm3DsPlan(subscription.pendingChanges?.plan)) {
+    if (this.hasReservedBudgetChange()) {
       results.push(...this.getReservedBudgetChanges());
     }
 
@@ -182,22 +182,21 @@ class PendingChanges extends Component<Props> {
     Object.values(DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
       .forEach(categoryInfo => {
-        const plural = categoryInfo.plural;
+        const category = categoryInfo.plural as DataCategory;
+        const pendingReserved = pendingChanges.reserved[category];
         if (
-          this.hasChange(`reserved.${plural}`, `categories.${plural}.reserved`) &&
-          pendingChanges.reserved[plural] !== RESERVED_BUDGET_QUOTA
+          this.hasChange(`reserved.${category}`, `categories.${category}.reserved`) &&
+          pendingReserved !== RESERVED_BUDGET_QUOTA &&
+          pendingReserved !== 0
         ) {
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
               displayName: getPlanCategoryName({
                 plan: pendingChanges.planDetails,
-                category: plural,
+                category,
                 capitalize: false,
               }),
-              quantity: formatReservedWithUnits(
-                pendingChanges.reserved[plural] ?? null,
-                plural
-              ),
+              quantity: formatReservedWithUnits(pendingReserved ?? null, category),
             })
           );
         }
@@ -267,32 +266,89 @@ class PendingChanges extends Component<Props> {
       return results;
     }
 
-    if (this.hasReservedBudgetChange()) {
-      const reservedBudgetChanges = pendingChanges.reservedBudgets.map(budget => {
-        const budgetCategories = Object.keys(budget.categories);
-        const isSpansBudget =
-          budgetCategories.length === 2 &&
-          budgetCategories.includes(DataCategory.SPANS) &&
-          budgetCategories.includes(DataCategory.SPANS_INDEXED);
-        const adjustedCategories =
-          isSpansBudget && !subscription.hadCustomDynamicSampling
-            ? [DataCategory.SPANS]
-            : budgetCategories;
-        const newAmount = formatCurrency(budget.reservedBudget);
-        const budgetName = getReservedBudgetDisplayName({
-          plan: pendingChanges.planDetails,
-          categories: adjustedCategories,
-          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-        });
-        return `${newAmount} for ${budgetName}`;
-      });
-      results.push(
-        tct('Reserved [budgetWord] updated to [reservedBudgets]', {
-          budgetWord: reservedBudgetChanges.length === 1 ? 'budget' : 'budgets',
-          reservedBudgets: oxfordizeArray(reservedBudgetChanges),
-        })
+    const existingReservedBudgets = subscription.reservedBudgets ?? [];
+    const pendingReservedBudgets = pendingChanges.reservedBudgets ?? [];
+    const matchedExistingBudgets = new Set<string>();
+
+    pendingReservedBudgets.forEach(pendingBudget => {
+      const pendingBudgetInfo = getReservedBudgetCategoryFromCategories(
+        pendingChanges.planDetails,
+        Object.keys(pendingBudget.categories) as DataCategory[]
       );
-    }
+
+      if (pendingBudgetInfo?.isFixed) {
+        // if it's a fixed budget, we don't care about the existing budget state
+        results.push(
+          tct('[productName] product access will be [accessState]', {
+            productName: toTitleCase(pendingBudgetInfo?.productName),
+            accessState: pendingBudget.reservedBudget > 0 ? 'enabled' : 'disabled',
+          })
+        );
+      } else {
+        const matchedExistingBudget =
+          existingReservedBudgets.find(
+            existingBudget => existingBudget.apiName === pendingBudgetInfo?.apiName
+          ) ?? null;
+        const budgetName = getReservedBudgetDisplayName({
+          pendingReservedBudget: pendingBudget,
+          plan: pendingChanges.planDetails,
+          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+          capitalize: true,
+        });
+        const newAmount = formatCurrency(pendingBudget.reservedBudget);
+
+        if (matchedExistingBudget) {
+          matchedExistingBudgets.add(matchedExistingBudget.id);
+          const oldAmount = formatCurrency(matchedExistingBudget.reservedBudget);
+          results.push(
+            tct('[budgetName] change from [oldAmount] to [newAmount]', {
+              budgetName,
+              oldAmount,
+              newAmount,
+            })
+          );
+        } else {
+          results.push(
+            tct('[budgetName] change to [newAmount]', {
+              budgetName,
+              newAmount,
+            })
+          );
+        }
+      }
+    });
+
+    existingReservedBudgets.forEach(existingBudget => {
+      if (matchedExistingBudgets.has(existingBudget.id)) {
+        return;
+      }
+
+      const willBeSetToZero = existingBudget.dataCategories.every(
+        category => pendingChanges.reserved[category] === 0
+      );
+      if (!willBeSetToZero) {
+        // changes to a non-zero reserved volume are handled in getAMPlanChanges
+        return;
+      }
+
+      if (existingBudget.isFixed) {
+        // if there is an existing fixed budget, and a pending zero reserved change,
+        // the product is being disabled
+        results.push(
+          tct('[productName] product access will be disabled', {
+            productName: toTitleCase(existingBudget.productName),
+          })
+        );
+      } else {
+        const oldAmount = formatCurrency(existingBudget.reservedBudget);
+        results.push(
+          tct('[budgetName] change from [oldAmount] to $0', {
+            budgetName: existingBudget.name,
+            oldAmount,
+          })
+        );
+      }
+    });
 
     return results;
   }

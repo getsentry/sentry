@@ -21,13 +21,9 @@ export type ContinuousTimeSeriesConfig = {
    */
   color?: string;
   /**
-   * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
-   */
-  delay?: number;
-  /**
    * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
    */
-  onHighlight?: (datum: Readonly<TimeSeries['data'][number]>) => void;
+  onHighlight?: (datum: Readonly<TimeSeries['values'][number]>) => void;
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {
@@ -53,25 +49,25 @@ export abstract class ContinuousTimeSeries<
 > {
   // Ideally both the `timeSeries` and `config` would be protected properties.
   timeSeries: Readonly<TimeSeries>;
-  #timestamps: readonly string[];
+  #timestamps: readonly number[];
   config?: Readonly<TConfig>;
 
   constructor(timeSeries: TimeSeries, config?: TConfig) {
     this.timeSeries = timeSeries;
-    this.#timestamps = timeSeries.data.map(datum => datum.timestamp).toSorted();
+    this.#timestamps = timeSeries.values.map(datum => datum.timestamp).toSorted();
     this.config = config;
   }
 
   get name(): string {
-    return this.timeSeries.field;
+    return this.timeSeries.yAxis;
   }
 
   get label(): string {
-    return this.config?.alias ?? formatSeriesName(this.timeSeries.field);
+    return this.config?.alias ?? formatSeriesName(this.timeSeries.yAxis);
   }
 
   get isEmpty(): boolean {
-    return this.timeSeries.data.every(datum => datum.value === null);
+    return this.timeSeries.values.every(datum => datum.value === null);
   }
 
   get needsColor(): boolean {
@@ -79,20 +75,20 @@ export abstract class ContinuousTimeSeries<
   }
 
   get dataType(): PlottableTimeSeriesValueType {
-    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.type)
-      ? this.timeSeries.meta.type
+    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.valueType)
+      ? this.timeSeries.meta.valueType
       : FALLBACK_TYPE;
   }
 
   get dataUnit(): TimeSeriesValueUnit {
-    return this.timeSeries.meta.unit;
+    return this.timeSeries.meta.valueUnit;
   }
 
-  get start(): string | null {
+  get start(): number | null {
     return this.#timestamps.at(0) ?? null;
   }
 
-  get end(): string | null {
+  get end(): number | null {
     return this.#timestamps.at(-1) ?? null;
   }
 
@@ -103,7 +99,7 @@ export abstract class ContinuousTimeSeries<
   constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
     return {
       ...this.timeSeries,
-      data: this.timeSeries.data.filter(dataItem => {
+      data: this.timeSeries.values.filter(dataItem => {
         const ts = new Date(dataItem.timestamp);
         return (
           (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)

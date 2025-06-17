@@ -2,32 +2,32 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widget/widgetDescription';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
 
-export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
+interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
   badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
-  isProgressivelyLoading?: boolean;
   noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
   title?: string;
+  titleBadges?: React.ReactNode;
   warnings?: string[];
 }
 
@@ -82,7 +82,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       revealActions={
         props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
       }
-      TitleBadges={getProgressiveLoadingIndicator(props.isProgressivelyLoading)}
+      TitleBadges={props.titleBadges}
       Actions={
         <Fragment>
           {props.description && (

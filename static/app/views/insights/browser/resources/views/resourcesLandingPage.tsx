@@ -85,7 +85,3 @@ const StyledHeaderContainer = styled(HeaderContainer)`
 `;
 
 export default PageWithProviders;
-
-export const PaddedContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;

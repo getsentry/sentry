@@ -13,7 +13,7 @@ import type {
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -39,26 +39,33 @@ export function parseOnDemandBudgets(
   onDemandBudgets: SubscriptionOnDemandBudgets | PendingOnDemandBudgets
 ): OnDemandBudgets {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    const parsedBudgets: Partial<Record<DataCategory, number>> = {};
+    const categoryBudgets: Partial<
+      Omit<PerCategoryOnDemandBudget, 'budgetMode' | 'budgets'>
+    > = {};
+    for (const category in onDemandBudgets.budgets) {
+      parsedBudgets[category as DataCategory] =
+        onDemandBudgets.budgets[category as DataCategory] ?? 0;
+      const key = `${category}Budget`;
+      (categoryBudgets as Partial<Record<string, number>>)[key] =
+        onDemandBudgets.budgets[category as DataCategory] ?? 0;
+    }
+
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: onDemandBudgets.budgets.errors ?? 0,
-      transactionsBudget: onDemandBudgets.budgets.transactions ?? 0,
-      attachmentsBudget: onDemandBudgets.budgets.attachments ?? 0,
-      replaysBudget: onDemandBudgets.budgets.replays ?? 0,
-      monitorSeatsBudget: onDemandBudgets.budgets.monitorSeats ?? 0,
-      uptimeBudget: onDemandBudgets.budgets.uptime ?? 0,
-      profileDurationBudget: onDemandBudgets.budgets.profileDuration ?? 0,
-      profileDurationUIBudget: onDemandBudgets.budgets.profileDurationUI ?? 0,
-      budgets: {
-        errors: onDemandBudgets.budgets.errors,
-        transactions: onDemandBudgets.budgets.transactions,
-        attachments: onDemandBudgets.budgets.attachments,
-        replays: onDemandBudgets.budgets.replays,
-        monitorSeats: onDemandBudgets.budgets.monitorSeats,
-        uptime: onDemandBudgets.budgets.uptime,
-        profileDuration: onDemandBudgets.budgets.profileDuration,
-        profileDurationUI: onDemandBudgets.budgets.profileDurationUI,
-      },
+      // Set defaults for all possible categories to satisfy the type.
+      // TODO: refactor this out later in the future.
+      errorsBudget: 0,
+      transactionsBudget: 0,
+      attachmentsBudget: 0,
+      replaysBudget: 0,
+      monitorSeatsBudget: 0,
+      profileDurationBudget: 0,
+      profileDurationUIBudget: 0,
+      uptimeBudget: 0,
+      // Spread the calculated values over the defaults
+      ...categoryBudgets,
+      budgets: parsedBudgets,
     };
   }
   return {
@@ -69,23 +76,9 @@ export function parseOnDemandBudgets(
 
 export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    const errorsBudget = onDemandBudgets.budgets.errors ?? 0;
-    const transactionsBudget = onDemandBudgets.budgets.transactions ?? 0;
-    const attachmentsBudget = onDemandBudgets.budgets.attachments ?? 0;
-    const replaysBudget = onDemandBudgets.budgets.replays ?? 0;
-    const monitorSeatsBudget = onDemandBudgets.budgets.monitorSeats ?? 0;
-    const uptimeBudget = onDemandBudgets.budgets.uptime ?? 0;
-    const profileDurationBudget = onDemandBudgets.budgets.profileDuration ?? 0;
-    const profileDurationUIBudget = onDemandBudgets.budgets.profileDurationUI ?? 0;
-    return (
-      errorsBudget +
-      transactionsBudget +
-      attachmentsBudget +
-      replaysBudget +
-      monitorSeatsBudget +
-      uptimeBudget +
-      profileDurationBudget +
-      profileDurationUIBudget
+    return Object.values(onDemandBudgets.budgets).reduce(
+      (sum, budget) => sum + (budget ?? 0),
+      0
     );
   }
 
@@ -101,14 +94,13 @@ export function isOnDemandBudgetsEqual(
 
 type DisplayNameProps = {
   budget: PerCategoryOnDemandBudget;
-  categories: string[];
+  categories: DataCategory[];
   plan: Plan;
 };
 
 function listBudgets({plan, categories, budget}: DisplayNameProps) {
   const categoryNames = categories.map(category => {
     const displayName = getPlanCategoryName({plan, category, capitalize: false});
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const formattedBudget = formatCurrency(budget.budgets[category] ?? 0);
     return `${displayName} at ${formattedBudget}`;
   });
@@ -118,18 +110,16 @@ function listBudgets({plan, categories, budget}: DisplayNameProps) {
 export function formatOnDemandBudget(
   plan: Plan,
   budget: OnDemandBudgets,
-  categories: string[] = [
-    'errors',
-    'transactions',
-    'attachments',
-    'replays',
-    'monitorSeats',
-    'uptime',
-    'profileDuration',
-    'profileDurationUI',
-  ]
+  categories: DataCategory[] = []
 ): React.ReactNode {
+  if (categories.length === 0) {
+    categories = plan.onDemandCategories.map(category => category);
+  }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    categories = getOnDemandCategories({
+      plan,
+      budgetMode: budget.budgetMode,
+    });
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,
       pluralOndemand: true,
@@ -160,35 +150,11 @@ function getBudgetMode(budget: OnDemandBudgets) {
 }
 
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
-  if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    switch (dataCategory) {
-      case DataCategory.ERRORS: {
-        return budget.budgets.errors ?? 0;
-      }
-      case DataCategory.TRANSACTIONS: {
-        return budget.budgets.transactions ?? 0;
-      }
-      case DataCategory.ATTACHMENTS: {
-        return budget.budgets.attachments ?? 0;
-      }
-      case DataCategory.REPLAYS: {
-        return budget.budgets.replays ?? 0;
-      }
-      case DataCategory.MONITOR_SEATS: {
-        return budget.budgets.monitorSeats ?? 0;
-      }
-      case DataCategory.UPTIME: {
-        return budget.budgets.uptime ?? 0;
-      }
-      case DataCategory.PROFILE_DURATION: {
-        return budget.budgets.profileDuration ?? 0;
-      }
-      case DataCategory.PROFILE_DURATION_UI: {
-        return budget.budgets.profileDurationUI ?? 0;
-      }
-      default:
-        return getTotalBudget(budget);
-    }
+  if (
+    budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
+    dataCategory in budget.budgets
+  ) {
+    return budget.budgets[dataCategory] ?? 0;
   }
   return getTotalBudget(budget);
 }
@@ -280,50 +246,51 @@ export function convertOnDemandBudget(
   nextMode: OnDemandBudgetMode
 ): OnDemandBudgets {
   if (nextMode === OnDemandBudgetMode.PER_CATEGORY) {
-    let errorsBudget = 0;
-    let transactionsBudget = 0;
-    let attachmentsBudget = 0;
-    let replaysBudget = 0;
-    let monitorSeatsBudget = 0;
-    let uptimeBudget = 0;
-    let profileDurationBudget = 0;
-    let profileDurationUIBudget = 0;
+    const newBudgets: Partial<Record<DataCategory, number>> = {
+      // TODO: refactor this out later in the future.
+      errors: 0,
+      transactions: 0,
+      attachments: 0,
+      replays: 0,
+      monitorSeats: 0,
+      uptime: 0,
+      profileDuration: 0,
+      profileDurationUI: 0,
+    };
+
     if (currentOnDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-      errorsBudget = currentOnDemandBudget.budgets.errors ?? 0;
-      transactionsBudget = currentOnDemandBudget.budgets.transactions ?? 0;
-      attachmentsBudget = currentOnDemandBudget.budgets.attachments ?? 0;
-      replaysBudget = currentOnDemandBudget.budgets.replays ?? 0;
-      monitorSeatsBudget = currentOnDemandBudget.budgets.monitorSeats ?? 0;
-      uptimeBudget = currentOnDemandBudget.budgets.uptime ?? 0;
-      profileDurationBudget = currentOnDemandBudget.budgets.profileDuration ?? 0;
-      profileDurationUIBudget = currentOnDemandBudget.budgets.profileDurationUI ?? 0;
+      Object.assign(newBudgets, currentOnDemandBudget.budgets);
     } else {
       // should split 50:50 between transactions and errors (whole dollars, remainder added to errors)
       const total = getTotalBudget(currentOnDemandBudget);
-      errorsBudget = Math.ceil(total / 100 / 2) * 100;
-      transactionsBudget = Math.max(total - errorsBudget, 0);
+      const errorsBudget = Math.ceil(total / 100 / 2) * 100;
+      const transactionsBudget = Math.max(total - errorsBudget, 0);
+      newBudgets.errors = errorsBudget;
+      newBudgets.transactions = transactionsBudget;
     }
+
+    const categoryBudgets: Partial<Record<string, number>> = Object.fromEntries(
+      Object.entries(newBudgets).map(([category, value]) => [
+        `${category}Budget`,
+        value ?? 0,
+      ])
+    );
 
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget,
-      transactionsBudget,
-      attachmentsBudget,
-      replaysBudget,
-      monitorSeatsBudget,
-      uptimeBudget,
-      profileDurationBudget,
-      profileDurationUIBudget,
-      budgets: {
-        errors: errorsBudget,
-        transactions: transactionsBudget,
-        attachments: attachmentsBudget,
-        replays: replaysBudget,
-        monitorSeats: monitorSeatsBudget,
-        uptime: uptimeBudget,
-        profileDuration: profileDurationBudget,
-        profileDurationUI: profileDurationUIBudget,
-      },
+      // Set defaults for all possible categories to satisfy the type.
+      // TODO: refactor this out later in the future.
+      errorsBudget: 0,
+      transactionsBudget: 0,
+      attachmentsBudget: 0,
+      replaysBudget: 0,
+      monitorSeatsBudget: 0,
+      uptimeBudget: 0,
+      profileDurationBudget: 0,
+      profileDurationUIBudget: 0,
+      // Spread the calculated values over the defaults
+      ...categoryBudgets,
+      budgets: newBudgets,
     };
   }
 

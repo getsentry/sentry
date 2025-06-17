@@ -49,11 +49,6 @@ function isArithmeticBuilderReplaceAction(
   return action.type === 'REPLACE_TOKEN';
 }
 
-export interface ArithmeticBuilderState {
-  expression: string;
-  focusOverride: FocusOverride | null;
-}
-
 interface UseArithmeticBuilderActionOptions {
   initialExpression: string;
   updateExpression?: (expression: Expression) => void;

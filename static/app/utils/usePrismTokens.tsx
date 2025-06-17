@@ -9,7 +9,7 @@ type PrismHighlightParams = {
   language: string;
 };
 
-export type SyntaxHighlightToken = {
+type SyntaxHighlightToken = {
   children: string;
   className: string;
 };

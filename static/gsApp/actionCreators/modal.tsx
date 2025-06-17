@@ -121,6 +121,7 @@ export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps)
 type EditCreditCardOptions = {
   onSuccess: (data: Subscription) => void;
   organization: Organization;
+  subscription: Subscription;
   location?: Location;
 };
 

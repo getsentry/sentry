@@ -19,15 +19,15 @@ __all__ = [
     "MSTeamsMetricAlertHandler",
     "OpsgenieMetricAlertHandler",
     "PagerDutyMetricAlertHandler",
+    "SentryAppMetricAlertHandler",
     "SlackMetricAlertHandler",
-    "EmailActionHandler",
+    "EmailMetricAlertHandler",
     "PluginActionHandler",
     "WebhookActionHandler",
     "SentryAppActionHandler",
 ]
 
 from .action_handler_registry import (
-    EmailActionHandler,
     PluginActionHandler,
     SentryAppActionHandler,
     WebhookActionHandler,
@@ -50,8 +50,10 @@ from .issue_alert_registry import (
 )
 from .metric_alert_registry import (
     DiscordMetricAlertHandler,
+    EmailMetricAlertHandler,
     MSTeamsMetricAlertHandler,
     OpsgenieMetricAlertHandler,
     PagerDutyMetricAlertHandler,
+    SentryAppMetricAlertHandler,
     SlackMetricAlertHandler,
 )

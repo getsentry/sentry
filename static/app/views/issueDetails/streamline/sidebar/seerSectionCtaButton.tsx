@@ -2,13 +2,14 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -17,16 +18,12 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 interface Props {
-  aiConfig: {
-    hasAutofix: boolean | null | undefined;
-    hasResources: boolean;
-    hasSummary: boolean;
-    isAutofixSetupLoading: boolean;
-    needsGenAIConsent: boolean;
-  };
+  aiConfig: ReturnType<typeof useAiConfig>;
   event: Event;
   group: Group;
   hasStreamlinedUI: boolean;
@@ -40,13 +37,35 @@ export function SeerSectionCtaButton({
   project,
   hasStreamlinedUI,
 }: Props) {
+  const location = useLocation();
+  const seerLink = {
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      seerDrawer: true,
+    },
+  };
+
   const openButtonRef = useRef<HTMLButtonElement>(null);
+  const isDrawerOpenRef = useRef(false);
 
   const {isPending: isAutofixPending} = useAutofixData({groupId: group.id});
-  const {autofixData} = useAiAutofix(group, event, {isSidebar: true, pollInterval: 1500});
+  const {autofixData} = useAiAutofix(group, event, {
+    isSidebar: !isDrawerOpenRef.current,
+    pollInterval: 1500,
+  });
 
-  const openSeerDrawer = useOpenSeerDrawer(group, project, event, openButtonRef);
-  const isDrawerOpenRef = useRef(false);
+  const {openSeerDrawer} = useOpenSeerDrawer({
+    group,
+    project,
+    event,
+    buttonRef: openButtonRef,
+  });
+
+  // Keep isDrawerOpenRef in sync with the Seer drawer state (based on URL query)
+  useEffect(() => {
+    isDrawerOpenRef.current = !!location.query.seerDrawer;
+  }, [location.query.seerDrawer]);
 
   // Keep track of previous steps to detect state transitions and notify the user
   const prevStepsRef = useRef<AutofixStep[] | null>(null);
@@ -87,13 +106,13 @@ export function SeerSectionCtaButton({
       );
       if (prevProcessingStep && prevProcessingStep.status !== AutofixStatus.COMPLETED) {
         if (currentSteps.some(step => step.type === AutofixStepType.CHANGES)) {
-          addSuccessMessage(t('Autofix has finished coding.'));
+          addSuccessMessage(t('Seer has finished coding.'));
         } else if (currentSteps.some(step => step.type === AutofixStepType.SOLUTION)) {
-          addSuccessMessage(t('Autofix has found a solution.'));
+          addSuccessMessage(t('Seer has found a solution.'));
         } else if (
           currentSteps.some(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
         ) {
-          addSuccessMessage(t('Autofix has found the root cause.'));
+          addSuccessMessage(t('Seer has found the root cause.'));
         }
       }
     }
@@ -104,28 +123,15 @@ export function SeerSectionCtaButton({
 
   // Update drawer state when opening
   const handleOpenDrawer = () => {
-    isDrawerOpenRef.current = true;
     openSeerDrawer();
   };
 
-  // Listen for drawer close events
-  useEffect(() => {
-    const handleClickOutside = () => {
-      isDrawerOpenRef.current = false;
-    };
-
-    document.addEventListener('click', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
-
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
+    aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
-  const isButtonLoading = aiConfig.isAutofixSetupLoading || isAutofixPending;
+  const isButtonLoading =
+    aiConfig.isAutofixSetupLoading || (isAutofixPending && getAutofixRunExists(group));
 
   const lastStep = autofixData?.steps?.[autofixData.steps.length - 1];
   const isAutofixInProgress = lastStep?.status === AutofixStatus.PROCESSING;
@@ -137,10 +143,6 @@ export function SeerSectionCtaButton({
     autofixData?.steps?.some(step => step.type === type);
 
   const getButtonText = () => {
-    if (aiConfig.needsGenAIConsent) {
-      return t('Set Up Autofix');
-    }
-
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
     }
@@ -190,7 +192,7 @@ export function SeerSectionCtaButton({
 
   return (
     <StyledButton
-      ref={openButtonRef}
+      to={seerLink}
       onClick={handleOpenDrawer}
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
@@ -203,7 +205,7 @@ export function SeerSectionCtaButton({
       {getButtonText()}
       <ChevronContainer>
         {isAutofixInProgress ? (
-          <StyledLoadingIndicator mini size={14} />
+          <StyledLoadingIndicator size={14} />
         ) : (
           <IconChevron direction="right" size="xs" />
         )}
@@ -212,7 +214,7 @@ export function SeerSectionCtaButton({
   );
 }
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   margin-top: ${space(1)};
   width: 100%;
   background: ${p => p.theme.background}
@@ -231,7 +233,7 @@ const ChevronContainer = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
-  top: 5px;
+  margin-left: ${space(1)};
   color: ${p => p.theme.pink400};
 
   .loading-indicator {

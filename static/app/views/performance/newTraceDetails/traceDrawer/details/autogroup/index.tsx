@@ -4,35 +4,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isSiblingAutogroupedNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
 import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
-
-import {ParentAutogroupNodeDetails} from './parentAutogroup';
-import {SiblingAutogroupNodeDetails} from './siblingAutogroup';
 
 export function AutogroupNodeDetails(
   props: TraceTreeNodeDetailsProps<ParentAutogroupNode | SiblingAutogroupNode>
 ) {
-  const hasTraceNewUi = useHasTraceNewUi();
   const {node, organization, onTabScrollToNode} = props;
-
-  if (!hasTraceNewUi) {
-    if (isSiblingAutogroupedNode(node)) {
-      return (
-        <SiblingAutogroupNodeDetails
-          {...(props as TraceTreeNodeDetailsProps<SiblingAutogroupNode>)}
-        />
-      );
-    }
-
-    return (
-      <ParentAutogroupNodeDetails
-        {...(props as TraceTreeNodeDetailsProps<ParentAutogroupNode>)}
-      />
-    );
-  }
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -54,7 +32,7 @@ export function AutogroupNodeDetails(
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceDrawerComponents.HeaderContainer>
-      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
+      <TraceDrawerComponents.BodyContainer>
         {t(
           'This block represents autogrouped spans. We do this to reduce noise whenever it fits one of the following criteria:'
         )}

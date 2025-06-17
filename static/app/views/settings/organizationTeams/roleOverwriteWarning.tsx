@@ -1,5 +1,5 @@
+import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelAlert from 'sentry/components/panels/panelAlert';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {OrgRole, TeamRole} from 'sentry/types/organization';
@@ -51,7 +51,7 @@ export function hasOrgRoleOverwrite(props: Props) {
 /**
  * Standardize string so situations where org-level vs team-level roles is easier to recognize
  */
-export function getOverwriteString(props: Props) {
+function getOverwriteString(props: Props) {
   const {orgRole, orgRoleList, teamRoleList, isSelf} = props;
   const orgRoleObj = orgRoleList.find(r => r.id === orgRole);
   const teamRoleObj = teamRoleList.find(r => r.id === orgRoleObj?.minimumTeamRole);

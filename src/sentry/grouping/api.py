@@ -16,7 +16,7 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
+from sentry.grouping.enhancer import Enhancements, get_enhancements_version
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -93,6 +93,7 @@ class GroupingConfigLoader:
 
         config_id = self._get_config_id(project)
         enhancements_base = CONFIGURATIONS[config_id].enhancements_base
+        enhancements_version = get_enhancements_version(project, config_id)
 
         # Instead of parsing and dumping out config here, we can make a
         # shortcut
@@ -100,7 +101,7 @@ class GroupingConfigLoader:
         from sentry.utils.hashlib import md5_text
 
         cache_prefix = self.cache_prefix
-        cache_prefix += f"{LATEST_VERSION}:"
+        cache_prefix += f"{enhancements_version}:"
         cache_key = (
             cache_prefix
             + md5_text(
@@ -121,8 +122,11 @@ class GroupingConfigLoader:
                     if enhancements_string
                     else derived_enhancements
                 )
-            enhancements = Enhancements.from_config_string(
-                enhancements_string, bases=[enhancements_base] if enhancements_base else []
+            enhancements = Enhancements.from_rules_text(
+                enhancements_string,
+                bases=[enhancements_base] if enhancements_base else [],
+                version=enhancements_version,
+                referrer="project_rules",
             ).base64_string
         except InvalidEnhancerConfig:
             enhancements = get_default_enhancements()
@@ -139,7 +143,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
-            validate=lambda x: x in CONFIGURATIONS,
+            validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
         )
 
 
@@ -188,7 +192,7 @@ def get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-    return Enhancements.from_config_string("", bases=[base] if base else []).base64_string
+    return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
 
 def get_projects_default_fingerprinting_bases(
@@ -408,7 +412,7 @@ def get_grouping_variants_for_event(
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
-    context = GroupingContext(config or load_default_grouping_config())
+    context = GroupingContext(config or load_default_grouping_config(), event)
     strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
         event, context
     )

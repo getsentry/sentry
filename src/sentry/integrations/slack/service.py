@@ -34,7 +34,6 @@ from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.threads.activity_notifications import (
-    AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
@@ -46,10 +45,10 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
-from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
-from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.notifications.notifications.activity.resolved_in_pull_request import (
     ResolvedInPullRequestActivityNotification,
@@ -69,10 +68,9 @@ _default_logger = getLogger(__name__)
 
 
 DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
-    ActivityType, type[ActivityNotification]
+    ActivityType, type[GroupActivityNotification]
 ] = {
     ActivityType.ASSIGNED: AssignedActivityNotification,
-    ActivityType.DEPLOY: ReleaseActivityNotification,
     ActivityType.SET_REGRESSION: RegressionActivityNotification,
     ActivityType.SET_RESOLVED: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
@@ -110,7 +108,7 @@ class SlackService:
         issue_alert_repository: IssueAlertNotificationMessageRepository,
         notification_action_repository: NotificationActionNotificationMessageRepository,
         message_block_builder: BlockSlackMessageBuilder,
-        activity_thread_notification_handlers: dict[ActivityType, type[ActivityNotification]],
+        activity_thread_notification_handlers: dict[ActivityType, type[GroupActivityNotification]],
         logger: Logger,
     ) -> None:
         self._issue_alert_repository = issue_alert_repository
@@ -143,7 +141,7 @@ class SlackService:
         }
 
         if activity.group is None:
-            self._logger.info(
+            self._logger.debug(
                 "no group associated on the activity, nothing to do",
                 extra=log_params,
             )
@@ -158,7 +156,8 @@ class SlackService:
         )
 
         if activity.user_id is None and not uptime_resolved_notification:
-            self._logger.info(
+            # This is a machine/system update, so we don't need to send a notification
+            self._logger.debug(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra=log_params,
             )
@@ -187,6 +186,8 @@ class SlackService:
             )
             return None
 
+        # TODO: This will return None if there are multiple integrations for the same organization, meaning if there are multiple slack installations for the same organization.
+        # We need to associate integration with the threading logic in notif platform so we don't run into this issue.
         integration = get_active_integration_for_organization(
             organization_id=organization_id,
             provider=ExternalProviderEnum.SLACK,
@@ -396,6 +397,8 @@ class SlackService:
             thread_ts=message_identifier,
             text=notification_to_send,
             blocks=json_blocks,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
@@ -430,7 +433,7 @@ class SlackService:
             return None
 
         notification_obj = notification_cls(activity=activity)
-        context = notification_obj.get_context()
+        context = notification_obj.get_context(provider=ExternalProviders.SLACK)
         text_description = context.get("text_description", None)
         if not text_description:
             self._logger.info(

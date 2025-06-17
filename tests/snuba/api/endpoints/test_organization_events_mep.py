@@ -1721,9 +1721,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "per_page": 50,
         }
 
-        response = self.do_request(
-            query, features={"organizations:performance-discover-dataset-selector": True}
-        )
+        response = self.do_request(query)
         assert response.status_code == 400, response.content
 
     def test_apdex_transaction_threshold(self):
@@ -3953,7 +3951,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
             },
-            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content
@@ -4001,7 +3998,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
             },
-            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content

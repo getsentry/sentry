@@ -23,6 +23,7 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 )
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
@@ -63,6 +64,7 @@ def find_commit_context_for_event_all_frames(
         platform=platform,
         sdk_name=sdk_name,
         extra=extra,
+        organization=Organization.objects.get(id=organization_id),
     )
 
     file_blames, integration_to_install_mapping = _get_blames_from_all_integrations(
@@ -171,6 +173,7 @@ def _generate_integration_to_files_mapping(
     platform: str,
     sdk_name: str | None,
     extra: Mapping[str, Any],
+    organization: Organization,
 ) -> tuple[dict[int, list[SourceLineInfo]], int]:
     """
     Because a single stack trace can be mapped to multiple integrations,
@@ -195,7 +198,10 @@ def _generate_integration_to_files_mapping(
                 continue
 
             src_path = convert_stacktrace_frame_path_to_source_path(
-                frame=frame, platform=platform, sdk_name=sdk_name, code_mapping=code_mapping
+                frame=frame,
+                platform=platform,
+                sdk_name=sdk_name,
+                code_mapping=code_mapping,
             )
 
             if not src_path:

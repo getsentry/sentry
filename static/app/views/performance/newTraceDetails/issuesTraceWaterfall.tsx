@@ -204,7 +204,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // This is because the error node as standalone is the most specific one, otherwise we look for the span that
     // the error may have been attributed to, otherwise we look at the transaction.
     const node =
-      nodes?.find(n => isTraceErrorNode(n)) ||
+      nodes?.find(n => isTraceErrorNode(n) || isEAPErrorNode(n)) ||
       nodes?.find(n => isSpanNode(n) || isNonTransactionEAPSpanNode(n)) ||
       nodes?.find(n => isTransactionNode(n) || isEAPTransactionNode(n));
 
@@ -351,7 +351,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         <IssuesTraceContainer ref={containerRef}>
           <IssuesPointerDisabled>
             <Trace
-              metaQueryResults={props.meta}
               trace={props.tree}
               rerender={rerender}
               trace_id={props.traceSlug}

@@ -37,6 +37,18 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+    def test_dual_write__min_zero(self):
+        dcg = self.create_data_condition_group()
+        self.payload["value"] = "-10"
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "value": 0,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
     def test_json_schema(self):
         self.dc.comparison.update({"value": 2000})
         self.dc.save()
@@ -67,8 +79,10 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
         self.group.update(times_seen=8)
         self.assert_does_not_pass(self.dc, self.event_data)
 
-        self.group.times_seen_pending = 3
-        self.assert_passes(self.dc, self.event_data)
+    def test_handles_missing_pending(self):
+        delattr(self.group, "_times_seen_pending")
+        self.group.update(times_seen=9)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_fails_on_bad_data(self):
         self.dc.update(comparison={"value": "bad data"})

@@ -34,9 +34,13 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -46,11 +50,8 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     ROLLBACK_ENABLED_DEFAULT,
-    SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SENSITIVE_FIELDS_DEFAULT,
-    STREAMLINE_UI_ONLY,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -174,6 +175,10 @@ class BaseOrganizationSerializer(serializers.Serializer):
         if len(value) < 3:
             raise serializers.ValidationError(
                 f'This slug "{value}" is too short. Minimum of 3 characters.'
+            )
+        if value.lower() != value:
+            raise serializers.ValidationError(
+                f'This slug "{value}" should not contain uppercase symbols.'
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
@@ -510,6 +515,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     effectiveSampleRate: float
     planSampleRate: float
     desiredSampleRate: float
+    ingestThroughTrustedRelaysOnly: bool
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -544,6 +550,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
+    gitlabPRBot: bool
+    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -552,6 +560,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     requiresSso: bool
     rollbackEnabled: bool
     streamlineOnly: bool
+    defaultAutofixAutomationTuning: str
+    defaultSeerScannerAutomation: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -570,9 +580,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> DetailedOrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
-        from sentry import experiments
-
-        experiment_assignments = experiments.all(org=obj, actor=user)
         include_feature_flags = kwargs.get("include_feature_flags", True)
 
         base = super().serialize(
@@ -605,7 +612,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
-            "experiments": experiment_assignments,
+            # TODO(epurkhiser): This can be removed once we confirm the
+            # frontend does not use it
+            "experiments": {},
             "quota": {
                 "maxRate": max_rate[0],
                 "maxRateInterval": max_rate[1],
@@ -645,9 +654,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "dataScrubberDefaults": bool(
                 obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
             ),
-            "sensitiveFields": obj.get_option("sentry:sensitive_fields", SENSITIVE_FIELDS_DEFAULT)
-            or [],
-            "safeFields": obj.get_option("sentry:safe_fields", SAFE_FIELDS_DEFAULT) or [],
+            "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
+            "safeFields": obj.get_option("sentry:safe_fields", None) or [],
             "storeCrashReports": convert_crashreport_count(
                 obj.get_option("sentry:store_crash_reports")
             ),
@@ -684,6 +692,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
+            "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
+            "gitlabOpenPRBot": bool(
+                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
+            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -699,7 +711,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "rollbackEnabled": bool(
                 obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
             ),
-            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", STREAMLINE_UI_ONLY),
+            "defaultAutofixAutomationTuning": obj.get_option(
+                "sentry:default_autofix_automation_tuning",
+                DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+            ),
+            "defaultSeerScannerAutomation": obj.get_option(
+                "sentry:default_seer_scanner_automation",
+                DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+            ),
+            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
                 _relay_internal_to_external(raw)
@@ -718,6 +738,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             )
             context["samplingMode"] = str(
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            )
+
+        if features.has("organizations:ingest-through-trusted-relays-only", obj):
+            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
+                "sentry:ingest-through-trusted-relays-only",
+                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
         if access.role is not None:
@@ -753,6 +779,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "quota",
         "rollbackEnabled",
         "streamlineOnly",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

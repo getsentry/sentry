@@ -1,8 +1,10 @@
 from unittest import mock
+from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
+from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncIntegrationBase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -17,6 +19,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.utils import json
+from tests.sentry.sentry_apps.tasks.test_sentry_apps import MockResponseInstance
 
 
 class IssueSyncIntegration(TestCase):
@@ -119,7 +123,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(group_id=group.id, type=ActivityType.SET_RESOLVED.value)
             assert activity.data == {
                 "integration_id": integration.id,
@@ -178,7 +184,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(
                 group_id=group.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -326,7 +334,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(
                 group_id=group.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -392,7 +402,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(
                 group_id=group.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -416,8 +428,14 @@ class IssueSyncIntegration(TestCase):
         group.substatus = None
         group.save()
         assert group.status == GroupStatus.RESOLVED
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=timezone.now(),
+        )
         open_period = GroupOpenPeriod.objects.get(group=group, project=group.project)
-        open_period.update(date_ended=timezone.now())
+        open_period.close_open_period(resolution_time=timezone.now(), resolution_activity=activity)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="example", external_id="123456")
@@ -471,14 +489,129 @@ class IssueSyncIntegration(TestCase):
             assert open_period.date_ended is None
 
 
+class IssueSyncIntegrationWebhookTest(TestCase):
+    def setUp(self):
+        # Generate the issue, integration, sentry app, and installation
+        self.group = self.create_group(project=self.project)
+        assert self.group.status == GroupStatus.UNRESOLVED
+        self.sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.resolved", "issue.unresolved", "issue.ignored", "issue.assigned"],
+        )
+
+        self.sentry_app_installation = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app.slug
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = self.create_provider_integration(
+                provider="example", external_id="123456"
+            )
+            self.integration.add_organization(self.group.organization, self.user)
+
+            for oi in OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id, organization_id=self.group.organization.id
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                    }
+                )
+
+        self.external_issue = ExternalIssue.objects.create(
+            organization_id=self.group.organization.id,
+            integration_id=self.integration.id,
+            key="POGGERS-123",
+        )
+
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=self.external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        self.installation = self.integration.get_installation(self.group.organization.id)
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.analytics.record")
+    @with_feature("organizations:issue-open-periods")
+    def test_status_sync_inbound_resolve_webhook_and_sends_to_sentry_app(
+        self, mock_record, mock_safe_urlopen
+    ):
+        # Run the sync
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            assert isinstance(self.installation, IssueSyncIntegrationBase)
+            self.installation.sync_status_inbound(
+                self.external_issue.key,
+                {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
+            )
+            assert Group.objects.get(id=self.group.id).status == GroupStatus.RESOLVED
+
+            # Verify webhook was sent
+            mock_safe_urlopen.assert_called_once()
+
+            data = json.loads(mock_safe_urlopen.call_args[1]["data"])
+            assert data["action"] == "resolved"
+            assert data["data"]["issue"]["id"] == str(self.group.id)
+            assert data["installation"]["uuid"] == str(self.sentry_app_installation.uuid)
+            assert data["data"]["resolution_type"] == self.integration.provider
+
+            # Verify analytics event was recorded
+            mock_record.assert_called_with(
+                "issue.resolved",
+                project_id=self.group.project.id,
+                default_user_id="Sentry Jira",
+                organization_id=self.group.organization.id,
+                group_id=self.group.id,
+                resolution_type="with_third_party_app",
+                provider="example",
+                issue_type=self.group.issue_type.slug,
+                issue_category=self.group.issue_category.name.lower(),
+            )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @with_feature("organizations:issue-open-periods")
+    @with_feature("organizations:webhooks-unresolved")
+    def test_status_sync_inbound_unresolve_webhook_and_sends_to_sentry_app(self, mock_safe_urlopen):
+        # Run the sync
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            assert isinstance(self.installation, IssueSyncIntegrationBase)
+            self.installation.sync_status_inbound(
+                self.external_issue.key,
+                {"project_id": "APP", "status": {"id": "12345", "category": "in_progress"}},
+            )
+
+            assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+
+            # Verify webhook was sent
+            mock_safe_urlopen.assert_called_once()
+
+            data = json.loads(mock_safe_urlopen.call_args[1]["data"])
+            assert data["action"] == "unresolved"
+            assert data["data"]["issue"]["id"] == str(self.group.id)
+            assert data["installation"]["uuid"] == str(self.sentry_app_installation.uuid)
+
+
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED
         self.group.substatus = None
         self.group.save()
 
-        GroupOpenPeriod.objects.create(
-            group=self.group, project=self.group.project, date_ended=timezone.now()
+        activity = Activity.objects.create(
+            group=self.group,
+            project=self.group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=timezone.now(),
+        )
+        GroupOpenPeriod.objects.get(group_id=self.group.id).close_open_period(
+            resolution_time=timezone.now(), resolution_activity=activity
         )
 
         integration = self.create_integration(

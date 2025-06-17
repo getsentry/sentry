@@ -10,6 +10,7 @@ import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuer
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -23,24 +24,14 @@ import {
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
 
-export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
+const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const SIXTY_DAYS = 60 * 24 * 60 * 60 * 1000;
 
-export function useSpansQuery<T = any[]>({
-  eventView,
-  initialData,
-  limit,
-  enabled,
-  referrer = 'use-spans-query',
-  allowAggregateConditions,
-  cursor,
-  trackResponseAnalytics = true,
-  queryExtras,
-}: {
+type SpansQueryProps<T = any[]> = {
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
@@ -50,47 +41,84 @@ export function useSpansQuery<T = any[]>({
   queryExtras?: SpansRPCQueryExtras;
   referrer?: string;
   trackResponseAnalytics?: boolean;
-}) {
-  const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
-  const queryFunction = isTimeseriesQuery
-    ? useWrappedDiscoverTimeseriesQuery
-    : useWrappedDiscoverQuery;
+};
 
+export function useSpansQuery<T = any[]>({
+  referrer = 'use-spans-query',
+  trackResponseAnalytics = true,
+  ...props
+}: SpansQueryProps<T>) {
   const {isReady: pageFiltersReady} = usePageFilters();
-
-  if (eventView) {
-    const newEventView = eventView.clone();
-    const response = queryFunction<T>({
-      eventView: newEventView,
-      initialData,
-      limit,
-      // We always want to wait until the pageFilters are ready to prevent clobbering requests
-      enabled: (enabled || enabled === undefined) && pageFiltersReady,
-      referrer,
-      cursor,
-      allowAggregateConditions,
-      samplingMode: queryExtras?.samplingMode,
-    });
-
-    if (trackResponseAnalytics) {
-      TrackResponse(eventView, response);
-    }
-
-    return response;
-  }
-
-  throw new Error('eventView argument must be defined when Starfish useDiscover is true');
+  return useSpansQueryBase({
+    ...props,
+    enabled: (props.enabled || props.enabled === undefined) && pageFiltersReady,
+    referrer,
+    trackResponseAnalytics,
+    withPageFilters: true,
+  });
 }
 
-export function useWrappedDiscoverTimeseriesQuery<T>({
+export function useSpansQueryWithoutPageFilters<T = any[]>({
+  referrer = 'use-spans-query',
+  trackResponseAnalytics = true,
+  ...props
+}: SpansQueryProps<T>) {
+  return useSpansQueryBase({
+    ...props,
+    enabled: props.enabled || props.enabled === undefined,
+    referrer,
+    trackResponseAnalytics,
+    withPageFilters: false,
+  });
+}
+
+function useSpansQueryBase<T>({
   eventView,
-  enabled,
   initialData,
+  limit,
+  enabled,
   referrer,
+  allowAggregateConditions,
   cursor,
-  overriddenRoute,
-  samplingMode,
-}: {
+  trackResponseAnalytics,
+  queryExtras,
+  withPageFilters,
+}: SpansQueryProps<T> & {withPageFilters: boolean}) {
+  if (!eventView) {
+    throw new Error(
+      'eventView argument must be defined when Starfish useDiscover is true'
+    );
+  }
+
+  const isTimeseriesQuery = (eventView.yAxis?.length ?? 0) > 0;
+  const queryFunction = isTimeseriesQuery
+    ? withPageFilters
+      ? useWrappedDiscoverTimeseriesQuery
+      : useWrappedDiscoverTimeseriesQueryWithoutPageFilters
+    : withPageFilters
+      ? useWrappedDiscoverQuery
+      : useWrappedDiscoverQueryWithoutPageFilters;
+
+  const newEventView = eventView.clone();
+  const response = queryFunction<T>({
+    eventView: newEventView,
+    initialData,
+    limit,
+    enabled,
+    referrer,
+    cursor,
+    allowAggregateConditions,
+    samplingMode: queryExtras?.samplingMode,
+  });
+
+  if (trackResponseAnalytics) {
+    TrackResponse(eventView, response);
+  }
+
+  return response;
+}
+
+type WrappedDiscoverTimeseriesQueryProps = {
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
@@ -98,10 +126,19 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   overriddenRoute?: string;
   referrer?: string;
   samplingMode?: SamplingMode;
-}) {
+};
+
+function useWrappedDiscoverTimeseriesQueryBase<T>({
+  eventView,
+  enabled,
+  initialData,
+  referrer,
+  cursor,
+  overriddenRoute,
+  samplingMode,
+}: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isReady: pageFiltersReady} = usePageFilters();
 
   const usesRelativeDateRange =
     !defined(eventView.start) &&
@@ -138,7 +175,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
           : undefined,
     }),
     options: {
-      enabled: enabled && pageFiltersReady,
+      enabled,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
@@ -169,30 +206,54 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   };
 }
 
-export function useWrappedDiscoverQuery<T>({
+function useWrappedDiscoverTimeseriesQuery<T>(
+  props: WrappedDiscoverTimeseriesQueryProps
+) {
+  const {isReady} = usePageFilters();
+  return useWrappedDiscoverTimeseriesQueryBase<T>({
+    ...props,
+    enabled: props.enabled && isReady,
+  });
+}
+
+function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
+  props: WrappedDiscoverTimeseriesQueryProps
+) {
+  return useWrappedDiscoverTimeseriesQueryBase<T>(props);
+}
+
+type WrappedDiscoverQueryProps<T> = {
+  eventView: EventView;
+  additionalQueryKey?: string[];
+  allowAggregateConditions?: boolean;
+  cursor?: string;
+  enabled?: boolean;
+  initialData?: T;
+  keepPreviousData?: boolean;
+  limit?: number;
+  noPagination?: boolean;
+  referrer?: string;
+  samplingMode?: SamplingMode;
+};
+
+function useWrappedDiscoverQueryBase<T>({
   eventView,
   initialData,
   enabled,
+  keepPreviousData,
   referrer,
   limit,
   cursor,
   noPagination,
   allowAggregateConditions,
   samplingMode,
-}: {
-  eventView: EventView;
-  allowAggregateConditions?: boolean;
-  cursor?: string;
-  enabled?: boolean;
-  initialData?: T;
-  limit?: number;
-  noPagination?: boolean;
-  referrer?: string;
-  samplingMode?: SamplingMode;
+  pageFiltersReady,
+  additionalQueryKey,
+}: WrappedDiscoverQueryProps<T> & {
+  pageFiltersReady: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isReady: pageFiltersReady} = usePageFilters();
 
   const queryExtras: Record<string, string> = {};
   if (eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode) {
@@ -202,15 +263,6 @@ export function useWrappedDiscoverQuery<T>({
   if (allowAggregateConditions !== undefined) {
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
   }
-
-  const usesRelativeDateRange =
-    !defined(eventView.start) &&
-    !defined(eventView.end) &&
-    defined(eventView.statsPeriod);
-
-  const staleTimeForRelativePeriod = getStaleTimeForRelativePeriodTable(
-    eventView.statsPeriod
-  );
 
   const result = useDiscoverQuery({
     eventView,
@@ -224,7 +276,9 @@ export function useWrappedDiscoverQuery<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
+      staleTime: getStaleTimeForEventView(eventView),
+      additionalQueryKey,
+      placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     },
     queryExtras,
     noPagination,
@@ -242,6 +296,17 @@ export function useWrappedDiscoverQuery<T>({
     data,
     meta,
   };
+}
+
+export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) {
+  const {isReady: pageFiltersReady} = usePageFilters();
+  return useWrappedDiscoverQueryBase({...props, pageFiltersReady});
+}
+
+function useWrappedDiscoverQueryWithoutPageFilters<T>(
+  props: WrappedDiscoverQueryProps<T>
+) {
+  return useWrappedDiscoverQueryBase({...props, pageFiltersReady: true});
 }
 
 type Interval = {interval: string; group?: string};
@@ -379,4 +444,15 @@ function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
   }
 
   return 5 * 60 * 1000;
+}
+
+export function getStaleTimeForEventView(eventView: EventView) {
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+  if (usesRelativeDateRange) {
+    return getStaleTimeForRelativePeriodTable(eventView.statsPeriod);
+  }
+  return Infinity;
 }

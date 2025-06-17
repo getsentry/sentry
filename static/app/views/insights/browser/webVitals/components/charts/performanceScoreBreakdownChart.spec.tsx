@@ -1,18 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  formatTimeSeriesResultsToChartData,
-  PerformanceScoreBreakdownChart,
-} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
+import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/formatTimeSeriesResultsToChartData';
+import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PerformanceScoreBreakdownChart', function () {
+describe('PerformanceScoreBreakdownChartWidget', function () {
   const organization = OrganizationFixture();
   let eventsStatsMock: jest.Mock;
 
@@ -26,22 +25,7 @@ describe('PerformanceScoreBreakdownChart', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
@@ -75,7 +59,7 @@ describe('PerformanceScoreBreakdownChart', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PerformanceScoreBreakdownChart />, {organization});
+    render(<PerformanceScoreBreakdownChartWidget />, {organization});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(eventsStatsMock).toHaveBeenCalledWith(

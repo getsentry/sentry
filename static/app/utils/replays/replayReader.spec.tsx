@@ -494,4 +494,115 @@ describe('ReplayReader', () => {
       ]);
     });
   });
+
+  describe('getRRWebFramesWithoutStyles', () => {
+    it('should remove style nodes and their content', () => {
+      const reader = ReplayReader.factory({
+        attachments: [
+          {
+            type: EventType.FullSnapshot,
+            data: {
+              node: {
+                type: 1,
+                tagName: 'html',
+                childNodes: [],
+              },
+            },
+            timestamp: 0,
+          },
+          {
+            type: EventType.IncrementalSnapshot,
+            data: {
+              source: IncrementalSource.Mutation,
+              adds: [
+                {
+                  parentId: 4,
+                  nextId: 21,
+                  node: {
+                    type: 2,
+                    tagName: 'style',
+                    attributes: {
+                      'data-emotion': 'css',
+                      'data-s': '',
+                      _cssText: '.css {...} ',
+                    },
+                    childNodes: [],
+                    id: 47,
+                  },
+                },
+                {
+                  parentId: 414,
+                  nextId: null,
+                  node: {
+                    type: 3,
+                    textContent: '.css {...}',
+                    isStyle: true,
+                    id: 427,
+                  },
+                },
+                {
+                  parentId: 5,
+                  nextId: 22,
+                  node: {
+                    type: 1,
+                    tagName: 'div',
+                    attributes: {
+                      class: 'test',
+                    },
+                    childNodes: [],
+                    id: 48,
+                  },
+                },
+              ],
+            },
+            timestamp: 0,
+          },
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord: ReplayRecordFixture(),
+      });
+
+      if (!reader) {
+        throw new Error('Failed to create ReplayReader instance');
+      }
+
+      const result = reader.getRRWebFramesForDomExtraction();
+
+      expect(result).toEqual([
+        {data: {node: {childNodes: [], tagName: 'html', type: 1}}, timestamp: 0, type: 2},
+        {
+          data: {
+            adds: [
+              {
+                nextId: 21,
+                node: {attributes: {}, childNodes: [], id: 47, tagName: 'style', type: 2},
+                parentId: 4,
+              },
+              {
+                nextId: null,
+                node: {id: 427, isStyle: true, textContent: '', type: 3},
+                parentId: 414,
+              },
+              {
+                nextId: 22,
+                node: {
+                  attributes: {class: 'test'},
+                  childNodes: [],
+                  id: 48,
+                  tagName: 'div',
+                  type: 1,
+                },
+                parentId: 5,
+              },
+            ],
+            source: 0,
+          },
+          timestamp: 0,
+          type: 3,
+        },
+        {data: {payload: {}, tag: 'replay.end'}, timestamp: expect.any(Number), type: 5},
+      ]);
+    });
+  });
 });

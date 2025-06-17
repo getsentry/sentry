@@ -17,7 +17,7 @@ interface MonitorChecksParameters {
   queryParams?: Record<string, string | string[] | null | undefined>;
 }
 
-export function makeMonitorCheckInsQueryKey({
+function makeMonitorCheckInsQueryKey({
   orgSlug,
   projectSlug,
   monitorIdOrSlug,

@@ -15,7 +15,6 @@ from sentry.models.repository import Repository
 from sentry.plugins.config import ConfigValidator
 from sentry.signals import repo_linked
 from sentry.users.services.usersocialauth.service import usersocialauth_service
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from .base import ProviderMixin
 
@@ -107,7 +106,6 @@ class RepositoryProvider(ProviderMixin):
                     provider=self.id,
                 )
         except IntegrityError:
-            incr_rollback_metrics(Repository)
             # Try to delete webhook we just created
             try:
                 repo = Repository(

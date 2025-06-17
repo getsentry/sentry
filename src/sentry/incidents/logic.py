@@ -16,7 +16,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, quotas
+from sentry import analytics, audit_log, features, options, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
@@ -60,7 +60,7 @@ from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
-from sentry.search.events.fields import is_function, is_typed_numeric_tag, resolve_field
+from sentry.search.events.fields import is_function, resolve_field
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
@@ -99,6 +99,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -411,11 +412,16 @@ def get_metric_issue_aggregates(
             )
 
         except Exception:
+            entity_key = (
+                EntityKey.EAPItems
+                if options.get("alerts.spans.use-eap-items")
+                else EntityKey.EAPItemsSpan
+            )
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
                     "dataset": params.snuba_query.dataset,
-                    "entity": EntityKey.EAPSpans.value,
+                    "entity": entity_key.value,
                 },
             )
             raise
@@ -997,12 +1003,28 @@ def update_alert_rule(
     return alert_rule
 
 
+def update_detector(alert_rule: AlertRule, enabled: bool) -> None:
+    if features.has(
+        "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+    ):
+        try:
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        except Detector.DoesNotExist:
+            return None
+
+        if detector:
+            status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+            detector.update(status=status)
+
+
 def enable_alert_rule(alert_rule: AlertRule) -> None:
     if alert_rule.status != AlertRuleStatus.DISABLED.value:
         return
     with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.PENDING.value)
         bulk_enable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
+
+    update_detector(alert_rule=alert_rule, enabled=True)
 
 
 def disable_alert_rule(alert_rule: AlertRule) -> None:
@@ -1011,6 +1033,8 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
     with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.DISABLED.value)
         bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
+
+    update_detector(alert_rule=alert_rule, enabled=False)
 
 
 def delete_alert_rule(
@@ -1753,6 +1777,7 @@ EAP_COLUMNS = [
 ]
 EAP_FUNCTIONS = [
     "count",
+    "count_unique",
     "avg",
     "p50",
     "p75",
@@ -1763,10 +1788,15 @@ EAP_FUNCTIONS = [
     "max",
     "min",
     "sum",
+    "epm",
+    "failure_rate",
+    "eps",
 ]
 
 
-def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
+def get_column_from_aggregate(
+    aggregate: str, allow_mri: bool, allow_eap: bool = False
+) -> str | None:
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
@@ -1778,7 +1808,7 @@ def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
         return None if match.group("columns") == "" else match.group("columns")
 
     # Skip additional validation for EAP queries. They don't exist in the old logic.
-    if match and match.group("function") in EAP_FUNCTIONS and match.group("columns") in EAP_COLUMNS:
+    if match and match.group("function") in EAP_FUNCTIONS and allow_eap:
         return match.group("columns")
 
     if allow_mri:
@@ -1817,7 +1847,7 @@ def check_aggregate_column_support(
     aggregate: str, allow_mri: bool = False, allow_eap: bool = False
 ) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
-    column = get_column_from_aggregate(aggregate, allow_mri)
+    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     match = is_function(aggregate)
     function = match.group("function") if match else None
     return (
@@ -1830,15 +1860,14 @@ def check_aggregate_column_support(
             isinstance(function, str)
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
-        or (column in EAP_COLUMNS and allow_eap)
-        or (is_typed_numeric_tag(column) and allow_eap)
+        or allow_eap
     )
 
 
 def translate_aggregate_field(
-    aggregate: str, reverse: bool = False, allow_mri: bool = False
+    aggregate: str, reverse: bool = False, allow_mri: bool = False, allow_eap: bool = False
 ) -> str:
-    column = get_column_from_aggregate(aggregate, allow_mri)
+    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     if not reverse:
         if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])

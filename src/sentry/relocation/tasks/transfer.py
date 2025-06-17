@@ -18,10 +18,10 @@ from sentry.relocation.services.relocation_export.service import (
     control_relocation_export_service,
     region_relocation_export_service,
 )
-from sentry.relocation.tasks import relocation_control_tasks, relocation_tasks
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
 from sentry.types.region import get_local_region
 
 logger = logging.getLogger("sentry.relocation")
@@ -41,7 +41,7 @@ def find_relocation_transfer_control() -> None:
     name="sentry.relocation.transfer.find_relocation_transfer_region",
     queue="relocation",
     silo_mode=SiloMode.REGION,
-    taskworker=TaskworkerConfig(namespace=relocation_tasks),
+    taskworker_config=TaskworkerConfig(namespace=relocation_tasks),
 )
 def find_relocation_transfer_region() -> None:
     _find_relocation_transfer(RegionRelocationTransfer, process_relocation_transfer_region)

@@ -74,6 +74,7 @@ export function WidgetCardDataLoader({
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {({tableResults, errorMessage, loading}) => (
           <Fragment>{children({tableResults, errorMessage, loading})}</Fragment>
@@ -92,6 +93,7 @@ export function WidgetCardDataLoader({
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
@@ -126,6 +128,7 @@ export function WidgetCardDataLoader({
       selection={selection}
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
+      onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
       onWidgetSplitDecision={onWidgetSplitDecision}
     >

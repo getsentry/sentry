@@ -64,13 +64,6 @@ export type SearchItem = {
   value?: string | null;
 };
 
-export type Tag = {
-  desc: string;
-  key: string;
-  predefined: boolean;
-  values: string[];
-};
-
 export enum ShortcutType {
   DELETE = 'delete',
   NEGATE = 'negate',

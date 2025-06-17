@@ -36,7 +36,7 @@ describe('AutofixChanges', () => {
       status: AutofixStatus.COMPLETED,
       changes: [AutofixCodebaseChangeData({pull_request: undefined})],
     },
-  };
+  } satisfies React.ComponentProps<typeof AutofixChanges>;
 
   beforeEach(() => {
     mockUseAutofix.mockReturnValue({
@@ -91,7 +91,7 @@ describe('AutofixChanges', () => {
     );
 
     expect(
-      screen.getByText('Autofix had trouble applying its code changes.')
+      screen.getByText('Seer had trouble applying its code changes.')
     ).toBeInTheDocument();
   });
 

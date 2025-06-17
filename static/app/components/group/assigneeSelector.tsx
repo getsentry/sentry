@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
@@ -131,7 +131,7 @@ const StyledDropdownButton = styled(Button)`
   ${p =>
     // Chonk tags have a smaller border radius, so we need make sure it matches.
     p.theme.isChonk &&
-    `
+    css`
       > span > div {
         border-radius: 20px;
       }

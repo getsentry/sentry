@@ -1,4 +1,5 @@
-import {AlertRuleTriggerType, SavedTrigger} from 'sentry/views/alerts/rules/metric/types';
+import type {SavedTrigger} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 export function IncidentTriggerFixture(params: Partial<SavedTrigger> = {}): SavedTrigger {
   return {

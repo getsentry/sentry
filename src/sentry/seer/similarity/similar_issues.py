@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -31,10 +32,10 @@ logger = logging.getLogger(__name__)
 
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
-    timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 
 
+@sentry_sdk.tracing.trace
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,
@@ -71,8 +72,10 @@ def get_similarity_data_from_seer(
             json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
                 "utf8"
             ),
+            retries=options.get("seer.similarity.grouping-ingest-retries"),
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
+            metric_tags={"referrer": referrer} if referrer else {},
         )
-    # See `SEER_GROUPING_TIMEOUT` in `sentry.conf.server`
     except (TimeoutError, MaxRetryError) as e:
         logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)
         metrics.incr(
@@ -158,6 +161,7 @@ def get_similarity_data_from_seer(
     metric_tags["outcome"] = "similar_groups_found"
 
     normalized_results = []
+    results_missing_group_id = []
 
     for raw_similar_issue_data in response_data:
         try:
@@ -230,7 +234,6 @@ def get_similarity_data_from_seer(
             # The same caveats apply here as with the `SimilarHashNotFoundError` above, except that
             # landing here should be even rarer, in that it's theoretically impossible - but
             # nonetheless has happened, when events have seemingly vanished mid-ingest.
-            metric_tags.update({"outcome": "error", "error": "SimilarHashMissingGroupError"})
             logger.warning(
                 "get_similarity_data_from_seer.parent_hash_missing_group",
                 extra={
@@ -249,10 +252,58 @@ def get_similarity_data_from_seer(
             # race conditions, the value is under a second - but stuff happens.)
             if not parent_grouphash_age or parent_grouphash_age > 60:
                 delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
+
+                # We're not going to go through the rety flow, so we need to set this here
+                metric_tags.update({"outcome": "error", "error": "SimilarHashMissingGroupError"})
             else:
-                # TODO: If we *are* in a race condition, we should consider retrying getting the
-                # group id here, now that a few more milliseconds have elapsed
-                pass
+                # If we are in fact in a race condition, queue the raw result data so we can retry
+                # getting the parent hash after we're done processing the other results
+                results_missing_group_id.append(raw_similar_issue_data)
+
+    # Retry normalization for any results whose parent hashes were missing group id as the result of
+    # a race condition, in hopes that enough time has elapsed that things are no longer so racy
+    for raw_similar_issue_data in results_missing_group_id:
+        parent_hash = raw_similar_issue_data.get("parent_hash")
+        parent_grouphash_age = None
+        parent_grouphash_date_added = (
+            GroupHashMetadata.objects.filter(
+                grouphash__project_id=project_id, grouphash__hash=parent_hash
+            )
+            .values_list("date_added", flat=True)
+            .first()
+        )
+
+        if parent_grouphash_date_added:
+            parent_grouphash_age = (timezone.now() - parent_grouphash_date_added).total_seconds()
+
+        logger_extra = {
+            "hash": request_hash,
+            "parent_hash": parent_hash,
+            "project_id": project_id,
+            "event_id": event_id,
+            "parent_gh_age_in_sec": parent_grouphash_age,
+        }
+
+        # Try again to find the parent hash's group id
+        try:
+            normalized = SeerSimilarIssueData.from_raw(project_id, raw_similar_issue_data)
+        # If the group id is still missing, just log it and move on
+        except SimilarHashMissingGroupError:
+            metric_tags.update({"outcome": "error", "error": "SimilarHashMissingGroupError"})
+            logger.info(
+                "get_similarity_data_from_seer.parent_hash_missing_group.retry_failure",
+                extra=logger_extra,
+            )
+        # Otherwise, if the retry worked, treat it the same way we would have had the group id been
+        # there from the start
+        else:
+            logger.info(
+                "get_similarity_data_from_seer.parent_hash_missing_group.retry_success",
+                extra=logger_extra,
+            )
+            normalized_results.append(normalized)
+            if normalized.should_group and metric_tags["outcome"] != "error":
+                metric_tags["outcome"] = "matching_group_found"
 
     metrics.incr(
         "seer.similar_issues_request",

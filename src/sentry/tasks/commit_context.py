@@ -27,7 +27,9 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
-from sentry.taskworker.retry import NoRetriesRemainingError, retry_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -37,8 +39,6 @@ DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pull
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 
-# TODO: replace this with isinstance(installation, CommitContextIntegration)
-PR_COMMENT_SUPPORTED_PROVIDERS = {"github"}
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,14 @@ logger = logging.getLogger(__name__)
     retry_backoff_max=60 * 60 * 3,  # 3 hours
     retry_jitter=False,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(
+            times=5,
+            on=(ApiError,),
+        ),
+    ),
 )
 def process_commit_context(
     event_id: str,
@@ -181,13 +189,8 @@ def process_commit_context(
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
-            if (
-                installation
-                and isinstance(installation, CommitContextIntegration)
-                and installation.integration_name
-                in PR_COMMENT_SUPPORTED_PROVIDERS  # TODO: remove this check
-            ):
-                installation.queue_comment_task_if_needed(project, commit, group_owner, group_id)
+            if installation and isinstance(installation, CommitContextIntegration):
+                installation.queue_pr_comment_task_if_needed(project, commit, group_owner, group_id)
 
             ProjectOwnership.handle_auto_assignment(
                 project_id=project.id,

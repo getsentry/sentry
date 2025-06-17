@@ -37,7 +37,7 @@ jest.mock('getsentry/utils/stripe', () => {
 describe('Billing Details Step', function () {
   const api = new MockApiClient();
 
-  const {organization, router, routerProps} = initializeOrg({
+  const {organization, routerProps} = initializeOrg({
     organization: {
       access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
     },
@@ -123,8 +123,7 @@ describe('Billing Details Step', function () {
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {router}
+      />
     );
 
     await screen.findByTestId('checkout-steps');
@@ -147,8 +146,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -175,8 +173,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -206,8 +203,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -253,8 +249,7 @@ describe('Billing Details Step', function () {
         subscription={subscription}
         isCompleted={false}
         prevStepCompleted
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /vat number/i});
@@ -279,8 +274,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /gst\/hst number/i});
@@ -309,8 +303,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /vat number/i});
@@ -353,8 +346,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -389,8 +381,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -417,8 +408,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByText(/current billing details on file/i);
@@ -452,8 +442,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByText(/current billing details on file/i);
@@ -486,8 +475,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});

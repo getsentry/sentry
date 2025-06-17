@@ -87,6 +87,16 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
             assert FlagAuditLogModel.objects.count() == 1
 
+    def test_statsig_post_verification(self, mock_incr):
+        request_data = {"data": {"event": "url_verification", "verification_code": "123"}}
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")), request_data
+            )
+            assert response.status_code == 200, response.content
+            assert response.json() == {"verification_code": "123"}
+            assert FlagAuditLogModel.objects.count() == 0
+
     def test_statsig_post_create(self, mock_incr):
         request_data = {
             "data": [
@@ -136,6 +146,34 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
                 "feature_flags.audit_log_event_posted", tags={"provider": "statsig"}
             )
             assert FlagAuditLogModel.objects.count() == 1
+
+    def test_statsig_post_unauthorized(self, mock_incr):
+        request_data = {
+            "data": [
+                {
+                    "user": {"name": "johndoe", "email": "john@sentry.io"},
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "projectName": "sentry",
+                        "projectID": "1",
+                        "type": "Gate",
+                        "name": "gate1",
+                        "description": "Updated Config Conditions\n    - Added rule Rule 1",
+                        "environments": "development,staging,production",
+                        "action": "updated",
+                        "tags": [],
+                        "targetApps": [],
+                    },
+                },
+            ]
+        }
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")), request_data
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
 
     def test_launchdarkly_post_create(self, mock_incr):
         request_data = LD_REQUEST

@@ -178,7 +178,7 @@ def test_namespace_with_retry_send_task() -> None:
     activation = simple_task.create_activation([], {})
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 3
-    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
     mock_producer = Mock()
     namespace._producers[Topic.TASKWORKER] = mock_producer
@@ -268,16 +268,30 @@ def test_registry_create_namespace_simple() -> None:
     assert ns.default_processing_deadline_duration == 10
     assert ns.name == "tests"
     assert ns.topic == Topic.TASKWORKER
+    assert ns.app_feature == "tests"
 
     retry = Retry(times=3)
     ns = registry.create_namespace(
-        "test-two", retry=retry, expires=60 * 10, processing_deadline_duration=60
+        "test-two",
+        retry=retry,
+        expires=60 * 10,
+        processing_deadline_duration=60,
+        app_feature="anvils",
     )
     assert ns.default_retry == retry
     assert ns.default_processing_deadline_duration == 60
     assert ns.default_expires == 60 * 10
     assert ns.name == "test-two"
     assert ns.topic == Topic.TASKWORKER
+    assert ns.app_feature == "anvils"
+
+
+@pytest.mark.django_db
+def test_registry_create_namespace_duplicate() -> None:
+    registry = TaskRegistry()
+    registry.create_namespace(name="tests")
+    with pytest.raises(ValueError, match="tests already exists"):
+        registry.create_namespace(name="tests")
 
 
 @pytest.mark.django_db

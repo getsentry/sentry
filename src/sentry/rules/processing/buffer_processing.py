@@ -104,9 +104,12 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     metrics.incr(
         f"{processing_type}.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
     )
+    metrics.distribution(f"{processing_type}.event_count", event_count)
 
     if event_count < batch_size:
-        return task.delay(project_id)
+        return task.apply_async(
+            kwargs={"project_id": project_id}, headers={"sentry-propagate-traces": False}
+        )
 
     if should_emit_logs:
         logger.info(
@@ -132,7 +135,10 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
             # remove the batched items from the project alertgroup_to_event_data
             buffer.backend.delete_hash(**asdict(hash_args), fields=list(batch.keys()))
 
-            task.delay(project_id, batch_key)
+            task.apply_async(
+                kwargs={"project_id": project_id, "batch_key": batch_key},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 def process_buffer() -> None:

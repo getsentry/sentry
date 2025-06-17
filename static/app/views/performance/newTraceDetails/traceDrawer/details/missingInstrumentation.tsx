@@ -1,42 +1,94 @@
-import {useTheme} from '@emotion/react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconSpan} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {makeTraceNodeBarColor} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
-import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
+import {TraceDrawerComponents} from './styles';
 import {getProfileMeta} from './utils';
 
-export function MissingInstrumentationNodeDetails(
-  props: TraceTreeNodeDetailsProps<MissingInstrumentationNode>
-) {
-  const {projects} = useProjects();
-  const hasTraceNewUi = useHasTraceNewUi();
+interface BaseProps extends TraceTreeNodeDetailsProps<MissingInstrumentationNode> {
+  event: EventTransaction | null;
+  profileId: string | undefined;
+  profileMeta: ReturnType<typeof getProfileMeta>;
+  profilerId: string | undefined;
+  project: Project | undefined;
+}
 
-  if (!hasTraceNewUi) {
-    return <LegacyMissingInstrumentationNodeDetails {...props} />;
+export function MissingInstrumentationNodeDetails({
+  ...props
+}: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
+  const {node} = props;
+  const {projects} = useProjects();
+
+  if (isEAPSpanNode(node.previous)) {
+    return <EAPMissingInstrumentationNodeDetails {...props} projects={projects} />;
   }
 
-  const {node, organization, onTabScrollToNode} = props;
   const event = node.previous.event ?? node.next.event ?? null;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileMeta = getProfileMeta(event) || '';
-  const profileId =
-    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
+  const profileContext = event?.contexts?.profile ?? {};
 
+  return (
+    <BaseMissingInstrumentationNodeDetails
+      {...props}
+      profileMeta={profileMeta}
+      project={project}
+      event={event}
+      profileId={profileContext.profile_id}
+      profilerId={profileContext.profiler_id}
+    />
+  );
+}
+
+function EAPMissingInstrumentationNodeDetails({
+  projects,
+  ...props
+}: TraceTreeNodeDetailsProps<MissingInstrumentationNode> & {
+  projects: Project[];
+}) {
+  const {node} = props;
+  const previous = node.previous as TraceTreeNode<TraceTree.EAPSpan>;
+  const parentEAPTransaction = TraceTree.ParentEAPTransaction(previous);
+
+  const project = parentEAPTransaction
+    ? projects.find(proj => proj.slug === parentEAPTransaction.value.project_slug)
+    : undefined;
+  const profileId = parentEAPTransaction?.value.profile_id || '';
+  const profilerId = parentEAPTransaction?.value.profiler_id || '';
+
+  return (
+    <BaseMissingInstrumentationNodeDetails
+      {...props}
+      profileMeta={profileId}
+      project={project}
+      event={null}
+      profileId={profileId}
+      profilerId={profilerId}
+    />
+  );
+}
+
+function BaseMissingInstrumentationNodeDetails({
+  node,
+  organization,
+  onTabScrollToNode,
+  profileMeta,
+  project,
+  event,
+  profileId,
+  profilerId,
+}: BaseProps) {
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
@@ -57,10 +109,10 @@ export function MissingInstrumentationNodeDetails(
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceDrawerComponents.HeaderContainer>
-      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
+      <TraceDrawerComponents.BodyContainer>
         <p>
           {tct(
-            'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
+            "It looks like there's more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there's something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].",
             {
               customInstrumentationLink: (
                 <ExternalLink href={getCustomInstrumentationLink(project)} />
@@ -68,136 +120,32 @@ export function MissingInstrumentationNodeDetails(
             }
           )}
         </p>
-        {event?.projectSlug ? (
-          <ProfilesProvider
-            orgSlug={organization.slug}
-            projectSlug={event?.projectSlug ?? ''}
-            profileMeta={profileMeta}
-          >
-            <ProfileContext.Consumer>
-              {profiles => (
-                <ProfileGroupProvider
-                  type="flamechart"
-                  input={profiles?.type === 'resolved' ? profiles.data : null}
-                  traceID={profileId || ''}
-                >
-                  <ProfilePreview event={event} node={node} />
-                </ProfileGroupProvider>
-              )}
-            </ProfileContext.Consumer>
-          </ProfilesProvider>
-        ) : null}
+        <ProfilesProvider
+          orgSlug={organization.slug}
+          projectSlug={event?.projectSlug ?? ''}
+          profileMeta={profileMeta || ''}
+        >
+          <ProfileContext.Consumer>
+            {profiles => (
+              <ProfileGroupProvider
+                type="flamechart"
+                input={profiles?.type === 'resolved' ? profiles.data : null}
+                traceID={profileId ?? ''}
+              >
+                <ProfilePreview
+                  project={project}
+                  profileID={profileId}
+                  profilerID={profilerId}
+                  event={event}
+                  node={node}
+                />
+              </ProfileGroupProvider>
+            )}
+          </ProfileContext.Consumer>
+        </ProfilesProvider>
         <p>
           {t("If you'd prefer, you can also turn the feature off in the settings above.")}
         </p>
-      </TraceDrawerComponents.BodyContainer>
-    </TraceDrawerComponents.DetailContainer>
-  );
-}
-
-function LegacyMissingInstrumentationNodeDetails({
-  node,
-  onParentClick,
-  onTabScrollToNode,
-  organization,
-}: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
-  const theme = useTheme();
-  const {projects} = useProjects();
-
-  const parentTransaction = TraceTree.ParentTransaction(node);
-  const event = node.previous.event ?? node.next.event ?? null;
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
-
-  const items: SectionCardKeyValueList = [
-    {
-      key: 'duration',
-      subject: t('Duration'),
-      value: getDuration(node.value.timestamp - node.value.start_timestamp, 2, true),
-    },
-    {
-      key: 'previous_span',
-      subject: t('Previous Span'),
-      value: `${node.previous.value.op} - ${node.previous.value.description}`,
-    },
-    {
-      key: 'next_span',
-      subject: t('Next Span'),
-      value: `${node.next.value.op} - ${node.next.value.description}`,
-    },
-  ];
-
-  if (profileId && project?.slug) {
-    items.push({
-      key: 'profile_id',
-      subject: 'Profile ID',
-      value: (
-        <TraceDrawerComponents.CopyableCardValueWithLink
-          value={profileId}
-          linkTarget={generateProfileFlamechartRouteWithQuery({
-            organization,
-            projectSlug: project.slug,
-            profileId,
-          })}
-          linkText={t('View Profile')}
-        />
-      ),
-    });
-  }
-
-  if (parentTransaction) {
-    items.push({
-      key: 'parent_transaction',
-      subject: t('Parent Transaction'),
-      value: (
-        <a onClick={() => onParentClick(parentTransaction)}>
-          {getTraceTabTitle(parentTransaction)}
-        </a>
-      ),
-    });
-  }
-
-  return (
-    <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.LegacyHeaderContainer>
-        <TraceDrawerComponents.Title>
-          <TraceDrawerComponents.IconTitleWrapper>
-            <TraceDrawerComponents.IconBorder
-              backgroundColor={makeTraceNodeBarColor(theme, node)}
-            >
-              <IconSpan size="md" />
-            </TraceDrawerComponents.IconBorder>
-            <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation')}</div>
-          </TraceDrawerComponents.IconTitleWrapper>
-        </TraceDrawerComponents.Title>
-        <TraceDrawerComponents.NodeActions
-          organization={organization}
-          node={node}
-          onTabScrollToNode={onTabScrollToNode}
-        />
-      </TraceDrawerComponents.LegacyHeaderContainer>
-      <TraceDrawerComponents.BodyContainer>
-        {node.event?.projectSlug ? (
-          <ProfilesProvider
-            orgSlug={organization.slug}
-            projectSlug={node.event?.projectSlug ?? ''}
-            profileMeta={profileId || ''}
-          >
-            <ProfileContext.Consumer>
-              {profiles => (
-                <ProfileGroupProvider
-                  type="flamechart"
-                  input={profiles?.type === 'resolved' ? profiles.data : null}
-                  traceID={profileId || ''}
-                >
-                  <ProfilePreview event={node.event!} node={node} />
-                </ProfileGroupProvider>
-              )}
-            </ProfileContext.Consumer>
-          </ProfilesProvider>
-        ) : null}
-
-        <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );

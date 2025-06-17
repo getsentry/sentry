@@ -37,7 +37,7 @@ class ExportedData(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    file_id = BoundedBigIntegerField(null=True)
+    file_id = BoundedBigIntegerField(null=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True, db_index=True)
@@ -161,7 +161,7 @@ class ExportedDataBlob(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
-    blob_id = BoundedBigIntegerField()
+    blob_id = BoundedBigIntegerField(db_index=True)
     offset = BoundedBigIntegerField()
 
     class Meta:

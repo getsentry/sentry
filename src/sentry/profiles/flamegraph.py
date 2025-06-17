@@ -404,19 +404,21 @@ class FlamegraphExecutor:
             query=None, limit=max_profiles
         )
 
-        project_condition = Condition(
-            Column("project_id"),
-            Op.IN,
-            self.snuba_params.project_ids,
+        conditions = []
+
+        conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
+
+        conditions.append(
+            Condition(Column("start_timestamp"), Op.LT, resolve_datetime64(self.snuba_params.end))
         )
-        start_condition = Condition(
-            Column("start_timestamp"),
-            Op.LT,
-            resolve_datetime64(self.snuba_params.end),
+
+        conditions.append(
+            Condition(Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start))
         )
-        end_condition = Condition(
-            Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
-        )
+
+        environments = self.snuba_params.environment_names
+        if environments:
+            conditions.append(Condition(Column("environment"), Op.IN, environments))
 
         continuous_profiles_query = Query(
             match=Storage(StorageKey.ProfileChunks.value),
@@ -427,11 +429,7 @@ class FlamegraphExecutor:
                 Column("start_timestamp"),
                 Column("end_timestamp"),
             ],
-            where=[
-                project_condition,
-                start_condition,
-                end_condition,
-            ],
+            where=conditions,
             orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
             limit=Limit(max_profiles),
         )
@@ -493,18 +491,29 @@ class FlamegraphExecutor:
         # If we still don't have any continuous profile candidates, we'll fall back to
         # directly using the continuous profiling data
         if not continuous_profile_candidates:
-            continuous_profile_candidates = [
-                {
+            total_duration = 0.0
+
+            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
+
+            for row in continuous_profile_results["data"]:
+                start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+                end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
+
+                candidate: ContinuousProfileCandidate = {
                     "project_id": row["project_id"],
                     "profiler_id": row["profiler_id"],
                     "chunk_id": row["chunk_id"],
-                    "start": str(
-                        int(datetime.fromisoformat(row["start_timestamp"]).timestamp() * 1e9)
-                    ),
-                    "end": str(int(datetime.fromisoformat(row["end_timestamp"]).timestamp() * 1e9)),
+                    "start": str(int(start * 1e9)),
+                    "end": str(int(end * 1e9)),
                 }
-                for row in continuous_profile_results["data"][:max_continuous_profile_candidates]
-            ]
+
+                continuous_profile_candidates.append(candidate)
+
+                total_duration += end - start
+
+                # can set max duration to negative to skip this check
+                if max_duration >= 0 and total_duration >= max_duration:
+                    break
 
         return {
             "transaction": transaction_profile_candidates,

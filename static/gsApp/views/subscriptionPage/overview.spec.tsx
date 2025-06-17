@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {InvoicePreviewFixture} from 'getsentry-test/fixtures/invoicePreview';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
@@ -11,6 +12,7 @@ import {
   Am3DsEnterpriseSubscriptionFixture,
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
   render,
@@ -20,6 +22,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {DataCategory} from 'sentry/types/core';
+
+import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {CohortId, OnDemandBudgetMode, PlanTier, type Subscription} from 'getsentry/types';
 import {isAm3DsPlan} from 'getsentry/utils/billing';
@@ -123,8 +128,8 @@ describe('Subscription > Overview', () => {
         screen.queryByText('Stored spans usage this period')
       ).not.toBeInTheDocument();
     } else if (isAm3DsPlan(subscription.plan) && !subscription.isEnterpriseTrial) {
+      expect(screen.getByText('Spans budget')).toBeInTheDocument();
       if (subscription.hadCustomDynamicSampling) {
-        expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
         expect(
           screen.getByText('Accepted Spans Included in Subscription')
         ).toBeInTheDocument();
@@ -132,7 +137,6 @@ describe('Subscription > Overview', () => {
           screen.getByText('Stored Spans Included in Subscription')
         ).toBeInTheDocument();
       } else {
-        expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
         expect(screen.queryByText('Accepted spans')).not.toBeInTheDocument();
         expect(screen.queryByText('Stored spans')).not.toBeInTheDocument();
       }
@@ -152,7 +156,9 @@ describe('Subscription > Overview', () => {
 
     expect(await screen.findByText('Overview')).toBeInTheDocument();
     expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Manage subscription'})
+    ).not.toBeInTheDocument();
     assertUsageCards(subscription);
   });
 
@@ -167,7 +173,9 @@ describe('Subscription > Overview', () => {
 
     expect(await screen.findByText('Overview')).toBeInTheDocument();
     expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Manage subscription'})
+    ).not.toBeInTheDocument();
     assertUsageCards(subscription);
   });
 
@@ -177,7 +185,61 @@ describe('Subscription > Overview', () => {
       isEnterpriseTrial: true,
       plan: 'am3_t_ent_ds',
       planTier: PlanTier.AM3,
+      canSelfServe: false,
     });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(await screen.findByText('Overview')).toBeInTheDocument();
+    expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Manage subscription'})
+    ).not.toBeInTheDocument();
+    assertUsageCards(subscription);
+  });
+
+  it('renders with Seer', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+    });
+    SubscriptionStore.set(organization.slug, seerSubscription);
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(await screen.findByText('Overview')).toBeInTheDocument();
+    expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    assertUsageCards(seerSubscription);
+
+    // TODO(isabella): need to update fixtures so this can be added to assertUsageCards
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Issue Fixes Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
+  });
+
+  it('does not render Seer on developer plan', async function () {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+    });
+
+    subscription.categories = {
+      ...subscription.categories,
+      seerAutofix: MetricHistoryFixture({
+        category: DataCategory.SEER_AUTOFIX,
+        reserved: 0,
+        prepaid: 0,
+        order: 27,
+      }),
+      seerScanner: MetricHistoryFixture({
+        category: DataCategory.SEER_SCANNER,
+        reserved: 0,
+        prepaid: 0,
+        order: 28,
+      }),
+    };
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<Overview location={mockLocation} />, {organization});
@@ -186,6 +248,9 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
     assertUsageCards(subscription);
+
+    expect(screen.queryByTestId('usage-card-seerAutofix')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('usage-card-seerScanner')).not.toBeInTheDocument();
   });
 
   it('renders for am3', async function () {
@@ -406,18 +471,14 @@ describe('Subscription > Overview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_b_100k',
-      pendingChanges: {
+      pendingChanges: PendingChangesFixture({
         plan: 'mm2_a_100k',
         reservedEvents: 100000,
         onDemandMaxSpend: 0,
         effectiveDate: '2021-09-01',
         onDemandEffectiveDate: '2021-09-01',
-        // @ts-expect-error: idk idk idk
-        planDetails: {
-          name: 'Business',
-          contractInterval: 'monthly',
-        },
-      },
+        planDetails: PlanDetailsLookupFixture('mm2_a_100k')!,
+      }),
     });
 
     it('renders pending changes', async function () {

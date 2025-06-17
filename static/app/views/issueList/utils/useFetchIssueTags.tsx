@@ -5,22 +5,19 @@ import {
   ItemType,
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
-import {escapeTagValue} from 'sentry/components/deprecatedSmartSearchBar/utils';
-import {IconStar, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {
+  FixabilityScoreThresholds,
   getIssueTitleFromType,
+  ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
   type Tag,
   type TagCollection,
+  VALID_ISSUE_CATEGORIES_V2,
   VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
@@ -31,6 +28,9 @@ import {
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
+import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
+import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -59,6 +59,10 @@ const PREDEFINED_FIELDS = {
 
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
+
+const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
+  category => category !== IssueCategory.FEEDBACK
+);
 
 /**
  * Certain field keys may conflict with custom tags. In this case, the tag will be
@@ -96,8 +100,7 @@ export const useFetchIssueTags = ({
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
-  const {teams} = useLegacyStore(TeamStore);
-  const {members} = useLegacyStore(MemberListStore);
+  const organization = useOrganization();
 
   const eventsTagsQuery = useFetchOrganizationTags(
     {
@@ -139,33 +142,10 @@ export const useFetchIssueTags = ({
     {}
   );
 
+  const assignedValues = useAssignedSearchValues();
+  const usernames = useMemberUsernames();
+
   const allTags = useMemo(() => {
-    const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
-    const usernames: string[] = members.map(getUsername);
-    const nonMemberTeams = teams
-      .filter(team => !team.isMember)
-      .map(team => `#${team.slug}`);
-
-    const suggestedAssignees: string[] = ['me', 'my_teams', 'none', ...userTeams];
-
-    const assignedValues: SearchGroup[] | string[] = [
-      {
-        title: t('Suggested Values'),
-        type: 'header',
-        icon: <IconStar size="xs" />,
-        children: suggestedAssignees.map(convertToSearchItem),
-      },
-      {
-        title: t('All Values'),
-        type: 'header',
-        icon: <IconUser size="xs" />,
-        children: [
-          ...usernames.map(convertToSearchItem),
-          ...nonMemberTeams.map(convertToSearchItem),
-        ],
-      },
-    ];
-
     const eventsTags: Tag[] = eventsTagsQuery.data || [];
     const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
     const featureFlagTags: Tag[] = featureFlagTagsQuery.data || [];
@@ -188,8 +168,7 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
-      const key = `flags["${tag.key}"]`;
+      const key = makeFeatureFlagSearchKey(tag.key);
       if (allTagsCollection[key]) {
         allTagsCollection[key].totalValues =
           (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);
@@ -208,10 +187,12 @@ export const useFetchIssueTags = ({
 
     const renamedTags = renameConflictingTags(allTagsCollection);
 
-    const additionalTags = builtInIssuesFields(renamedTags, assignedValues, [
-      'me',
-      ...usernames,
-    ]);
+    const additionalTags = builtInIssuesFields({
+      currentTags: renamedTags,
+      assigneeFieldValues: assignedValues,
+      bookmarksValues: usernames,
+      organization,
+    });
 
     return {
       ...renamedTags,
@@ -221,8 +202,9 @@ export const useFetchIssueTags = ({
     eventsTagsQuery.data,
     issuePlatformTagsQuery.data,
     featureFlagTagsQuery.data,
-    members,
-    teams,
+    usernames,
+    assignedValues,
+    organization,
   ]);
 
   return {
@@ -238,11 +220,17 @@ export const useFetchIssueTags = ({
   };
 };
 
-function builtInIssuesFields(
-  currentTags: TagCollection,
-  assigneeFieldValues: SearchGroup[] | string[] = [],
-  bookmarksValues: string[] = []
-): TagCollection {
+function builtInIssuesFields({
+  organization,
+  currentTags,
+  assigneeFieldValues = [],
+  bookmarksValues = [],
+}: {
+  assigneeFieldValues: SearchGroup[] | string[];
+  bookmarksValues: string[];
+  currentTags: TagCollection;
+  organization: Organization;
+}): TagCollection {
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
       return {
@@ -300,13 +288,23 @@ function builtInIssuesFields(
     [FieldKey.ISSUE_CATEGORY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
-      values: [
-        IssueCategory.ERROR,
-        IssueCategory.PERFORMANCE,
-        IssueCategory.REPLAY,
-        IssueCategory.CRON,
-        IssueCategory.UPTIME,
-      ],
+      values: organization.features.includes('issue-taxonomy')
+        ? SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
+            icon: null,
+            title: value,
+            name: value,
+            documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
+            value,
+            type: ItemType.TAG_VALUE,
+            children: [],
+          }))
+        : [
+            IssueCategory.ERROR,
+            IssueCategory.PERFORMANCE,
+            IssueCategory.REPLAY,
+            IssueCategory.CRON,
+            IssueCategory.UPTIME,
+          ],
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {
@@ -338,8 +336,8 @@ function builtInIssuesFields(
     [FieldKey.FIRST_RELEASE]: {
       ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
-      values: ['latest'],
-      predefined: true,
+      values: [],
+      predefined: false,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
       ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
@@ -362,6 +360,23 @@ function builtInIssuesFields(
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
     },
+    [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
+      name: 'Issue Fixability',
+      values: [
+        FixabilityScoreThresholds.SUPER_HIGH,
+        FixabilityScoreThresholds.HIGH,
+        FixabilityScoreThresholds.MEDIUM,
+        FixabilityScoreThresholds.LOW,
+      ],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_LAST_RUN]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_LAST_RUN]!,
+      name: 'Issue Fix Last Triggered',
+      values: [],
+      predefined: false,
+    },
   };
 
   // Ony include fields that that are part of the ISSUE_FIELDS. This is
@@ -377,22 +392,3 @@ function builtInIssuesFields(
     ...semverFields,
   };
 }
-
-const getUsername = ({isManaged, username, email}: User) => {
-  const uuidPattern = /[0-9a-f]{32}$/;
-  // Users created via SAML receive unique UUID usernames. Use
-  // their email in these cases, instead.
-  if (username && uuidPattern.test(username)) {
-    return email;
-  }
-  return !isManaged && username ? username : email;
-};
-
-const convertToSearchItem = (value: string) => {
-  const escapedValue = escapeTagValue(value);
-  return {
-    value: escapedValue,
-    desc: value,
-    type: ItemType.TAG_VALUE,
-  };
-};

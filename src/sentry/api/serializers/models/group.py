@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -128,6 +128,8 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     platform: str | None
     priority: str | None
     priorityLockedAt: datetime | None
+    seerFixabilityScore: float | None
+    seerAutofixLastTriggered: datetime | None
     project: GroupProjectResponse
     type: str
     issueType: str
@@ -323,6 +325,11 @@ class GroupSerializerBase(Serializer, ABC):
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
+        issue_category = (
+            obj.issue_category_v2.name.lower()
+            if features.has("organizations:issue-taxonomy", obj.project.organization, actor=user)
+            else obj.issue_category.name.lower()
+        )
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
@@ -353,9 +360,11 @@ class GroupSerializerBase(Serializer, ABC):
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
             "issueType": obj.issue_type.slug,
-            "issueCategory": obj.issue_category.name.lower(),
+            "issueCategory": issue_category,
             "priority": priority_label,
             "priorityLockedAt": obj.priority_locked_at,
+            "seerFixabilityScore": obj.seer_fixability_score,
+            "seerAutofixLastTriggered": obj.seer_autofix_last_triggered,
         }
 
         # This attribute is currently feature gated
@@ -419,8 +428,10 @@ class GroupSerializerBase(Serializer, ABC):
                 status = GroupStatus.UNRESOLVED
         if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             # When an issue is over the auto-resolve age but the task has not yet run
-            status = GroupStatus.RESOLVED
-            status_details["autoResolved"] = True
+            # Only show as auto-resolved if this group type has auto-resolve enabled
+            if obj.issue_type.enable_auto_resolve:
+                status = GroupStatus.RESOLVED
+                status_details["autoResolved"] = True
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
@@ -915,6 +926,8 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.category",
         "issue.priority",
         "issue.type",
+        "issue.seer_actionability",
+        "issue.seer_last_run",
     )
 )
 

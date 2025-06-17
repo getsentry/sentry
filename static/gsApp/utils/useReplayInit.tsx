@@ -4,24 +4,15 @@ import type {replayIntegration} from '@sentry/react';
 import {getClient} from '@sentry/react';
 
 import {isStaticString} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {useUser} from 'sentry/utils/useUser';
-
-interface Props {
-  organization: Organization | null;
-}
 
 // Single replayRef across the whole app, even if this hook is called multiple times
 let replayRef: ReturnType<typeof replayIntegration> | null;
 
 /**
  * Load the Sentry Replay integration based on the feature flag.
- *
- *  Can't use `useOrganization` because it throws on
- * `/settings/account/api/auth-token/` because organization is not *immediately*
- * set in context
  */
-export default function useReplayInit({organization}: Props) {
+export default function useReplayInit() {
   const user = useUser();
 
   useEffect(() => {
@@ -42,6 +33,7 @@ export default function useReplayInit({organization}: Props) {
         replayRef = replayIntegration({
           maskAllText: true,
           _experiments: {
+            autoFlushOnFeedback: true,
             captureExceptions: true,
             traceInternals: true,
           },
@@ -84,7 +76,7 @@ export default function useReplayInit({organization}: Props) {
       return;
     }
 
-    if (!organization || !user) {
+    if (!user) {
       return;
     }
 
@@ -95,5 +87,5 @@ export default function useReplayInit({organization}: Props) {
 
     // NOTE: if this component is unmounted (e.g. when org is switched), we will continue to record!
     // This can be changed by calling `stop/start()` on unmount/mount respectively.
-  }, [organization, user]);
+  }, [user]);
 }

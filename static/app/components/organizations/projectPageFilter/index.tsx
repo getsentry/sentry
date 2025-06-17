@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {
   SelectOption,
   SelectOptionOrSection,
@@ -73,6 +73,11 @@ export interface ProjectPageFilterProps
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Insights)
+   * TODO: ideally this can be determined by what's set in the PageFiltersContainer
+   */
+  storageNamespace?: string;
 }
 
 /**
@@ -94,6 +99,7 @@ export function ProjectPageFilter({
   projectOverride,
   resetParamsOnChange,
   footerMessage,
+  storageNamespace,
   ...selectProps
 }: ProjectPageFilterProps) {
   const user = useUser();
@@ -214,6 +220,7 @@ export function ProjectPageFilter({
         save: true,
         resetParams: resetParamsOnChange,
         environments: [], // Clear environments when switching projects
+        storageNamespace,
       });
     },
     [
@@ -225,6 +232,7 @@ export function ProjectPageFilter({
       routes,
       onChange,
       mapNormalValueToURLValue,
+      storageNamespace,
     ]
   );
 
@@ -277,7 +285,7 @@ export function ProjectPageFilter({
               to={
                 makeProjectsPathname({
                   path: `/${project.slug}/`,
-                  orgSlug: organization.slug,
+                  organization,
                 }) + `?project=${project.id}`
               }
               visible={isFocused}
@@ -303,7 +311,7 @@ export function ProjectPageFilter({
             />
           </Fragment>
         ),
-      };
+      } satisfies SelectOptionOrSection<number>;
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
@@ -345,12 +353,11 @@ export function ProjectPageFilter({
     );
 
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions
-      .slice(0, 25)
-      .reduce(
-        (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-        0
-      );
+    const longestSlugLength = flatOptions.slice(0, 25).reduce(
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
+      0
+    );
 
     // Calculate an appropriate width for the menu. It should be between 22  and 28em.
     // Within that range, the width is a function of the length of the longest slug.
@@ -387,6 +394,7 @@ export function ProjectPageFilter({
     <HybridFilter
       {...selectProps}
       searchable
+      checkboxPosition="trailing"
       multiple={allowMultiple}
       options={options}
       value={value}
@@ -438,7 +446,7 @@ export function ProjectPageFilter({
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
   const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
-  return !powerHovercard || !powerHovercard.contains(target);
+  return !powerHovercard?.contains(target);
 }
 
 function checkboxWrapper(

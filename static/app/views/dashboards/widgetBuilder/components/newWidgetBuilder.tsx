@@ -43,6 +43,7 @@ import {
   WIDGET_PREVIEW_DRAG_ID,
   type WidgetDragPositioning,
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
+import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
@@ -52,7 +53,7 @@ import {
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useNavContext} from 'sentry/views/nav/context';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -165,7 +166,7 @@ function WidgetBuilderV2({
                 >
                   <SpanTagsProvider
                     dataset={DiscoverDatasets.SPANS_EAP}
-                    enabled={organization.features.includes('dashboards-eap')}
+                    enabled={organization.features.includes('visibility-explore-view')}
                   >
                     <ContainerWithoutSidebar
                       sidebarCollapsed={sidebarCollapsed}
@@ -321,6 +322,13 @@ export function WidgetPreviewContainer({
     return PREVIEW_HEIGHT_PX;
   };
 
+  const animatedProps = {
+    initial: {opacity: 0, x: '100%', y: 0},
+    animate: {opacity: 1, x: 0, y: 0},
+    exit: {opacity: 0, x: '100%', y: 0},
+    transition: animationTransitionSettings,
+  };
+
   return (
     <DashboardsMEPProvider>
       <MetricsCardinalityProvider organization={organization} location={location}>
@@ -345,20 +353,12 @@ export function WidgetPreviewContainer({
                 {...listeners}
               >
                 {!isSmallScreen && (
-                  <WidgetPreviewTitle
-                    initial={{opacity: 0, x: '50%', y: 0}}
-                    animate={{opacity: 1, x: 0, y: 0}}
-                    exit={{opacity: 0, x: '50%', y: 0}}
-                    transition={animationTransitionSettings}
-                  >
+                  <WidgetPreviewTitle {...animatedProps}>
                     {t('Widget Preview')}
                   </WidgetPreviewTitle>
                 )}
                 <SampleWidgetCard
-                  initial={{opacity: 0, x: '50%', y: 0}}
-                  animate={{opacity: 1, x: 0, y: 0}}
-                  exit={{opacity: 0, x: '50%', y: 0}}
-                  transition={animationTransitionSettings}
+                  {...animatedProps}
                   style={{
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
@@ -384,6 +384,12 @@ export function WidgetPreviewContainer({
                     />
                   )}
                 </SampleWidgetCard>
+
+                {!isSmallScreen && (
+                  <FilterBarContainer {...animatedProps}>
+                    <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+                  </FilterBarContainer>
+                )}
               </DraggableWidgetContainer>
             </MEPSettingProvider>
           )}
@@ -541,4 +547,23 @@ const WidgetPreviewTitle = styled(motion.h5)`
   margin-left: ${space(1)};
   color: ${p => p.theme.white};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const FilterBarContainer = styled(motion.div)`
+  margin-top: ${space(1)};
+  background-color: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 40vw;
+    min-width: 300px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) and (min-width: ${p =>
+      p.theme.breakpoints.medium}) {
+    width: 30vw;
+    min-width: 100px;
+  }
 `;

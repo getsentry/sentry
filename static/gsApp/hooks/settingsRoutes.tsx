@@ -1,13 +1,10 @@
 import {Fragment} from 'react';
 
 import {IndexRedirect, IndexRoute, Redirect, Route} from 'sentry/components/route';
-import {makeLazyloadComponent} from 'sentry/routes';
+import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import errorHandler from 'sentry/utils/errorHandler';
 
 import SubscriptionContext from 'getsentry/components/subscriptionContext';
-
-// Shorthand to avoid extra line wrapping
-const make = makeLazyloadComponent;
 
 const settingsRoutes = () =>
   (
@@ -70,6 +67,11 @@ const settingsRoutes = () =>
         path="spike-protection/"
         name="Spike Protection"
         component={make(() => import('../views/spikeProtection'))}
+      />
+      <Route
+        path="seer/"
+        name="Seer Automation"
+        component={make(() => import('../views/seerAutomation'))}
       />
 
       <Route

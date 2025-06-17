@@ -1,4 +1,4 @@
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 
 import withSubscription from 'getsentry/components/withSubscription';

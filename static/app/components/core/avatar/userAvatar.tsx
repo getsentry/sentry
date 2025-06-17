@@ -4,10 +4,10 @@ import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/ba
 import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 export interface UserAvatarProps extends BaseAvatarProps {
   gravatar?: boolean;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
   renderTooltip?: (user: AvatarUser | Actor) => React.ReactNode;
   user?: Actor | AvatarUser;
 }
@@ -24,9 +24,7 @@ export function UserAvatar({
   renderTooltip,
   user,
   ...props
-}: UserAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
-}) {
+}: UserAvatarProps) {
   if (!user) {
     // @TODO(jonasbadalic): Do we need a placeholder here?
     return null;
@@ -35,7 +33,7 @@ export function UserAvatar({
   const type = inferAvatarType(user, gravatar);
   let tooltip: React.ReactNode = null;
 
-  if (isRenderFunc(renderTooltip)) {
+  if (renderTooltip) {
     tooltip = renderTooltip(user);
   } else if (props.tooltip) {
     tooltip = props.tooltip;

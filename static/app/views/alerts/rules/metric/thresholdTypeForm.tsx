@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -52,6 +52,10 @@ function ThresholdTypeForm({
   const hasAnomalyDetection =
     organization.features.includes('anomaly-detection-alerts') &&
     organization.features.includes('anomaly-detection-rollout');
+
+  const hasAnomalyDetectionForEAP = organization.features.includes(
+    'anomaly-detection-eap'
+  );
 
   let comparisonDeltaOptions = COMPARISON_DELTA_OPTIONS;
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
@@ -100,18 +104,15 @@ function ThresholdTypeForm({
     ],
   ];
 
-  if (hasAnomalyDetection && validAnomalyDetectionAlertTypes.has(alertType)) {
+  if (
+    hasAnomalyDetection &&
+    (validAnomalyDetectionAlertTypes.has(alertType) ||
+      (hasAnomalyDetectionForEAP && isEapAlertType(alertType)))
+  ) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t('Anomaly detection is in beta and may produce unexpected results'),
-            isHoverable: true,
-          }}
-        />
       </ComparisonContainer>,
     ] as RadioOption);
   }

@@ -21,12 +21,13 @@ import {
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
-import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
+import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {
   useMetrics,
   useSpanMetrics,
@@ -34,13 +35,10 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {
-  DataTitles,
-  getThroughputChartTitle,
-} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   type MetricsProperty,
@@ -81,30 +79,13 @@ export function CacheLandingPage() {
     requiredParams: ['transaction'],
   });
 
-  const {
-    isPending: isCacheMissRateLoading,
-    data: cacheMissRateData,
-    error: cacheMissRateError,
-  } = useSpanMetricsSeries(
+  const {error: cacheMissRateError} = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_HIT_MISS_CHART
-  );
-
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_CACHE_THROUGHPUT_CHART
   );
 
   const {
@@ -123,7 +104,6 @@ export function CacheLandingPage() {
         'epm()',
         `${CACHE_MISS_RATE}()`,
         'sum(span.self_time)',
-        'time_spent_percentage()',
         `avg(${CACHE_ITEM_SIZE})`,
       ],
       sorts: [sort],
@@ -160,6 +140,7 @@ export function CacheLandingPage() {
   const hasData = useHasFirstSpan(ModuleName.CACHE);
 
   useEffect(() => {
+    // TODO: EAP does not use an indexer, so these metrics indexer errors are not possible. When EAP is fully rolled out, remove this check.
     const hasMissingDataError =
       cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
@@ -211,20 +192,10 @@ export function CacheLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.CACHE}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={DataTitles[`cache_miss_rate()`]}
-                    series={[cacheMissRateData[`${CACHE_MISS_RATE}()`]]}
-                    isLoading={isCacheMissRateLoading}
-                    error={cacheMissRateError}
-                  />
+                  <CacheMissRateChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('cache.get_item')}
-                    series={[throughputData['epm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <CacheThroughputChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <TransactionsTable
@@ -259,25 +230,6 @@ function PageWithProviders() {
 
 export default PageWithProviders;
 
-const combineMeta = (
-  meta1?: EventsMetaType,
-  meta2?: EventsMetaType
-): EventsMetaType | undefined => {
-  if (!meta1 && !meta2) {
-    return undefined;
-  }
-  if (!meta1) {
-    return meta2;
-  }
-  if (!meta2) {
-    return meta1;
-  }
-  return {
-    fields: {...meta1.fields, ...meta2.fields},
-    units: {...meta1.units, ...meta2.units},
-  };
-};
-
 // TODO - this won't be needed once we migrate to EAP
 const addCustomMeta = (meta?: EventsMetaType) => {
   if (meta?.fields) {
@@ -292,7 +244,7 @@ const addCustomMeta = (meta?: EventsMetaType) => {
 };
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

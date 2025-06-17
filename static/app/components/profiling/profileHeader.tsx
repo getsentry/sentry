@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
@@ -58,7 +58,6 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const handleGoToTransaction = useCallback(() => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
-      source: 'transaction_details',
     });
   }, [organization]);
 

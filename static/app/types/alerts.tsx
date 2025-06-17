@@ -157,7 +157,7 @@ interface IssueAlertSentryAppIntegrationConfig extends IssueAlertConfigBase {
 /**
  * The actions that an organization has enabled and can be used to create an issue alert.
  */
-export type IssueAlertConfigurationAction =
+type IssueAlertConfigurationAction =
   | IssueAlertGenericActionConfig
   | IssueAlertTicketIntegrationConfig
   | IssueAlertSentryAppIntegrationConfig

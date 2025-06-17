@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -28,8 +28,6 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
@@ -42,6 +40,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,14 +54,6 @@ const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
-
-const fuseOptions: Fuse.IFuseOptions<AppOrProviderOrPlugin> = {
-  threshold: 0.3,
-  location: 0,
-  distance: 100,
-  includeScore: true as const,
-  keys: ['slug', 'key', 'name', 'id'],
-};
 
 /**
  * Debounce the tracking of integration search events to avoid spamming the
@@ -208,17 +199,19 @@ export default function IntegrationListDirectory() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
   const {appInstalls, anyPending, integrations, list, anyError, publishedApps, plugins} =
     useIntegrationList();
-  const fuzzy = useFuzzySearch<AppOrProviderOrPlugin>(list, fuseOptions);
+
+  const category = decodeScalar(location.query.category) ?? '';
+  const search = decodeScalar(location.query.search) ?? '';
 
   const displayList = useMemo(() => {
     let listToDisplay = [...list];
 
-    if (search && fuzzy) {
-      listToDisplay = fuzzy.search(search).map(result => result.item);
+    if (search) {
+      listToDisplay = list.filter(integration =>
+        integration.name.toLowerCase().includes(search.toLowerCase())
+      );
     }
 
     if (category) {
@@ -232,7 +225,7 @@ export default function IntegrationListDirectory() {
       sentryAppInstalls: appInstalls,
       integrationInstalls: integrations,
     });
-  }, [list, appInstalls, integrations, category, search, fuzzy]);
+  }, [list, appInstalls, integrations, category, search]);
 
   const getAppInstall = useCallback(
     (app: SentryApp) => appInstalls.find(i => i.app.slug === app.slug),
@@ -241,7 +234,6 @@ export default function IntegrationListDirectory() {
 
   const onCategoryChange = useCallback(
     ({value: newCategory}: SelectOption<string>) => {
-      setCategory(newCategory);
       navigate(
         {
           ...location,
@@ -262,7 +254,6 @@ export default function IntegrationListDirectory() {
 
   const onSearchChange = useCallback(
     (newSearch: string) => {
-      setSearch(newSearch);
       navigate(
         {
           ...location,
@@ -508,8 +499,8 @@ function IntegrationSettingsHeader({
           />
           <SearchBar
             query={search}
-            onChange={onChangeSearch}
-            placeholder={t('Filter Integrations...')}
+            onSearch={onChangeSearch}
+            placeholder={t('Filter Integrations\u2026')}
             aria-label={t('Filter')}
             width="100%"
             data-test-id="search-bar"

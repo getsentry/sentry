@@ -1,15 +1,16 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  useExploreAggregateFields,
   useExploreDataset,
-  useExploreGroupBys,
   useExploreSortBys,
-  useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {SpansRPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -33,9 +34,20 @@ export function useExploreAggregatesTable({
   limit,
   query,
 }: UseExploreAggregatesTableOptions) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useSpansQuery<any[]>>) => {
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
+      const hasData = defined(results.data) && results.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
   return useProgressiveQuery<typeof useExploreAggregatesTableImp>({
     queryHookImplementation: useExploreAggregatesTableImp,
     queryHookArgs: {enabled, limit, query},
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
   });
 }
 
@@ -48,33 +60,32 @@ function useExploreAggregatesTableImp({
   const {selection} = usePageFilters();
 
   const dataset = useExploreDataset();
-  const groupBys = useExploreGroupBys();
+  const aggregateFields = useExploreAggregateFields();
   const sorts = useExploreSortBys();
-  const visualizes = useExploreVisualizes();
 
   const fields = useMemo(() => {
     // When rendering the table, we want the group bys first
     // then the aggregates.
     const allFields: string[] = [];
 
-    for (const groupBy of groupBys) {
-      if (allFields.includes(groupBy)) {
-        continue;
-      }
-      allFields.push(groupBy);
-    }
-
-    for (const visualize of visualizes) {
-      for (const yAxis of visualize.yAxes) {
-        if (allFields.includes(yAxis)) {
+    for (const aggregateField of aggregateFields) {
+      if (isGroupBy(aggregateField)) {
+        if (allFields.includes(aggregateField.groupBy)) {
           continue;
         }
-        allFields.push(yAxis);
+        allFields.push(aggregateField.groupBy);
+      } else {
+        for (const yAxis of aggregateField.yAxes) {
+          if (allFields.includes(yAxis)) {
+            continue;
+          }
+          allFields.push(yAxis);
+        }
       }
     }
 
     return allFields.filter(Boolean);
-  }, [groupBys, visualizes]);
+  }, [aggregateFields]);
 
   const eventView = useMemo(() => {
     const search = new MutableSearch(query);

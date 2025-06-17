@@ -1,57 +1,50 @@
-import {Fragment, type ReactElement, useCallback, useRef} from 'react';
-import styled from '@emotion/styled';
-import type {SeriesOption} from 'echarts';
+import {useCallback, useRef} from 'react';
+import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
-import type {EChartsInstance} from 'echarts-for-react';
 
-import {DateTime} from 'sentry/components/dateTime';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
-import type {ReleaseMetaBasic} from 'sentry/types/release';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {
+  type ChartId,
+  ChartWidgetLoader,
+} from 'sentry/components/charts/chartWidgetLoader';
+import {
+  EventDrawerBody,
+  EventDrawerContainer,
+  EventDrawerHeader,
+  EventNavigator,
+  Header,
+  NavigationCrumbs,
+} from 'sentry/components/events/eventDrawer';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
+import {t, tn} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {
-  Bucket,
-  ChartRendererProps,
-} from 'sentry/views/releases/releaseBubbles/types';
+  EChartDataZoomHandler,
+  ReactEchartsRef,
+  SeriesDataUnit,
+} from 'sentry/types/echarts';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
+import {ReleasesDrawerFeatureFlagsTable} from 'sentry/views/releases/drawer/releasesDrawerFeatureFlagsTable';
+import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
-import {ReleaseDrawerTable} from './releasesDrawerTable';
+import {ReleasesDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-  /**
-   * This is a list of the release buckets used by eCharts to draw the
-   * release bubbles. Currently unused, but we can use this to traverse
-   * through the release buckets within the drawer
-   */
-  buckets: Bucket[];
-  endTs: number;
-  environments: readonly string[];
-  /**
-   * Callback when a release is selected
-   */
-  onSelectRelease: (release: string, projectId: string) => void;
-  projects: readonly number[];
-  /**
-   * A list of releases in the current release bucket
-   */
-  releases: ReleaseMetaBasic[];
-  startTs: number;
-  /**
-   * A renderer function that returns a chart. It is called with the trimmed
-   * list of releases and timeSeries. It currently uses the
-   * `TimeSeriesWidgetVisualization` components props. It's possible we change
-   * it to make the props more generic, e.g. pass start/end timestamps and do
-   * the series manipulation when we call the bubble hook.
-   */
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+  pageFilters: PageFilters;
+  chart?: ChartId;
+  eventId?: string | undefined;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
 
 function createMarkLineUpdater(lineStyle: Partial<MarkLineOption['lineStyle']>) {
   return (
-    echartsInstance: EChartsInstance,
+    echartsInstance: ECharts,
     seriesId: string,
     callbackFn: MarkLineDataCallbackFn
   ) => {
@@ -101,18 +94,39 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Allows users to view releases of a specific timebucket.
  */
 export function ReleasesDrawerList({
-  startTs,
-  endTs,
-  chartRenderer,
-  releases,
-  onSelectRelease,
-  projects,
-  environments,
+  chart,
+  pageFilters,
+  eventId,
 }: ReleasesDrawerListProps) {
-  const start = new Date(startTs);
-  const end = new Date(endTs);
+  const navigate = useNavigate();
+  const {groupId} = useParams();
+  const {releases} = useReleaseStats(pageFilters);
+  const location = useLocation();
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? '160px' : '220px';
 
+  const handleMouseOverFlag = useCallback((flag: RawFlag) => {
+    if (!chartRef.current) {
+      return;
+    }
+
+    highlightMarkLines(
+      chartRef.current.getEchartsInstance(),
+      'flag-lines',
+      (d: SeriesDataUnit) => d.name === flag.flag
+    );
+  }, []);
+  const handleMouseOutFlag = useCallback((flag: RawFlag) => {
+    if (!chartRef.current) {
+      return;
+    }
+
+    unhighlightMarkLines(
+      chartRef.current.getEchartsInstance(),
+      'flag-lines',
+      (d: SeriesDataUnit) => d.name === flag.flag
+    );
+  }, []);
   const handleMouseOverRelease = useCallback((release: string) => {
     if (!chartRef.current) {
       return;
@@ -137,57 +151,81 @@ export function ReleasesDrawerList({
     );
   }, []);
 
-  return (
-    <Fragment>
-      {chartRenderer ? (
-        <ChartContainer>
-          <Widget
-            Title={
-              <Fragment>
-                {t('Releases from ')}
-                <DateTime date={start} /> <span>{t('to')}</span> <DateTime date={end} />
-              </Fragment>
-            }
-            Visualization={chartRenderer?.({
-              ref: (e: ReactEchartsRef | null) => {
-                chartRef.current = e;
+  const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
 
-                if (e) {
-                  // When chart is mounted, zoom the chart into the relevant
-                  // bucket
-                  e.getEchartsInstance().dispatchAction({
-                    type: 'dataZoom',
-                    batch: [
-                      {
-                        // data value at starting location
-                        startValue: startTs,
-                        // data value at ending location
-                        endValue: endTs,
-                      },
-                    ],
-                  });
-                }
-              },
-              releases,
-              start,
-              end,
-            })}
+  const crumbs = [
+    {
+      label: t('Releases'),
+    },
+  ];
+
+  const handleDataZoom = useCallback<EChartDataZoomHandler>(
+    evt => {
+      let {startValue, endValue} = (evt as any).batch[0] as {
+        endValue: number | null;
+        startValue: number | null;
+      };
+
+      // if `rangeStart` and `rangeEnd` are null, then we are going back
+      if (startValue && endValue) {
+        // round off the bounds to the minute
+        startValue = Math.floor(startValue / 60_000) * 60_000;
+        endValue = Math.ceil(endValue / 60_000) * 60_000;
+
+        // ensure the bounds has 1 minute resolution
+        startValue = Math.min(startValue, endValue - 60_000);
+
+        navigate({
+          query: {
+            ...location.query,
+            [ReleasesDrawerFields.START]: getUtcDateString(startValue),
+            [ReleasesDrawerFields.END]: getUtcDateString(endValue),
+          },
+        });
+      }
+    },
+    [navigate, location.query]
+  );
+
+  return (
+    <EventDrawerContainer>
+      <EventDrawerHeader>
+        <NavigationCrumbs crumbs={crumbs} />
+      </EventDrawerHeader>
+      <EventNavigator>
+        <Header>{title}</Header>
+      </EventNavigator>
+      <EventDrawerBody>
+        {chart ? (
+          <div style={{height: chartHeight}}>
+            <ChartWidgetLoader
+              ref={chartRef}
+              id={chart}
+              height={chartHeight}
+              pageFilters={pageFilters}
+              showReleaseAs="line"
+              loaderSource="releases-drawer"
+              onZoom={handleDataZoom}
+            />
+          </div>
+        ) : null}
+
+        <ReleasesDrawerTable
+          {...pageFilters}
+          onMouseOverRelease={handleMouseOverRelease}
+          onMouseOutRelease={handleMouseOutRelease}
+        />
+
+        {eventId && groupId && (
+          <ReleasesDrawerFeatureFlagsTable
+            pageFilters={pageFilters}
+            eventId={eventId}
+            groupId={groupId}
+            onRowMouseOver={handleMouseOverFlag}
+            onRowMouseOut={handleMouseOutFlag}
           />
-        </ChartContainer>
-      ) : null}
-      <ReleaseDrawerTable
-        projects={projects}
-        environments={environments}
-        start={start.toISOString()}
-        end={end.toISOString()}
-        onSelectRelease={onSelectRelease}
-        onMouseOverRelease={handleMouseOverRelease}
-        onMouseOutRelease={handleMouseOutRelease}
-      />
-    </Fragment>
+        )}
+      </EventDrawerBody>
+    </EventDrawerContainer>
   );
 }
-
-const ChartContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
