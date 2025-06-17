@@ -149,6 +149,7 @@ x-sentry-service-config:
         monitors-clock-tasks,
         monitors-incident-occurrences,
         worker,
+      ]
     profiling:
       [
         postgres,
