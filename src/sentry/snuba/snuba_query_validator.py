@@ -95,6 +95,12 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
 
+    def __init__(self, *args, timeWindowSeconds=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        # if true, time_window is interpreted as seconds.
+        # if false, time_window is interpreted as minutes.
+        self.time_window_seconds = timeWindowSeconds
+
     def validate_query_type(self, value: int) -> SnubaQuery.Type:
         try:
             return SnubaQuery.Type(value)
@@ -310,13 +316,15 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
     def _validate_time_window(self, value: int, dataset: Dataset):
+        time_window_seconds = value * 60 if not self.time_window_seconds else value
+
         if dataset == Dataset.Metrics:
-            if value not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
+            if time_window_seconds not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
-        return value
+        return time_window_seconds
 
     def _validate_performance_dataset(self, dataset):
         if dataset != Dataset.Transactions:

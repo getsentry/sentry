@@ -16,7 +16,7 @@ class SnubaQueryValidatorTest(TestCase):
             "dataset": Dataset.Events.value,
             "query": "test query",
             "aggregate": "count()",
-            "timeWindow": 3600,  # 60 minutes in seconds
+            "timeWindow": 60,
             "environment": self.environment.name,
             "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
         }
@@ -33,7 +33,7 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.validated_data["dataset"] == Dataset.Events
         assert validator.validated_data["query"] == "test query"
         assert validator.validated_data["aggregate"] == "count()"
-        assert validator.validated_data["time_window"] == 3600
+        assert validator.validated_data["time_window"] == 60
         assert validator.validated_data["environment"] == self.environment
         assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
         assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
