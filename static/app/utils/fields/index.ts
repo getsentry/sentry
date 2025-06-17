@@ -138,6 +138,8 @@ export enum FieldKey {
   OTA_UPDATES_CHANNEL = 'ota_updates.channel',
   OTA_UPDATES_RUNTIME_VERSION = 'ota_updates.runtime_version',
   OTA_UPDATES_UPDATE_ID = 'ota_updates.update_id',
+  NAME = 'name',
+  KIND = 'kind',
 }
 
 export enum FieldValueType {
@@ -1732,7 +1734,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.BOOLEAN,
   },
   [FieldKey.STATUS]: {
-    desc: t('Status of the issue'),
+    desc: t('Status of the issue or span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1874,6 +1876,20 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.OTA_UPDATES_UPDATE_ID]: {
     desc: t('The UUID that uniquely identifies the update.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.NAME]: {
+    desc: t(
+      'The name of the span. A short, human-readable identifier for the operation being performed by a span.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.KIND]: {
+    desc: t(
+      'The kind of span. Indicates the type of span such as server, client, internal, producer, or consumer.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
