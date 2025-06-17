@@ -4,6 +4,8 @@ import type {KnipConfig} from 'knip';
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
+  // chartcuterie build script
+  'config/build-chartcuterie.ts',
   // dynamic imports _not_ recognized by knip
   'static/app/bootstrap/{index,initializeMain}.tsx',
   'static/gsApp/initializeBundleMetrics.tsx',
