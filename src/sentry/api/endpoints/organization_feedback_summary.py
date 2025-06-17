@@ -83,7 +83,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 {
                     "summary": summary_cache["summary"],
                     "success": True,
-                    "num_feedbacks_used": summary_cache["num_feedbacks_used"],
+                    "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
                 }
             )
 
@@ -105,7 +105,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 {
                     "summary": None,
                     "success": False,
-                    "num_feedbacks_used": 0,
+                    "numFeedbacksUsed": 0,
                 }
             )
 
@@ -131,7 +131,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         cache.set(
             summary_cache_key,
-            {"summary": summary, "num_feedbacks_used": len(group_feedbacks)},
+            {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
             timeout=SUMMARY_CACHE_TIMEOUT,
         )
 
@@ -139,6 +139,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             {
                 "summary": summary,
                 "success": True,
-                "num_feedbacks_used": len(group_feedbacks),
+                "numFeedbacksUsed": len(group_feedbacks),
             }
         )

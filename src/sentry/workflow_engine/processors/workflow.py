@@ -149,18 +149,22 @@ def evaluate_workflows_action_filters(
     )
     workflows_by_id = {workflow.id: workflow for workflow in workflows}
     for action_condition in action_conditions:
-        workflow_event_data = replace(
-            event_data, workflow_env=workflows_by_id[action_condition.workflow_id].environment
+        workflow = workflows_by_id[action_condition.workflow_id]
+        env = (
+            Environment.objects.get_from_cache(id=workflow.environment_id)
+            if workflow.environment_id
+            else None
         )
+        workflow_event_data = replace(event_data, workflow_env=env)
         group_evaluation, remaining_conditions = process_data_condition_group(
-            action_condition.id, workflow_event_data
+            action_condition, workflow_event_data
         )
 
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
             enqueue_workflow(
-                workflows_by_id[action_condition.workflow_id],
+                workflow,
                 remaining_conditions,
                 event_data.event,
                 WorkflowDataConditionGroupType.ACTION_FILTER,
@@ -305,6 +309,35 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                         "event_data": asdict(event_data),
                     },
                 )
+        else:
+            logger.info(
+                "workflow_engine.triggered_actions",
+                extra={
+                    "detector_id": detector.id,
+                    "detector_type": detector.type,
+                    "action_ids": [action.id for action in actions],
+                    "event_data": asdict(event_data),
+                },
+            )
+            # If the feature flag is not enabled, only send a metric
+            for action in actions:
+                metrics_incr(
+                    "process_workflows.action_triggered",
+                    1,
+                    tags={"action_type": action.type},
+                )
+                if features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
+                ):
+                    logger.info(
+                        "workflow_engine.action.would-trigger",
+                        extra={
+                            "detector_id": detector.id,
+                            "detector_type": detector.type,
+                            "action_id": action.id,
+                            "event_data": asdict(event_data),
+                        },
+                    )
 
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
     if len(actions) > 0:

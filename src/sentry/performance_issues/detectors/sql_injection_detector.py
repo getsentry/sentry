@@ -19,7 +19,8 @@ from sentry.performance_issues.types import Span
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
 
-SQL_KEYWORDS = [
+# Keywords that are excluded from the detection
+EXCLUDED_KEYWORDS = [
     "SELECT",
     "WHERE",
     "AND",
@@ -48,7 +49,13 @@ SQL_KEYWORDS = [
     "DESC",
     "ASC",
     "NULL",
+    "ORDER",
+    "SORT",
+    "EXPAND",
+    "PAGE",
 ]
+
+EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
 
 
 class SQLInjectionDetector(PerformanceDetector):
@@ -97,7 +104,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 continue
             if query_key == query_value:
                 continue
-            if query_value.upper() in SQL_KEYWORDS or query_key.upper() in SQL_KEYWORDS:
+            if query_value.upper() in EXCLUDED_KEYWORDS or query_key.upper() in EXCLUDED_KEYWORDS:
                 continue
             valid_parameters.append(query_pair)
 
@@ -115,8 +122,8 @@ class SQLInjectionDetector(PerformanceDetector):
         for parameter in self.request_parameters:
             value = parameter[1]
             key = parameter[0]
-            if re.search(f"\\b{re.escape(key)}\\b", description) and re.search(
-                f"\\b{re.escape(value)}\\b", description
+            if re.search(rf'(?<![\w.])"?{re.escape(key)}"?(?![\w."])', description) and re.search(
+                rf'(?<![\w.])"?{re.escape(value)}"?(?![\w."])', description
             ):
                 description = description.replace(value, "?")
                 vulnerable_parameters.append(key)
@@ -180,6 +187,17 @@ class SQLInjectionDetector(PerformanceDetector):
         if description[:6].upper() != "SELECT":
             return False
 
+        return True
+
+    @classmethod
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
+        packages = event.get("modules", {})
+        if not packages or not isinstance(packages, dict):
+            return True
+        # Filter out events with packages known to internally escape inputs
+        for package_name in packages.keys():
+            if package_name in EXCLUDED_PACKAGES:
+                return False
         return True
 
     def _fingerprint(self, description: str) -> str:

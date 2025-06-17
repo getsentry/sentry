@@ -91,7 +91,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 15
+        assert response.data["numFeedbacksUsed"] == 15
 
     @django_db_all
     @patch(
@@ -122,7 +122,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 12
+        assert response.data["numFeedbacksUsed"] == 12
 
     @django_db_all
     @patch(
@@ -151,7 +151,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 10
+        assert response.data["numFeedbacksUsed"] == 10
 
     @django_db_all
     @patch(
@@ -180,7 +180,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 22
+        assert response.data["numFeedbacksUsed"] == 22
 
     @django_db_all
     @patch(
@@ -208,7 +208,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.status_code == 200
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 22
+        assert response.data["numFeedbacksUsed"] == 22
 
     @django_db_all
     @patch(
@@ -259,7 +259,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 12
+        assert response.data["numFeedbacksUsed"] == 12
 
     @django_db_all
     @patch(
@@ -270,7 +270,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
     def test_get_feedback_summary_cache_hit(self, mock_cache, mock_generate_summary):
         mock_cache.get.return_value = {
             "summary": "Test cached summary of feedback",
-            "num_feedbacks_used": 13,
+            "numFeedbacksUsed": 13,
         }
 
         for _ in range(15):
@@ -284,7 +284,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test cached summary of feedback"
-        assert response.data["num_feedbacks_used"] == 13
+        assert response.data["numFeedbacksUsed"] == 13
 
         mock_cache.get.assert_called_once()
         mock_cache.set.assert_not_called()
@@ -309,6 +309,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 15
+        assert response.data["numFeedbacksUsed"] == 15
         mock_cache.get.assert_called_once()
         mock_cache.set.assert_called_once()
