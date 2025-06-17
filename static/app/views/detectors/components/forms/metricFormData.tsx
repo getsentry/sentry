@@ -29,10 +29,6 @@ interface PrioritizeLevelFormData {
    * Medium priority value is optional depending on the initial level
    */
   mediumThreshold?: string;
-  /**
-   * Optional value at which the issue is resolved
-   */
-  resolveThreshold?: string;
 }
 
 interface MetricDetectorConditionFormData {
@@ -56,17 +52,22 @@ interface MetricDetectorDynamicFormData {
   thresholdType: AlertRuleThresholdType;
 }
 
+interface SnubaQueryFormData {
+  aggregate: string;
+  environment: string;
+  query: string;
+  visualize: string;
+}
+
 export interface MetricDetectorFormData
   extends PrioritizeLevelFormData,
     MetricDetectorConditionFormData,
-    MetricDetectorDynamicFormData {
-  aggregate: string;
-  environment: string;
+    MetricDetectorDynamicFormData,
+    SnubaQueryFormData {
   kind: 'static' | 'percent' | 'dynamic';
   name: string;
+  owner: string;
   projectId: string;
-  query: string;
-  visualize: string;
 }
 
 type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
@@ -77,19 +78,21 @@ type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
  */
 export const METRIC_DETECTOR_FORM_FIELDS = {
   // Core detector fields
-  aggregate: 'aggregate',
-  query: 'query',
   kind: 'kind',
-  name: 'name',
-  visualize: 'visualize',
   environment: 'environment',
   projectId: 'projectId',
+  owner: 'owner',
+
+  // Snuba query fields
+  aggregate: 'aggregate',
+  query: 'query',
+  name: 'name',
+  visualize: 'visualize',
 
   // Priority level fields
   initialPriorityLevel: 'initialPriorityLevel',
   highThreshold: 'highThreshold',
   mediumThreshold: 'mediumThreshold',
-  resolveThreshold: 'resolveThreshold',
 
   // Condition fields
   conditionComparisonAgo: 'conditionComparisonAgo',
@@ -106,11 +109,10 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
 
   // Priority level fields
   // Metric detectors only support MEDIUM and HIGH priority levels
-  initialPriorityLevel: DetectorPriorityLevel.MEDIUM,
+  initialPriorityLevel: DetectorPriorityLevel.HIGH,
   conditionType: DataConditionType.GREATER,
   conditionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
-  resolveThreshold: '',
 
   // Default dynamic fields
   sensitivity: AlertRuleSensitivity.LOW,
@@ -125,6 +127,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   environment: '',
   projectId: '',
   name: '',
+  owner: '',
 } satisfies MetricDetectorFormData;
 
 /**
@@ -157,6 +160,7 @@ export interface NewMetricDetector {
   config: DetectorConfig;
   dataSource: NewDataSource; // Single data source object (not array)
   name: string;
+  owner: Detector['owner'];
   projectId: Detector['projectId'];
   type: Detector['type'];
 }
@@ -181,27 +185,13 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
   // Only add HIGH escalation if initial priority is MEDIUM and highThreshold is provided
   if (
     data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM &&
-    defined(data.highThreshold)
+    defined(data.highThreshold) &&
+    data.highThreshold !== ''
   ) {
     conditions.push({
       type: data.conditionType,
       comparison: parseFloat(data.highThreshold) || 0,
       conditionResult: DetectorPriorityLevel.HIGH,
-    });
-  }
-
-  // Create resolution condition if provided
-  if (defined(data.resolveThreshold) && data.resolveThreshold !== '') {
-    // Resolution condition uses opposite comparison type
-    const resolveConditionType =
-      data.conditionType === DataConditionType.GREATER
-        ? DataConditionType.LESS
-        : DataConditionType.GREATER;
-
-    conditions.push({
-      type: resolveConditionType,
-      comparison: parseFloat(data.resolveThreshold) || 0,
-      conditionResult: DetectorPriorityLevel.OK,
     });
   }
 
@@ -265,6 +255,7 @@ export function getNewMetricDetectorData(
     name: data.name || 'New Monitor',
     type: 'metric_issue',
     projectId: data.projectId,
+    owner: data.owner || null,
     conditionGroup: {
       // TODO: Can this be different values?
       logicType: DataConditionGroupLogicType.ANY,
@@ -299,11 +290,6 @@ function processDetectorConditions(
     condition => condition.conditionResult === DetectorPriorityLevel.HIGH
   );
 
-  // Find resolution condition
-  const resolveCondition = conditions.find(
-    condition => condition.conditionResult === DetectorPriorityLevel.OK
-  );
-
   // Determine initial priority level, ensuring it's valid for the form
   let initialPriorityLevel: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH =
     DetectorPriorityLevel.MEDIUM;
@@ -329,7 +315,6 @@ function processDetectorConditions(
     conditionValue: mainCondition?.comparison.toString() || '',
     conditionType,
     highThreshold: highCondition?.comparison.toString() || '',
-    resolveThreshold: resolveCondition?.comparison.toString() || '',
   };
 }
 
@@ -361,6 +346,7 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
     name: detector.name,
     projectId: detector.projectId,
     environment: snubaQuery?.environment || '',
+    owner: detector.owner || '',
     query: snubaQuery?.query || '',
     aggregate,
     visualize,

@@ -4,8 +4,8 @@ import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
 type SectionProps = {
-  children: React.ReactNode;
   title: string;
+  children?: React.ReactNode;
   description?: string;
 };
 
