@@ -322,7 +322,6 @@ def _run_automation(
         data_category=DataCategory.SEER_AUTOFIX,
     )
     if not has_budget:
-        logger.info("No more reserved budget for autofix", extra={"group_id": group.id})
         return
 
     with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
