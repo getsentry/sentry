@@ -343,6 +343,7 @@ export enum SpanIndexedField {
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
@@ -439,9 +440,9 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
-
   [SpanIndexedField.PROFILE_ID]: string;
   [SpanIndexedField.PROFILEID]: string;
+  [SpanIndexedField.PROFILER_ID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
