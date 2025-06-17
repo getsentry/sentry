@@ -57,7 +57,7 @@ export const Body = styled(
     showVerticalScrollbar?: boolean;
   }) => (
     <Panel {...props}>
-      <PanelBody>{children}</PanelBody>
+      <PanelBody style={{height: '100%'}}>{children}</PanelBody>
     </Panel>
   )
 )`
@@ -111,7 +111,7 @@ export const Grid = styled('table')<{
   ${p =>
     p.fitMaxContent &&
     css`
-      min-width: max-content;
+      width: max-content;
     `}
 `;
 

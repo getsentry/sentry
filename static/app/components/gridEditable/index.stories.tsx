@@ -295,8 +295,7 @@ export default Storybook.story('GridEditable', story => {
         <p>
           Passing
           <Storybook.JSXProperty name="fitMaxContent" value={Boolean} /> will set the
-          min-width of the each cell to fit around the content. By default this is set to
-          false.
+          width of the grid to fit around the content. By default this is set to false.
         </p>
         <Storybook.SideBySide>
           <div style={{width: 400}}>
