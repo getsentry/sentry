@@ -1,4 +1,5 @@
 import functools
+import logging
 from collections.abc import Generator, Iterator
 from typing import Any
 
@@ -6,7 +7,6 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,6 +21,8 @@ from sentry.replays.usecases.ingest.event_parser import as_log_message
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -78,8 +80,18 @@ def make_seer_request(request_data: str) -> bytes:
             **sign_with_seer_secret(request_data.encode()),
         },
     )
+
     if response.status_code != 200:
-        raise ParseError("A summary could not be produced at this time.")
+        logger.warning(
+            "Replay: Failed to produce a summary for a replay breadcrumbs request",
+            extra={
+                "status_code": response.status_code,
+                "response": response.text,
+                "content": response.content,
+            },
+        )
+
+    response.raise_for_status()
 
     return response.content
 
