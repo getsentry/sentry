@@ -10,7 +10,10 @@ from rest_framework.exceptions import ParseError
 
 from sentry import nodestore
 from sentry.eventstore.models import Event
-from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import get_request_data
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
+    ErrorEvent,
+    get_request_data,
+)
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
@@ -237,20 +240,20 @@ def test_get_request_data():
         )
 
     error_events = [
-        {
-            "category": "error",
-            "id": "123",
-            "title": "ZeroDivisionError",
-            "timestamp": 3.0,
-            "message": "division by zero",
-        },
-        {
-            "category": "error",
-            "id": "234",
-            "title": "BadError",
-            "timestamp": 1.0,
-            "message": "something else bad",
-        },
+        ErrorEvent(
+            category="error",
+            id="123",
+            title="ZeroDivisionError",
+            timestamp=3.0,
+            message="division by zero",
+        ),
+        ErrorEvent(
+            category="error",
+            id="234",
+            title="BadError",
+            timestamp=1.0,
+            message="something else bad",
+        ),
     ]
 
     result = get_request_data(_faker(), error_events=error_events)
