@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -35,6 +36,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
+    QueryFilter,
     QueryResult,
     slow_condition_query_handler_registry,
 )
@@ -46,7 +48,7 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
-    filter_recently_fired_actions,
+    filter_recently_fired_workflow_actions,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
@@ -83,9 +85,28 @@ class UniqueConditionQuery:
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
-    filters: list[dict[str, Any]] | None = None
+    # Hashable representation of the filters
+    frozen_filters: Sequence[frozenset[tuple[str, Any]]] | None = None
 
-    def __repr__(self):
+    @staticmethod
+    def freeze_filters(
+        filters: Sequence[Mapping[str, Any]] | None,
+    ) -> Sequence[frozenset[tuple[str, Any]]] | None:
+        """
+        Convert the sorted representation of filters into a frozen one that can
+        be safely hashed.
+        """
+        if filters is None:
+            return None
+        return tuple(frozenset(sorted(filter.items())) for filter in filters)
+
+    @property
+    def filters(self) -> list[QueryFilter] | None:
+        if self.frozen_filters is None:
+            return None
+        return [dict(filter) for filter in self.frozen_filters]
+
+    def __repr__(self) -> str:
         return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
 
 
@@ -203,7 +224,7 @@ def generate_unique_queries(
             handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
-            filters=condition.comparison.get("filters"),
+            frozen_filters=UniqueConditionQuery.freeze_filters(condition.comparison.get("filters")),
         )
     ]
     if condition_type in PERCENT_CONDITIONS:
@@ -213,7 +234,9 @@ def generate_unique_queries(
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
-                filters=condition.comparison.get("filters"),
+                frozen_filters=UniqueConditionQuery.freeze_filters(
+                    condition.comparison.get("filters")
+                ),
             )
         )
     return unique_queries
@@ -460,7 +483,7 @@ def fire_actions_for_groups(
                     threshold_seconds=1,
                 ):
                     workflows_actions = evaluate_workflows_action_filters(workflows, event_data)
-                filtered_actions = filter_recently_fired_actions(
+                filtered_actions = filter_recently_fired_workflow_actions(
                     action_filters | workflows_actions, event_data
                 )
                 create_workflow_fire_histories(filtered_actions, event_data)

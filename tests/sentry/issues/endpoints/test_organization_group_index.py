@@ -4051,15 +4051,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         with self.feature({"organizations:issue-search-snuba": False}):
-            response = self.get_success_response(query='flags["test:flag"]:true')
+            response = self.get_success_response(query="flags[test:flag]:true")
             assert len(json.loads(response.content)) == 1
-            response = self.get_success_response(query='flags["test:flag"]:false')
+            response = self.get_success_response(query="flags[test:flag]:false")
             assert len(json.loads(response.content)) == 0
 
         with self.feature({"organizations:issue-search-snuba": True}):
-            response = self.get_success_response(query='flags["test:flag"]:true')
+            response = self.get_success_response(query="flags[test:flag]:true")
             assert len(json.loads(response.content)) == 1
-            response = self.get_success_response(query='flags["test:flag"]:false')
+            response = self.get_success_response(query="flags[test:flag]:false")
             assert len(json.loads(response.content)) == 0
 
     def test_postgres_query_timeout(self, mock_query: MagicMock) -> None:

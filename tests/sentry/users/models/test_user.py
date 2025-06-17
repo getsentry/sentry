@@ -225,8 +225,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
 
         Authenticator.objects.get(user=from_user, type=1)
         to_auth_dup = Authenticator.objects.get(user=to_user, type=1)
-        from_auth_uniq = Authenticator.objects.create(user=from_user, type=2)
-        to_auth_uniq = Authenticator.objects.create(user=to_user, type=3)
+        from_auth_uniq = Authenticator.objects.create(user=from_user, type=2, config={})
+        to_auth_uniq = Authenticator.objects.create(user=to_user, type=3, config={})
 
         from_user.merge_to(to_user)
 

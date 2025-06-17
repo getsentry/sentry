@@ -1,6 +1,8 @@
 import logging
-from dataclasses import asdict, replace
+from collections.abc import Collection, Mapping
+from dataclasses import asdict, dataclass, replace
 from enum import StrEnum
+from typing import DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
@@ -19,7 +21,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
-    filter_recently_fired_actions,
+    filter_recently_fired_workflow_actions,
 )
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -66,27 +68,42 @@ def delete_workflow(workflow: Workflow) -> bool:
     return True
 
 
-def enqueue_workflow(
-    workflow: Workflow,
-    delayed_conditions: list[DataCondition],
-    event: GroupEvent,
-    source: WorkflowDataConditionGroupType,
+@dataclass(frozen=True)
+class DelayedWorkflowItem:
+    workflow: Workflow
+    delayed_conditions: list[DataCondition]
+    event: GroupEvent
+    source: WorkflowDataConditionGroupType
+
+    def buffer_key(self) -> str:
+        condition_group_set = {
+            condition.condition_group_id for condition in self.delayed_conditions
+        }
+        condition_groups = ",".join(
+            str(condition_group_id) for condition_group_id in sorted(condition_group_set)
+        )
+        return f"{self.workflow.id}:{self.event.group.id}:{condition_groups}:{self.source}"
+
+    def buffer_value(self) -> str:
+        return json.dumps(
+            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+        )
+
+
+def enqueue_workflows(
+    items_by_project_id: Mapping[int, Collection[DelayedWorkflowItem]],
 ) -> None:
-    project_id = event.group.project.id
+    if not items_by_project_id:
+        return
+    for project_id, queue_items in items_by_project_id.items():
+        buffer.backend.push_to_hash_bulk(
+            model=Workflow,
+            filters={"project_id": project_id},
+            data={queue_item.buffer_key(): queue_item.buffer_value() for queue_item in queue_items},
+        )
 
-    buffer.backend.push_to_sorted_set(key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=project_id)
-
-    condition_group_set = {condition.condition_group_id for condition in delayed_conditions}
-    condition_groups = ",".join(
-        str(condition_group_id) for condition_group_id in sorted(condition_group_set)
-    )
-
-    value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
-    buffer.backend.push_to_hash(
-        model=Workflow,
-        filters={"project_id": project_id},
-        field=f"{workflow.id}:{event.group.id}:{condition_groups}:{source}",
-        value=value,
+    buffer.backend.push_to_sorted_set(
+        key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
     )
 
 
@@ -95,19 +112,24 @@ def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
 ) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
+    queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
         if remaining_conditions:
-            enqueue_workflow(
-                workflow,
-                remaining_conditions,
-                event_data.event,
-                WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+            queue_items_by_project_id[event_data.event.group.project_id].append(
+                DelayedWorkflowItem(
+                    workflow,
+                    remaining_conditions,
+                    event_data.event,
+                    WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                )
             )
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
+
+    enqueue_workflows(queue_items_by_project_id)
 
     metrics_incr(
         "process_workflows.triggered_workflows",
@@ -148,6 +170,7 @@ def evaluate_workflows_action_filters(
         .distinct()
     )
     workflows_by_id = {workflow.id: workflow for workflow in workflows}
+    queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     for action_condition in action_conditions:
         workflow = workflows_by_id[action_condition.workflow_id]
         env = (
@@ -163,15 +186,19 @@ def evaluate_workflows_action_filters(
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            enqueue_workflow(
-                workflow,
-                remaining_conditions,
-                event_data.event,
-                WorkflowDataConditionGroupType.ACTION_FILTER,
+            queue_items_by_project_id[event_data.event.group.project_id].append(
+                DelayedWorkflowItem(
+                    workflow,
+                    remaining_conditions,
+                    event_data.event,
+                    WorkflowDataConditionGroupType.ACTION_FILTER,
+                )
             )
         else:
             if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
+
+    enqueue_workflows(queue_items_by_project_id)
 
     logger.info(
         "workflow_engine.evaluate_workflows_action_filters",
@@ -283,7 +310,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         return set()
 
     actions_to_trigger = evaluate_workflows_action_filters(triggered_workflows, event_data)
-    actions = filter_recently_fired_actions(actions_to_trigger, event_data)
+    actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
@@ -314,6 +341,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 "workflow_engine.triggered_actions",
                 extra={
                     "detector_id": detector.id,
+                    "detector_type": detector.type,
                     "action_ids": [action.id for action in actions],
                     "event_data": asdict(event_data),
                 },
@@ -332,6 +360,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                         "workflow_engine.action.would-trigger",
                         extra={
                             "detector_id": detector.id,
+                            "detector_type": detector.type,
                             "action_id": action.id,
                             "event_data": asdict(event_data),
                         },
