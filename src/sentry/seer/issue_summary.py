@@ -295,17 +295,12 @@ def _run_automation(
     )
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        try:
-            issue_summary = _generate_fixability_score(group)
-        except Exception:
-            logger.exception("Error generating fixability score", extra={"group_id": group_id})
-            return
+        issue_summary = _generate_fixability_score(group)
 
     if not issue_summary.scores:
-        return
-
+        raise ValueError("Issue summary scores is None or empty.")
     if issue_summary.scores.fixability_score is None:
-        return
+        raise ValueError("Issue summary fixability score is None.")
 
     group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
