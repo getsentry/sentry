@@ -603,6 +603,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 owner=Actor.from_orm_user(self.user),
                 trace_sampling=False,
                 status=ObjectStatus.ACTIVE,
+                ensure_assignment=True,
             )
         mock_enable_uptime_detector.assert_called_with(mock.ANY, ensure_assignment=True)
 
