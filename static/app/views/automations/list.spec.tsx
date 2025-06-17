@@ -2,11 +2,13 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {DetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', function () {
@@ -41,6 +43,35 @@ describe('AutomationsList', function () {
     expect(within(row).getByText('Slack')).toBeInTheDocument();
     // Monitors
     expect(within(row).getByText('1 monitor')).toBeInTheDocument();
+  });
+
+  it('displays connected detectors', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [
+        DetectorFixture({
+          id: '1',
+          name: 'Detector 1',
+          workflowIds: ['100'],
+          projectId: '1',
+        }),
+      ],
+      match: [MockApiClient.matchQuery({id: ['1']})],
+    });
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'project-1'})]);
+
+    render(<AutomationsList />, {organization});
+    const row = await screen.findByTestId('automation-list-row');
+    expect(within(row).getByText('1 monitor')).toBeInTheDocument();
+
+    // Tooltip should fetch and display the detector name and project
+    await userEvent.hover(within(row).getByText('1 monitor'));
+    expect(await screen.findByRole('link', {name: /Detector 1/})).toBeInTheDocument();
+    expect(await screen.findByText('project-1')).toBeInTheDocument();
   });
 
   it('can filter by project', async function () {

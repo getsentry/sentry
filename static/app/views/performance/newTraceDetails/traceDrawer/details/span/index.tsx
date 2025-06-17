@@ -16,7 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
+import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -414,6 +414,10 @@ function EAPSpanNodeDetails({
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
+  const eventHasRequestEntry = eventTransaction?.entries.some(
+    entry => entry.type === EntryType.REQUEST
+  );
+
   return (
     <TraceDrawerComponents.DetailContainer>
       <SpanNodeDetailHeader
@@ -487,7 +491,7 @@ function EAPSpanNodeDetails({
                       />
                     </FoldSection>
 
-                    {isTransaction ? (
+                    {isTransaction && eventHasRequestEntry ? (
                       <FoldSection
                         sectionKey={SectionKey.CONTEXTS}
                         title={

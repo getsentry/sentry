@@ -17,13 +17,18 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Avatar} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatarPhotoType} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import useApi from 'sentry/utils/useApi';
 
-export type Model = Pick<AvatarUser, 'avatar'>;
-type AvatarType = Required<Model>['avatar']['avatarType'];
+export interface Model {
+  avatar?: Avatar;
+}
+
+type AvatarType = Avatar['avatarType'];
+
 type AvatarChooserType =
   | 'user'
   | 'organization'
@@ -32,7 +37,6 @@ type AvatarChooserType =
   | 'docIntegration';
 
 type DefaultChoice = {
-  allowDefault?: boolean;
   choiceText?: string;
   preview?: React.ReactNode;
 };
@@ -40,13 +44,10 @@ type DefaultChoice = {
 interface AvatarChooserProps {
   endpoint: string;
   model: Model;
-  allowGravatar?: boolean;
-  allowLetter?: boolean;
-  allowUpload?: boolean;
+  supportedTypes: AvatarType[];
   defaultChoice?: DefaultChoice;
   disabled?: boolean;
   help?: React.ReactNode;
-  isUser?: boolean;
   onSave?: (model: Model) => void;
   savedDataUrl?: string;
   title?: string;
@@ -59,16 +60,13 @@ function AvatarChooser(props: AvatarChooserProps) {
     endpoint,
     model: propsModel,
     savedDataUrl,
-    isUser,
     disabled,
     title,
     help,
-    allowGravatar = true,
-    allowLetter = true,
-    allowUpload = true,
+    supportedTypes,
     type = 'user',
     onSave,
-    defaultChoice = {allowDefault: false},
+    defaultChoice = {},
     uploadDomain = '',
   } = props;
 
@@ -137,35 +135,30 @@ function AvatarChooser(props: AvatarChooserProps) {
   if (!model) {
     return <LoadingIndicator />;
   }
-  const {allowDefault, preview, choiceText: defaultChoiceText} = defaultChoice || {};
+  const {preview, choiceText: defaultChoiceText} = defaultChoice || {};
 
   const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
   const isLetter = avatarType === 'letter_avatar';
   const isDefault = !!preview && avatarType === 'default';
 
+  const isUser = type === 'user';
   const isOrganization = type === 'organization';
   const isSentryApp = type?.startsWith('sentryApp');
 
-  const choices: Array<RadioOption<AvatarType>> = [];
+  const gravatarLink = <ExternalLink href="https://gravatar.com" />;
 
-  if (allowDefault && preview) {
-    choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);
-  }
-  if (allowLetter) {
-    choices.push(['letter_avatar', t('Use initials')]);
-  }
-  if (allowUpload) {
-    choices.push(['upload', t('Upload an image')]);
-  }
-  if (allowGravatar) {
-    choices.push([
+  const options: Array<RadioOption<AvatarType>> = [
+    ['default', defaultChoiceText ?? t('Use default avatar')],
+    ['letter_avatar', t('Use initials')],
+    ['upload', t('Upload an image')],
+    [
       'gravatar',
       t('Use Gravatar'),
-      tct('Manage your Gravatar on [gravatarLink:gravatar.com].', {
-        gravatarLink: <ExternalLink href="https://gravatar.com" />,
-      }),
-    ]);
-  }
+      tct('Manage your Gravatar on [gravatarLink:gravatar.com].', {gravatarLink}),
+    ],
+  ];
+
+  const choices = options.filter(([key]) => supportedTypes.includes(key));
 
   const sharedAvatarProps = {
     gravatar: false,
@@ -213,7 +206,7 @@ function AvatarChooser(props: AvatarChooserProps) {
                 model={model}
                 savedDataUrl={savedDataUrl}
                 uploadDomain={uploadDomain ?? ''}
-                updateDataUrlState={({savedDataUrl: newDataUrl}) =>
+                updateDataUrlState={({dataUrl: newDataUrl}) =>
                   setNewAvatar(newDataUrl ?? null)
                 }
               />

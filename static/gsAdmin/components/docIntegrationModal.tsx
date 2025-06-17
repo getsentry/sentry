@@ -278,8 +278,7 @@ function DocIntegrationModal(props: Props) {
           {docIntegration && (
             <AvatarChooser
               type="docIntegration"
-              allowGravatar={false}
-              allowLetter={false}
+              supportedTypes={['upload']}
               endpoint={`/doc-integrations/${docIntegration.slug}/avatar/`}
               model={docIntegration.avatar ? docIntegration : {}}
               onSave={() => {}}
