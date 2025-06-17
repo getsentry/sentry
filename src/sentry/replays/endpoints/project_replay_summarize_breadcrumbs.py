@@ -10,12 +10,13 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import features, nodestore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.post_process import process_raw_response
@@ -84,22 +85,19 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[dict[str, Any]]:
     """Fetch error details given error IDs."""
     try:
-        events = eventstore.get_events(
-            filter=eventstore.Filter(
-                project_ids=[project_id],
-                event_ids=error_ids,
-            ),
-            referrer="replay.summarize_breadcrumbs",
-        )
+        node_ids = [Event.generate_node_id(project_id, event_id=id) for id in error_ids]
+        events = nodestore.backend.get_multi(node_ids)
+
         return [
             {
                 "category": "error",
-                "id": event.event_id,
-                "title": event.title or "",
-                "timestamp": event.datetime.timestamp() if event.datetime else 0.0,
-                "message": event.message or "",
+                "id": event_id,
+                "title": data.get("title", ""),
+                "timestamp": data.get("timestamp", 0.0),
+                "message": data.get("message", ""),
             }
-            for event in events
+            for event_id, data in zip(error_ids, events.values())
+            if data is not None
         ]
     except Exception as e:
         sentry_sdk.capture_exception(e)

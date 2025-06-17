@@ -8,6 +8,8 @@ from django.conf import settings
 from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
+from sentry import nodestore
+from sentry.eventstore.models import Event
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import get_request_data
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
@@ -18,7 +20,9 @@ from sentry.utils import json
 
 # have to use TransactionTestCase because we're using threadpools
 @requires_snuba
-class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
+class ProjectReplaySummarizeBreadcrumbsTestCase(
+    TransactionTestCase,
+):
     endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs"
 
     def setUp(self):
@@ -139,19 +143,31 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
 
         now = datetime.now(timezone.utc)
         event_id = uuid.uuid4().hex
-
+        error_timestamp = now.timestamp() - 1
         self.store_event(
             data={
                 "event_id": event_id,
-                "timestamp": float(now.timestamp()),
-                "exception": [
-                    {
-                        "type": "ZeroDivisionError",
-                        "value": "division by zero",
-                    }
-                ],
+                "timestamp": error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                        }
+                    ]
+                },
+                "contexts": {"replay": {"replay_id": self.replay_id}},
             },
             project_id=self.project.id,
+        )
+
+        # Ensure the event is stored in nodestore
+        node_id = Event.generate_node_id(self.project.id, event_id)
+        event_data = nodestore.backend.get(node_id)
+        assert event_data is not None, "Event not found in nodestore"
+        assert (
+            event_data.get("exception", {}).get("values", [{}])[0].get("type")
+            == "ZeroDivisionError"
         )
 
         self.store_replays(
@@ -187,8 +203,8 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         make_seer_request.assert_called_once()
         call_args = json.loads(make_seer_request.call_args[0][0])
         assert "logs" in call_args
-        assert any("division by zero" in log for log in call_args["logs"])
         assert any("ZeroDivisionError" in log for log in call_args["logs"])
+        assert any("division by zero" in log for log in call_args["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -220,5 +236,5 @@ def test_get_request_data():
             ).encode()
         )
 
-    result = get_request_data(_faker(), error_ids=[])
+    result = get_request_data(_faker(), error_events=[])
     assert result == ["Logged: hello at 0.0", "Logged: world at 0.0"]
