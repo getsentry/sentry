@@ -18,7 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
+import {formatQueryToNaturalLanguage, getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface Visualization {
@@ -66,9 +66,14 @@ function SeerSearchSkeleton() {
   );
 }
 
-export function SeerSearch() {
+interface SeerSearchProps {
+  initialQuery?: string;
+}
+
+export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
+  const formattedInitialQuery = formatQueryToNaturalLanguage(initialQuery);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(formattedInitialQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
 
