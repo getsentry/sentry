@@ -34,7 +34,7 @@ export function DetectorLink({
       to={makeMonitorDetailsPathname(org.slug, detectorId)}
       className={className}
     >
-      <Name disabled={disabled}>
+      <Name>
         <strong>{name}</strong>
         {!createdBy && (
           <IconSentry size="xs" color="subText" style={{alignSelf: 'center'}} />
@@ -59,17 +59,11 @@ export function DetectorLink({
   );
 }
 
-const Name = styled('div')<{disabled: boolean}>`
+const Name = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.disabled};
-    `}
 `;
 
 const StyledLink = styled(Link)`

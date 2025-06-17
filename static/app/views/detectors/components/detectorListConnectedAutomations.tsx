@@ -99,17 +99,11 @@ export function DetectorListConnectedAutomations({
   );
 }
 
-const ConnectedAutomations = styled('div')<{disabled: boolean}>`
+const ConnectedAutomations = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-
-  ${p =>
-    p.disabled &&
-    `
-    color: ${p.theme.disabled};
-  `}
 `;
 
 const HovercardSkeletonRow = styled('div')`
