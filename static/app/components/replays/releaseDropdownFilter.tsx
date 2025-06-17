@@ -43,17 +43,11 @@ export default function ReleaseDropdownFilter({version}: {version: string}) {
           label: t('Go to release details'),
           onAction: () =>
             navigate(
-              organization.features.includes('release-bubbles-ui')
-                ? makeReleaseDrawerPathname({
-                    location,
-                    release: version,
-                    projectId: location?.query.project,
-                    source: 'replay-tags',
-                  })
-                : makeReleasesPathname({
-                    organization,
-                    path: `/${encodeURIComponent(version)}/`,
-                  })
+              makeReleaseDrawerPathname({
+                location,
+                release: version,
+                source: 'replays',
+              })
             ),
         },
       ]}

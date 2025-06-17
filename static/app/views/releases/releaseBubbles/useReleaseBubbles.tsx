@@ -343,7 +343,6 @@ export function useReleaseBubbles({
       ? new Date(endTimeToUse).getTime()
       : Date.now();
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const totalBubblePaddingY = bubblePadding * 2;
   const defaultBubbleXAxis = useMemo(
     () => ({
@@ -395,23 +394,21 @@ export function useReleaseBubbles({
 
   const buckets = useMemo(
     () =>
-      (hasReleaseBubbles &&
-        (releases?.length || flags?.length) &&
-        minTime &&
-        maxTime &&
-        createReleaseBuckets({
-          minTime,
-          maxTime,
-          finalTime: releasesMaxTime,
-          releases,
-          flags,
-          desiredBuckets,
-        })) ||
+      (releases?.length || flags?.length) &&
+      minTime &&
+      maxTime &&
+      createReleaseBuckets({
+        minTime,
+        maxTime,
+        finalTime: releasesMaxTime,
+        releases,
+        flags,
+        desiredBuckets,
+      }) ||
       [],
     [
       desiredBuckets,
       flags,
-      hasReleaseBubbles,
       maxTime,
       minTime,
       releases,

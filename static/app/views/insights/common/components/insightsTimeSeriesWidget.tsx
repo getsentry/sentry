@@ -175,13 +175,14 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
-    ? ({
-        releases,
-        showReleaseAs: props.showReleaseAs || 'bubble',
-        onZoom: props.onZoom,
-      } as const)
-    : {};
+  const enableReleaseBubblesProps =
+    !!releases?.length
+      ? ({
+          releases,
+          showReleaseAs: props.showReleaseAs || 'bubble',
+          onZoom: props.onZoom,
+        } as const)
+      : {};
 
   let chartType = ChartType.LINE;
   if (props.visualizationType === 'area') {

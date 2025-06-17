@@ -159,7 +159,22 @@ export function EventGraph({
     },
   });
 
-  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
+  const {releases = []} = useReleaseStats(
+    {
+      projects: eventView.project,
+      environments: eventView.environment,
+      datetime: {
+        start: eventView.start,
+        end: eventView.end,
+        period: eventView.statsPeriod,
+      },
+    },
+    {
+      staleTime: 0,
+    }
+  );
+
+  const hasReleaseBubblesSeries = !!releases.length;
   const shouldShowBubbles = hasReleaseBubblesSeries && showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
@@ -256,20 +271,6 @@ export function EventGraph({
     }
   );
 
-  const {releases = []} = useReleaseStats(
-    {
-      projects: eventView.project,
-      environments: eventView.environment,
-      datetime: {
-        start: eventView.start,
-        end: eventView.end,
-        period: eventView.statsPeriod,
-      },
-    },
-    {
-      staleTime: 0,
-    }
-  );
   const {flags} = useFlagsInEvent({
     eventId: event?.id,
     groupId: group.id,

@@ -78,22 +78,11 @@ function Version({
   const renderVersion = () => {
     if (anchor && organization?.slug) {
       const props = {
-        to: organization.features.includes('release-bubbles-ui')
-          ? makeReleaseDrawerPathname({
-              location,
-              release: version,
-              projectId: releaseDetailProjectId,
-              source: 'release-version-link',
-            })
-          : {
-              pathname: makeReleasesPathname({
-                path: `/${encodeURIComponent(version)}/`,
-                organization,
-              }),
-              query: releaseDetailProjectId
-                ? {project: releaseDetailProjectId}
-                : undefined,
-            },
+        to: makeReleaseDrawerPathname({
+          location,
+          release: version,
+          source: 'component-version',
+        }),
         className,
       };
       if (preservePageFilters) {
