@@ -304,40 +304,39 @@ def _run_automation(
 
     group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
-    if _is_issue_fixable(group, issue_summary.scores.fixability_score):
+    if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
+        return
 
-        is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
-            project, organization
+    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
+        project, organization
+    )
+    if is_rate_limited:
+        sentry_sdk.set_tags(
+            {
+                "auto_run_count": current,
+                "auto_run_limit": limit,
+            }
         )
-        if is_rate_limited:
-            sentry_sdk.set_tags(
-                {
-                    "auto_run_count": current,
-                    "auto_run_limit": limit,
-                }
-            )
-            logger.error("Autofix auto-trigger rate limit hit")
-            return
+        logger.error("Autofix auto-trigger rate limit hit")
+        return
 
-        has_budget: bool = quotas.backend.has_available_reserved_budget(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        return
+
+    with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
+        autofix_state = get_autofix_state(group_id=group_id)
+
+    if not autofix_state:  # Only trigger autofix if we don't have an autofix on this issue already.
+        _trigger_autofix_task.delay(
+            group_id=group_id,
+            event_id=event.event_id,
+            user_id=user_id,
+            auto_run_source=auto_run_source,
         )
-        if not has_budget:
-            return
-
-        with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-            autofix_state = get_autofix_state(group_id=group_id)
-
-        if (
-            not autofix_state
-        ):  # Only trigger autofix if we don't have an autofix on this issue already.
-            _trigger_autofix_task.delay(
-                group_id=group_id,
-                event_id=event.event_id,
-                user_id=user_id,
-                auto_run_source=auto_run_source,
-            )
 
 
 def _generate_summary(
