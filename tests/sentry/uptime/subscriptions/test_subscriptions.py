@@ -604,7 +604,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 trace_sampling=False,
                 status=ObjectStatus.ACTIVE,
             )
-        mock_enable_uptime_detector.assert_called()
+        mock_enable_uptime_detector.assert_called_with(mock.ANY, ensure_assignment=True)
 
 
 class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):

@@ -344,7 +344,7 @@ def update_project_uptime_subscription(
                 case ObjectStatus.DISABLED:
                     disable_uptime_detector(detector)
                 case ObjectStatus.ACTIVE:
-                    enable_uptime_detector(detector)
+                    enable_uptime_detector(detector, ensure_assignment=True)
 
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector
