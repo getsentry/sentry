@@ -1,4 +1,11 @@
-from sentry.replays.usecases.ingest.event_parser import _get_testid, _parse_classes, _parse_events
+from sentry.replays.usecases.ingest.event_parser import (
+    EventType,
+    _get_testid,
+    _parse_classes,
+    _parse_events,
+    as_log_message,
+    which,
+)
 from sentry.utils import json
 
 
@@ -522,3 +529,294 @@ def test_parse_classes():
     assert _parse_classes("  a b ") == ["a", "b"]
     assert _parse_classes("a  ") == ["a"]
     assert _parse_classes("  a") == ["a"]
+
+
+def test_which():
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.click"}},
+    }
+    assert which(event) == EventType.CLICK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.slowClickDetected",
+                "data": {
+                    "clickCount": 4,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "node": {"tagName": "button"},
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.DEAD_CLICK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.slowClickDetected",
+                "data": {
+                    "clickCount": 5,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "node": {"tagName": "button"},
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.RAGE_CLICK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "navigation"}},
+    }
+    assert which(event) == EventType.NAVIGATION
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "console"}},
+    }
+    assert which(event) == EventType.CONSOLE
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
+    }
+    assert which(event) == EventType.UI_BLUR
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
+    }
+    assert which(event) == EventType.UI_FOCUS
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "performanceSpan", "payload": {"op": "resource.fetch"}},
+    }
+    assert which(event) == EventType.RESOURCE_FETCH
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
+    }
+    assert which(event) == EventType.RESOURCE_XHR
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {"op": "web-vital", "description": "largest-contentful-paint"},
+        },
+    }
+    assert which(event) == EventType.LCP
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {"op": "web-vital", "description": "first-contentful-paint"},
+        },
+    }
+    assert which(event) == EventType.FCP
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
+    }
+    assert which(event) == EventType.HYDRATION_ERROR
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
+    }
+    assert which(event) == EventType.MUTATIONS
+
+    assert which({}) == EventType.UNKNOWN
+
+
+def test_as_log_message():
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.click", "message": "div"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.slowClickDetected",
+                "message": "div",
+                "data": {
+                    "clickCount": 4,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "node": {"tagName": "button"},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.slowClickDetected",
+                "message": "div",
+                "data": {
+                    "clickCount": 5,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "node": {"tagName": "button"},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "navigation", "data": {"to": "/"}}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "t"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "description": "https://www.z.com/path?q=true",
+                "endTimestamp": 0.0,
+                "startTimestamp": 0.0,
+                "data": {
+                    "method": "GET",
+                    "statusCode": 200,
+                    "response": {"size": 0},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "description": "https://www.z.com/path?q=true",
+                "endTimestamp": 0.0,
+                "startTimestamp": 0.0,
+                "data": {
+                    "method": "GET",
+                    "statusCode": 200,
+                    "response": {"wrong": "wrong"},
+                },
+            },
+        },
+    }
+
+    result = as_log_message(event)
+    assert result is not None
+    assert "unknown" not in result
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
+    }
+    assert as_log_message(event) is None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "web-vital",
+                "description": "largest-contentful-paint",
+                "data": {"size": 0, "rating": "good"},
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "web-vital",
+                "description": "first-contentful-paint",
+                "data": {"size": 0, "rating": "good"},
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
+    }
+    assert as_log_message(event) is None
+    assert as_log_message({}) is None

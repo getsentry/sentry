@@ -50,16 +50,18 @@ const mockReplay = ReplayReader.factory({
 
 mockUseLoadReplayReader.mockImplementation(() => {
   return {
+    attachmentError: undefined,
     attachments: [],
     errors: [],
     fetchError: undefined,
-    attachmentError: undefined,
-    fetching: false,
+    isError: false,
+    isPending: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
     replayRecord: ReplayRecordFixture(),
+    status: 'success' as const,
   };
 });
 
@@ -125,16 +127,18 @@ describe('ReplayClipPreview', () => {
     // Change the mocked hook to return a loading state
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
+        attachmentError: undefined,
         attachments: [],
         errors: [],
         fetchError: undefined,
-        attachmentError: undefined,
-        fetching: true,
+        isError: false,
+        isPending: true,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'pending' as const,
       };
     });
 
@@ -147,16 +151,18 @@ describe('ReplayClipPreview', () => {
     // Change the mocked hook to return a fetch error
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
+        attachmentError: undefined,
         attachments: [],
         errors: [],
         fetchError: {status: 400} as RequestError,
-        attachmentError: undefined,
-        fetching: false,
+        isError: true,
+        isPending: false,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
       };
     });
 
@@ -172,12 +178,14 @@ describe('ReplayClipPreview', () => {
         errors: [],
         fetchError: {status: 429} as RequestError,
         attachmentError: undefined,
-        fetching: false,
+        isError: true,
+        isPending: false,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
       };
     });
 
@@ -193,12 +201,14 @@ describe('ReplayClipPreview', () => {
         errors: [],
         fetchError: undefined,
         attachmentError: [{status: 429} as RequestError],
-        fetching: false,
+        isError: true,
+        isPending: false,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
       };
     });
 

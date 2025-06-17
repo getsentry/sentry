@@ -11,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,11 +19,11 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{teamId: string}>;
+};
 
 function TeamDetails({children}: Props) {
   const api = useApi();
-  const params = useParams();
+  const params = useParams<{teamId: string}>();
   const location = useLocation();
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);

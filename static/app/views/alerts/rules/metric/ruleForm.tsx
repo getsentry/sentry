@@ -57,6 +57,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -69,6 +70,7 @@ import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -177,7 +179,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      ['span_metrics', 'eap_metrics'].includes(alertType)
+      isEapAlertType(alertType)
         ? query
         : query
           ? `(${query}) AND (${eventTypeFilter})`
@@ -199,7 +201,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location} = this.props;
+    const {rule, location, organization} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -223,6 +225,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
       : (rule.query ?? '');
+
+    const alertType = getAlertTypeFromAggregateDataset({
+      aggregate,
+      dataset,
+      organization,
+    });
 
     return {
       ...super.getDefaultState(),
@@ -254,7 +262,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
-      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
+      alertType,
     };
   }
 
@@ -546,7 +554,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    const {projects} = this.props;
+    const {projects, organization} = this.props;
     const {timeWindow, chartError} = this.state;
     if (chartError) {
       this.setState({chartError: false, chartErrorMessage: undefined});
@@ -599,9 +607,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           this.state.query
         );
 
+        if (deprecateTransactionAlerts(organization)) {
+          const newAlertType = getAlertTypeFromAggregateDataset({
+            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            dataset,
+            organization,
+          });
+
+          return {
+            [name]: value,
+            alertType: newAlertType,
+            dataset,
+          };
+        }
+
         const newAlertType = getAlertTypeFromAggregateDataset({
           aggregate,
           dataset,
+          organization,
         });
 
         return {
@@ -1018,7 +1041,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
-    if (this.state.alertType === 'eap_metrics') {
+    if (isEapAlertType(this.state.alertType)) {
       this.handleEAPMetricsAlertDataset(data);
     }
   };
@@ -1181,7 +1204,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedAggregate = aggregate;
 
     const func = parseFunction(aggregate);
-    if (func && alertType === 'eap_metrics') {
+    if (func && isEapAlertType(alertType)) {
       formattedAggregate = prettifyParsedFunction(func);
     }
 
@@ -1214,7 +1237,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (alertType === 'eap_metrics') {
+    if (isEapAlertType(alertType)) {
       formattedQuery = '';
     }
 

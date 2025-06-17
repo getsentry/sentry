@@ -56,7 +56,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -92,25 +92,24 @@ profile_chunks_producer = SingletonProducer(
 logger = logging.getLogger(__name__)
 
 
-def decode_payload(encoded: str, compressed_profile: bool) -> dict[str, Any]:
-    if compressed_profile:
-        try:
-            res = msgpack.unpackb(
-                zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False
-            )
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
-            return res
-        except Exception as e:
-            logger.exception("Failed to decompress compressed profile", extra={"error": e})
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
-            raise
-
-    # not compressed
-    return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
+def decode_payload(encoded: str) -> dict[str, Any]:
+    try:
+        res = msgpack.unpackb(zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False)
+        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
+        return res
+    except Exception as e:
+        logger.exception("Failed to decompress compressed profile", extra={"error": e})
+        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
+        raise
 
 
 def encode_payload(message: dict[str, Any]) -> str:
-    return b64encode(msgpack.packb(message)).decode("utf-8")
+    return b64encode(
+        zlib.compress(
+            msgpack.packb(message),
+            level=1,
+        )
+    ).decode("utf-8")
 
 
 @instrumented_task(
@@ -137,14 +136,13 @@ def process_profile_task(
     profile: Profile | None = None,
     payload: str | None = None,
     sampled: bool = True,
-    compressed_profile: bool = False,
     **kwargs: Any,
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
     if payload:
-        message_dict = decode_payload(payload, compressed_profile)
+        message_dict = decode_payload(payload)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -239,9 +237,9 @@ def process_profile_task(
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
-        set_span_data("profile.samples", len(profile["profile"]["samples"]))
-        set_span_data("profile.stacks", len(profile["profile"]["stacks"]))
-        set_span_data("profile.frames", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
     else:
@@ -267,9 +265,9 @@ def process_profile_task(
     _set_frames_platform(profile)
 
     if "version" in profile:
-        set_span_data("profile.samples.processed", len(profile["profile"]["samples"]))
-        set_span_data("profile.stacks.processed", len(profile["profile"]["stacks"]))
-        set_span_data("profile.frames.processed", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples.processed", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if options.get("profiling.stack_trace_rules.enabled"):
         try:
@@ -386,7 +384,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
-                set_span_data(
+                set_span_attribute(
                     f"profile.frames.sent.{platform}",
                     len(frames_sent),
                 )

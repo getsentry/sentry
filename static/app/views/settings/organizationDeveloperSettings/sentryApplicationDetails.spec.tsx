@@ -431,7 +431,7 @@ describe('Sentry Application Details', function () {
       renderComponent();
       renderGlobalModal();
       await screen.findByRole('button', {name: 'Save Changes'});
-      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
       // Confirm modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(

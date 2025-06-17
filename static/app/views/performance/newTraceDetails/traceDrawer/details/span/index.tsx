@@ -16,7 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
+import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -46,11 +46,12 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {
+  findSpanAttributeValue,
   getProfileMeta,
+  getTraceAttributesTreeActions,
   sortAttributes,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -77,10 +78,12 @@ function SpanNodeDetailHeader({
   node,
   organization,
   onTabScrollToNode,
+  hideNodeActions,
 }: {
   node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
+  hideNodeActions?: boolean;
 }) {
   const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
   return (
@@ -94,11 +97,13 @@ function SpanNodeDetailHeader({
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
-      <TraceDrawerComponents.NodeActions
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-      />
+      {!hideNodeActions && (
+        <TraceDrawerComponents.NodeActions
+          node={node}
+          organization={organization}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+      )}
     </TraceDrawerComponents.HeaderContainer>
   );
 }
@@ -249,6 +254,7 @@ export function SpanNodeDetails(
         node={node}
         organization={organization}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={props.hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         {node.event?.projectSlug ? (
@@ -376,7 +382,7 @@ function EAPSpanNodeDetails({
 
   const {
     data: eventTransaction,
-    isPending: isEventTransactionPending,
+    isLoading: isEventTransactionLoading,
     isError: isEventTransactionError,
   } = useTransaction({
     event_id: node.value.transaction_id,
@@ -388,7 +394,7 @@ function EAPSpanNodeDetails({
 
   const traceState = useTraceState();
 
-  if (isTraceItemPending || isEventTransactionPending) {
+  if (isTraceItemPending || isEventTransactionLoading) {
     return <LoadingIndicator />;
   }
 
@@ -403,10 +409,14 @@ function EAPSpanNodeDetails({
       ? 1
       : undefined;
 
-  const isTransaction = isEAPTransactionNode(node);
-  const profileMeta = getProfileMeta(eventTransaction) || '';
+  const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
+  const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
+
+  const eventHasRequestEntry = eventTransaction?.entries.some(
+    entry => entry.type === EntryType.REQUEST
+  );
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -459,7 +469,7 @@ function EAPSpanNodeDetails({
                         <SectionTitleWithQuestionTooltip
                           title={t('Attributes')}
                           tooltipText={t(
-                            'These attributes are indexed and can be queries in the Trace Explorer.'
+                            'These attributes are indexed and can be queried in the Trace Explorer.'
                           )}
                         />
                       }
@@ -473,17 +483,22 @@ function EAPSpanNodeDetails({
                           location,
                           organization,
                         }}
+                        getCustomActions={getTraceAttributesTreeActions({
+                          location,
+                          organization,
+                          projectIds: findSpanAttributeValue(attributes, 'project_id'),
+                        })}
                       />
                     </FoldSection>
 
-                    {isTransaction ? (
+                    {isTransaction && eventHasRequestEntry ? (
                       <FoldSection
                         sectionKey={SectionKey.CONTEXTS}
                         title={
                           <SectionTitleWithQuestionTooltip
                             title={t('Contexts')}
                             tooltipText={t(
-                              "This data is not indexed and can't be queries in the Trace Explorer. For querying, attach these as attributes to your spans."
+                              "This data is not indexed and can't be queried in the Trace Explorer. For querying, attach these as attributes to your spans."
                             )}
                           />
                         }
@@ -513,10 +528,6 @@ function EAPSpanNodeDetails({
                         event={eventTransaction}
                         organization={organization}
                       />
-                    ) : null}
-
-                    {isTransaction ? (
-                      <BreadCrumbs event={eventTransaction} organization={organization} />
                     ) : null}
 
                     {isTransaction && project ? (

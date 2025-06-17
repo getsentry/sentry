@@ -1,6 +1,5 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -35,13 +34,16 @@ import {
 } from 'sentry/views/insights/colors';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
-import {ChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
+import {
+  ChartContainer,
+  ModalChartContainer,
+} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {INGESTION_DELAY} from 'sentry/views/insights/settings';
-import {type SpanFields} from 'sentry/views/insights/types';
+import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
+import type {SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,
@@ -52,15 +54,25 @@ export interface InsightsTimeSeriesWidgetProps
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
-  groupBy?: SpanFields[];
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   pageFilters?: PageFilters;
+  /**
+   * Query info to be used for the open in explore and create alert actions,
+   * yAxis should only be provided if it's expected to be different when opening in explore
+   */
+  queryInfo?: {
+    referrer: string;
+    search: MutableSearch;
+    groupBy?: SpanFields[];
+    yAxis?: string[];
+  };
+
   samples?: Samples;
-  search?: MutableSearch;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
@@ -81,8 +93,13 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       version,
     })) ?? [];
 
+  const aliases: Record<string, string> = {
+    ...BASE_FIELD_ALIASES,
+    ...props?.aliases,
+  };
+
   const hasChartActionsEnabled =
-    organization.features.includes('insights-chart-actions') && useEap;
+    organization.features.includes('insights-chart-actions') && useEap && props.queryInfo;
   const yAxes = new Set<string>();
   const plottables = [
     ...(props.series.filter(Boolean) ?? []).map(serie => {
@@ -103,7 +120,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: props.aliases?.[timeSeries.yAxis],
+        alias: aliases?.[timeSeries.yAxis],
       });
     }),
     ...(props.extraPlottables ?? []),
@@ -173,7 +190,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     chartType = ChartType.BAR;
   }
 
-  const yAxisArray = [...yAxes];
+  const yAxisArray = props.queryInfo?.yAxis || [...yAxes];
 
   return (
     <ChartContainer height={props.height}>
@@ -195,14 +212,16 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
+            {props.extraActions}
             {hasChartActionsEnabled && (
               <ChartActionDropdown
                 chartType={chartType}
                 yAxes={yAxisArray}
-                groupBy={props.groupBy}
+                groupBy={props.queryInfo?.groupBy}
                 title={props.title}
-                search={props.search}
-                aliases={props.aliases}
+                search={props.queryInfo?.search}
+                aliases={aliases}
+                referrer={props.queryInfo?.referrer ?? ''}
               />
             )}
             {props.loaderSource !== 'releases-drawer' && (
@@ -251,7 +270,3 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'avg(span.duration)': colors[2],
   };
 };
-
-const ModalChartContainer = styled('div')`
-  height: 360px;
-`;

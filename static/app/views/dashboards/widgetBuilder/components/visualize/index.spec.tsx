@@ -1558,6 +1558,35 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('disables changing visualize fields for failure_rate', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['failure_rate()'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+
   it('changes to epm() when using epm', async function () {
     render(
       <WidgetBuilderProvider>
@@ -1594,6 +1623,47 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'epm'}));
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'epm'
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+  it('changes to failure_rate() when using failure_rate', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.self_time)'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'avg'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'failure_rate'}));
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'failure_rate'
     );
     expect(
       screen.queryByRole('button', {name: 'Column Selection'})

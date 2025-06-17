@@ -167,7 +167,7 @@ export function IssueDetailsEventNavigation({
           }}
         />
       </Navigation>
-      <Tabs value={selectedOption} disableOverflow onChange={onTabChange}>
+      <Tabs value={selectedOption} disableOverflow onChange={onTabChange} size="xs">
         <TabList hideBorder variant="floating">
           {EventNavOrder.map(label => {
             const eventPath =

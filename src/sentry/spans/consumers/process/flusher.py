@@ -1,8 +1,10 @@
 import logging
 import multiprocessing
+import multiprocessing.context
 import threading
 import time
 from collections.abc import Callable
+from functools import partial
 
 import orjson
 import sentry_sdk
@@ -15,6 +17,7 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
+from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 MAX_PROCESS_RESTARTS = 10
@@ -38,64 +41,67 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     def __init__(
         self,
         buffer: SpansBuffer,
-        max_memory_percentage: float,
-        produce_to_pipe: Callable[[KafkaPayload], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
+        produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
         self.buffer = buffer
-        self.max_memory_percentage = max_memory_percentage
         self.next_step = next_step
 
-        self.stopped = multiprocessing.Value("i", 0)
+        self.mp_context = mp_context = multiprocessing.get_context("spawn")
+        self.stopped = mp_context.Value("i", 0)
         self.redis_was_full = False
-        self.current_drift = multiprocessing.Value("i", 0)
-        self.backpressure_since = multiprocessing.Value("i", 0)
-        self.healthy_since = multiprocessing.Value("i", int(time.time()))
+        self.current_drift = mp_context.Value("i", 0)
+        self.backpressure_since = mp_context.Value("i", 0)
+        self.healthy_since = mp_context.Value("i", 0)
+        self.process_restarts = 0
         self.produce_to_pipe = produce_to_pipe
 
         self._create_process()
 
     def _create_process(self):
-        from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
+        # Optimistically reset healthy_since to avoid a race between the
+        # starting process and the next flush cycle. Keep back pressure across
+        # the restart, however.
+        self.healthy_since.value = int(time.time())
 
-        make_process: Callable[..., multiprocessing.Process | threading.Thread]
+        make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
-            initializer = _get_arroyo_subprocess_initializer(None)
-            make_process = multiprocessing.Process
+            target = run_with_initialized_sentry(
+                SpanFlusher.main,
+                # unpickling buffer will import sentry, so it needs to be
+                # pickled separately. at the same time, pickling
+                # synchronization primitives like multiprocessing.Value can
+                # only be done by the Process
+                self.buffer,
+            )
+            make_process = self.mp_context.Process
         else:
-            initializer = None
+            target = partial(SpanFlusher.main, self.buffer)
             make_process = threading.Thread
 
         self.process = make_process(
-            target=SpanFlusher.main,
+            target=target,
             args=(
-                initializer,
                 self.stopped,
                 self.current_drift,
                 self.backpressure_since,
                 self.healthy_since,
-                self.buffer,
                 self.produce_to_pipe,
             ),
             daemon=True,
         )
 
-        self.process_restarts = 0
         self.process.start()
 
     @staticmethod
     def main(
-        initializer: Callable | None,
+        buffer: SpansBuffer,
         stopped,
         current_drift,
         backpressure_since,
         healthy_since,
-        buffer: SpansBuffer,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
-        if initializer:
-            initializer()
-
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
 
         try:
@@ -164,9 +170,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.next_step.poll()
 
     def _ensure_process_alive(self) -> None:
-        max_unhealthy_seconds = options.get("standalone-spans.buffer.flusher.max_unhealthy_seconds")
+        max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds")
         if not self.process.is_alive():
-            cause = "no_process"
+            exitcode = getattr(self.process, "exitcode", "unknown")
+            cause = f"no_process_{exitcode}"
         elif int(time.time()) - self.healthy_since.value > max_unhealthy_seconds:
             cause = "hang"
         else:
@@ -174,7 +181,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         metrics.incr("spans.buffer.flusher_unhealthy", tags={"cause": cause})
         if self.process_restarts > MAX_PROCESS_RESTARTS:
-            raise RuntimeError("flusher process crashed repeatedly, restarting consumer")
+            raise RuntimeError(f"flusher process crashed repeatedly ({cause}), restarting consumer")
 
         try:
             self.process.kill()
@@ -200,9 +207,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
         if self.backpressure_since.value > 0:
-            if int(time.time()) - self.backpressure_since.value > options.get(
-                "standalone-spans.buffer.flusher.backpressure_seconds"
-            ):
+            backpressure_secs = options.get("spans.buffer.flusher.backpressure-seconds")
+            if int(time.time()) - self.backpressure_since.value > backpressure_secs:
                 metrics.incr("spans.buffer.flusher.backpressure")
                 raise MessageRejected()
 
@@ -217,11 +223,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # we cannot allow the flusher to progress either, as it would write
         # partial/fragmented segments to buffered-segments topic. We have to
         # wait until the situation is improved manually.
-        if self.max_memory_percentage < 1.0:
+        max_memory_percentage = options.get("spans.buffer.max-memory-percentage")
+        if max_memory_percentage < 1.0:
             memory_infos = list(self.buffer.get_memory_info())
             used = sum(x.used for x in memory_infos)
             available = sum(x.available for x in memory_infos)
-            if available > 0 and used / available > self.max_memory_percentage:
+            if available > 0 and used / available > max_memory_percentage:
                 if not self.redis_was_full:
                     logger.fatal("Pausing consumer due to Redis being full")
                 metrics.incr("spans.buffer.flusher.hard_backpressure")

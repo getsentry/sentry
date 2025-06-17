@@ -214,9 +214,6 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         Toggle favorite status for current user by adding or removing
         current user from dashboard favorites
         """
-        if not features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            return Response(status=404)
-
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 

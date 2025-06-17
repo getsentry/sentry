@@ -1,3 +1,5 @@
+import {useSearchParams} from 'react-router-dom';
+
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
@@ -45,7 +47,14 @@ export const RIGHT_ALIGNED_FIELDS = new Set([
   'commitsFailed',
 ]);
 
-export const SORTABLE_FIELDS = [
+export type SortableTAOptions =
+  | 'testName'
+  | 'averageDurationMs'
+  | 'flakeRate'
+  | 'commitsFailed'
+  | 'lastRun';
+
+export const SORTABLE_FIELDS: SortableTAOptions[] = [
   'testName',
   'averageDurationMs',
   'flakeRate',
@@ -68,6 +77,8 @@ interface Props {
 
 export default function TestAnalyticsTable({response, sort}: Props) {
   const {data, isLoading} = response;
+  const [searchParams] = useSearchParams();
+  const wrapToggleValue = searchParams.get('wrap') === 'true';
 
   return (
     <GridEditable
@@ -90,7 +101,7 @@ export default function TestAnalyticsTable({response, sort}: Props) {
             column,
             sort,
           }),
-        renderBodyCell: (column, row) => renderTableBody({column, row}),
+        renderBodyCell: (column, row) => renderTableBody({column, row, wrapToggleValue}),
       }}
     />
   );

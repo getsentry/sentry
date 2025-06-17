@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
+import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DATA_TYPE, FIELD_ALIASES} from 'sentry/views/insights/browser/resources/settings';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {
@@ -19,13 +20,14 @@ export default function ResourceSummaryAverageSizeChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {groupId} = useParams();
-
+  const referrer = Referrer.RESOURCE_SUMMARY_AVERAGE_SIZE_CHART;
   const {search, enabled} = useResourceSummarySeriesSearch(groupId);
 
   const {data, isPending, error} = useResourceSummarySeries({
     search,
     pageFilters: props.pageFilters,
     enabled,
+    referrer,
   });
 
   if (data) {
@@ -39,7 +41,7 @@ export default function ResourceSummaryAverageSizeChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search, referrer}}
       id="resourceSummaryAverageSizeChartWidget"
       title={t('Average %s Size', DATA_TYPE)}
       series={[

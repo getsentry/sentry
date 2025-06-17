@@ -5,7 +5,6 @@ import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProject from 'sentry/utils/withProject';
@@ -195,7 +194,7 @@ class Feature extends Component<Props> {
       return customDisabledRender({children, ...renderProps});
     }
 
-    if (isRenderFunc(children)) {
+    if (typeof children === 'function') {
       return children({renderDisabled, ...renderProps});
     }
 

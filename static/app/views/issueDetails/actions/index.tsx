@@ -16,6 +16,7 @@ import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archi
 import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -338,19 +339,12 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const openDeleteModal = () =>
-    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
-      <Fragment>
-        <Body>
-          {t('Deleting this issue is permanent. Are you sure you wish to continue?')}
-        </Body>
-        <Footer>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button style={{marginLeft: space(1)}} priority="primary" onClick={onDelete}>
-            {t('Delete')}
-          </Button>
-        </Footer>
-      </Fragment>
-    ));
+    openConfirmModal({
+      message: t('Deleting this issue is permanent. Are you sure you wish to continue?'),
+      priority: 'danger',
+      confirmText: t('Delete'),
+      onConfirm: onDelete,
+    });
 
   const openDiscardModal = () => {
     openModal(renderDiscardModal);
@@ -564,9 +558,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             key: 'delete-issue',
             priority: 'danger',
             label: t('Delete'),
-            hidden: !hasDeleteAccess,
-            disabled: !deleteCap.enabled,
-            details: deleteCap.disabledReason,
+            disabled: !hasDeleteAccess || !deleteCap.enabled,
+            details: hasDeleteAccess
+              ? deleteCap.disabledReason
+              : t('Only admins can delete issues'),
             onAction: openDeleteModal,
           },
           {

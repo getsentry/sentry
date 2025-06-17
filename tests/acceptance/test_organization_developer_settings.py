@@ -107,7 +107,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.load_page(url)
 
-        self.browser.click('[aria-label="Remove"]')
+        self.browser.click('[aria-label="Revoke"]')
         self.browser.click('[data-test-id="confirm-button"]')
         self.browser.wait_until(".ref-success")
 
