@@ -73,6 +73,11 @@ jest.mock('getsentry/utils/trackReloadEvent');
 jest.mock('getsentry/utils/trackMetric');
 
 jest.mock('sentry/utils/testableLocation', () => ({
+  /**
+   * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
+   * instead of mocking properties on the testableLocation object.
+   * Use this mock for checking if window.location.assign was called.
+   */
   testableWindowLocation: {
     assign: jest.fn(),
     replace: jest.fn(),
