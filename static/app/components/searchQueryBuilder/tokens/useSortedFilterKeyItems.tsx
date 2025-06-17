@@ -9,6 +9,7 @@ import type {
 import {
   createFilterValueItem,
   createItem,
+  createRawSearchFilterValueItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -206,21 +207,15 @@ export function useSortedFilterKeyItems({
         !replaceRawSearchKeys?.length;
 
       const rawSearchReplacements: KeySectionItem = {
-        key: 'raw-search',
-        value: 'raw-search',
+        key: 'key-items',
+        value: 'key-items',
         label: '',
         options:
           replaceRawSearchKeys?.map(key => {
-            try {
-              return createFilterValueItem(
-                key,
-                inputValue?.includes(' ') ? `"${inputValue}"` : inputValue
-              );
-            } catch (error) {
-              console.log('why no work');
-              console.error(error);
-              return '';
-            }
+            return createRawSearchFilterValueItem(
+              key,
+              inputValue?.includes(' ') ? `"${inputValue}"` : inputValue
+            );
           }) ?? [],
         type: 'section',
       };
