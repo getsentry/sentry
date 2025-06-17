@@ -2,7 +2,7 @@
 
 import django.contrib.postgres.constraints
 import django.contrib.postgres.fields.ranges
-from django.db import migrations, models
+from django.db import migrations
 
 import sentry.models.groupopenperiod
 from sentry.new_migrations.migrations import CheckedMigration
@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
                     model_name="groupopenperiod",
                     constraint=django.contrib.postgres.constraints.ExclusionConstraint(
                         expressions=[
-                            (models.F("group"), "="),
+                            ("group", "="),
                             (
                                 sentry.models.groupopenperiod.TsTzRange(
                                     "date_started",
