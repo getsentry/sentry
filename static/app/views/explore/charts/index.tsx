@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +7,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -28,6 +29,7 @@ import type {
   BaseVisualize,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   SAMPLING_MODE,
@@ -87,6 +89,13 @@ export function ExploreCharts({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
+
+  const chartRef = useRef<ReactEchartsRef>(null);
+
+  const boxSelectOptions = useChartBoxSelect({
+    chartRef,
+    visualizes,
+  });
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
@@ -318,6 +327,11 @@ export function ExploreCharts({
               revealActions="always"
               Visualization={
                 <TimeSeriesWidgetVisualization
+                  ref={chartRef}
+                  brush={boxSelectOptions.brush}
+                  onBrushStart={boxSelectOptions.onBrushStart}
+                  onBrushEnd={boxSelectOptions.onBrushEnd}
+                  toolBox={boxSelectOptions.toolBox}
                   plottables={chartInfo.data.map(timeSeries => {
                     return new DataPlottableConstructor(
                       markDelayedData(timeSeries, INGESTION_DELAY),
