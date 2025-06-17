@@ -759,7 +759,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'name', 'span.duration', 'timestamp'],
+        fields: ['id', 'span.name', 'span.duration', 'timestamp'],
       })
     );
   });
