@@ -27,7 +27,7 @@ The context is automatically cleaned up when the function returns, ensuring no c
 import contextvars
 import logging
 import uuid
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, MutableMapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
@@ -48,16 +48,17 @@ class LogContextData:
 _log_context_state = contextvars.ContextVar[LogContextData]("log_context", default=LogContextData())
 
 
-class _Adapter(logging.LoggerAdapter):
-    @override
-    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
+class _Adapter(logging.LoggerAdapter[logging.Logger]):
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         if _log_context_state.get().verbose:
             self.info(msg, *args, **kwargs)
         else:
             self.log(logging.DEBUG, msg, *args, **kwargs)
 
     @override
-    def process(self, msg: str, kwargs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    def process(
+        self, msg: str, kwargs: MutableMapping[str, Any]
+    ) -> tuple[str, MutableMapping[str, Any]]:
         context = _log_context_state.get()
         if context.extra:
             if "extra" in kwargs:
@@ -71,7 +72,9 @@ def get_logger(name: str) -> logging.Logger:
     """
     Returns a Logger that will be annotated based on the current context.
     """
-    return _Adapter(logging.getLogger(name))
+    # We need to fake the type here because we want callers to be able to treat it as
+    # a Logger, which it is for nearly any practical purpose.
+    return _Adapter(logging.getLogger(name))  # type: ignore[return-value]
 
 
 def set_verbose(verbose: bool) -> None:

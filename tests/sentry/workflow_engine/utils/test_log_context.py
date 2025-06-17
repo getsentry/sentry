@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from unittest.mock import patch
 
 from sentry.testutils.cases import TestCase
@@ -8,10 +9,10 @@ from sentry.workflow_engine.utils import log_context
 class LogContextTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.logger = log_context.get_logger(__name__)
+        self.logger: log_context._Adapter = log_context.get_logger(__name__)  # type: ignore[assignment]
 
     def test_get_logger(self):
-        logger = log_context.get_logger("test")
+        logger: Any = log_context.get_logger("test")
         assert isinstance(logger, log_context._Adapter)
 
     def test_root_decorator(self):
