@@ -138,6 +138,18 @@ x-sentry-service-config:
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
+    crons:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-monitors,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        worker,
+      ]
     profiling:
       [
         postgres,
