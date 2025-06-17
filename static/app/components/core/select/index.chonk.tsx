@@ -94,8 +94,6 @@ export const getChonkStylesConfig = ({
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
-      top: '100%',
-      marginTop: '8px',
     }),
     noOptionsMessage: provided => ({
       ...provided,

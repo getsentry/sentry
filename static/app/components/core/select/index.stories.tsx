@@ -16,7 +16,7 @@ export default Storybook.story('Select', (story, APIReference) => {
         <p>
           The <Storybook.JSXNode name="Select" /> component comes in different sizes:
         </p>
-        <Storybook.SideBySide>
+        <Storybook.Grid>
           <Select
             size="md"
             placeholder="medium"
@@ -42,7 +42,7 @@ export default Storybook.story('Select', (story, APIReference) => {
               {value: 'item2', label: 'Item 2'},
             ]}
           />
-        </Storybook.SideBySide>
+        </Storybook.Grid>
       </Fragment>
     );
   });
@@ -50,7 +50,7 @@ export default Storybook.story('Select', (story, APIReference) => {
   story('Disabled', () => {
     return (
       <Fragment>
-        <Storybook.SideBySide>
+        <Storybook.Grid>
           <Select
             isDisabled
             size="md"
@@ -79,14 +79,14 @@ export default Storybook.story('Select', (story, APIReference) => {
               {value: 'item2', label: 'Item 2'},
             ]}
           />
-        </Storybook.SideBySide>
+        </Storybook.Grid>
       </Fragment>
     );
   });
 
   story('With inFieldLabel', () => {
     return (
-      <Storybook.SideBySide>
+      <Storybook.Grid>
         <Select
           inFieldLabel="Hello world"
           size="md"
@@ -115,13 +115,13 @@ export default Storybook.story('Select', (story, APIReference) => {
             {value: 'item2', label: 'Item 2'},
           ]}
         />
-      </Storybook.SideBySide>
+      </Storybook.Grid>
     );
   });
 
   story('Clearable', () => {
     return (
-      <Storybook.SideBySide>
+      <Storybook.Grid>
         <Select
           isClearable
           defaultValue={{value: 'item1', label: 'Item 1'}}
@@ -152,13 +152,13 @@ export default Storybook.story('Select', (story, APIReference) => {
             {value: 'item2', label: 'Item 2'},
           ]}
         />
-      </Storybook.SideBySide>
+      </Storybook.Grid>
     );
   });
 
   story('Searchable', () => {
     return (
-      <Storybook.SideBySide>
+      <Storybook.Grid>
         <Select
           isSearchable
           size="md"
@@ -187,7 +187,7 @@ export default Storybook.story('Select', (story, APIReference) => {
             {value: 'item2', label: 'Item 2'},
           ]}
         />
-      </Storybook.SideBySide>
+      </Storybook.Grid>
     );
   });
 
@@ -199,7 +199,7 @@ export default Storybook.story('Select', (story, APIReference) => {
           <Storybook.JSXNode name="leadingItems" /> prop to add an icon to the left of the
           option.
         </p>
-        <Storybook.SideBySide>
+        <Storybook.Grid>
           <Select
             isSearchable
             size="md"
@@ -242,7 +242,7 @@ export default Storybook.story('Select', (story, APIReference) => {
               {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
             ]}
           />
-        </Storybook.SideBySide>
+        </Storybook.Grid>
       </Fragment>
     );
   });
