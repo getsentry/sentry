@@ -14,7 +14,7 @@ Example usage:
 
     @log_context.root
     def defrog_worfklow(workflow_id: int) -> None:
-        log_context.set_extras(workflow_id=workflow_id)
+        log_context.add_extras(workflow_id=workflow_id)
         logger.info("Starting workflow")  # Log will include workflow_id
         ...
         with log_context.new_context(rule_id=rule.id):
