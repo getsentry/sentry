@@ -37,6 +37,7 @@ class TestDetectorSerializer(TestCase):
             "workflowIds": [],
             "config": default_detector_config_data[MetricIssue.slug],
             "owner": None,
+            "enabled": detector.enabled,
         }
 
     def test_serialize_full(self):
@@ -146,6 +147,7 @@ class TestDetectorSerializer(TestCase):
             "workflowIds": [str(workflow.id)],
             "config": default_detector_config_data[MetricIssue.slug],
             "owner": self.user.get_actor_identifier(),
+            "enabled": detector.enabled,
         }
 
     def test_serialize_bulk(self):
@@ -374,6 +376,7 @@ class TestWorkflowSerializer(TestCase):
             "actionFilters": [],
             "environment": None,
             "detectorIds": [],
+            "enabled": workflow.enabled,
         }
 
     def test_serialize_full(self):
@@ -477,6 +480,7 @@ class TestWorkflowSerializer(TestCase):
             ],
             "environment": self.environment.name,
             "detectorIds": [str(detector.id)],
+            "enabled": workflow.enabled,
         }
 
 
