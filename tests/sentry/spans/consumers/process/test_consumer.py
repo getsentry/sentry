@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import time
 import pytest
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
@@ -55,6 +56,10 @@ def test_basic(monkeypatch):
 
     step.poll()
     fac._flusher.current_drift.value = 9000  # "advance" our "clock"
+    
+    step.poll()
+    # Give flusher threads time to process after drift change
+    time.sleep(0.1)
 
     step.join()
 
