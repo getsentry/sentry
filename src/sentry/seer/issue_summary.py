@@ -277,20 +277,17 @@ def _run_automation(
     ):
         return
 
-    group_id = group.id
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
-    project = group.project
-    organization = group.organization
 
     sentry_sdk.set_tags(
         {
-            "group_id": group_id,
+            "group_id": group.id,
             "user_id": user_id,
             "auto_run_source": auto_run_source,
-            "org_slug": organization.slug,
-            "org_id": organization.id,
-            "project_id": project.id,
+            "org_slug": group.organization.slug,
+            "org_id": group.organization.id,
+            "project_id": group.project.id,
         }
     )
 
@@ -308,7 +305,7 @@ def _run_automation(
         return
 
     is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
-        project, organization
+        group.project, group.organization
     )
     if is_rate_limited:
         sentry_sdk.set_tags(
@@ -328,11 +325,11 @@ def _run_automation(
         return
 
     with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-        autofix_state = get_autofix_state(group_id=group_id)
+        autofix_state = get_autofix_state(group_id=group.id)
 
     if not autofix_state:  # Only trigger autofix if we don't have an autofix on this issue already.
         _trigger_autofix_task.delay(
-            group_id=group_id,
+            group_id=group.id,
             event_id=event.event_id,
             user_id=user_id,
             auto_run_source=auto_run_source,
