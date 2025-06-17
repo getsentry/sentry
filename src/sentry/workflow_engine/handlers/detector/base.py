@@ -29,7 +29,7 @@ EventData = dict[str, Any]
 class EvidenceData(Generic[DataPacketEvaluationType]):
     value: DataPacketEvaluationType
     detector_id: int
-    data_source_id: int
+    data_packet_source_id: int
     conditions: list[dict[str, Any]]
 
 

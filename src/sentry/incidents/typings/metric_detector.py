@@ -102,18 +102,18 @@ class AlertContext:
         if priority_level is None:
             raise ValueError("Priority level is required for metric issues")
 
-        for condition in evidence_data.conditions:
-            # The condition.condition_result is of type DetectorPriorityLevel
-            if (
-                DetectorPriorityLevel(condition["condition_result"])
-                == PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL[PriorityLevel(priority_level)]
-            ):
-                threshold_type = fetch_threshold_type(Condition(condition["type"]))
-                resolve_threshold = fetch_resolve_threshold(condition["comparison"], group_status)
-                alert_threshold = fetch_alert_threshold(condition["comparison"], group_status)
-                sensitivity = fetch_sensitivity(condition)
-                break
-        else:
+        target_priority = PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL[PriorityLevel(priority_level)]
+        try:
+            condition = next(
+                cond
+                for cond in evidence_data.conditions
+                if cond["condition_result"] == target_priority
+            )
+            threshold_type = fetch_threshold_type(Condition(condition["type"]))
+            resolve_threshold = fetch_resolve_threshold(condition["comparison"], group_status)
+            alert_threshold = fetch_alert_threshold(condition["comparison"], group_status)
+            sensitivity = fetch_sensitivity(condition)
+        except StopIteration:
             raise ValueError("No threshold type found for metric issues")
 
         return cls(
@@ -212,7 +212,7 @@ class MetricIssueContext:
 
     @classmethod
     def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
-        subscription = QuerySubscription.objects.get(id=evidence_data.data_source_id)
+        subscription = QuerySubscription.objects.get(id=int(evidence_data.data_packet_source_id))
         return subscription
 
     @classmethod

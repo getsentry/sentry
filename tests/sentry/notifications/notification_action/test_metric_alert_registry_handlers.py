@@ -101,7 +101,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.evidence_data = MetricIssueEvidenceData(
             value=123.45,
             detector_id=self.detector.id,
-            data_source_id=int(self.data_source.source_id),
+            data_packet_source_id=int(self.data_source.source_id),
             conditions=[
                 {
                     "id": 1,
