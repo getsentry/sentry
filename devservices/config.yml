@@ -152,6 +152,7 @@ x-sentry-service-config:
         worker,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
+      ]
     ingest:
       [
         snuba,
