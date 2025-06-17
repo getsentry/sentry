@@ -32,7 +32,6 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
@@ -46,10 +45,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {
-  makeReleaseDrawerPathname,
-  makeReleasesPathname,
-} from 'sentry/views/releases/utils/pathnames';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -139,13 +135,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
-  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
-    props.showReleaseAs !== 'none' &&
-    organization.features.includes('release-bubbles-ui') &&
-    props.showReleaseAs === 'bubble';
+    props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
@@ -408,20 +401,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             theme,
             props.releases,
             function onReleaseClick(release: Release) {
-              if (organization.features.includes('release-bubbles-ui')) {
-                navigate(
-                  makeReleaseDrawerPathname({
-                    location,
-                    release: release.version,
-                    source: 'time-series-widget',
-                  })
-                );
-                return;
-              }
               navigate(
-                makeReleasesPathname({
-                  organization,
-                  path: `/${encodeURIComponent(release.version)}/`,
+                makeReleaseDrawerPathname({
+                  location,
+                  release: release.version,
+                  source: 'time-series-widget',
                 })
               );
             },
