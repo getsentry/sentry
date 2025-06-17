@@ -25,6 +25,10 @@ def execute_via_group_type_registry(
     it will send an activity notification instead.
     """
     if isinstance(event_data.event, Activity):
+        # TODO - this is a workaround to ensure a notification is sent about the issue.
+        # We'll need to update this in the future to read the notification configuration
+        # from the Action, then get the template for the activity, and send it to that
+        # integration.
         return event_data.event.send_notification()
 
     try:
