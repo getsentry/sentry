@@ -53,6 +53,7 @@ export default function Ai({replayRecord}: Props) {
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
       enabled: Boolean(replayRecord?.id && project?.slug),
+      retry: false,
     }
   );
 
