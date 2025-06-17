@@ -1,5 +1,6 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
+import remarkCallout from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -15,8 +16,10 @@ import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
+import rehypeExpressiveCode from 'rehype-expressive-code';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
@@ -286,7 +289,13 @@ const appConfig: Configuration = {
           {
             loader: '@mdx-js/loader',
             options: {
-              remarkPlugins: [remarkFrontmatter, remarkGfm],
+              remarkPlugins: [
+                remarkFrontmatter,
+                remarkMdxFrontmatter,
+                remarkGfm,
+                remarkCallout,
+              ],
+              rehypePlugins: [rehypeExpressiveCode],
             },
           },
         ],
