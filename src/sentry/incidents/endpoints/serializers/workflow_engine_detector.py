@@ -193,7 +193,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         }
         if group_ids:
             open_periods = GroupOpenPeriod.objects.filter(
-                group__in=[group_id for group_id in group_ids]
+                group__in=group_ids
             )
 
         for detector in detectors.values():
