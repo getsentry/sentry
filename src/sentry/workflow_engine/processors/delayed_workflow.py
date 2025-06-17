@@ -81,6 +81,16 @@ class EventInstance(BaseModel):
     event_id: str
     occurrence_id: str | None = None
 
+    class Config:
+        # Ignore unknown fields; we'd like to be able to add new fields easily.
+        extra = "ignore"
+
+    @validator("event_id")
+    def validate_event_id(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("event_id is required")
+        return v
+
     @validator("occurrence_id")
     def validate_occurrence_id(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
@@ -90,6 +100,10 @@ class EventInstance(BaseModel):
 
 @dataclass(frozen=True)
 class EventKey:
+    """
+    A key for an event in the Redis buffer.
+    """
+
     workflow_id: WorkflowId
     group_id: GroupId
     dcg_ids: frozenset[DataConditionGroupId]
@@ -131,7 +145,9 @@ class EventRedisData:
     events: Mapping[EventKey, EventInstance]
 
     @classmethod
-    def from_redis_data(cls, redis_data: dict[str, str]) -> EventRedisData:
+    def from_redis_data(
+        cls, redis_data: dict[str, str], *, continue_on_error: bool
+    ) -> EventRedisData:
         events = {}
         for key, value in redis_data.items():
             try:
@@ -143,7 +159,8 @@ class EventRedisData:
                     "Failed to parse workflow event data",
                     extra={"key": key, "value": value, "error": str(e)},
                 )
-                raise ValueError(f"Failed to parse Redis data: {str(e)}") from e
+                if not continue_on_error:
+                    raise ValueError(f"Failed to parse Redis data: {str(e)}") from e
         return cls(events=events)
 
     @cached_property
@@ -620,7 +637,7 @@ def process_delayed_workflows(
             return
 
         redis_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
-        event_data = EventRedisData.from_redis_data(redis_data)
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
 
         metrics.incr(
             "workflow_engine.delayed_workflow",

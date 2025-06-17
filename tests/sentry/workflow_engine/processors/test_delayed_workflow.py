@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import Mock, call, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 
@@ -248,7 +248,8 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_fetch_workflows_envs(self):
         self._push_base_events()
         event_data = EventRedisData.from_redis_data(
-            fetch_group_to_event_data(self.project.id, Workflow)
+            fetch_group_to_event_data(self.project.id, Workflow),
+            continue_on_error=False,
         )
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
         assert workflows_to_envs == {
@@ -747,7 +748,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     def test_get_group_to_groupevent(self):
         self._push_base_events()
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        event_data = EventRedisData.from_redis_data(buffer_data)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
         group_to_groupevent = get_group_to_groupevent(
             event_data,
             self.groups_to_dcgs,
@@ -760,7 +761,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         self._push_base_events()
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        event_data = EventRedisData.from_redis_data(buffer_data)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
         fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
@@ -783,7 +784,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         # enqueue the IF DCGs with slow conditions!
         self._push_base_events()
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        event_data = EventRedisData.from_redis_data(buffer_data)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
         fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
@@ -872,7 +873,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
         assert set(data.keys()) == self.workflow_group_dcg_mapping
 
-        event_data = EventRedisData.from_redis_data(data)
+        event_data = EventRedisData.from_redis_data(data, continue_on_error=False)
         cleanup_redis_buffer(self.project.id, event_data.events.keys(), None)
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
         assert data == {}
@@ -896,7 +897,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         first_batch = buffer.backend.get_hash(
             model=Workflow, field={"project_id": self.project.id, "batch_key": batch_one_key}
         )
-        event_data = EventRedisData.from_redis_data(first_batch)
+        event_data = EventRedisData.from_redis_data(first_batch, continue_on_error=False)
         cleanup_redis_buffer(self.project.id, event_data.events.keys(), batch_one_key)
 
         # Verify the batch we "executed" is removed
@@ -923,6 +924,22 @@ class TestEventKeyAndInstance:
         assert event_key.dcg_ids == frozenset([789, 101])
         assert event_key.dcg_type == DataConditionHandler.Group.WORKFLOW_TRIGGER
         assert event_key.original_key == key
+
+    def test_event_key_from_redis_key_invalid(self):
+        # Test various invalid key formats
+        invalid_cases = [
+            "invalid-key",  # missing colons
+            "1:2:3:4:5:workflow_trigger",  # too many parts
+            "1:2:workflow_trigger",  # too few parts
+            "1:2:3:invalid_type",  # invalid type
+            "1:2:invalid_dcgs:workflow_trigger",  # invalid dcg_ids format
+            "not_a_number:2:3:workflow_trigger",  # non-numeric workflow_id
+            "1:not_a_number:3:workflow_trigger",  # non-numeric group_id
+        ]
+
+        for key in invalid_cases:
+            with pytest.raises(ValueError):
+                EventKey.from_redis_key(key)
 
     def test_event_key_str_and_hash(self):
         key = "123:456:789:workflow_trigger"
@@ -953,6 +970,91 @@ class TestEventKeyAndInstance:
         assert instance.event_id == "test-event"
         assert instance.occurrence_id is None
 
-        # Test that parsing without event_id fails
+        # Test invalid cases
+        invalid_cases = [
+            ('{"occurrence_id": "test-occurrence"}', "event_id"),  # missing event_id
+            ('{"event_id": ""}', "event_id"),  # empty event_id
+            ('{"event_id": "   "}', "event_id"),  # whitespace event_id
+            ('{"event_id": null}', "event_id"),  # null event_id
+        ]
+
+        for json_data, expected_error in invalid_cases:
+            with pytest.raises(ValueError, match=expected_error):
+                EventInstance.parse_raw(json_data)
+
+        # Test that extra fields are ignored
+        instance = EventInstance.parse_raw('{"event_id": "test", "extra": "field"}')
+        assert instance.event_id == "test"
+        assert instance.occurrence_id is None
+
+        instance = EventInstance.parse_raw(
+            '{"event_id": "test", "occurrence_id": "test", "extra": "field"}'
+        )
+        assert instance.event_id == "test"
+        assert instance.occurrence_id == "test"
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    def test_from_redis_data_continue_on_error(self, mock_logger):
+        # Create a mix of valid and invalid data
+        redis_data = {
+            "1:2:3:workflow_trigger": '{"event_id": "valid-1"}',  # valid
+            "4:5:6:workflow_trigger": '{"occurrence_id": "invalid-1"}',  # missing event_id
+            "7:8:9:workflow_trigger": '{"event_id": "valid-2"}',  # valid
+        }
+
+        # With continue_on_error=True, should return valid entries and log errors
+        result = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+        assert len(result.events) == 2
+        assert (
+            result.events[EventKey.from_redis_key("1:2:3:workflow_trigger")].event_id == "valid-1"
+        )
+        assert (
+            result.events[EventKey.from_redis_key("7:8:9:workflow_trigger")].event_id == "valid-2"
+        )
+
+        # Verify error was logged
+        mock_logger.exception.assert_called_once_with(
+            "Failed to parse workflow event data",
+            extra={
+                "key": "4:5:6:workflow_trigger",
+                "value": '{"occurrence_id": "invalid-1"}',
+                "error": ANY,
+            },
+        )
+
+        # With continue_on_error=False, should raise on first error
         with pytest.raises(ValueError, match="event_id"):
-            EventInstance.parse_raw('{"occurrence_id": "test-occurrence"}')
+            EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    def test_from_redis_data_invalid_keys(self, mock_logger):
+        # Create data with an invalid key structure
+        redis_data = {
+            "1:2:3:workflow_trigger": '{"event_id": "valid-1"}',  # valid
+            "invalid-key": '{"event_id": "valid-2"}',  # invalid key format
+            "1:2:4:workflow_trigger": '{"event_id": "valid-3"}',  # valid
+        }
+
+        # With continue_on_error=True, should return valid entries and log errors
+        result = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+        assert len(result.events) == 2
+        assert (
+            result.events[EventKey.from_redis_key("1:2:3:workflow_trigger")].event_id == "valid-1"
+        )
+        assert (
+            result.events[EventKey.from_redis_key("1:2:4:workflow_trigger")].event_id == "valid-3"
+        )
+
+        # Verify error was logged
+        mock_logger.exception.assert_called_once_with(
+            "Failed to parse workflow event data",
+            extra={
+                "key": "invalid-key",
+                "value": '{"event_id": "valid-2"}',
+                "error": ANY,
+            },
+        )
+
+        # With continue_on_error=False, should raise on first error
+        with pytest.raises(ValueError):
+            EventRedisData.from_redis_data(redis_data, continue_on_error=False)
