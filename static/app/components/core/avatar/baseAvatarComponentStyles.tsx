@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
 
-export interface BaseAvatarComponentProps {
+export interface BaseAvatarStyleProps {
   round?: boolean;
   suggested?: boolean;
 }
 
-export const BaseAvatarComponentStyles = (props: BaseAvatarComponentProps) => css`
+export const baseAvatarStyles = (props: BaseAvatarStyleProps) => css`
   position: absolute;
   top: 0px;
   left: 0px;

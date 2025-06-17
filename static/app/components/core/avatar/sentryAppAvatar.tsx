@@ -1,6 +1,7 @@
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import {IconGeneric} from 'sentry/icons';
 import type {AvatarSentryApp} from 'sentry/types/integrations';
+
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 interface SentryAppAvatarProps extends BaseAvatarProps {
   isColor?: boolean;

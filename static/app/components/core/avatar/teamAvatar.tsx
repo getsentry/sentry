@@ -1,8 +1,9 @@
 import type React from 'react';
 
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Team} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
+
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 export interface TeamAvatarProps extends BaseAvatarProps {
   team: Team | undefined;

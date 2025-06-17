@@ -3,13 +3,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import {
-  type BaseAvatarComponentProps,
-  BaseAvatarComponentStyles,
-} from 'sentry/components/core/avatar/baseAvatarComponentStyles';
 import ConfigStore from 'sentry/stores/configStore';
 
-interface GravatarProps extends BaseAvatarComponentProps {
+import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponentStyles';
+
+interface GravatarProps extends BaseAvatarStyleProps {
   remoteSize: number;
   gravatarId?: string;
   onError?: () => void;
@@ -94,6 +92,6 @@ async function hashGravatarId(message = ''): Promise<string> {
     .join('');
 }
 
-const Image = styled('img')<BaseAvatarComponentProps>`
-  ${BaseAvatarComponentStyles};
+const Image = styled('img')<BaseAvatarStyleProps>`
+  ${baseAvatarStyles};
 `;
