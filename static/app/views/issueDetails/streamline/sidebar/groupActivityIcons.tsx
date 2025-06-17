@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {
   IconAdd,
@@ -29,20 +30,20 @@ import {
 } from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {
-  type Group,
+  GroupActivity,
   type GroupActivityCreateIssue,
   type GroupActivitySetPriority,
   GroupActivityType,
 } from 'sentry/types/group';
-import type {User} from 'sentry/types/user';
 
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;
   defaultProps: {locked?: boolean; type?: string};
-  componentFunction?: (
-    props: Group['activity'][number]['data'],
-    user?: User | null
-  ) => React.ComponentType<any>;
+  componentFunction?: (props: {
+    data: GroupActivity['data'];
+    sentry_app: GroupActivity['sentry_app'];
+    user: GroupActivity['user'];
+  }) => React.ComponentType<any>;
   propsFunction?: (props: any) => any;
 }
 
@@ -53,7 +54,13 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.NOTE]: {
     Component: IconChat,
     defaultProps: {},
-    componentFunction: (_data, user) => {
+    componentFunction: ({user, sentry_app}) => {
+      if (sentry_app) {
+        return function () {
+          return <SentryAppAvatar sentryApp={sentry_app} />;
+        };
+      }
+
       return user ? () => <StyledUserAvatar user={user} /> : IconChat;
     },
   },
@@ -78,7 +85,7 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SET_REGRESSION]: {Component: IconFire, defaultProps: {}},
   [GroupActivityType.CREATE_ISSUE]: {
     Component: IconAdd,
-    componentFunction: data => {
+    componentFunction: ({data}) => {
       const provider = (data as GroupActivityCreateIssue['data']).provider;
       switch (provider) {
         case 'GitHub':
