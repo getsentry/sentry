@@ -31,13 +31,23 @@ const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
     width: 140,
   },
   {
+    key: 'p95(span.duration)',
+    name: t('P95 Duration'),
+    width: 140,
+  },
+  {
     key: 'performance_score(measurements.score.total)',
     name: t('Perf Score'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const rightAlignColumns = new Set(['count()', 'failure_rate()', 'avg(span.duration)']);
+const rightAlignColumns = new Set([
+  'count()',
+  'failure_rate()',
+  'avg(span.duration)',
+  'p95(span.duration)',
+]);
 
 export function ClientTable() {
   const tableDataRequest = useTableData({
@@ -49,6 +59,7 @@ export function ClientTable() {
       'count()',
       'failure_rate()',
       'avg(span.duration)',
+      'p95(span.duration)',
       'performance_score(measurements.score.total)',
       'count_if(span.op,navigation)',
       'count_if(span.op,pageload)',
@@ -120,6 +131,9 @@ export function ClientTable() {
         }
         case 'avg(span.duration)': {
           return <DurationCell milliseconds={dataRow['avg(span.duration)']} />;
+        }
+        case 'p95(span.duration)': {
+          return <DurationCell milliseconds={dataRow['p95(span.duration)']} />;
         }
         default:
           return <div />;
