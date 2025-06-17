@@ -236,4 +236,48 @@ export default Storybook.story('GridEditable', story => {
       // Storybook.SizingWindowProps={{display: 'block'}}
     />
   ));
+
+  story('Sticky Headers and Scrolling', () => {
+    return (
+      <Fragment>
+        <p>
+          Passing
+          <Storybook.JSXProperty name="stickyHeader" value={Boolean} /> and{' '}
+          <Storybook.JSXProperty name="scrollable" value={Boolean} />
+          add sticky headers and table scrolling respectively
+        </p>
+        <Storybook.SideBySide>
+          <div>
+            <div>No sticky headers</div>
+            <GridEditable
+              data={data}
+              columnOrder={columns}
+              columnSortBy={[]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              scrollable
+              height={200}
+            />
+          </div>
+          <div>
+            <div>With sticky headers</div>
+            <GridEditable
+              data={data}
+              columnOrder={columns}
+              columnSortBy={[]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              stickyHeader
+              scrollable
+              height={200}
+            />
+          </div>
+        </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
 });
