@@ -948,8 +948,10 @@ export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
   id: string;
+  lastSeen: string | null;
   level: Level;
   metadata: EventMetadata;
+  timesSeen: number | null;
   type: EventOrGroupType;
   title?: string;
 }
