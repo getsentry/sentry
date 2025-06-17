@@ -30,6 +30,7 @@ import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanT
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   type ModuleName,
+  SpanIndexedField,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
@@ -249,6 +250,7 @@ export function SpanSamplesContainer({
               width: COL_WIDTH_UNDEFINED,
             },
           ]}
+          additionalFields={[SpanIndexedField.PROFILER_ID]}
         />
       </InsightsSpanTagProvider>
     </Fragment>

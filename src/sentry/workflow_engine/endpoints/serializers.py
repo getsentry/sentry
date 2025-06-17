@@ -347,6 +347,7 @@ class DetectorSerializer(Serializer):
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
             "config": attrs.get("config"),
+            "enabled": obj.enabled,
         }
 
 
@@ -407,6 +408,7 @@ class WorkflowSerializer(Serializer):
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
             "detectorIds": attrs.get("detectorIds"),
+            "enabled": obj.enabled,
         }
 
 

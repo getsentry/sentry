@@ -79,7 +79,6 @@ function ExploreSpansTourModal({
               handleStartTour();
               closeModal();
             }}
-            borderless
             autoFocus
           >
             {t('Take a tour')}
@@ -179,7 +178,7 @@ const TextContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
 `;

@@ -4,6 +4,8 @@ import type {KnipConfig} from 'knip';
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
+  // chartcuterie build script
+  'config/build-chartcuterie.ts',
   // dynamic imports _not_ recognized by knip
   'static/app/bootstrap/{index,initializeMain}.tsx',
   'static/gsApp/initializeBundleMetrics.tsx',
@@ -72,7 +74,6 @@ const config: KnipConfig = {
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
-    'ts-node', // Still used implicitly
     'terser', // Still used in a loader
   ],
   rules: {

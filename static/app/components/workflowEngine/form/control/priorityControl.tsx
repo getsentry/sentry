@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
 import {Flex} from 'sentry/components/container/flex';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import FormContext from 'sentry/components/forms/formContext';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -67,12 +66,10 @@ function ChangePriority() {
 }
 
 interface PriorityControlProps {
-  minimumPriority?: DetectorPriorityLevel;
+  minimumPriority: DetectorPriorityLevel;
 }
 
-export default function PriorityControl({
-  minimumPriority = DetectorPriorityLevel.LOW,
-}: PriorityControlProps) {
+export default function PriorityControl({minimumPriority}: PriorityControlProps) {
   // TODO: kind type not yet available from detector types
   const detectorKind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const initialPriorityLevel = useMetricDetectorFormField(
@@ -84,7 +81,7 @@ export default function PriorityControl({
       <PrioritizeRow
         left={
           <Flex align="center" column>
-            {!detectorKind || detectorKind === 'threshold' ? (
+            {!detectorKind || detectorKind === 'static' ? (
               <ThresholdPriority />
             ) : (
               <ChangePriority />
@@ -97,7 +94,7 @@ export default function PriorityControl({
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.MEDIUM) && (
         <PrioritizeRow
           left={
-            <NumberField
+            <SmallNumberField
               alignRight
               inline
               hideLabel
@@ -116,7 +113,7 @@ export default function PriorityControl({
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.HIGH) && (
         <PrioritizeRow
           left={
-            <NumberField
+            <SmallNumberField
               alignRight
               inline
               hideLabel
@@ -146,13 +143,9 @@ function priorityIsConfigurable(
 function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.ReactNode}) {
   return (
     <Row>
-      <Cell align="center" justify="flex-end">
-        {left}
-      </Cell>
+      <Cell>{left}</Cell>
       <IconArrow color="gray300" direction="right" />
-      <Cell align="center" justify="flex-start">
-        {right}
-      </Cell>
+      <Cell>{right}</Cell>
     </Row>
   );
 }
@@ -227,13 +220,16 @@ const Row = styled('div')`
   display: contents;
 `;
 
-const Cell = styled(Flex)`
+const Cell = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: ${space(1)};
+`;
 
-  ${FieldWrapper} {
-    padding: 0;
-    width: 5rem;
-  }
+const SmallNumberField = styled(NumberField)`
+  width: 5rem;
+  padding: 0;
 `;
 
 const SecondaryLabel = styled('div')`

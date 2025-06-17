@@ -72,6 +72,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
             "detector_id": self.detector.id,
             "value": detector_trigger.condition_result,
             "alert_id": self.alert_rule.id,
+            "data_packet_source_id": str(self.query_subscription.id),
             "conditions": [
                 {
                     "id": detector_trigger.id,

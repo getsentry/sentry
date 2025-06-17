@@ -38,6 +38,7 @@ def migrate_team_stars_to_user_stars(apps: StateApps, schema_editor: BaseDatabas
                 segment_name=segment_name,
             )
             for user_id in user_ids
+            if user_id is not None
         ]
         with transaction.atomic(router.db_for_write(InsightsStarredSegment)):
             try:

@@ -18,7 +18,10 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     queue="integrations",
     max_retries=0,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=integrations_tasks),
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def post_message(
     integration_id: int,
@@ -42,6 +45,7 @@ def post_message(
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def post_message_control(

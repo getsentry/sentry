@@ -219,6 +219,9 @@ class Dashboard(Model):
 
     @property
     def favorited_by(self):
+        """
+        @deprecated Use the DashboardFavoriteUser object manager instead.
+        """
         user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
             "user_id", flat=True
         )
@@ -226,6 +229,9 @@ class Dashboard(Model):
 
     @favorited_by.setter
     def favorited_by(self, user_ids):
+        """
+        @deprecated Use the DashboardFavoriteUser object manager instead.
+        """
         from django.db import router, transaction
 
         existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(

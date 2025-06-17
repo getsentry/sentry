@@ -210,6 +210,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="timestamp",
             internal_name="sentry.timestamp",
+            internal_type=constants.DOUBLE,
             search_type="string",
             processor=datetime_processor,
         ),

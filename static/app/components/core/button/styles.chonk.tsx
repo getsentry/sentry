@@ -115,6 +115,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     '&:focus-visible': {
       outline: 'none',
+      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
 
       '&::after': {
         border: `1px solid ${p.theme.focusBorder}`,
