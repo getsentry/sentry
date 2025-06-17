@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';

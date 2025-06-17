@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import Form from 'sentry/components/forms/form';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import * as Storybook from 'sentry/stories';

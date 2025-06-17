@@ -7,7 +7,7 @@ import {
   type SelectOption,
   type SingleSelectProps,
 } from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
 import FormField from 'sentry/components/forms/formField';

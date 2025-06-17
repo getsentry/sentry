@@ -1,4 +1,4 @@
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
 import {
   OptionalRowLine,

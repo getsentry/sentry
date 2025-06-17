@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';

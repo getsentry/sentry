@@ -5,7 +5,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';

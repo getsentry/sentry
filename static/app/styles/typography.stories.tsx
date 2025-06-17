@@ -8,7 +8,7 @@ import LineHeightGraphic from 'sentry-images/stories/typography/line-height.svg'
 import WeightGraphic from 'sentry-images/stories/typography/weight.svg';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';

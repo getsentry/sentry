@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import Link from 'sentry/components/links/link';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';

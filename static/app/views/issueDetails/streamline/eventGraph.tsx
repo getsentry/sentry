@@ -18,7 +18,7 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';

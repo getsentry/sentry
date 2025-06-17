@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import ShortId, {Wrapper} from 'sentry/components/group/inboxBadges/shortId';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';

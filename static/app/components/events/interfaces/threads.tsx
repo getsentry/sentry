@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CommitRow} from 'sentry/components/commitRow';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,

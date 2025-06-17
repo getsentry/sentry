@@ -3,7 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -3,7 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';

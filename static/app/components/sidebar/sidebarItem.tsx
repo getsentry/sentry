@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
