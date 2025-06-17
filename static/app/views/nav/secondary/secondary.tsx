@@ -349,7 +349,7 @@ const TrailingItems = styled('div')`
 `;
 
 const SeparatorWrapper = styled('div')`
-  padding: ${space(1.5)} 0;
+  margin: ${space(1.5)} 0;
   display: none;
 `;
 

@@ -601,6 +601,10 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per hour)
+register(
+    "seer.max_num_scanner_autotriggered_per_hour", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1402,7 +1406,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
-register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "api.deprecation.brownout-duration-seconds",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3456,15 +3465,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable adding the `Reporting-Endpoints` header, which will in turn enable the sending of Reporting
-# API reports from the browser (as long as it's Chrome).
-register(
-    "issues.browser_reporting.reporting_endpoints_header_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Enable the collection of Reporting API reports via the `/api/0/reporting-api-experiment/`

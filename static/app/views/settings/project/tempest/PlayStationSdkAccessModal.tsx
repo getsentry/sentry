@@ -78,6 +78,8 @@ export default function PlayStationSdkAccessModal({
     captureFeedback(
       {
         message: messageBody,
+        name: user.name,
+        email: user.email,
         source: 'playstation-sdk-access',
         tags: {
           feature: 'playstation-sdk-access',

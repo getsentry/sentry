@@ -6,6 +6,7 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WEB_VITAL_FULL_NAME_MAP} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
+import {FIELD_ALIASES} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
@@ -91,6 +92,7 @@ export function WebVitalStatusLineChart({
       {webVital && (
         <InsightsLineChartWidget
           title={`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}
+          aliases={FIELD_ALIASES}
           showReleaseAs="none"
           showLegend="never"
           isLoading={isTimeseriesLoading}
