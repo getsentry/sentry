@@ -24,7 +24,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
             integration_id=instance.integration.id,
         )
 
-        # If the organization integration is the only one associated with the integration, delete the integration.
+        # If the org integration to be deleted is the only one associated with the integration, delete the integration.
         if len(org_integrations) == 1 and org_integrations[0].id == instance.id:
             relations.append(ModelRelation(Integration, {"id": instance.integration.id}))
 
