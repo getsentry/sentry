@@ -95,29 +95,27 @@ function ResolveSection() {
   } else if (kind === 'static') {
     if (conditionType === DataConditionType.GREATER) {
       description = t(
-        'Issue will be resolved when the query is less than %s%s higher than the previous %s.',
+        'Issue will be resolved when the query value is less than %s%s.',
         conditionValue || '0',
-        thresholdSuffix,
-        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+        thresholdSuffix
       );
     } else {
       description = t(
-        'Issue will be resolved when the query is less than %s%s lower than the previous %s.',
+        'Issue will be resolved when the query value is more than %s%s.',
         conditionValue || '0',
-        thresholdSuffix,
-        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+        thresholdSuffix
       );
     }
   } else if (kind === 'percent') {
     if (conditionType === DataConditionType.GREATER) {
       description = t(
-        'Issue will be resolved when the query is less than %s%% higher than the previous %s.',
+        'Issue will be resolved when the query value is less than %s%% higher than the previous %s.',
         conditionValue || '0',
         conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
       );
     } else {
       description = t(
-        'Issue will be resolved when the query is less than %s%% lower than the previous %s.',
+        'Issue will be resolved when the query value is less than %s%% lower than the previous %s.',
         conditionValue || '0',
         conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
       );
