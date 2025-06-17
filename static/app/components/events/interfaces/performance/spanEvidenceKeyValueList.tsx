@@ -319,11 +319,15 @@ function DBQueryInjectionVulnerabilityEvidence({
 }: SpanEvidenceKeyValueListProps) {
   const evidenceData = event?.occurrence?.evidenceData ?? {};
 
+  const formattedVulnerableParameters = evidenceData.vulnerableParameters?.map(
+    (param: {key: string; value: string}) => `${param.key}: ${param.value}`
+  );
+
   return (
     <PresortedKeyValueList
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
-        makeRow(t('Vulnerable Parameters'), evidenceData.vulnerableParameters),
+        makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
         makeRow(t('Request URL'), evidenceData.requestUrl),
       ]}
     />
