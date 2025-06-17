@@ -131,6 +131,22 @@ x-sentry-service-config:
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
+    spans:
+      [
+        postgres,
+        snuba,
+        vroom,
+        relay,
+        spotlight,
+        ingest-events,
+        ingest-transactions,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+        process-spans,
+        ingest-occurrences,
+        process-segments,
+      ]
     profiling: [postgres, snuba, vroom, spotlight]
     ingest:
       [
