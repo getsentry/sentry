@@ -320,7 +320,7 @@ function DBQueryInjectionVulnerabilityEvidence({
   const evidenceData = event?.occurrence?.evidenceData ?? {};
 
   const formattedVulnerableParameters = evidenceData.vulnerableParameters?.map(
-    (param: {key: string; value: string}) => `${param.key}: ${param.value}`
+    (param: string[]) => `${param[0]}: ${param[1]}`
   );
 
   return (
