@@ -9,7 +9,6 @@ from sentry.web.frontend.error_500 import Error500View
 
 @override_settings(DEBUG=True)
 @override_settings(DEBUG_PROPAGATE_EXCEPTIONS=False)
-@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class TestNoSettingsInDebugView(TestCase):
     def test(self):
         self.client.raise_request_exception = False
