@@ -11,7 +11,7 @@ import {useCallback, useLayoutEffect, useRef} from 'react';
  * @returns A ref callback for the input element.
  */
 
-export interface UseAutosizeInputOptions {
+interface UseAutosizeInputOptions {
   enabled?: boolean;
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
