@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import Duration from 'sentry/components/duration';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -36,6 +37,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
+import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
 
 export function MetricDetectorForm() {
   return (
@@ -74,37 +76,57 @@ function MonitorKind() {
 
 function ResolveSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
-  const thresholdType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.thresholdType
+  const conditionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const conditionComparisonAgo = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
+  );
+  const thresholdSuffix = useDetectorThresholdSuffix();
+
+  let description: string | undefined;
+  if (kind === 'dynamic') {
+    description = t(
+      'Sentry will automatically resolve the issue when the trend goes back to baseline.'
+    );
+  } else if (kind === 'static') {
+    if (conditionType === DataConditionType.GREATER) {
+      description = t(
+        'Issue will be resolved when the query is less than %s%s higher than the previous %s.',
+        conditionValue || '0',
+        thresholdSuffix,
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    } else {
+      description = t(
+        'Issue will be resolved when the query is less than %s%s lower than the previous %s.',
+        conditionValue || '0',
+        thresholdSuffix,
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    }
+  } else if (kind === 'percent') {
+    if (conditionType === DataConditionType.GREATER) {
+      description = t(
+        'Issue will be resolved when the query is less than %s%% higher than the previous %s.',
+        conditionValue || '0',
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    } else {
+      description = t(
+        'Issue will be resolved when the query is less than %s%% lower than the previous %s.',
+        conditionValue || '0',
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    }
+  }
 
   return (
     <Container>
-      <Section
-        title={t('Resolve')}
-        description={
-          kind === 'dynamic'
-            ? t(
-                'Sentry will automatically resolve the issue when the trend goes back to baseline.'
-              )
-            : undefined
-        }
-      >
-        {kind !== 'dynamic' && (
-          <ThresholdField
-            flexibleControlStateSize
-            inline={false}
-            label={
-              thresholdType === AlertRuleThresholdType.BELOW
-                ? t('Close an incident when the value rises above:')
-                : t('Close an incident when the value dips below:')
-            }
-            placeholder="0"
-            name={METRIC_DETECTOR_FORM_FIELDS.resolveThreshold}
-            suffix="s"
-          />
-        )}
-      </Section>
+      <Section title={t('Resolve')} description={description} />
     </Container>
   );
 }
