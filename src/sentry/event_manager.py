@@ -302,7 +302,7 @@ def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event
             group_tombstone = GroupTombstone.objects.get(id=tombstone_id)
             buffer_incr(
                 GroupTombstone,
-                {"times_seen": 1},
+                {"times_seen": group_tombstone.times_seen + 1 if group_tombstone.times_seen else 1},
                 {"id": tombstone_id},
                 {"last_seen": max(event.datetime, group_tombstone.last_seen)},
             )
