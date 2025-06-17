@@ -58,8 +58,9 @@ def fetch_resolve_threshold(comparison_value: float, group_status: GroupStatus) 
         return None
 
 
-def fetch_sensitivity(evidence_data: MetricIssueEvidenceData) -> str | None:
-    # TODO - (saponifi3d) - Update this once the platform supports this
+def fetch_sensitivity(condition: dict[str, Any]) -> str | None:
+    if condition.get("type") == Condition.ANOMALY_DETECTION:
+        return condition.get("comparison", {}).get("sensitivity", None)
     return None
 
 
@@ -110,7 +111,7 @@ class AlertContext:
                 threshold_type = fetch_threshold_type(Condition(condition["type"]))
                 resolve_threshold = fetch_resolve_threshold(condition["comparison"], group_status)
                 alert_threshold = fetch_alert_threshold(condition["comparison"], group_status)
-                sensitivity = fetch_sensitivity(condition["comparison"])
+                sensitivity = fetch_sensitivity(condition)
                 break
         else:
             raise ValueError("No threshold type found for metric issues")
