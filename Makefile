@@ -108,7 +108,7 @@ test-js-build:
 	@echo "--> Running type check"
 	@pnpm run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
-	@NODE_ENV=production pnpm run webpack-profile > .artifacts/webpack-stats.json
+	@NODE_ENV=production pnpm run build-profile > .artifacts/webpack-stats.json
 
 test-js:
 	@echo "--> Running JavaScript tests"
