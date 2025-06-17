@@ -386,7 +386,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           <ResolvedActionWapper>
             <ResolvedWrapper>
               <IconCheckmark size="md" />
-              <Flex column>
+              <Flex direction="column">
                 {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
                 <ReasonBanner>
                   {group.status === 'resolved'

@@ -42,7 +42,7 @@ export default function CrumbItem({
             </LeftAligned>
           }
         >
-          <Flex column gap={space(0.5)}>
+          <Flex direction="column" gap={space(0.5)}>
             <Flex gap={space(0.75)} align="center">
               {icon}
               {formattedDuration}

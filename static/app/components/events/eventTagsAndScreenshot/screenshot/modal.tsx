@@ -113,7 +113,7 @@ export default function ScreenshotModal({
         <h5>{t('Screenshot')}</h5>
       </Header>
       <Body>
-        <Flex column gap={space(1.5)}>
+        <Flex direction="column" gap={space(1.5)}>
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent

@@ -14,7 +14,7 @@ interface DetailsPanelProps {
 function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
   return (
     <Container>
-      <Flex column gap={space(0.5)}>
+      <Flex direction="column" gap={space(0.5)}>
         <Heading>{t('Query:')}</Heading>
         <Query>
           <Label>{t('visualize:')}</Label>{' '}
@@ -39,7 +39,7 @@ function DetailsPanel({detector}: DetailsPanelProps) {
 
   return (
     <Container>
-      <Flex column gap={space(0.5)}>
+      <Flex direction="column" gap={space(0.5)}>
         <Heading>{t('Query:')}</Heading>
         <Query>
           <Label>{t('visualize:')}</Label> <Value>placeholder</Value>

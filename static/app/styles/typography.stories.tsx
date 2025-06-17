@@ -337,7 +337,7 @@ export default function TypographyStories() {
         the context, like in a footer:
       </Block>
       <ExamplePanel>
-        <Flex column>
+        <Flex direction="column">
           <FooterLink to="">Privacy Policy</FooterLink>
           <FooterLink to="">Terms of Use</FooterLink>
         </Flex>

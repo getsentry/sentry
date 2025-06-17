@@ -612,7 +612,7 @@ function GraphButton({
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <Flex column>
+      <Flex direction="column">
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>

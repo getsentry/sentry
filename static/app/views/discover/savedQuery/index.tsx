@@ -108,7 +108,7 @@ function SaveAsDropdown({
             <StyledOverlay arrowProps={arrowProps} animated>
               <FocusScope contain restoreFocus autoFocus>
                 <form onSubmit={modifiedHandleCreateQuery}>
-                  <Flex gap={space(1)} column>
+                  <Flex gap={space(1)} direction="column">
                     <Input
                       type="text"
                       name="query_name"

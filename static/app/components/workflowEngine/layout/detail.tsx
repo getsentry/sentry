@@ -63,7 +63,7 @@ interface RequiredChildren {
 function Main({children}: RequiredChildren) {
   return (
     <Layout.Main>
-      <Flex column gap={space(2)}>
+      <Flex direction="column" gap={space(2)}>
         {children}
       </Flex>
     </Layout.Main>
@@ -72,7 +72,7 @@ function Main({children}: RequiredChildren) {
 function Sidebar({children}: RequiredChildren) {
   return (
     <Layout.Side>
-      <Flex column gap={space(2)}>
+      <Flex direction="column" gap={space(2)}>
         {children}
       </Flex>
     </Layout.Side>

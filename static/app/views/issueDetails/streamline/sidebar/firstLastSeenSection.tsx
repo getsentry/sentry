@@ -51,7 +51,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
     : (allEnvironments?.lastSeen ?? lastSeen);
 
   return (
-    <Flex column gap={space(0.75)}>
+    <Flex direction="column" gap={space(0.75)}>
       <div>
         <Flex gap={space(0.5)}>
           <Title>{t('Last seen')}</Title>

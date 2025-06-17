@@ -79,7 +79,7 @@ export function EventMissingBanner() {
     <Flex align="center" justify="center">
       <Flex align="center" gap={36}>
         <img src={compassImage} alt="Compass illustration" height={122} />
-        <Flex justify="center" column gap={space(1)}>
+        <Flex justify="center" direction="column" gap={space(1)}>
           <MainText>
             {tct("We couldn't track down [prep] event", {
               prep: isReservedEventId ? 'an' : 'that',

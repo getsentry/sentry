@@ -217,7 +217,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             <QuestionTooltip
               isHoverable
               title={
-                <Flex column gap={space(1)}>
+                <Flex direction="column" gap={space(1)}>
                   <div>
                     {tct(
                       'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',

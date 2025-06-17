@@ -41,7 +41,7 @@ export default function ReplayDetailsPage({readerResult}: Props) {
       )}
       renderProcessingError={({replay}) => (
         <Layout.Page withPadding>
-          <Flex column>
+          <Flex direction="column">
             <ReplayProcessingError processingErrors={replay!.processingErrors()} />
           </Flex>
         </Layout.Page>

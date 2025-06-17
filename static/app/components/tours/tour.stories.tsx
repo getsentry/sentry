@@ -335,7 +335,12 @@ function TourProvider({
           {...tourProviderProps}
         >
           <Flex gap={space(2)} align="center">
-            <Flex gap={space(2)} justify="space-between" column align="flex-start">
+            <Flex
+              gap={space(2)}
+              justify="space-between"
+              direction="column"
+              align="flex-start"
+            >
               <StartTourButton />
               {children}
             </Flex>

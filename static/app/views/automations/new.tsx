@@ -37,7 +37,7 @@ export default function AutomationNew() {
   return (
     <NewAutomationLayout>
       <ContentWrapper>
-        <Flex column gap={space(1.5)} style={{padding: space(2)}}>
+        <Flex direction="column" gap={space(1.5)} style={{padding: space(2)}}>
           <Card>
             <EditConnectedMonitors
               connectedIds={connectedIds}

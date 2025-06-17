@@ -89,7 +89,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
       initialData={{...flattie(initialAutomationBuilderState), frequency: '1440'}}
     >
       <AutomationBuilderContext.Provider value={{state, actions}}>
-        <Flex column gap={space(1.5)} style={{padding: space(2)}}>
+        <Flex direction="column" gap={space(1.5)} style={{padding: space(2)}}>
           <Card>
             <Heading>{t('Connect Monitors')}</Heading>
             <ConnectedMonitorsList
@@ -110,7 +110,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             </ButtonWrapper>
           </Card>
           <Card>
-            <Flex column gap={space(0.5)}>
+            <Flex direction="column" gap={space(0.5)}>
               <Heading>{t('Choose Environment')}</Heading>
               <Description>
                 {t(

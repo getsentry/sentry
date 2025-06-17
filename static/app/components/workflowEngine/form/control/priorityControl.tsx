@@ -80,7 +80,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
     <Grid>
       <PrioritizeRow
         left={
-          <Flex align="center" column>
+          <Flex align="center" direction="column">
             {!detectorKind || detectorKind === 'static' ? (
               <ThresholdPriority />
             ) : (

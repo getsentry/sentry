@@ -15,7 +15,7 @@ export function ReplaySideBySideImageDiff() {
   const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
   return (
-    <Flex column>
+    <Flex direction="column">
       <ContentSliderDiff.Header>
         <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
         <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />

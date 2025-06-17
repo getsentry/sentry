@@ -41,7 +41,7 @@ export function DiscordDetails({
 
 export function DiscordNode() {
   return (
-    <Flex column gap={space(1)} flex="1">
+    <Flex direction="column" gap={space(1)} flex="1">
       <RowLine>
         {tct('Send a [logo] Discord message to [server] server, to [channel]', {
           logo: ActionMetadata[ActionType.DISCORD]?.icon,

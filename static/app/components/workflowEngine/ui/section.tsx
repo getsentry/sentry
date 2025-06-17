@@ -11,7 +11,7 @@ type SectionProps = {
 
 export default function Section({children, title, description}: SectionProps) {
   return (
-    <Flex column gap={space(1)}>
+    <Flex direction="column" gap={space(1)}>
       <SectionHeading>{title}</SectionHeading>
       {description && <SectionDescription>{description}</SectionDescription>}
       {children}

@@ -31,7 +31,7 @@ export default function AutomationBuilder() {
   }, [api, organization]);
 
   return (
-    <Flex column gap={space(1)}>
+    <Flex direction="column" gap={space(1)}>
       <Step>
         <StepLead>
           {/* TODO: Only make this a selector of "all" is originally selected */}
@@ -106,7 +106,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   return (
     <IfThenWrapper>
       <Step>
-        <Flex column gap={space(0.75)}>
+        <Flex direction="column" gap={space(0.75)}>
           <Flex justify="space-between">
             <StepLead>
               {tct('[if: If] [selector] of these filters match', {

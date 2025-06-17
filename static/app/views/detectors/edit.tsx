@@ -113,7 +113,7 @@ export default function DetectorEdit() {
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <DetectorBreadcrumbs detectorId={params.detectorId} />
-            <Flex gap={space(1)} column>
+            <Flex gap={space(1)} direction="column">
               <Layout.Title>
                 <EditableDetectorName />
               </Layout.Title>

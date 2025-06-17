@@ -25,7 +25,7 @@ function WorkflowEngineListLayout({children}: WorkflowEngineListLayoutProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Flex column gap={space(1.5)}>
+          <Flex direction="column" gap={space(1.5)}>
             {children}
           </Flex>
         </Layout.Main>
