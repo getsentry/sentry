@@ -16,6 +16,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
 
+# have to use TransactionTestCase because we're using threadpools
 @requires_snuba
 class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
     endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs"
@@ -46,34 +47,6 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
             file_id=None,
         )
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
-
-    def test_get_request_data(self):
-        def _faker():
-            yield 0, memoryview(
-                json.dumps(
-                    [
-                        {
-                            "type": 5,
-                            "timestamp": 0.0,
-                            "data": {
-                                "tag": "breadcrumb",
-                                "payload": {"category": "console", "message": "hello"},
-                            },
-                        },
-                        {
-                            "type": 5,
-                            "timestamp": 0.0,
-                            "data": {
-                                "tag": "breadcrumb",
-                                "payload": {"category": "console", "message": "world"},
-                            },
-                        },
-                    ]
-                ).encode()
-            )
-
-        result = get_request_data(_faker(), error_ids=[], project_id=self.project.id)
-        assert result == ["Logged: hello at 0.0", "Logged: world at 0.0"]
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get(self, make_seer_request):
@@ -220,3 +193,32 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
+
+
+def test_get_request_data():
+    def _faker():
+        yield 0, memoryview(
+            json.dumps(
+                [
+                    {
+                        "type": 5,
+                        "timestamp": 0.0,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {"category": "console", "message": "hello"},
+                        },
+                    },
+                    {
+                        "type": 5,
+                        "timestamp": 0.0,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {"category": "console", "message": "world"},
+                        },
+                    },
+                ]
+            ).encode()
+        )
+
+    result = get_request_data(_faker(), error_ids=[])
+    assert result == ["Logged: hello at 0.0", "Logged: world at 0.0"]

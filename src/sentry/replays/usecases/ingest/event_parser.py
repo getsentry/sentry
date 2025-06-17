@@ -246,8 +246,7 @@ class EventType(Enum):
     FCP = 10
     HYDRATION_ERROR = 11
     MUTATIONS = 12
-    ERROR = 13
-    UNKNOWN = 14
+    UNKNOWN = 13
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -257,12 +256,6 @@ def which(event: dict[str, Any]) -> EventType:
     helpfully reduces the number of operations required by reusing context from previous
     branches.
     """
-    # This case is derived specificlly for the replay summarize breadcrumbs endpoint,
-    # which combines error and breadcrumb events into a single context for LLM.
-    # Error events are not normally ingested the same way as other breadcrumbs.
-    if event.get("category") == "error":
-        return EventType.ERROR
-
     if event.get("type") == 5:
         if event["data"]["tag"] == "breadcrumb":
             payload = event["data"]["payload"]
@@ -377,9 +370,5 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             return f"There was a hydration error on the page at {timestamp}."
         case EventType.MUTATIONS:
             return None
-        case EventType.ERROR:
-            message = event["message"]
-            title = event["title"]
-            return f"User experienced an error: '{title}: {message}' at {timestamp}"
         case EventType.UNKNOWN:
             return None
