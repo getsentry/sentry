@@ -666,12 +666,19 @@ class SearchResolver:
                 if operator in constants.IN_OPERATORS:
                     if isinstance(value, list):
                         return AttributeValue(
-                            val_double_array=DoubleArray(values=[val for val in value])
+                            val_double_array=DoubleArray(
+                                values=[
+                                    val.timestamp() if isinstance(val, datetime) else val
+                                    for val in value
+                                ]
+                            )
                         )
                     else:
                         raise InvalidSearchQuery(
                             f"{value} is not a valid value for doing an IN filter"
                         )
+                elif isinstance(value, datetime):
+                    return AttributeValue(val_double=value.timestamp())
                 elif isinstance(value, float):
                     return AttributeValue(val_double=value)
             elif column_type == constants.BOOLEAN:
