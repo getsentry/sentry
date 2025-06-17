@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping, Sequence, Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
@@ -541,9 +541,11 @@ def fire_actions_for_groups(
                     extra={"event_data": workflow_event_data},
                     threshold_seconds=1,
                 ):
-                    workflows_actions = evaluate_workflows_action_filters(workflows, event_data)
+                    workflows_actions = evaluate_workflows_action_filters(
+                        workflows, workflow_event_data
+                    )
                 filtered_actions = filter_recently_fired_workflow_actions(
-                    action_filters | workflows_actions, event_data
+                    action_filters | workflows_actions, workflow_event_data
                 )
                 create_workflow_fire_histories(filtered_actions, workflow_event_data)
 
