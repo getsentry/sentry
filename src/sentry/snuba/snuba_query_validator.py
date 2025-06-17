@@ -99,6 +99,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         super().__init__(*args, **kwargs)
         # if true, time_window is interpreted as seconds.
         # if false, time_window is interpreted as minutes.
+        # TODO: only accept time_window in seconds once AlertRuleSerializer is removed
         self.time_window_seconds = timeWindowSeconds
 
     def validate_query_type(self, value: int) -> SnubaQuery.Type:
