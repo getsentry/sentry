@@ -31,16 +31,7 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, TypeVar
-
-
-def get_logger(name: str) -> logging.Logger:
-    """
-    Returns a Logger that will be annotated based on the current context.
-    """
-    logger = logging.getLogger(name)
-    logger.addFilter(_ContextFilter())
-    return logger
+from typing import Any, TypeVar, override
 
 
 @dataclass
@@ -53,19 +44,34 @@ class LogContextData:
     # context extra data in business logic.
     extra: dict[str, Any] = field(default_factory=dict)
 
-    def modify_record(self, record: logging.LogRecord) -> None:
-        if self.verbose:
-            # promote DEBUG level to INFO
-            if record.levelno == logging.DEBUG:
-                record.levelno = logging.INFO
-                record.levelname = "INFO"
-
-        for key, value in self.extra.items():
-            if key not in record.__dict__:
-                record.__dict__[key] = value
-
 
 _log_context_state = contextvars.ContextVar[LogContextData]("log_context", default=LogContextData())
+
+
+class _Adapter(logging.LoggerAdapter):
+    @override
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        if _log_context_state.get().verbose:
+            self.info(msg, *args, **kwargs)
+        else:
+            self.log(logging.DEBUG, msg, *args, **kwargs)
+
+    @override
+    def process(self, msg: str, kwargs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        context = _log_context_state.get()
+        if context.extra:
+            if "extra" in kwargs:
+                kwargs["extra"] = {**context.extra, **kwargs["extra"]}
+            else:
+                kwargs["extra"] = context.extra
+        return msg, kwargs
+
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    Returns a Logger that will be annotated based on the current context.
+    """
+    return _Adapter(logging.getLogger(name))
 
 
 def set_verbose(verbose: bool) -> None:
@@ -101,21 +107,10 @@ def new_context(verbose: bool | None = None, **extras: Any) -> Generator[LogCont
         _log_context_state.reset(token)
 
 
-class _ContextFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        log_context = _log_context_state.get()
-        if log_context:
-            log_context.modify_record(record)
-        return True
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, _ContextFilter)
-
-
 T = TypeVar("T")
 
 
-def root() -> Callable[[Callable[..., T]], Callable[..., T]]:
+def root(add_context_id: bool = True) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator defines a function as the root of a log context.
     When it executes, it will start with a fresh context, and any
     modifications to the context will be discarded when it returns.
@@ -128,7 +123,8 @@ def root() -> Callable[[Callable[..., T]], Callable[..., T]]:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
             data = LogContextData()
-            data.extra["context_id"] = str(uuid.uuid4())
+            if add_context_id:
+                data.extra["context_id"] = str(uuid.uuid4())
             token = _log_context_state.set(data)
             try:
                 return func(*args, **kwargs)

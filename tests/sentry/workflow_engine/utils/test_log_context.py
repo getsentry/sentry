@@ -1,6 +1,5 @@
 import logging
-import uuid
-from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.utils import log_context
@@ -12,37 +11,37 @@ class LogContextTest(TestCase):
         self.logger = log_context.get_logger(__name__)
 
     def test_get_logger(self):
-        """Test that get_logger returns a logger with the context filter."""
         logger = log_context.get_logger("test")
-        assert isinstance(logger, logging.Logger)
-        assert any(isinstance(f, log_context._ContextFilter) for f in logger.filters)
+        assert isinstance(logger, log_context._Adapter)
 
     def test_root_decorator(self):
-        """Test that the root decorator creates a new context with a unique ID."""
 
         @log_context.root()
         def test_func():
             context = log_context._log_context_state.get()
             assert "context_id" in context.extra
             assert isinstance(context.extra["context_id"], str)
-            # Verify the context ID is a valid UUID
-            uuid.UUID(context.extra["context_id"])
 
         test_func()
 
     def test_set_verbose(self):
         """Test that set_verbose promotes DEBUG logs to INFO."""
 
-        @log_context.root()
+        @log_context.root(add_context_id=False)
         def test_func():
-            log_context.set_verbose(True)
-            record = MagicMock()
-            record.levelno = logging.DEBUG
-            record.levelname = "DEBUG"
-            context = log_context._log_context_state.get()
-            context.modify_record(record)
-            assert record.levelno == logging.INFO
-            assert record.levelname == "INFO"
+            with (
+                log_context.new_context(verbose=True),
+                patch.object(self.logger.logger, "log") as mock_log,
+            ):
+                self.logger.debug("test message")
+                mock_log.assert_called_once_with(logging.INFO, "test message")
+
+            with (
+                log_context.new_context(verbose=False),
+                patch.object(self.logger.logger, "log") as mock_log,
+            ):
+                self.logger.debug("test message")
+                mock_log.assert_not_called()
 
         test_func()
 
@@ -55,6 +54,27 @@ class LogContextTest(TestCase):
             context = log_context._log_context_state.get()
             assert context.extra["workflow_id"] == 123
             assert context.extra["rule_id"] == 456
+
+            with log_context.new_context():
+                context = log_context._log_context_state.get()
+                assert context.extra["workflow_id"] == 123
+                assert context.extra["rule_id"] == 456
+
+        test_func()
+
+    def test_logged_extras_override_context(self):
+        """Test that extras passed to log calls override context extras."""
+
+        @log_context.root(add_context_id=False)
+        def test_func():
+            log_context.add_extras(workflow_id=123, rule_id=456)
+            with patch.object(self.logger.logger, "log") as mock_log:
+                self.logger.info("test message", extra={"workflow_id": 789})
+                mock_log.assert_called_once_with(
+                    logging.INFO,
+                    "test message",
+                    extra={"workflow_id": 789, "rule_id": 456},
+                )
 
         test_func()
 
@@ -104,18 +124,3 @@ class LogContextTest(TestCase):
         first_context()
         second_context()
         assert len(context_ids) == 2
-
-    def test_log_record_annotation(self):
-        """Test that log records are annotated with context data."""
-
-        @log_context.root()
-        def test_func():
-            log_context.add_extras(workflow_id=123)
-            record = logging.LogRecord(
-                "test", logging.INFO, "test.py", 1, "test message", (), None, None
-            )
-            context = log_context._log_context_state.get()
-            context.modify_record(record)
-            assert record.workflow_id == 123  # type: ignore[attr-defined]
-
-        test_func()
