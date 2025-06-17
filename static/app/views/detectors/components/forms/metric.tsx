@@ -16,7 +16,10 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   FieldKey,
@@ -48,12 +51,8 @@ export function MetricDetectorForm() {
 
 function MonitorKind() {
   const options: Array<[MetricDetectorFormData['kind'], string, string]> = [
-    [
-      'threshold',
-      t('Threshold'),
-      t('Absolute-valued thresholds, for non-seasonal data.'),
-    ],
-    ['change', t('Change'), t('Percentage changes over defined time windows.')],
+    ['static', t('Threshold'), t('Absolute-valued thresholds, for non-seasonal data.')],
+    ['percent', t('Change'), t('Percentage changes over defined time windows.')],
     [
       'dynamic',
       t('Dynamic'),
@@ -63,7 +62,7 @@ function MonitorKind() {
 
   return (
     <MonitorKindField
-      label={t('...and monitor for changes in the following way:')}
+      label={t('\u2026and monitor for changes in the following way:')}
       flexibleControlStateSize
       inline={false}
       name={METRIC_DETECTOR_FORM_FIELDS.kind}
@@ -149,7 +148,9 @@ function PrioritizeSection() {
             : t('Update issue priority when the following thresholds are met:')
         }
       >
-        {kind !== 'dynamic' && <PriorityControl />}
+        {kind !== 'dynamic' && (
+          <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
+        )}
       </Section>
     </Container>
   );
@@ -193,7 +194,7 @@ function DetectSection() {
         </FirstRow>
         <MonitorKind />
         <Flex column>
-          {(!kind || kind === 'threshold') && (
+          {(!kind || kind === 'static') && (
             <Flex column>
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
@@ -224,7 +225,7 @@ function DetectSection() {
               </Flex>
             </Flex>
           )}
-          {kind === 'change' && (
+          {kind === 'percent' && (
             <Flex column>
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
