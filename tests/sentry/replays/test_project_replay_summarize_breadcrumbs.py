@@ -144,6 +144,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         now = datetime.now(timezone.utc)
         event_id = uuid.uuid4().hex
         error_timestamp = now.timestamp() - 1
+
         self.store_event(
             data={
                 "event_id": event_id,
@@ -218,7 +219,7 @@ def test_get_request_data():
                 [
                     {
                         "type": 5,
-                        "timestamp": 0.0,
+                        "timestamp": 1.5,
                         "data": {
                             "tag": "breadcrumb",
                             "payload": {"category": "console", "message": "hello"},
@@ -226,7 +227,7 @@ def test_get_request_data():
                     },
                     {
                         "type": 5,
-                        "timestamp": 0.0,
+                        "timestamp": 2.0,
                         "data": {
                             "tag": "breadcrumb",
                             "payload": {"category": "console", "message": "world"},
@@ -236,5 +237,27 @@ def test_get_request_data():
             ).encode()
         )
 
-    result = get_request_data(_faker(), error_events=[])
-    assert result == ["Logged: hello at 0.0", "Logged: world at 0.0"]
+    error_events = [
+        {
+            "category": "error",
+            "id": "123",
+            "title": "ZeroDivisionError",
+            "timestamp": 3.0,
+            "message": "division by zero",
+        },
+        {
+            "category": "error",
+            "id": "234",
+            "title": "BadError",
+            "timestamp": 1.0,
+            "message": "something else bad",
+        },
+    ]
+
+    result = get_request_data(_faker(), error_events=error_events)
+    assert result == [
+        "User experienced an error: 'BadError: something else bad' at 1.0",
+        "Logged: hello at 1.5",
+        "Logged: world at 2.0",
+        "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
+    ]

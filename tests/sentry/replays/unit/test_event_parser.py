@@ -819,5 +819,4 @@ def test_as_log_message():
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
     }
     assert as_log_message(event) is None
-
     assert as_log_message({}) is None
