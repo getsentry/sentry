@@ -1,6 +1,6 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {logout} from './account';
 

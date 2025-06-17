@@ -7,7 +7,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 
 describe('withDomainRequired', function () {

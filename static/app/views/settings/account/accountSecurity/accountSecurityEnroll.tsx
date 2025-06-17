@@ -32,7 +32,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';

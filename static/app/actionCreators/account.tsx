@@ -4,7 +4,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {User} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(

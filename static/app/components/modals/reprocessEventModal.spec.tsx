@@ -11,7 +11,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 const group = GroupFixture({
   id: '1337',
