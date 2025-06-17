@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -38,9 +38,11 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   disableZoom?: boolean;
   expandNumbers?: boolean;
+  handleWidgetSort?: (ns: string) => void;
   isMobile?: boolean;
+  isPreview?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -89,8 +91,13 @@ export function WidgetCardChartContainer({
   onDataFetchStart,
   disableZoom,
   showLoadingText,
+  handleWidgetSort,
+  isPreview,
 }: Props) {
   const location = useLocation();
+  // Used to maintain correct widths when sorting/column resizing the table widget
+  // Eventually this will be placed in Widget, to enable users to save column widths
+  const [tableWidths, setTableWidths] = useState<string[]>([]);
 
   function keepLegendState({
     selected,
@@ -161,12 +168,17 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
-                transformedResults={tableResults?.[0]!.data ?? []}
+                tableResults={tableResults}
                 loading={loading}
                 errorMessage={errorOrEmptyMessage}
                 widget={widget}
                 location={location}
                 selection={selection}
+                setWidgetSort={handleWidgetSort}
+                organization={organization}
+                tableWidths={tableWidths}
+                setTableWidths={setTableWidths}
+                isPreview={isPreview}
               />
             </Fragment>
           );
@@ -210,6 +222,10 @@ export function WidgetCardChartContainer({
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
               showLoadingText={showLoadingText}
+              setWidgetSort={handleWidgetSort}
+              tableWidths={tableWidths}
+              setTableWidths={setTableWidths}
+              isPreview={isPreview}
             />
           </Fragment>
         );

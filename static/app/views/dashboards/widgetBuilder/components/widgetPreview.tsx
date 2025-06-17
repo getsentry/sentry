@@ -12,10 +12,12 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {getColumnSortFromString} from 'sentry/views/dashboards/widgetTable';
 
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
@@ -25,7 +27,7 @@ interface WidgetPreviewProps {
   shouldForceDescriptionTooltip?: boolean;
 }
 
-const MIN_TABLE_COLUMN_WIDTH = '125px';
+const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 
 function WidgetPreview({
   dashboard,
@@ -39,9 +41,18 @@ function WidgetPreview({
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
 
-  const {state} = useWidgetBuilderContext();
+  const {state, dispatch} = useWidgetBuilderContext();
 
   const widget = convertBuilderStateToWidget(state);
+
+  const updateWidgetSort = (newSort: string) => {
+    const sortFields = getColumnSortFromString(newSort);
+    if (sortFields.length > 0 && sortFields[0])
+      dispatch({
+        type: BuilderStateAction.SET_SORT,
+        payload: [{field: sortFields[0].key, kind: sortFields[0].order}],
+      });
+  };
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
@@ -114,9 +125,11 @@ function WidgetPreview({
 
       showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
       // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
-      minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH}
+      minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH_PX}
       disableZoom
       showLoadingText
+      isPreview
+      handleWidgetSort={updateWidgetSort}
     />
   );
 }
