@@ -1732,7 +1732,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.BOOLEAN,
   },
   [FieldKey.STATUS]: {
-    desc: t('Status of the issue or span'),
+    desc: t('Status of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1911,6 +1911,11 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     desc: t(
       'The kind of span. Indicates the type of span such as server, client, internal, producer, or consumer.'
     ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.STATUS]: {
+    desc: t('Span status. Indicates whether the span operation was successful.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
