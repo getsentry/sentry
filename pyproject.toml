@@ -443,6 +443,7 @@ module = [
     "sentry.utils.snuba_rpc",
     "sentry.utils.urls",
     "sentry.utils.uwsgi",
+    "sentry.utils.versioning",
     "sentry.utils.warnings",
     "sentry.utils.zip",
     "sentry.web.frontend.auth_provider_login",
