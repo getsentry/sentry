@@ -299,8 +299,7 @@ def devserver(
 
             # webpack and/or typescript is causing memory issues
             os.environ["NODE_OPTIONS"] = (
-                os.environ.get("NODE_OPTIONS", "")
-                + " --max-old-space-size=4096 --experimental-transform-types"
+                os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096"
             ).lstrip()
 
         os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
