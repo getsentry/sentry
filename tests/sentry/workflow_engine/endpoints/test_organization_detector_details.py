@@ -264,6 +264,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify owner is set correctly
         assert detector.owner_user_id == self.user.id
         assert detector.owner_team_id is None
+        assert detector.owner is not None
         assert detector.owner.identifier == self.user.get_actor_identifier()
 
         # Verify serialized response includes owner
@@ -295,6 +296,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify owner changed to team
         assert detector.owner_user_id is None
         assert detector.owner_team_id == team.id
+        assert detector.owner is not None
         assert detector.owner.identifier == f"team:{team.id}"
 
         # Verify serialized response includes team owner
