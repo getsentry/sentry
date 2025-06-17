@@ -27,9 +27,6 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.27.1
         version: 7.27.1(@babel/core@7.27.4)
-      '@babel/runtime':
-        specifier: ~7.27.6
-        version: 7.27.6
       '@dnd-kit/core':
         specifier: ^6.1.0
         version: 6.1.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)

@@ -10,6 +10,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -63,9 +64,7 @@ class MockResizeObserver {
 type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
 function mockQueryString(queryString: `?${string}` | '') {
-  (global as any).jsdom.reconfigure({
-    url: `http://localhost/${queryString}`,
-  });
+  setWindowLocation(`http://localhost/${queryString}`);
   expect(window.location.search).toBe(queryString);
 }
 
@@ -1189,7 +1188,7 @@ describe('trace view', () => {
       '?node=txn-doesnotexist',
       // Invalid path
       '?node=span-does-notexist',
-    ])('logs if path is not found: %s', async path => {
+    ] as Array<`?${string}`>)('logs if path is not found: %s', async path => {
       mockQueryString(path);
 
       const sentryScopeMock = {

@@ -14,10 +14,13 @@ const config: TransformOptions = {
       {
         useBuiltIns: 'usage',
         corejs: '3.41',
+        targets: {
+          node: 'current',
+        },
       },
     ],
     // TODO: Remove allowDeclareFields when we upgrade to Babel 8
-    ['@babel/preset-typescript', {allowDeclareFields: true}],
+    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
   ],
   plugins: [
     [
