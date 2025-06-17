@@ -79,7 +79,6 @@ describe('useGetTraceItemAttributeValues', () => {
       () =>
         useGetTraceItemAttributeValues({
           traceItemType: TraceItemDataset.LOGS,
-          attributeKey,
           type: 'string',
         }),
       {
@@ -127,7 +126,6 @@ describe('useGetTraceItemAttributeValues', () => {
       () =>
         useGetTraceItemAttributeValues({
           traceItemType: TraceItemDataset.LOGS,
-          attributeKey,
           type: 'number',
         }),
       {

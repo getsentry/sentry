@@ -1,10 +1,9 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -18,43 +17,86 @@ interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBasePro
   projectIds?: Array<string | number>;
 }
 
-function traceItemAttributeKeysQueryKey({
-  orgSlug,
+type TraceItemAttributeKeyOptions = Pick<
+  ReturnType<typeof normalizeDateTimeParams>,
+  'end' | 'start' | 'statsPeriod' | 'utc'
+> & {
+  attributeType: 'string' | 'number';
+  itemType: TraceItemDataset;
+  project?: string[];
+  substringMatch?: string;
+};
+
+function makeTraceItemAttributeKeysQueryOptions({
   traceItemType,
+  type,
   datetime,
   projectIds,
   search,
-  type,
 }: {
-  orgSlug: string;
   traceItemType: TraceItemDataset;
   type: 'string' | 'number';
   datetime?: PageFilters['datetime'];
   projectIds?: Array<string | number>;
   search?: string;
-}): ApiQueryKey {
-  const query: Record<string, string | string[] | number[]> = {
+}): TraceItemAttributeKeyOptions {
+  const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
   };
 
   if (search) {
-    query.substringMatch = search;
+    options.substringMatch = search;
   }
 
   if (projectIds?.length) {
-    query.project = projectIds.map(String);
+    options.project = projectIds.map(String);
   }
 
   if (datetime) {
-    Object.entries(normalizeDateTimeParams(datetime)).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query[key] = value as string | string[];
-      }
-    });
+    const {end, start, statsPeriod, utc} = normalizeDateTimeParams(datetime);
+    if (end) {
+      options.end = end;
+    }
+    if (start) {
+      options.start = start;
+    }
+    if (statsPeriod) {
+      options.statsPeriod = statsPeriod;
+    }
+    if (utc) {
+      options.utc = utc;
+    }
   }
 
-  return [`/organizations/${orgSlug}/trace-items/attributes/`, {query}];
+  // environment left out intentionally as it's not supported
+  return options;
+}
+
+export function useTraceItemAttributeKeysQueryOptions({
+  traceItemType,
+  type,
+  datetime,
+  projectIds,
+  search,
+}: {
+  traceItemType: TraceItemDataset;
+  type: 'string' | 'number';
+  datetime?: PageFilters['datetime'];
+  projectIds?: Array<string | number>;
+  search?: string;
+}): TraceItemAttributeKeyOptions {
+  const {selection} = usePageFilters();
+
+  return useMemo(() => {
+    return makeTraceItemAttributeKeysQueryOptions({
+      traceItemType,
+      type,
+      datetime: datetime ?? selection.datetime,
+      projectIds: projectIds ?? selection.projects,
+      search,
+    });
+  }, [selection, traceItemType, type, datetime, projectIds, search]);
 }
 
 export function useGetTraceItemAttributeKeys({
@@ -69,8 +111,7 @@ export function useGetTraceItemAttributeKeys({
 
   const getTraceItemAttributeKeys = useCallback(
     async (queryString: string): Promise<TagCollection> => {
-      const stringQueryKey = traceItemAttributeKeysQueryKey({
-        orgSlug: organization.slug,
+      const options = makeTraceItemAttributeKeysQueryOptions({
         traceItemType,
         type,
         datetime: datetime ?? selection.datetime,
@@ -79,10 +120,13 @@ export function useGetTraceItemAttributeKeys({
       });
 
       try {
-        const result = await api.requestPromise(stringQueryKey[0], {
-          method: 'GET',
-          query: {...stringQueryKey[1]?.query},
-        });
+        const result = await api.requestPromise(
+          `/organizations/${organization.slug}/trace-items/attributes/`,
+          {
+            method: 'GET',
+            query: options,
+          }
+        );
 
         const attributes: TagCollection = {};
 
