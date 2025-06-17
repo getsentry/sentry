@@ -297,7 +297,9 @@ def _get_associated_workflows(
 
 
 @log_context.root()
-def process_workflows(event_data: WorkflowEventData, detector_id: DetectorId = None) -> set[Workflow]:
+def process_workflows(
+    event_data: WorkflowEventData, detector_id: DetectorId = None
+) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
