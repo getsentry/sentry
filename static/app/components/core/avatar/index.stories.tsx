@@ -9,7 +9,6 @@ import {SentryAppAvatar} from './sentryAppAvatar';
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar} from './userAvatar';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!./projectAvatar';
 
 export default Storybook.story('Avatar', (story, APIReference) => {

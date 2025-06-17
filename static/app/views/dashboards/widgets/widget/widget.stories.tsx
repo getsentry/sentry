@@ -11,7 +11,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import {Widget} from './widget';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 
 export default Storybook.story('Widget', (story, APIReference) => {

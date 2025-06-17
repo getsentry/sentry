@@ -862,6 +862,7 @@ export default typescript.config([
     name: 'files/sentry-stories',
     files: ['**/*.stories.tsx'],
     rules: {
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },
   },
@@ -952,6 +953,10 @@ export default typescript.config([
     ...mdx.flat,
     name: 'files/mdx',
     files: ['**/*.mdx'],
+    rules: {
+      ...mdx.flat.rules,
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+    },
   },
   {
     name: 'plugin/boundaries',

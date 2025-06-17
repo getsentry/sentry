@@ -6,7 +6,6 @@ import {IconCheckmark, IconFire, IconSentry} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/badge/tag.tsx';
 
 export default Storybook.story('Tag', (story, APIReference) => {
