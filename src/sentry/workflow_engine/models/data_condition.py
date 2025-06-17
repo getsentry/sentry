@@ -142,7 +142,7 @@ class DataCondition(DefaultFieldsModel):
             "id": self.id,
             "type": self.type,
             "comparison": self.comparison,
-            "condition_result": self.condition_result,
+            "condition_result": self.get_condition_result(),
         }
 
     def get_condition_result(self) -> DataConditionResult:

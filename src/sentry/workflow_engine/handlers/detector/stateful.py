@@ -412,7 +412,7 @@ class StatefulDetectorHandler(
                 condition_results, data_packet, new_priority
             )
             detector_result = self._create_decorated_issue_occurrence(
-                detector_occurrence, condition_results, new_priority, group_key
+                data_packet, detector_occurrence, condition_results, new_priority, group_key
             )
 
             # Set the event data with the necessary fields
@@ -474,6 +474,7 @@ class StatefulDetectorHandler(
 
     def _create_decorated_issue_occurrence(
         self,
+        data_packet: DataPacket[DataPacketType],
         detector_occurrence: DetectorOccurrence,
         evaluation_result: ProcessedDataConditionGroup,
         new_priority: DetectorPriorityLevel,
@@ -486,6 +487,7 @@ class StatefulDetectorHandler(
             **detector_occurrence.evidence_data,
             "detector_id": self.detector.id,
             "value": new_priority,
+            "data_source_id": data_packet.source_id,
             "conditions": [
                 result.condition.get_snapshot() for result in evaluation_result.condition_results
             ],
