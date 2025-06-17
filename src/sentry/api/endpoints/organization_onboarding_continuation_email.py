@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.analytics.events.onboarding_continuation_sent import OnboardingContinuationSent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -64,9 +65,10 @@ class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
         )
         msg.send_async([request.user.email])
         analytics.record(
-            "onboarding_continuation.sent",
-            organization_id=organization.id,
-            user_id=request.user.id,
-            providers="email",
+            OnboardingContinuationSent(
+                organization_id=organization.id,
+                user_id=request.user.id,
+                providers="email",
+            )
         )
         return self.respond(status=202)

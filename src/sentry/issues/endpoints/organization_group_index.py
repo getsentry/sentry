@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import analytics, features, search
+from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -316,12 +317,15 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         # record analytics for search query
         if request.user:
             analytics.record(
-                "issue_search.endpoint_queried",
-                user_id=request.user.id,
-                organization_id=organization.id,
-                project_ids=",".join(map(str, project_ids)),
-                full_query_params=",".join(f"{key}={value}" for key, value in request.GET.items()),
-                query=query,
+                IssueSearchEndpointQueriedEvent(
+                    user_id=request.user.id,
+                    organization_id=organization.id,
+                    project_ids=",".join(map(str, project_ids)),
+                    full_query_params=",".join(
+                        f"{key}={value}" for key, value in request.GET.items()
+                    ),
+                    query=query,
+                )
             )
 
         if query:

@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions, features
+from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -232,10 +233,11 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     data={"sentry_app": sentry_app.name},
                 )
             analytics.record(
-                "sentry_app.deleted",
-                user_id=request.user.id,
-                organization_id=sentry_app.owner_id,
-                sentry_app=sentry_app.slug,
+                SentryAppDeletedEvent(
+                    user_id=request.user.id,
+                    organization_id=sentry_app.owner_id,
+                    sentry_app=sentry_app.slug,
+                )
             )
             return Response(status=204)
 

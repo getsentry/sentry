@@ -10,6 +10,10 @@ from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
 
 from sentry import analytics
+from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
+from sentry.analytics.events.integration_commit_context_all_frames import (
+    IntegrationsFailedToFetchCommitContextAllFrames,
+)
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.utils.commit_context import (
@@ -121,14 +125,15 @@ def process_commit_context(
                     sdk_name=sdk_name,
                 )
                 analytics.record(
-                    "integrations.failed_to_fetch_commit_context_all_frames",
-                    organization_id=project.organization_id,
-                    project_id=project_id,
-                    group_id=basic_logging_details["group"],
-                    event_id=basic_logging_details["event"],
-                    num_frames=0,
-                    num_successfully_mapped_frames=0,
-                    reason="could_not_find_in_app_stacktrace_frame",
+                    IntegrationsFailedToFetchCommitContextAllFrames(
+                        organization_id=project.organization_id,
+                        project_id=project_id,
+                        group_id=basic_logging_details["group"],
+                        event_id=basic_logging_details["event"],
+                        num_frames=0,
+                        num_successfully_mapped_frames=0,
+                        reason="could_not_find_in_app_stacktrace_frame",
+                    )
                 )
 
                 return
@@ -227,14 +232,15 @@ def process_commit_context(
                 },
             )
             analytics.record(
-                "groupowner.assignment",
-                organization_id=project.organization_id,
-                project_id=project.id,
-                group_id=group_id,
-                new_assignment=created,
-                user_id=group_owner.user_id,
-                group_owner_type=group_owner.type,
-                method="scm_integration",
+                GroupOwnerAssignment(
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    group_id=group_id,
+                    new_assignment=created,
+                    user_id=group_owner.user_id,
+                    group_owner_type=group_owner.type,
+                    method="scm_integration",
+                )
             )
     except UnableToAcquireLock:
         pass

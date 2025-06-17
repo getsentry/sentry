@@ -10,6 +10,10 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, features, options
 from sentry import ratelimits as ratelimiter
+from sentry.analytics.events.data_consent_org_creation import (
+    AggregatedDataConsentOrganizationCreatedEvent,
+)
+from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -276,9 +280,9 @@ class OrganizationIndexEndpoint(Endpoint):
             )
 
             analytics.record(
-                "organization.created",
-                org,
-                actor_id=request.user.id if request.user.is_authenticated else None,
+                OrganizationCreatedEvent(
+                    actor_id=request.user.id if request.user.is_authenticated else None,
+                )
             )
 
         # TODO(hybrid-cloud): We'll need to catch a more generic error
@@ -301,8 +305,9 @@ class OrganizationIndexEndpoint(Endpoint):
             org.update_option("sentry:aggregated_data_consent", True)
 
             analytics.record(
-                "aggregated_data_consent.organization_created",
-                organization_id=org.id,
+                AggregatedDataConsentOrganizationCreatedEvent(
+                    organization_id=org.id,
+                )
             )
 
         # New organizations should not see the legacy UI

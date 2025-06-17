@@ -1,3 +1,5 @@
+from sentry.issues.analytics import IssueForecastSaved
+
 """
 This module is for helper functions for escalating issues forecasts.
 """
@@ -49,7 +51,7 @@ def save_forecast_per_group(
                 "save_forecast_per_group",
                 extra={"group_id": group_id, "group_counts": group_count},
             )
-    analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
+    analytics.record(IssueForecastSaved(num_groups=len(group_counts.keys())))
 
 
 def generate_and_save_forecasts(groups: Iterable[Group]) -> None:

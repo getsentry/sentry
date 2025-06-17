@@ -25,6 +25,8 @@ from snuba_sdk import (
 )
 
 from sentry import analytics
+from sentry.analytics.events.eventuser_snuba_for_projects import EventUserSnubaForProjects
+from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -233,13 +235,14 @@ class EventUser:
             query_end_time = time.time()
 
             analytics.record(
-                "eventuser_snuba.query",
-                project_ids=[p.id for p in projects],
-                query=query.print(),
-                query_try=tries,
-                count_rows_returned=len(data_results),
-                count_rows_filtered=len(data_results) - len(unique_event_users),
-                query_time_ms=int((query_end_time - query_start_time) * 1000),
+                EventUserSnubaQuery(
+                    project_ids=[p.id for p in projects],
+                    query=query.print(),
+                    query_try=tries,
+                    count_rows_returned=len(data_results),
+                    count_rows_filtered=len(data_results) - len(unique_event_users),
+                    query_time_ms=int((query_end_time - query_start_time) * 1000),
+                )
             )
             tries += 1
             if (
@@ -252,11 +255,12 @@ class EventUser:
 
         end_time = time.time()
         analytics.record(
-            "eventuser_snuba.for_projects",
-            project_ids=[p.id for p in projects],
-            total_tries=tries,
-            total_rows_returned=len(full_results),
-            total_time_ms=int((end_time - start_time) * 1000),
+            EventUserSnubaForProjects(
+                project_ids=[p.id for p in projects],
+                total_tries=tries,
+                total_rows_returned=len(full_results),
+                total_time_ms=int((end_time - start_time) * 1000),
+            )
         )
 
         if result_limit:

@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.integrations.analytics import IntegrationStacktraceLinkEvent
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.services.integration import integration_service
@@ -175,15 +176,16 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         if result["current_config"] and serialized_config:
             analytics.record(
-                "integration.stacktrace.linked",
-                provider=serialized_config["provider"]["key"],
-                config_id=serialized_config["id"],
-                project_id=project.id,
-                organization_id=project.organization_id,
-                filepath=filepath,
-                status=error or "success",
-                link_fetch_iterations=result["iteration_count"],
-                platform=ctx["platform"],
+                IntegrationStacktraceLinkEvent(
+                    provider=serialized_config["provider"]["key"],
+                    config_id=serialized_config["id"],
+                    project_id=project.id,
+                    organization_id=project.organization_id,
+                    filepath=filepath,
+                    status=error or "success",
+                    link_fetch_iterations=result["iteration_count"],
+                    platform=ctx["platform"],
+                )
             )
             return Response(
                 {
