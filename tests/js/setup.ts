@@ -72,7 +72,7 @@ jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');
 jest.mock('getsentry/utils/trackMetric');
 
-jest.mock('sentry/utils/testableLocation', () => ({
+jest.mock('sentry/utils/testableWindowLocation', () => ({
   /**
    * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
    * instead of mocking properties on the testableLocation object.
