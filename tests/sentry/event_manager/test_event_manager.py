@@ -2136,14 +2136,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             attachment_cache.set(cache_key, attachments=[a1, a2])
 
             mock_track_outcome = mock.Mock(wraps=track_outcome)
-            with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-                with self.feature("organizations:event-attachments"):
-                    with self.tasks():
-                        with self.feature("organizations:grouptombstones-hit-counter"):
-                            with pytest.raises(HashDiscarded):
-                                manager.save(
-                                    self.project.id, cache_key=cache_key, has_attachments=True
-                                )
+            with (
+                mock.patch("sentry.event_manager.track_outcome", mock_track_outcome),
+                self.feature("organizations:event-attachments"),
+                self.feature("organizations:grouptombstones-hit-counter"),
+                self.tasks(),
+                pytest.raises(HashDiscarded),
+            ):
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
             assert mock_track_outcome.call_count == 3
 
