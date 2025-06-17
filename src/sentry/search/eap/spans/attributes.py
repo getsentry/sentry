@@ -48,12 +48,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             validator=[is_empty_string, is_span_id],
         ),
         ResolvedAttribute(
-            public_alias="name",
+            public_alias="span.name",
             internal_name="sentry.name",
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="kind",
+            public_alias="span.kind",
             internal_name="sentry.kind",
             search_type="string",
         ),
