@@ -154,8 +154,9 @@ describe('EventTagsTree', function () {
       HTMLElement & {parentElement: HTMLAnchorElement}
     >(releaseVersion);
     const anchorLink = versionText.parentElement;
+    // Release links are opened in the Release Drawer
     expect(anchorLink.href).toContain(
-      `/organizations/${organization.slug}/releases/${releaseVersion}/`
+      `/mock-pathname/?rd=show&rdRelease=${releaseVersion}&rdSource=release-version-link`
     );
     expect(reposRequest).toHaveBeenCalled();
     expect(releasesRequest).toHaveBeenCalled();

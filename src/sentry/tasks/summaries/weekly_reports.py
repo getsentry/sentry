@@ -121,7 +121,13 @@ def schedule_organizations(
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=reports_tasks,
+        processing_deadline_duration=60 * 10,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 @retry
 def prepare_organization_report(

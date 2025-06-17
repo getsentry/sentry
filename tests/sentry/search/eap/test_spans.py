@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
@@ -138,9 +139,11 @@ class SearchResolverQueryTest(TestCase):
             where, having, _ = self.resolver.resolve_query("timestamp:-24h")
             assert where == TraceItemFilter(
                 comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_STRING),
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
                     op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
-                    value=AttributeValue(val_str="2018-12-10 10:20:00+00:00"),
+                    value=AttributeValue(
+                        val_double=datetime.fromisoformat("2018-12-10 10:20:00+00:00").timestamp()
+                    ),
                 )
             )
             assert having is None

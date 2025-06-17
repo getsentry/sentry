@@ -251,19 +251,14 @@ export const pickBarColor = (input: string | undefined, theme: Theme): string =>
 
   if (!input || input.length < 3) {
     const colors = theme.chart.getColorPalette(17);
-    return colors[4]!;
+    return colors[4];
   }
 
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  if (barColors[input]) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return barColors[input];
+  if (input in barColors) {
+    return barColors[input as keyof typeof barColors];
   }
 
-  const colorsAsArray = Object.keys(theme.chart.colors[17]).map(
-    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-    key => theme.chart.colors[17][key]
-  );
+  const colorsAsArray = Object.values(theme.chart.colors[17]);
 
   const letterIndex1 = getLetterIndex(input[0]!);
   const letterIndex2 = getLetterIndex(input[1]!);
@@ -272,7 +267,7 @@ export const pickBarColor = (input: string | undefined, theme: Theme): string =>
 
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length
-  ];
+  ]!;
 };
 
 export const lightenBarColor = (

@@ -21,7 +21,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  NAV_SIDEBAR_OPEN_DELAY_MS,
+  NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -165,7 +165,7 @@ export function SidebarMenu({
 }
 
 function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
-  const {isCollapsed, activePrimaryNavGroup, setActivePrimaryNavGroup} = useNavContext();
+  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
 
   // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -175,16 +175,14 @@ function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
         clearTimeout(timeoutRef.current);
       }
 
-      // Setting the nav group immediately when there isn't already a selection
-      // ensures that the correct menu is immediately shown when the sidebar expands
-      if (!activePrimaryNavGroup && isCollapsed) {
+      if (isCollapsed && !collapsedNavIsOpen) {
         setActivePrimaryNavGroup(group);
         return;
       }
 
       timeoutRef.current = setTimeout(() => {
         setActivePrimaryNavGroup(group);
-      }, NAV_SIDEBAR_OPEN_DELAY_MS);
+      }, NAV_SIDEBAR_PREVIEW_DELAY_MS);
     },
     onHoverEnd: () => {
       if (timeoutRef.current) {

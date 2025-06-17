@@ -539,10 +539,12 @@ export const TourAction = styled(Button)`
   `}
 `;
 
-export const TextTourAction = styled(Button)`
-  border: 0;
+function TransparentButton(props: React.ComponentProps<typeof Button>) {
+  return <Button {...props} priority="transparent" borderless />;
+}
+
+export const TextTourAction = styled(TransparentButton)`
   box-shadow: none;
-  background: transparent;
   color: ${p => p.theme.tour.previous};
   &:hover,
   &:active,

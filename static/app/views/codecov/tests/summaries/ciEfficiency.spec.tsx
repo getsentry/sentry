@@ -23,7 +23,7 @@ describe('CIEfficiency', () => {
     expect(formattedSlowestTests).toBeInTheDocument();
     expect(formattedSlowestTests).toHaveAttribute(
       'href',
-      '/mock-pathname/?f_b_type=slowest_tests'
+      '/mock-pathname/?filterBy=slowestTests'
     );
   });
 

@@ -106,7 +106,7 @@ function CIEfficiencyBody({
         >
           {t('Slowest Tests (P95)')}
         </SummaryEntryLabel>
-        <SummaryEntryValueLink filterBy="slowest_tests">
+        <SummaryEntryValueLink filterBy="slowestTests">
           {formatTimeDuration(slowestTestsDuration, 2)}
         </SummaryEntryValueLink>
       </SummaryEntry>

@@ -32,7 +32,7 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 
 @dataclass
-class MetricIssueEvidenceData(EvidenceData):
+class MetricIssueEvidenceData(EvidenceData[float]):
     alert_id: int
 
 

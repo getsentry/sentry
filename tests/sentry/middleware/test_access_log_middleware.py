@@ -132,7 +132,7 @@ access_log_fields = (
 )
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_access_log_middleware")
+@override_settings(ROOT_URLCONF=__name__)
 @override_settings(LOG_API_ACCESS=True)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
