@@ -146,6 +146,7 @@ x-sentry-service-config:
         process-spans,
         ingest-occurrences,
         process-segments,
+        worker,
       ]
     profiling: [postgres, snuba, vroom, spotlight]
     ingest:
