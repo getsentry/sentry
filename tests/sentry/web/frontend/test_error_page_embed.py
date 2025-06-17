@@ -3,7 +3,6 @@ from unittest import mock
 from urllib.parse import quote, urlencode
 from uuid import uuid4
 
-from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.environment import Environment
@@ -13,7 +12,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.types.region import get_local_region
 
 
-@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -202,7 +200,6 @@ class ErrorPageEmbedTest(TestCase):
         assert not UserReport.objects.exists()
 
 
-@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedEnvironmentTest(TestCase):
     def setUp(self):
         self.project = self.create_project()

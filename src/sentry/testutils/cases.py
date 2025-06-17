@@ -424,7 +424,6 @@ class BaseTestCase(Fixtures):
         return uuid
 
 
-@override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
