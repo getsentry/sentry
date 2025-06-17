@@ -3,10 +3,16 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export function defaultFields(organization?: Organization): string[] {
   if (organization?.features.includes('performance-otel-friendly-ui')) {
-    return ['id', 'name', 'span.duration', 'timestamp'];
+    return [
+      SpanFields.ID,
+      SpanFields.NAME,
+      SpanFields.SPAN_DURATION,
+      SpanFields.TIMESTAMP,
+    ];
   }
 
   return [
