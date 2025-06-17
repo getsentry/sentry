@@ -373,7 +373,7 @@ const appConfig: Configuration = {
      * TODO(epurkhiser): Figure out if we still need these
      */
     new rspack.ProvidePlugin({
-      process: 'process/browser.js',
+      process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
     }),
 
