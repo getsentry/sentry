@@ -254,7 +254,6 @@ const Cell = styled('div')`
   align-items: center;
   justify-content: flex-end;
   padding: ${space(1)};
-  min-width: 125px;
 `;
 
 const SmallNumberField = styled(NumberField)`
