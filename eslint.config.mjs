@@ -216,7 +216,6 @@ export default typescript.config([
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
-    '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
     'tests/**/fixtures/**/*',

@@ -85,7 +85,6 @@ interface BaseField {
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
   saveOnBlur?: boolean;
-  selectionInfoFunction?: (props: any) => React.ReactNode;
 
   setValue?: (value: FieldValue, props?: any) => any;
 

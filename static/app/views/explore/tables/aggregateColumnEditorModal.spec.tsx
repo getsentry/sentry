@@ -180,7 +180,10 @@ describe('AggregateColumnEditorModal', function () {
       new Visualize(['count(span.duration)']),
     ]);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add a Group By'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Group By / Attribute'})
+    );
 
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
@@ -189,7 +192,10 @@ describe('AggregateColumnEditorModal', function () {
       {groupBy: ''},
     ]);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add an Aggregation'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Visualize / Function'})
+    );
 
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([

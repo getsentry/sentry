@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 
 import {IconIntegratedOrg} from './iconIntegratedOrg';
 
-const SAMPLE_ORG_ITEMS = ['codecov', 'sentry', 'my-other-org-with-a-super-long-name'];
+const SAMPLE_ORG_ITEMS = ['codecov', 'getsentry'];
 
 function AddIntegratedOrgButton() {
   return (

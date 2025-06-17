@@ -1634,6 +1634,15 @@ export function prettifyParsedFunction(func: ParsedFunction) {
   ) {
     return 'count(spans)';
   }
+
+  if (
+    func.name === 'count' &&
+    func.arguments.length === 1 &&
+    func.arguments[0] === 'message'
+  ) {
+    return 'count(logs)';
+  }
+
   const args = func.arguments.map(prettifyTagKey);
   return `${func.name}(${args.join(',')})`;
 }

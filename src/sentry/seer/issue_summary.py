@@ -10,10 +10,14 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, options, quotas, ratelimits
+from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.autofix.utils import SeerAutomationSource, get_autofix_state
+from sentry.autofix.utils import (
+    SeerAutomationSource,
+    get_autofix_state,
+    is_seer_autotriggered_autofix_rate_limited,
+)
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
@@ -307,24 +311,25 @@ def _run_automation(
 
     if _is_issue_fixable(group, issue_summary.scores.fixability_score):
 
-        # Rate limit auto-triggered autofix runs to prevent giant bills.
-        if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-            limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
-            is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
-                project=project,
-                key="autofix.auto_triggered",
-                limit=limit,
-                window=60 * 60,  # 1 hour
+        is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
+            project, organization
+        )
+        if is_rate_limited:
+            sentry_sdk.set_tags(
+                {
+                    "auto_run_count": current,
+                    "auto_run_limit": limit,
+                }
             )
-            if is_rate_limited:
-                sentry_sdk.set_tags(
-                    {
-                        "auto_run_count": current,
-                        "auto_run_limit": limit,
-                    }
-                )
-                logger.error("Autofix auto-trigger rate limit hit")
-                return
+            logger.error("Autofix auto-trigger rate limit hit")
+            return
+
+        has_budget: bool = quotas.backend.has_available_reserved_budget(
+            org_id=group.organization.id,
+            data_category=DataCategory.SEER_AUTOFIX,
+        )
+        if not has_budget:
+            return
 
         with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
             autofix_state = get_autofix_state(group_id=group_id)
@@ -391,15 +396,6 @@ def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     )
 
 
-def _has_seer_scanner_budget(group: Group, source: SeerAutomationSource) -> bool:
-    if source == SeerAutomationSource.ISSUE_DETAILS:
-        return True
-
-    return quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-
-
 def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
@@ -425,9 +421,6 @@ def get_issue_summary(
 
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
-
-    if not _has_seer_scanner_budget(group, source):
-        return {"detail": "No budget for Seer Scanner."}, 402
 
     cache_key = f"ai-group-summary-v2:{group.id}"
     lock_key = f"ai-group-summary-v2-lock:{group.id}"
