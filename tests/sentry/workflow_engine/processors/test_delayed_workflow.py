@@ -13,6 +13,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
+from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
 from sentry.testutils.helpers import override_options, with_feature
@@ -352,6 +353,36 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         comparison_query_dict["comparison_interval"] = "1w"
         expected_comparison_query = UniqueConditionQuery(**comparison_query_dict)
         assert percent_queries[1] == expected_comparison_query
+
+    def test_generate_unique_queries__filters_hashable(self):
+        dc = self.create_data_condition(
+            condition_group=self.create_data_condition_group(
+                logic_type=DataConditionGroup.Type.ALL
+            ),
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+                "filters": [
+                    {
+                        "key": "http.method",
+                        "match": MatchType.IS_IN,
+                        "value": "GET,POST",
+                    }
+                ],
+            },
+            condition_result=True,
+        )
+        queries = generate_unique_queries(dc, None)
+        [hash(query) for query in queries]  # shouldn't raise
+        assert len(queries) == 1
+        assert queries[0].filters == [
+            {
+                "key": "http.method",
+                "match": MatchType.IS_IN,
+                "value": "GET,POST",
+            }
+        ]
 
     def test_generate_unique_queries__invalid(self):
         dc = self.create_data_condition(
@@ -881,14 +912,16 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         assert data == {}
 
     @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.delay")
+    @patch(
+        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.apply_async"
+    )
     def test_batched_cleanup(self, mock_process_delayed):
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
         process_in_batches(self.project.id, "delayed_workflow")
-        batch_one_key = mock_process_delayed.call_args_list[0][0][1]
-        batch_two_key = mock_process_delayed.call_args_list[1][0][1]
+        batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
+        batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify we removed the data from the buffer
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})

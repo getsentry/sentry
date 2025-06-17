@@ -22,6 +22,7 @@ export default Storybook.story('LinkButton', (story, APIReference) => {
       disabled: [false, true],
       external: [false, true],
       title: [undefined, 'Delete this'],
+      href: ['#'],
     };
 
     return (
