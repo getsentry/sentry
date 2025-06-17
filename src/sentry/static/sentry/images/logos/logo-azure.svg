@@ -1,1 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><path fill="#0078d4" d="M0 29.3 7.7 19l26.5-7.5V0l28.6 17.1-51.5 10.6v29.4L0 52V29.3z"/><path fill="#0078d4" d="M62.9 17.1v44l-51.6-4L28.5 80V68.5l31 11.5L80 63.5v-49L62.9 17z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 80 80">
+  <path fill="url(#logo-azure-a)" d="M28.4 7.2H49L27.6 70.6a3.3 3.3 0 0 1-3.1 2.2h-16a3.3 3.3 0 0 1-3.2-4.3l20-59a3.3 3.3 0 0 1 3-2.3Z"/>
+  <path fill="#0078D4" d="M58.3 49.7H25.7a1.5 1.5 0 0 0-1 2.6l21 19.6c.5.6 1.3 1 2.2 1h18.5l-8-23.2Z"/>
+  <path fill="url(#logo-azure-b)" d="M28.4 7.2a3.3 3.3 0 0 0-3.1 2.3l-20 59a3.3 3.3 0 0 0 3.2 4.3h16.4a3.5 3.5 0 0 0 2.7-2.3l4-11.7L45.8 72c.6.5 1.3.8 2 .8h18.5l-8-23H34.6L49 7.1H28.4Z"/>
+  <path fill="url(#logo-azure-c)" d="M54.7 9.4a3.3 3.3 0 0 0-3-2.2h-23a3.3 3.3 0 0 1 3 2.2l20 59a3.3 3.3 0 0 1-3.1 4.4h23a3.3 3.3 0 0 0 3-4.3l-19.9-59Z"/>
+  <defs>
+    <linearGradient id="logo-azure-a" x1="35.9" x2="14.5" y1="12" y2="75.3" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#114A8B"/>
+      <stop offset="1" stop-color="#0669BC"/>
+    </linearGradient>
+    <linearGradient id="logo-azure-b" x1="42.6" x2="37.6" y1="41.5" y2="43.2" gradientUnits="userSpaceOnUse">
+      <stop stop-opacity=".3"/>
+      <stop offset=".1" stop-opacity=".2"/>
+      <stop offset=".3" stop-opacity=".1"/>
+      <stop offset=".6" stop-opacity=".1"/>
+      <stop offset="1" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="logo-azure-c" x1="39.9" x2="63.4" y1="10.2" y2="72.8" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3CCBF4"/>
+      <stop offset="1" stop-color="#2892DF"/>
+    </linearGradient>
+  </defs>
+</svg>

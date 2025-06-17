@@ -1,1 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><path d="M75.61 21.77A40 40 0 0 1 40 80h-2v-.16l16.42-28.27A18.48 18.48 0 0 0 56.14 31l19.33-9.11z" fill="#b0ccfc"/><path d="m75.61 21.77-.14.08-32.53-.13A19 19 0 0 0 40 21.5a18.49 18.49 0 0 0-15.9 9L6.54 18.34l-.12-.08a40 40 0 0 1 69.19 3.51z" fill="#275aaf"/><path d="M75.47 21.85 56.14 31a18.54 18.54 0 0 0-13.2-9.23z" fill="#a7bee6"/><path d="M56.14 31A18.52 18.52 0 0 1 40 58.49h-.25a18.49 18.49 0 0 1 .25-37 19 19 0 0 1 2.94.23A18.54 18.54 0 0 1 56.14 31zm-1.79 9A14.36 14.36 0 1 0 40 54.35 14.36 14.36 0 0 0 54.35 40z" fill="#fff"/><path d="M54.42 51.57 38 79.79l1.78-21.3H40a18.38 18.38 0 0 0 14.41-6.93z" fill="#3375e6"/><path d="M40 25.64A14.36 14.36 0 1 1 25.64 40 14.36 14.36 0 0 1 40 25.64z" fill="#377eef"/><path d="M39.75 58.48 38 79.79V80A40 40 0 0 1 6.42 18.26l.12.08 16.2 28.34a18.49 18.49 0 0 0 17.01 11.8z" fill="#548ded"/><path d="M6.54 18.34 24.1 30.53a18.57 18.57 0 0 0-1.36 16.15z" fill="#20498d"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 80 80">
+  <path fill="url(#logo-chromium-a)" d="m40 40 15.6 9L40 76a36 36 0 0 0 31.2-54H40v18Z"/>
+  <path fill="url(#logo-chromium-b)" d="M40 4A36 36 0 0 0 8.8 22l15.6 27L40 40V22h31.2A36 36 0 0 0 40 4Z"/>
+  <path fill="url(#logo-chromium-c)" d="M4 40a36 36 0 0 0 36 36l15.6-27L40 40l-15.6 9L8.8 22C5.8 27.3 4 33.4 4 40"/>
+  <path fill="#fff" d="M58 40a18 18 0 1 1-36 0 18 18 0 0 1 36 0Z"/>
+  <path fill="url(#logo-chromium-d)" d="M54.6 40a14.6 14.6 0 1 1-29.2 0 14.6 14.6 0 0 1 29.2 0Z"/>
+  <defs>
+    <linearGradient id="logo-chromium-a" x1="58.1" x2="58" y1="21.9" y2="76" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#AFCCFB"/>
+      <stop offset="1" stop-color="#8BB5F8"/>
+    </linearGradient>
+    <linearGradient id="logo-chromium-b" x1="34.8" x2="37.8" y1="4.5" y2="52.9" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1972E7"/>
+      <stop offset="1" stop-color="#1969D5"/>
+    </linearGradient>
+    <linearGradient id="logo-chromium-c" x1="29.8" x2="29.8" y1="22" y2="76" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#659CF6"/>
+      <stop offset="1" stop-color="#4285F4"/>
+    </linearGradient>
+    <linearGradient id="logo-chromium-d" x1="39.9" x2="40" y1="25.4" y2="54.6" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3680F0"/>
+      <stop offset="1" stop-color="#2678EC"/>
+    </linearGradient>
+  </defs>
+</svg>

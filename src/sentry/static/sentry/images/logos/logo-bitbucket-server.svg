@@ -1,1 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 10 60 60"><defs><linearGradient id="a" x1="71.6" y1="36.1" x2="41.8" y2="59.4" gradientUnits="userSpaceOnUse"><stop offset=".2" stop-color="#344563"/><stop offset="1" stop-color="#7a869a"/></linearGradient></defs><path fill="none" d="M33.8 48.9h12.6l3-17.7h-19l3.4 17.7z"/><path d="M12 13a2 2 0 0 0-1.9 2.3l8.1 49.6a2.6 2.6 0 0 0 2.6 2.1H60a2 2 0 0 0 1.9-1.6L70 15.3a2 2 0 0 0-1.9-2.2zM46.4 49H33.8l-3.3-17.7h18.9z" fill="#7a869a"/><path d="M67.4 31.2h-18l-3 17.7H33.8L19.1 66.4a2.6 2.6 0 0 0 1.7.6H60a2 2 0 0 0 1.9-1.6z" fill="url(#a)"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 80 80">
+  <path fill="#7A869A" d="M6.8 8a2.3 2.3 0 0 0-2.2 2.6l9.6 58.6a3 3 0 0 0 3 2.6h46.3a2.3 2.3 0 0 0 2.3-2l9.6-59.2A2.3 2.3 0 0 0 73.2 8H6.8Zm40.7 42.3H32.7l-4-20.9H51l-3.5 21Z"/>
+  <path fill="url(#logo-bitbucket-server-a)" d="M72.3 29.4H51l-3.6 20.9H32.7L15.2 71a3 3 0 0 0 2 .7h46.3a2.3 2.3 0 0 0 2.2-1.9l6.6-40.4Z"/>
+  <defs>
+    <linearGradient id="logo-bitbucket-server-a" x1="77.3" x2="42.1" y1="35.2" y2="62.7" gradientUnits="userSpaceOnUse">
+      <stop offset=".2" stop-color="#344563"/>
+      <stop offset="1" stop-color="#7A869A"/>
+    </linearGradient>
+  </defs>
+</svg>
