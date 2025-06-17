@@ -174,3 +174,11 @@ def test_convert_span_to_item():
             )
         ),
     }
+
+
+def test_convert_falsy_fields():
+    message = {**SPAN_KAFKA_MESSAGE, "duration_ms": 0}
+
+    item = convert_span_to_item(cast(Span, message))
+
+    assert item.attributes.get("sentry.duration_ms") == AnyValue(int_value=0)
