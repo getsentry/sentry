@@ -58,11 +58,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="status",
-            internal_name="sentry.status",
-            search_type="string",
-        ),
-        ResolvedAttribute(
             public_alias="span.action",
             internal_name="sentry.action",
             search_type="string",
