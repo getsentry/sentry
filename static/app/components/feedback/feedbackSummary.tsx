@@ -6,11 +6,18 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSummary() {
-  const {error, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
+  const {isError, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
 
-  if (error) {
+  const organization = useOrganization();
+
+  if (!organization.features.includes('user-feedback-ai-summaries')) {
+    return null;
+  }
+
+  if (isError) {
     return <LoadingError message={t('There was an error loading the summary')} />;
   }
 
@@ -23,17 +30,13 @@ export default function FeedbackSummary() {
   }
 
   return (
-    <Summary>
-      <SummaryIconContainer>
-        <div>
-          <IconSeer size="xs" />
-        </div>
-        <SummaryContainer>
-          <SummaryHeader>{t('Feedback Summary')}</SummaryHeader>
-          <SummaryContent>{summary}</SummaryContent>
-        </SummaryContainer>
-      </SummaryIconContainer>
-    </Summary>
+    <SummaryIconContainer>
+      <IconSeer size="xs" />
+      <SummaryContainer>
+        <SummaryHeader>{t('Feedback Summary')}</SummaryHeader>
+        <SummaryContent>{summary}</SummaryContent>
+      </SummaryContainer>
+    </SummaryIconContainer>
   );
 }
 
@@ -56,14 +59,12 @@ const SummaryContent = styled('p')`
   margin: 0;
 `;
 
-const Summary = styled('div')`
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
 const SummaryIconContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  padding: ${space(2)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  align-items: baseline;
 `;

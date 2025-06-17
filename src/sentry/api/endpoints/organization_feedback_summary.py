@@ -61,7 +61,16 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 default_stats_period=timedelta(days=7),
             )
         except InvalidParams:
+            # print("wat is going on, there is an error in parsing the date range bruh GG")
             raise ParseError(detail="Invalid or missing date range")
+
+        # return Response(
+        #     {
+        #         "summary": f"Let's pass the start and end dates to the summary just to see if they are being parsed properly! Start: {start.strftime("%b %d, %Y %I:%M %p")}, End: {end.strftime("%b %d, %Y %I:%M %p")}. Also, these are the projects: {[p.name for p in self.get_projects(request, organization)]}",
+        #         "success": True,
+        #         "numFeedbacksUsed": 10,
+        #     }
+        # )
 
         filters = {
             "type": FeedbackGroup.type_id,
