@@ -3,7 +3,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {PlatformList} from 'sentry/components/platformList';
 import type {AvatarProject} from 'sentry/types/project';
 
-export interface ProjectAvatarProps extends BaseAvatarProps {
+interface ProjectAvatarProps extends BaseAvatarProps {
   project: AvatarProject;
   direction?: 'left' | 'right';
   ref?: React.Ref<HTMLDivElement>;
