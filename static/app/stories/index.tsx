@@ -2,7 +2,7 @@ export {JSXNode, JSXProperty} from './jsx';
 export {APIReference} from './apiReference';
 export {Demo} from './demo';
 export {PropMatrix} from './props';
-export {Section, Title} from './layout';
+export {Section} from './layout';
 export {SideBySide} from './layout';
 export {SizingWindow, Grid} from './layout';
 export {story} from './storybook';

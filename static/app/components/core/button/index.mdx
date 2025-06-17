@@ -30,9 +30,10 @@ import {
   IconStar,
   IconZoom,
 } from 'sentry/icons';
-import {Demo} from 'sentry/stories/demo';
+import * as Storybook from 'sentry/stories';
 
 import types from '!!type-loader!sentry/components/core/button/index';
+
 export {types};
 
 To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
@@ -45,13 +46,13 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 
 Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, and `transparent`.
 
-<Demo>
+<Storybook.Demo>
   <Button priority="muted">Muted (default)</Button>
   <Button priority="primary">Primary</Button>
   <Button priority="warning">Warning</Button>
   <Button priority="danger">Danger</Button>
   <Button priority="transparent">Transparent</Button>
-</Demo>
+</Storybook.Demo>
 ```jsx
 <Button priority="muted">Muted (default)</Button>
 <Button priority="primary">Primary</Button>
@@ -64,12 +65,12 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
 
 Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`.
 
-<Demo>
+<Storybook.Demo>
   <Button size="md">Medium (default)</Button>
   <Button size="sm">Small</Button>
   <Button size="xs">Extra small</Button>
   <Button size="zero">Zero</Button>
-</Demo>
+</Storybook.Demo>
 ```jsx
 <Button size="md">Medium (default)</Button>
 <Button size="sm">Small</Button>
@@ -81,11 +82,11 @@ Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`
 
 Buttons support an optional leading icon.
 
-<Demo>
+<Storybook.Demo>
   <Button icon={<IconAdd />} priority="primary">
     Add
   </Button>
-</Demo>
+</Storybook.Demo>
 ```jsx
 <Button icon={<IconAdd />} priority="primary">
   Add
