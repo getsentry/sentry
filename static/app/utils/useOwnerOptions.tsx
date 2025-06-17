@@ -64,7 +64,7 @@ export function useOwnerOptions({
     team => {
       if (
         memberOfProjectSlugs &&
-        !team.projects.some(({slug}) => memberOfProjectSlugs.includes(slug))
+        !(team.projects?.some(({slug}) => memberOfProjectSlugs.includes(slug)) ?? false)
       ) {
         return 'disabledTeams';
       }
