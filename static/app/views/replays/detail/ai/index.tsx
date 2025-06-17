@@ -19,8 +19,13 @@ interface Props {
 }
 
 interface SummaryResponse {
-  summary: string;
+  data: {
+    summary: string;
+    time_ranges: Array<{period_end: string; period_start: string; period_title: string}>;
+    title: string;
+  };
 }
+
 
 function createAISummaryQueryKey(
   orgSlug: string,
@@ -71,7 +76,7 @@ export default function Ai({replayRecord}: Props) {
 
     return (
       <SummaryContainer>
-        <SummaryText>{summaryData.summary}</SummaryText>
+        <SummaryText>{summaryData.data.summary}</SummaryText>
       </SummaryContainer>
     );
   };
