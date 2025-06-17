@@ -49,7 +49,6 @@ interface AvatarChooserProps {
   disabled?: boolean;
   help?: React.ReactNode;
   onSave?: (model: Model) => void;
-  savedDataUrl?: string;
   title?: string;
   type?: AvatarChooserType;
   uploadDomain?: string;
@@ -59,7 +58,6 @@ function AvatarChooser(props: AvatarChooserProps) {
   const {
     endpoint,
     model: propsModel,
-    savedDataUrl,
     disabled,
     title,
     help,
@@ -204,7 +202,6 @@ function AvatarChooser(props: AvatarChooserProps) {
                 {...props}
                 type={type}
                 model={model}
-                savedDataUrl={savedDataUrl}
                 uploadDomain={uploadDomain ?? ''}
                 updateDataUrlState={({dataUrl: newDataUrl}) =>
                   setNewAvatar(newDataUrl ?? null)
