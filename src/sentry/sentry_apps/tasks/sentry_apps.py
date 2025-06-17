@@ -346,15 +346,13 @@ def _process_resource_change(
                 )
                 if event in installation.sentry_app.events
             ]
-            data: dict[str, Any] | WebhookGroupResponse = {}
+            data: dict[str, Any] = {}
             if isinstance(instance, (Event, GroupEvent)):
                 assert instance.group_id, "group id is required to create webhook event data"
                 data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
             elif isinstance(instance, Group):
                 serialized_group = serialize(instance)
                 data[name] = _webhook_issue_data(group=instance, serialized_group=serialized_group)
-            else:
-                data[name] = serialize(instance)
 
             # Datetimes need to be string cast for task payloads.
             for date_key in ("datetime", "firstSeen", "lastSeen"):
