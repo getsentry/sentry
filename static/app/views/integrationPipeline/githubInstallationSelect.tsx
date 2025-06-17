@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 type Installation = {
   avatar_url: string;

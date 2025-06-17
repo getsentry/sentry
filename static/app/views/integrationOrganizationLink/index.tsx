@@ -24,7 +24,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';

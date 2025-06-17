@@ -7,7 +7,7 @@ import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import useOrganization from './useOrganization';

@@ -12,7 +12,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization as TOrganization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {

@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {OrganizationCrumb} from './organizationCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';

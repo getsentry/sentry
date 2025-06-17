@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 

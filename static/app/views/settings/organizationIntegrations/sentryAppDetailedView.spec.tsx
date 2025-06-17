@@ -9,7 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
 const mockNavigate = jest.fn();

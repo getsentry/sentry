@@ -10,7 +10,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 
 function setupConfigStore(organization: Organization) {

@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 describe('fetchOrganizations', function () {
   const api = new MockApiClient();

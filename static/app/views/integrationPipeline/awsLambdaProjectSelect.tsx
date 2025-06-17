@@ -13,7 +13,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';

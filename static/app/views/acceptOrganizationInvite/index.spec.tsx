@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {logout} from 'sentry/actionCreators/account';
 import ConfigStore from 'sentry/stores/configStore';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
 jest.mock('sentry/actionCreators/account');

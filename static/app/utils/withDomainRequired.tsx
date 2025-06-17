@@ -3,7 +3,7 @@ import trimStart from 'lodash/trimStart';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within

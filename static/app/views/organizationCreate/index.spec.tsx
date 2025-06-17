@@ -5,7 +5,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocation} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationCreate, {
   DATA_STORAGE_DOCS_LINK,
 } from 'sentry/views/organizationCreate';
