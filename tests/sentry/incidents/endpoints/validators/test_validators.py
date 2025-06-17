@@ -113,7 +113,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 "dataset": Dataset.Events.value,
                 "query": "test query",
                 "aggregate": "count()",
-                "time_window": 60,
+                "time_window": 3600,
                 "environment": self.environment.name,
                 "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
