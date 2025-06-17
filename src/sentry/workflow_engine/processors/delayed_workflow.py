@@ -106,7 +106,7 @@ class UniqueConditionQuery:
             return None
         return [dict(filter) for filter in self.frozen_filters]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
 
 

@@ -11,9 +11,9 @@ logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
 # TODO - @saponifi3d - change the text choices to an enum
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.
-def process_data_sources(
-    data_packets: list[DataPacket], query_type: str
-) -> list[tuple[DataPacket, list[Detector]]]:
+def process_data_sources[
+    T
+](data_packets: list[DataPacket[T]], query_type: str) -> list[tuple[DataPacket[T], list[Detector]]]:
     metrics.incr("workflow_engine.process_data_sources", tags={"query_type": query_type})
 
     data_packet_ids = {packet.source_id for packet in data_packets}

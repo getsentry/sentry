@@ -48,7 +48,7 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
-def create_issue_platform_payload(result: DetectorEvaluationResult):
+def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
@@ -69,9 +69,11 @@ def create_issue_platform_payload(result: DetectorEvaluationResult):
     )
 
 
-def process_detectors(
-    data_packet: DataPacket, detectors: list[Detector]
-) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+def process_detectors[
+    T
+](data_packet: DataPacket[T], detectors: list[Detector]) -> list[
+    tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
+]:
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:
