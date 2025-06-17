@@ -2,26 +2,23 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import TableWidgetVisualization, {
+  DASHBOARD_TABLE_WIDGET_STYLES,
+} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 type Props = {
   loading: boolean;
   location: Location;
+  organization: Organization;
   selection: PageFilters;
-  transformedResults: TableDataRow[];
+  tableResults: TableDataWithTitle[] | undefined;
   widget: Widget;
   errorMessage?: string;
 };
@@ -31,11 +28,9 @@ export function IssueWidgetCard({
   widget,
   errorMessage,
   loading,
-  transformedResults,
-  location,
+  tableResults,
+  organization,
 }: Props) {
-  const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
-
   if (errorMessage) {
     return (
       <ErrorPanel>
@@ -44,42 +39,22 @@ export function IssueWidgetCard({
     );
   }
 
-  if (loading) {
+  if (loading || !tableResults) {
     // Align height to other charts.
     return <LoadingPlaceholder height="200px" />;
   }
-
-  const query = widget.queries[0]!;
-  const queryFields = defined(query.fields)
-    ? query.fields
-    : [...query.columns, ...query.aggregates];
-  const fieldAliases = query.fieldAliases ?? [];
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
-
-  const getCustomFieldRenderer = (
-    field: string,
-    meta: MetaType,
-    organization?: Organization
-  ) => {
-    return (
-      datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-    );
-  };
-
   return (
-    <StyledSimpleTableChart
-      location={location}
-      title=""
-      eventView={eventView}
-      fields={queryFields}
-      fieldAliases={fieldAliases}
-      loading={loading}
-      metadata={ISSUE_FIELDS}
-      data={transformedResults}
-      getCustomFieldRenderer={getCustomFieldRenderer}
-      fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
-      stickyHeaders
-    />
+    <TableContainer>
+      <TableWidgetVisualization
+        loading={loading}
+        organization={organization}
+        tableResults={tableResults}
+        widget={widget}
+        selection={selection}
+        stickyHeader
+        style={DASHBOARD_TABLE_WIDGET_STYLES}
+      />
+    </TableContainer>
   );
 }
 
@@ -87,10 +62,9 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface300};
 `;
 
-const StyledSimpleTableChart = styled(SimpleTableChart)`
+const TableContainer = styled('div')`
   margin-top: ${space(1.5)};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
+  min-height: 0;
 `;

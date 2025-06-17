@@ -40,7 +40,7 @@ type Props = {
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -161,12 +161,13 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
-                transformedResults={tableResults?.[0]!.data ?? []}
+                tableResults={tableResults}
                 loading={loading}
                 errorMessage={errorOrEmptyMessage}
                 widget={widget}
                 location={location}
                 selection={selection}
+                organization={organization}
               />
             </Fragment>
           );
