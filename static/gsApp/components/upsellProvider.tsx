@@ -98,6 +98,9 @@ function UpsellProvider({
     return null;
   }
 
+  // Don't allow upgrade requests for managed plans
+  const canRequestUpgrade = subscription.canSelfServe && !subscription.isManaged;
+
   const canTrial = subscription.canTrial && !subscription.isTrial;
   const handleRequest = () => {
     const args = {
@@ -107,7 +110,12 @@ function UpsellProvider({
     if (canTrial) {
       return sendTrialRequest(args);
     }
-    return sendUpgradeRequest(args);
+    // Only send upgrade request if the plan is self-serve and not managed
+    if (canRequestUpgrade) {
+      return sendUpgradeRequest(args);
+    }
+    // Return a resolved promise if we can't send a request
+    return Promise.resolve();
   };
 
   let defaultButtonText: string;
@@ -219,7 +227,10 @@ function UpsellProvider({
               }
             } else {
               if (triggerMemberRequests) {
-                handleRequest();
+                // Only handle request if it's a valid action
+                if (canTrial || canRequestUpgrade) {
+                  handleRequest();
+                }
               } else {
                 openUpsellModal({
                   organization,
