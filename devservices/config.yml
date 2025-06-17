@@ -152,6 +152,19 @@ x-sentry-service-config:
         worker,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
+    ingest:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        worker,
+        ingest-events,
+        ingest-transactions,
+        ingest-attachments,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
       ]
     minimal: [postgres, snuba]
     ingest-all:

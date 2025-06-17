@@ -2,11 +2,10 @@ import React, {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {SeerIcon, SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconClose, IconMegaphone, IconSearch, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -42,7 +41,7 @@ interface SeerSearchResults {
 function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
   return (
     <QueryResultsHeader>
-      {loading ? <StyledSeerLoadingIcon /> : <StyledIconSeer />}
+      <IconSeer variant={loading ? 'loading' : 'default'} color="purple300" />
       <QueryResultsTitle>{title}</QueryResultsTitle>
     </QueryResultsHeader>
   );
@@ -153,13 +152,18 @@ export function SeerSearch() {
 
       const {query, visualizations, groupBys, sort, statsPeriod} = result;
 
+      const start = pageFilters.selection.datetime.start?.valueOf();
+      const end = pageFilters.selection.datetime.end?.valueOf();
+
       const selection = {
         ...pageFilters.selection,
         datetime: {
-          start: pageFilters.selection.datetime.start,
-          end: pageFilters.selection.datetime.end,
-          period: statsPeriod,
+          start: start
+            ? new Date(start).toISOString()
+            : pageFilters.selection.datetime.start,
+          end: end ? new Date(end).toISOString() : pageFilters.selection.datetime.end,
           utc: pageFilters.selection.datetime.utc,
+          period: statsPeriod || pageFilters.selection.datetime.period,
         },
       };
       const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
@@ -406,14 +410,6 @@ const QueryResultsTitle = styled('h3')`
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
   margin: 0;
-`;
-
-const StyledIconSeer = styled(SeerIcon)`
-  color: ${p => p.theme.purple300};
-`;
-
-const StyledSeerLoadingIcon = styled(SeerLoadingIcon)`
-  color: ${p => p.theme.purple300};
 `;
 
 const QueryResultItem = styled('div')`

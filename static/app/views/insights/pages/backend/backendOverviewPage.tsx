@@ -7,7 +7,6 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -21,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
@@ -51,11 +51,7 @@ import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/vie
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {
-  useIsNextJsInsightsAvailable,
-  useIsNextJsInsightsEnabled,
-} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -66,7 +62,7 @@ import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const isNewBackendExperienceEnabled = useInsightsEap();
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage />;
@@ -88,7 +84,6 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -201,13 +196,7 @@ function EAPBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={
-          isNextJsInsightsAvailable ? (
-            <NewNextJsExperienceButton />
-          ) : (
-            <EAPExperimentButton />
-          )
-        }
+        headerActions={<EAPExperimentButton />}
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -215,7 +204,7 @@ function EAPBackendOverviewPage() {
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
+                  <InsightsProjectSelector />
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
