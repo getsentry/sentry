@@ -29,7 +29,7 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   GroupActivity,
   type GroupActivityCreateIssue,
   type GroupActivitySetPriority,
