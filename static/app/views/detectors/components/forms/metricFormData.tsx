@@ -56,17 +56,22 @@ interface MetricDetectorDynamicFormData {
   thresholdType: AlertRuleThresholdType;
 }
 
+interface SnubaQueryFormData {
+  aggregate: string;
+  environment: string;
+  query: string;
+  visualize: string;
+}
+
 export interface MetricDetectorFormData
   extends PrioritizeLevelFormData,
     MetricDetectorConditionFormData,
-    MetricDetectorDynamicFormData {
-  aggregate: string;
-  environment: string;
+    MetricDetectorDynamicFormData,
+    SnubaQueryFormData {
   kind: 'static' | 'percent' | 'dynamic';
   name: string;
+  owner: string;
   projectId: string;
-  query: string;
-  visualize: string;
 }
 
 type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
@@ -77,13 +82,16 @@ type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
  */
 export const METRIC_DETECTOR_FORM_FIELDS = {
   // Core detector fields
-  aggregate: 'aggregate',
-  query: 'query',
   kind: 'kind',
-  name: 'name',
-  visualize: 'visualize',
   environment: 'environment',
   projectId: 'projectId',
+  owner: 'owner',
+
+  // Snuba query fields
+  aggregate: 'aggregate',
+  query: 'query',
+  name: 'name',
+  visualize: 'visualize',
 
   // Priority level fields
   initialPriorityLevel: 'initialPriorityLevel',
@@ -125,6 +133,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   environment: '',
   projectId: '',
   name: '',
+  owner: '',
 } satisfies MetricDetectorFormData;
 
 /**
@@ -157,6 +166,7 @@ export interface NewMetricDetector {
   config: DetectorConfig;
   dataSource: NewDataSource; // Single data source object (not array)
   name: string;
+  owner: Detector['owner'];
   projectId: Detector['projectId'];
   type: Detector['type'];
 }
@@ -265,6 +275,7 @@ export function getNewMetricDetectorData(
     name: data.name || 'New Monitor',
     type: 'metric_issue',
     projectId: data.projectId,
+    owner: data.owner || null,
     conditionGroup: {
       // TODO: Can this be different values?
       logicType: DataConditionGroupLogicType.ANY,
@@ -361,6 +372,7 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
     name: detector.name,
     projectId: detector.projectId,
     environment: snubaQuery?.environment || '',
+    owner: detector.owner || '',
     query: snubaQuery?.query || '',
     aggregate,
     visualize,

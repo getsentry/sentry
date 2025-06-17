@@ -27,6 +27,7 @@ import {
   MobileVital,
   WebVital,
 } from 'sentry/utils/fields';
+import useProjects from 'sentry/utils/useProjects';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -319,13 +320,21 @@ function DetectSection() {
 }
 
 function OwnerField() {
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const {projects} = useProjects();
+  const memberOfProjectSlugs = useMemo(() => {
+    const project = projects.find(p => p.id === projectId);
+    return project ? [project.slug] : undefined;
+  }, [projects, projectId]);
+
   return (
     <StyledMemberTeamSelectorField
       placeholder={t('Select a member or team')}
       label={t('Owner')}
       help={t('Sentry will assign new issues to this owner.')}
-      name="owner"
+      name={METRIC_DETECTOR_FORM_FIELDS.owner}
       flexibleControlStateSize
+      memberOfProjectSlugs={memberOfProjectSlugs}
     />
   );
 }
