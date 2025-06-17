@@ -104,6 +104,7 @@ export function GithubInstallationSelect({
   const selectOptions = installation_info.map(
     (installation): SelectOption<SelectKey> => ({
       value: installation.installation_id,
+      textValue: installation.github_account,
       label: (
         <OptionLabelWrapper>
           {installation.installation_id === '-1' ? (
