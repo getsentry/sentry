@@ -220,6 +220,10 @@ Then, use it to run sync this one time.
                 ),
                 {
                     "NODE_ENV": "development",
+                    # this ensures interactive prompts are answered by
+                    # the defaults (usually yes), useful for recreating
+                    # node_modules if configuration or node version changes
+                    "CI": "true",
                 },
             ),
         ),
