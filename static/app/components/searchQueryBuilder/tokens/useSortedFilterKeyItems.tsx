@@ -207,8 +207,8 @@ export function useSortedFilterKeyItems({
         !replaceRawSearchKeys?.length;
 
       const rawSearchReplacements: KeySectionItem = {
-        key: 'key-items',
-        value: 'key-items',
+        key: 'raw-search-filter-values',
+        value: 'raw-search-filter-values',
         label: '',
         options:
           replaceRawSearchKeys?.map(key => {
