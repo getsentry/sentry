@@ -6,6 +6,7 @@ import {
   fetchSpanFieldValues,
   fetchTagValues,
 } from 'sentry/actionCreators/tags';
+import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_SET,
@@ -191,8 +192,7 @@ function ResultsSearchQueryBuilder(props: Props) {
   const featureFlagTags: TagCollection = useMemo(
     () =>
       featureFlagsQuery.data?.reduce<TagCollection>((acc, tag) => {
-        // flags[] is required for the search endpoint
-        const key = `flags[${tag.key}]`;
+        const key = makeFeatureFlagSearchKey(tag.key);
         acc[key] = {...tag, kind: FieldKind.FEATURE_FLAG, key};
         return acc;
       }, {}) || {},
