@@ -280,4 +280,53 @@ export default Storybook.story('GridEditable', story => {
       </Fragment>
     );
   });
+
+  story('Enforcing Cell to fit Content', () => {
+    const newData = [
+      ...data,
+      {
+        name: 'Something very long',
+        category:
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent fringilla ultricies turpis, quis lobortis leo varius ut. Maecenas venenatis purus a sodales facilisis.',
+      },
+    ] as ExampleDataItem[];
+    return (
+      <Fragment>
+        <p>
+          Passing
+          <Storybook.JSXProperty name="fitMaxContent" value={Boolean} /> will set the
+          min-width of the each cell to fit around the content. By default this is set to
+          false.
+        </p>
+        <Storybook.SideBySide>
+          <div style={{width: 400}}>
+            <div>If false, content is forced in multiple lines or cut off</div>
+            <GridEditable
+              data={newData}
+              columnOrder={columns}
+              columnSortBy={[]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              scrollable
+            />
+          </div>
+          <div style={{width: 400}}>
+            <div>If true, the content forces the table to expand (scroll)</div>
+            <GridEditable
+              data={newData}
+              columnOrder={columns}
+              columnSortBy={[]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              fitMaxContent
+            />
+          </div>
+        </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
 });

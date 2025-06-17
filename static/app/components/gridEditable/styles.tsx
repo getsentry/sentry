@@ -79,7 +79,11 @@ export const Body = styled(
  * <thead>, <tbody>, <tr> are ignored by CSS Grid.
  * The entire layout is determined by the usage of <th> and <td>.
  */
-export const Grid = styled('table')<{height?: string | number; scrollable?: boolean}>`
+export const Grid = styled('table')<{
+  fitMaxContent?: boolean;
+  height?: string | number;
+  scrollable?: boolean;
+}>`
   position: inherit;
   display: grid;
 
@@ -103,6 +107,12 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
           max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
         `
       : ''}
+
+  ${p =>
+    p.fitMaxContent &&
+    css`
+      min-width: max-content;
+    `}
 `;
 
 /**
