@@ -15,6 +15,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -83,7 +84,7 @@ function RestoreForm({endpoint, organization}: RestoreFormProps) {
           addSuccessMessage(t('Organization Restored'));
 
           // Use window.location to ensure page reloads
-          window.location.assign(
+          testableWindowLocation.assign(
             normalizeUrl(`/organizations/${organization.slug}/issues/`)
           );
         }}

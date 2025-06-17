@@ -13,6 +13,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
@@ -34,7 +35,7 @@ export default class AwsLambdaProjectSelect extends Component<Props> {
     // this is needed so we don't restart the pipeline loading from the original
     // OrganizationIntegrationSetupView route
     const newUrl = `${origin}/extensions/aws_lambda/setup/?${qs.stringify(data)}`;
-    window.location.assign(newUrl);
+    testableWindowLocation.assign(newUrl);
   };
 
   render() {

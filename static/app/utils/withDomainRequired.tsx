@@ -3,7 +3,7 @@ import trimStart from 'lodash/trimStart';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {testableWindowLocationReplace} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -44,7 +44,7 @@ export default function withDomainRequired<P extends RouteComponentProps>(
       // We redirect the user to the sentryUrl.
       const redirectPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       const redirectURL = `${trimEnd(sentryUrl, '/')}/${trimStart(redirectPath, '/')}`;
-      testableWindowLocationReplace(redirectURL);
+      testableWindowLocation.replace(redirectURL);
       return null;
     }
 

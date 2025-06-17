@@ -302,6 +302,7 @@ const config: Config.InitialOptions = {
   // To disable the sentry jest integration, set this to 'jsdom'
   testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
+    globalsCleanup: 'on',
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)

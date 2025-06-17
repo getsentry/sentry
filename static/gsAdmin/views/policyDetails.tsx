@@ -8,6 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import useApi from 'sentry/utils/useApi';
 
 import DetailLabel from 'admin/components/detailLabel';
@@ -49,7 +50,7 @@ function PolicyDetails({params}: PolicyDetailsProps) {
         method: 'PUT',
         data,
       });
-      window.location.reload();
+      testableWindowLocation.reload();
     } catch {
       addErrorMessage('There was an error when updating the current policy version.');
     }

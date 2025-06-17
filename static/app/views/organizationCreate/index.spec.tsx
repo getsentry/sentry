@@ -5,6 +5,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import OrganizationCreate, {
   DATA_STORAGE_DOCS_LINK,
 } from 'sentry/views/organizationCreate';
@@ -86,8 +87,8 @@ describe('OrganizationCreate', function () {
         host: undefined,
       });
     });
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       '/organizations/org-slug/projects/new/'
     );
   });
@@ -122,8 +123,8 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });
@@ -167,8 +168,8 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });
@@ -186,7 +187,7 @@ describe('OrganizationCreate', function () {
     await userEvent.click(screen.getByText('Create Organization'));
 
     expect(orgCreateMock).not.toHaveBeenCalled();
-    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Data Storage Location'}),
@@ -205,8 +206,8 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });
@@ -238,8 +239,8 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });
