@@ -304,7 +304,13 @@ def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event
                 GroupTombstone,
                 {"times_seen": group_tombstone.times_seen + 1 if group_tombstone.times_seen else 1},
                 {"id": tombstone_id},
-                {"last_seen": max(event.datetime, group_tombstone.last_seen)},
+                {
+                    "last_seen": (
+                        max(event.datetime, group_tombstone.last_seen)
+                        if group_tombstone.last_seen
+                        else event.datetime
+                    )
+                },
             )
         except GroupTombstone.DoesNotExist:
             # This can happen due to a race condition with deletion.
