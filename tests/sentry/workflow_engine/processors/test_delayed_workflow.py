@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import pytest
 
@@ -59,6 +59,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
 )
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    DelayedWorkflowItem,
     WorkflowDataConditionGroupType,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -838,7 +839,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.detector,
         )
 
-    @patch("sentry.workflow_engine.processors.workflow.enqueue_workflow")
+    @patch("sentry.workflow_engine.processors.workflow.enqueue_workflows")
     def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
         # enqueue the IF DCGs with slow conditions!
 
@@ -850,17 +851,33 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
 
         assert mock_enqueue.call_count == 2
-        assert mock_enqueue.call_args_list[0][0] == (
-            self.workflow1,
-            [self.workflow1_dcgs[1].conditions.all()[0]],
-            self.event1.for_group(self.group1),
-            WorkflowDataConditionGroupType.ACTION_FILTER,
-        )
-        assert mock_enqueue.call_args_list[1][0] == (
-            self.workflow2,
-            [self.workflow2_dcgs[1].conditions.all()[0]],
-            self.event2.for_group(self.group2),
-            WorkflowDataConditionGroupType.ACTION_FILTER,
+        mock_enqueue.assert_has_calls(
+            [
+                call(
+                    {
+                        self.project.id: [
+                            DelayedWorkflowItem(
+                                workflow=self.workflow1,
+                                delayed_conditions=[self.workflow1_dcgs[1].conditions.all()[0]],
+                                event=self.event1.for_group(self.group1),
+                                source=WorkflowDataConditionGroupType.ACTION_FILTER,
+                            ),
+                        ],
+                    }
+                ),
+                call(
+                    {
+                        self.project.id: [
+                            DelayedWorkflowItem(
+                                workflow=self.workflow2,
+                                delayed_conditions=[self.workflow2_dcgs[1].conditions.all()[0]],
+                                event=self.event2.for_group(self.group2),
+                                source=WorkflowDataConditionGroupType.ACTION_FILTER,
+                            ),
+                        ],
+                    }
+                ),
+            ]
         )
 
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
