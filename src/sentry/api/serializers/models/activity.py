@@ -4,6 +4,9 @@ from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -25,6 +28,22 @@ class ActivitySerializer(Serializer):
                 filter={"user_ids": user_ids}, as_user=serialize_generic_user(user)
             )
         users = {u["id"]: u for u in user_list}
+
+        # If an activity is created by the proxy user of a Sentry App, attach it to the payload
+        sentry_apps_list: list[RpcSentryApp] = []
+        if user_ids:
+            sentry_apps_list = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=user_ids)
+        # Minimal Sentry App serialization to keep the payload minimal
+        sentry_apps = {
+            str(app.proxy_user_id): {
+                "id": str(app.id),
+                "name": app.name,
+                "slug": app.slug,
+                "avatars": serialize(app.avatars, user, serializer=SentryAppAvatarSerializer()),
+            }
+            for app in sentry_apps_list
+            if app.proxy_user_id
+        }
 
         commit_ids = {
             i.data["commit"]
@@ -85,6 +104,7 @@ class ActivitySerializer(Serializer):
         return {
             item: {
                 "user": users.get(str(item.user_id)) if item.user_id else None,
+                "sentry_app": sentry_apps.get(str(item.user_id)) if item.user_id else None,
                 "source": (
                     groups.get(item.data["source_id"])
                     if item.type == ActivityType.UNMERGE_DESTINATION.value
@@ -121,6 +141,7 @@ class ActivitySerializer(Serializer):
         return {
             "id": str(obj.id),
             "user": attrs["user"],
+            "sentry_app": attrs["sentry_app"],
             "type": obj.get_type_display(),
             "data": data,
             "dateCreated": obj.datetime,
