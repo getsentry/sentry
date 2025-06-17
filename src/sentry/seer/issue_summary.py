@@ -314,7 +314,7 @@ def _run_automation(
                 "auto_run_limit": limit,
             }
         )
-        logger.error("Autofix auto-trigger rate limit hit")
+        logger.error("Autofix auto-trigger rate limit hit", extra={"group_id": group.id})
         return
 
     has_budget: bool = quotas.backend.has_available_reserved_budget(
@@ -322,6 +322,7 @@ def _run_automation(
         data_category=DataCategory.SEER_AUTOFIX,
     )
     if not has_budget:
+        logger.info("No more reserved budget for autofix", extra={"group_id": group.id})
         return
 
     with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
