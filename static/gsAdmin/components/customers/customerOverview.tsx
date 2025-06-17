@@ -445,7 +445,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   );
 
   const productTrialCategoryGroups = Object.values(
-    customer.planDetails?.availableReservedBudgetTypes || []
+    customer.planDetails?.availableReservedBudgetTypes || {}
   ).filter(group => group.canProductTrial);
 
   function updateCustomerStatus(action: string, type: string) {
