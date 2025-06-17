@@ -332,6 +332,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         simple_sentry_field("browser.name"),
+        simple_sentry_field("file_extension"),
         simple_sentry_field("device.family"),
         simple_sentry_field("device.arch"),
         simple_sentry_field("device.battery_level"),
@@ -594,3 +595,16 @@ for key in constants.PROJECT_FIELDS:
         term_resolver=project_term_resolver,
         filter_column="project.id",
     )
+
+SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
+
+
+for definition in SPAN_ATTRIBUTE_DEFINITIONS.values():
+    if not definition.secondary_alias:
+        continue
+
+    secondary_aliases = SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING.get(
+        definition.internal_name, set()
+    )
+    secondary_aliases.add(definition.public_alias)
+    SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING[definition.internal_name] = secondary_aliases

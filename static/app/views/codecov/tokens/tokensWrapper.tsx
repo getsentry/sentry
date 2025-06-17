@@ -17,7 +17,7 @@ export default function TokensPageWrapper() {
           <HeaderContentBar>
             <Layout.Title>
               {TOKENS_PAGE_TITLE}
-              <FeatureBadge type="new" variant="badge" />
+              <FeatureBadge type="new" />
             </Layout.Title>
           </HeaderContentBar>
         </Layout.HeaderContent>

@@ -125,6 +125,7 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -138,7 +139,6 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
 from sentry.sentry_apps.models.servicehook import ServiceHook
-from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
@@ -170,7 +170,6 @@ from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -1285,7 +1284,6 @@ class Factories:
 
             install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
             install.save()
-            rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
             if not prevent_token_exchange and (
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
@@ -1293,7 +1291,7 @@ class Factories:
                 assert install.sentry_app.application is not None
                 assert install.sentry_app.proxy_user is not None
                 GrantExchanger(
-                    install=rpc_install,
+                    install=install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,
                     user=install.sentry_app.proxy_user,

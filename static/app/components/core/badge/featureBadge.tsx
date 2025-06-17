@@ -26,7 +26,6 @@ const labels: Record<FeatureBadgeProps['type'], string> = {
 export interface FeatureBadgeProps extends Omit<BadgeProps, 'children'> {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   tooltipProps?: Partial<TooltipProps>;
-  variant?: 'badge';
 }
 
 function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
@@ -56,8 +55,6 @@ const StyledBadge = withChonk(
     margin: 0;
     padding: 0 ${space(0.75)};
     height: ${space(2)};
-    font-weight: ${p => p.theme.fontWeightNormal};
-    font-size: ${p => p.theme.fontSizeExtraSmall};
     vertical-align: middle;
   `,
   ChonkStyledBadge

@@ -626,7 +626,12 @@ def chained_exception(
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
         # TODO: Except we do, as it turns out. See https://github.com/getsentry/sentry/issues/73592.
         logging.exception(
-            "Failed to filter exceptions for exception groups. Continuing with original list."
+            "Failed to filter exceptions for exception groups. Continuing with original list.",
+            extra={
+                "event_id": context.event.event_id,
+                "project_id": context.event.project.id,
+                "org_id": context.event.project.organization.id,
+            },
         )
         exceptions = all_exceptions
 

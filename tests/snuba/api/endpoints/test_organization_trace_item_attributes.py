@@ -5,6 +5,7 @@ from uuid import uuid4
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.endpoints.organization_trace_item_attributes import TraceItemAttributeKey
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import (
@@ -228,18 +229,23 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         )
         assert response.status_code == 200, response.data
+        expected: list[TraceItemAttributeKey] = [
+            {"key": "bar", "name": "bar"},
+            {"key": "baz", "name": "baz"},
+            {"key": "foo", "name": "foo"},
+            {
+                "key": "span.description",
+                "name": "span.description",
+                "secondaryAliases": ["description", "message"],
+            },
+            {"key": "transaction", "name": "transaction"},
+            {"key": "project", "name": "project"},
+        ]
         assert sorted(
             response.data,
             key=itemgetter("key"),
         ) == sorted(
-            [
-                {"key": "bar", "name": "bar"},
-                {"key": "baz", "name": "baz"},
-                {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
-                {"key": "transaction", "name": "transaction"},
-                {"key": "project", "name": "project"},
-            ],
+            expected,
             key=itemgetter("key"),
         )
 
@@ -321,17 +327,24 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         )
         assert response.status_code == 200, response.data
+
+        expected: list[TraceItemAttributeKey] = [
+            {"key": "bar", "name": "bar"},
+            {"key": "baz", "name": "baz"},
+            {"key": "foo", "name": "foo"},
+            {
+                "key": "span.description",
+                "name": "span.description",
+                "secondaryAliases": ["description", "message"],
+            },
+            {"key": "project", "name": "project"},
+        ]
+
         assert sorted(
             response.data,
             key=itemgetter("key"),
         ) == sorted(
-            [
-                {"key": "bar", "name": "bar"},
-                {"key": "baz", "name": "baz"},
-                {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
-                {"key": "project", "name": "project"},
-            ],
+            expected,
             key=itemgetter("key"),
         )
 
@@ -347,15 +360,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         with self.feature(self.feature_flags):
             response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200, response.content
+
+        expected_2: list[TraceItemAttributeKey] = [
+            {
+                "key": "span.description",
+                "name": "span.description",
+                "secondaryAliases": ["description", "message"],
+            },
+            {"key": "transaction", "name": "transaction"},
+            {"key": "project", "name": "project"},
+        ]
         assert sorted(
             response.data,
             key=itemgetter("key"),
         ) == sorted(
-            [
-                {"key": "span.description", "name": "span.description"},
-                {"key": "transaction", "name": "transaction"},
-                {"key": "project", "name": "project"},
-            ],
+            expected_2,
             key=itemgetter("key"),
         )
 
@@ -371,17 +390,23 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         with self.feature(self.feature_flags):
             response = self.client.get(links["previous"]["href"], format="json")
         assert response.status_code == 200, response.content
+
+        expected_3: list[TraceItemAttributeKey] = [
+            {"key": "bar", "name": "bar"},
+            {"key": "baz", "name": "baz"},
+            {"key": "foo", "name": "foo"},
+            {
+                "key": "span.description",
+                "name": "span.description",
+                "secondaryAliases": ["description", "message"],
+            },
+            {"key": "project", "name": "project"},
+        ]
         assert sorted(
             response.data,
             key=itemgetter("key"),
         ) == sorted(
-            [
-                {"key": "bar", "name": "bar"},
-                {"key": "baz", "name": "baz"},
-                {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
-                {"key": "project", "name": "project"},
-            ],
+            expected_3,
             key=itemgetter("key"),
         )
 

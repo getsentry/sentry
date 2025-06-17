@@ -6,6 +6,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
+import ConfirmDelete from 'sentry/components/confirmDelete';
 import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -58,13 +59,17 @@ function Row({app, onRemove}: Props) {
         </ClientId>
       </ApplicationNameWrapper>
 
-      <Button
-        aria-label={t('Remove')}
-        onClick={handleRemove}
-        disabled={isLoading}
-        size="sm"
-        icon={<IconDelete size="sm" />}
-      />
+      <ConfirmDelete
+        message={t(
+          'Removing this API Application will break existing usages of the application!'
+        )}
+        confirmInput={app.name}
+        onConfirm={handleRemove}
+      >
+        <Button disabled={isLoading} size="sm" icon={<IconDelete />}>
+          {t('Remove')}
+        </Button>
+      </ConfirmDelete>
     </StyledPanelItem>
   );
 }

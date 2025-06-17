@@ -23,6 +23,10 @@ export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
    */
   format?: string;
   /**
+   * Whether to show the milliseconds. Is false by default.
+   */
+  milliseconds?: boolean;
+  /**
    * Whether to show the seconds. Is false by default.
    */
   seconds?: boolean;
@@ -57,6 +61,7 @@ export function DateTime({
   year,
   timeZone,
   seconds = false,
+  milliseconds = false,
   forcedTimezone,
   ...props
 }: DateTimeProps) {
@@ -77,6 +82,7 @@ export function DateTime({
       // UTC time.
       timeZone: timeZone ?? utc,
       seconds,
+      milliseconds,
       clock24Hours: user?.options.clock24Hours,
     });
 

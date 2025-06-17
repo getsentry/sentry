@@ -11,6 +11,9 @@ export default function HttpDomainSummaryDurationChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const chartFilters = useHttpDomainSummaryChartFilter();
+  const referrer = Referrer.DOMAIN_SUMMARY_DURATION_CHART;
+  const search = MutableSearch.fromQueryObject(chartFilters);
+
   const {
     isPending: isDurationDataLoading,
     data: durationData,
@@ -21,7 +24,7 @@ export default function HttpDomainSummaryDurationChartWidget(
       yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
       transformAliasToInputFormat: true,
     },
-    Referrer.DOMAIN_SUMMARY_DURATION_CHART,
+    referrer,
     props.pageFilters
   );
 
@@ -30,7 +33,8 @@ export default function HttpDomainSummaryDurationChartWidget(
       {...props}
       id="httpDomainSummaryDurationChartWidget"
       title={getDurationChartTitle('http')}
-      series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
+      queryInfo={{search, referrer}}
+      series={[durationData['avg(span.self_time)']]}
       isLoading={isDurationDataLoading}
       error={durationError}
     />

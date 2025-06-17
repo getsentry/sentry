@@ -10,8 +10,9 @@ from .errors import (
     NeedsExtension,
     UnsupportedFrameInfo,
 )
-from .utils.misc import get_straight_path_prefix_end_index
 from .utils.platform import PlatformConfig
+
+NOT_FOUND = -1
 
 
 class FrameInfo:
@@ -25,29 +26,27 @@ class FrameInfo:
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)
 
+        # We normalize the path to be as close to what the path would
+        # look like in the source code repository, hence why we remove
+        # the straight path prefix and drive letter
+        self.normalized_path, removed_prefix = remove_prefixes(frame_file_path)
+
         # Using regexes would be better but this is easier to understand
         if (
             not frame_file_path
             or frame_file_path[0] in ["[", "<"]
-            or frame_file_path.find(" ") > -1
-            or frame_file_path.find("/") == -1
+            or frame_file_path.find(" ") != NOT_FOUND
+            or self.normalized_path.find("/") == NOT_FOUND
         ):
             raise UnsupportedFrameInfo("This path is not supported.")
 
         if not get_extension(frame_file_path):
             raise NeedsExtension("It needs an extension.")
 
-        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
-
-        # We normalize the path to be as close to what the path would
-        # look like in the source code repository, hence why we remove
-        # the straight path prefix and drive letter
-        self.normalized_path = frame_file_path[start_at_index:]
-        if start_at_index == 0:
-            self.stack_root = frame_file_path.split("/")[0]
+        if frame_file_path.startswith("/"):
+            self.stack_root = f"/{self.normalized_path.split('/')[0]}/"
         else:
-            slash_index = frame_file_path.find("/", start_at_index)
-            self.stack_root = frame_file_path[0:slash_index]
+            self.stack_root = removed_prefix + self.normalized_path.split("/")[0]
 
     def transformations(self, frame_file_path: str) -> str:
         self.raw_path = frame_file_path
@@ -56,10 +55,6 @@ class FrameInfo:
         if "\\" in frame_file_path:
             is_windows_path = True
             frame_file_path = frame_file_path.replace("\\", "/")
-
-        # Remove leading slash if it exists
-        if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
-            frame_file_path = frame_file_path[1:]
 
         # Remove drive letter if it exists
         if is_windows_path and frame_file_path[1] == ":":
@@ -87,6 +82,25 @@ class FrameInfo:
         if not isinstance(other, FrameInfo):
             return False
         return self.raw_path == other.raw_path
+
+
+PREFIXES_TO_REMOVE = ["app:///", "./", "../", "/"]
+
+
+# XXX: This will eventually replace get_straight_path_prefix_end_index
+def remove_prefixes(frame_file_path: str) -> tuple[str, str]:
+    """
+    This function removes known prefixes to get a path as close to what the path would
+    look like in the source code repository.
+    """
+    removed_prefix = ""
+    for prefix in PREFIXES_TO_REMOVE:
+        if frame_file_path.startswith(prefix):
+            frame_file_path = frame_file_path.replace(prefix, "", 1)
+            frame_file_path, recursive_removed_prefix = remove_prefixes(frame_file_path)
+            removed_prefix += prefix + recursive_removed_prefix
+
+    return frame_file_path, removed_prefix
 
 
 # Based on # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485

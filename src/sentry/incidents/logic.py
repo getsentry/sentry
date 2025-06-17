@@ -16,7 +16,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, quotas
+from sentry import analytics, audit_log, features, options, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
@@ -411,11 +411,16 @@ def get_metric_issue_aggregates(
             )
 
         except Exception:
+            entity_key = (
+                EntityKey.EAPItems
+                if options.get("alerts.spans.use-eap-items")
+                else EntityKey.EAPItemsSpan
+            )
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
                     "dataset": params.snuba_query.dataset,
-                    "entity": EntityKey.EAPItemsSpan.value,
+                    "entity": entity_key.value,
                 },
             )
             raise
@@ -1764,6 +1769,9 @@ EAP_FUNCTIONS = [
     "max",
     "min",
     "sum",
+    "epm",
+    "failure_rate",
+    "eps",
 ]
 
 

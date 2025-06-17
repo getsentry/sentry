@@ -6,7 +6,6 @@ import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -215,16 +214,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         <SeerDrawerNavigator>
           <Flex align="center" gap={space(1)}>
             <Header>{t('Seer')}</Header>
-            <FeatureBadge
-              type="beta"
-              tooltipProps={{
-                title: tct(
-                  'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-                  {email: <a href="mailto:autofix@sentry.io" />}
-                ),
-                isHoverable: true,
-              }}
-            />
             <QuestionTooltip
               isHoverable
               title={
@@ -272,7 +261,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                 {aiConfig.hasAutofix && (
                   <Button
                     size="xs"
-                    onClick={reset}
+                    onClick={() => {
+                      reset();
+                      aiConfig.refetchAutofixSetup?.();
+                    }}
                     title={
                       autofixData?.last_triggered_at
                         ? tct('Last run at [date]', {

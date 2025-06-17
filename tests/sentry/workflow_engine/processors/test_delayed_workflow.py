@@ -1,7 +1,9 @@
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+import pytest
 
 from sentry import buffer
 from sentry.eventstore.models import Event
@@ -11,6 +13,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
+from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
 from sentry.testutils.helpers import override_options, with_feature
@@ -18,6 +21,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+    BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
     QueryResult,
@@ -350,6 +354,36 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         expected_comparison_query = UniqueConditionQuery(**comparison_query_dict)
         assert percent_queries[1] == expected_comparison_query
 
+    def test_generate_unique_queries__filters_hashable(self):
+        dc = self.create_data_condition(
+            condition_group=self.create_data_condition_group(
+                logic_type=DataConditionGroup.Type.ALL
+            ),
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+                "filters": [
+                    {
+                        "key": "http.method",
+                        "match": MatchType.IS_IN,
+                        "value": "GET,POST",
+                    }
+                ],
+            },
+            condition_result=True,
+        )
+        queries = generate_unique_queries(dc, None)
+        [hash(query) for query in queries]  # shouldn't raise
+        assert len(queries) == 1
+        assert queries[0].filters == [
+            {
+                "key": "http.method",
+                "match": MatchType.IS_IN,
+                "value": "GET,POST",
+            }
+        ]
+
     def test_generate_unique_queries__invalid(self):
         dc = self.create_data_condition(
             condition_group=self.workflow_triggers,
@@ -521,6 +555,26 @@ class TestGetSnubaResults(BaseWorkflowTest):
             count_query: {group_id: 4},
             offset_percent_query: {group_id: 1},
         }
+
+    def test_get_condition_group_results_exception_propagation(self) -> None:
+        """
+        When we get an exception from the handler, we should propagate it.
+        We don't want to proceed with partial data.
+        """
+        mock_handler = Mock(spec=BaseEventFrequencyQueryHandler)
+        mock_handler.get_rate_bulk.side_effect = ValueError("Escaping exception")
+        mock_handler.intervals = {"1h": ("fake", timedelta(seconds=1))}
+
+        unique_query = UniqueConditionQuery(
+            handler=lambda: mock_handler,  # type: ignore[arg-type]
+            interval="1h",
+            environment_id=None,
+        )
+
+        condition_groups = {unique_query: {1}}  # One group ID to query
+
+        with pytest.raises(ValueError, match="Escaping exception"):
+            get_condition_group_results(condition_groups)
 
 
 class TestGetGroupsToFire(TestDelayedWorkflowBase):
@@ -768,7 +822,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_trigger.call_count == 2
@@ -786,7 +843,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         # enqueue the IF DCGs with slow conditions!
 
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_enqueue.call_count == 2
@@ -821,7 +881,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2.id: {self.workflow2_dcgs[1]},
         }
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert WorkflowFireHistory.objects.filter(
@@ -849,14 +912,16 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         assert data == {}
 
     @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.delay")
+    @patch(
+        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.apply_async"
+    )
     def test_batched_cleanup(self, mock_process_delayed):
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
         process_in_batches(self.project.id, "delayed_workflow")
-        batch_one_key = mock_process_delayed.call_args_list[0][0][1]
-        batch_two_key = mock_process_delayed.call_args_list[1][0][1]
+        batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
+        batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify we removed the data from the buffer
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})

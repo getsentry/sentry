@@ -20,6 +20,7 @@ from sentry.feedback.usecases.create_feedback import (
 )
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
@@ -70,7 +71,7 @@ def create_dummy_response(*args, **kwargs):
             )
         ],
         created=int(time.time()),
-        model="gpt3.5-trubo",
+        model="gpt3.5-turbo",
         object="chat.completion",
     )
 
@@ -967,10 +968,155 @@ def test_create_feedback_evidence_has_spam(
     assert evidence["is_spam"] is True
 
 
+@django_db_all
+def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
+    event = mock_feedback_event(default_project.id)
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event.get("release") is not None
+    assert produced_event.get("release") == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
+
+
+@django_db_all
+def test_create_feedback_issue_updates_project_flag(default_project):
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+
+    with (
+        patch(
+            "sentry.receivers.onboarding.record_first_feedback",  # autospec=True
+        ) as mock_record_first_feedback,
+        patch(
+            "sentry.receivers.onboarding.record_first_new_feedback",  # autospec=True
+        ) as mock_record_first_new_feedback,
+    ):
+        first_feedback_received.connect(mock_record_first_feedback, weak=False)
+        first_new_feedback_received.connect(mock_record_first_new_feedback, weak=False)
+
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    default_project.refresh_from_db()
+    assert mock_record_first_feedback.call_count == 1
+    assert mock_record_first_new_feedback.call_count == 1
+
+    assert default_project.flags.has_feedbacks
+    assert default_project.flags.has_new_feedbacks
+
+
+@django_db_all
+def test_denylist(set_sentry_option, default_project):
+    with set_sentry_option(
+        "feedback.organizations.slug-denylist", [default_project.organization.slug]
+    ):
+        assert is_in_feedback_denylist(default_project.organization) is True
+
+
+@django_db_all
+def test_denylist_not_in_list(set_sentry_option, default_project):
+    with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
+        assert is_in_feedback_denylist(default_project.organization) is False
+
+
 """
-Unit tests for shim_to_feedback error cases. The typical behavior of this function is tested in
-test_project_user_reports, test_post_process, and test_update_user_reports.
+shim_to_feedback tests. There are more integration tests in test_project_user_reports, test_post_process, and test_update_user_reports.
 """
+
+
+@pytest.mark.parametrize("use_username", (False, True))
+@django_db_all
+def test_shim_to_feedback_event_user_used_if_missing(
+    default_project, mock_produce_occurrence_to_kafka, use_username
+):
+    """Uses the error event's user context if user info is missing from the report."""
+    report_dict = {
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    user_context = (
+        {"username": "Josh", "email": "josh.ferge@sentry.io"}
+        if use_username
+        else {"name": "Josh", "email": "josh.ferge@sentry.io"}
+    )
+    event = Factories.store_event(
+        data={"event_id": event_id, "user": user_context},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == "Josh"
+    assert produced_event["contexts"]["feedback"]["contact_email"] == "josh.ferge@sentry.io"
+
+
+@pytest.mark.parametrize("use_username", (False, True))
+@django_db_all
+def test_shim_to_feedback_event_user_does_not_override_report(
+    default_project, mock_produce_occurrence_to_kafka, use_username
+):
+    """The report's user info should take precedence over the event."""
+    report_dict = {
+        "name": "Andrew",
+        "email": "andrew@example.com",
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    user_context = (
+        {"username": "Josh", "email": "josh.ferge@sentry.io"}
+        if use_username
+        else {"name": "Josh", "email": "josh.ferge@sentry.io"}
+    )
+    event = Factories.store_event(
+        data={"event_id": event_id, "user": user_context},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == "Andrew"
+    assert produced_event["contexts"]["feedback"]["contact_email"] == "andrew@example.com"
+
+
+@django_db_all
+def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_to_kafka):
+    """User fields default to "" if not present."""
+    report_dict = {
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    event = Factories.store_event(
+        data={"event_id": event_id},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == ""
+    assert produced_event["contexts"]["feedback"]["contact_email"] == ""
+
+
+# ERROR CASES #
 
 
 @django_db_all
@@ -1011,53 +1157,3 @@ def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
         report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
     )
     assert mock_create_feedback_issue.call_count == 0
-
-
-@django_db_all
-def test_denylist(set_sentry_option, default_project):
-    with set_sentry_option(
-        "feedback.organizations.slug-denylist", [default_project.organization.slug]
-    ):
-        assert is_in_feedback_denylist(default_project.organization) is True
-
-
-@django_db_all
-def test_denylist_not_in_list(set_sentry_option, default_project):
-    with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
-        assert is_in_feedback_denylist(default_project.organization) is False
-
-
-@django_db_all
-def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
-    event = mock_feedback_event(default_project.id)
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-    assert produced_event.get("release") is not None
-    assert produced_event.get("release") == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
-
-
-@django_db_all
-def test_create_feedback_issue_updates_project_flag(default_project):
-    event = mock_feedback_event(default_project.id, datetime.now(UTC))
-
-    with (
-        patch(
-            "sentry.receivers.onboarding.record_first_feedback",  # autospec=True
-        ) as mock_record_first_feedback,
-        patch(
-            "sentry.receivers.onboarding.record_first_new_feedback",  # autospec=True
-        ) as mock_record_first_new_feedback,
-    ):
-        first_feedback_received.connect(mock_record_first_feedback, weak=False)
-        first_new_feedback_received.connect(mock_record_first_new_feedback, weak=False)
-
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-    default_project.refresh_from_db()
-    assert mock_record_first_feedback.call_count == 1
-    assert mock_record_first_new_feedback.call_count == 1
-
-    assert default_project.flags.has_feedbacks
-    assert default_project.flags.has_new_feedbacks

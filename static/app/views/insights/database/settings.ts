@@ -9,7 +9,11 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {type Aggregate, ModuleName} from 'sentry/views/insights/types';
+import {
+  type Aggregate,
+  ModuleName,
+  type SpanMetricsProperty,
+} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
@@ -62,3 +66,7 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/queries/';
 
 export const MODULE_FEATURES = ['insights-initial-modules'];
+
+export const FIELD_ALIASES = {
+  'epm()': t('Queries Per Minute'),
+} satisfies Partial<Record<SpanMetricsProperty, string>>;

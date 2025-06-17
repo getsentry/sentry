@@ -49,6 +49,7 @@
 /src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
 /src/sentry/api/endpoints/event_reprocessable.py         @getsentry/ingest
 /src/sentry/api/endpoints/project_reprocessing.py        @getsentry/ingest
+/tests/symbolicator/*                                    @getsentry/ingest
 
 
 ## Security
@@ -133,7 +134,7 @@ tsconfig.*                                               @getsentry/owners-js-bu
 webpack.config.*                                         @getsentry/owners-js-build
 .volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
-yarn.lock                                                @getsentry/owners-js-deps
+pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
 ## Design
 /static/app/icons/                                       @getsentry/design
@@ -248,7 +249,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/search/events/                                                  @getsentry/visibility
 /src/sentry/search/eap/                                                  @getsentry/visibility
 
-/src/sentry/utils/performance_issues/                                       @getsentry/performance
+/src/sentry/performance_issues/                                             @getsentry/performance @getsentry/issue-detection-backend
+/tests/sentry/performance_issues/                                           @getsentry/performance @getsentry/issue-detection-backend
 
 /static/app/components/events/eventStatisticalDetector/                     @getsentry/visibility @getsentry/profiling
 
@@ -373,6 +375,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/utils/codecov/       @getsentry/codecov-merge-ux
 /static/app/views/codecov/       @getsentry/codecov-merge-ux
 ## End of Codecov Merge UX
+
+/src/sentry/codecov/ @getsentry/codecov
 
 ## Frontend
 /static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
@@ -535,6 +539,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
+/src/sentry/middleware/reporting_endpoint.py                @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
@@ -681,7 +686,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
 
 # Preprod build artifact analysis
-/src/sentry/preprod                                   @getsentry/emerge-tool
+/src/sentry/preprod                                   @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)

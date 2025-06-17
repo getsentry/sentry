@@ -12,15 +12,15 @@ from sentry.issues.auto_source_code_config.frame_info import FrameInfo
 
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "/gtm.js",  # Top source; starts with backslash
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     "README",  # top level file
+    # XXX: Top level files will need to be supported
+    "/gtm.js",  # Rejected because it's a top level file and not because it has a backslash
     "ssl.py",
-    # XXX: The following will need to be supported
     "initialization.dart",
     "backburner.js",
 ]
@@ -35,10 +35,10 @@ class TestFrameInfo:
         path = "getsentry/billing/tax/manager.py"
         assert FrameInfo({"filename": path}).__repr__() == f"FrameInfo: {path}"
 
-    def test_raises_unsupported(self) -> None:
-        for filepath in UNSUPPORTED_FRAME_FILENAMES:
-            with pytest.raises(UnsupportedFrameInfo):
-                FrameInfo({"filename": filepath})
+    @pytest.mark.parametrize("filepath", UNSUPPORTED_FRAME_FILENAMES)
+    def test_raises_unsupported(self, filepath: str) -> None:
+        with pytest.raises(UnsupportedFrameInfo):
+            FrameInfo({"filename": filepath})
 
     def test_raises_no_extension(self) -> None:
         for filepath in NO_EXTENSION_FRAME_FILENAMES:
@@ -103,26 +103,38 @@ class TestFrameInfo:
         assert frame_info.normalized_path == expected_normalized_path
 
     @pytest.mark.parametrize(
-        "frame_filename, prefix",
+        "frame_filename, stack_root, normalized_path",
         [
             pytest.param(
                 "app:///utils/something.py",
                 "app:///utils",
+                "utils/something.py",
             ),
             pytest.param(
                 "./app/utils/something.py",
                 "./app",
+                "app/utils/something.py",
             ),
             pytest.param(
                 "../../../../../../packages/something.py",
                 "../../../../../../packages",
+                "packages/something.py",
             ),
             pytest.param(
                 "app:///../services/something.py",
                 "app:///../services",
+                "services/something.py",
+            ),
+            pytest.param(
+                "/it/handles/backslashes/baz.py",
+                "/it/",
+                "it/handles/backslashes/baz.py",
             ),
         ],
     )
-    def test_straight_path_prefix(self, frame_filename: str, prefix: str) -> None:
+    def test_straight_path_prefix(
+        self, frame_filename: str, stack_root: str, normalized_path: str
+    ) -> None:
         frame_info = FrameInfo({"filename": frame_filename})
-        assert frame_info.stack_root == prefix
+        assert frame_info.normalized_path == normalized_path
+        assert frame_info.stack_root == stack_root

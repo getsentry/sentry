@@ -24,15 +24,13 @@ const productionEntryPoints = [
 ];
 
 const testingEntryPoints = [
-  // benchmarks are opt-in for development
-  'static/app/**/*.benchmark.{js,mjs,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
 
 const storyBookEntryPoints = [
   // our storybook implementation is here
-  'static/app/stories/storyBook.tsx',
+  'static/app/stories/storybook.tsx',
 ];
 
 const config: KnipConfig = {
@@ -44,6 +42,7 @@ const config: KnipConfig = {
   storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
+    'config/**/*.ts',
     'tests/js/**/*.{js,mjs,ts,tsx}',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
@@ -56,12 +55,30 @@ const config: KnipConfig = {
   compilers: {
     mdx: async text => String(await compile(text)),
   },
+  ignoreDependencies: [
+    'core-js',
+    '@babel/runtime', // used implicitly alongside @babel/plugin-transform-runtime
+    'eslint-import-resolver-typescript', // used in eslint config
+    'jest-environment-jsdom', // used as testEnvironment in jest config
+    'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
+    '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
+    'buffer', // rspack.ProvidePlugin, needs better knip plugin
+    'process', // rspack.ProvidePlugin, needs better knip plugin
+    '@types/webpack-env', // needed to make require.context work
+    '@types/stripe-v3', // needed for global `stripe` namespace typings
+    '@types/gtag.js', // needed for global `gtag` namespace typings
+    '@babel/plugin-transform-runtime', // Still used in jest
+    '@babel/preset-env', // Still used in jest
+    '@babel/preset-react', // Still used in jest
+    '@babel/preset-typescript', // Still used in jest
+    '@emotion/babel-plugin', // Still used in jest
+    'ts-node', // Still used implicitly
+    'terser', // Still used in a loader
+  ],
   rules: {
     binaries: 'off',
-    dependencies: 'off',
     enumMembers: 'off',
     unlisted: 'off',
-    unresolved: 'off',
   },
 };
 

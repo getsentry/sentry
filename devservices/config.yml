@@ -3,6 +3,9 @@ x-sentry-service-config:
   version: 0.1
   service_name: sentry
   dependencies:
+    #########################################################
+    # Docker Compose Services
+    #########################################################
     snuba:
       description: Service that provides fast aggregation and query capabilities on top of Clickhouse
       remote:
@@ -62,31 +65,144 @@ x-sentry-service-config:
       description: Memcached used for caching
     spotlight:
       description: Spotlight server for local debugging
+    #########################################################
+    # Supervisor Programs
+    #########################################################
+    # Taskworker services
+    taskworker:
+      description: Workers that process tasks from the taskbroker
+    taskworker-scheduler:
+      description: Task scheduler that can spawn tasks based on their schedules
+    # Kafka consumer services for event ingestion
+    ingest-events:
+      description: Kafka consumer for processing ingested events
+    ingest-attachments:
+      description: Kafka consumer for processing ingested attachments
+    ingest-transactions:
+      description: Kafka consumer for processing ingested transactions
+    ingest-monitors:
+      description: Kafka consumer for processing monitor check-ins
+    ingest-profiles:
+      description: Kafka consumer for processing profiling data
+    ingest-occurrences:
+      description: Kafka consumer for processing issue occurrences
+    ingest-feedback-events:
+      description: Kafka consumer for processing user feedback events
+    # Monitor-related services
+    monitors-clock-tick:
+      description: Kafka consumer for monitor clock ticks
+    monitors-clock-tasks:
+      description: Kafka consumer for monitor clock tasks
+    monitors-incident-occurrences:
+      description: Kafka consumer for monitor incident occurrences
+    # Spans and performance monitoring
+    process-spans:
+      description: Kafka consumer for processing spans data
+    process-segments:
+      description: Kafka consumer for processing performance segments
+    # Metrics-related consumers
+    ingest-metrics:
+      description: Kafka consumer for processing metrics data
+    ingest-generic-metrics:
+      description: Kafka consumer for processing generic metrics
+    billing-metrics-consumer:
+      description: Kafka consumer for billing metrics processing
+    # Post-processing forwarders
+    post-process-forwarder-errors:
+      description: Post-process forwarder for error events
+    post-process-forwarder-transactions:
+      description: Post-process forwarder for transaction events
+    post-process-forwarder-issue-platform:
+      description: Post-process forwarder for issue platform events
+    # Uptime monitoring
+    uptime-results:
+      description: Kafka consumer for uptime monitoring results
+    worker:
+      description: Worker that processes tasks from celery
 
   modes:
     default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    taskbroker: [snuba, postgres, relay, taskbroker, spotlight]
+    taskbroker:
+      [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     profiling: [postgres, snuba, vroom, spotlight]
+    ingest:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        worker,
+        ingest-events,
+        ingest-transactions,
+        ingest-attachments,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+      ]
     minimal: [postgres, snuba]
+    ingest-all:
+      [
+        billing-metrics-consumer,
+        ingest-attachments,
+        ingest-events,
+        ingest-feedback-events,
+        ingest-generic-metrics,
+        ingest-metrics,
+        ingest-monitors,
+        ingest-occurrences,
+        ingest-profiles,
+        ingest-transactions,
+        monitors-clock-tasks,
+        monitors-clock-tick,
+        monitors-incident-occurrences,
+        post-process-forwarder-errors,
+        post-process-forwarder-issue-platform,
+        post-process-forwarder-transactions,
+        postgres,
+        process-segments,
+        process-spans,
+        relay,
+        snuba,
+        spotlight,
+        worker,
+        vroom,
+      ]
     full:
       [
-        postgres,
         snuba,
+        postgres,
         relay,
-        redis,
-        redis-cluster,
-        symbolicator,
-        taskbroker,
-        rabbitmq,
-        vroom,
         spotlight,
+        vroom,
+        ingest-events,
+        ingest-attachments,
+        ingest-transactions,
+        ingest-monitors,
+        ingest-feedback-events,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        ingest-profiles,
+        ingest-occurrences,
+        process-spans,
+        process-segments,
+        ingest-metrics,
+        ingest-generic-metrics,
+        billing-metrics-consumer,
+        uptime-results,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+        taskworker,
+        taskworker-scheduler,
+        worker,
       ]
 
 services:

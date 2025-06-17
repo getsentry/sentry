@@ -372,7 +372,7 @@ class ExhaustiveFixtures(Fixtures):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
-        Authenticator.objects.create(user=user, type=1)
+        Authenticator.objects.create(user=user, type=1, config={})
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -530,7 +530,8 @@ class ExhaustiveFixtures(Fixtures):
         )
         DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
-            user_id=owner.id,
+            user_id=owner_id,
+            organization=org,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard

@@ -12,8 +12,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {sortAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
+import {
+  findSpanAttributeValue,
+  getTraceAttributesTreeActions,
+  sortAttributes,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type Props = {
   rootEventResults: TraceRootEventQueryResults;
@@ -23,7 +26,6 @@ export function TraceContextTags({rootEventResults}: Props) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const hasTraceTabsUi = useHasTraceTabsUI();
 
   if (rootEventResults.isLoading) {
     return <LoadingIndicator />;
@@ -34,6 +36,7 @@ export function TraceContextTags({rootEventResults}: Props) {
   }
 
   const eventDetails = rootEventResults.data!;
+
   const rendered = isTraceItemDetailsResponse(eventDetails) ? (
     <AttributesTree
       attributes={sortAttributes(eventDetails.attributes)}
@@ -42,6 +45,11 @@ export function TraceContextTags({rootEventResults}: Props) {
         location,
         organization,
       }}
+      getCustomActions={getTraceAttributesTreeActions({
+        location,
+        organization,
+        projectIds: findSpanAttributeValue(eventDetails.attributes, 'project_id'),
+      })}
     />
   ) : (
     <EventTagsTree
@@ -54,11 +62,7 @@ export function TraceContextTags({rootEventResults}: Props) {
     />
   );
 
-  if (hasTraceTabsUi) {
-    return <StyledPanel>{rendered}</StyledPanel>;
-  }
-
-  return rendered;
+  return <StyledPanel>{rendered}</StyledPanel>;
 }
 
 const StyledPanel = styled(Panel)`

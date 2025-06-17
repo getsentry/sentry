@@ -349,7 +349,7 @@ const TrailingItems = styled('div')`
 `;
 
 const SeparatorWrapper = styled('div')`
-  padding: ${space(1.5)} 0;
+  margin: ${space(1.5)} 0;
   display: none;
 `;
 
@@ -366,13 +366,13 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.content.muted};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -388,7 +388,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     width: 4px;
     height: 20px;
     left: -${space(1.5)};
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.colors.blue400};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
@@ -424,6 +424,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
+  gap: ${space(0.75)};
 
   &:focus-visible {
     box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};

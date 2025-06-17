@@ -1,3 +1,4 @@
+import builtins
 from typing import Any
 
 from rest_framework import serializers
@@ -19,7 +20,7 @@ class BaseActionValidator(CamelSnakeSerializer):
     type = serializers.ChoiceField(choices=[(t.value, t.name) for t in Action.Type])
     integration_id = serializers.IntegerField(required=False)
 
-    def _get_action_handler(self) -> ActionHandler:
+    def _get_action_handler(self) -> builtins.type[ActionHandler]:
         action_type = self.initial_data.get("type")
         return action_handler_registry.get(action_type)
 

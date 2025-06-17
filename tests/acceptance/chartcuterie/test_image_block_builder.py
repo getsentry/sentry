@@ -70,7 +70,7 @@ class TestSlackImageBlockBuilder(
         assert "_media/" in image_block["image_url"]
 
     @with_feature("organizations:performance-use-metrics")
-    @patch("sentry.utils.performance_issues.detectors.utils.escape_transaction")
+    @patch("sentry.performance_issues.detectors.utils.escape_transaction")
     def test_caching(self, mock_escape_transaction):
         mock_escape_transaction.return_value = "Test Transaction"
         group = self._create_endpoint_regression_issue()

@@ -845,6 +845,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.SUM,
   AggregationKey.MIN,
   AggregationKey.MAX,
+  AggregationKey.FAILURE_RATE,
 ];
 
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -1031,6 +1032,12 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     ],
   },
 };
+
+export const NO_ARGUMENT_SPAN_AGGREGATES: AggregationKey[] = Object.entries(
+  SPAN_AGGREGATION_FIELDS
+)
+  .filter(([_, field]) => field.parameters?.length === 0)
+  .map(([key]) => key as AggregationKey);
 
 export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
@@ -1354,7 +1361,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_NAME]: {
-    desc: t('Descriptor details'),
+    desc: t('Model name as advertised on the market'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1526,7 +1533,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     allowWildcard: false,
   },
   [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
-    desc: t('How actionable the issue is, determined by Seer'),
+    desc: t('How easily you can fix the issue with a code change, estimated by Seer'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
@@ -1926,8 +1933,8 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.DEVICE_CLASS,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_LOCALE,
-  FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_NAME,
   FieldKey.DEVICE_ORIENTATION,
   FieldKey.DEVICE_UUID,
   FieldKey.DIST,
@@ -2002,8 +2009,8 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_CLASS,
   FieldKey.DEVICE_LOCALE,
-  FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_NAME,
   FieldKey.DEVICE_ORIENTATION,
   FieldKey.DEVICE_UUID,
   FieldKey.ERROR_HANDLED,

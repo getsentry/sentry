@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import warnings
-from collections.abc import Set
+from collections.abc import Iterator
+from typing import Protocol
 
 
 class UnsupportedBackend(RuntimeWarning):
@@ -7,14 +10,20 @@ class UnsupportedBackend(RuntimeWarning):
 
 
 class DeprecatedSettingWarning(DeprecationWarning):
-    def __init__(self, setting, replacement, url=None, removed_in_version=None):
+    def __init__(
+        self,
+        setting: str,
+        replacement: str,
+        url: str | None = None,
+        removed_in_version: str | None = None,
+    ):
         self.setting = setting
         self.replacement = replacement
         self.url = url
         self.removed_in_version = removed_in_version
         super().__init__(setting, replacement, url)
 
-    def __str__(self):
+    def __str__(self) -> str:
         chunks = [
             f"The {self.setting} setting is deprecated. Please use {self.replacement} instead."
         ]
@@ -30,16 +39,27 @@ class DeprecatedSettingWarning(DeprecationWarning):
         return " ".join(chunks)
 
 
+class _WarningHandler(Protocol):
+    def __call__(self, warning: Warning, stacklevel: int | None = None) -> None: ...
+
+
 class WarningManager:
     """
     Transforms warnings into a standard form and invokes handlers.
     """
 
-    def __init__(self, handlers, default_category=Warning):
+    def __init__(
+        self, handlers: tuple[_WarningHandler, ...], default_category: type[Warning] = Warning
+    ) -> None:
         self.__handlers = handlers
         self.__default_category = default_category
 
-    def warn(self, message, category=None, stacklevel=None):
+    def warn(
+        self,
+        message: str | Warning,
+        category: type[Warning] | None = None,
+        stacklevel: int | None = None,
+    ) -> None:
         if isinstance(message, Warning):
             # Maybe log if `category` was passed and isn't a subclass of
             # `type(message)`?
@@ -59,28 +79,28 @@ class WarningManager:
             handler(warning, **kwargs)
 
 
-class WarningSet(Set):
+class WarningSet:
     """
     Add-only set structure for storing unique warnings.
     """
 
-    def __init__(self):
-        self.__warnings = {}
+    def __init__(self) -> None:
+        self.__warnings: dict[tuple[object, ...], Warning] = {}
 
-    def __contains__(self, value):
+    def __contains__(self, value: object) -> bool:
         assert isinstance(value, Warning)
         return self.__get_key(value) in self.__warnings
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.__warnings)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Warning]:
         yield from self.__warnings.values()
 
-    def __get_key(self, warning):
+    def __get_key(self, warning: Warning) -> tuple[object, ...]:
         return (type(warning), warning.args if hasattr(warning, "args") else str(warning))
 
-    def add(self, warning, stacklevel=None):
+    def add(self, warning: Warning, stacklevel: int | None = None) -> None:
         self.__warnings[self.__get_key(warning)] = warning
 
 

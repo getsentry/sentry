@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
@@ -13,7 +12,7 @@ type ConfigParams = {
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
   if (organization && prefersStackedNav(organization)) {
-    return getUserOrgNavigationConfiguration({organization});
+    return getUserOrgNavigationConfiguration();
   }
 
   return [
@@ -84,14 +83,11 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
         },
         {
           path: `${pathPrefix}/api/auth-tokens/`,
-          title: t('User Auth Tokens'),
+          title: t('Personal Tokens'),
           description: t(
-            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
           ),
         },
-        ...HookStore.get('settings:api-navigation-config').flatMap(cb =>
-          cb(organization)
-        ),
       ],
     },
   ];

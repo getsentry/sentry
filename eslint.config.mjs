@@ -15,6 +15,8 @@ import pluginQuery from '@tanstack/eslint-plugin-query';
 import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
+import boundaries from 'eslint-plugin-boundaries';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
@@ -214,7 +216,6 @@ export default typescript.config([
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
-    '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
     'tests/**/fixtures/**/*',
@@ -308,10 +309,6 @@ export default typescript.config([
               message: 'Do not import gsApp into sentry',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -395,7 +392,10 @@ export default typescript.config([
       'import/no-amd': 'error',
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
-      'import/no-extraneous-dependencies': ['error', {includeTypes: true}],
+      'import/no-extraneous-dependencies': [
+        'error',
+        {includeTypes: true, devDependencies: ['!eslint.config.mjs']},
+      ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
@@ -789,10 +789,8 @@ export default typescript.config([
     name: 'files/jest related',
     files: [
       'tests/js/jest-pegjs-transform.js',
-      'tests/js/sentry-test/echartsMock.js',
-      'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
-      'tests/js/sentry-test/svgMock.js',
       'tests/js/setup.ts',
     ],
     languageOptions: {
@@ -803,46 +801,6 @@ export default typescript.config([
     },
     rules: {
       'import/no-nodejs-modules': 'off',
-    },
-  },
-  {
-    name: 'files/devtoolbar',
-    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
-          paths: [
-            ...restrictedImportPaths,
-            {
-              name: 'sentry/components/button',
-              message:
-                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
-            },
-            {
-              name: 'sentry/utils/queryClient',
-              message:
-                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
-            },
-          ],
-        },
-      ],
     },
   },
   {
@@ -881,10 +839,6 @@ export default typescript.config([
             {
               group: ['getsentry/*'],
               message: 'Do not import gsApp into sentry',
-            },
-            {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
             },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
@@ -942,10 +896,6 @@ export default typescript.config([
               message: 'Do not import gsAdmin into gsApp',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -974,10 +924,6 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -1001,11 +947,196 @@ export default typescript.config([
       'no-restricted-imports': 'off',
     },
   },
-
   // MDX Configuration
   {
     ...mdx.flat,
     name: 'files/mdx',
     files: ['**/*.mdx'],
+  },
+  {
+    name: 'plugin/boundaries',
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      // order matters here because of nested directories
+      'boundaries/elements': [
+        // --- stories ---
+        {
+          type: 'story-files',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
+          mode: 'full',
+        },
+        {
+          type: 'story-book',
+          pattern: 'static/app/stories',
+        },
+        // --- tests ---
+        {
+          type: 'test-sentry',
+          pattern: [
+            'static/app/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/sentry-test/**/*.*',
+            'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-getsentry',
+          pattern: [
+            'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/getsentry-test/**/*.*',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-gsAdmin',
+          pattern: ['static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}'],
+          mode: 'full',
+        },
+        {
+          type: 'test',
+          pattern: 'tests/js',
+        },
+        // --- specifics ---
+        {
+          type: 'core-button',
+          pattern: 'static/app/components/core/button',
+        },
+        {
+          type: 'core',
+          pattern: 'static/app/components/core',
+        },
+        // --- sentry ---
+        {
+          type: 'sentry-images',
+          pattern: 'static/images',
+        },
+        {
+          type: 'sentry-locale',
+          pattern: '(static/app/locale.tsx|src/sentry/locale/**/*.*)',
+          mode: 'full',
+        },
+        {
+          type: 'sentry-logos',
+          pattern: 'src/sentry/static/sentry/images/logos',
+        },
+        {
+          type: 'sentry-fonts',
+          pattern: 'static/fonts',
+        },
+        {
+          type: 'sentry-fixture',
+          pattern: 'tests/js/fixtures',
+        },
+        {
+          type: 'sentry',
+          pattern: 'static/app',
+        },
+        // --- getsentry ---
+        {
+          type: 'getsentry',
+          pattern: 'static/gsApp',
+        },
+        // --- admin ---
+        {
+          type: 'gsAdmin',
+          pattern: 'static/gsAdmin',
+        },
+        // --- configs ---
+        {
+          type: 'configs',
+          pattern: '(package.json|config/**/*.*|*.config.{mjs,js,ts})',
+          mode: 'full',
+        },
+        {
+          type: 'build-utils',
+          pattern: 'build-utils',
+        },
+        {
+          type: 'scripts',
+          pattern: 'scripts',
+        },
+      ],
+    },
+    rules: {
+      ...boundaries.configs.strict.rules,
+      'boundaries/no-ignored': 'off',
+      'boundaries/no-private': 'off',
+      'boundaries/element-types': [
+        'warn',
+        {
+          default: 'disallow',
+          message: '${file.type} is not allowed to import ${dependency.type}',
+          rules: [
+            {
+              from: ['sentry*'],
+              allow: ['core*', 'sentry*'],
+            },
+            {
+              from: ['getsentry*'],
+              allow: ['core*', 'getsentry*', 'sentry*'],
+            },
+            {
+              from: ['gsAdmin*'],
+              disallow: ['sentry-locale'],
+              allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
+            },
+            {
+              from: ['test-sentry'],
+              allow: ['test-sentry', 'test', 'core*', 'sentry*'],
+            },
+            {
+              // todo does test-gesentry need test-sentry?
+              from: ['test-getsentry'],
+              allow: [
+                'test-getsentry',
+                'test-sentry',
+                'test',
+                'core*',
+                'getsentry*',
+                'sentry*',
+              ],
+            },
+            {
+              from: ['test-gsAdmin'],
+              allow: [
+                'test-gsAdmin',
+                'test-getsentry',
+                'test-sentry',
+                'test',
+                'core*',
+                'gsAdmin*',
+                'sentry*',
+                'getsentry*',
+              ],
+            },
+            {
+              from: ['test'],
+              allow: ['test', 'test-sentry', 'sentry*'],
+            },
+            {
+              from: ['configs'],
+              allow: ['configs', 'build-utils'],
+            },
+            // --- stories ---
+            {
+              from: ['story-files', 'story-book'],
+              allow: ['core*', 'sentry*', 'story-book'],
+            },
+            // --- core ---
+            {
+              from: ['core-button'],
+              allow: ['core*'],
+            },
+            // todo: sentry* shouldn't be allowed
+            {
+              from: ['core'],
+              allow: ['core*', 'sentry*'],
+            },
+          ],
+        },
+      ],
+    },
   },
 ]);

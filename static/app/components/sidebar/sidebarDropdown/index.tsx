@@ -154,7 +154,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                       {t('User settings')}
                     </SidebarMenuItem>
                     <SidebarMenuItem to="/settings/account/api/">
-                      {t('User auth tokens')}
+                      {t('Personal Tokens')}
                     </SidebarMenuItem>
                     {hasOrganization && (
                       <Hook
