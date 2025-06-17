@@ -432,6 +432,7 @@ const Arcade = styled('iframe')`
   max-width: 100%;
   height: 500px;
   border: 0;
+  color-scheme: auto;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
