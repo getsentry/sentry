@@ -48,7 +48,7 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
