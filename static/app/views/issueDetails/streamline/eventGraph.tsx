@@ -159,29 +159,6 @@ export function EventGraph({
     },
   });
 
-  const [legendSelected, setLegendSelected] = useLocalStorageState(
-    'issue-details-graph-legend',
-    {
-      ['Feature Flags']: true,
-      ['Releases']: false,
-    }
-  );
-
-  const {releases = []} = useReleaseStats(
-    {
-      projects: eventView.project,
-      environments: eventView.environment,
-      datetime: {
-        start: eventView.start,
-        end: eventView.end,
-        period: eventView.statsPeriod,
-      },
-    },
-    {
-      staleTime: 0,
-    }
-  );
-
   const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
   const shouldShowBubbles = hasReleaseBubblesSeries && showReleasesAs !== 'line';
 
@@ -271,6 +248,28 @@ export function EventGraph({
     eventSeries,
   });
 
+  const [legendSelected, setLegendSelected] = useLocalStorageState(
+    'issue-details-graph-legend',
+    {
+      ['Feature Flags']: true,
+      ['Releases']: false,
+    }
+  );
+
+  const {releases = []} = useReleaseStats(
+    {
+      projects: eventView.project,
+      environments: eventView.environment,
+      datetime: {
+        start: eventView.start,
+        end: eventView.end,
+        period: eventView.statsPeriod,
+      },
+    },
+    {
+      staleTime: 0,
+    }
+  );
   const {flags} = useFlagsInEvent({
     eventId: event?.id,
     groupId: group.id,
