@@ -2127,38 +2127,41 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
 
-class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
-    @cached_property
-    def alert_rule(self):
-        return self.create_alert_rule()
+class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
+    def setUp(self):
+        self.detector = self.create_detector()
+        self.alert_rule = self.create_alert_rule()
+        self.create_alert_rule_detector(alert_rule_id=self.alert_rule.id, detector=self.detector)
 
-    def test(self):
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_enable(self):
         with self.tasks():
             disable_alert_rule(self.alert_rule)
+            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
+            assert self.detector.status == ObjectStatus.DISABLED
 
             enable_alert_rule(self.alert_rule)
+            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
+            assert self.detector.status == ObjectStatus.ACTIVE
 
-
-class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
-    @cached_property
-    def alert_rule(self):
-        return self.create_alert_rule()
-
-    def test(self):
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_disable(self):
         with self.tasks():
             disable_alert_rule(self.alert_rule)
+            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
+            assert self.detector.status == ObjectStatus.DISABLED
 
 
 class CreateAlertRuleTriggerTest(TestCase):

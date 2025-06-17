@@ -91,7 +91,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 15
+        assert response.data["numFeedbacksUsed"] == 15
 
     @django_db_all
     @patch(
@@ -122,7 +122,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 12
+        assert response.data["numFeedbacksUsed"] == 12
 
     @django_db_all
     @patch(
@@ -151,7 +151,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 10
+        assert response.data["numFeedbacksUsed"] == 10
 
     @django_db_all
     @patch(
@@ -180,7 +180,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 22
+        assert response.data["numFeedbacksUsed"] == 22
 
     @django_db_all
     @patch(
@@ -208,7 +208,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.status_code == 200
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 22
+        assert response.data["numFeedbacksUsed"] == 22
 
     @django_db_all
     @patch(
@@ -259,4 +259,4 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 12
+        assert response.data["numFeedbacksUsed"] == 12

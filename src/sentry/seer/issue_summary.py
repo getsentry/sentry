@@ -10,10 +10,14 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, options, quotas, ratelimits
+from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.autofix.utils import SeerAutomationSource, get_autofix_state
+from sentry.autofix.utils import (
+    SeerAutomationSource,
+    get_autofix_state,
+    is_seer_autotriggered_autofix_rate_limited,
+)
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
@@ -273,78 +277,63 @@ def _run_automation(
     ):
         return
 
-    group_id = group.id
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
-    project = group.project
-    organization = group.organization
 
     sentry_sdk.set_tags(
         {
-            "group_id": group_id,
+            "group_id": group.id,
             "user_id": user_id,
             "auto_run_source": auto_run_source,
-            "org_slug": organization.slug,
-            "org_id": organization.id,
-            "project_id": project.id,
+            "org_slug": group.organization.slug,
+            "org_id": group.organization.id,
+            "project_id": group.project.id,
         }
     )
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        try:
-            issue_summary = _generate_fixability_score(group)
-        except Exception:
-            logger.exception("Error generating fixability score", extra={"group_id": group_id})
-            return
+        issue_summary = _generate_fixability_score(group)
 
     if not issue_summary.scores:
-        return
-
+        raise ValueError("Issue summary scores is None or empty.")
     if issue_summary.scores.fixability_score is None:
-        return
+        raise ValueError("Issue summary fixability score is None.")
 
     group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
-    if _is_issue_fixable(group, issue_summary.scores.fixability_score):
+    if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
+        return
 
-        # Rate limit auto-triggered autofix runs to prevent giant bills.
-        if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-            limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
-            is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
-                project=project,
-                key="autofix.auto_triggered",
-                limit=limit,
-                window=60 * 60,  # 1 hour
-            )
-            if is_rate_limited:
-                sentry_sdk.set_tags(
-                    {
-                        "auto_run_count": current,
-                        "auto_run_limit": limit,
-                    }
-                )
-                logger.error("Autofix auto-trigger rate limit hit")
-                return
-
-        has_budget: bool = quotas.backend.has_available_reserved_budget(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
+    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
+        group.project, group.organization
+    )
+    if is_rate_limited:
+        sentry_sdk.set_tags(
+            {
+                "auto_run_count": current,
+                "auto_run_limit": limit,
+            }
         )
-        if not has_budget:
-            return
+        logger.error("Autofix auto-trigger rate limit hit", extra={"group_id": group.id})
+        return
 
-        with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-            autofix_state = get_autofix_state(group_id=group_id)
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        return
 
-        if (
-            not autofix_state
-        ):  # Only trigger autofix if we don't have an autofix on this issue already.
-            _trigger_autofix_task.delay(
-                group_id=group_id,
-                event_id=event.event_id,
-                user_id=user_id,
-                auto_run_source=auto_run_source,
-            )
+    with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
+        autofix_state = get_autofix_state(group_id=group.id)
+
+    if not autofix_state:  # Only trigger autofix if we don't have an autofix on this issue already.
+        _trigger_autofix_task.delay(
+            group_id=group.id,
+            event_id=event.event_id,
+            user_id=user_id,
+            auto_run_source=auto_run_source,
+        )
 
 
 def _generate_summary(
@@ -379,7 +368,12 @@ def _generate_summary(
         serialized_events_for_connected_issues,
     )
 
-    _run_automation(group, user, event, source)
+    try:
+        _run_automation(group, user, event, source)
+    except Exception:
+        logger.exception(
+            "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+        )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id

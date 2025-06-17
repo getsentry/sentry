@@ -152,6 +152,7 @@ def _webhook_issue_data(
             times=3,
             delay=60 * 5,
         ),
+        processing_deadline_duration=20,
     ),
     **TASK_OPTIONS,
 )
@@ -435,6 +436,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
             times=3,
             delay=60 * 5,
         ),
+        processing_deadline_duration=150,
     ),
     **TASK_OPTIONS,
 )
