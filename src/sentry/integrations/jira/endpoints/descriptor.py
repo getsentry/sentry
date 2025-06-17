@@ -79,7 +79,12 @@ class JiraDescriptorEndpoint(Endpoint):
                             "event": "jira:issue_updated",
                             "url": reverse("sentry-extensions-jira-issue-updated"),
                             "excludeBody": False,
-                        }
+                        },
+                        {
+                            "event": "jira:issue_deleted",
+                            "url": reverse("sentry-extensions-jira-issue-deleted"),
+                            "excludeBody": False,
+                        },
                     ],
                 },
                 "apiMigrations": {"gdpr": True, "context-qsh": True, "signed-install": True},
