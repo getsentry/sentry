@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 SafeRunSQL(
                     """\
-                    ALTER TABLE "sentry_groupopenperiod" ADD CONSTRAINT "exclude_overlapping_date_start_end" EXCLUDE USING GIST ("group" WITH =, (TSTZRANGE("date_started", "date_ended", '[]')) WITH &&);
+                    ALTER TABLE "sentry_groupopenperiod" ADD CONSTRAINT "exclude_overlapping_date_start_end" EXCLUDE USING GIST ("group_id" WITH =, (TSTZRANGE("date_started", "date_ended", '[]')) WITH &&);
                     """,
                     reverse_sql="ALTER TABLE sentry_groupopenperiod DROP CONSTRAINT IF EXISTS exclude_overlapping_date_start_end;",
                     hints={"tables": ["sentry_groupopenperiod"]},
