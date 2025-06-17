@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {uniqueId} from 'sentry/utils/guid';
@@ -163,7 +164,7 @@ describe('rawTrackAnalyticsEvent', function () {
   });
 
   it('pass custom referrer', function () {
-    window.location.search = '?referrer=test';
+    setWindowLocation('http:/localhost/?referrer=test');
     rawTrackAnalyticsEvent({
       eventKey: 'test_event',
       eventName: 'Test Event',
@@ -181,7 +182,7 @@ describe('rawTrackAnalyticsEvent', function () {
       expect.objectContaining({custom_referrer: 'test'}),
       {time: undefined}
     );
-    window.location.search = '';
+    setWindowLocation('http:/localhost/');
   });
   it('start analytics session', function () {
     rawTrackAnalyticsEvent(

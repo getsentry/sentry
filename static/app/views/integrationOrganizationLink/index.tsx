@@ -24,6 +24,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -145,7 +146,7 @@ export default function IntegrationOrganizationLink() {
       // redirect to the org if it's different than the org being selected
       if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
         const urlWithQuery = generateOrgSlugUrl(orgSlug) + location.search;
-        window.location.assign(urlWithQuery);
+        testableWindowLocation.assign(urlWithQuery);
         return;
       }
       // otherwise proceed as normal
@@ -158,7 +159,7 @@ export default function IntegrationOrganizationLink() {
     // If only one organization, select it and redirect
     if (organizations.length === 1) {
       const urlWithQuery = generateOrgSlugUrl(organizations[0]?.slug) + location.search;
-      window.location.assign(urlWithQuery);
+      testableWindowLocation.assign(urlWithQuery);
     }
     // Now, check the subdomain and use that org slug if it exists
     const customerDomain = ConfigStore.get('customerDomain');

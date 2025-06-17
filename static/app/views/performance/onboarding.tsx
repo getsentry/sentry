@@ -61,6 +61,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -752,7 +753,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                       },
                       {replace: true}
                     );
-                    window.location.reload();
+                    testableWindowLocation.reload();
                   }}
                 >
                   {t('Take me to traces')}

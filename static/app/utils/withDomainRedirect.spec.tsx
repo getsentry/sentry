@@ -7,7 +7,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocationReplace} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -122,8 +122,8 @@ describe('withDomainRedirect', function () {
     );
 
     expect(container).toBeEmptyDOMElement();
-    expect(testableWindowLocationReplace).toHaveBeenCalledTimes(1);
-    expect(testableWindowLocationReplace).toHaveBeenCalledWith(
+    expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
   });
@@ -156,8 +156,8 @@ describe('withDomainRedirect', function () {
     );
 
     expect(container).toBeEmptyDOMElement();
-    expect(testableWindowLocationReplace).toHaveBeenCalledTimes(1);
-    expect(testableWindowLocationReplace).toHaveBeenCalledWith(
+    expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
   });

@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {testableWindowLocationAssign} from 'sentry/utils/testableLocation';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 type RouteParams = {
@@ -93,11 +93,11 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         cancelLabel={t('Cancel')}
         onCancel={() => {
           // Use window.location as we're going to an HTML view
-          testableWindowLocationAssign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         onSubmitSuccess={() => {
           // Use window.location as we're going to an HTML view
-          testableWindowLocationAssign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         initialData={{cancel: 1}}
       >

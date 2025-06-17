@@ -3,6 +3,7 @@ import {act, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -29,10 +30,10 @@ describe('RedirectToProjectModal', function () {
     );
 
     act(() => jest.advanceTimersByTime(4900));
-    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     act(() => jest.advanceTimersByTime(200));
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith('/org-slug/new-slug/');
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith('/org-slug/new-slug/');
   });
 });

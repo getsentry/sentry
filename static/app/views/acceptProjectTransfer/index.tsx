@@ -10,6 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -64,10 +65,12 @@ function AcceptProjectTransfer() {
       const projectSlug = transferDetails?.project.slug;
       const sentryUrl = ConfigStore.get('links').sentryUrl;
       if (projectSlug) {
-        window.location.href = `${sentryUrl}/organizations/${orgSlug}/settings/projects/${projectSlug}/teams/`;
+        testableWindowLocation.assign(
+          `${sentryUrl}/organizations/${orgSlug}/settings/projects/${projectSlug}/teams/`
+        );
         // done this way since we need to change subdomains
       } else {
-        window.location.href = `${sentryUrl}/organizations/${orgSlug}/projects/`;
+        testableWindowLocation.assign(`${sentryUrl}/organizations/${orgSlug}/projects/`);
       }
     },
     onError: () => {

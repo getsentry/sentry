@@ -6,6 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 
 import {OrganizationCrumb} from './organizationCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
@@ -176,7 +177,7 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://acme.sentry.io/settings/api-keys/'
     );
   });

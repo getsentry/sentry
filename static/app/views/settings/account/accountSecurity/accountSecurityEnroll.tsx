@@ -32,6 +32,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
+import {testableWindowLocation} from 'sentry/utils/testableLocation';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
@@ -358,7 +359,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
       return org.links.organizationUrl === new URL(window.location.href).origin;
     });
     if (!isAlreadyInOrgSubDomain) {
-      window.location.assign(generateOrgSlugUrl(orgs[0]!.slug));
+      testableWindowLocation.assign(generateOrgSlugUrl(orgs[0]!.slug));
     }
   }
 
