@@ -11,6 +11,7 @@ from sentry.testutils.cases import TestCase
 class DiscordRendererTest(TestCase):
     def test_default_renderer(self):
         renderer = DiscordNotificationProvider.get_renderer(type=NotificationType.DEBUG)
+        # TODO(ecosystem): Replace this with a real data blob, template and renderable
         assert renderer.render(data={}, template={}) == {}
 
 
