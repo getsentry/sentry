@@ -3,7 +3,6 @@
  */
 export default function getDynamicText<Value, Fixed = Value>({
   value,
-  fixed,
 }: {
   fixed: Fixed;
   value: Value;
