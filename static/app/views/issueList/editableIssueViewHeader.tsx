@@ -112,14 +112,14 @@ function EditingViewTitle({
     inputRef.current?.select();
   }, []);
 
-  const autosizeRef = useAutosizeInput({
+  const autosizeInputRef = useAutosizeInput({
     value: title,
   });
 
   return (
     <StyledGrowingInput
       value={title}
-      ref={mergeRefs(inputRef, autosizeRef)}
+      ref={mergeRefs(inputRef, autosizeInputRef)}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
       onBlur={() => stopEditing()}

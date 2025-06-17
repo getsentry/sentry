@@ -26,6 +26,7 @@ import {
   getHiddenOptions,
 } from 'sentry/components/core/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
@@ -515,12 +516,18 @@ export function SearchQueryBuilderCombobox<
     return () => {};
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
+  const autosizeInput = useAutosizeInput({value: inputValue});
   return (
     <Wrapper>
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
+        ref={mergeRefs(
+          ref,
+          inputRef,
+          autosizeInput,
+          triggerProps.ref as React.Ref<HTMLInputElement>
+        )}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}
