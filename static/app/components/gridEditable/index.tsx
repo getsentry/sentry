@@ -321,15 +321,7 @@ class GridEditable<
   }
 
   renderGridHead() {
-    const {
-      error,
-      isLoading,
-      columnOrder,
-      grid,
-      data,
-      stickyHeader,
-      resizable = true,
-    } = this.props;
+    const {error, isLoading, columnOrder, grid, data, resizable = true} = this.props;
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
@@ -354,7 +346,6 @@ class GridEditable<
               data-test-id="grid-head-cell"
               key={`${i}.${column.key}`}
               isFirst={i === 0}
-              sticky={stickyHeader}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
               {i !== numColumn - 1 && resizable && (

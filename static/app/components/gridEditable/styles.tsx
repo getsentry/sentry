@@ -130,7 +130,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_GRID + 1}` : '')}
 `;
 
-export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
+export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
@@ -142,8 +142,6 @@ export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-
-  ${p => (p.sticky ? `position: sticky; top: 0;` : '')}
 
   a,
   div,
