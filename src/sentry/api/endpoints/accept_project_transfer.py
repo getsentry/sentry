@@ -162,7 +162,11 @@ class AcceptProjectTransferEndpoint(Endpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("PROJECT_ACCEPT_TRANSFER"),
-            data=project.get_audit_log_data(),
+            data={
+                "old_organization_slug": old_organization.slug,
+                "new_organization_slug": organization.slug,
+                "project_slug": project.slug,
+            },
             transaction_id=transaction_id,
         )
 
