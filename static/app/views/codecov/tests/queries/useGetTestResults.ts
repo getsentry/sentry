@@ -9,10 +9,13 @@ import {
   type QueryKeyEndpointOptions,
   useInfiniteQuery,
 } from 'sentry/utils/queryClient';
-import type {SummaryFilterKey} from 'sentry/views/codecov/tests/config';
+import type {
+  SummaryFilterKey,
+  SummaryTAFilterKey,
+} from 'sentry/views/codecov/tests/config';
 import {
   DATE_TO_QUERY_INTERVAL,
-  SUMMARY_TO_TABLE_FILTER_KEY,
+  SUMMARY_TO_TA_TABLE_FILTER_KEY,
   TABLE_FIELD_NAME_TO_SORT_KEY,
 } from 'sentry/views/codecov/tests/config';
 import type {SortableTAOptions} from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
@@ -59,10 +62,15 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 export function useInfiniteTestResults() {
   const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
   const [searchParams] = useSearchParams();
+
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
+
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
-  const mappedFilterBy = filterBy && SUMMARY_TO_TABLE_FILTER_KEY[filterBy];
+  let mappedFilterBy = null;
+  if (filterBy in SUMMARY_TO_TA_TABLE_FILTER_KEY) {
+    mappedFilterBy = SUMMARY_TO_TA_TABLE_FILTER_KEY[filterBy as SummaryTAFilterKey];
+  }
 
   const {data, ...rest} = useInfiniteQuery<
     ApiResult<TestResults>,
