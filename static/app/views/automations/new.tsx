@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {
   StickyFooter,

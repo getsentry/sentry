@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';

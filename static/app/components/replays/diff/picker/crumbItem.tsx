@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';

@@ -1,9 +1,9 @@
 /* eslint-disable no-alert */
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';

@@ -1,5 +1,5 @@
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';

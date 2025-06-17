@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import Form from 'sentry/components/forms/form';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

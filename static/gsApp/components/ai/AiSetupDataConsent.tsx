@@ -5,8 +5,8 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

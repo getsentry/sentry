@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';

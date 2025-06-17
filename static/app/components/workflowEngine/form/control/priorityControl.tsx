@@ -2,8 +2,8 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
-import {Flex} from 'sentry/components/container/flex';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout/flex';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import FormContext from 'sentry/components/forms/formContext';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';

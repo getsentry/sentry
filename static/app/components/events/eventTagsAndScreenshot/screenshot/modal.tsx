@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {DateTime} from 'sentry/components/dateTime';
 import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';

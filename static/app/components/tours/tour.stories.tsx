@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {Flex} from 'sentry/components/core/layout/flex';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   TourContextProvider,

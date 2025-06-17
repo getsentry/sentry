@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

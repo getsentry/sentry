@@ -9,10 +9,10 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';

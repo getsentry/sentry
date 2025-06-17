@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout/flex';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
