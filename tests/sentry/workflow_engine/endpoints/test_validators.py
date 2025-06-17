@@ -160,7 +160,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         self.context = {
             "organization": self.project.organization,
             "project": self.project,
-            "request": self.make_request(),
+            "request": self.make_request(user=self.user),
         }
         self.valid_data = {
             "name": "Test Detector",
@@ -200,6 +200,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
+        assert detector.created_by_id == self.user.id
 
         # Verify data source in DB
         data_source = DataSource.objects.get(detector=detector)

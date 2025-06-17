@@ -185,6 +185,7 @@ class WorkflowValidator(CamelSnakeSerializer):
                 organization_id=self.context["organization"].id,
                 environment_id=validated_value.get("environment_id"),
                 when_condition_group=when_condition_group,
+                created_by_id=self.context["request"].user.id,
             )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?

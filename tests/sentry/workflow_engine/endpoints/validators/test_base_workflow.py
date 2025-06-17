@@ -107,7 +107,7 @@ class TestWorkflowValidatorCreate(TestCase):
     def setUp(self):
         self.context = {
             "organization": self.organization,
-            "request": self.make_request(),
+            "request": self.make_request(user=self.user),
         }
 
         self.valid_data = {
@@ -134,6 +134,7 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.enabled == self.valid_data["enabled"]
         assert workflow.config == self.valid_data["config"]
         assert workflow.organization_id == self.organization.id
+        assert workflow.created_by_id == self.user.id
 
     def test_create__validate_triggers_empty(self):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
