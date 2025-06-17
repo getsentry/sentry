@@ -1,25 +1,27 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
-interface AddPermissionsBlockProps {
+interface OutputCoverageFileProps {
   step: string;
 }
 
-const PERMISSIONS_SNIPPET = `permissions:
-  id-token: write`;
+const SNIPPET = `- name: Upload test results to Codecov
+  if: \${{ !cancelled() }}
+  uses: codecov/test-results-action@v1
+  with:
+    token: \${{ secrets.CODECOV_TOKEN }}
+`;
 
-export function AddPermissionsBlock({step}: AddPermissionsBlockProps) {
+export function AddScriptToYaml({step}: OutputCoverageFileProps) {
   const headerText = tct(
-    `Step [step]: Add [permissions] block [atTheTopLevel] in your CI YAML file that runs Sentry Prevent`,
+    'Step [step]: Add the script [actionName] to your CI YAML file',
     {
-      atTheTopLevel: <b>at the top level</b>,
       step,
-      permissions: <InlineCodeSnippet>{t('permissions')}</InlineCodeSnippet>,
+      actionName: <InlineCodeSnippet>{t('permissions')}</InlineCodeSnippet>,
     }
   );
 
@@ -27,17 +29,16 @@ export function AddPermissionsBlock({step}: AddPermissionsBlockProps) {
     <OnboardingStep.Container>
       <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
       <OnboardingStep.Content>
+        <p>{t('In your CI YAML file, add below scripts to the end of your test run.')}</p>
         <CodeSnippet dark language="yaml">
-          {PERMISSIONS_SNIPPET}
+          {SNIPPET}
         </CodeSnippet>
         <p>
-          {tct(
-            'Set this permission at the workflow or job level. For better security, define it at the job level as it limits access to only the job that needs the OIDC token. Learn more about [permissionsSettingLink].',
-            {
-              permissionsSettingLink: <Link to="">{t('permissions settings')}</Link>,
-            }
+          {t(
+            'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
           )}
         </p>
+        {/* TODO: add dropdown expansion */}
       </OnboardingStep.Content>
     </OnboardingStep.Container>
   );
