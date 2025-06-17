@@ -13,7 +13,10 @@ export function DetectorFixture(params: Partial<Detector> = {}): Detector {
     dateUpdated: '2025-01-01T00:00:00.000Z',
     lastTriggered: '2025-01-01T00:00:00.000Z',
     workflowIds: [],
-    config: {},
+    config: {
+      detection_type: 'static',
+      threshold_period: 1,
+    },
     type: 'metric_issue',
     disabled: false,
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),

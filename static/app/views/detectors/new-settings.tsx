@@ -1,15 +1,13 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -20,12 +18,15 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
 import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
+import {FullHeightForm} from 'sentry/views/detectors/components/forms/fullHeightForm';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   getNewMetricDetectorData,
+  useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {
@@ -33,8 +34,17 @@ import {
   makeMonitorDetailsPathname,
 } from 'sentry/views/detectors/pathnames';
 
-function NewDetectorBreadcrumbs() {
-  const title = useFormField<string>('title');
+function DetectorDocumentTitle() {
+  const title = useMetricDetectorFormField('name');
+  return (
+    <SentryDocumentTitle
+      title={title ? t('%s - New Monitor', title) : t('New Monitor')}
+    />
+  );
+}
+
+function DetectorBreadcrumbs() {
+  const title = useMetricDetectorFormField('name');
   const organization = useOrganization();
   return (
     <Breadcrumbs
@@ -46,16 +56,27 @@ function NewDetectorBreadcrumbs() {
   );
 }
 
-function NewDetectorDocumentTitle() {
-  const title = useFormField<string>('title');
-  return <SentryDocumentTitle title={title ? title : t('New Monitor')} />;
-}
-
 export default function DetectorNewSettings() {
-  const location = useLocation();
   const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
   const navigate = useNavigate();
+  const location = useLocation();
+  // We'll likely use more query params on this page to open drawers, validate once
+  const validatedRequiredQueryParams = useRef(false);
+
+  useWorkflowEngineFeatureGate({redirect: true});
+
+  // Kick user back to the previous step if they don't have a project or detectorType
+  useLayoutEffect(() => {
+    const {project, detectorType} = location.query;
+    if (validatedRequiredQueryParams.current) {
+      return;
+    }
+
+    if (!project || !detectorType) {
+      navigate(`${makeMonitorBasePathname(organization.slug)}new/`);
+    }
+    validatedRequiredQueryParams.current = true;
+  }, [location.query, navigate, organization.slug]);
 
   const {mutateAsync: createDetector} = useCreateDetector();
 
@@ -74,26 +95,33 @@ export default function DetectorNewSettings() {
     [createDetector, navigate, organization.slug]
   );
 
+  // Defaults and data from the previous step passed in as query params
+  const initialData = useMemo(
+    (): MetricDetectorFormData => ({
+      ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+      projectId: (location.query.project as string) ?? '',
+      environment: (location.query.environment as string | undefined) || '',
+      name: (location.query.name as string | undefined) || '',
+    }),
+    [location.query]
+  );
+
   return (
-    <FullHeightForm
-      hideFooter
-      initialData={{
-        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-        // TODO: navigate them to the previous step if they don't have a project
-        projectId: location.query.project ?? '',
-        environment: location.query.environment || '',
-        name: location.query.name || '',
-      }}
-      onSubmit={handleSubmit}
-    >
-      <NewDetectorDocumentTitle />
+    <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
+      <DetectorDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
-            <NewDetectorBreadcrumbs />
-            <Layout.Title>
-              <EditableDetectorName />
-            </Layout.Title>
+            <DetectorBreadcrumbs />
+            <Flex gap={space(1)} column>
+              <Layout.Title>
+                <EditableDetectorName />
+              </Layout.Title>
+              <DetectorSubtitle
+                projectId={initialData.projectId}
+                environment={initialData.environment}
+              />
+            </Flex>
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>
@@ -122,16 +150,4 @@ export default function DetectorNewSettings() {
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
-`;
-
-const FullHeightForm = styled(Form)`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0%;
-
-  & > div:first-child {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
 `;

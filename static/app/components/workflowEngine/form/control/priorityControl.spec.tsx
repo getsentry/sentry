@@ -19,7 +19,7 @@ describe('PriorityControl', function () {
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
 
@@ -37,7 +37,7 @@ describe('PriorityControl', function () {
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
     expect(await screen.findByRole('button', {name: 'Low'})).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('PriorityControl', function () {
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
     const medium = await screen.findByTestId('priority-control-medium');

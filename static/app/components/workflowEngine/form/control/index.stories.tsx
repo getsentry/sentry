@@ -5,6 +5,7 @@ import Form from 'sentry/components/forms/form';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
+import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
 
 export default Storybook.story('Form Controls', story => {
   story('PriorityControl', () => (
@@ -16,7 +17,7 @@ export default Storybook.story('Form Controls', story => {
 
       <Form hideFooter>
         <Flex column gap={space(2)}>
-          <PriorityControl />
+          <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
         </Flex>
       </Form>
     </Fragment>
