@@ -56,6 +56,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
     def test_repository_and_identity(self):
         org = self.create_organization()
+        org2 = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
         provider = self.create_identity_provider(integration)
@@ -63,6 +64,8 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             user=self.user, identity_provider=provider, external_id="abc123"
         )
         organization_integration = integration.add_organization(org, self.user, identity.id)
+        # Add a second organization integration to the integration (so it doesn't get deleted)
+        integration.add_organization(org2)
         assert organization_integration is not None
         repository = self.create_repo(
             project=project, name="testrepo", provider="gitlab", integration_id=integration.id
@@ -115,3 +118,47 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             # We expect to delete all associated Code Owners and Code Mappings
             assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
             assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()
+
+    def test_delete_integration_if_no_organization_integrations_left(self):
+        org = self.create_organization()
+        integration = self.create_provider_integration(provider="example", name="Example")
+        org_integration = self.create_organization_integration(
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+
+        org_integration.update(status=ObjectStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(instance=org_integration, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        assert not OrganizationIntegration.objects.filter(id=org_integration.id).exists()
+        assert not Integration.objects.filter(id=integration.id).exists()
+
+    def test_do_not_delete_integration_if_other_organization_integrations_exist(self):
+        org = self.create_organization()
+        org2 = self.create_organization()
+        integration = self.create_provider_integration(provider="example", name="Example")
+
+        org_integration = self.create_organization_integration(
+            organization_id=org2.id,
+            integration_id=integration.id,
+        )
+        org_integration2 = self.create_organization_integration(
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+
+        assert org_integration is not None
+        assert org_integration2 is not None
+
+        org_integration.update(status=ObjectStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(instance=org_integration, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        assert not OrganizationIntegration.objects.filter(id=org_integration.id).exists()
+        assert OrganizationIntegration.objects.filter(id=org_integration2.id).exists()
+        assert Integration.objects.filter(id=integration.id).exists()
