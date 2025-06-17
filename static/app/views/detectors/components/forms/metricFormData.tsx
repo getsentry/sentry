@@ -29,10 +29,6 @@ interface PrioritizeLevelFormData {
    * Medium priority value is optional depending on the initial level
    */
   mediumThreshold?: string;
-  /**
-   * Optional value at which the issue is resolved
-   */
-  resolveThreshold?: string;
 }
 
 interface MetricDetectorConditionFormData {
@@ -89,7 +85,6 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   initialPriorityLevel: 'initialPriorityLevel',
   highThreshold: 'highThreshold',
   mediumThreshold: 'mediumThreshold',
-  resolveThreshold: 'resolveThreshold',
 
   // Condition fields
   conditionComparisonAgo: 'conditionComparisonAgo',
@@ -106,11 +101,10 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
 
   // Priority level fields
   // Metric detectors only support MEDIUM and HIGH priority levels
-  initialPriorityLevel: DetectorPriorityLevel.MEDIUM,
+  initialPriorityLevel: DetectorPriorityLevel.HIGH,
   conditionType: DataConditionType.GREATER,
   conditionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
-  resolveThreshold: '',
 
   // Default dynamic fields
   sensitivity: AlertRuleSensitivity.LOW,
@@ -181,27 +175,13 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
   // Only add HIGH escalation if initial priority is MEDIUM and highThreshold is provided
   if (
     data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM &&
-    defined(data.highThreshold)
+    defined(data.highThreshold) &&
+    data.highThreshold !== ''
   ) {
     conditions.push({
       type: data.conditionType,
       comparison: parseFloat(data.highThreshold) || 0,
       conditionResult: DetectorPriorityLevel.HIGH,
-    });
-  }
-
-  // Create resolution condition if provided
-  if (defined(data.resolveThreshold) && data.resolveThreshold !== '') {
-    // Resolution condition uses opposite comparison type
-    const resolveConditionType =
-      data.conditionType === DataConditionType.GREATER
-        ? DataConditionType.LESS
-        : DataConditionType.GREATER;
-
-    conditions.push({
-      type: resolveConditionType,
-      comparison: parseFloat(data.resolveThreshold) || 0,
-      conditionResult: DetectorPriorityLevel.OK,
     });
   }
 
@@ -299,11 +279,6 @@ function processDetectorConditions(
     condition => condition.conditionResult === DetectorPriorityLevel.HIGH
   );
 
-  // Find resolution condition
-  const resolveCondition = conditions.find(
-    condition => condition.conditionResult === DetectorPriorityLevel.OK
-  );
-
   // Determine initial priority level, ensuring it's valid for the form
   let initialPriorityLevel: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH =
     DetectorPriorityLevel.MEDIUM;
@@ -329,7 +304,6 @@ function processDetectorConditions(
     conditionValue: mainCondition?.comparison.toString() || '',
     conditionType,
     highThreshold: highCondition?.comparison.toString() || '',
-    resolveThreshold: resolveCondition?.comparison.toString() || '',
   };
 }
 
