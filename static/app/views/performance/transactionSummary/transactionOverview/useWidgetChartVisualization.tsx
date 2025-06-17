@@ -131,13 +131,9 @@ function useDurationBreakdownVisualization({
   const timeSeries = eapSeriesDataToTimeSeries(spanSeriesData);
   const plottables = timeSeries.map(series => new Line(series));
 
-  const enableReleaseBubblesProps =
-    !!releases?.length
-      ? {
-          showReleaseAs: 'bubble' as const,
-          releases,
-        }
-      : {};
+  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
+    ? ({releases, showReleaseAs: 'bubble'} as const)
+    : {};
 
   return (
     <TimeSeriesWidgetVisualization

@@ -144,6 +144,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const location = useLocation();
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' &&
+    organization.features.includes('release-bubbles-ui') &&
     props.showReleaseAs === 'bubble';
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
@@ -407,11 +408,20 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             theme,
             props.releases,
             function onReleaseClick(release: Release) {
+              if (organization.features.includes('release-bubbles-ui')) {
+                navigate(
+                  makeReleaseDrawerPathname({
+                    location,
+                    release: release.version,
+                    source: 'time-series-widget',
+                  })
+                );
+                return;
+              }
               navigate(
-                makeReleaseDrawerPathname({
-                  location,
-                  release: release.version,
-                  source: 'time-series-widget',
+                makeReleasesPathname({
+                  organization,
+                  path: `/${encodeURIComponent(release.version)}/`,
                 })
               );
             },
