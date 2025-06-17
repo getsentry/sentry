@@ -1107,3 +1107,11 @@ Available fields are:
         type=int,
         description="""The number of results to return from the end of the list.""",
     )
+    CURSOR = OpenApiParameter(
+        name="cursor",
+        location="query",
+        required=False,
+        type=str,
+        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.
+        """,
+    )
