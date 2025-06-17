@@ -1,6 +1,6 @@
+import time
 from datetime import datetime
 
-import time
 import pytest
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
@@ -56,7 +56,7 @@ def test_basic(monkeypatch):
 
     step.poll()
     fac._flusher.current_drift.value = 9000  # "advance" our "clock"
-    
+
     step.poll()
     # Give flusher threads time to process after drift change
     time.sleep(0.1)
@@ -79,3 +79,45 @@ def test_basic(monkeypatch):
             },
         ],
     }
+
+
+@pytest.mark.django_db
+def test_flusher_processes_limit(monkeypatch):
+    """Test that flusher respects the max_processes limit"""
+    # Flush very aggressively to make test pass instantly
+    monkeypatch.setattr("time.sleep", lambda _: None)
+
+    topic = Topic("test")
+    messages: list[KafkaPayload] = []
+
+    # Create factory with limited flusher processes
+    fac = ProcessSpansStrategyFactory(
+        max_batch_size=10,
+        max_batch_time=10,
+        num_processes=1,
+        input_block_size=None,
+        output_block_size=None,
+        flusher_processes=2,  # Limit to 2 processes even if more shards
+        produce_to_pipe=messages.append,
+    )
+
+    commits = []
+
+    def add_commit(offsets, force=False):
+        commits.append(offsets)
+
+    # Create with 4 partitions/shards to test process sharing
+    partitions = {Partition(topic, i): 0 for i in range(4)}
+    step = fac.create_with_partitions(add_commit, partitions)
+
+    # Verify that flusher uses at most 2 processes
+    flusher = fac._flusher
+    assert len(flusher.processes) == 2
+    assert flusher.max_processes == 2
+    assert flusher.active_shards == 2
+
+    # Verify shards are distributed across processes
+    total_shards = sum(len(shards) for shards in flusher.shard_to_process_map.values())
+    assert total_shards == 4  # All 4 shards should be assigned
+
+    step.join()
