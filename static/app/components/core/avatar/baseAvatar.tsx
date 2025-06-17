@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
@@ -66,6 +66,9 @@ export function BaseAvatar({
   ...props
 }: BaseAvatarProps) {
   const [hasError, setError] = useState<boolean | null>(null);
+
+  // Reset loading errors when avatar type changes
+  useEffect(() => setError(null), [type]);
 
   const handleError = useCallback(() => setError(true), []);
   const handleLoad = useCallback(() => setError(false), []);
