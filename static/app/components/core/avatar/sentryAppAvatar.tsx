@@ -2,7 +2,7 @@ import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/ba
 import {IconGeneric} from 'sentry/icons';
 import type {AvatarSentryApp} from 'sentry/types/integrations';
 
-export interface SentryAppAvatarProps extends BaseAvatarProps {
+interface SentryAppAvatarProps extends BaseAvatarProps {
   isColor?: boolean;
   isDefault?: boolean;
   ref?: React.Ref<HTMLSpanElement>;
