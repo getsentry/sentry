@@ -552,7 +552,6 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
         # Temporarily reverse map these old aliases.
         # TODO: Once TraceItemAttributeNamesResponse is updated
         # to return the new aliases, remove these temp mappings.
-        "sentry.name": "span.description",
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
         "sentry.segment_name": "transaction",
