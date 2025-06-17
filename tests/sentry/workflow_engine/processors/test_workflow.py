@@ -639,6 +639,10 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         self.data_condition_group = self.create_data_condition_group()
         self.condition = self.create_data_condition(condition_group=self.data_condition_group)
         _, self.event, self.group_event = self.create_group_event()
+        self.workflow_event_data = WorkflowEventData(
+            event=self.group_event,
+            group=self.group_event.group,
+        )
 
     @patch("sentry.buffer.backend.push_to_sorted_set")
     @patch("sentry.buffer.backend.push_to_hash_bulk")
