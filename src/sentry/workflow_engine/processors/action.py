@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.db import models
 from django.utils import timezone
 
 from sentry import features
@@ -184,7 +185,11 @@ def filter_recently_fired_workflow_actions(
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
     # TODO: somehow attach workflows so we can fire actions with the appropriate workflow env
-    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys())).annotate(
+        workflow_id=models.F(
+            "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__id"
+        )
+    )
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
