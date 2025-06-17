@@ -39,8 +39,8 @@ class GroupTombstone(Model):
         blank=True, null=True
     )
     actor_id = BoundedPositiveIntegerField(null=True)
-    times_seen = BoundedPositiveIntegerField(default=0, db_default=None)
-    last_seen = models.DateTimeField(default=timezone.now, db_default=None)
+    times_seen = BoundedPositiveIntegerField(default=0, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
