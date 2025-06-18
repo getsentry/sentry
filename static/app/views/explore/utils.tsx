@@ -598,3 +598,61 @@ function isSimpleFilter(
 function normalizeKey(key: string): string {
   return key.startsWith('!') ? key.slice(1) : key;
 }
+
+export function formatQueryToNaturalLanguage(query: string): string {
+  if (!query.trim()) return '';
+  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  const formattedTokens = tokens.map(formatToken);
+
+  return formattedTokens.reduce((result, token, index) => {
+    if (index === 0) return token;
+
+    const prevToken = formattedTokens[index - 1];
+    if (!prevToken) return `${result}, ${token}`;
+
+    const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
+    const prevIsLogicalOp =
+      prevToken.toUpperCase() === 'AND' || prevToken.toUpperCase() === 'OR';
+
+    if (isLogicalOp || prevIsLogicalOp) {
+      return `${result} ${token}`;
+    }
+
+    return `${result}, ${token}`;
+  }, '');
+}
+
+function formatToken(token: string): string {
+  const isNegated = token.startsWith('!') && token.includes(':');
+  const actualToken = isNegated ? token.slice(1) : token;
+
+  const operators = [
+    [':>=', 'greater than or equal to'],
+    [':<=', 'less than or equal to'],
+    [':!=', 'not'],
+    [':>', 'greater than'],
+    [':<', 'less than'],
+    ['>=', 'greater than or equal to'],
+    ['<=', 'less than or equal to'],
+    ['!=', 'not'],
+    ['!:', 'not'],
+    ['>', 'greater than'],
+    ['<', 'less than'],
+    [':', ''],
+  ] as const;
+
+  for (const [op, desc] of operators) {
+    if (actualToken.includes(op)) {
+      const [key, value] = actualToken.split(op);
+      const cleanKey = key?.trim() || '';
+      const cleanVal = value?.trim() || '';
+
+      const negation = isNegated ? 'not ' : '';
+      const description = desc ? `${negation}${desc}` : negation ? 'not' : '';
+
+      return `${cleanKey} is ${description} ${cleanVal}`.replace(/\s+/g, ' ').trim();
+    }
+  }
+
+  return token;
+}

@@ -34,11 +34,9 @@ export function DetectorLink({
       to={makeMonitorDetailsPathname(org.slug, detectorId)}
       className={className}
     >
-      <Name disabled={disabled}>
-        <strong>{name}</strong>
-        {!createdBy && (
-          <IconSentry size="xs" color="subText" style={{alignSelf: 'center'}} />
-        )}
+      <Name>
+        <NameText>{name}</NameText>
+        {!createdBy && <CreatedBySentryIcon size="xs" color="subText" />}
         {disabled && <span>&mdash; Disabled</span>}
       </Name>
       <DetailsWrapper>
@@ -59,17 +57,21 @@ export function DetectorLink({
   );
 }
 
-const Name = styled('div')<{disabled: boolean}>`
+const Name = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
-  flex-direction: row;
+  align-items: center;
   gap: ${space(0.5)};
+`;
 
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.disabled};
-    `}
+const NameText = styled('span')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  ${p => p.theme.overflowEllipsis};
+  width: auto;
+`;
+
+const CreatedBySentryIcon = styled(IconSentry)`
+  flex-shrink: 0;
 `;
 
 const StyledLink = styled(Link)`
@@ -78,6 +80,7 @@ const StyledLink = styled(Link)`
   justify-content: center;
   gap: ${space(0.5)};
   flex: 1;
+  overflow: hidden;
 
   &:hover {
     ${Name} {

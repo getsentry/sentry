@@ -6,17 +6,18 @@ import Link from 'sentry/components/links/link';
 import {IconFilter} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {SummaryFilterKey} from 'sentry/views/codecov/tests/config';
 
 // exporting for testing purposes
-export function useCreateSummaryFilterLink(f_b_type: string) {
+export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
   const location = useLocation();
-  const isFiltered = location.query.f_b_type === f_b_type;
+  const isFiltered = location.query.filterBy === filterBy;
 
   const filterLink = {
     ...location,
     query: {
       ...location.query,
-      f_b_type,
+      filterBy,
     },
   };
 
@@ -24,7 +25,7 @@ export function useCreateSummaryFilterLink(f_b_type: string) {
     ...location,
     query: {
       ...location.query,
-      f_b_type: undefined,
+      filterBy: undefined,
     },
   };
 
@@ -91,7 +92,7 @@ const StyledSummaryEntryValueLink = styled('span')`
 
 type SummaryEntryValueLinkProps = {
   children: React.ReactNode;
-  filterBy: string;
+  filterBy: SummaryFilterKey;
 };
 
 export function SummaryEntryValueLink({children, filterBy}: SummaryEntryValueLinkProps) {

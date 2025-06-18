@@ -51,9 +51,8 @@ type Props = {
     | 'sentryAppColor'
     | 'sentryAppSimple'
     | 'docIntegration';
-  updateDataUrlState: (opts: {dataUrl?: string; savedDataUrl?: string | null}) => void;
+  updateDataUrlState: (opts: {dataUrl?: string}) => void;
   uploadDomain: string;
-  savedDataUrl?: string;
 };
 
 type State = {
@@ -97,9 +96,8 @@ class AvatarUploader extends Component<Props, State> {
 
     this.revokeObjectUrl();
 
-    const {updateDataUrlState} = this.props;
     const objectURL = window.URL.createObjectURL(file);
-    this.setState({file, objectURL}, () => updateDataUrlState({savedDataUrl: null}));
+    this.setState({file, objectURL});
   };
 
   revokeObjectUrl = () =>
@@ -353,12 +351,12 @@ class AvatarUploader extends Component<Props, State> {
   }
 
   get imageSrc() {
-    const {savedDataUrl, model, type, uploadDomain} = this.props;
+    const {model, type, uploadDomain} = this.props;
     const uuid = model.avatar?.avatarUuid;
     const photoUrl =
       uuid && `${uploadDomain}/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
 
-    return savedDataUrl || this.state.objectURL || photoUrl;
+    return this.state.objectURL || photoUrl;
   }
 
   uploadClick = (ev: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
