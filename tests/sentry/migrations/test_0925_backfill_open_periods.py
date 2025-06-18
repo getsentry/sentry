@@ -312,6 +312,21 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
             ("regressed_group_with_auto_resolved_cycles", group, starts, ends, activities)
         )
 
+        # Create a group with activities before the first_seen date
+        group, _, _, activities = self._create_resolved_group()
+        activities[0].datetime = group.first_seen - timedelta(days=4)
+        activities[0].save()
+
+        self.test_cases.append(
+            (
+                "resolved_group_with_activities_before_first_seen",
+                group,
+                [group.first_seen],
+                [activities[-1].datetime],
+                [activities[-1]],
+            )
+        )
+
     def test(self):
         for description, group, starts, ends, activities in self.test_cases:
             group.refresh_from_db()
