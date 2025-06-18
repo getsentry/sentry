@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 class SlackRendererTest(TestCase):
     def test_default_renderer(self):
-        renderer = SlackNotificationProvider.get_renderer(type=NotificationType.DEBUG)
+        renderer = SlackNotificationProvider.get_renderer(notification_type=NotificationType.DEBUG)
         # TODO(ecosystem): Replace this with a real data blob, template and renderable
         assert renderer.render(data={}, template={}) == {}
 

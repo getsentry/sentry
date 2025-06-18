@@ -33,7 +33,9 @@ class NotificationProviderTest(TestCase):
             for resource_type in provider.target_resource_types:
                 assert resource_type in NotificationTargetResourceType
             # Ensures the default renderer links back to its connected provider key
-            assert provider.default_renderer == provider.get_renderer(type=NotificationType.DEBUG)
+            assert provider.default_renderer == provider.get_renderer(
+                notification_type=NotificationType.DEBUG
+            )
             assert isinstance(provider.is_available(), bool)
             assert isinstance(
                 provider.is_available(
