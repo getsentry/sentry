@@ -1,5 +1,5 @@
-import logging
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -35,6 +35,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
+    QueryFilter,
     QueryResult,
     slow_condition_query_handler_registry,
 )
@@ -46,7 +47,7 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
-    filter_recently_fired_actions,
+    filter_recently_fired_workflow_actions,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
@@ -59,8 +60,9 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.utils import log_context
 
-logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
+logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workflow")
 
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
@@ -83,9 +85,28 @@ class UniqueConditionQuery:
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
-    filters: list[dict[str, Any]] | None = None
+    # Hashable representation of the filters
+    frozen_filters: Sequence[frozenset[tuple[str, Any]]] | None = None
 
-    def __repr__(self):
+    @staticmethod
+    def freeze_filters(
+        filters: Sequence[Mapping[str, Any]] | None,
+    ) -> Sequence[frozenset[tuple[str, Any]]] | None:
+        """
+        Convert the sorted representation of filters into a frozen one that can
+        be safely hashed.
+        """
+        if filters is None:
+            return None
+        return tuple(frozenset(sorted(filter.items())) for filter in filters)
+
+    @property
+    def filters(self) -> list[QueryFilter] | None:
+        if self.frozen_filters is None:
+            return None
+        return [dict(filter) for filter in self.frozen_filters]
+
+    def __repr__(self) -> str:
         return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
 
 
@@ -203,7 +224,7 @@ def generate_unique_queries(
             handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
-            filters=condition.comparison.get("filters"),
+            frozen_filters=UniqueConditionQuery.freeze_filters(condition.comparison.get("filters")),
         )
     ]
     if condition_type in PERCENT_CONDITIONS:
@@ -213,7 +234,9 @@ def generate_unique_queries(
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
-                filters=condition.comparison.get("filters"),
+                frozen_filters=UniqueConditionQuery.freeze_filters(
+                    condition.comparison.get("filters")
+                ),
             )
         )
     return unique_queries
@@ -430,7 +453,7 @@ def fire_actions_for_groups(
         threshold=timedelta(seconds=40),
     ) as tracker:
         for group, group_event in group_to_groupevent.items():
-            with tracker.track(str(group.id)):
+            with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
                 event_data = WorkflowEventData(event=group_event)
                 detector = get_detector_by_event(event_data)
 
@@ -456,11 +479,11 @@ def fire_actions_for_groups(
                 with log_if_slow(
                     logger,
                     "workflow_engine.delayed_workflow.slow_evaluate_workflows_action_filters",
-                    extra={"group_id": group.id, "event_data": event_data},
+                    extra={"event_data": event_data},
                     threshold_seconds=1,
                 ):
                     workflows_actions = evaluate_workflows_action_filters(workflows, event_data)
-                filtered_actions = filter_recently_fired_actions(
+                filtered_actions = filter_recently_fired_workflow_actions(
                     action_filters | workflows_actions, event_data
                 )
                 create_workflow_fire_histories(filtered_actions, event_data)
@@ -475,9 +498,8 @@ def fire_actions_for_groups(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
                         "workflow_ids": [workflow.id for workflow in workflows],
-                        "actions": filtered_actions,
+                        "actions": [action.id for action in filtered_actions],
                         "event_data": event_data,
-                        "group_id": group.id,
                         "event_id": event_data.event.event_id,
                     },
                 )
@@ -523,12 +545,14 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
         ),
     ),
 )
+@log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
 ) -> None:
     """
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
+    log_context.add_extras(project_id=project_id)
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
         project = fetch_project(project_id)
         if not project:
@@ -558,7 +582,6 @@ def process_delayed_workflows(
         extra={
             "data": workflow_event_dcg_data,
             "workflows": set(dcg_to_workflow.values()),
-            "project_id": project_id,
         },
     )
 
@@ -573,7 +596,6 @@ def process_delayed_workflows(
         extra={
             "condition_groups": repr_keys(condition_groups),
             "num_condition_groups": len(condition_groups),
-            "project_id": project_id,
         },
     )
 
@@ -588,7 +610,6 @@ def process_delayed_workflows(
         "delayed_workflow.condition_group_results",
         extra={
             "condition_group_results": repr_keys(condition_group_results),
-            "project_id": project_id,
         },
     )
 
@@ -602,7 +623,7 @@ def process_delayed_workflows(
     )
     logger.info(
         "delayed_workflow.groups_to_fire",
-        extra={"groups_to_dcgs": groups_to_dcgs, "project_id": project_id},
+        extra={"groups_to_dcgs": groups_to_dcgs},
     )
 
     with sentry_sdk.start_span(op="delayed_workflow.get_group_to_groupevent"):

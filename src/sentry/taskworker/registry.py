@@ -248,6 +248,8 @@ class TaskRegistry:
 
         Namespaces can define default behavior for tasks defined within a namespace.
         """
+        if name in self._namespaces:
+            raise ValueError(f"Task namespace with name {name} already exists.")
         namespace = TaskNamespace(
             name=name,
             router=self._router,

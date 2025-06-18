@@ -7,7 +7,7 @@ import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';

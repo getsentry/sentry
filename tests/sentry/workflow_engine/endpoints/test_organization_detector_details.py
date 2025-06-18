@@ -119,7 +119,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             "id": self.detector.id,
             "projectId": self.project.id,
             "name": "Updated Detector",
-            "detectorType": MetricIssue.slug,
+            "type": MetricIssue.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
             "dataSource": {
@@ -127,7 +127,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 "dataset": self.snuba_query.dataset,
                 "query": "updated query",
                 "aggregate": self.snuba_query.aggregate,
-                "timeWindow": 5,  # minutes
+                "timeWindow": 300,
                 "environment": self.environment.name,
                 "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
             },
@@ -166,7 +166,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     def assert_snuba_query_updated(self, snuba_query):
         assert snuba_query.query == "updated query"
-        assert snuba_query.time_window == 300  # seconds = 5 minutes
+        assert snuba_query.time_window == 300
 
     def test_update(self):
         with self.tasks():

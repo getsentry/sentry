@@ -149,10 +149,10 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displaySeerResults} = useSearchQueryBuilder();
+  const {displaySeerResults, query} = useSearchQueryBuilder();
 
   return displaySeerResults ? (
-    <SeerSearch />
+    <SeerSearch initialQuery={query} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
   );

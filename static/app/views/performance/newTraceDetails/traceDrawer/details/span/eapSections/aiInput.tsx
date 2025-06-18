@@ -143,12 +143,14 @@ export function AIInputSection({
       event,
       attributes
     );
-    promptMessages = transformInputMessages(inputMessages);
+    promptMessages = inputMessages && transformInputMessages(inputMessages);
   }
 
-  const aiInput = defined(promptMessages) && parseAIMessages(promptMessages as string);
+  const messages = defined(promptMessages) && parseAIMessages(promptMessages);
 
-  if (!aiInput) {
+  const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
+
+  if (!messages && !toolArgs) {
     return null;
   }
 
@@ -159,13 +161,13 @@ export function AIInputSection({
       disableCollapsePersistence
     >
       {/* If parsing fails, we'll just show the raw string */}
-      {typeof aiInput === 'string' ? (
+      {typeof messages === 'string' ? (
         <TraceDrawerComponents.MultilineText>
-          {aiInput}
+          {messages}
         </TraceDrawerComponents.MultilineText>
-      ) : (
+      ) : messages ? (
         <Fragment>
-          {aiInput.map((message, index) => (
+          {messages.map((message, index) => (
             <Fragment key={index}>
               <TraceDrawerComponents.MultilineTextLabel>
                 {roleHeadings[message.role]}
@@ -176,7 +178,10 @@ export function AIInputSection({
             </Fragment>
           ))}
         </Fragment>
-      )}
+      ) : null}
+      {toolArgs ? (
+        <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+      ) : null}
     </FoldSection>
   );
 }
