@@ -4,12 +4,10 @@ import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -60,19 +58,25 @@ function HeaderCell({
   };
 
   return (
-    <HeaderCellDiv
+    <ColumnHeaderCell
       className={name}
-      sortable={defined(sortKey)}
+      isSorted={isSortedByField}
       onClick={handleSort}
       role="columnheader"
+      as={sortKey ? 'button' : 'div'}
     >
       {divider && <HeaderDivider />}
       {sortKey && <InteractionStateLayer />}
-      <Heading sorted={isSortedByField}>{children}</Heading>
-      {sort && sort.field === sortKey && (
-        <IconArrow size="xs" direction={sort.kind === 'asc' ? 'up' : 'down'} />
+      <Heading>{children}</Heading>
+      {sortKey && (
+        <SortIndicator
+          aria-hidden
+          size="xs"
+          direction={sort?.kind === 'asc' ? 'up' : 'down'}
+          isSorted={isSortedByField}
+        />
       )}
-    </HeaderCellDiv>
+    </ColumnHeaderCell>
   );
 }
 
@@ -159,26 +163,24 @@ const PanelGrid = styled(Panel)`
 `;
 
 const HeaderDivider = styled('div')`
+  position: absolute;
+  left: 0;
   background-color: ${p => p.theme.gray200};
   width: 1px;
   border-radius: ${p => p.theme.borderRadius};
   height: 14px;
 `;
 
-const Heading = styled('div')<{sorted?: boolean}>`
+const Heading = styled('div')`
   display: flex;
-  padding: 0 ${space(2)};
-  color: ${p => p.theme.subText};
   align-items: center;
-
-  ${p =>
-    p.sorted &&
-    css`
-      color: ${p.theme.textColor};
-    `}
 `;
 
-const StyledPanelHeader = styled(PanelHeader)`
+const StyledPanelHeader = styled('div')`
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-radius: calc(${p => p.theme.borderRadius} + 1px)
+    calc(${p => p.theme.borderRadius} + 1px) 0 0;
   justify-content: left;
   padding: 0;
   min-height: 40px;
@@ -189,24 +191,44 @@ const StyledPanelHeader = styled(PanelHeader)`
   grid-column: 1 / -1;
 `;
 
-const HeaderCellDiv = styled('div')<{sortable?: boolean}>`
+const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
+  background: none;
+  outline: none;
+  border: none;
+  padding: 0 ${space(2)};
+  text-transform: inherit;
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-align: left;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: ${space(1)};
   height: 100%;
 
   &:first-child {
-    padding-left: ${space(2)};
-  }
-
-  &:last-child {
-    padding-right: ${space(2)};
+    padding-left: ${space(4)};
   }
 
   ${p =>
-    p.sortable &&
+    p.isSorted &&
     css`
-      cursor: pointer;
+      color: ${p.theme.textColor};
+    `}
+`;
+
+const SortIndicator = styled(IconArrow, {
+  shouldForwardProp: prop => prop !== 'isSorted',
+})<{isSorted?: boolean}>`
+  visibility: hidden;
+
+  ${p =>
+    p.isSorted &&
+    css`
+      visibility: visible;
     `}
 `;
 
