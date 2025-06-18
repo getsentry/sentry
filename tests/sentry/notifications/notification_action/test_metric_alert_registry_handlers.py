@@ -62,7 +62,11 @@ class TestHandler(BaseMetricAlertHandler):
 class MetricAlertHandlerBase(BaseWorkflowTest):
     def create_models(self):
         self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
+        self.detector = self.create_detector(
+            project=self.project,
+            config={"detection_type": "static", "threshold_period": 1},
+            type="metric_issue",
+        )
 
         with self.tasks():
             self.snuba_query = create_snuba_query(
@@ -406,7 +410,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             name=self.detector.name,
             action_identifier_id=self.detector.id,
             threshold_type=AlertRuleThresholdType.ABOVE,
-            detection_type=None,
+            detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
             sensitivity=None,
             resolve_threshold=None,
