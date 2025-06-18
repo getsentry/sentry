@@ -1173,7 +1173,7 @@ urlpatterns += [
     ),
     # Serve chartcuterie configuration module
     re_path(
-        r"^_chartcuterie-config.js$",
+        r"^_chartcuterie-config\.js$",
         serve_chartcuterie_config,
         name="sentry-chartcuterie-config",
     ),
