@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
 import {Component, createRef, Fragment} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -98,15 +98,15 @@ type GridEditableProps<DataRow, ColumnKey> = {
   bodyStyle?: React.CSSProperties;
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
-  fitMaxContent?: boolean;
 
+  fit?: 'max-content';
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-  height?: string | number;
+  height?: CSSProperties['height'];
 
   highlightedRowKey?: number;
 
@@ -459,7 +459,7 @@ class GridEditable<
       'aria-label': ariaLabel,
       bodyStyle,
       stickyHeader,
-      fitMaxContent,
+      fit,
     } = this.props;
     const showHeader = title || headerButtons;
     return (
@@ -480,7 +480,7 @@ class GridEditable<
               scrollable={scrollable}
               height={height}
               ref={this.refGrid}
-              fitMaxContent={fitMaxContent}
+              fit={fit}
             >
               <GridHead sticky={stickyHeader}>{this.renderGridHead()}</GridHead>
               <GridBody>{this.renderGridBody()}</GridBody>

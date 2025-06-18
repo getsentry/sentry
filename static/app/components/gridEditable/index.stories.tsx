@@ -294,12 +294,22 @@ export default Storybook.story('GridEditable', story => {
       <Fragment>
         <p>
           Passing
-          <Storybook.JSXProperty name="fitMaxContent" value={Boolean} /> will set the
-          width of the grid to fit around the content. By default this is set to false.
+          <Storybook.JSXProperty name="fit" value={'max-content'} /> will set the width of
+          the grid to fit around the content.
+        </p>
+        <p>
+          <Storybook.JSXNode name="GridEditable" /> will by default resize the columns to
+          fit within it's container. So columns of long width may take up multiple lines
+          or be cut off, which might not be desired (ex. when the table has many columns
+          or is placed into a small container). One way to control column width this is to
+          provide
+          <Storybook.JSXProperty name="minColumnWidth" value={'number'} />, which applies
+          the same width to all columns. However, this does not account for varying widths
+          between columns, unlike this prop does.
         </p>
         <Storybook.SideBySide>
           <div style={{width: 400}}>
-            <div>If false, content is forced in multiple lines or cut off</div>
+            <div>Without fit content is forced in multiple lines or cut off</div>
             <GridEditable
               data={newData}
               columnOrder={columns}
@@ -308,11 +318,10 @@ export default Storybook.story('GridEditable', story => {
                 renderHeadCell,
                 renderBodyCell,
               }}
-              scrollable
             />
           </div>
           <div style={{width: 400}}>
-            <div>If true, the content forces the table to expand (scroll)</div>
+            <div>With fit the content forces the table to expand (scroll)</div>
             <GridEditable
               data={newData}
               columnOrder={columns}
@@ -321,7 +330,7 @@ export default Storybook.story('GridEditable', story => {
                 renderHeadCell,
                 renderBodyCell,
               }}
-              fitMaxContent
+              fit="max-content"
             />
           </div>
         </Storybook.SideBySide>

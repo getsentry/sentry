@@ -57,7 +57,7 @@ export const Body = styled(
     showVerticalScrollbar?: boolean;
   }) => (
     <Panel {...props}>
-      <PanelBody style={{height: '100%'}}>{children}</PanelBody>
+      <StyledPanelBody>{children}</StyledPanelBody>
     </Panel>
   )
 )`
@@ -80,6 +80,7 @@ export const Body = styled(
  * The entire layout is determined by the usage of <th> and <td>.
  */
 export const Grid = styled('table')<{
+  fit?: string;
   fitMaxContent?: boolean;
   height?: string | number;
   scrollable?: boolean;
@@ -108,11 +109,7 @@ export const Grid = styled('table')<{
         `
       : ''}
 
-  ${p =>
-    p.fitMaxContent &&
-    css`
-      width: max-content;
-    `}
+  width: ${p => p.fit}
 `;
 
 /**
@@ -341,4 +338,8 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     background-color: ${p => p.theme.purple300};
     opacity: 0.4;
   }
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  height: 100%;
 `;
