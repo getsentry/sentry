@@ -14,10 +14,12 @@ from sentry.discover.translation.mep_to_eap import (
 )
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetQuery
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import metrics_enhanced_performance, spans_rpc
 
@@ -143,7 +145,17 @@ def compare_tables_for_dashboard_widget_queries(
     equations = [equation for equation in _get_equation_list(widget_query.fields or []) if equation]
     query = widget_query.conditions
 
-    environments = dashboard.filters.get("environment", []) if dashboard.filters is not None else []
+    environment_names: str | list[str] = (
+        dashboard.filters.get("environment", []) if dashboard.filters else []
+    )
+    if environment_names:
+        environments = list(
+            Environment.objects.filter(
+                name__in=to_list(environment_names), organization_id=organization.id
+            )
+        )
+    else:
+        environments = []
 
     snuba_params = SnubaParams(
         environments=environments,
