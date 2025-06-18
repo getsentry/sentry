@@ -608,6 +608,8 @@ export function formatQueryToNaturalLanguage(query: string): string {
     if (index === 0) return token;
 
     const prevToken = formattedTokens[index - 1];
+    if (!prevToken) return `${result}, ${token}`;
+
     const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
     const prevIsLogicalOp =
       prevToken.toUpperCase() === 'AND' || prevToken.toUpperCase() === 'OR';
