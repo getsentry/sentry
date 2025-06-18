@@ -154,12 +154,8 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
-        # Reuse compressor/decompressor objects for better performance
-        compression_level = options.get("spans.buffer.compression.level")
-        if compression_level == -1:
-            self._zstd_compressor = None
-        else:
-            self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
+        self._current_compression_level = None
+        self._zstd_compressor = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
 
     @cached_property
@@ -180,6 +176,14 @@ class SpansBuffer:
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
 
+        compression_level = options.get("spans.buffer.compression.level")
+        if compression_level != self._current_compression_level:
+            self._current_compression_level = compression_level
+            if compression_level == -1:
+                self._zstd_compressor = None
+            else:
+                self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
+
         redis_ttl = options.get("spans.buffer.redis-ttl")
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
@@ -195,9 +199,13 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = self._get_span_key(project_and_trace, parent_span_id)
-                    # Compress multiple spans together into batches
-                    compressed = self._compress_span_payloads([span.payload for span in subsegment])
-                    p.sadd(set_key, compressed)
+                    payloads = [span.payload for span in subsegment]
+
+                    if self._zstd_compressor is None:
+                        p.sadd(set_key, *payloads)
+                    else:
+                        compressed = self._compress_span_payloads(payloads)
+                        p.sadd(set_key, compressed)
 
                 p.execute()
 
@@ -322,11 +330,6 @@ class SpansBuffer:
 
     def _compress_span_payloads(self, payloads: list[bytes]) -> bytes:
         combined = b"\x00".join(payloads)
-
-        # If compression is disabled, return the combined data as-is
-        if self._zstd_compressor is None:
-            return combined
-
         original_size = len(combined)
 
         with metrics.timer("spans.buffer.compression.cpu_time"):
