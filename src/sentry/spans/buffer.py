@@ -155,7 +155,7 @@ class SpansBuffer:
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
         self._current_compression_level = None
-        self._zstd_compressor = None
+        self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
 
     @cached_property
@@ -201,11 +201,8 @@ class SpansBuffer:
                     set_key = self._get_span_key(project_and_trace, parent_span_id)
                     payloads = [span.payload for span in subsegment]
 
-                    if self._zstd_compressor is None:
-                        p.sadd(set_key, *payloads)
-                    else:
-                        compressed = self._compress_span_payloads(payloads)
-                        p.sadd(set_key, compressed)
+                    compressed = self._compress_span_payloads(payloads)
+                    p.sadd(set_key, *compressed)
 
                 p.execute()
 
@@ -328,9 +325,12 @@ class SpansBuffer:
 
         return trees
 
-    def _compress_span_payloads(self, payloads: list[bytes]) -> bytes:
+    def _compress_span_payloads(self, payloads: list[bytes]) -> list[bytes]:
         combined = b"\x00".join(payloads)
         original_size = len(combined)
+
+        if self._zstd_compressor is None:
+            return payloads
 
         with metrics.timer("spans.buffer.compression.cpu_time"):
             compressed = self._zstd_compressor.compress(combined)
@@ -342,7 +342,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        return compressed
+        return [compressed]
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
         # Check for zstd magic header (0xFD2FB528 in little-endian) --
