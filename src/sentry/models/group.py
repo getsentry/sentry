@@ -56,7 +56,6 @@ from sentry.types.group import (
 )
 from sentry.utils import metrics
 from sentry.utils.dates import outside_retention_with_modified_start
-from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
@@ -693,8 +692,11 @@ class Group(Model):
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
 
-    def get_api_url(self):
-        return absolute_uri(f"/api/0/organizations/{self.organization.slug}/issues/{self.id}/")
+    def get_api_url(self, params: Mapping[str, str] | None = None):
+        path = f"/issues/{self.id}/"
+        if params:
+            query = urlencode(params)
+        return self.organization.absolute_api_url(path=path, query=query)
 
     @property
     def qualified_short_id(self):
