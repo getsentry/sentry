@@ -2286,8 +2286,9 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
     }
     if (isSiblingAutogroupedNode(n)) {
       const child = n.children[0]!;
-      if (isSpanNode(child)) {
-        return `ag-${child.value.span_id}`;
+      if (isSpanNode(child) || isEAPSpanNode(child)) {
+        const spanId = isEAPSpanNode(child) ? child.value.event_id : child.value.span_id;
+        return `ag-${spanId}`;
       }
     }
   }
