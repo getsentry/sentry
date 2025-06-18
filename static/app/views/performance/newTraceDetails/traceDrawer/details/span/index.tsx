@@ -366,6 +366,7 @@ function EAPSpanNodeDetails({
   location,
   traceId,
   theme,
+  hideNodeActions,
 }: EAPSpanNodeDetailsProps) {
   const {
     data: traceItemData,
@@ -424,6 +425,7 @@ function EAPSpanNodeDetails({
         node={node}
         organization={organization}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         <ProfilesProvider
