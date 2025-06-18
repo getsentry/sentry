@@ -31,10 +31,10 @@ import {
 import {space} from 'sentry/styles/space';
 import type {
   GroupActivity,
-  type GroupActivityCreateIssue,
-  type GroupActivitySetPriority,
-  GroupActivityType,
+  GroupActivityCreateIssue,
+  GroupActivitySetPriority,
 } from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
 
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;
@@ -60,7 +60,6 @@ export const groupActivityTypeIconMapping: Record<
           return <SentryAppAvatar sentryApp={sentry_app} />;
         };
       }
-
       return user ? () => <StyledUserAvatar user={user} /> : IconChat;
     },
   },
