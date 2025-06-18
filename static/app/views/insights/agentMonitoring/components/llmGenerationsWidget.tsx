@@ -77,7 +77,7 @@ export default function LLMGenerationsWidget() {
 
   const hasData = models && models.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
   const visualization = (
     <WidgetVisualizationStates

@@ -2735,6 +2735,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
+register(
+    "spans.buffer.compression.level",
+    type=Int,
+    default=-1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3465,6 +3473,15 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable adding the `Reporting-Endpoints` header, which will in turn enable the sending of Reporting
+# API reports from the browser (as long as it's Chrome).
+register(
+    "issues.browser_reporting.reporting_endpoints_header_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Enable the collection of Reporting API reports via the `/api/0/reporting-api-experiment/`
