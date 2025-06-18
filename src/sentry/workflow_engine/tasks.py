@@ -33,9 +33,6 @@ def process_workflow_activity(activity_id: int, detector_id: int) -> None:
     """
     Process a workflow task identified by the given Activity ID and Detector ID.
 
-    This task will retry up to 3 times with a delay of 5 seconds between attempts.
-    It has a soft time limit of 50 seconds and a hard time limit of 60 seconds.
-
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
