@@ -176,7 +176,7 @@ def _delete_if_exists(filename: str) -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(namespace=replays_tasks, retry=Retry(times=5)),
 )
-def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int) -> None:
+def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: int = 100) -> None:
     """Replay bulk deletion task.
 
     We specify retry behavior in the task definition. However, if the task fails more than 5 times
@@ -199,7 +199,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int) -> None:
         end=job.range_end,
         query=job.query,
         environment=job.environments,
-        limit=100,
+        limit=limit,
         offset=offset,
     )
 
@@ -207,10 +207,12 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int) -> None:
     if len(results["rows"]) > 0:
         delete_matched_rows(job.project_id, results["rows"])
 
+    # Compute the next offset to start from. If no further processing is required then this serves
+    # as a count of replays deleted.
+    next_offset = offset + len(results["rows"])
+
     if results["has_more"]:
-        # If more replays exist then re-schedule the task and continue working. We schedule with
-        # an incremented offset so the previously processed range is ignored.
-        next_offset = offset + len(results["rows"])
+        # Checkpoint before continuing.
         job.offset = next_offset
         job.save()
 
@@ -219,6 +221,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int) -> None:
     else:
         # If we've finished deleting all the replays for the selection. We can move the status to
         # completed and exit the call chain.
+        job.offset = next_offset
         job.status = "completed"
         job.save()
         return None
