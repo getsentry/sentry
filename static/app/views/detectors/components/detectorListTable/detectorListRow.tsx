@@ -93,6 +93,8 @@ const StyledIssueCell = styled(IssueCell)`
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
   display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
   position: relative;
   align-items: center;
   padding: ${space(2)};
@@ -108,43 +110,4 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
         opacity: 0.6;
       }
     `}
-
-  .type,
-  .owner,
-  .last-issue,
-  .connected-automations {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 3fr 0.8fr;
-
-    .type {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
-
-    .last-issue {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
-
-    .owner {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
-
-    .connected-automations {
-      display: flex;
-    }
-  }
 `;
