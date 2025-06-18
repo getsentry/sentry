@@ -20,6 +20,10 @@ const TOOLBAR_AGGREGATES = [
     value: AggregationKey.COUNT,
   },
   {
+    label: t('count unique'),
+    value: AggregationKey.COUNT_UNIQUE,
+  },
+  {
     label: t('sum'),
     value: AggregationKey.SUM,
   },
@@ -69,14 +73,20 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
 
-  const aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
+  let aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
     label: prettifyTagKey(key),
     value: key,
   }));
-  if (aggregateFunction === 'count') {
-    aggregatableKeys.length = 0;
-    aggregatableKeys.unshift({label: t('logs'), value: 'logs'});
+
+  if (aggregateFunction === AggregationKey.COUNT) {
+    aggregatableKeys = [{label: t('logs'), value: 'logs'}];
     aggregateParam = 'logs';
+  }
+  if (aggregateFunction === AggregationKey.COUNT_UNIQUE) {
+    aggregatableKeys = Object.keys(stringTags ?? {}).map(key => ({
+      label: prettifyTagKey(key),
+      value: key,
+    }));
   }
 
   return (
