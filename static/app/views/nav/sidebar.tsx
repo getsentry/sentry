@@ -145,8 +145,9 @@ const SuperuserBadgeContainer = styled('div')`
 `;
 
 const ChonkSuperuserBadgeContainer = chonkStyled('div')`
-  position: fixed;
-  top: -1px;
+  position: absolute;
+  top: -${p => p.theme.space.lg};
+  z-index: ${p => p.theme.zIndex.initial};
   left: 0;
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   background: ${p => p.theme.colors.chonk.red400};
