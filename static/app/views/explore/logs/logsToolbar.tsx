@@ -74,6 +74,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
     value: key,
   }));
   if (aggregateFunction === 'count') {
+    aggregatableKeys.length = 0;
     aggregatableKeys.unshift({label: t('logs'), value: 'logs'});
     aggregateParam = 'logs';
   }
@@ -95,20 +96,21 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
                 });
               } else {
                 setLogsPageParams({aggregateFn: val.value as string | undefined});
+                functionArgRef.current?.querySelector('button')?.click();
               }
-              functionArgRef.current?.querySelector('button')?.click();
             }}
             value={aggregateFunction}
           />
           <SelectRefWrapper ref={functionArgRef}>
             <Select
               options={aggregatableKeys}
-              onChange={val =>
-                setLogsPageParams({aggregateParam: val.value as string | undefined})
-              }
+              onChange={val => {
+                if (aggregateFunction !== 'count') {
+                  setLogsPageParams({aggregateParam: val.value as string | undefined});
+                }
+              }}
               searchable
               value={aggregateParam}
-              disabled={aggregateFunction === 'count'}
             />
           </SelectRefWrapper>
         </ToolbarSelectRow>
