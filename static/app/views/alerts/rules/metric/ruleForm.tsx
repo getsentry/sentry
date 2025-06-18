@@ -60,7 +60,7 @@ import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDe
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
-import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
+import type {AlertType, MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
@@ -228,17 +228,20 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ? `is:unresolved ${rule.query ?? ''}`
       : (rule.query ?? '');
 
+    const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
+    const traceItemType =
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+        ? ruleEventTypes.includes(EventTypes.TRACE_ITEM_LOG)
+          ? TraceItemDataset.LOGS
+          : TraceItemDataset.SPANS
+        : null;
+
     const alertType = getAlertTypeFromAggregateDataset({
       aggregate,
       dataset,
       organization,
+      traceItemType,
     });
-    const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
-    const traceItemType = ruleEventTypes.includes(EventTypes.TRACE_ITEM_SPAN)
-      ? TraceItemDataset.SPANS
-      : ruleEventTypes.includes(EventTypes.TRACE_ITEM_LOG)
-        ? TraceItemDataset.LOGS
-        : null;
 
     return {
       ...super.getDefaultState(),
@@ -576,6 +579,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
+        traceItemType: this.getTraceItemTypeForAlert(dataset, value as MetricAlertType),
         timeWindow:
           ['span_metrics'].includes(value as string) &&
           timeWindow === TimeWindow.ONE_MINUTE
@@ -608,40 +612,43 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'environment',
         'comparisonDelta',
         'alertType',
+        'traceItemType',
       ].includes(name)
     ) {
-      this.setState(({dataset: _dataset, aggregate, alertType}) => {
-        const dataset = this.checkOnDemandMetricsDataset(
-          name === 'dataset' ? (value as Dataset) : _dataset,
-          this.state.query
-        );
+      this.setState(
+        ({dataset: _dataset, aggregate, alertType, traceItemType: _traceItemType}) => {
+          const dataset = this.checkOnDemandMetricsDataset(
+            name === 'dataset' ? (value as Dataset) : _dataset,
+            this.state.query
+          );
 
-        if (deprecateTransactionAlerts(organization)) {
+          if (deprecateTransactionAlerts(organization)) {
+            const newAlertType = getAlertTypeFromAggregateDataset({
+              aggregate: name === 'aggregate' ? (value as string) : aggregate,
+              dataset,
+              organization,
+            });
+
+            return {
+              [name]: value,
+              alertType: newAlertType,
+              dataset,
+            };
+          }
+
           const newAlertType = getAlertTypeFromAggregateDataset({
-            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            aggregate,
             dataset,
             organization,
           });
 
           return {
             [name]: value,
-            alertType: newAlertType,
+            alertType: alertType === newAlertType ? alertType : 'custom_transactions',
             dataset,
           };
         }
-
-        const newAlertType = getAlertTypeFromAggregateDataset({
-          aggregate,
-          dataset,
-          organization,
-        });
-
-        return {
-          [name]: value,
-          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
-          dataset,
-        };
-      });
+      );
     }
   };
 
@@ -1153,6 +1160,22 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return Dataset.GENERIC_METRICS;
   };
 
+  getTraceItemTypeForAlert = (dataset: Dataset, alertType: AlertType) => {
+    if (dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM) {
+      return null;
+    }
+    if (alertType === 'trace_item_logs') {
+      return TraceItemDataset.LOGS;
+    }
+    if (alertType === 'eap_metrics') {
+      return TraceItemDataset.SPANS;
+    }
+    if (this.state.traceItemType) {
+      return this.state.traceItemType;
+    }
+    return TraceItemDataset.SPANS;
+  };
+
   // We are not allowing the creation of new transaction alerts
   determinePerformanceDataset = () => {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
@@ -1196,6 +1219,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartErrorMessage,
       confidence,
       seriesSamplingInfo,
+      traceItemType,
     } = this.state;
 
     if (chartError) {
@@ -1243,6 +1267,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       theme: this.props.theme,
       confidence,
       seriesSamplingInfo,
+      traceItemType,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1300,6 +1325,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
+      traceItemType,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1450,6 +1476,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     router={router}
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
+                    traceItemType={traceItemType}
                   />
                   <AlertListItem>{t('Set thresholds')}</AlertListItem>
                   {thresholdTypeForm(formDisabled)}

@@ -22,6 +22,7 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
   hasEAPAlerts,
@@ -35,6 +36,7 @@ type GroupedMenuOption = {label: string; options: MenuOption[]};
 type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;
   project: Project;
+  traceItemType: TraceItemDataset | null;
   alertType?: AlertType;
   /**
    * Optionally set a width for each column of selector
@@ -49,6 +51,7 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
+  traceItemType,
   ...fieldProps
 }: Props) {
   const isDeprecatedTransactionAlertType =
@@ -251,6 +254,7 @@ export default function WizardField({
             {isEapAlertType(alertType) ? (
               <EAPField
                 aggregate={aggregate}
+                traceItemType={traceItemType}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
                 }}

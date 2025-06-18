@@ -14,7 +14,11 @@ import {
   getPeriodInterval,
   getViableDateRange,
 } from 'sentry/views/alerts/rules/metric/details/utils';
-import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  EventTypes,
+  type MetricRule,
+} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -22,6 +26,7 @@ import type {
   SamplingMode,
   SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface MetricEventStatsParams {
   project: Project;
@@ -67,7 +72,19 @@ export function useMetricEventStats(
   const organization = useOrganization();
   const location = useLocation();
 
-  const {dataset, aggregate, query: ruleQuery, environment: ruleEnvironment} = rule;
+  const {
+    dataset,
+    aggregate,
+    query: ruleQuery,
+    environment: ruleEnvironment,
+    eventTypes: storedEventTypes,
+  } = rule;
+  const traceItemType =
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+      ? storedEventTypes?.includes(EventTypes.TRACE_ITEM_LOG)
+        ? TraceItemDataset.LOGS
+        : TraceItemDataset.SPANS
+      : null;
   const interval = getPeriodInterval(timePeriod, rule);
   const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, ruleQuery);
   const eventType = extractEventTypeFilterFromRule(rule);
@@ -89,6 +106,7 @@ export function useMetricEventStats(
     dataset,
     newAlertOrQuery: false,
     useOnDemandMetrics: isOnDemandAlert,
+    traceItemType,
   });
 
   const queryObject: EventRequestQueryParams = Object.fromEntries(

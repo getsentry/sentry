@@ -8,6 +8,7 @@ import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/cons
 import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface PresetCta {
   /**
@@ -24,6 +25,7 @@ interface PresetCtaOpts {
   organization: Organization;
   projects: Project[];
   timePeriod: TimePeriodType;
+  traceItemType: TraceItemDataset | null;
   dataset?: DiscoverDatasets;
   openInDiscoverDataset?: SavedQueryDatasets;
   query?: string;

@@ -9,6 +9,7 @@ import type {Member, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -19,6 +20,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
@@ -30,6 +32,7 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 
@@ -51,14 +54,20 @@ function Create(props: Props) {
   const {
     aggregate,
     dataset,
-    eventTypes,
     createFromDuplicate,
     duplicateRuleId,
     createFromDiscover,
     query,
     createFromWizard,
   } = location?.query ?? {};
+  const eventTypes = decodeScalar(location?.query?.eventTypes) as EventTypes;
   const alertType = params.alertType || AlertRuleType.METRIC;
+  const traceItemType: TraceItemDataset | null =
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+      ? eventTypes === EventTypes.TRACE_ITEM_LOG
+        ? TraceItemDataset.LOGS
+        : TraceItemDataset.SPANS
+      : null;
 
   const sessionId = useRef(uniqueId());
   const navigate = useNavigate();
@@ -122,7 +131,7 @@ function Create(props: Props) {
   let wizardAlertType: undefined | WizardAlertType;
   if (createFromWizard && alertType === AlertRuleType.METRIC) {
     wizardAlertType = wizardTemplate
-      ? getAlertTypeFromAggregateDataset({...wizardTemplate, organization})
+      ? getAlertTypeFromAggregateDataset({...wizardTemplate, organization, traceItemType})
       : 'issues';
   }
 

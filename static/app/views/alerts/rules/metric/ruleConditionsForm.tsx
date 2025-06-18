@@ -101,6 +101,7 @@ type Props = {
   tags: TagCollection;
   thresholdChart: React.ReactNode;
   timeWindow: number;
+  traceItemType: TraceItemDataset | null;
   // optional props
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
@@ -461,6 +462,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       onTimeWindowChange,
       isEditing,
+      traceItemType,
     } = this.props;
 
     return (
@@ -492,6 +494,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               alertType={alertType}
               required
               isEditing={isEditing}
+              traceItemType={traceItemType}
               disabledReason={
                 this.disableTransactionAlertType
                   ? this.transactionAlertDisabledMessage
@@ -529,6 +532,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       isLowConfidenceChartData,
       isOnDemandLimitReached,
+      traceItemType,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -558,7 +562,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Fragment>
             <TraceItemAttributeProvider
               projects={[project]}
-              traceItemType={TraceItemDataset.SPANS}
+              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
                 isEapAlertType(alertType)
@@ -638,7 +642,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           onChange(query, {});
                         }}
                         project={project}
-                        traceItemType={TraceItemDataset.SPANS}
+                        traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
                     ) : (
                       <SearchContainer>

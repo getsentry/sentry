@@ -36,7 +36,7 @@ export enum Dataset {
   METRICS = 'metrics',
   ISSUE_PLATFORM = 'search_issues',
   REPLAYS = 'replays',
-  SPANS = 'spans',
+  EVENTS_ANALYTICS_PLATFORM = 'events_analytics_platform',
 }
 
 export enum EventTypes {

@@ -1,5 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {hasLogAlerts} from 'sentry/views/alerts/rules/utils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
@@ -59,8 +61,10 @@ export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
   organization,
+  traceItemType,
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'> & {
   organization?: Organization;
+  traceItemType?: TraceItemDataset | null;
 }): MetricAlertType {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const identifierForDataset = alertTypeIdentifiers[dataset];
@@ -71,6 +75,13 @@ export function getAlertTypeFromAggregateDataset({
     matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as MetricAlertType);
 
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    if (
+      organization &&
+      hasLogAlerts(organization) &&
+      traceItemType === TraceItemDataset.LOGS
+    ) {
+      return 'trace_item_logs';
+    }
     if (organization && deprecateTransactionAlerts(organization)) {
       return alertType ?? 'eap_metrics';
     }
