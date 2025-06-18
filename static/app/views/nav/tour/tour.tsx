@@ -16,6 +16,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavTourModal, navTourModalCss} from 'sentry/views/nav/tour/tourModal';
@@ -29,6 +30,9 @@ export const enum StackedNavigationTour {
   INSIGHTS = 'insights',
   SETTINGS = 'settings',
 }
+
+// Started rolling out to GA users on June 18, 2025
+const TOUR_MODAL_DATE_THRESHOLD = new Date(2025, 5, 18);
 
 const ORDERED_STACKED_NAVIGATION_TOUR = [
   StackedNavigationTour.ISSUES,
@@ -251,10 +255,16 @@ export function useTourModal() {
     notifyOnChangeProps: ['data'],
   });
   const {mutate: mutateAssistant} = useMutateAssistant();
+  const user = useUser();
+
+  const enforceStackedNav = organization.features.includes('enforce-stacked-navigation');
+  // We don't want to show the tour modal for new users that were forced into the new stacked navigation.
+  const shouldSkipForNewUserEnforcedStackedNav =
+    enforceStackedNav && new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
-      ?.seen === false;
+      ?.seen === false && !shouldSkipForNewUserEnforcedStackedNav;
 
   useEffect(() => {
     if (shouldShowTourModal && !hasOpenedTourModal.current) {
