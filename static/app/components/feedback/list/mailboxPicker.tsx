@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {Flex} from 'sentry/components/container/flex';
 import {Badge} from 'sentry/components/core/badge';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
@@ -24,6 +26,7 @@ const MAILBOXES = [
 export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
+  const theme = useTheme();
 
   const filteredMailboxes = MAILBOXES;
 
@@ -44,7 +47,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={space(1)}>
+                <Flex align="center" gap={theme.isChonk ? space(1) : 0}>
                   {mailbox.label}
                   {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>
