@@ -204,7 +204,7 @@ class MiniGraph extends Component<Props> {
           const hasOther = topEvents && topEvents + 1 === allSeries.length;
           const chartColors = allSeries.length
             ? (theme.chart
-                .getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))
+                .getColorPalette(allSeries.length - 1 - (hasOther ? 1 : 0))
                 .slice() as string[])
             : undefined;
 

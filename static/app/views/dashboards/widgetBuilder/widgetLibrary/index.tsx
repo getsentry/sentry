@@ -52,7 +52,7 @@ export function WidgetLibrary({
       <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
         {defaultWidgets.map((widget, index) => {
-          const iconColor = theme.chart.getColorPalette(defaultWidgets.length - 2)?.[
+          const iconColor = theme.chart.getColorPalette(defaultWidgets.length - 1)?.[
             index
           ]!;
 

@@ -106,7 +106,7 @@ function AggregatesTable({
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
     <Fragment>

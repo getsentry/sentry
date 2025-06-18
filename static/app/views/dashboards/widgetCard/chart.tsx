@@ -330,7 +330,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     );
     const colors = timeseriesResults
       ? (theme.chart
-          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 2 : 1))
           .slice() as string[])
       : [];
     // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
