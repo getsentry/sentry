@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
@@ -43,7 +42,7 @@ function GroupEventAttachmentsTableRow({
 
   return (
     <Fragment>
-      <NoWrapFlex align="center" className={sharedClassName}>
+      <FlexCenter className={sharedClassName}>
         <div>
           <AttachmentName>{attachment.name}</AttachmentName>
           <div>
@@ -57,14 +56,14 @@ function GroupEventAttachmentsTableRow({
             </Link>
           </div>
         </div>
-      </NoWrapFlex>
-      <NoWrapFlex align="center" className={sharedClassName}>
+      </FlexCenter>
+      <FlexCenter className={sharedClassName}>
         {friendlyAttachmentType[attachment.type] ?? t('Other')}
-      </NoWrapFlex>
-      <NoWrapFlex align="center" className={sharedClassName}>
+      </FlexCenter>
+      <FlexCenter className={sharedClassName}>
         <FileSize bytes={attachment.size} />
-      </NoWrapFlex>
-      <NoWrapFlex align="center" className={sharedClassName}>
+      </FlexCenter>
+      <FlexCenter className={sharedClassName}>
         <EventAttachmentActions
           withPreviewButton
           attachment={attachment}
@@ -73,7 +72,7 @@ function GroupEventAttachmentsTableRow({
           previewIsOpen={previewIsOpen}
           projectSlug={projectSlug}
         />
-      </NoWrapFlex>
+      </FlexCenter>
       {previewIsOpen && (
         <InlineAttachment className="preview">
           <InlineEventAttachment
@@ -91,7 +90,9 @@ const AttachmentName = styled('div')`
   font-weight: bold;
 `;
 
-const NoWrapFlex = styled(Flex)`
+const FlexCenter = styled('div')`
+  display: flex;
+  align-items: center;
   white-space: nowrap;
 `;
 
