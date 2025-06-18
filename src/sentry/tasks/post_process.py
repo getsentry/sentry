@@ -1168,21 +1168,18 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     from sentry.models.projectownership import ProjectOwnership
 
     event = job["event"]
-    try:
-        ProjectOwnership.handle_auto_assignment(
-            project_id=event.project_id,
-            organization_id=event.project.organization_id,
-            event=event,
-            logging_extra={
-                "event_id": event.event_id,
-                "group_id": str(event.group_id),
-                "project_id": str(event.project_id),
-                "organization_id": event.project.organization_id,
-                "source": "post_process",
-            },
-        )
-    except Exception:
-        logger.exception("Failed to set auto-assignment")
+    ProjectOwnership.handle_auto_assignment(
+        project_id=event.project_id,
+        organization_id=event.project.organization_id,
+        event=event,
+        logging_extra={
+            "event_id": event.event_id,
+            "group_id": str(event.group_id),
+            "project_id": str(event.project_id),
+            "organization_id": event.project.organization_id,
+            "source": "post_process",
+        },
+    )
 
 
 def process_service_hooks(job: PostProcessJob) -> None:
