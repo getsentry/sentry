@@ -28,6 +28,7 @@ import type {
   BaseVisualize,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   SAMPLING_MODE,
@@ -35,6 +36,7 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -131,15 +133,36 @@ export function ExploreCharts({
     [canUsePreviousResults, timeseriesResult, previousTimeseriesResult]
   );
 
-  const chartInfos = useMemo(() => {
-    return visualizes.map((visualize, index) => {
-      const dedupedYAxes = dedupeArray(visualize.yAxes);
+  const getChartInfo = useCallback(
+    (yAxes: readonly string[]) => {
+      const dedupedYAxes = dedupeArray(yAxes);
 
       const formattedYAxes = dedupedYAxes.map(yaxis => {
         const func = parseFunction(yaxis);
         return func ? prettifyParsedFunction(func) : undefined;
       });
 
+      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+
+      const {sampleCount, isSampled, dataScanned} =
+        determineSeriesSampleCountAndIsSampled(data, isTopN);
+
+      return {
+        dedupedYAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        sampleCount,
+        isSampled,
+        dataScanned,
+      };
+    },
+    [getSeries, isTopN]
+  );
+
+  const chartInfos = useMemo(() => {
+    return visualizes.map((visualize, index) => {
       const chartIcon =
         visualize.chartType === ChartType.LINE
           ? 'line'
@@ -147,10 +170,36 @@ export function ExploreCharts({
             ? 'area'
             : 'bar';
 
-      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+      const {
+        dedupedYAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        sampleCount,
+        isSampled,
+        dataScanned,
+      } = getChartInfo(visualize.yAxes);
 
-      const {sampleCount, isSampled, dataScanned} =
-        determineSeriesSampleCountAndIsSampled(data, isTopN);
+      let fallbackSampleCount = undefined;
+      let fallbackIsSampled = undefined;
+      let fallbackDataScanned = undefined;
+      let fallbackConfidence = undefined;
+
+      // This implies that the sampling meta data is not available.
+      // When this happens, we fall back to using the sampling meta
+      // data from the DEFAULT_VISUALIZATION.
+      if (sampleCount === 0 && !defined(isSampled)) {
+        const chartInfo = getChartInfo([DEFAULT_VISUALIZATION]);
+        fallbackSampleCount = chartInfo.sampleCount;
+        fallbackIsSampled = chartInfo.isSampled;
+        fallbackDataScanned = chartInfo.dataScanned;
+
+        const series = dedupedYAxes
+          .flatMap(yAxis => timeseriesResult.data[yAxis])
+          .filter(defined);
+        fallbackConfidence = combineConfidenceForSeries(series);
+      }
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -162,13 +211,13 @@ export function ExploreCharts({
         data,
         error,
         loading,
-        confidence: confidences[index],
-        sampleCount,
-        isSampled,
-        dataScanned,
+        confidence: fallbackConfidence ?? confidences[index],
+        sampleCount: fallbackSampleCount ?? sampleCount,
+        isSampled: fallbackIsSampled ?? isSampled,
+        dataScanned: fallbackDataScanned ?? dataScanned,
       };
     });
-  }, [confidences, getSeries, visualizes, isTopN]);
+  }, [confidences, getChartInfo, visualizes, timeseriesResult]);
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
