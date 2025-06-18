@@ -22,6 +22,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.max-memory-percentage": 1.0,
     "spans.buffer.flusher.backpressure-seconds": 10,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
+    "spans.buffer.compression.level": 0,
 }
 
 
@@ -585,3 +586,38 @@ def test_compression_functionality(buffer):
 
     buffer.done_flush_segments(segments)
     assert_clean(buffer.client)
+
+
+@override_options({"spans.buffer.compression.level": -1})
+def test_compression_disabled():
+    """Test that compression can be disabled."""
+    buffer = SpansBuffer([0])
+
+    # Verify that the compressor is None when compression is disabled
+    assert buffer._zstd_compressor is None
+
+    # Test that compression method returns data as-is
+    test_payloads = [b"test1", b"test2", b"test3"]
+    result = buffer._compress_span_payloads(test_payloads)
+    expected = b"\x00".join(test_payloads)
+    assert result == expected
+
+    # Test that decompression still works with uncompressed data
+    # Note: when compression is disabled, the result is treated as a single payload
+    decompressed = buffer._decompress_batch(result)
+    assert decompressed == [expected]
+
+
+@override_options({"spans.buffer.compression.level": 3})
+def test_compression_custom_level():
+    """Test that custom compression levels work."""
+    buffer = SpansBuffer([0])
+
+    # Verify that the compressor is created when compression is enabled
+    assert buffer._zstd_compressor is not None
+
+    # Test that compression still works with the custom level
+    test_payloads = [b"test1", b"test2", b"test3"]
+    result = buffer._compress_span_payloads(test_payloads)
+    # Should be compressed (has zstd magic header)
+    assert result.startswith(b"\x28\xb5\x2f\xfd")

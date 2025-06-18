@@ -2735,6 +2735,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Compression level for spans buffer segments. -1 disables compression, 0-22 for zstd levels
+register(
+    "spans.buffer.compression.level",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",

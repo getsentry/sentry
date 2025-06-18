@@ -155,7 +155,11 @@ class SpansBuffer:
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
         # Reuse compressor/decompressor objects for better performance
-        self._zstd_compressor = zstandard.ZstdCompressor(level=0)
+        compression_level = options.get("spans.buffer.compression.level")
+        if compression_level == -1:
+            self._zstd_compressor = None
+        else:
+            self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
         self._zstd_decompressor = zstandard.ZstdDecompressor()
 
     @cached_property
@@ -318,6 +322,11 @@ class SpansBuffer:
 
     def _compress_span_payloads(self, payloads: list[bytes]) -> bytes:
         combined = b"\x00".join(payloads)
+
+        # If compression is disabled, return the combined data as-is
+        if self._zstd_compressor is None:
+            return combined
+
         original_size = len(combined)
 
         with metrics.timer("spans.buffer.compression.cpu_time"):
