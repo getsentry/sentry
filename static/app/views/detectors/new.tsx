@@ -7,7 +7,6 @@ import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -19,26 +18,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
-import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
-
-function NewDetectorBreadcrumbs() {
-  const title = useFormField<string>('title');
-  const organization = useOrganization();
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-        {label: title ? title : t('New Monitor')},
-      ]}
-    />
-  );
-}
-
-function NewDetectorDocumentTitle() {
-  const title = useFormField<string>('title');
-  return <SentryDocumentTitle title={title ? title : t('New Monitor')} />;
-}
 
 export default function DetectorNew() {
   const navigate = useNavigate();
@@ -63,18 +43,20 @@ export default function DetectorNew() {
       initialData={{
         detectorType: 'metric',
         project: defaultProject?.id,
-        name: '',
         environment: '',
       }}
     >
-      <NewDetectorDocumentTitle />
+      <SentryDocumentTitle title={t('New Monitor')} />
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
-            <NewDetectorBreadcrumbs />
-            <Layout.Title>
-              <EditableDetectorName />
-            </Layout.Title>
+            <Breadcrumbs
+              crumbs={[
+                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+                {label: t('New Monitor')},
+              ]}
+            />
+            <Layout.Title>{t('New Monitor')}</Layout.Title>
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>
