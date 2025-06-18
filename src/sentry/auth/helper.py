@@ -494,6 +494,15 @@ class AuthIdentityHandler:
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
                 is_account_verified = self.has_verified_account(verification_value)
+                if not is_account_verified:
+                    logger.info(
+                        "sso.login-pipeline.verification-mismatch",
+                        extra={
+                            "verification_user_id": verification_value["user_id"],
+                            "user_id": self.user.id,
+                            "request_user_id": self.request.user.id,
+                        },
+                    )
 
         is_new_account = not self.user.is_authenticated  # stateful
         if self._app_user and (self.identity.get("email_verified") or is_account_verified):
