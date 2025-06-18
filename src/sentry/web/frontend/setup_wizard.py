@@ -25,7 +25,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
-from sentry.projects.services.project_key.model import ProjectKeyRole, RpcProjectKey
+from sentry.projects.services.project_key.model import RpcProjectKey
 from sentry.projects.services.project_key.service import project_key_service
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
@@ -207,10 +207,9 @@ def serialize_project(project: RpcProject, organization: dict, keys: list[dict])
 def get_cache_data(
     mapping: OrganizationMapping, project: RpcProject, user: User | AnonymousUser | RpcUser
 ):
-    project_key = project_key_service.get_project_key(
+    project_key = project_key_service.get_default_project_key(
         organization_id=mapping.organization_id,
         project_id=project.id,
-        role=ProjectKeyRole.store,
     )
     if project_key is None:
         raise Http404()
