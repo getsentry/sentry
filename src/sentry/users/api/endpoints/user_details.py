@@ -82,6 +82,7 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
     prefersStackedNavigation = serializers.BooleanField(required=False)
     prefersChonkUI = serializers.BooleanField(required=False)
+    prefersAgentsInsightsModule = serializers.BooleanField(required=False)
 
     quickStartDisplay = serializers.JSONField(
         required=False,
@@ -260,6 +261,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "prefersStackedNavigation": "prefers_stacked_navigation",
             "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
+            "prefersAgentsInsightsModule": "prefers_agents_insights_module",
             "quickStartDisplay": "quick_start_display",
         }
 
