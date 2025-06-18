@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextField from 'sentry/components/forms/fields/textField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -150,7 +151,7 @@ function InstanceLevelOAuthDetails() {
               <b>Date added:</b> {clientDetails.createdAt}
             </p>
           </ApiForm>
-          <FlexDiv>
+          <FullWidthFlex justify="right">
             <StyledButton
               size="sm"
               priority="danger"
@@ -166,7 +167,7 @@ function InstanceLevelOAuthDetails() {
             >
               Delete client
             </StyledButton>
-          </FlexDiv>
+          </FullWidthFlex>
         </Fragment>
       )}
       {errorMessage && <p>{errorMessage}</p>}
@@ -181,8 +182,6 @@ const StyledButton = styled(Button)`
   margin-bottom: 15px;
 `;
 
-const FlexDiv = styled('div')`
-  display: flex;
+const FullWidthFlex = styled(Flex)`
   width: 100%;
-  justify-content: right;
 `;

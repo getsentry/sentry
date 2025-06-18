@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
 import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
@@ -51,7 +52,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
 
   return (
     <ErrorBoundary>
-      <FlexCenter>
+      <FlexCenter align="center">
         <Title data-test-id="alert-title">
           <Link to={alertLink}>{incident.title}</Link>
         </Title>
@@ -71,12 +72,12 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
         )}
       </NoWrapNumeric>
 
-      <FlexCenter>
+      <FlexCenter align="center">
         <ProjectBadge avatarSize={18} project={projectsLoaded ? project : {slug}} />
       </FlexCenter>
       <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 
-      <FlexCenter>
+      <FlexCenter align="center">
         {teamActor ? (
           <Fragment>
             <StyledActorAvatar actor={teamActor} size={18} hasTooltip={false} />{' '}
@@ -99,10 +100,8 @@ const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
-const FlexCenter = styled('div')`
+const FlexCenter = styled(Flex)`
   ${p => p.theme.overflowEllipsis}
-  display: flex;
-  align-items: center;
   line-height: 1.6;
 `;
 

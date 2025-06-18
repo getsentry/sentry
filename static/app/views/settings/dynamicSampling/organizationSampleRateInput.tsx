@@ -3,6 +3,7 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -47,13 +48,13 @@ export function OrganizationSampleRateInput({
 
   const showBulkEditButton = hasAccess && isBulkEditEnabled && !isBulkEditActive;
   return (
-    <Wrapper>
+    <FlexWrapper gap={space(4)}>
       <Description>
         <Label>{label}</Label>
         <HelpText>{help}</HelpText>
       </Description>
       <InputWrapper>
-        <FlexRow>
+        <Flex gap={space(1)}>
           {showBulkEditButton && (
             <Button
               title={t('Proportionally scale project rates')}
@@ -84,7 +85,7 @@ export function OrganizationSampleRateInput({
               onChange={event => onChange(event.target.value)}
             />
           </Tooltip>
-        </FlexRow>
+        </Flex>
         {error ? (
           <ErrorMessage>{error}</ErrorMessage>
         ) : showPreviousValue ? (
@@ -93,19 +94,13 @@ export function OrganizationSampleRateInput({
           <AllDataStoredMessage>{t('All spans are stored')}</AllDataStoredMessage>
         ) : null}
       </InputWrapper>
-    </Wrapper>
+    </FlexWrapper>
   );
 }
 
-const FlexRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const Wrapper = styled(FlexRow)`
+const FlexWrapper = styled(Flex)`
   padding: ${space(1.5)} ${space(2)} ${space(1)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  gap: ${space(4)};
 `;
 
 const Description = styled('div')`

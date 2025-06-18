@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,7 +20,7 @@ type Props = {
 function Times({lastSeen, firstSeen}: Props) {
   return (
     <Container>
-      <FlexWrapper>
+      <FlexWrapper align="center">
         {lastSeen && (
           <Fragment>
             <StyledIconClock legacySize="11px" />
@@ -42,12 +43,8 @@ const Container = styled('div')`
   min-width: 0; /* flex-hack for overflow-ellipsised children */
 `;
 
-const FlexWrapper = styled('div')`
+const FlexWrapper = styled(Flex)`
   ${p => p.theme.overflowEllipsis}
-
-  /* The following aligns the icon with the text, fixes bug in Firefox */
-  display: flex;
-  align-items: center;
 `;
 
 const StyledIconClock = styled(IconClock)`

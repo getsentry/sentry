@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {t} from 'sentry/locale';
@@ -31,19 +32,19 @@ function ServiceBreakdown({
 }) {
   if (!displayBreakdown) {
     return (
-      <BreakDownWrapper>
-        <BreakDownRow>
+      <BreakDownWrapper direction="column">
+        <Flex align="center" justify="space-between">
           <div>{t('server side')}</div>
-          <FlexBox>
+          <Flex>
             <span>{'N/A'}</span>
-          </FlexBox>
-        </BreakDownRow>
-        <BreakDownRow>
+          </Flex>
+        </Flex>
+        <Flex align="center" justify="space-between">
           <div>{t('client side')}</div>
-          <FlexBox>
+          <Flex>
             <span>{'N/A'}</span>
-          </FlexBox>
-        </BreakDownRow>
+          </Flex>
+        </Flex>
       </BreakDownWrapper>
     );
   }
@@ -56,21 +57,21 @@ function ServiceBreakdown({
   const clientSidePct = 100 - Number(serverSidePct);
 
   return httpDuration ? (
-    <BreakDownWrapper>
-      <BreakDownRow>
+    <BreakDownWrapper direction="column">
+      <Flex align="center" justify="space-between">
         <div>{t('server side')}</div>
-        <FlexBox>
+        <Flex>
           <Dur>{getDuration(httpDuration, 2, true)}</Dur>
           <Pct>{serverSidePct}%</Pct>
-        </FlexBox>
-      </BreakDownRow>
-      <BreakDownRow>
+        </Flex>
+      </Flex>
+      <Flex align="center" justify="space-between">
         <div>{t('client side')}</div>
-        <FlexBox>
+        <Flex>
           <Dur>{getDuration(totalDuration - httpDuration, 2, true)}</Dur>
           <Pct>{clientSidePct}%</Pct>
-        </FlexBox>
-      </BreakDownRow>
+        </Flex>
+      </Flex>
     </BreakDownWrapper>
   ) : null;
 }
@@ -151,18 +152,8 @@ const Pct = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-`;
-
-const BreakDownWrapper = styled(FlexBox)`
-  flex-direction: column;
+const BreakDownWrapper = styled(Flex)`
   padding: ${space(2)};
-`;
-
-const BreakDownRow = styled(FlexBox)`
-  align-items: center;
-  justify-content: space-between;
 `;
 
 export default TraceViewHeader;
