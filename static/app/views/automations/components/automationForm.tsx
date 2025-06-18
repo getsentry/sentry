@@ -59,6 +59,10 @@ export default function AutomationForm({model}: {model: FormModel}) {
   });
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
 
+  useEffect(() => {
+    model.setValue('detectorIds', Array.from(connectedIds));
+  }, [connectedIds, model]);
+
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
   const showEditMonitorsDrawer = () => {

@@ -1,6 +1,6 @@
 export interface Action {
   config: {
-    target_type: ActionTarget;
+    target_type: ActionTarget | null;
     sentry_app_identifier?: SentryAppIdentifier;
     target_display?: string;
     target_identifier?: string;
