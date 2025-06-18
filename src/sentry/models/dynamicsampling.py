@@ -247,10 +247,8 @@ class CustomDynamicSamplingRule(Model):
         # Get all existing rule_ids for active, non-expired rules in this organization
         existing_rule_ids = set(
             CustomDynamicSamplingRule.objects.filter(
-                organization_id=self.organization.id,
-                end_date__gt=now,
-                is_active=True
-            ).values_list('rule_id', flat=True)
+                organization_id=self.organization.id, end_date__gt=now, is_active=True
+            ).values_list("rule_id", flat=True)
         )
 
         # Find the first available rule_id starting from 1
