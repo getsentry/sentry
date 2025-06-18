@@ -39,6 +39,21 @@ class MetricIssueComparisonConditionValidator(
 
         return type
 
+    def validate_comparison(self, value: float | int | str) -> float:
+        if isinstance(value, (float, int)):
+            try:
+                value = float(value)
+            except ValueError:
+                raise serializers.ValidationError("A valid number is required.")
+
+        elif isinstance(value, dict):
+            value = super().validate_comparison(value)
+
+        else:
+            raise serializers.ValidationError("A valid number or dict is required.")
+
+        return value
+
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
             result = DetectorPriorityLevel(int(value))

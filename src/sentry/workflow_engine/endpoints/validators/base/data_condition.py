@@ -43,8 +43,10 @@ class BaseDataConditionValidator(
 
     @property
     def condition_type(self) -> Condition:
-        condition_type = self.initial_data[0].get("type")
-        return condition_type
+        if isinstance(self.initial_data, list) and self.initial_data:
+            return self.initial_data[0].get("type")
+
+        return self.initial_data.get("type")
 
     def _get_handler(self) -> type[DataConditionHandler] | None:
         if self._is_operator_condition():
@@ -63,7 +65,6 @@ class BaseDataConditionValidator(
         Validate the comparison field. Get the schema configuration for the type, if
         there is no schema configuration, then we assume the comparison field is a primitive value.
         """
-
         handler = self._get_handler()
 
         if not handler:

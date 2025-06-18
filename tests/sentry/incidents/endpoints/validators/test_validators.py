@@ -31,15 +31,17 @@ from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidator
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
+    def setUp(self):
+        super().setUp()
+        self.valid_data = {
+            "type": Condition.GREATER,
+            "comparison": 100,
+            "conditionResult": DetectorPriorityLevel.HIGH,
+            "conditionGroupId": self.data_condition_group.id,
+        }
+
     def test(self):
-        validator = MetricIssueComparisonConditionValidator(
-            data={
-                "type": Condition.GREATER,
-                "comparison": 100,
-                "conditionResult": DetectorPriorityLevel.HIGH,
-                "conditionGroupId": self.data_condition_group.id,
-            }
-        )
+        validator = MetricIssueComparisonConditionValidator(data=self.valid_data)
         assert validator.is_valid()
         assert validator.validated_data == {
             "comparison": 100.0,
@@ -51,9 +53,8 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
     def test_invalid_condition(self):
         unsupported_condition = Condition.EQUAL
         data = {
+            **self.valid_data,
             "type": unsupported_condition,
-            "comparison": 100,
-            "result": DetectorPriorityLevel.HIGH,
         }
         validator = MetricIssueComparisonConditionValidator(data=data)
         assert not validator.is_valid()
@@ -63,7 +64,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
 
     def test_unregistered_condition(self):
         validator = MetricIssueComparisonConditionValidator(
-            data={"type": "invalid", "comparison": 100, "result": DetectorPriorityLevel.HIGH}
+            data={**self.valid_data, "type": "invalid"}
         )
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
@@ -73,23 +74,36 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
     def test_invalid_comparison(self):
         validator = MetricIssueComparisonConditionValidator(
             data={
-                "type": Condition.GREATER,
+                **self.valid_data,
                 "comparison": "not_a_number",
-                "result": DetectorPriorityLevel.HIGH,
             }
         )
         assert not validator.is_valid()
         assert validator.errors.get("comparison") == [
-            ErrorDetail(string="A valid number is required.", code="invalid")
+            ErrorDetail(string="A valid number or dict is required.", code="invalid")
+        ]
+
+    def test_invalid_comparison_dict(self):
+        comparison = {"foo": "bar"}
+        validator = MetricIssueComparisonConditionValidator(
+            data={
+                **self.valid_data,
+                "comparison": comparison,
+            }
+        )
+        assert not validator.is_valid()
+        assert validator.errors.get("comparison") == [
+            ErrorDetail(
+                string=f"Invalid json primitive value: {comparison}. Must be a string, number, or boolean.",
+                code="invalid",
+            )
         ]
 
     def test_invalid_result(self):
         validator = MetricIssueComparisonConditionValidator(
             data={
-                "type": Condition.GREATER,
-                "comparison": 100,
-                "condition_result": 25,
-                "condition_group_id": self.data_condition_group.id,
+                **self.valid_data,
+                "conditionResult": 25,
             }
         )
         assert not validator.is_valid()
@@ -141,18 +155,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             },
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit):
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            detector = validator.save()
-
-        # Verify detector in DB
+    def assert_validated(self, detector):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
@@ -180,6 +183,19 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert snuba_query.environment == self.environment
         assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
 
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_create_with_valid_data(self, mock_audit):
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        # Verify detector in DB
+        self.assert_validated(detector)
         # Verify condition group in DB
         condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
         assert condition_group.logic_type == DataConditionGroup.Type.ANY
@@ -238,32 +254,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             detector = validator.save()
 
         # Verify detector in DB
-        detector = Detector.objects.get(id=detector.id)
-        assert detector.name == "Test Detector"
-        assert detector.type == MetricIssue.slug
-        assert detector.project_id == self.project.id
-
-        # Verify data source and query subscription in DB
-        data_source = DataSource.objects.get(detector=detector)
-        assert data_source.type == data_source_type_registry.get_key(
-            QuerySubscriptionDataSourceHandler
-        )
-        assert data_source.organization_id == self.project.organization_id
-
-        query_sub = QuerySubscription.objects.get(id=data_source.source_id)
-        assert query_sub.project == self.project
-        assert query_sub.type == INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-
-        # Verify the Snuba query
-        snuba_query = query_sub.snuba_query
-        assert snuba_query
-        assert snuba_query.type == SnubaQuery.Type.ERROR.value
-        assert snuba_query.dataset == Dataset.Events.value
-        assert snuba_query.query == "test query"
-        assert snuba_query.aggregate == "count()"
-        assert snuba_query.time_window == 3600
-        assert snuba_query.environment == self.environment
-        assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
+        self.assert_validated(detector)
 
         # Verify condition group in DB
         condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
@@ -291,6 +282,37 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
+
+    def test_anomaly_detection__invalid_comparison(self):
+        data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.ANOMALY_DETECTION,
+                        "comparison": {
+                            "sensitivity": "super sensitive",
+                            "seasonality": AnomalyDetectionSeasonality.AUTO,
+                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+                        },
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+            },
+        }
+        validator = MetricIssueDetectorValidator(
+            data=data,
+            context=self.context,
+        )
+        assert not validator.is_valid()
 
     def test_invalid_detector_type(self):
         data = {**self.valid_data, "type": "invalid_type"}
