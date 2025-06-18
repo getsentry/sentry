@@ -410,7 +410,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             name=self.detector.name,
             action_identifier_id=self.detector.id,
             threshold_type=AlertRuleThresholdType.ABOVE,
-            detection_type=None,
+            detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
             sensitivity=None,
             resolve_threshold=None,
