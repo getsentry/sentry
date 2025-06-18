@@ -38,19 +38,13 @@ export function DetectorListRow({
         <DetectorTypeCell type={type} />
       </CellWrapper>
       <CellWrapper className="last-issue">
-        <StyledIssueCell
-          group={issues.length > 0 ? issues[0] : undefined}
-          disabled={disabled}
-        />
+        <StyledIssueCell group={issues.length > 0 ? issues[0] : undefined} />
       </CellWrapper>
       <CellWrapper className="assignee">
         <DetectorAssigneeCell assignee={owner} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
-        <DetectorListConnectedAutomations
-          automationIds={workflowIds}
-          disabled={disabled}
-        />
+        <DetectorListConnectedAutomations automationIds={workflowIds} />
       </CellWrapper>
     </RowWrapper>
   );
@@ -84,6 +78,7 @@ export function DetectorListRowSkeleton() {
 const CellWrapper = styled(Flex)`
   padding: 0 ${space(2)};
   flex: 1;
+  overflow: hidden;
 `;
 
 const StyledIssueCell = styled(IssueCell)`
@@ -105,7 +100,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
     p.disabled &&
     css`
       ${CellWrapper}, {
-        opacity: 0.6;
+        opacity: 0.8;
       }
     `}
 

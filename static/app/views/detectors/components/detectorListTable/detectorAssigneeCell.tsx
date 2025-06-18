@@ -26,18 +26,14 @@ function AssigneeContent({assignee}: {assignee: string | null}) {
   return <ActorAvatar actor={actor} size={24} />;
 }
 
-export function DetectorAssigneeCell({
-  assignee,
-  disabled = false,
-  className,
-}: DetectorAssigneeCellProps) {
+export function DetectorAssigneeCell({assignee, className}: DetectorAssigneeCellProps) {
   return (
-    <Wrapper disabled={disabled} className={className}>
+    <Wrapper className={className}>
       <AssigneeContent assignee={assignee} />
     </Wrapper>
   );
 }
 
-const Wrapper = styled('div')<{disabled: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+const Wrapper = styled('div')`
+  color: ${p => p.theme.subText};
 `;

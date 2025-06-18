@@ -17,7 +17,6 @@ import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames'
 
 type DetectorListConnectedAutomationsProps = {
   automationIds: string[];
-  disabled: boolean;
 };
 
 function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]}) {
@@ -74,14 +73,13 @@ function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]
 
 export function DetectorListConnectedAutomations({
   automationIds,
-  disabled,
 }: DetectorListConnectedAutomationsProps) {
   if (!automationIds.length) {
     return <EmptyCell />;
   }
 
   return (
-    <ConnectedAutomations disabled={disabled}>
+    <ConnectedAutomations>
       <ClassNames>
         {({css}) => (
           <Hovercard
@@ -99,17 +97,11 @@ export function DetectorListConnectedAutomations({
   );
 }
 
-const ConnectedAutomations = styled('div')<{disabled: boolean}>`
+const ConnectedAutomations = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-
-  ${p =>
-    p.disabled &&
-    `
-    color: ${p.theme.disabled};
-  `}
 `;
 
 const HovercardSkeletonRow = styled('div')`
