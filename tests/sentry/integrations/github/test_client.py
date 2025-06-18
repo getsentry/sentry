@@ -6,7 +6,6 @@ from unittest import mock
 import orjson
 import pytest
 import responses
-from django.core import mail
 from django.test import override_settings
 from django.utils import timezone
 from requests import Request
@@ -16,8 +15,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.notify_disable import notify_disable
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
@@ -31,7 +28,6 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
@@ -431,28 +427,6 @@ class GitHubApiClientTest(TestCase):
         sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
 
-    @responses.activate
-    def test_disable_email(self):
-        with self.tasks():
-            notify_disable(
-                self.organization, self.integration.provider, self.github_client._get_redis_key()
-            )
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[0]
-        assert msg.subject == "Action required: re-authenticate or fix your Github integration"
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}"
-            )
-            in msg.body
-        )
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration"
-            )
-            in msg.body
-        )
-
 
 @control_silo_test
 class GithubProxyClientTest(TestCase):
@@ -746,135 +720,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
         )
-
-    @pytest.mark.skip("Feature is temporarily disabled")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
-    @responses.activate
-    def test_fatal_and_disable_integration(self, get_jwt):
-        """
-        fatal fast shut off with disable flag on, integration should be broken and disabled
-        """
-        responses.add(
-            responses.POST,
-            status=403,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "This installation has been suspended",
-                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
-            },
-        )
-
-        with pytest.raises(Exception):
-            self.github_client.get_blame_for_files([self.file], extra={})
-
-        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
-        self.integration.refresh_from_db()
-        assert self.integration.status == ObjectStatus.DISABLED
-        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
-        assert len(buffer._get_all_from_buffer()) == 0
-
-    @responses.activate
-    def test_error_integration(self):
-        """
-        recieve two errors and errors are recorded, integration is not broken yet so no disable
-        """
-        responses.add(
-            method=responses.GET,
-            url="https://api.github.com/rate_limit",
-            body=orjson.dumps(
-                {
-                    "resources": {
-                        "graphql": {
-                            "limit": 5000,
-                            "used": 1,
-                            "remaining": 4999,
-                            "reset": 1613064000,
-                        }
-                    }
-                }
-            ).decode(),
-            status=200,
-            content_type="application/json",
-        )
-
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "Not found",
-            },
-        )
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "Not found",
-            },
-        )
-        with pytest.raises(Exception):
-            self.github_client.get_blame_for_files([self.file], extra={})
-        with pytest.raises(Exception):
-            self.github_client.get_blame_for_files([self.file], extra={})
-        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
-        assert (
-            int(buffer._get_all_from_buffer()[0]["error_count"]) == 2
-        )  # 2 from graphql, 2 from rate_limt check
-        assert buffer.is_integration_broken() is False
-
-    @responses.activate
-    @freeze_time("2022-01-01 03:30:00")
-    def test_slow_integration_is_not_broken_or_disabled(self):
-        """
-        slow test with disable flag on
-        put errors and success in buffer for 10 days, assert integration is not broken or disabled
-        """
-
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "Not found",
-            },
-        )
-        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
-        now = datetime.now() - timedelta(hours=1)
-        for i in reversed(range(10)):
-            with freeze_time(now - timedelta(days=i)):
-                buffer.record_error()
-                buffer.record_success()
-        with pytest.raises(Exception):
-            self.github_client.get_blame_for_files([self.file], extra={})
-        assert buffer.is_integration_broken() is False
-        self.integration.refresh_from_db()
-        assert self.integration.status == ObjectStatus.ACTIVE
-
-    @pytest.mark.skip("Feature is temporarily disabled")
-    @responses.activate
-    @freeze_time("2022-01-01 03:30:00")
-    def test_a_slow_integration_is_broken(self):
-        """
-        slow shut off with disable flag on
-        put errors in buffer for 10 days, assert integration is broken and disabled
-        """
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={"message": "Not found"},
-        )
-        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
-        now = datetime.now() - timedelta(hours=1)
-        for i in reversed(range(10)):
-            with freeze_time(now - timedelta(days=i)):
-                buffer.record_error()
-        assert self.integration.status == ObjectStatus.ACTIVE
-        with pytest.raises(Exception):
-            self.github_client.get_blame_for_files([self.file], extra={})
-        self.integration.refresh_from_db()
-        assert self.integration.status == ObjectStatus.DISABLED
 
 
 class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):

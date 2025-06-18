@@ -255,7 +255,6 @@ module = [
     "sentry.integrations.source_code_management.repository",
     "sentry.integrations.vsts.actions.*",
     "sentry.integrations.vsts.tasks.*",
-    "sentry.integrations.web.debug.*",
     "sentry.issues",
     "sentry.issues.analytics",
     "sentry.issues.apps",
