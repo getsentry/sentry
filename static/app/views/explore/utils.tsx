@@ -598,3 +598,44 @@ function isSimpleFilter(
 function normalizeKey(key: string): string {
   return key.startsWith('!') ? key.slice(1) : key;
 }
+
+export function formatQueryToNaturalLanguage(query: string): string {
+  if (!query.trim()) return '';
+  const parts = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  return parts.map(formatQueryPart).join(' ');
+}
+
+function formatQueryPart(part: string): string {
+  const isNegated = part.startsWith('!') && part.includes(':');
+  const actualPart = isNegated ? part.slice(1) : part;
+
+  const operators = [
+    [':>=', 'greater than or equal to'],
+    [':<=', 'less than or equal to'],
+    [':!=', 'not'],
+    [':>', 'greater than'],
+    [':<', 'less than'],
+    ['>=', 'greater than or equal to'],
+    ['<=', 'less than or equal to'],
+    ['!=', 'not'],
+    ['!:', 'not'],
+    ['>', 'greater than'],
+    ['<', 'less than'],
+    [':', ''],
+  ] as const;
+
+  for (const [op, desc] of operators) {
+    if (actualPart.includes(op)) {
+      const [key, value] = actualPart.split(op);
+      const cleanKey = key?.trim() || '';
+      const cleanVal = value?.trim() || '';
+
+      const negation = isNegated ? 'not ' : '';
+      const description = desc ? `${negation}${desc}` : negation ? 'not' : '';
+
+      return `${cleanKey} is ${description} ${cleanVal}`.replace(/\s+/g, ' ').trim();
+    }
+  }
+
+  return part;
+}

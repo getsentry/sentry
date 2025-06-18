@@ -48,6 +48,16 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             validator=[is_empty_string, is_span_id],
         ),
         ResolvedAttribute(
+            public_alias="span.name",
+            internal_name="sentry.name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="span.kind",
+            internal_name="sentry.kind",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="span.action",
             internal_name="sentry.action",
             search_type="string",
@@ -210,6 +220,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="timestamp",
             internal_name="sentry.timestamp",
+            internal_type=constants.DOUBLE,
             search_type="string",
             processor=datetime_processor,
         ),
@@ -537,7 +548,6 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
         # Temporarily reverse map these old aliases.
         # TODO: Once TraceItemAttributeNamesResponse is updated
         # to return the new aliases, remove these temp mappings.
-        "sentry.name": "span.description",
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
         "sentry.segment_name": "transaction",
