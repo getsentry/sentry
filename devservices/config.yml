@@ -121,6 +121,11 @@ x-sentry-service-config:
       description: Post-process forwarder for transaction events
     post-process-forwarder-issue-platform:
       description: Post-process forwarder for issue platform events
+    # Subscription results consumers
+    eap-spans-subscription-results:
+      description: Kafka consumer for processing subscription results for spans
+    subscription-results-eap-items:
+      description: Kafka consumer for processing subscription results for eap items
     # Uptime monitoring
     uptime-results:
       description: Kafka consumer for uptime monitoring results
