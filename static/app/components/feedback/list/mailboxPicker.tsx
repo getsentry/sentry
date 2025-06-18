@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Badge} from 'sentry/components/core/badge';
+import {Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
@@ -47,7 +47,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={theme.isChonk ? space(1) : 0}>
+                <Flex align="center" gap={theme.isChonk ? space(0.75) : 0}>
                   {mailbox.label}
                   {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>
