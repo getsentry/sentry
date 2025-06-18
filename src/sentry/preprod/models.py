@@ -113,7 +113,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
     commit = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
 
-    # Nullable in case the file upload fails
+    # Size analysis wont necessarily be run on every artifact (based on quotas)
     analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     class Meta:
