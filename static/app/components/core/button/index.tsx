@@ -28,12 +28,14 @@ export function Button({
   type = 'button',
   title,
   tooltipProps,
+  busy,
   ...props
 }: ButtonProps) {
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,
     disabled,
+    busy,
   });
 
   return (
@@ -41,9 +43,11 @@ export function Button({
       <StyledButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
+        aria-busy={busy}
         disabled={disabled}
         size={size}
         type={type}
+        busy={busy}
         {...props}
         onClick={handleClick}
         role="button"
