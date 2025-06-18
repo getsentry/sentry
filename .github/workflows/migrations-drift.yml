@@ -20,9 +20,6 @@ jobs:
     name: migration drift
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     steps:
       # Checkout master to run all merged migrations.

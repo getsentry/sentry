@@ -37,9 +37,6 @@ jobs:
     name: Generate SQL
     runs-on: ubuntu-24.04
     timeout-minutes: 8
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     needs: did-migration-change
     if: needs.did-migration-change.outputs.added == 'true'
