@@ -1,7 +1,10 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Badge} from 'sentry/components/core/badge';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -10,8 +13,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -21,7 +26,7 @@ interface Props {
 interface SummaryResponse {
   data: {
     summary: string;
-    time_ranges: Array<{period_end: string; period_start: string; period_title: string}>;
+    time_ranges: Array<{period_end: number; period_start: number; period_title: string}>;
     title: string;
   };
 }
@@ -37,6 +42,7 @@ function createAISummaryQueryKey(
 }
 
 export default function Ai({replayRecord}: Props) {
+  const {replay} = useReplayContext();
   const organization = useOrganization();
   const {project: project_id} = useLocationQuery({
     fields: {project: decodeScalar},
@@ -74,24 +80,66 @@ export default function Ai({replayRecord}: Props) {
       return <Alert type="info">{t('No summary available for this replay.')}</Alert>;
     }
 
-    console.log(summaryData);
+    const chapterData = summaryData?.data.time_ranges.map(
+      ({period_title, period_start, period_end}) => ({
+        title: period_title,
+        start: period_start * 1000,
+        end: period_end * 1000,
+        breadcrumbs:
+          replay
+            ?.getChapterFrames()
+            .filter(
+              breadcrumb =>
+                breadcrumb.timestampMs >= period_start * 1000 &&
+                breadcrumb.timestampMs <= period_end * 1000
+            ) ?? [],
+      })
+    );
+
     return (
       <SummaryContainer>
-        <h3>{summaryData.data.title}</h3>
+        <SummaryHeader>
+          <span>{t('Replay Summary')}</span>
+          <Badge type="internal">{t('Internal')}</Badge>
+        </SummaryHeader>
         <SummaryText>{summaryData.data.summary}</SummaryText>
-        <SummaryDetails open>
-          <summary>
-            <h4>Chapters</h4>
-          </summary>
-          {summaryData.data.time_ranges.map(
-            ({period_title, period_start, period_end}) => (
-              <SummaryDetails key={period_title}>
-                <summary>{period_title}</summary>
-                <div>wip</div>
-              </SummaryDetails>
-            )
-          )}
-        </SummaryDetails>
+        <ChapterList>
+          {chapterData.map(({title, start, breadcrumbs}, i) => (
+            <Details key={i}>
+              <Summary>
+                <SummaryTitle>
+                  <span>{title}</span>
+
+                  <ReplayTimestamp>
+                    <TimestampButton
+                      startTimestampMs={replay?.getStartTimestampMs() ?? 0}
+                      timestampMs={start}
+                    />
+                  </ReplayTimestamp>
+                </SummaryTitle>
+              </Summary>
+              <div>
+                {!breadcrumbs.length && (
+                  <EmptyMessage>{t('No breadcrumbs for this chapter')}</EmptyMessage>
+                )}
+                {breadcrumbs.map((breadcrumb, j) => (
+                  <BreadcrumbRow
+                    frame={breadcrumb}
+                    index={j}
+                    onClick={() => {}}
+                    onInspectorExpanded={() => {}}
+                    onShowSnippet={() => {}}
+                    showSnippet={false}
+                    allowShowSnippet={false}
+                    startTimestampMs={breadcrumb.timestampMs}
+                    key={`breadcrumb-${j}`}
+                    style={{}}
+                  />
+                ))}
+              </div>
+            </Details>
+          ))}
+        </ChapterList>
       </SummaryContainer>
     );
   };
@@ -117,14 +165,62 @@ const LoadingContainer = styled('div')`
 
 const SummaryContainer = styled('div')`
   padding: ${space(2)};
+  overflow: auto;
 `;
 
-const SummaryDetails = styled('details')`
+const SummaryHeader = styled('h3')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const Details = styled('details')`
+  &[open] > summary::before {
+    content: '-';
+  }
+`;
+
+const Summary = styled('summary')`
+  cursor: pointer;
   display: list-item;
+  padding: ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeLarge};
+
+  /* sorry */
+  &:focus-visible {
+    outline: none;
+  }
+
+  list-style-type: none;
+  &::-webkit-details-marker {
+    display: none;
+  }
+  &::before {
+    content: '+';
+    float: left;
+    display: inline-block;
+    width: 14px;
+    margin-right: ${space(1)};
+    font-size: ${p => p.theme.fontSizeExtraLarge};
+  }
+`;
+
+const SummaryTitle = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  justify-content: space-between;
 `;
 
 const SummaryText = styled('p')`
   line-height: 1.6;
-  margin: 0;
   white-space: pre-wrap;
+`;
+
+const ChapterList = styled('div')``;
+
+// Copied from breadcrumbItem
+const ReplayTimestamp = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
