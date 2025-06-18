@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any
+from typing import Protocol
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -25,13 +25,22 @@ class NotificationTargetResourceType(StrEnum):
     DIRECT_MESSAGE = "direct_message"
 
 
-type NotificationTemplate = Any
-type NotificationData = Any
-
-
-class NotificationType(StrEnum):
+class NotificationCategory(StrEnum):
     """
-    The type of notification to be sent.
+    The category of notification to be sent.
+    These categories are the broad groupings that users can manage in their settings.
+    The exception is the `DEBUG` category, which is used for internal testing and development.
     """
 
     DEBUG = "debug"
+    # TODO(ecosystem): Connect this to NotificationSettingEnum
+
+
+class NotificationData(Protocol):
+    category: NotificationCategory
+    thread_id: str | None = None
+    pass
+
+
+class NotificationTemplate[T: NotificationData]:
+    pass

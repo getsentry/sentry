@@ -6,9 +6,9 @@ from sentry.notifications.platform.provider import NotificationProvider, Notific
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.target import IntegrationNotificationTarget, NotificationTarget
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
-    NotificationType,
 )
 from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
@@ -33,7 +33,9 @@ class NotificationProviderTest(TestCase):
             for resource_type in provider.target_resource_types:
                 assert resource_type in NotificationTargetResourceType
             # Ensures the default renderer links back to its connected provider key
-            assert provider.default_renderer == provider.get_renderer(type=NotificationType.DEBUG)
+            assert provider.default_renderer == provider.get_renderer(
+                category=NotificationCategory.DEBUG
+            )
             assert isinstance(provider.is_available(), bool)
             assert isinstance(
                 provider.is_available(

@@ -1,16 +1,16 @@
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
 from sentry.notifications.platform.target import NotificationTarget
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
-    NotificationType,
 )
 from sentry.testutils.cases import TestCase
 
 
 class EmailRendererTest(TestCase):
     def test_default_renderer(self):
-        renderer = EmailNotificationProvider.get_renderer(type=NotificationType.DEBUG)
+        renderer = EmailNotificationProvider.get_renderer(category=NotificationCategory.DEBUG)
         # TODO(ecosystem): Replace this with a real data blob, template and renderable
         assert renderer.render(data={}, template={}) == {}
 

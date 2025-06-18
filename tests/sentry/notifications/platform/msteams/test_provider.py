@@ -1,16 +1,16 @@
 from sentry.notifications.platform.msteams.provider import MSTeamsNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
-    NotificationType,
 )
 from sentry.testutils.cases import TestCase
 
 
 class MSTeamsRendererTest(TestCase):
     def test_default_renderer(self):
-        renderer = MSTeamsNotificationProvider.get_renderer(type=NotificationType.DEBUG)
+        renderer = MSTeamsNotificationProvider.get_renderer(category=NotificationCategory.DEBUG)
         # TODO(ecosystem): Replace this with a real data blob, template and renderable
         assert renderer.render(data={}, template={}) == {}
 
