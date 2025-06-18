@@ -56,12 +56,12 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
     <StorySection>
       <StoryTitle>{props.name}</StoryTitle>
       {isOneChild ? (
-        <Flex gap={space(2)} column>
+        <Flex gap={space(2)} direction="column">
           {children}
         </Flex>
       ) : (
         <Storybook.SideBySide>
-          <Flex gap={space(2)} column>
+          <Flex gap={space(2)} direction="column">
             {children}
           </Flex>
         </Storybook.SideBySide>
