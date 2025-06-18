@@ -119,13 +119,21 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
 
+        if "WHERE" not in description.upper():
+            return
+
         for parameter in self.request_parameters:
             value = parameter[1]
             key = parameter[0]
-            if re.search(rf'(?<![\w.])"?{re.escape(key)}"?(?![\w."])', description) and re.search(
-                rf'(?<![\w.])"?{re.escape(value)}"?(?![\w."])', description
+            regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
+            regex_value = rf'(?<![\w.$])"?{re.escape(value)}"?(?![\w.$"])'
+            where_index = description.upper().find("WHERE")
+            if re.search(regex_key, description[where_index:]) and re.search(
+                regex_value, description[where_index:]
             ):
-                description = description.replace(value, "?")
+                description = description[:where_index] + re.sub(
+                    regex_value, "?", description[where_index:]
+                )
                 vulnerable_parameters.append(key)
 
         if len(vulnerable_parameters) == 0:
