@@ -6,7 +6,6 @@ import {IconClose, IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/alert';
 
 const ALERT_VARIANTS: Array<AlertProps['type']> = [

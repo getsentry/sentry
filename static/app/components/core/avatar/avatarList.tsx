@@ -1,14 +1,15 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+
+import {TeamAvatar} from './teamAvatar';
+import {UserAvatar, type UserAvatarProps} from './userAvatar';
 
 type Props = {
   avatarSize?: number;

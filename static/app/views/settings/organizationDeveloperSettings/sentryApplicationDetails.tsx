@@ -403,7 +403,6 @@ export default function SentryApplicationDetails(props: Props) {
         help={AVATAR_STYLES[avatarStyle].help.concat(
           isInternal() ? '' : t(' Required for publishing.')
         )}
-        savedDataUrl={undefined}
         defaultChoice={{
           choiceText: isColor ? t('Default logo') : t('Default small icon'),
           preview: getAvatarPreview(isColor),

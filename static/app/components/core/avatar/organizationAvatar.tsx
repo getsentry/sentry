@@ -1,8 +1,9 @@
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-export interface OrganizationAvatarProps extends BaseAvatarProps {
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+
+interface OrganizationAvatarProps extends BaseAvatarProps {
   organization?: OrganizationSummary;
   ref?: React.Ref<HTMLSpanElement>;
 }

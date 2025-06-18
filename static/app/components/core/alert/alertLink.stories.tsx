@@ -4,7 +4,6 @@ import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alert/alert
 import {IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/alert/alertLink';
 
 const DUMMY_LINK = '/stories';

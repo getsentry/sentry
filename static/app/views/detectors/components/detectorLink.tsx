@@ -35,10 +35,8 @@ export function DetectorLink({
       className={className}
     >
       <Name disabled={disabled}>
-        <strong>{name}</strong>
-        {!createdBy && (
-          <IconSentry size="xs" color="subText" style={{alignSelf: 'center'}} />
-        )}
+        <NameText>{name}</NameText>
+        {!createdBy && <CreatedBySentryIcon size="xs" color="subText" />}
         {disabled && <span>&mdash; Disabled</span>}
       </Name>
       <DetailsWrapper>
@@ -62,7 +60,7 @@ export function DetectorLink({
 const Name = styled('div')<{disabled: boolean}>`
   color: ${p => p.theme.textColor};
   display: flex;
-  flex-direction: row;
+  align-items: center;
   gap: ${space(0.5)};
 
   ${p =>
@@ -72,12 +70,23 @@ const Name = styled('div')<{disabled: boolean}>`
     `}
 `;
 
+const NameText = styled('span')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  ${p => p.theme.overflowEllipsis};
+  width: auto;
+`;
+
+const CreatedBySentryIcon = styled(IconSentry)`
+  flex-shrink: 0;
+`;
+
 const StyledLink = styled(Link)`
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: ${space(0.5)};
   flex: 1;
+  overflow: hidden;
 
   &:hover {
     ${Name} {

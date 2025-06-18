@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import Avatar from 'sentry/components/core/avatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
@@ -221,13 +221,13 @@ export function SavedQueriesTable({
                 <Tooltip title={'Sentry'}>
                   <ActivityAvatar type="system" size={20} />
                 </Tooltip>
-              ) : (
-                <Avatar
-                  user={query.createdBy}
-                  tooltip={query.createdBy?.name}
+              ) : query.createdBy ? (
+                <ActorAvatar
+                  actor={query.createdBy}
+                  tooltip={query.createdBy.name}
                   hasTooltip
                 />
-              )}
+              ) : null}
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="last-visited">
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
