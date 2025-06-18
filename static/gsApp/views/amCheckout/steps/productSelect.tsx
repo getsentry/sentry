@@ -67,7 +67,7 @@ function ProductSelect({
         [DataCategory.SEER_SCANNER]: {
           perEventNameOverride: 'scan',
           description: t(
-            'Triages issues as they happen, automatically flagging the most important ones for followup'
+            'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
           ),
           maxEventPriceDigits: 3,
         },
