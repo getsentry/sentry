@@ -288,9 +288,13 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         id_to_span = {event["id"]: event for event in spans_data}
         id_to_error = {event["trace.span"]: event for event in errors_data}
         id_to_occurrence = defaultdict(list)
-        for event in occurrence_data:
-            for span_id in event["occurrence"].evidence_data["offender_span_ids"]:
-                id_to_occurrence[span_id].append(event)
+        with sentry_sdk.start_span(op="process.occurrence_data") as sdk_span:
+            for event in occurrence_data:
+                offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
+                if len(offender_span_ids) == 0:
+                    sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
+                for span_id in offender_span_ids:
+                    id_to_occurrence[span_id].append(event)
         for span in spans_data:
             if span["parent_span"] in id_to_span:
                 parent = id_to_span[span["parent_span"]]
