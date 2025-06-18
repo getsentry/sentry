@@ -45,8 +45,17 @@ export default function AutomationForm({model}: {model: FormModel}) {
 
   const {data: monitors = []} = useDetectorsQuery();
   const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    const connectedIdsArray = location.query.connectedIds as string[] | undefined;
-    return connectedIdsArray ? new Set(connectedIdsArray) : new Set<string>();
+    const connectedIdsQuery = location.query.connectedIds as
+      | string
+      | string[]
+      | undefined;
+    if (!connectedIdsQuery) {
+      return new Set<string>();
+    }
+    const connectedIdsArray = Array.isArray(connectedIdsQuery)
+      ? connectedIdsQuery
+      : [connectedIdsQuery];
+    return new Set(connectedIdsArray);
   });
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
 

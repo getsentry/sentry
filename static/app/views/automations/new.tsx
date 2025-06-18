@@ -39,8 +39,17 @@ export default function AutomationNew() {
   useWorkflowEngineFeatureGate({redirect: true});
 
   const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    const connectedIdsArray = location.query.connectedIds as string[] | undefined;
-    return connectedIdsArray ? new Set(connectedIdsArray) : new Set<string>();
+    const connectedIdsQuery = location.query.connectedIds as
+      | string
+      | string[]
+      | undefined;
+    if (!connectedIdsQuery) {
+      return new Set<string>();
+    }
+    const connectedIdsArray = Array.isArray(connectedIdsQuery)
+      ? connectedIdsQuery
+      : [connectedIdsQuery];
+    return new Set(connectedIdsArray);
   });
 
   return (
@@ -52,22 +61,22 @@ export default function AutomationNew() {
             <Layout.Title>{t('New Automation')}</Layout.Title>
           </Layout.HeaderContent>
         </StyledLayoutHeader>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <Flex column gap={space(1.5)}>
+              <Card>
+                <EditConnectedMonitors
+                  connectedIds={connectedIds}
+                  setConnectedIds={setConnectedIds}
+                />
+              </Card>
+              <span>
+                <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
+              </span>
+            </Flex>
+          </Layout.Main>
+        </Layout.Body>
       </Layout.Page>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <Flex column gap={space(1.5)}>
-            <Card>
-              <EditConnectedMonitors
-                connectedIds={connectedIds}
-                setConnectedIds={setConnectedIds}
-              />
-            </Card>
-            <span>
-              <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
-            </span>
-          </Flex>
-        </Layout.Main>
-      </Layout.Body>
       <StickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
