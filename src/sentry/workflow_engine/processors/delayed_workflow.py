@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -526,7 +525,7 @@ def fire_actions_for_groups(
     ) as tracker:
         for group, group_event in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
-                event_data = WorkflowEventData(event=group_event)
+                workflow_event_data = WorkflowEventData(event=group_event)
                 detector = get_detector_by_event(workflow_event_data)
 
                 workflow_triggers: set[DataConditionGroup] = set()
@@ -650,7 +649,7 @@ def process_delayed_workflows(
     logger.info(
         "delayed_workflow.workflows",
         extra={
-            "data": workflow_event_dcg_data,
+            "data": redis_data,
             "workflows": event_data.workflow_ids,
         },
     )
