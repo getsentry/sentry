@@ -4,7 +4,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import DetectorsList from 'sentry/views/detectors/list';
@@ -107,6 +113,55 @@ describe('DetectorsList', function () {
 
       await screen.findByText('Error Detector');
       expect(mockDetectorsRequestErrorType).toHaveBeenCalled();
+    });
+
+    it('can sort the table', async function () {
+      const mockDetectorsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [DetectorFixture({name: 'Detector 1'})],
+      });
+      const {router} = render(<DetectorsList />, {organization});
+      await screen.findByText('Detector 1');
+
+      // Default sort is connectedWorkflows descending
+      expect(mockDetectorsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sortBy: '-connectedWorkflows',
+          }),
+        })
+      );
+
+      // Click on Name column header to sort
+      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+
+      await waitFor(() => {
+        expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: 'name',
+            }),
+          })
+        );
+      });
+      expect(router.location.query.sort).toBe('name');
+
+      // Click on Name column header again to change sort direction
+      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+
+      await waitFor(() => {
+        expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: '-name',
+            }),
+          })
+        );
+      });
+      expect(router.location.query.sort).toBe('-name');
     });
   });
 });
