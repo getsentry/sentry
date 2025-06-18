@@ -252,7 +252,11 @@ class HighlightedEvents(TypedDict, total=False):
 
 
 def parse_highlighted_events(events: list[dict[str, Any]], sampled: bool) -> ParsedEventMeta:
-    """Return highlighted events which were parsed from the stream."""
+    """Return highlighted events which were parsed from the stream.
+
+    Highlighted events are any event which is notable enough to be logged, used in a metric,
+    emitted to a database, or otherwise emit an effect in some material way.
+    """
     hes: HighlightedEvents = {
         "canvas_sizes": [],
         "clicks": [],
