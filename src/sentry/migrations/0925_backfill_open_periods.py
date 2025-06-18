@@ -74,6 +74,17 @@ def get_open_periods_for_group(
             regression_time = activity.datetime
 
         elif activity.type in RESOLVED_ACTIVITY_TYPES and regression_time is not None:
+            if activity.datetime < regression_time:
+                logger.warning(
+                    "Open period has invalid start and end dates",
+                    extra={
+                        "group_id": group_id,
+                        "activity_datetime": activity.datetime,
+                        "regression_time": regression_time,
+                    },
+                )
+                return []
+
             open_periods.append(
                 GroupOpenPeriod(
                     group_id=group_id,
@@ -156,7 +167,7 @@ def _backfill_group_open_periods(
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
 
-    backfill_key = "backfill_group_open_periods_from_activity_1"
+    backfill_key = "backfill_group_open_periods_from_activity_2"
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     progress_id = int(redis_client.get(backfill_key) or 0)
