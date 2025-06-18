@@ -15,7 +15,7 @@ export function useWebVitalsIssuesQuery(
 ) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {data, isLoading, error} = useApiQuery<Group[]>(
+  return useApiQuery<Group[]>(
     [
       `/organizations/${organization.slug}/issues/`,
       {
@@ -33,6 +33,4 @@ export function useWebVitalsIssuesQuery(
       enabled: Boolean(performanceIssues?.length),
     }
   );
-
-  return {data, isLoading, error};
 }

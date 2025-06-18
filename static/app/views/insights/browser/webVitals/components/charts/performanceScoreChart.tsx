@@ -23,7 +23,7 @@ type Props = {
   webVital?: WebVitals | null;
 };
 
-export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
+export const ORDER = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'] as const;
 
 export function PerformanceScoreChart({
   projectScore,

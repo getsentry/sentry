@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
@@ -54,13 +55,10 @@ export default function WebVitalMetersWithIssues({
     return null;
   }
 
-  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
-
-  const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
   const colors = theme.chart.getColorPalette(3);
 
   const renderVitals = () => {
-    return webVitals.map((webVital, index) => {
+    return ORDER.map((webVital, index) => {
       const webVitalKey: keyof ProjectData = `p75(measurements.${webVital})`;
       const score = projectScore[`${webVital}Score`];
       const meterValue = projectData?.[0]?.[webVitalKey];
@@ -110,12 +108,11 @@ function VitalMeter({
 }: VitalMeterProps) {
   const organization = useOrganization();
   const [isIssuesButtonHovered, setIsIssuesButtonHovered] = useState(false);
-  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
   const webVitalExists = score !== undefined;
 
   const formattedMeterValueText =
     webVitalExists && meterValue ? (
-      webVitalsConfig[webVital].formatter(meterValue)
+      WEB_VITALS_METERS_CONFIG[webVital].formatter(meterValue)
     ) : (
       <NoValue />
     );
@@ -124,7 +121,7 @@ function VitalMeter({
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
 
-  const headerText = webVitalsConfig[webVital].name;
+  const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
   const performanceIssues = WEB_VITAL_PERFORMANCE_ISSUES[webVital];
   const {data: issues} = useWebVitalsIssuesQuery(performanceIssues);
   const hasIssues = issues && issues.length > 0;

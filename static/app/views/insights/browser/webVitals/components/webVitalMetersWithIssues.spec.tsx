@@ -3,7 +3,6 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import WebVitalMetersWithIssues, {
   type ProjectData,
@@ -26,15 +25,6 @@ describe('WebVitalMetersWithIssues', function () {
   let issuesMock: jest.Mock;
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     issuesMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -51,11 +41,11 @@ describe('WebVitalMetersWithIssues', function () {
       }
     );
 
-    await screen.findByText('Largest Contentful Paint');
-    screen.getByText('First Contentful Paint');
-    screen.getByText('Cumulative Layout Shift');
-    screen.getByText('Time To First Byte');
-    screen.getByText('Interaction to Next Paint');
+    expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
+    expect(screen.getByText('First Contentful Paint')).toBeInTheDocument();
+    expect(screen.getByText('Cumulative Layout Shift')).toBeInTheDocument();
+    expect(screen.getByText('Time To First Byte')).toBeInTheDocument();
+    expect(screen.getByText('Interaction to Next Paint')).toBeInTheDocument();
 
     expect(issuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/',
