@@ -1,9 +1,11 @@
 import datetime
 from unittest.mock import patch
 
+from sentry.models.apitoken import ApiToken
 from sentry.replays.models import ReplayDeletionJobModel
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.cursors import Cursor
 
 
@@ -117,7 +119,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         # Test first page
         response = self.get_success_response(self.organization.slug, self.project.slug, per_page=10)
         assert len(response.data["data"]) == 10
-        assert response.data["data"][0]["id"] == 15
+        assert response.data["data"][0]["id"] == 19
 
         # Test second page
         response = self.get_success_response(
@@ -126,7 +128,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
             cursor=Cursor(10, 1),
         )
         assert len(response.data["data"]) == 5
-        assert response.data["data"][0]["id"] == 5
+        assert response.data["data"][0]["id"] == 9
 
     @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
     def test_post_success(self, mock_task):
@@ -177,6 +179,120 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
             self.organization.slug, self.project.slug, method="post", **data, status_code=400
         )
         assert "rangeStart must be before rangeEnd" in str(response.data)
+
+    def test_permission_denied_without_project_write(self):
+        """Test that users without project:write permissions get 403 Forbidden"""
+        # Create a user with only member role (no project:write permissions)
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="member")
+        self.login_as(user=user)
+
+        # Create a team but don't add the user to it
+        team = self.create_team(organization=self.organization)
+        project = self.create_project(organization=self.organization, teams=[team])
+
+        # GET should return 403
+        self.get_error_response(self.organization.slug, project.slug, status_code=403)
+
+        # POST should return 403
+        data = {
+            "rangeStart": "2023-01-01T00:00:00Z",
+            "rangeEnd": "2023-01-02T00:00:00Z",
+            "environments": ["production"],
+            "query": "test query",
+        }
+        self.get_error_response(
+            self.organization.slug, project.slug, method="post", **data, status_code=403
+        )
+
+    def test_permission_denied_with_api_token_insufficient_scope(self):
+        """Test that API tokens without project:write scope get 403 Forbidden"""
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create API token with only project:read scope
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+
+        # GET should return 403
+        response = self.client.get(
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            format="json",
+        )
+        assert response.status_code == 403
+
+        # POST should return 403
+        data = {
+            "rangeStart": "2023-01-01T00:00:00Z",
+            "rangeEnd": "2023-01-02T00:00:00Z",
+            "environments": ["production"],
+            "query": "test query",
+        }
+        response = self.client.post(
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/",
+            data=data,
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            format="json",
+        )
+        assert response.status_code == 403
+
+    def test_permission_granted_with_project_write(self):
+        """Test that users with project:write permissions can access endpoints"""
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create API token with project:write scope
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+
+        # GET should succeed
+        response = self.client.get(
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            format="json",
+        )
+        assert response.status_code == 200
+
+        # POST should succeed
+        data = {
+            "rangeStart": "2023-01-01T00:00:00Z",
+            "rangeEnd": "2023-01-02T00:00:00Z",
+            "environments": ["production"],
+            "query": "test query",
+        }
+        with patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay"):
+            response = self.client.post(
+                f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/",
+                data=data,
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                format="json",
+            )
+        assert response.status_code == 201
+
+    def test_permission_granted_with_project_admin(self):
+        """Test that users with project:admin permissions can access endpoints"""
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create API token with project:admin scope
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:admin"])
+
+        # GET should succeed
+        response = self.client.get(
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            format="json",
+        )
+        assert response.status_code == 200
+
+        # POST should succeed
+        data = {
+            "rangeStart": "2023-01-01T00:00:00Z",
+            "rangeEnd": "2023-01-02T00:00:00Z",
+            "environments": ["production"],
+            "query": "test query",
+        }
+        with patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay"):
+            response = self.client.post(
+                f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/",
+                data=data,
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                format="json",
+            )
+        assert response.status_code == 201
 
 
 @region_silo_test
@@ -248,3 +364,101 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
 
         # Job exists for same org but different project - should return 404
         self.get_error_response(self.organization.slug, self.project.slug, job.id, status_code=404)
+
+    def test_permission_denied_without_project_write(self):
+        """Test that users without project:write permissions get 403 Forbidden"""
+        # Create a user with only member role (no project:write permissions)
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="member")
+        self.login_as(user=user)
+
+        # Create a team but don't add the user to it
+        team = self.create_team(organization=self.organization)
+        project = self.create_project(organization=self.organization, teams=[team])
+
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
+        )
+
+        # GET should return 403
+        self.get_error_response(self.organization.slug, project.slug, job.id, status_code=403)
+
+    def test_permission_denied_with_api_token_insufficient_scope(self):
+        """Test that API tokens without project:write scope get 403 Forbidden"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create API token with only project:read scope
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+
+        # GET should return 403
+        response = self.client.get(
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/{job.id}/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            format="json",
+        )
+        assert response.status_code == 403
+
+    def test_permission_granted_with_project_write(self):
+        """Test that users with project:write permissions can access endpoint"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create API token with project:write scope
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+
+        # GET should succeed
+        response = self.client.get(
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/{job.id}/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.data["data"]["id"] == job.id
+
+    def test_permission_granted_with_project_admin(self):
+        """Test that users with project:admin permissions can access endpoint"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create API token with project:admin scope
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:admin"])
+
+        # GET should succeed
+        response = self.client.get(
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/{job.id}/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.data["data"]["id"] == job.id

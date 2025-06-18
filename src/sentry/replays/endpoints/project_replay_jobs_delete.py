@@ -5,12 +5,19 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
+
+
+class ReplayDeletionJobPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
+    }
 
 
 class ReplayDeletionJobSerializer(Serializer):
@@ -48,6 +55,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (ReplayDeletionJobPermission,)
 
     def get(self, request: Request, project) -> Response:
         """
@@ -104,6 +112,7 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (ReplayDeletionJobPermission,)
 
     def get(self, request: Request, project, job_id: int) -> Response:
         """
