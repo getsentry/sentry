@@ -136,7 +136,7 @@ def _webhook_issue_data(
 ) -> WebhookGroupResponse:
 
     webhook_payload = WebhookGroupResponse(
-        url=absolute_uri(f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"),
+        url=group.get_api_url(),
         web_url=group.get_absolute_url(),
         project_url=group.project.get_absolute_url(),
         **serialized_group,
