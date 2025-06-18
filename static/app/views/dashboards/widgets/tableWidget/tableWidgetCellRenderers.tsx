@@ -17,7 +17,11 @@ import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {
+  FieldKey,
+  ISSUE_FIELD_TO_HEADER_MAP,
+  ISSUE_FIELDS,
+} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -51,10 +55,16 @@ export const renderGridHeaderCell = ({tableData}: RenderGridHeadProps) =>
   ): React.ReactNode {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
+
+    const formattedName =
+      column.name === FieldKey.LIFETIME_EVENTS || column.name === FieldKey.LIFETIME_USERS
+        ? ISSUE_FIELD_TO_HEADER_MAP[column.name]
+        : column.name;
+
     return (
       <SortLink
         align={align}
-        title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
+        title={<StyledTooltip title={formattedName}>{formattedName}</StyledTooltip>}
         direction={undefined}
         canSort={false}
         preventScrollReset
