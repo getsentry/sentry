@@ -63,7 +63,7 @@ export default function AutomationNew() {
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <Flex column gap={space(1.5)}>
+            <Flex direction="column" gap={space(1.5)}>
               <Card>
                 <EditConnectedMonitors
                   connectedIds={connectedIds}

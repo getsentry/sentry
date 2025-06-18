@@ -84,7 +84,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
   const [environment, setEnvironment] = useState<string>('');
 
   return (
-    <Flex column gap={space(1.5)}>
+    <Flex direction="column" gap={space(1.5)}>
       <Card>
         <Heading>{t('Connect Monitors')}</Heading>
         <ConnectedMonitorsList
@@ -105,7 +105,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
         </ButtonWrapper>
       </Card>
       <Card>
-        <Flex column gap={space(0.5)}>
+        <Flex direction="column" gap={space(0.5)}>
           <Heading>{t('Choose Environment')}</Heading>
           <Description>
             {t(
