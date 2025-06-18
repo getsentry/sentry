@@ -601,13 +601,13 @@ function normalizeKey(key: string): string {
 
 export function formatQueryToNaturalLanguage(query: string): string {
   if (!query.trim()) return '';
-  const parts = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  return parts.map(formatQueryPart).join(' ');
+  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  return tokens.map(formatToken).join(', ');
 }
 
-function formatQueryPart(part: string): string {
-  const isNegated = part.startsWith('!') && part.includes(':');
-  const actualPart = isNegated ? part.slice(1) : part;
+function formatToken(token: string): string {
+  const isNegated = token.startsWith('!') && token.includes(':');
+  const actualToken = isNegated ? token.slice(1) : token;
 
   const operators = [
     [':>=', 'greater than or equal to'],
@@ -625,8 +625,8 @@ function formatQueryPart(part: string): string {
   ] as const;
 
   for (const [op, desc] of operators) {
-    if (actualPart.includes(op)) {
-      const [key, value] = actualPart.split(op);
+    if (actualToken.includes(op)) {
+      const [key, value] = actualToken.split(op);
       const cleanKey = key?.trim() || '';
       const cleanVal = value?.trim() || '';
 
@@ -637,5 +637,5 @@ function formatQueryPart(part: string): string {
     }
   }
 
-  return part;
+  return token;
 }
