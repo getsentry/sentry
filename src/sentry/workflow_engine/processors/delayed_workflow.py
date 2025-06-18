@@ -215,7 +215,10 @@ class EventRedisData:
 
     @cached_property
     def dcg_to_timestamp(self) -> dict[int, datetime | None]:
-        # Uses the latest timestamp each DataConditionGroup was enqueued with
+        """
+        Uses the latest timestamp each DataConditionGroup was enqueued with
+        All groups enqueued for a DataConditionGroup will have the same query, hence the same max timestamp.
+        """
         result: dict[int, datetime | None] = defaultdict(lambda: None)
 
         for key, instance in self.events.items():
