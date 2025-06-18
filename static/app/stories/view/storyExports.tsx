@@ -59,17 +59,18 @@ function LegacyStory(props: {story: StoryDescriptor}) {
 }
 
 function UI2Story(props: {story: StoryDescriptor}) {
-  const {default: DefaultExport, frontmatter, types} = props.story.exports;
+  const {default: DefaultExport, frontmatter = {}, types} = props.story.exports;
+  const title = frontmatter.title ?? props.story.filename;
 
   return (
     <StyledTabs>
       <StoryHeaderBar>
         <StoryGrid>
           <StoryContainer>
-            <h1>{frontmatter.title}</h1>
-            <p>{frontmatter.description}</p>
+            <h1>{title}</h1>
+            {frontmatter.description && <p>{frontmatter.description}</p>}
 
-            <TabList hideBorder>
+            <TabList>
               <TabList.Item key="usage">Usage</TabList.Item>
               {props.story.exports.types ? (
                 <TabList.Item key="api">API</TabList.Item>
