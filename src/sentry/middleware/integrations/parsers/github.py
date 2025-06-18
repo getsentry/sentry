@@ -16,6 +16,7 @@ from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,10 @@ class GithubRequestParser(BaseRequestParser):
             event = orjson.loads(self.request.body)
         except orjson.JSONDecodeError:
             return HttpResponse(status=400)
+        try:
+            self.forward_to_codecov(external_id=self._get_external_id(event=event))
+        except Exception:
+            metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
 
         if event.get("installation") and event.get("action") in {"created", "deleted"}:
             return self.get_response_from_control_silo()

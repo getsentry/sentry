@@ -6,11 +6,13 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.webhookpayload import DestinationType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -31,7 +33,7 @@ class GithubRequestParserTest(TestCase):
     def get_integration(self) -> Integration:
         return self.create_integration(
             organization=self.organization,
-            external_id="github:1",
+            external_id="1",
             provider="github",
         )
 
@@ -59,7 +61,7 @@ class GithubRequestParserTest(TestCase):
             OrganizationIntegration.objects.filter(integration=integration).delete()
 
         request = self.factory.post(
-            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -95,7 +97,7 @@ class GithubRequestParserTest(TestCase):
             },
         )
         request = self.factory.post(
-            path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+            path, data={"installation": {"id": "1"}}, content_type="application/json"
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -110,7 +112,7 @@ class GithubRequestParserTest(TestCase):
     def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
-            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         result = parser.get_integration_from_request()
@@ -121,7 +123,7 @@ class GithubRequestParserTest(TestCase):
     def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
-            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -135,6 +137,35 @@ class GithubRequestParserTest(TestCase):
             region_names=[region.name],
         )
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options({"codecov.forward-webhooks.rollout": 1.0})
+    @override_regions(region_config)
+    def test_webhook_for_codecov(self):
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.content == b""
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+            destination_types={DestinationType.SENTRY_REGION: 1},
+        )
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name="github:codecov:1",
+            region_names=[],
+            destination_types={DestinationType.CODECOV: 1},
+        )
+
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
@@ -142,7 +173,7 @@ class GithubRequestParserTest(TestCase):
         self.get_integration()
         request = self.factory.post(
             reverse("sentry-integration-github-webhook"),
-            data={"installation": {"id": "github:1"}, "action": "created"},
+            data={"installation": {"id": "1"}, "action": "created"},
             content_type="application/json",
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
@@ -157,7 +188,7 @@ class GithubRequestParserTest(TestCase):
     def test_installation_deleted_routing(self) -> None:
         request = self.factory.post(
             reverse("sentry-integration-github-webhook"),
-            data={"installation": {"id": "github:1"}, "action": "deleted"},
+            data={"installation": {"id": "1"}, "action": "deleted"},
             content_type="application/json",
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)

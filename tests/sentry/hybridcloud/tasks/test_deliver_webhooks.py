@@ -3,11 +3,12 @@ from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 import responses
+from django.test import override_settings
 from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
 
 from sentry import options
-from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, DestinationType, WebhookPayload
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
     MAX_MAILBOX_DRAIN,
@@ -17,6 +18,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory, RegionResolutionError
@@ -266,6 +268,20 @@ def create_payloads(num: int, mailbox: str) -> list[WebhookPayload]:
     return created
 
 
+def create_payloads_with_destination_type(
+    num: int, mailbox: str, destination_type: DestinationType
+) -> list[WebhookPayload]:
+    created = []
+    for _ in range(0, num):
+        hook = Factories.create_webhook_payload(
+            mailbox_name=mailbox,
+            region_name=None,
+            destination_type=destination_type,
+        )
+        created.append(hook)
+    return created
+
+
 @control_silo_test
 class DrainMailboxTest(TestCase):
     @responses.activate
@@ -329,6 +345,77 @@ class DrainMailboxTest(TestCase):
 
         # Mailbox should be empty
         assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
+    @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.api-bridge-signing-secret": "test",
+        }
+    )
+    @override_regions(region_config)
+    def test_drain_success_codecov(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            status=200,
+            body="",
+        )
+
+        records = create_payloads_with_destination_type(
+            3, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        # Mailbox should be empty
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
+    @override_settings(CODECOV_API_BASE_URL=None)
+    @override_regions(region_config)
+    def test_drain_codecov_configuration_error(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            status=200,
+            body="",
+        )
+
+        records = create_payloads_with_destination_type(
+            3, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        # We don't retry codecov requests no matter what
+        hook = WebhookPayload.objects.filter().first()
+        assert hook is None
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.api-bridge-signing-secret": "test",
+        }
+    )
+    @override_regions(region_config)
+    def test_drain_codecov_request_error(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            status=400,
+            body="",
+        )
+
+        records = create_payloads_with_destination_type(
+            3, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        # We don't retry codecov requests no matter what
+        hook = WebhookPayload.objects.filter().first()
+        assert hook is None
+        assert len(responses.calls) == 3
 
     @responses.activate
     @override_regions(region_config)
