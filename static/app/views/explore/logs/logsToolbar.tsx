@@ -104,9 +104,11 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
           <SelectRefWrapper ref={functionArgRef}>
             <Select
               options={aggregatableKeys}
-              onChange={val =>
-                setLogsPageParams({aggregateParam: val.value as string | undefined})
-              }
+              onChange={val => {
+                if (aggregateFunction !== 'count') {
+                  setLogsPageParams({aggregateParam: val.value as string | undefined});
+                }
+              }}
               searchable
               value={aggregateParam}
             />
