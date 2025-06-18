@@ -7,18 +7,10 @@ from sentry.models.files.file import File
 
 @register(EventAttachment)
 class EventAttachmentSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        files = {
-            f.id: f
-            for f in File.objects.filter(id__in=[ea.file_id for ea in item_list if ea.file_id])
-        }
-        return {ea: {"file": files[ea.file_id]} for ea in item_list if ea.file_id}
-
     def serialize(self, obj, attrs, user, **kwargs):
-        file = attrs.get("file")
-        content_type = obj.content_type or get_mimetype(file)
-        size = obj.size if obj.size is not None else file.size
-        sha1 = obj.sha1 or file.checksum
+        content_type = obj.content_type
+        size = obj.size or 0
+        sha1 = obj.sha1
         headers = {"Content-Type": content_type}
 
         return {

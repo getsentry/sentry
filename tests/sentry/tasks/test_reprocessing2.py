@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from io import BytesIO
 from time import time
 from unittest import mock
 
@@ -16,7 +15,6 @@ from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
@@ -37,16 +35,14 @@ pytestmark = [requires_snuba]
 
 
 def _create_event_attachment(evt, type):
-    file = File.objects.create(name="foo", type=type)
-    file.putfile(BytesIO(b"hello world"))
     EventAttachment.objects.create(
         event_id=evt.event_id,
         group_id=evt.group_id,
         project_id=evt.project_id,
-        file_id=file.id,
-        type=file.type,
+        type=type,
         name="foo",
-        size=file.size,
+        size=len("hello world"),
+        blob_path=":hello world",
     )
 
 

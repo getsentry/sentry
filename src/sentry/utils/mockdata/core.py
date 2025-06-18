@@ -647,12 +647,9 @@ def generate_events(
             project_id=project.id,
             event_id=event1.event_id,
             name="example-logfile.txt",
-            file_id=File.objects.get_or_create(
-                name="example-logfile.txt",
-                type="text/plain",
-                checksum="abcde" * 8,
-                size=13043,
-            )[0].id,
+            type="text/plain",
+            sha1="abcde" * 8,
+            size=13043,
         )
 
         event2 = create_sample_event(

@@ -25,7 +25,6 @@ from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -1979,14 +1978,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "latestEventHasAttachments" not in response.data[0]
 
         # Add 1 attachment
-        file_attachment = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             group_id=event.group.id,
             event_id=event.event_id,
             project_id=event.project_id,
-            file_id=file_attachment.id,
-            type=file_attachment.type,
             name="hello.png",
+            content_type="image/png",
         )
 
         response = self.get_response(
