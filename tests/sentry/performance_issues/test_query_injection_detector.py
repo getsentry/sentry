@@ -40,5 +40,5 @@ class QueryInjectionDetectorTest(TestCase):
             == '{"find":"?","filter":{"username":?},"limit":"?","singleBatch":"?","batchSize":"?"}'
         )
         assert problem.evidence_data is not None
-        assert problem.evidence_data["unsafe_inputs"] == ["username"]
+        assert problem.evidence_data["vulnerable_parameters"] == [("username", {"$ne": None})]
         assert problem.evidence_data["request_url"] == "http://localhost:3000/login"
