@@ -18,9 +18,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
-class MetricIssueComparisonConditionValidator(
-    BaseDataConditionValidator[float, DetectorPriorityLevel]
-):
+class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
         (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
     )
@@ -39,20 +37,19 @@ class MetricIssueComparisonConditionValidator(
 
         return type
 
-    def validate_comparison(self, value: float | int | str) -> float:
+    def validate_comparison(self, value: dict | float | int | str) -> float | dict:
         if isinstance(value, (float, int)):
             try:
                 value = float(value)
             except ValueError:
                 raise serializers.ValidationError("A valid number is required.")
+            return value
 
         elif isinstance(value, dict):
-            value = super().validate_comparison(value)
+            return super().validate_comparison(value)
 
         else:
             raise serializers.ValidationError("A valid number or dict is required.")
-
-        return value
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
