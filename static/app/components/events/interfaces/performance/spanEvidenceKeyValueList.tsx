@@ -316,20 +316,29 @@ function DBQueryInjectionVulnerabilityEvidence({
   organization,
   location,
   projectSlug,
+  offendingSpans,
 }: SpanEvidenceKeyValueListProps) {
   const evidenceData = event?.occurrence?.evidenceData ?? {};
-
   const formattedVulnerableParameters = evidenceData.vulnerableParameters?.map(
-    (param: string[]) => `${param[0]}: ${param[1]}`
+    (param: string[]) => `${param[0]}: ${JSON.stringify(param[1])}`
   );
+
+  // Mongo query is sanitized and not helpful to display
+  const querySpan = offendingSpans[0]!;
+  const queryRow = querySpan.description?.toUpperCase().includes('SELECT')
+    ? makeRow(t('Query'), getSpanEvidenceValue(querySpan))
+    : null;
 
   return (
     <PresortedKeyValueList
-      data={[
-        makeTransactionNameRow(event, organization, location, projectSlug),
-        makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
-        makeRow(t('Request URL'), evidenceData.requestUrl),
-      ]}
+      data={
+        [
+          makeTransactionNameRow(event, organization, location, projectSlug),
+          queryRow,
+          makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
+          makeRow(t('Request URL'), evidenceData.requestUrl),
+        ].filter(Boolean) as KeyValueListData
+      }
     />
   );
 }
