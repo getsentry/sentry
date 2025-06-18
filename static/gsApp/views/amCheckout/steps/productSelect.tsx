@@ -58,12 +58,14 @@ function ProductSelect({
         ),
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
+          perEventNameOverride: 'fix',
           description: t(
             'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
           ),
           maxEventPriceDigits: 2,
         },
         [DataCategory.SEER_SCANNER]: {
+          perEventNameOverride: 'scan',
           description: t(
             'Triages issues as they happen, automatically flagging the most important ones for followup'
           ),
@@ -150,35 +152,35 @@ function ProductSelect({
                   </Price>
                 </PriceContainer>
               </Row>
-              <FeatureRow>
+              <Features>
                 {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
                   const pricingInfo = activePlan.planCategories[category as DataCategory];
                   const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
                   return (
                     <Feature key={category}>
-                      <IconContainer>
-                        <IconCheckmark color={checkoutInfo.color} />
-                      </IconContainer>
-                      <FeatureTitle key={category}>
-                        <span>
-                          {getSingularCategoryName({
-                            plan: activePlan,
-                            category: category as DataCategory,
-                            hadCustomDynamicSampling: false,
-                            title: true,
-                          })}
-                        </span>
-
+                      <FeatureRow>
+                        <IconContainer>
+                          <IconCheckmark color={checkoutInfo.color} />
+                        </IconContainer>
+                        <FeatureTitle key={category}>
+                          <span>
+                            {getSingularCategoryName({
+                              plan: activePlan,
+                              category: category as DataCategory,
+                              hadCustomDynamicSampling: false,
+                              title: true,
+                            })}
+                          </span>
+                        </FeatureTitle>
                         {eventPrice && (
-                          <EventPriceTag>{`${utils.displayUnitPrice({cents: eventPrice, minDigits: 2, maxDigits: info.maxEventPriceDigits})} / ${getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}</EventPriceTag>
+                          <EventPriceTag>{`${utils.displayUnitPrice({cents: eventPrice, minDigits: 2, maxDigits: info.maxEventPriceDigits})} / ${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}</EventPriceTag>
                         )}
-                      </FeatureTitle>
-                      <div />
+                      </FeatureRow>
                       <FeatureDescription>{info.description}</FeatureDescription>
                     </Feature>
                   );
                 })}
-              </FeatureRow>
+              </Features>
               <Row>
                 <StyledButton>
                   <ButtonContent
@@ -395,6 +397,8 @@ const EventPriceTag = styled(Tag)`
 
 const IconContainer = styled('div')`
   margin-right: ${space(1)};
+  display: flex;
+  align-items: center;
 `;
 
 const StyledButton = styled(Button)`
@@ -409,17 +413,14 @@ const ButtonContent = styled('div')<{color: string}>`
   color: ${p => p.color};
 `;
 
-const FeatureRow = styled('div')`
+const Features = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   column-gap: ${space(2)};
 `;
 
-const Feature = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto;
+const Feature = styled(Column)`
   font-size: ${p => p.theme.fontSizeSmall};
-  row-gap: ${space(0.5)};
 `;
 
 const FeatureTitle = styled('div')`
@@ -429,12 +430,32 @@ const FeatureTitle = styled('div')`
   flex-wrap: wrap;
 
   > span {
-    margin-right: ${space(0.5)};
+    margin-right: ${space(0.75)};
   }
+`;
+
+const FeatureRow = styled(Row)`
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0px;
 `;
 
 const FeatureDescription = styled('div')`
   text-wrap: balance;
+  margin-left: ${space(3)};
+  max-width: unset;
+
+  @media (max-width: 700px) {
+    max-width: 250px;
+  }
+
+  @media (min-width: 1200px) and (max-width: 1300px) {
+    max-width: 250px;
+  }
+
+  @media (min-width: 1400px) and (max-width: 1500px) {
+    max-width: 250px;
+  }
 `;
 
 const IllustrationContainer = styled('div')`
