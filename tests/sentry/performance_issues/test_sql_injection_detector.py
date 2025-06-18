@@ -37,7 +37,7 @@ class SQLInjectionDetectorTest(TestCase):
         assert problem.op == "db"
         assert problem.desc == "SELECT * FROM users WHERE username = '?' ORDER BY username ASC"
         assert problem.evidence_data is not None
-        assert problem.evidence_data["vulnerable_parameters"] == ["username"]
+        assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
 
     def test_sql_injection_detection_in_body(self):
@@ -51,8 +51,16 @@ class SQLInjectionDetectorTest(TestCase):
         assert problem.op == "db"
         assert problem.desc == "SELECT * FROM users WHERE username = '?'"
         assert problem.evidence_data is not None
-        assert problem.evidence_data["vulnerable_parameters"] == ["username"]
+        assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
+
+    def test_sql_injection_regex(self):
+        injection_event = get_event("sql-injection/sql-injection-test-regex-event")
+        assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_not_in_where(self):
+        injection_event = get_event("sql-injection/sql-injection-not-in-where-event")
+        assert len(self.find_problems(injection_event)) == 0
 
     def test_sql_injection_on_non_vulnerable_query(self):
         injection_event = get_event("sql-injection/sql-injection-event-non-vulnerable")

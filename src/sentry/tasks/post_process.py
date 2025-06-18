@@ -1594,6 +1594,19 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not seer_enabled:
         return
 
+    from sentry.autofix.utils import is_seer_scanner_rate_limited
+
+    is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
+    if is_rate_limited:
+        sentry_sdk.set_tags(
+            {
+                "scanner_run_count": current,
+                "scanner_run_limit": limit,
+            }
+        )
+        logger.error("Seer scanner auto-trigger rate limit hit")
+        return
+
     from sentry import quotas
     from sentry.constants import DataCategory
 

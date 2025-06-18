@@ -33,7 +33,7 @@ export default function PerformanceScoreBreakdownChartWidget(
     },
   });
   const theme = useTheme();
-  const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
+  const segmentColors = theme.chart.getColorPalette(4).slice(0, 5);
   const defaultQuery = useDefaultWebVitalsQuery();
   const search = new MutableSearch(`${defaultQuery} has:measurements.score.total`);
 

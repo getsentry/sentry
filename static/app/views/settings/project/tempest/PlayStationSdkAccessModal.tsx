@@ -72,6 +72,7 @@ export default function PlayStationSdkAccessModal({
         )
         .join(', ')}`,
       `Org Slug: ${organization.slug}`,
+      `GitHub Profile: ${formData.githubProfile}`,
     ].join('\n');
 
     // Use captureFeedback with proper user context instead of tags
@@ -83,7 +84,6 @@ export default function PlayStationSdkAccessModal({
         source: 'playstation-sdk-access',
         tags: {
           feature: 'playstation-sdk-access',
-          githubProfile: formData.githubProfile,
         },
       },
       {
