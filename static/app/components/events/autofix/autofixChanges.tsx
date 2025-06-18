@@ -26,7 +26,7 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
+import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -53,12 +53,14 @@ function AutofixRepoChange({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  ref,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
   const changeDescriptionHtml = useMemo(() => {
     return {
@@ -71,6 +73,7 @@ function AutofixRepoChange({
       <RepoChangesHeader>
         <div>
           <AutofixHighlightWrapper
+            ref={ref}
             groupId={groupId}
             runId={runId}
             stepIndex={previousDefaultStepIndex ?? 0}
@@ -186,8 +189,21 @@ export function AutofixChanges({
   const {data} = useAutofixData({groupId});
   const isBusy = step.status === AutofixStatus.PROCESSING;
   const iconCodeRef = useRef<HTMLDivElement>(null);
+  const firstChangeRef = useRef<HTMLDivElement | null>(null);
   const [isPrProcessing, setIsPrProcessing] = useState(false);
   const [isBranchProcessing, setIsBranchProcessing] = useState(false);
+
+  const handleSelectFirstChange = () => {
+    if (firstChangeRef.current) {
+      // Simulate a click on the first change to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      firstChangeRef.current.dispatchEvent(clickEvent);
+    }
+  };
 
   useEffect(() => {
     if (step.status === AutofixStatus.COMPLETED) {
@@ -262,6 +278,16 @@ export function AutofixChanges({
                   <IconCode size="sm" color="blue400" />
                 </HeaderIconWrapper>
                 {t('Code Changes')}
+                <ChatButton
+                  size="zero"
+                  borderless
+                  title={t('Chat with Seer')}
+                  onClick={handleSelectFirstChange}
+                  analyticsEventName="Autofix: Changes Chat"
+                  analyticsEventKey="autofix.changes.chat"
+                >
+                  <IconChat size="xs" />
+                </ChatButton>
               </HeaderText>
               {!prsMade && (
                 <ButtonBar gap={1}>
@@ -357,6 +383,7 @@ export function AutofixChanges({
                   runId={runId}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
+                  ref={i === 0 ? firstChangeRef : undefined}
                 />
               </Fragment>
             ))}
@@ -451,6 +478,11 @@ const HeaderIconWrapper = styled('div')`
   justify-content: center;
 `;
 
+const ChatButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  margin-left: -${space(0.5)};
+`;
+
 function CreatePRsButton({
   changes,
   groupId,
@@ -494,7 +526,12 @@ function CreatePRsButton({
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
       setHasClicked(true);
     },
     onError: () => {
@@ -572,7 +609,12 @@ function CreateBranchButton({
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Failed to push to branches.'));

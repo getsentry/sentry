@@ -46,8 +46,6 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -100,7 +98,6 @@ export function OldBackendOverviewPage() {
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
-  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
@@ -235,13 +232,7 @@ export function OldBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={
-          isNextJsInsightsAvailable ? (
-            <NewNextJsExperienceButton />
-          ) : (
-            <EAPExperimentButton />
-          )
-        }
+        headerActions={<EAPExperimentButton />}
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -267,7 +258,12 @@ export function OldBackendOverviewPage() {
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.BACKEND}}
                 >
@@ -295,13 +291,6 @@ export function OldBackendOverviewPage() {
                     />
                   </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

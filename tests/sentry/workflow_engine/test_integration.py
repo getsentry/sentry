@@ -70,7 +70,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
             group_id=group_id,
             occurrence_id=self.occurrence.id,
             project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Generic,
+            eventstream_type=EventStreamEventType.Generic.value,
         )
 
         return cache_key

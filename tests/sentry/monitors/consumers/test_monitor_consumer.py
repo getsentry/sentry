@@ -474,24 +474,37 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.IN_PROGRESS
 
     def test_check_in_update_terminal_in_progress(self):
+        now = datetime.now()
+        now_tz = now.replace(tzinfo=UTC)
+
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_checkin(monitor.slug, duration=10.0)
+        self.send_checkin(monitor.slug, duration=10.0, ts=now - timedelta(minutes=5))
         self.send_checkin(
             monitor.slug,
             guid=self.guid,
             status="in_progress",
             expected_error=ExpectNoProcessingError(),
+            ts=now - timedelta(minutes=4),
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
+
+        # date_in_progress and duration are updated
+        assert checkin.date_in_progress == now_tz - timedelta(minutes=4)
         assert checkin.duration == int(10.0 * 1000)
 
-        self.send_checkin(monitor.slug, duration=20.0, status="error")
+        self.send_checkin(
+            monitor.slug,
+            duration=20.0,
+            status="error",
+            ts=now - timedelta(minutes=3),
+        )
         self.send_checkin(
             monitor.slug,
             guid=self.guid,
             status="in_progress",
             expected_error=ExpectNoProcessingError(),
+            ts=now - timedelta(minutes=2),
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -879,11 +892,36 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
+        assert monitor.is_upserting
 
         env = Environment.objects.get(
             organization_id=monitor.organization_id, name="my-environment"
         )
         assert MonitorEnvironment.objects.filter(monitor=monitor, environment_id=env.id).exists()
+
+    def test_upsert_existing_monitor(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        assert not monitor.is_upserting
+
+        # Update schedule via upsert
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+        )
+
+        monitor.refresh_from_db()
+        assert monitor.is_upserting
+        assert monitor.schedule.type == "crontab"
+        assert monitor.schedule.crontab == "13 * * * *"
+
+        # Check-in does not upsert resets is_upserting back to false
+        self.send_checkin(monitor.slug)
+
+        monitor.refresh_from_db()
+        assert not monitor.is_upserting
+        assert monitor.schedule.crontab == "13 * * * *"
 
     def test_monitor_upsert_empty_timezone(self):
         self.send_checkin(

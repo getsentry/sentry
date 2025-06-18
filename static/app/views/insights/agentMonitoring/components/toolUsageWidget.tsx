@@ -64,7 +64,7 @@ export default function ToolUsageWidget() {
     Referrer.QUERIES_CHART // TODO: add referrer
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = timeSeriesRequest.data;
 
   const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
   const error = timeSeriesRequest.error || toolsRequest.error;
@@ -74,7 +74,7 @@ export default function ToolUsageWidget() {
 
   const hasData = tools && tools.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
   const visualization = (
     <WidgetVisualizationStates
@@ -88,7 +88,7 @@ export default function ToolUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
+              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })
@@ -111,7 +111,7 @@ export default function ToolUsageWidget() {
           <div>
             <ToolText>{item[AI_TOOL_NAME_ATTRIBUTE]}</ToolText>
           </div>
-          <span>{item['count(span.duration)']}</span>
+          <span>{item['count()']}</span>
         </Fragment>
       ))}
     </WidgetFooterTable>

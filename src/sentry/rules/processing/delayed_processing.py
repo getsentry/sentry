@@ -8,6 +8,7 @@ from typing import Any, DefaultDict, NamedTuple
 
 import sentry_sdk
 from celery import Task
+from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
@@ -518,6 +519,7 @@ def fire_rules(
         group_id_to_group = {group.id: group for group in group_to_groupevent.keys()}
         for rule, group_ids in rules_to_fire.items():
             with tracker.track(f"rule_{rule.id}"):
+                sentry_sdk.get_current_scope().set_tag("rule_id", rule.id)
                 frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
                 freq_offset = now - timedelta(minutes=frequency)
                 for group_id in group_ids:
@@ -542,11 +544,12 @@ def fire_rules(
                             extra={
                                 "last_active": status.last_active,
                                 "freq_offset": freq_offset,
+                                "rule_id": rule.id,
                                 "project_id": project_id,
                                 "group_id": group.id,
                             },
                         )
-                        break
+                        continue
 
                     updated = (
                         GroupRuleStatus.objects.filter(id=status.id)
@@ -559,11 +562,12 @@ def fire_rules(
                             "delayed_processing.not_updated",
                             extra={
                                 "status_id": status.id,
+                                "rule_id": rule.id,
                                 "project_id": project_id,
                                 "group_id": group.id,
                             },
                         )
-                        break
+                        continue
 
                     notification_uuid = str(uuid.uuid4())
                     groupevent = group_to_groupevent[group]
@@ -594,7 +598,15 @@ def fire_rules(
 
                     # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
                     for callback, futures in callback_and_futures:
-                        safe_execute(callback, groupevent, futures)
+                        try:
+                            callback(groupevent, futures)
+                        except SoftTimeLimitExceeded:
+                            # If we're out of time, we don't want to continue.
+                            # Raise so we can retry.
+                            raise
+                        except Exception as e:
+                            func_name = getattr(callback, "__name__", str(callback))
+                            logger.exception("%s.process_error", func_name, extra={"exception": e})
 
                     if log_config.num_events_issue_debugging:
                         logger.info(
@@ -602,6 +614,8 @@ def fire_rules(
                             extra={
                                 "total": len(callback_and_futures),
                                 "project_id": project_id,
+                                "group_id": group.id,
+                                "event_id": groupevent.event_id,
                                 "rule_id": rule.id,
                             },
                         )
@@ -649,6 +663,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
+    sentry_sdk.get_current_scope().set_tag("project_id", project_id)
     with sentry_sdk.start_span(
         op="delayed_processing.prepare_data", name="Fetch data from buffers in delayed processing"
     ):
@@ -670,6 +685,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
                 "rules_to_groups": rules_to_groups,
             },
         )
+    sentry_sdk.get_current_scope().set_tag("organization_slug", project.organization.slug)
 
     with (
         metrics.timer("delayed_processing.get_condition_group_results.duration"),

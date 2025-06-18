@@ -40,7 +40,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     await deleteMonitor(api, orgSlug, monitor);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${orgSlug}/insights/backend/crons/`,
+        pathname: `/organizations/${orgSlug}/insights/crons/`,
         query: endpointOptions.query,
       })
     );
@@ -60,7 +60,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   });
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
   const disableProps = {

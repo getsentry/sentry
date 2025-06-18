@@ -5,8 +5,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';

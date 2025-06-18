@@ -404,19 +404,21 @@ class FlamegraphExecutor:
             query=None, limit=max_profiles
         )
 
-        project_condition = Condition(
-            Column("project_id"),
-            Op.IN,
-            self.snuba_params.project_ids,
+        conditions = []
+
+        conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
+
+        conditions.append(
+            Condition(Column("start_timestamp"), Op.LT, resolve_datetime64(self.snuba_params.end))
         )
-        start_condition = Condition(
-            Column("start_timestamp"),
-            Op.LT,
-            resolve_datetime64(self.snuba_params.end),
+
+        conditions.append(
+            Condition(Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start))
         )
-        end_condition = Condition(
-            Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
-        )
+
+        environments = self.snuba_params.environment_names
+        if environments:
+            conditions.append(Condition(Column("environment"), Op.IN, environments))
 
         continuous_profiles_query = Query(
             match=Storage(StorageKey.ProfileChunks.value),
@@ -427,11 +429,7 @@ class FlamegraphExecutor:
                 Column("start_timestamp"),
                 Column("end_timestamp"),
             ],
-            where=[
-                project_condition,
-                start_condition,
-                end_condition,
-            ],
+            where=conditions,
             orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
             limit=Limit(max_profiles),
         )

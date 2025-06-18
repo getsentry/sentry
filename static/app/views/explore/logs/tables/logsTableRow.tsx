@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import {Fragment, memo, useCallback, useState} from 'react';
+import {Fragment, memo, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
@@ -67,6 +67,11 @@ type LogsRowProps = {
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  canDeferRenderElements?: boolean;
+  isExpanded?: boolean;
+  onCollapse?: (logItemId: string) => void;
+  onExpand?: (logItemId: string) => void;
+  onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
@@ -91,6 +96,11 @@ export const LogRowContent = memo(function LogRowContent({
   highlightTerms,
   meta,
   sharedHoverTimeoutRef,
+  isExpanded,
+  onExpand,
+  onCollapse,
+  onExpandHeight,
+  canDeferRenderElements,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -99,15 +109,19 @@ export const LogRowContent = memo(function LogRowContent({
   const setLogsSearch = useSetLogsSearch();
   const isTableFrozen = useLogsIsTableFrozen();
   const blockRowExpanding = useLogsBlockRowExpanding();
+  const measureRef = useRef<HTMLTableRowElement>(null);
+  const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
+    canDeferRenderElements ? false : true
+  );
 
-  function toggleExpanded() {
-    setExpanded(e => !e);
-    trackAnalytics('logs.table.row_expanded', {
-      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
-      page_source: analyticsPageSource,
-      organization,
-    });
-  }
+  const setShouldRenderHoverElements = useCallback(
+    (value: boolean) => {
+      if (canDeferRenderElements) {
+        _setShouldRenderHoverElements(value);
+      }
+    },
+    [canDeferRenderElements, _setShouldRenderHoverElements]
+  );
 
   function onPointerUp(event: SyntheticEvent) {
     if (event.target instanceof Element && isInsideButton(event.target)) {
@@ -120,7 +134,35 @@ export const LogRowContent = memo(function LogRowContent({
   }
 
   const analyticsPageSource = useLogsAnalyticsPageSource();
-  const [expanded, setExpanded] = useState<boolean>(false);
+  const [_expanded, setExpanded] = useState<boolean>(false);
+  const expanded = isExpanded ?? _expanded;
+
+  function toggleExpanded() {
+    if (onExpand) {
+      if (isExpanded) {
+        onCollapse?.(String(dataRow[OurLogKnownFieldKey.ID]));
+      } else {
+        onExpand?.(String(dataRow[OurLogKnownFieldKey.ID]));
+      }
+    } else {
+      setExpanded(e => !e);
+    }
+    trackAnalytics('logs.table.row_expanded', {
+      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      page_source: analyticsPageSource,
+      organization,
+    });
+  }
+
+  useLayoutEffect(() => {
+    if (measureRef.current && isExpanded) {
+      onExpandHeight?.(
+        String(dataRow[OurLogKnownFieldKey.ID]),
+        measureRef.current.clientHeight
+      );
+    }
+  }, [isExpanded, onExpandHeight, dataRow]);
+
   const addSearchFilter = useCallback(
     ({
       key,
@@ -179,12 +221,22 @@ export const LogRowContent = memo(function LogRowContent({
         isClickable: true,
       };
 
+  const buttonSize = 'xs';
+  const chevronIcon = (
+    <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
+  );
+
   return (
     <Fragment>
-      <LogTableRow data-test-id="log-table-row" {...rowInteractProps}>
+      <LogTableRow
+        data-test-id="log-table-row"
+        {...rowInteractProps}
+        onMouseEnter={() => setShouldRenderHoverElements(true)}
+        onMouseLeave={() => setShouldRenderHoverElements(false)}
+      >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
-            {blockRowExpanding ? null : (
+            {blockRowExpanding ? null : shouldRenderHoverElements ? (
               <StyledChevronButton
                 icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
                 aria-label={t('Toggle trace details')}
@@ -193,6 +245,8 @@ export const LogRowContent = memo(function LogRowContent({
                 borderless
                 onClick={() => toggleExpanded()}
               />
+            ) : (
+              <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
@@ -203,6 +257,14 @@ export const LogRowContent = memo(function LogRowContent({
           if (!defined(value)) {
             return <LogTableBodyCell key={field} />;
           }
+
+          const renderedField = (
+            <LogFieldRenderer
+              item={getLogRowItem(field, dataRow, meta)}
+              meta={meta}
+              extra={rendererExtra}
+            />
+          );
 
           const discoverColumn: TableColumn<keyof TableDataRow> = {
             column: {
@@ -217,46 +279,51 @@ export const LogRowContent = memo(function LogRowContent({
 
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
-              <CellAction
-                column={discoverColumn}
-                dataRow={dataRow as unknown as TableDataRow}
-                handleCellAction={(actions, cellValue) => {
-                  switch (actions) {
-                    case Actions.ADD:
-                      addSearchFilter({
-                        key: field,
-                        value: cellValue,
-                      });
-                      break;
-                    case Actions.EXCLUDE:
-                      addSearchFilter({
-                        key: field,
-                        value: cellValue,
-                        negated: true,
-                      });
-                      break;
-                    default:
-                      break;
+              {shouldRenderHoverElements ? (
+                <CellAction
+                  column={discoverColumn}
+                  dataRow={dataRow as unknown as TableDataRow}
+                  handleCellAction={(actions, cellValue) => {
+                    switch (actions) {
+                      case Actions.ADD:
+                        addSearchFilter({
+                          key: field,
+                          value: cellValue,
+                        });
+                        break;
+                      case Actions.EXCLUDE:
+                        addSearchFilter({
+                          key: field,
+                          value: cellValue,
+                          negated: true,
+                        });
+                        break;
+                      default:
+                        break;
+                    }
+                  }}
+                  allowActions={
+                    field === OurLogKnownFieldKey.TIMESTAMP || isTableFrozen
+                      ? []
+                      : ALLOWED_CELL_ACTIONS
                   }
-                }}
-                allowActions={
-                  field === OurLogKnownFieldKey.TIMESTAMP || isTableFrozen
-                    ? []
-                    : ALLOWED_CELL_ACTIONS
-                }
-              >
-                <LogFieldRenderer
-                  item={getLogRowItem(field, dataRow, meta)}
-                  meta={meta}
-                  extra={rendererExtra}
-                />
-              </CellAction>
+                >
+                  {renderedField}
+                </CellAction>
+              ) : (
+                renderedField
+              )}
             </LogTableBodyCell>
           );
         })}
       </LogTableRow>
       {expanded && (
-        <LogRowDetails dataRow={dataRow} highlightTerms={highlightTerms} meta={meta} />
+        <LogRowDetails
+          dataRow={dataRow}
+          highlightTerms={highlightTerms}
+          meta={meta}
+          ref={measureRef}
+        />
       )}
     </Fragment>
   );
@@ -266,10 +333,12 @@ function LogRowDetails({
   dataRow,
   highlightTerms,
   meta,
+  ref,
 }: {
   dataRow: OurLogsResponseItem;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
+  ref: React.RefObject<HTMLTableRowElement | null>;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -303,7 +372,7 @@ function LogRowDetails({
 
   if (missingLogId || isError) {
     return (
-      <DetailsWrapper>
+      <DetailsWrapper ref={ref}>
         <EmptyStreamWrapper>
           <IconWarning color="gray300" size="lg" />
         </EmptyStreamWrapper>
@@ -311,9 +380,11 @@ function LogRowDetails({
     );
   }
 
+  const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
+
   return (
-    <DetailsWrapper>
-      <LogDetailTableBodyCell colSpan={fields.length}>
+    <DetailsWrapper ref={isPending ? undefined : ref}>
+      <LogDetailTableBodyCell colSpan={colSpan}>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>

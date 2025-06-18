@@ -401,7 +401,16 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    return <SpanProfileDetails span={span} event={event} />;
+    return (
+      <SpanProfileDetails
+        span={{
+          span_id: span.span_id,
+          start_timestamp: span.start_timestamp,
+          end_timestamp: span.timestamp,
+        }}
+        event={event}
+      />
+    );
   }
 
   function renderSpanDetails() {

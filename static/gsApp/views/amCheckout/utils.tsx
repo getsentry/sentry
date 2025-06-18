@@ -31,14 +31,14 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
-import {getSlot} from 'getsentry/utils/billing';
+import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
-import type {
-  CheckoutAPIData,
-  CheckoutFormData,
+import {
+  type CheckoutAPIData,
+  type CheckoutFormData,
   SelectableProduct,
-  SelectedProductData,
+  type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -395,6 +395,20 @@ function recordAnalytics(
     uptime: subscription.categories.uptime?.reserved || undefined,
   };
 
+  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
+  const selectableProductData = {
+    [SelectableProduct.SEER]: {
+      enabled: data.seer ?? false,
+      previously_enabled: isTrialPlan(previousData.plan) // don't count trial budgets
+        ? false
+        : (subscription.reservedBudgets?.some(
+            budget =>
+              (budget.apiName as string as SelectableProduct) ===
+                SelectableProduct.SEER && budget.reservedBudget > 0
+          ) ?? false),
+    },
+  };
+
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
@@ -408,6 +422,12 @@ function recordAnalytics(
     previous_spans: previousData.spans,
     previous_uptime: previousData.uptime,
     ...currentData,
+  });
+
+  trackGetsentryAnalytics('checkout.product_select', {
+    organization,
+    subscription,
+    ...selectableProductData,
   });
 
   let {onDemandBudget} = data;

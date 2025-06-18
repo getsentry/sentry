@@ -182,6 +182,30 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         with pytest.raises(TwoFactorRequired), assume_test_silo_mode(SiloMode.CONTROL):
             permission.determine_access(request=request, organization=self.org)
 
+    def test_member_limit_error_for_user_auth_token_request(self):
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role="member",
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+        token = self.create_user_auth_token(user)
+
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="GET"))
+        permission = self.permission_cls()
+
+        with pytest.raises(MemberDisabledOverLimit) as excinfo:
+            permission.determine_access(request=request, organization=self.org)
+
+        assert excinfo.value.detail == {
+            "detail": {
+                "code": "member-disabled-over-limit",
+                "message": "Organization over member limit",
+                "extra": {"next": f"/organizations/{self.org.slug}/disabled-member/"},
+            }
+        }
+
     def test_org_does_not_require_2fa_for_user_auth_token_request_if_no_membership(self):
         # make sure that 2FA requirement is not visible to the outsiders
         self.org_require_2fa()

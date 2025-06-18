@@ -7,7 +7,7 @@ export default function QueuesLandingLatencyChartWidget(props: LoadableChartWidg
     <LatencyChart
       {...props}
       id="queuesLandingLatencyChartWidget"
-      referrer={Referrer.QUEUES_LANDING_CHARTS}
+      referrer={Referrer.QUEUE_LANDING_LATENCY_CHART}
     />
   );
 }

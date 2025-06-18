@@ -4,8 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from 'sentry/components/container/flex';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -118,10 +118,6 @@ export type SidebarItemProps = {
    * Content to render at the end of the item.
    */
   trailingItems?: React.ReactNode;
-  /**
-   * Content to render at the end of the item.
-   */
-  variant?: 'badge' | 'indicator' | 'short' | undefined;
 };
 
 function SidebarItem({
@@ -144,7 +140,6 @@ function SidebarItem({
   isNewSeenKeySuffix,
   onClick,
   trailingItems,
-  variant,
   isNested,
   isMainItem,
   isOpenInFloatingSidebar,
@@ -200,15 +195,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && (
-        <FeatureBadge type="new" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
-      {isBeta && (
-        <FeatureBadge type="beta" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
-      {isAlpha && (
-        <FeatureBadge type="alpha" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
+      {showIsNew && <FeatureBadge type="new" tooltipProps={{title: badgeTitle}} />}
+      {isBeta && <FeatureBadge type="beta" tooltipProps={{title: badgeTitle}} />}
+      {isAlpha && <FeatureBadge type="alpha" tooltipProps={{title: badgeTitle}} />}
     </Fragment>
   );
 
@@ -282,25 +271,13 @@ function SidebarItem({
                 </SidebarItemLabel>
               )}
               {isInCollapsedState && showIsNew && (
-                <CollapsedFeatureBadge
-                  type="new"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="new" tooltipProps={tooltipDisabledProps} />
               )}
               {isInCollapsedState && isBeta && (
-                <CollapsedFeatureBadge
-                  type="beta"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="beta" tooltipProps={tooltipDisabledProps} />
               )}
               {isInCollapsedState && isAlpha && (
-                <CollapsedFeatureBadge
-                  type="alpha"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="alpha" tooltipProps={tooltipDisabledProps} />
               )}
               {badge !== undefined && badge > 0 && (
                 <SidebarItemBadge collapsed={isInCollapsedState}>
@@ -392,17 +369,17 @@ const getActiveStyle = ({
     `;
   }
   return css`
-    color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
+    color: ${isChonkTheme(theme) ? theme.tokens.content.accent : theme.white};
 
     &:active,
     &:focus,
     &:hover {
-      color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
+      color: ${isChonkTheme(theme) ? theme.tokens.content.accent : theme.white};
     }
 
     &:before {
       background-color: ${!!theme && isChonkTheme(theme)
-        ? theme.colors.chonk.blue400
+        ? theme.tokens.graphics.accent
         : theme.active};
     }
   `;
@@ -472,7 +449,7 @@ const StyledSidebarItem = styled(Link, {
         `;
       }
       return css`
-        color: ${isChonkTheme(p.theme) ? p.theme.colors.chonk.blue400 : p.theme.white};
+        color: ${isChonkTheme(p.theme) ? p.theme.colors.content.accent : p.theme.white};
       `;
     }}
   }

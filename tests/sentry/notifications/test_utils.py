@@ -11,7 +11,7 @@ from sentry.notifications.utils import (
     PerformanceProblemContext,
     RenderBlockingAssetProblemContext,
 )
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.performance_problem import PerformanceProblem
 
 
 def mock_event(*, transaction, data=None):

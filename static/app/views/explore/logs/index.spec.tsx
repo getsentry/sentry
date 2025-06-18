@@ -21,6 +21,7 @@ function ProviderWrapper({
 }
 
 const BASE_FEATURES = ['ourlogs-enabled'];
+
 describe('LogsPage', function () {
   const {organization, project} = initializeOrg({
     organization: {
@@ -146,7 +147,7 @@ describe('LogsPage', function () {
   it('enables autorefresh when Switch is clicked', async function () {
     const {organization: newOrganization} = initializeOrg({
       organization: {
-        features: [...BASE_FEATURES, 'ourlogs-live-refresh'],
+        features: [...BASE_FEATURES, 'ourlogs-infinite-scroll', 'ourlogs-live-refresh'],
       },
     });
 

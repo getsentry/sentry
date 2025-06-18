@@ -141,4 +141,28 @@ describe('QueryFilterBuilder', () => {
 
     expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
   });
+
+  it('allow adding filters for the spans dataset', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.LINE},
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
+  });
 });

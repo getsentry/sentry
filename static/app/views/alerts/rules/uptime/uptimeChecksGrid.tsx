@@ -65,7 +65,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
         {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
         {key: 'durationMs', width: 110, name: t('Duration')},
         {key: 'regionName', width: 200, name: t('Region')},
-        {key: 'traceId', width: 100, name: t('Trace')},
+        {key: 'traceId', width: 150, name: t('Trace')},
       ]}
       columnSortBy={[]}
       grid={{

@@ -16,9 +16,6 @@ import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryC
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.0;
-const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.0;
-
 export interface GroupSummaryData {
   groupId: string;
   headline: string;
@@ -113,7 +110,6 @@ export function GroupSummary({
   project: Project;
   preview?: boolean;
 }) {
-  const config = getConfigForIssueType(group, project);
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
@@ -150,18 +146,108 @@ export function GroupSummary({
     organization.slug,
   ]);
 
-  const shouldShowPossibleCause =
-    !data?.scores ||
-    (data.scores.possibleCauseConfidence &&
-      data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
-      data.scores.possibleCauseNovelty &&
-      data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
+  if (preview) {
+    return <GroupSummaryPreview data={data} isPending={isPending} isError={isError} />;
+  }
+  return (
+    <GroupSummaryFull
+      group={group}
+      project={project}
+      data={data}
+      isPending={isPending}
+      isError={isError}
+      setForceEvent={setForceEvent}
+      preview={preview}
+      event={event}
+    />
+  );
+}
+
+function GroupSummaryPreview({
+  data,
+  isPending,
+  isError,
+}: {
+  data: GroupSummaryData | undefined;
+  isError: boolean;
+  isPending: boolean;
+}) {
+  const insightCards = [
+    {
+      id: 'possible_cause',
+      title: t('Initial Guess'),
+      insight: data?.possibleCause,
+      icon: <IconFocus size="sm" />,
+      showWhenLoading: true,
+    },
+  ];
+
+  return (
+    <div data-testid="group-summary-preview">
+      {isError ? <div>{t('Error loading summary')}</div> : null}
+      <Content>
+        <InsightGrid>
+          {insightCards.map(card => {
+            if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
+              return null;
+            }
+            return (
+              <InsightCard key={card.id}>
+                <CardTitle>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
+                  <CardTitleText>{card.title}</CardTitleText>
+                </CardTitle>
+                <CardContentContainer>
+                  <CardLineDecorationWrapper>
+                    <CardLineDecoration />
+                  </CardLineDecorationWrapper>
+                  {isPending ? (
+                    <CardContent>
+                      <Placeholder height="1.5rem" />
+                    </CardContent>
+                  ) : (
+                    <CardContent>
+                      {card.insight && (
+                        <MarkedText text={card.insight.replace(/\*\*/g, '')} />
+                      )}
+                    </CardContent>
+                  )}
+                </CardContentContainer>
+              </InsightCard>
+            );
+          })}
+        </InsightGrid>
+      </Content>
+    </div>
+  );
+}
+
+function GroupSummaryFull({
+  group,
+  project,
+  data,
+  isPending,
+  isError,
+  setForceEvent,
+  preview,
+  event,
+}: {
+  data: GroupSummaryData | undefined;
+  event: Event | null | undefined;
+  group: Group;
+  isError: boolean;
+  isPending: boolean;
+  preview: boolean;
+  project: Project;
+  setForceEvent: (v: boolean) => void;
+}) {
+  const config = getConfigForIssueType(group, project);
   const shouldShowResources = config.resources && !preview;
 
   const insightCards = [
     {
       id: 'whats_wrong',
-      title: t("What's Wrong"),
+      title: t('What Happened'),
       insight: data?.whatsWrong,
       icon: <IconFatal size="sm" />,
       showWhenLoading: true,
@@ -173,23 +259,19 @@ export function GroupSummary({
       icon: <IconSpan size="sm" />,
       showWhenLoading: false,
     },
-    ...(shouldShowPossibleCause
-      ? [
-          {
-            id: 'possible_cause',
-            title: t('Possible Cause'),
-            insight: data?.possibleCause,
-            icon: <IconFocus size="sm" />,
-            showWhenLoading: true,
-          },
-        ]
-      : []),
+    {
+      id: 'possible_cause',
+      title: t('Initial Guess'),
+      insight: data?.possibleCause,
+      icon: <IconFocus size="sm" />,
+      showWhenLoading: true,
+    },
+
     ...(shouldShowResources
       ? [
           {
             id: 'resources',
             title: t('Resources'),
-
             // eslint-disable-next-line @typescript-eslint/no-base-to-string
             insight: `${isValidElement(config.resources?.description) ? '' : (config.resources?.description ?? '')}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
             insightElement: isValidElement(config.resources?.description)
@@ -211,13 +293,10 @@ export function GroupSummary({
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
             }
-
             return (
               <InsightCard key={card.id}>
-                <CardTitle preview={preview} cardId={card.id}>
-                  <CardTitleIcon cardId={card.id} preview={preview}>
-                    {card.icon}
-                  </CardTitleIcon>
+                <CardTitle>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
                 <CardContentContainer>
@@ -226,7 +305,7 @@ export function GroupSummary({
                   </CardLineDecorationWrapper>
                   {isPending ? (
                     <CardContent>
-                      <Placeholder height="1.5rem" />
+                      <Placeholder height="3rem" />
                     </CardContent>
                   ) : (
                     <CardContent>
@@ -241,7 +320,7 @@ export function GroupSummary({
             );
           })}
         </InsightGrid>
-        {data?.eventId && !isPending && !preview && event?.id !== data?.eventId && (
+        {data?.eventId && !isPending && event && event.id !== data?.eventId && (
           <ResummarizeWrapper>
             <Button
               onClick={() => setForceEvent(true)}
@@ -279,14 +358,11 @@ const InsightCard = styled('div')`
   min-height: 0;
 `;
 
-const CardTitle = styled('div')<{cardId?: string; preview?: boolean}>`
+const CardTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p =>
-    p.preview === false && p.cardId === 'whats_wrong'
-      ? p.theme.textColor
-      : p.theme.subText};
+  color: ${p => p.theme.subText};
   padding-bottom: ${space(0.5)};
 `;
 
@@ -296,13 +372,10 @@ const CardTitleText = styled('p')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const CardTitleIcon = styled('div')<{cardId?: string; preview?: boolean}>`
+const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p =>
-    p.preview === false && p.cardId === 'whats_wrong'
-      ? p.theme.pink400
-      : p.theme.subText};
+  color: ${p => p.theme.subText};
 `;
 
 const CardContentContainer = styled('div')`

@@ -27,14 +27,7 @@ import {
   MODULE_FEATURES as CACHE_MODULE_FEATURES,
   MODULE_TITLE as CACHE_MODULE_TITLE,
 } from 'sentry/views/insights/cache/settings';
-import {
-  DATA_TYPE as CRONS_DATA_TYPE,
-  DATA_TYPE_PLURAL as CRONS_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as CRONS_MODULE_DOC_LINK,
-  MODULE_FEATURES as CRONS_MODULE_FEATURES,
-  MODULE_TITLE as CRONS_MODULE_TITLE,
-  MODULE_VISIBLE_FEATURES as CRONS_MODULE_VISIBLE_FEATURES,
-} from 'sentry/views/insights/crons/settings';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
   DATA_TYPE as DB_DATA_TYPE,
   DATA_TYPE_PLURAL as DB_DATA_TYPE_PLURAL,
@@ -107,15 +100,8 @@ import {
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
   MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
-import {
-  DATA_TYPE as UPTIME_DATA_TYPE,
-  DATA_TYPE_PLURAL as UPTIME_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as UPTIME_MODULE_DOC_LINK,
-  MODULE_FEATURES as UPTIME_MODULE_FEATURES,
-  MODULE_TITLE as UPTIME_MODULE_TITLE,
-  MODULE_VISIBLE_FEATURES as UPTIME_MODULE_VISIBLE_FEATURES,
-} from 'sentry/views/insights/uptime/settings';
 
+import type {SpanMetricsProperty} from './types';
 import {ModuleName} from './types';
 
 export const INSIGHTS_TITLE = t('Insights');
@@ -139,8 +125,6 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_MODULE_TITLE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
-  [ModuleName.UPTIME]: UPTIME_MODULE_TITLE,
-  [ModuleName.CRONS]: CRONS_MODULE_TITLE,
   [ModuleName.SESSIONS]: SESSIONS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
@@ -159,8 +143,6 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE,
-  [ModuleName.UPTIME]: UPTIME_DATA_TYPE,
-  [ModuleName.CRONS]: CRONS_DATA_TYPE,
   [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE,
   [ModuleName.OTHER]: '',
 };
@@ -179,8 +161,6 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE_PLURAL,
-  [ModuleName.UPTIME]: UPTIME_DATA_TYPE_PLURAL,
-  [ModuleName.CRONS]: CRONS_DATA_TYPE_PLURAL,
   [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE_PLURAL,
   [ModuleName.OTHER]: '',
 };
@@ -202,8 +182,6 @@ export const MODULE_PRODUCT_DOC_LINKS = {
   [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
   [ModuleName.MOBILE_VITALS]: MODULE_SCREENS_DOC_LINK,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
-  [ModuleName.UPTIME]: UPTIME_MODULE_DOC_LINK,
-  [ModuleName.CRONS]: CRONS_MODULE_DOC_LINK,
   [ModuleName.SESSIONS]: {
     [MOBILE_LANDING_SUB_PATH]: MOBILE_SESSIONS_MODULE_DOC_LINK,
     [FRONTEND_LANDING_SUB_PATH]: FRONTEND_SESSIONS_MODULE_DOC_LINK,
@@ -228,8 +206,6 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_FEATURES,
   [ModuleName.MOBILE_VITALS]: [MOBILE_SCREENS_MODULE_FEATURE],
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
-  [ModuleName.UPTIME]: UPTIME_MODULE_FEATURES,
-  [ModuleName.CRONS]: CRONS_MODULE_FEATURES,
   [ModuleName.SESSIONS]: [],
   [ModuleName.OTHER]: [],
 };
@@ -251,9 +227,6 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.MOBILE_UI]: ['insights-entry-points'],
   [ModuleName.MOBILE_VITALS]: ['insights-entry-points'],
   [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
-  // XXX(epurkhiser): Uptime and Crons are NOT gated by the entry-points flag
-  [ModuleName.UPTIME]: [...UPTIME_MODULE_VISIBLE_FEATURES],
-  [ModuleName.CRONS]: [...CRONS_MODULE_VISIBLE_FEATURES],
   [ModuleName.SESSIONS]: ['insights-entry-points', ...SESSIONS_MODULE_VISIBLE_FEATURES],
   [ModuleName.OTHER]: ['insights-entry-points'],
 };
@@ -267,3 +240,11 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
 ]);
 
 export const INGESTION_DELAY = 90;
+
+// Base aliases used to map insights yAxis to human readable name
+export const BASE_FIELD_ALIASES: Partial<Record<SpanMetricsProperty, string>> = {
+  'avg(span.duration)': DataTitles.avg,
+  'avg(span.self_time)': DataTitles.avg,
+  'epm()': t('Requests Per Minute'),
+  'cache_miss_rate()': t('Cache Miss Rate'),
+};

@@ -17,6 +17,7 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -75,7 +76,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
-        self.integration_name = "gitlab"
+        self.integration_name = IntegrationProviderSlug.GITLAB
 
         super().__init__(
             integration_id=installation.model.id,
@@ -408,7 +409,12 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             files,
             extra={
                 **extra,
-                "provider": "gitlab",
+                "provider": IntegrationProviderSlug.GITLAB.value,
                 "org_integration_id": self.org_integration_id,
             },
         )
+
+    def get_pr_diffs(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
+        project_id = repo.config["project_id"]
+        path = GitLabApiClientPath.build_pr_diffs(project=project_id, pr_key=pr.key, unidiff=True)
+        return self.get(path)

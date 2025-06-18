@@ -17,7 +17,6 @@ import {
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
-  DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
   updateVisualizeAggregate,
   Visualize,
@@ -42,7 +41,7 @@ export function ToolbarVisualize() {
     const newVisualizes = [...visualizes, new Visualize([DEFAULT_VISUALIZATION])].map(
       visualize => visualize.toJSON()
     );
-    setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
+    setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
   const deleteOverlay = useCallback(
@@ -121,7 +120,7 @@ interface VisualizeDropdownProps {
   deleteOverlay: (group: number, index: number) => void;
   group: number;
   index: number;
-  setVisualizes: (visualizes: BaseVisualize[], fields?: string[]) => void;
+  setVisualizes: (visualizes: BaseVisualize[]) => void;
   visualizes: Visualize[];
   yAxis: string;
   label?: string;
@@ -140,11 +139,7 @@ function VisualizeDropdown({
   const {tags: stringTags} = useSpanTags('string');
   const {tags: numberTags} = useSpanTags('number');
 
-  const yAxes: string[] = useMemo(() => {
-    return visualizes.flatMap(visualize => visualize.yAxes);
-  }, [visualizes]);
-
-  const parsedFunction = useMemo(() => parseFunction(yAxis)!, [yAxis]);
+  const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -159,12 +154,11 @@ function VisualizeDropdown({
   const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
-    yAxes,
     parsedFunction,
   });
 
   const setYAxis = useCallback(
-    (newYAxis: string, fields?: string[]) => {
+    (newYAxis: string) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === group) {
           const newYAxes = [...visualize.yAxes];
@@ -173,7 +167,7 @@ function VisualizeDropdown({
         }
         return visualize.toJSON();
       });
-      setVisualizes(newVisualizes, fields);
+      setVisualizes(newVisualizes);
     },
     [group, index, setVisualizes, visualizes]
   );
@@ -182,8 +176,8 @@ function VisualizeDropdown({
     (option: SelectOption<SelectKey>) => {
       const newYAxis = updateVisualizeAggregate({
         newAggregate: option.value as string,
-        oldAggregate: parsedFunction.name,
-        oldArgument: parsedFunction.arguments[0]!,
+        oldAggregate: parsedFunction?.name,
+        oldArgument: parsedFunction?.arguments[0]!,
       });
       setYAxis(newYAxis);
     },
@@ -192,9 +186,9 @@ function VisualizeDropdown({
 
   const setChartField = useCallback(
     (option: SelectOption<SelectKey>) => {
-      setYAxis(`${parsedFunction.name}(${option.value})`, [option.value as string]);
+      setYAxis(`${parsedFunction?.name}(${option.value})`);
     },
-    [parsedFunction.name, setYAxis]
+    [parsedFunction?.name, setYAxis]
   );
 
   return (
@@ -202,13 +196,13 @@ function VisualizeDropdown({
       {label && <ChartLabel>{label}</ChartLabel>}
       <AggregateCompactSelect
         options={aggregateOptions}
-        value={parsedFunction.name}
+        value={parsedFunction?.name ?? ''}
         onChange={setChartAggregate}
       />
       <ColumnCompactSelect
         searchable
         options={fieldOptions}
-        value={parsedFunction.arguments[0]}
+        value={parsedFunction?.arguments[0] ?? ''}
         onChange={setChartField}
         disabled={fieldOptions.length === 1}
       />

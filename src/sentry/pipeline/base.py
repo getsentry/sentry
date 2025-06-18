@@ -3,13 +3,13 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import Any, Self
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry import analytics
-from sentry.db.models import Model
+from sentry.db.models.base import Model
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.pipeline.views.base import PipelineView
@@ -27,7 +27,7 @@ from .views.nested import NestedPipelineView
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
 
 
-class Pipeline(abc.ABC):
+class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
     """
     Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``
@@ -55,11 +55,11 @@ class Pipeline(abc.ABC):
 
     pipeline_name: str
     provider_manager: Any
-    provider_model_cls: type[Model]
-    session_store_cls = PipelineSessionStore
+    provider_model_cls: type[M] | None = None
+    session_store_cls: type[S] = PipelineSessionStore  # type: ignore[assignment]  # python/mypy#18812
 
     @classmethod
-    def get_for_request(cls, request: HttpRequest) -> Pipeline | None:
+    def get_for_request(cls, request: HttpRequest) -> Self | None:
         req_state = cls.unpack_state(request)
         if not req_state:
             return None
@@ -74,13 +74,14 @@ class Pipeline(abc.ABC):
         )
 
     @classmethod
-    def unpack_state(cls, request: HttpRequest) -> PipelineRequestState | None:
+    def unpack_state(cls, request: HttpRequest) -> PipelineRequestState[M, S] | None:
         state = cls.session_store_cls(request, cls.pipeline_name, ttl=PIPELINE_STATE_TTL)
         if not state.is_valid():
             return None
 
         provider_model = None
         if state.provider_model_id:
+            assert cls.provider_model_cls is not None
             provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
 
         organization: RpcOrganization | None = None
@@ -97,7 +98,7 @@ class Pipeline(abc.ABC):
 
     def get_provider(
         self, provider_key: str, *, organization: RpcOrganization | None
-    ) -> PipelineProvider:
+    ) -> PipelineProvider[M, S]:
         return self.provider_manager.get(provider_key)
 
     def __init__(
@@ -105,7 +106,7 @@ class Pipeline(abc.ABC):
         request: HttpRequest,
         provider_key: str,
         organization: Organization | RpcOrganization | None = None,
-        provider_model: Model | None = None,
+        provider_model: M | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
         if organization:
@@ -133,7 +134,7 @@ class Pipeline(abc.ABC):
         pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView | Callable[[], PipelineView]]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[M, S] | Callable[[], PipelineView[M, S]]]:
         """
         Retrieve the pipeline views from the provider.
 
@@ -186,15 +187,7 @@ class Pipeline(abc.ABC):
         if callable(step):
             step = step()
 
-        return self.dispatch_to(step)
-
-    def dispatch_to(self, step: PipelineView) -> HttpResponseBase:
-        """
-        Dispatch to a view expected by this pipeline.
-
-        A subclass may override this if its views take other parameters.
-        """
-        return step.dispatch(request=self.request, pipeline=self)
+        return step.dispatch(self.request, pipeline=self)
 
     def error(self, message: str) -> HttpResponseBase:
         self.get_logger().error(

@@ -7,7 +7,7 @@ from urllib.robotparser import RobotFileParser
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
-from sentry import audit_log, features
+from sentry import features
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -34,7 +34,6 @@ from sentry.uptime.subscriptions.subscriptions import (
 )
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
-from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -122,6 +121,7 @@ def process_detection_bucket(bucket: str):
     queue="uptime",
     taskworker_config=TaskworkerConfig(
         namespace=uptime_tasks,
+        processing_deadline_duration=20,
     ),
 )
 def process_organization_url_ranking(organization_id: int):
@@ -240,16 +240,10 @@ def process_candidate_url(
         "organizations:uptime-automatic-subscription-creation", project.organization
     ) and features.has("organizations:uptime", project.organization):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
-        uptime_monitor = monitor_url_for_project(project, url)
+        monitor_url_for_project(project, url)
         # Disable auto-detection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
         project.organization.update_option("sentry:uptime_autodetection", False)
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=uptime_monitor.id,
-            event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
-            data=uptime_monitor.get_audit_log_data(),
-        )
 
     metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True

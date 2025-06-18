@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,7 +14,7 @@ interface DetailsPanelProps {
 function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
   return (
     <Container>
-      <Flex column gap={space(0.5)}>
+      <Flex direction="column" gap={space(0.5)}>
         <Heading>{t('Query:')}</Heading>
         <Query>
           <Label>{t('visualize:')}</Label>{' '}
@@ -32,13 +32,14 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 }
 
 function DetailsPanel({detector}: DetailsPanelProps) {
-  if (detector.dataSources[0]?.type === 'snuba_query_subscription') {
-    return <SnubaQueryDetails dataSource={detector.dataSources[0]} />;
+  const dataSource = detector.dataSources?.[0];
+  if (dataSource?.type === 'snuba_query_subscription') {
+    return <SnubaQueryDetails dataSource={dataSource} />;
   }
 
   return (
     <Container>
-      <Flex column gap={space(0.5)}>
+      <Flex direction="column" gap={space(0.5)}>
         <Heading>{t('Query:')}</Heading>
         <Query>
           <Label>{t('visualize:')}</Label> <Value>placeholder</Value>

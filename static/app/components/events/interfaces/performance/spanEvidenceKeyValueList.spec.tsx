@@ -203,9 +203,8 @@ describe('SpanEvidenceKeyValueList', () => {
       event.occurrence = {
         ...event.occurrence,
         evidenceData: {
-          pattern_size: 2,
-          pattern_span_ids: ['aaa', 'bbb'],
-          num_pattern_repetitions: 4,
+          patternSize: 2,
+          patternSpanIds: ['aaa', 'bbb'],
         },
       } as EventTransaction['occurrence'];
 
@@ -241,7 +240,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
       ).toHaveTextContent('SELECT * FROM books');
       expect(screen.getByTestId('span-evidence-key-value-list.')).toHaveTextContent(
-        'db.sql.active_record - SELECT * FROM books WHERE id = %s'
+        'SELECT * FROM books WHERE id = %s'
       );
 
       expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
@@ -256,13 +255,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Pattern Span IDs'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.pattern-span-i-ds')
-      ).toHaveTextContent('aaabbb');
-      expect(
-        screen.getByRole('cell', {name: 'Number of Repetitions'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.number-of-repetitions')
-      ).toHaveTextContent('4');
+      ).toHaveTextContent('aaa, bbb');
     });
   });
 

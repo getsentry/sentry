@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import Hook from 'sentry/components/hook';
 import ConfigStore from 'sentry/stores/configStore';
@@ -10,12 +11,14 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
-import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {PRIMARY_SIDEBAR_WIDTH, SECONDARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 import {useStackedNavigationTour, useTourModal} from 'sentry/views/nav/tour/tour';
+import {useCollapsedNav} from 'sentry/views/nav/useCollapsedNav';
 
 export function Sidebar() {
   const organization = useOrganization();
@@ -33,6 +36,12 @@ export function Sidebar() {
   const tourIsActive = currentStepId !== null;
   const forceExpanded = tourIsActive;
   const isCollapsed = forceExpanded ? false : isCollapsedState;
+  const {isOpen} = useCollapsedNav();
+
+  const [secondarySidebarWidth] = useSyncedLocalStorageState(
+    'secondary-sidebar-width',
+    SECONDARY_SIDEBAR_WIDTH
+  );
 
   useTourModal();
 
@@ -54,6 +63,27 @@ export function Sidebar() {
         <PrimaryNavigationItems />
       </SidebarWrapper>
       {isCollapsed ? null : <SecondarySidebar />}
+      {isCollapsed ? (
+        <CollapsedSecondaryWrapper
+          initial="hidden"
+          animate={isOpen ? 'visible' : 'hidden'}
+          variants={{
+            visible: {x: 0},
+            hidden: {x: -secondarySidebarWidth - 10},
+          }}
+          transition={{
+            type: 'spring',
+            damping: 50,
+            stiffness: 700,
+            bounce: 0,
+            visualDuration: 0.1,
+          }}
+          data-test-id="collapsed-secondary-sidebar"
+          data-visible={isOpen}
+        >
+          <SecondarySidebar />
+        </CollapsedSecondaryWrapper>
+      ) : null}
     </Fragment>
   );
 }
@@ -72,6 +102,15 @@ const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
     css`
       z-index: ${p.theme.zIndex.sidebar};
     `}
+`;
+
+const CollapsedSecondaryWrapper = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: ${PRIMARY_SIDEBAR_WIDTH}px;
+  height: 100%;
+  box-shadow: ${p => (p.theme.isChonk ? 'none' : p.theme.dropShadowHeavy)};
+  background: ${p => p.theme.background};
 `;
 
 const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
@@ -106,8 +145,9 @@ const SuperuserBadgeContainer = styled('div')`
 `;
 
 const ChonkSuperuserBadgeContainer = chonkStyled('div')`
-  position: fixed;
-  top: -1px;
+  position: absolute;
+  top: -${p => p.theme.space.lg};
+  z-index: ${p => p.theme.zIndex.initial};
   left: 0;
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   background: ${p => p.theme.colors.chonk.red400};

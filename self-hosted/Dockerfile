@@ -9,35 +9,16 @@ LABEL org.opencontainers.image.vendor="Functional Software, Inc."
 LABEL org.opencontainers.image.authors="oss@sentry.io"
 
 # add our user and group first to make sure their IDs get assigned consistently
-RUN groupadd -r sentry && useradd -r -m -g sentry sentry
+RUN groupadd -r sentry --gid 999 && useradd -r -m -g sentry --uid 999 sentry
 
 RUN : \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        gosu \
         libexpat1 \
+        tini \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-ARG GOSU_VERSION=1.17
-ARG GOSU_SHA256=bbc4136d03ab138b1ad66fa4fc051bafc6cc7ffae632b069a53657279a450de3
-ARG TINI_VERSION=0.19.0
-ARG TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
-
-RUN set -x \
-  && buildDeps=" \
-  wget \
-  " \
-  && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
-  && rm -rf /var/lib/apt/lists/* \
-  # grab gosu for easy step-down from root
-  && wget --quiet -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" \
-  && echo "$GOSU_SHA256 /usr/local/bin/gosu" | sha256sum --check --status \
-  && chmod +x /usr/local/bin/gosu \
-  # grab tini for signal processing and zombie killing
-  && wget --quiet -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-amd64" \
-  && echo "$TINI_SHA256 /usr/local/bin/tini" | sha256sum --check --status \
-  && chmod +x /usr/local/bin/tini \
-  && apt-get purge -y --auto-remove $buildDeps
 
 WORKDIR /usr/src/sentry
 
@@ -98,7 +79,7 @@ RUN : double-check some built files are available \
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT exec /docker-entrypoint.sh "$0" "$@"
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT

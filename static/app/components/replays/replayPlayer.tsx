@@ -11,8 +11,6 @@ import {
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import UnmaskAlert from './unmaskAlert';
 
@@ -39,44 +37,6 @@ interface Props {
    */
   isPreview?: boolean;
   overlayContent?: React.ReactNode;
-}
-
-function useVideoSizeLogger({
-  videoDimensions,
-  windowDimensions,
-}: {
-  videoDimensions: Dimensions;
-  windowDimensions: Dimensions;
-}) {
-  const organization = useOrganization();
-  const [didLog, setDidLog] = useState<boolean>(false);
-  const {analyticsContext} = useReplayContext();
-
-  useEffect(() => {
-    if (didLog || (videoDimensions.width === 0 && videoDimensions.height === 0)) {
-      return;
-    }
-
-    const aspect_ratio =
-      videoDimensions.width > videoDimensions.height ? 'landscape' : 'portrait';
-
-    const scale = Math.min(
-      windowDimensions.width / videoDimensions.width,
-      windowDimensions.height / videoDimensions.height,
-      1
-    );
-    const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
-      typeof trackAnalytics<'replay.render-player'>
-    >[1]['scale_bucket'];
-
-    trackAnalytics('replay.render-player', {
-      organization,
-      aspect_ratio,
-      context: analyticsContext,
-      scale_bucket,
-    });
-    setDidLog(true);
-  }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
 function BasePlayerRoot({
@@ -112,8 +72,6 @@ function BasePlayerRoot({
     width: 0,
     height: 0,
   });
-
-  useVideoSizeLogger({videoDimensions, windowDimensions});
 
   // Sets the parent element where the player
   // instance will use as root (i.e. where it will

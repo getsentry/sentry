@@ -1,24 +1,26 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
   DevServer,
   OptimizationSplitChunksCacheGroup,
-  RspackPluginInstance,
-  RuleSetRule,
+  SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
 import path from 'node:path';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
-import LastBuiltPlugin from './build-utils/last-built-plugin';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
+import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
 
@@ -72,9 +74,6 @@ const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
-// Storybook related flag configuration
-const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
-
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
 const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
@@ -83,6 +82,8 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
+
+const require = createRequire(import.meta.url);
 
 // When deploy previews are enabled always enable experimental SPA mode --
 // deploy previews are served standalone. Otherwise fallback to the environment
@@ -100,9 +101,9 @@ const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true';
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
-const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
+const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
-const staticPrefix = path.join(__dirname, 'static');
+const staticPrefix = path.join(import.meta.dirname, 'static');
 
 // Locale compilation and optimizations.
 //
@@ -118,7 +119,7 @@ const staticPrefix = path.join(__dirname, 'static');
 // dependency list, so that our compiled bundle does not expect that *all*
 // locale chunks must be loaded
 const localeCatalogPath = path.join(
-  __dirname,
+  import.meta.dirname,
   'src',
   'sentry',
   'locale',
@@ -171,7 +172,14 @@ for (const locale of supportedLocales) {
   };
 }
 
-const swcReactLoaderConfig: RuleSetRule['options'] = {
+const swcReactLoaderConfig: SwcLoaderOptions = {
+  env: {
+    mode: 'usage',
+    // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+    coreJs: '3.41.0',
+    targets: packageJson.browserslist.production,
+    shippedProposals: true,
+  },
   jsc: {
     experimental: {
       plugins: [
@@ -181,6 +189,15 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
             sourceMap: true,
             // The "dev-only" option does not seem to apply correctly
             autoLabel: DEV_MODE ? 'always' : 'never',
+          },
+        ],
+        [
+          'swc-plugin-component-annotate',
+          {
+            'annotate-fragments': false,
+            'component-attr': 'data-sentry-component',
+            'element-attr': 'data-sentry-element',
+            'source-file-attr': 'data-sentry-source-file',
           },
         ],
       ],
@@ -193,11 +210,12 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
-        refresh: DEV_MODE,
+        refresh: SHOULD_HOT_MODULE_RELOAD,
         importSource: '@emotion/react',
       },
     },
   },
+  isModule: 'unknown',
 };
 
 /**
@@ -207,6 +225,9 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
 const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   target: 'browserslist',
+  // Fail on first error instead of continuing to build
+  // https://rspack.rs/config/other-options#bail
+  bail: IS_PRODUCTION,
   entry: {
     /**
      * Main Sentry SPA
@@ -235,7 +256,11 @@ const appConfig: Configuration = {
     // https://rspack.dev/config/experiments#experimentsincremental
     incremental: DEV_MODE,
     futureDefaults: true,
-    css: true,
+    // Native css parsing not working in production
+    // Build production bundle and open the entrypoints/sentry.css file
+    // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
+    // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
+    css: false,
   },
   module: {
     /**
@@ -245,7 +270,8 @@ const appConfig: Configuration = {
     rules: [
       {
         test: /\.(js|jsx|ts|tsx)$/,
-        exclude: /\/node_modules\//,
+        // Avoids recompiling core-js based on usage imports
+        exclude: /node_modules[\\/]core-js/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
@@ -273,17 +299,27 @@ const appConfig: Configuration = {
       },
       {
         test: /\.pegjs$/,
-        use: [{loader: path.resolve(__dirname, './build-utils/peggy-loader.ts')}],
+        use: [
+          {loader: path.resolve(import.meta.dirname, './build-utils/peggy-loader.ts')},
+        ],
       },
       {
         test: /\.css/,
-        type: 'css',
+        use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: ['less-loader'],
-        type: 'css',
+        use: [
+          {
+            loader: rspack.CssExtractRspackPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -311,7 +347,7 @@ const appConfig: Configuration = {
      */
     new rspack.ContextReplacementPlugin(
       /sentry-locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      path.join(import.meta.dirname, 'src', 'sentry', 'locale', path.sep),
       true,
       new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
     ),
@@ -326,6 +362,16 @@ const appConfig: Configuration = {
     new rspack.ProvidePlugin({
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
+    }),
+
+    /**
+     * Extract CSS into separate files.
+     * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
+     */
+    new rspack.CssExtractRspackPlugin({
+      // We want the sentry css file to be unversioned for frontend-only deploys
+      // We will cache using `Cache-Control` headers
+      filename: 'entrypoints/[name].css',
     }),
 
     /**
@@ -345,14 +391,17 @@ const appConfig: Configuration = {
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
-              configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
+              configFile: path.resolve(
+                import.meta.dirname,
+                './config/tsconfig.build.json'
+              ),
             },
             devServer: false,
           }),
         ]
       : []),
 
-    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
@@ -382,9 +431,10 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/stories/noop-type-loader.ts'),
+      'type-loader': path.resolve(
+        import.meta.dirname,
+        'static/app/stories/type-loader.ts'
+      ),
     },
   },
 
@@ -397,16 +447,16 @@ const appConfig: Configuration = {
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
-      'getsentry-test': path.join(__dirname, 'tests', 'js', 'getsentry-test'),
+      'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
       admin: path.join(staticPrefix, 'gsAdmin'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
       less: path.join(staticPrefix, 'less'),
-      'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
-      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
+      'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
+      'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
       'ios-device-list': path.join(
-        __dirname,
+        import.meta.dirname,
         'node_modules',
         'ios-device-list',
         'dist',
@@ -419,7 +469,7 @@ const appConfig: Configuration = {
       stream: false,
       // Node crypto is imported in @sentry-internal/global-search but not used here
       crypto: false,
-      // `yarn why` says this is only needed in dev deps
+      // `pnpm why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
       'process/browser': require.resolve('process/browser'),
@@ -429,7 +479,7 @@ const appConfig: Configuration = {
     preferAbsolute: true,
     modules: ['node_modules'],
     extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
-    symlinks: false,
+    symlinks: true,
   },
   output: {
     crossOriginLoading: 'anonymous',
@@ -465,22 +515,14 @@ const appConfig: Configuration = {
 
 if (IS_TEST) {
   (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
-    __dirname,
+    import.meta.dirname,
     'fixtures',
     'js-stubs'
   );
 }
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  (appConfig.resolve!.alias! as Record<string, string>)['integration-docs-platforms'] =
-    path.join(__dirname, 'fixtures/integration-docs/_platforms.json');
-} else {
-  // const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  // appConfig.plugins?.push(plugin);
-  // appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
-}
-//
+
 if (IS_ACCEPTANCE_TEST) {
-  appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
+  appConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
 // Dev only! Hot module reloading
@@ -623,8 +665,8 @@ if (IS_UI_DEV_ONLY) {
     return slug;
   };
 
-  // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
-  const certPath = path.join(__dirname, 'config');
+  // Try and load certificates from mkcert if available. Use $ pnpm mkcert-localhost
+  const certPath = path.join(import.meta.dirname, 'config');
   const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
     ? {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
@@ -729,18 +771,40 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   );
 }
 
-const minificationPlugins: RspackPluginInstance[] = [
+if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  new CompressionPlugin({
-    algorithm: 'gzip',
-    test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as unknown as RspackPluginInstance,
-];
+  appConfig.plugins?.push(
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+    })
+  );
 
-if (IS_PRODUCTION) {
-  appConfig.plugins?.push(...minificationPlugins);
+  // Enable sentry-webpack-plugin for production builds
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Using swc-plugin-react-component-annotate instead
+        enabled: false,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
@@ -771,32 +835,9 @@ if (env.WEBPACK_CACHE_PATH) {
     // https://rspack.dev/config/experiments#cachestorage
     storage: {
       type: 'filesystem',
-      directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
+      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
     },
   };
 }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
-    },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      // Enabled only in production because annotating is slow
-      enabled: IS_PRODUCTION,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
 
 export default appConfig;

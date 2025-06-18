@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
 from sentry.issues.grouptype import (
+    DBQueryInjectionVulnerabilityGroupType,
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
@@ -26,7 +27,7 @@ from sentry.issues.grouptype import (
     PerformanceUncompressedAssetsGroupType,
     ProfileFunctionRegressionType,
 )
-from sentry.utils.performance_issues.performance_detection import get_merged_settings
+from sentry.performance_issues.performance_detection import get_merged_settings
 
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds
@@ -41,6 +42,7 @@ class InternalProjectOptions(Enum):
 
     TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
     FUNCTION_DURATION_REGRESSION = "function_duration_regression_detection_enabled"
+    DATABASE_QUERY_INJECTION = "database_query_injection_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -88,6 +90,7 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     ConfigurableThresholds.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
+    InternalProjectOptions.DATABASE_QUERY_INJECTION.value: DBQueryInjectionVulnerabilityGroupType,
 }
 """
 A mapping of the management settings to the group type that the detector spawns.
@@ -165,6 +168,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     http_overhead_detection_enabled = serializers.BooleanField(required=False)
     transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
+    database_query_injection_detection_enabled = serializers.BooleanField(required=False)
 
 
 def get_management_options() -> list[str]:

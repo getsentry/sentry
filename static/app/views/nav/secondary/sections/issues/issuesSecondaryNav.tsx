@@ -66,17 +66,15 @@ export function IssuesSecondaryNav() {
             </SecondaryNav.Section>
           </Fragment>
         )}
-        {organization.features.includes('enforce-stacked-navigation') && (
-          <SecondaryNav.Section id="issues-views-all">
-            <SecondaryNav.Item
-              to={`${baseUrl}/views/`}
-              analyticsItemName="issues_all_views"
-              end
-            >
-              {t('All Views')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
-        )}
+        <SecondaryNav.Section id="issues-views-all">
+          <SecondaryNav.Item
+            to={`${baseUrl}/views/`}
+            analyticsItemName="issues_all_views"
+            end
+          >
+            {t('All Views')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
         <IssueViews sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
@@ -85,10 +83,10 @@ export function IssuesSecondaryNav() {
 }
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
-  const {layout, isCollapsed} = useNavContext();
+  const {layout} = useNavContext();
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
 
-  const isSticky = layout === NavLayout.SIDEBAR && !isCollapsed;
+  const isSticky = layout === NavLayout.SIDEBAR;
 
   return (
     <StickyBottomSection
@@ -100,14 +98,14 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            trailingItems={<FeatureBadge type="alpha" />}
             to={`${baseUrl}/monitors/`}
             activeTo={`${baseUrl}/monitors`}
           >
             {t('Monitors')}
           </SecondaryNav.Item>
           <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            trailingItems={<FeatureBadge type="alpha" />}
             to={`${baseUrl}/automations/`}
             activeTo={`${baseUrl}/automations`}
           >
@@ -135,6 +133,7 @@ const StickyBottomSection = styled(SecondaryNav.Section, {
     css`
       position: sticky;
       bottom: 0;
+      z-index: 1;
       background: ${p.theme.isChonk ? p.theme.background : p.theme.surface200};
     `}
 `;

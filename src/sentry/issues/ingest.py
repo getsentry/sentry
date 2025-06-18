@@ -89,7 +89,7 @@ class IssueArgs(TypedDict):
     platform: str | None
     message: str
     level: int | None
-    culprit: str
+    culprit: str | None
     last_seen: datetime
     first_seen: datetime
     active_at: datetime
@@ -126,7 +126,7 @@ def _create_issue_kwargs(
 
 class OccurrenceMetadata(TypedDict):
     type: str
-    culprit: str
+    culprit: str | None
     metadata: Mapping[str, Any]
     title: str
     location: str | None
@@ -156,6 +156,9 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
         event_metadata["source"] = occurrence.evidence_data.get("source")
+        associated_event_id = occurrence.evidence_data.get("associated_event_id")
+        if associated_event_id:
+            event_metadata["associated_event_id"] = associated_event_id
 
     return {
         "type": event_type.key,

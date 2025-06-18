@@ -30,6 +30,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -44,17 +45,13 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
-  SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
-} from 'sentry/views/explore/constants';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -77,11 +74,8 @@ import {
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import {
-  getSearchInExploreTarget,
-  TraceDrawerActionKind,
-  TraceDrawerActionValueKind,
-} from './utils';
+import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
+import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
 const BodyContainer = styled('div')`
   display: flex;
@@ -429,6 +423,7 @@ function Highlights({
   highlightedAttributes,
 }: HighlightProps) {
   const dispatch = useTraceStateDispatch();
+  const organization = useOrganization();
 
   const onOpsBreakdownRowClick = useCallback(
     (op: string) => {
@@ -440,6 +435,8 @@ function Highlights({
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return null;
   }
+
+  const isAiNode = getIsAiNode(node);
 
   const startTimestamp = node.space[0];
   const endTimestamp = node.space[0] + node.space[1];
@@ -491,15 +488,25 @@ function Highlights({
               ))}
             </HighlightedAttributesWrapper>
           ) : null}
-          <StyledPanel>
-            <StyledPanelHeader>{headerContent}</StyledPanelHeader>
-            <PanelBody>{bodyContent}</PanelBody>
-          </StyledPanel>
-          {isEAPSpanNode(node) ? (
-            <HighLightEAPOpsBreakdown onRowClick={onOpsBreakdownRowClick} node={node} />
-          ) : event ? (
-            <HighLightsOpsBreakdown onRowClick={onOpsBreakdownRowClick} event={event} />
-          ) : null}
+          {isAiNode && hasAgentInsightsFeature(organization) ? null : (
+            <Fragment>
+              <StyledPanel>
+                <StyledPanelHeader>{headerContent}</StyledPanelHeader>
+                <PanelBody>{bodyContent}</PanelBody>
+              </StyledPanel>
+              {isEAPSpanNode(node) ? (
+                <HighLightEAPOpsBreakdown
+                  onRowClick={onOpsBreakdownRowClick}
+                  node={node}
+                />
+              ) : event ? (
+                <HighLightsOpsBreakdown
+                  onRowClick={onOpsBreakdownRowClick}
+                  event={event}
+                />
+              ) : null}
+            </Fragment>
+          )}
         </HighlightsRightColumn>
       </HighlightsWrapper>
       <SectionDivider />
@@ -670,8 +677,10 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  margin-bottom: ${space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
+  &:not(:last-child) {
+    margin-bottom: ${space(1.5)};
+  }
 `;
 
 const HighlightedAttributeName = styled('div')`
@@ -830,117 +839,26 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
-type KeyValueActionProps = {
-  rowKey: string;
-  rowValue: React.ReactNode;
-  kind?: TraceDrawerActionValueKind;
-  projectIds?: string | string[];
-};
-
 function KeyValueAction({
   rowKey,
   rowValue,
   projectIds,
   kind = TraceDrawerActionValueKind.SENTRY_TAG,
-}: KeyValueActionProps) {
+}: Pick<KeyValueActionParams, 'rowKey' | 'rowValue' | 'kind' | 'projectIds'>) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const [isVisible, setIsVisible] = useState(false);
+  const dropdownOptions = getTraceKeyValueActions({
+    rowKey,
+    rowValue,
+    kind,
+    projectIds,
+    location,
+    organization,
+  });
 
-  if (
-    !hasExploreEnabled ||
-    !defined(rowValue) ||
-    !defined(rowKey) ||
-    !['string', 'number'].includes(typeof rowValue)
-  ) {
+  if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
     return null;
-  }
-
-  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
-  // Any other key must exist in the static list of sentry tags to be deemed searchable.
-  if (
-    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
-    !(
-      SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS.includes(rowKey) ||
-      SENTRY_SEARCHABLE_SPAN_STRING_TAGS.includes(rowKey)
-    )
-  ) {
-    return null;
-  }
-
-  const dropdownOptions = [
-    {
-      key: 'include',
-      label: t('Find more samples with this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        rowValue.toString(),
-        TraceDrawerActionKind.INCLUDE
-      ),
-    },
-    {
-      key: 'exclude',
-      label: t('Find samples excluding this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        rowValue.toLocaleString(),
-        TraceDrawerActionKind.EXCLUDE
-      ),
-    },
-  ];
-
-  const valueType = getFieldDefinition(rowKey, 'span')?.valueType;
-  const isNumeric =
-    typeof rowValue === 'number' ||
-    (valueType &&
-      [
-        FieldValueType.DURATION,
-        FieldValueType.NUMBER,
-        FieldValueType.INTEGER,
-        FieldValueType.PERCENTAGE,
-        FieldValueType.DATE,
-        FieldValueType.RATE,
-        FieldValueType.PERCENT_CHANGE,
-      ].includes(valueType));
-
-  if (isNumeric) {
-    dropdownOptions.push(
-      {
-        key: 'includeGreaterThan',
-        label: t('Find samples with values greater than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          rowValue.toString(),
-          TraceDrawerActionKind.GREATER_THAN
-        ),
-      },
-      {
-        key: 'includeLessThan',
-        label: t('Find samples with values less than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          rowValue.toString(),
-          TraceDrawerActionKind.LESS_THAN
-        ),
-      }
-    );
   }
 
   return (
@@ -1065,7 +983,8 @@ function NodeActions(props: {
   const params = useParams<{traceSlug?: string}>();
 
   const {data: transaction} = useTransaction({
-    node: isTransactionNode(props.node) ? props.node : null,
+    event_id: props.node.value.event_id,
+    project_slug: props.node.value.project_slug,
     organization,
   });
 
@@ -1314,6 +1233,47 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
+const MultilineText = styled('div')`
+  white-space: pre-wrap;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)};
+  word-break: break-word;
+  &:not(:last-child) {
+    margin-bottom: ${space(1.5)};
+  }
+`;
+
+function MultilineJSON({
+  value,
+  maxDefaultDepth = 2,
+}: {
+  value: string;
+  maxDefaultDepth?: number;
+}) {
+  try {
+    const json = JSON.parse(value);
+    return (
+      <TraceDrawerComponents.MultilineText>
+        <StructuredData
+          value={json}
+          maxDefaultDepth={maxDefaultDepth}
+          withAnnotatedText
+        />
+      </TraceDrawerComponents.MultilineText>
+    );
+  } catch (error) {
+    return (
+      <TraceDrawerComponents.MultilineText>{value}</TraceDrawerComponents.MultilineText>
+    );
+  }
+}
+
+const MultilineTextLabel = styled('div')`
+  font-weight: bold;
+  margin-bottom: ${space(1)};
+`;
+
 const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
@@ -1345,6 +1305,9 @@ const TraceDrawerComponents = {
   TraceDataSection,
   SectionCardGroup,
   DropdownMenuWithPortal,
+  MultilineText,
+  MultilineJSON,
+  MultilineTextLabel,
 };
 
 export {TraceDrawerComponents};

@@ -221,13 +221,11 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-left: ${space(0.5)};
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
-  gap: 0;
 
   /* Hide the project icon on hover in favor of the drag handle */
   :hover {
@@ -269,7 +267,6 @@ const LeadingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
 `;
 
 const GrabHandleWrapper = styled(motion.div)`

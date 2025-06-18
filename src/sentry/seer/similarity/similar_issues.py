@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -34,6 +35,7 @@ seer_grouping_connection_pool = connection_from_url(
 )
 
 
+@sentry_sdk.tracing.trace
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,
@@ -70,6 +72,7 @@ def get_similarity_data_from_seer(
             json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
                 "utf8"
             ),
+            retries=options.get("seer.similarity.grouping-ingest-retries"),
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             metric_tags={"referrer": referrer} if referrer else {},
         )

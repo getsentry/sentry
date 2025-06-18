@@ -40,6 +40,7 @@ from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.projectflags import set_project_flag_and_signal
 
 CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1
@@ -92,7 +93,7 @@ class RecordingIngestMessage:
 
 def ingest_recording(message_bytes: bytes) -> None:
     """Ingest non-chunked recording messages."""
-    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+    isolation_scope = sentry_sdk.get_isolation_scope().fork()
 
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_transaction(
@@ -120,8 +121,7 @@ def _track_initial_segment_event(
     key_id: int | None,
     received: int,
 ) -> None:
-    if not project.flags.has_replays:
-        first_replay_received.send_robust(project=project, sender=Project)
+    set_project_flag_and_signal(project, "has_replays", first_replay_received)
 
     track_outcome(
         org_id=org_id,

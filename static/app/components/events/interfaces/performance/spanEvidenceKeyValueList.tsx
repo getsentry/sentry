@@ -183,9 +183,8 @@ function NPlusOneDBQueriesSpanEvidence({
       )
     );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
-  const patternSize = evidenceData.pattern_size ?? 0;
-  const patternSpanIds = evidenceData.pattern_span_ids ?? [];
-  const numPatternRepetitions = evidenceData.num_pattern_repetitions ?? 0;
+  const patternSize = evidenceData.patternSize ?? 0;
+  const patternSpanIds = (evidenceData.patternSpanIds ?? []).join(', ');
 
   return (
     <PresortedKeyValueList
@@ -200,9 +199,6 @@ function NPlusOneDBQueriesSpanEvidence({
           patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
           patternSpanIds.length > 0
             ? makeRow(t('Pattern Span IDs'), patternSpanIds)
-            : null,
-          numPatternRepetitions > 0
-            ? makeRow(t('Number of Repetitions'), numPatternRepetitions)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
@@ -315,6 +311,25 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
+function DBQueryInjectionVulnerabilityEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(t('Vulnerable Parameters'), evidenceData.vulnerableParameters),
+        makeRow(t('Request URL'), evidenceData.requestUrl),
+      ]}
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -334,6 +349,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
+  [IssueType.DB_QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -563,7 +579,7 @@ function getSpanEvidenceValue(span: Span | null) {
     return span.op;
   }
 
-  if (span.op === 'db' && span.description) {
+  if (span.op && span.op.startsWith('db') && span.description) {
     return (
       <NoPaddingClippedBox clipHeight={200}>
         <StyledCodeSnippet language="sql">

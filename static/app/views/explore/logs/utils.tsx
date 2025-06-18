@@ -16,7 +16,10 @@ import {
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
+import {
+  LogAttributesHumanLabel,
+  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+} from 'sentry/views/explore/logs/constants';
 import {
   type LogAttributeUnits,
   type LogRowItem,
@@ -228,4 +231,11 @@ export function logsPickableDays(organization: Organization): PickableDays {
       ...Object.fromEntries(relativeOptions),
     }),
   };
+}
+
+export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
+  if (lastPageLength * 0.75 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
+    return Math.floor(lastPageLength * 0.75); // Can be up to 750 on large pages.
+  }
+  return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
 }

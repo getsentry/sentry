@@ -47,10 +47,10 @@ def java_frame_munger(frame: EventFrame) -> str | None:
     if not frame.module or not frame.abs_path:
         return None
 
-    from sentry.issues.auto_source_code_config.code_mapping import (
+    from sentry.issues.auto_source_code_config.errors import (
         DoesNotFollowJavaPackageNamingConvention,
-        get_path_from_module,
     )
+    from sentry.issues.auto_source_code_config.frame_info import get_path_from_module
 
     try:
         _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)

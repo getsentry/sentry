@@ -59,7 +59,6 @@ export type AutofixData = {
   };
   completed_at?: string | null;
   error_message?: string;
-  feedback?: AutofixFeedback;
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
@@ -212,13 +211,6 @@ export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
 };
 
-export type AutofixFeedback = {
-  root_cause_thumbs_down?: boolean;
-  root_cause_thumbs_up?: boolean;
-  solution_thumbs_down?: boolean;
-  solution_thumbs_up?: boolean;
-};
-
 export type FilePatch = {
   added: number;
   hunks: Hunk[];
@@ -270,6 +262,7 @@ export interface SeerRepoDefinition {
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
+  automated_run_stopping_point?: 'solution' | 'code_changes' | 'open_pr';
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;

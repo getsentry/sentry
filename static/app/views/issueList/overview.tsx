@@ -82,6 +82,7 @@ interface Props
     Record<PropertyKey, string | undefined>,
     {searchId?: string}
   > {
+  headerActions?: ReactNode;
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
@@ -125,11 +126,12 @@ function useIssuesINPObserver() {
 
 function useSavedSearches() {
   const organization = useOrganization();
+  const prefersStackedNav = usePrefersStackedNav();
   const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg(
     {
       orgSlug: organization.slug,
     },
-    {enabled: !organization.features.includes('issue-stream-custom-views')}
+    {enabled: !prefersStackedNav}
   );
 
   const params = useParams();
@@ -137,8 +139,7 @@ function useSavedSearches() {
 
   return {
     savedSearches,
-    savedSearchLoading:
-      !organization.features.includes('issue-stream-custom-views') && isPending,
+    savedSearchLoading: !prefersStackedNav && isPending,
     savedSearch: selectedSavedSearch,
     selectedSearchId: params.searchId ?? null,
   };
@@ -163,6 +164,7 @@ function IssueListOverview({
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
+  headerActions,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -170,9 +172,10 @@ function IssueListOverview({
   const {selection} = usePageFilters();
   const api = useApi();
   const prefersStackedNav = usePrefersStackedNav();
+  const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    prefersStackedNav || typeof realtimeActiveCookie === 'undefined'
+    typeof realtimeActiveCookie === 'undefined' || urlParams.viewId
       ? false
       : realtimeActiveCookie === 'true'
   );
@@ -190,7 +193,6 @@ function IssueListOverview({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-  const urlParams = useParams<{viewId?: string}>();
 
   const {savedSearch, savedSearchLoading, selectedSearchId} = useSavedSearches();
 
@@ -224,10 +226,7 @@ function IssueListOverview({
 
   const getQueryFromSavedSearchOrLocation = useCallback(
     (props: {location: Location; savedSearch: SavedSearch | null}): string => {
-      if (
-        !organization.features.includes('issue-stream-custom-views') &&
-        props.savedSearch
-      ) {
+      if (!prefersStackedNav && props.savedSearch) {
         return props.savedSearch.query;
       }
 
@@ -239,7 +238,7 @@ function IssueListOverview({
 
       return initialQuery;
     },
-    [organization.features, initialQuery]
+    [prefersStackedNav, initialQuery]
   );
 
   const getSortFromSavedSearchOrLocation = useCallback(
@@ -658,7 +657,6 @@ function IssueListOverview({
     query,
     num_issues: groups.length,
     total_issues_count: queryCount,
-    issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -1095,6 +1093,9 @@ function IssueListOverview({
           selectedProjectIds={selection.projects}
           title={title}
           description={titleDescription}
+          realtimeActive={realtimeActive}
+          onRealtimeChange={onRealtimeChange}
+          headerActions={headerActions}
         />
       ) : (
         <IssueListHeader

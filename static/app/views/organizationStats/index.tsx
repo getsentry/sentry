@@ -35,10 +35,12 @@ import type {Project} from 'sentry/types/project';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
@@ -365,6 +367,31 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
     const showProfilingBanner = this.dataCategory === 'profiles';
+    const newLayout = prefersStackedNav(organization);
+
+    const BodyWrapper = newLayout ? NewLayoutBody : Body;
+    const noTeamInsightsHeader = newLayout ? (
+      <SettingsPageHeader
+        title={t('Stats & Usage')}
+        subtitle={t(
+          'A view of the usage data that Sentry has received across your entire organization.'
+        )}
+      />
+    ) : (
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
+          <HeadingSubtitle>
+            {tct(
+              'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/product/stats/" />,
+              }
+            )}
+          </HeadingSubtitle>
+        </Layout.HeaderContent>
+      </Layout.Header>
+    );
 
     return (
       <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
@@ -373,23 +400,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             {hasTeamInsights ? (
               <HeaderTabs organization={organization} activeTab="stats" />
             ) : (
-              <Layout.Header>
-                <Layout.HeaderContent>
-                  <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
-                  <HeadingSubtitle>
-                    {tct(
-                      'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/stats/" />
-                        ),
-                      }
-                    )}
-                  </HeadingSubtitle>
-                </Layout.HeaderContent>
-              </Layout.Header>
+              noTeamInsightsHeader
             )}
-            <Body>
+            <BodyWrapper>
               <Layout.Main fullWidth>
                 <HookHeader organization={organization} />
                 <ControlsWrapper>
@@ -415,7 +428,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                   />
                 </ErrorBoundary>
               </Layout.Main>
-            </Body>
+            </BodyWrapper>
           </PageFiltersContainer>
         </NoProjectMessage>
       </SentryDocumentTitle>
@@ -459,6 +472,8 @@ const DropdownDataCategory = styled(CompactSelect)`
     border-radius: ${p => p.theme.borderRadius};
   }
 `;
+
+const NewLayoutBody = styled('div')``;
 
 const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {

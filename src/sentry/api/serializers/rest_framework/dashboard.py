@@ -35,6 +35,7 @@ from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 from sentry.tasks.on_demand_metrics import (
     _get_widget_on_demand_specs,
     check_field_cardinality,
@@ -272,17 +273,25 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
             # since the values themselves don't matter.
+            config = QueryBuilderConfig(
+                equation_config={
+                    "auto_add": bool(not is_table or injected_orderby_equation),
+                    "aggregates_only": not is_table,
+                },
+                use_aggregate_conditions=True,
+            )
+            if self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
+                DashboardWidgetTypes.ERROR_EVENTS
+            ):
+                config.parser_config_overrides = ERROR_PARSER_CONFIG_OVERRIDES
+            elif self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
+                DashboardWidgetTypes.TRANSACTION_LIKE
+            ):
+                config.has_metrics = use_metrics
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                config=QueryBuilderConfig(
-                    equation_config={
-                        "auto_add": bool(not is_table or injected_orderby_equation),
-                        "aggregates_only": not is_table,
-                    },
-                    use_aggregate_conditions=True,
-                    has_metrics=use_metrics,
-                ),
+                config=config,
             )
 
             builder.resolve_time_conditions()
@@ -384,6 +393,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         if data.get("display_type"):
             additional_context["display_type"] = data.get("display_type")
+        if data.get("widget_type"):
+            additional_context["widget_type"] = data.get("widget_type")
         if self.context.get("request") and self.context["request"].user:
             additional_context["user"] = self.context["request"].user
 
@@ -970,6 +981,15 @@ class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
     )
+
+
+class DashboardStarredOrderSerializer(serializers.Serializer):
+    dashboard_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+
+    def validate_dashboard_ids(self, dashboard_ids):
+        if len(dashboard_ids) != len(set(dashboard_ids)):
+            raise serializers.ValidationError("Single dashboard cannot take up multiple positions")
+        return dashboard_ids
 
 
 def schedule_update_project_configs(dashboard: Dashboard):

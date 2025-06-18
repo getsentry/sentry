@@ -9,9 +9,10 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {
   AI_MODEL_ID_ATTRIBUTE,
-  getLLMGenerationsFilter,
+  getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -39,7 +40,7 @@ export default function LLMGenerationsWidget() {
 
   const theme = useTheme();
 
-  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
+  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
 
   const generationsRequest = useEAPSpans(
     {
@@ -64,7 +65,7 @@ export default function LLMGenerationsWidget() {
     Referrer.QUERIES_CHART // TODO: add referrer
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = timeSeriesRequest.data;
 
   const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
   const error = timeSeriesRequest.error || generationsRequest.error;
@@ -76,7 +77,7 @@ export default function LLMGenerationsWidget() {
 
   const hasData = models && models.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
   const visualization = (
     <WidgetVisualizationStates
@@ -90,7 +91,7 @@ export default function LLMGenerationsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
+              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })
@@ -101,21 +102,24 @@ export default function LLMGenerationsWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {models?.map((item, index) => (
-        <Fragment key={item[AI_MODEL_ID_ATTRIBUTE]}>
-          <div>
-            <SeriesColorIndicator
-              style={{
-                backgroundColor: colorPalette[index],
-              }}
-            />
-          </div>
-          <div>
-            <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
-          </div>
-          <span>{item['count(span.duration)']}</span>
-        </Fragment>
-      ))}
+      {models?.map((item, index) => {
+        const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
+        return (
+          <Fragment key={modelId}>
+            <div>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </div>
+            <ModelText>
+              <ModelName modelId={modelId} />
+            </ModelText>
+            <span>{item['count()']}</span>
+          </Fragment>
+        );
+      })}
     </WidgetFooterTable>
   );
 

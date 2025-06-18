@@ -45,6 +45,8 @@ interface InsightCardObject {
   id: string;
   insight: string | null | undefined;
   title: string;
+  copyAnalyticsEventKey?: string;
+  copyAnalyticsEventName?: string;
   copyText?: string | null;
   copyTitle?: string | null;
   icon?: React.ReactNode;
@@ -175,6 +177,8 @@ function AutofixSummary({
       },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
+      copyAnalyticsEventName: 'Autofix: Copy Root Cause as Markdown',
+      copyAnalyticsEventKey: 'autofix.root_cause.copy',
     },
 
     ...(solutionDescription || solutionIsLoading
@@ -200,6 +204,8 @@ function AutofixSummary({
             },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
+            copyAnalyticsEventName: 'Autofix: Copy Solution as Markdown',
+            copyAnalyticsEventKey: 'autofix.solution.copy',
           },
         ]
       : []),
@@ -256,6 +262,8 @@ function AutofixSummary({
                         onClick={e => {
                           e.stopPropagation();
                         }}
+                        analyticsEventName={card.copyAnalyticsEventName}
+                        analyticsEventKey={card.copyAnalyticsEventKey}
                       />
                     )}
                   </CardTitle>

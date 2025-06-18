@@ -21,6 +21,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {
   ChonkStyledGroupWrap,
+  ChonkStyledLabelWrap,
   ChonkStyledSegmentWrap,
   ChonkStyledVisibleLabel,
   type Priority,
@@ -219,7 +220,12 @@ function Segment<Value extends string>({
         <Divider visible={showDivider} role="separator" aria-hidden />
       )}
 
-      <LabelWrap size={size} role="presentation">
+      <LabelWrap
+        size={size}
+        isSelected={isSelected}
+        priority={priority}
+        role="presentation"
+      >
         {icon}
         {props.children && label}
       </LabelWrap>
@@ -347,39 +353,46 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
 
   ${p =>
     p.priority === 'primary'
-      ? `
-    background: ${p.theme.active};
-    border-radius: ${p.theme.borderRadius};
-    input:focus-visible ~ & {
-      box-shadow: 0 0 0 3px ${p.theme.focus};
-    }
+      ? css`
+          background: ${p.theme.active};
+          border-radius: ${p.theme.borderRadius};
+          input:focus-visible ~ & {
+            box-shadow: 0 0 0 3px ${p.theme.focus};
+          }
 
-    top: -1px;
-    bottom: -1px;
-    label:first-child > & {
-      left: -1px;
-    }
-    label:last-child > & {
-      right: -1px;
-    }
-  `
-      : `
-    background: ${p.theme.backgroundElevated};
-    border-radius: calc(${p.theme.borderRadius} - 1px);
-    box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-    input:focus-visible ~ & {
-      box-shadow: 0 0 0 2px ${p.theme.focusBorder};
-    }
-  `}
+          top: -1px;
+          bottom: -1px;
+          label:first-child > & {
+            left: -1px;
+          }
+          label:last-child > & {
+            right: -1px;
+          }
+        `
+      : css`
+          background: ${p.theme.backgroundElevated};
+          border-radius: calc(${p.theme.borderRadius} - 1px);
+          box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
+          input:focus-visible ~ & {
+            box-shadow: 0 0 0 2px ${p.theme.focusBorder};
+          }
+        `}
 `;
 
-const LabelWrap = styled('span')<{size: FormSize}>`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
-  z-index: 1;
-`;
+const LabelWrap = withChonk(
+  styled('span')<{
+    isSelected: boolean;
+    priority: Priority;
+    size: FormSize;
+  }>`
+    display: grid;
+    grid-auto-flow: column;
+    align-items: center;
+    gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+    z-index: 1;
+  `,
+  ChonkStyledLabelWrap
+);
 
 const InnerLabelWrap = styled('span')`
   position: relative;
@@ -407,16 +420,32 @@ function getTextColor({
   isDisabled?: boolean;
 }) {
   if (isDisabled) {
-    return `color: ${theme.subText};`;
+    return priority === 'primary'
+      ? isSelected
+        ? css`
+            color: ${theme.white};
+          `
+        : css`
+            color: ${theme.subText};
+          `
+      : css`
+          color: ${theme.subText};
+        `;
   }
 
   if (isSelected) {
     return priority === 'primary'
-      ? `color: ${theme.white};`
-      : `color: ${theme.headingColor};`;
+      ? css`
+          color: ${theme.white};
+        `
+      : css`
+          color: ${theme.headingColor};
+        `;
   }
 
-  return `color: ${theme.textColor};`;
+  return css`
+    color: ${theme.textColor};
+  `;
 }
 
 const VisibleLabel = withChonk(
@@ -457,5 +486,9 @@ const Divider = styled('div')<{visible: boolean}>`
     display: none;
   }
 
-  ${p => !p.visible && `opacity: 0;`}
+  ${p =>
+    !p.visible &&
+    css`
+      opacity: 0;
+    `}
 `;

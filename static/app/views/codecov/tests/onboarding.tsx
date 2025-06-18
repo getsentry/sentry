@@ -1,10 +1,16 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {AddPermissionsBlock} from 'sentry/views/codecov/tests/onboardingSteps/addPermissionsBlock';
+import {AddUploadToken} from 'sentry/views/codecov/tests/onboardingSteps/addUploadToken';
+import type {UploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
+import {ChooseUploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
+import {OutputCoverageFile} from 'sentry/views/codecov/tests/onboardingSteps/outputCoverageFile';
+import TestPreOnboardingPage from 'sentry/views/codecov/tests/preOnboarding';
 
 type SetupOption = 'githubAction' | 'cli';
 
@@ -18,10 +24,12 @@ export default function TestsOnboardingPage() {
     },
     [setSearchParams]
   );
+  const [selectedUploadPermission, setSelectedUploadPermission] =
+    useState<UploadPermission>('oidc');
 
   return (
     <LayoutGap>
-      <p>Test Analytics Onboarding</p>
+      <TestPreOnboardingPage />
       <OnboardingContainer>
         <IntroContainer>
           <GetStartedHeader>{t('Get Started with Test Analytics')}</GetStartedHeader>
@@ -41,6 +49,17 @@ export default function TestsOnboardingPage() {
             ['cli', t("Use Sentry Prevent's CLI to upload testing reports")],
           ]}
         />
+        <StepsContainer>
+          <OutputCoverageFile step="1" />
+          {/* TODO coming soon: we will conditionally render this based on CLI vs GHAction and OIDC vs Token for CLI */}
+          <ChooseUploadPermission
+            step="2a"
+            selectedUploadPermission={selectedUploadPermission}
+            setSelectedUploadPermission={setSelectedUploadPermission}
+          />
+          <AddUploadToken step="2b" />
+          <AddPermissionsBlock step="2b" />
+        </StepsContainer>
       </OnboardingContainer>
     </LayoutGap>
   );
@@ -55,6 +74,7 @@ const OnboardingContainer = styled('div')`
   padding: ${space(1.5)} ${space(4)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  max-width: 800px;
 `;
 
 const IntroContainer = styled('div')`
@@ -77,4 +97,8 @@ const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(3)};
+`;
+
+const StepsContainer = styled('div')`
+  padding: ${space(3)} ${space(4)};
 `;

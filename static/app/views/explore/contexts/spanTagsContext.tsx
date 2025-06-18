@@ -1,5 +1,6 @@
 import type React from 'react';
 
+import type {Project} from 'sentry/types/project';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   TraceItemAttributeProvider,
@@ -11,11 +12,16 @@ interface SpanTagsProviderProps {
   children: React.ReactNode;
   dataset: DiscoverDatasets;
   enabled: boolean;
+  projects?: Project[];
 }
 
-export function SpanTagsProvider({children, enabled}: SpanTagsProviderProps) {
+export function SpanTagsProvider({children, enabled, projects}: SpanTagsProviderProps) {
   return (
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled={enabled}>
+    <TraceItemAttributeProvider
+      traceItemType={TraceItemDataset.SPANS}
+      enabled={enabled}
+      projects={projects}
+    >
       {children}
     </TraceItemAttributeProvider>
   );

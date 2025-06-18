@@ -1,7 +1,7 @@
 import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {DataSource, Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, SnubaQueryDataSource} from 'sentry/types/workflowEngine/detectors';
 
 export function DetectorFixture(params: Partial<Detector> = {}): Detector {
   return {
@@ -13,16 +13,22 @@ export function DetectorFixture(params: Partial<Detector> = {}): Detector {
     dateUpdated: '2025-01-01T00:00:00.000Z',
     lastTriggered: '2025-01-01T00:00:00.000Z',
     workflowIds: [],
-    config: {},
-    type: 'metric',
+    config: {
+      detection_type: 'static',
+      threshold_period: 1,
+    },
+    type: 'metric_issue',
     disabled: false,
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
-    dataSources: params.dataSources ?? [DetectorDataSourceFixture()],
+    dataSources: params.dataSources ?? [SnubaQueryDataSourceFixture()],
+    owner: null,
     ...params,
   };
 }
 
-export function DetectorDataSourceFixture(params: Partial<DataSource> = {}): DataSource {
+export function SnubaQueryDataSourceFixture(
+  params: Partial<SnubaQueryDataSource> = {}
+): SnubaQueryDataSource {
   return {
     id: '1',
     organizationId: '1',

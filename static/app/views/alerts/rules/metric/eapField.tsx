@@ -10,10 +10,10 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {
-  DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -47,11 +47,6 @@ function EAPField({aggregate, onChange}: Props) {
     name: aggregation,
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
-  //
-  // We want to lock down the fields dropdown when using count so that we can
-  // render `count(spans)` for better legibility. However, for backwards
-  // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions = aggregate === DEFAULT_VISUALIZATION;
 
   const {tags: storedStringTags} = useSpanTags('string');
   const {tags: storedNumberTags} = useSpanTags('number');
@@ -67,7 +62,28 @@ function EAPField({aggregate, onChange}: Props) {
 
   const fieldsArray = Object.values(numberTags);
 
+  // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
+  const [lockOptions, selectedOption] = useMemo(() => {
+    if (aggregation === AggregationKey.COUNT) {
+      return [true, {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}];
+    }
+
+    if (
+      aggregation &&
+      NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
+    ) {
+      return [true, {label: t('spans'), value: ''}];
+    }
+
+    const fieldName = fieldsArray.find(f => f.key === field)?.name;
+    return [false, field && {label: fieldName, value: field}];
+  }, [aggregation, field, fieldsArray]);
+
   useEffect(() => {
+    if (lockOptions) {
+      return;
+    }
+
     const selectedMeta = field ? numberTags[field] : undefined;
     if (!field || !selectedMeta) {
       const newSelection = fieldsArray[0];
@@ -77,7 +93,7 @@ function EAPField({aggregate, onChange}: Props) {
         onChange(DEFAULT_EAP_METRICS_ALERT_FIELD, {});
       }
     }
-  }, [onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
+  }, [lockOptions, onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
 
   const handleFieldChange = useCallback(
     (option: any) => {
@@ -118,13 +134,6 @@ function EAPField({aggregate, onChange}: Props) {
     },
     [fieldsArray]
   );
-
-  const fieldName = fieldsArray.find(f => f.key === field)?.name;
-
-  // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedOption = lockOptions
-    ? {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}
-    : field && {label: fieldName, value: field};
 
   return (
     <Wrapper>

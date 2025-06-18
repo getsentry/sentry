@@ -8,7 +8,8 @@ from sentry.integrations.source_code_management.repo_trees import (
 )
 from sentry.models.organization import Organization
 
-from .code_mapping import CodeMapping, CodeMappingTreesHelper, FrameInfo
+from .code_mapping import CodeMapping, CodeMappingTreesHelper
+from .frame_info import FrameInfo
 from .integration_utils import get_installation
 
 logger = logging.getLogger(__name__)

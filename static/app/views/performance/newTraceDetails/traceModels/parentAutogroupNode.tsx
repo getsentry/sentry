@@ -2,8 +2,8 @@ import type {TraceTree} from './traceTree';
 import {TraceTreeNode} from './traceTreeNode';
 
 export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogroup> {
-  head: TraceTreeNode<TraceTree.Span>;
-  tail: TraceTreeNode<TraceTree.Span>;
+  head: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
+  tail: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
   groupCount = 0;
   profiles: TraceTree.Profile[] = [];
 
@@ -13,8 +13,8 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
     node: TraceTree.ChildrenAutogroup,
     metadata: TraceTree.Metadata,
-    head: TraceTreeNode<TraceTree.Span>,
-    tail: TraceTreeNode<TraceTree.Span>
+    head: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>,
+    tail: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
   ) {
     super(parent, node, metadata);
 

@@ -40,7 +40,6 @@ class SentryAppIdentifier(StrEnum):
     """
 
     SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
-    SENTRY_APP_SLUG = "sentry_app_slug"
     SENTRY_APP_ID = "sentry_app_id"
 
 
@@ -695,7 +694,7 @@ class TicketDataBlob(DataBlob):
     """
 
     # Dynamic form fields from customer configuration
-    dynamic_form_fields: list[dict] = field(default_factory=list)
+    dynamic_form_fields: list[dict[str, Any]] = field(default_factory=list)
     # Store any additional fields that aren't part of standard fields
     additional_fields: dict[str, Any] = field(default_factory=dict)
 

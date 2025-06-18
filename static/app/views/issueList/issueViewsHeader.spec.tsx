@@ -11,12 +11,14 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
 
 describe('IssueViewsHeader', function () {
   const view = GroupSearchViewFixture();
 
   beforeEach(function () {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/123/',
@@ -28,6 +30,8 @@ describe('IssueViewsHeader', function () {
   const defaultProps = {
     selectedProjectIds: [],
     title: 'Issues',
+    realtimeActive: false,
+    onRealtimeChange: jest.fn(),
   };
 
   const organization = OrganizationFixture({
@@ -48,6 +52,14 @@ describe('IssueViewsHeader', function () {
     },
     route: '/organizations/:orgId/issues/',
   };
+
+  ConfigStore.set('user', {
+    ...ConfigStore.get('user'),
+    options: {
+      ...ConfigStore.get('user').options,
+      prefersStackedNavigation: true,
+    },
+  });
 
   describe('edit menu', function () {
     it('does not render if not on a view', async function () {

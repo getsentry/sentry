@@ -2,9 +2,9 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {flattie} from 'flattie';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import type FormModel from 'sentry/components/forms/model';
@@ -89,7 +89,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
       initialData={{...flattie(initialAutomationBuilderState), frequency: '1440'}}
     >
       <AutomationBuilderContext.Provider value={{state, actions}}>
-        <Flex column gap={space(1.5)} style={{padding: space(2)}}>
+        <Flex direction="column" gap={space(1.5)} style={{padding: space(2)}}>
           <Card>
             <Heading>{t('Connect Monitors')}</Heading>
             <ConnectedMonitorsList
@@ -110,7 +110,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             </ButtonWrapper>
           </Card>
           <Card>
-            <Flex column gap={space(0.5)}>
+            <Flex direction="column" gap={space(0.5)}>
               <Heading>{t('Choose Environment')}</Heading>
               <Description>
                 {t(

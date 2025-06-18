@@ -1,8 +1,8 @@
 import type {PageFilters} from 'sentry/types/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {SearchHook} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -14,14 +14,16 @@ const {
 } = SpanMetricsField;
 
 interface Props {
-  groupId?: string;
+  referrer: string;
+  search: MutableSearch;
+  enabled?: boolean;
   pageFilters?: PageFilters;
 }
 
-export function useResourceSummarySeries({pageFilters, groupId}: Props = {}) {
+export function useResourceSummarySeriesSearch(groupId?: string): SearchHook {
   const filters = useResourceModuleFilters();
 
-  const mutableSearch = MutableSearch.fromQueryObject({
+  const search = MutableSearch.fromQueryObject({
     'span.group': groupId,
     ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
       ? {
@@ -35,9 +37,15 @@ export function useResourceSummarySeries({pageFilters, groupId}: Props = {}) {
       : {}),
   });
 
+  return {search, enabled: Boolean(groupId)};
+}
+
+export function useResourceSummarySeries(props: Props) {
+  const {search, pageFilters, enabled, referrer} = props;
+
   return useSpanMetricsSeries(
     {
-      search: mutableSearch,
+      search,
       yAxis: [
         `epm()`,
         `avg(${SPAN_SELF_TIME})`,
@@ -45,10 +53,10 @@ export function useResourceSummarySeries({pageFilters, groupId}: Props = {}) {
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
       ],
-      enabled: Boolean(groupId),
+      enabled,
       transformAliasToInputFormat: true,
     },
-    Referrer.RESOURCE_SUMMARY_CHARTS,
+    referrer,
     pageFilters
   );
 }

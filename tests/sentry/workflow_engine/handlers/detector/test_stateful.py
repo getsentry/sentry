@@ -15,7 +15,8 @@ class TestStatefulDetectorHandler(TestCase):
 
     def test__init_creates_default_thresholds(self):
         handler = MockDetectorStateHandler(detector=self.detector)
-        assert handler._thresholds == {level: 1 for level in DetectorPriorityLevel}
+        # Only the OK threshold is set by default
+        assert handler._thresholds == {DetectorPriorityLevel.OK: 1}
 
     def test_init__override_thresholds(self):
         handler = MockDetectorStateHandler(
@@ -25,14 +26,15 @@ class TestStatefulDetectorHandler(TestCase):
             },
         )
 
+        # Setting the thresholds on the detector allow to override the defaults
         assert handler._thresholds == {
-            **{level: 1 for level in DetectorPriorityLevel},
+            DetectorPriorityLevel.OK: 1,
             DetectorPriorityLevel.LOW: 2,
         }
 
     def test_init__creates_correct_state_counters(self):
         handler = MockDetectorStateHandler(detector=self.detector)
-        assert handler.state_manager.counter_names == list(DetectorPriorityLevel)
+        assert handler.state_manager.counter_names == [DetectorPriorityLevel.OK]
 
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
@@ -74,7 +76,6 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
 
         # All states, lower than high, should be incremented by 1, except for OK
         assert updated_state.counter_updates == {
-            **{level: 1 for level in DetectorPriorityLevel},
             DetectorPriorityLevel.HIGH: None,
             DetectorPriorityLevel.OK: None,
         }
@@ -87,10 +88,10 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
         self.handler.state_manager.commit_state_updates()
         updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
 
-        # Since low is the lowest priority, only low should be incremented
+        # The detector doesn't increment LOW because it's not configured
         assert updated_state.counter_updates == {
-            **{level: None for level in DetectorPriorityLevel},
-            DetectorPriorityLevel.LOW: 1,
+            DetectorPriorityLevel.OK: None,
+            DetectorPriorityLevel.HIGH: None,
         }
 
 
@@ -103,6 +104,8 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             project=self.project,
         )
         self.detector.workflow_condition_group = self.create_data_condition_group()
+
+        # Setting a trigger condition on the detector allows to override the default OK threshold
         self.create_data_condition(
             type="gte",
             comparison=0,
@@ -149,7 +152,9 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         self.handler.evaluate(self.data_packet)
         result = self.handler.evaluate(self.data_packet_two)
 
+        assert result
         evaluation_result = result[self.group_key]
+
         assert evaluation_result
         assert evaluation_result.priority == DetectorPriorityLevel.HIGH
         assert isinstance(evaluation_result.result, IssueOccurrence)
@@ -206,11 +211,14 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         self.handler.evaluate(self.data_packet)
         self.handler.evaluate(self.data_packet_two)
         result = self.handler.evaluate(self.resolve_data_packet)
+
+        assert result
         evaluation_result = result[self.group_key]
 
         assert evaluation_result
         assert evaluation_result.priority == DetectorPriorityLevel.OK
         assert isinstance(evaluation_result.result, StatusChangeMessage)
+        assert evaluation_result.result.detector_id == self.detector.id
 
     def test_evaluate__resolve__detector_state(self):
         self.handler.evaluate(self.data_packet)
@@ -241,6 +249,8 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert result == {}
 
         result = self.handler.evaluate(self.data_packet_two)
+
+        assert result
         evaluation_result = result[self.group_key]
 
         assert evaluation_result

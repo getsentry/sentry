@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils';
 import {domId} from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
@@ -19,7 +20,7 @@ import {
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
-import replayerStepper from 'sentry/utils/replays/replayerStepper';
+import {replayerDomQuery} from 'sentry/utils/replays/replayerDomQuery';
 import type {
   BreadcrumbFrame,
   ClipWindow,
@@ -29,6 +30,7 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
@@ -310,6 +312,9 @@ export default class ReplayReader {
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
   private _errorBeforeReplayStart = false;
+  private _replayerQuery: ReturnType<
+    typeof replayerDomQuery<ReplayFrame | RecordingFrame, Extraction>
+  > | null = null;
 
   private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
     let clipStartTimestampMs: number;
@@ -442,26 +447,26 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
-  getExtractDomNodes = memoize(
-    async ({withoutStyles}: {withoutStyles?: boolean} = {}) => {
-      if (this._fetching) {
-        return null;
-      }
-      const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
-
-      const results = await replayerStepper({
-        frames: this.getDOMFrames(),
-        rrwebEvents: withoutStyles
-          ? this.getRRWebFramesWithoutStyles()
-          : this.getRRWebFrames(),
-        startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-        onVisitFrame,
-        shouldVisitFrame,
-      });
-
-      return results;
+  domQuery = () => {
+    if (this._replayerQuery) {
+      return this._replayerQuery;
     }
-  );
+
+    this._replayerQuery = replayerDomQuery({
+      rrwebEvents: this.getRRWebFramesForDomExtraction(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame: extractDomNodes.onVisitFrame,
+    });
+
+    return this._replayerQuery;
+  };
+
+  getDomNodesForFrame = ({frame}: {frame: ReplayFrame}): Extraction | null => {
+    if (this._fetching) {
+      return null;
+    }
+    return this.domQuery()?.getResult(frame) ?? null;
+  };
 
   getClipWindow = () => this._clipWindow;
 
@@ -573,75 +578,56 @@ export default class ReplayReader {
   /**
    * Do not include style mutation content as they can cause perf problems when
    * used in replayStepper. However, we need to keep the nodes itself as to not affect the tree structure.
+   *
+   * Skip media interaction events as they are unnecessary to the
+   * stepper. Prevents errors with `play()` (https://developer.chrome.com/blog/play-request-was-interrupted)
    */
-  getRRWebFramesWithoutStyles = memoize(() => {
-    return this.getRRWebFrames().map(e => {
-      if (
-        e.type === EventType.IncrementalSnapshot &&
-        'source' in e.data &&
-        e.data.source === IncrementalSource.Mutation
-      ) {
-        // Example `data` object:
-        // [{
-        //       "parentId": 4,
-        //       "nextId": 21,
-        //       "node": {
-        //           "type": 2,
-        //           "tagName": "style",
-        //           "attributes": {
-        //               "data-emotion": "css",
-        //               "data-s": "",
-        //               "_cssText": ".css {...} "
-        //           },
-        //           "childNodes": [],
-        //           "id": 47
-        //       }
-        //   },
-        //   {
-        //       "parentId": 414,
-        //       "nextId": null,
-        //       "node": {
-        //           "type": 3,
-        //           "textContent": ".css {...}",
-        //           "isStyle": true,
-        //           "id": 427
-        //       }
-        //   }
-        // ]
+  getRRWebFramesForDomExtraction = memoize(() => {
+    return this.getRRWebFrames()
+      .filter(
+        ({data, type}) =>
+          type !== EventType.IncrementalSnapshot ||
+          data.source !== IncrementalSource.MediaInteraction
+      )
+      .map(e => {
+        if (
+          e.type === EventType.IncrementalSnapshot &&
+          'source' in e.data &&
+          e.data.source === IncrementalSource.Mutation
+        ) {
+          return {
+            ...e,
+            data: {
+              ...e.data,
+              adds: e.data.adds.map(add => {
+                if (add.node.type === 3 && add.node.isStyle) {
+                  return {
+                    ...add,
+                    node: {
+                      ...add.node,
+                      textContent: '',
+                    },
+                  };
+                }
 
-        return {
-          ...e,
-          data: {
-            ...e.data,
-            adds: e.data.adds.map(add => {
-              if (add.node.type === 3 && add.node.isStyle) {
-                return {
-                  ...add,
-                  node: {
-                    ...add.node,
-                    textContent: '',
-                  },
-                };
-              }
+                if (add.node.type === 2 && add.node.tagName === 'style') {
+                  return {
+                    ...add,
+                    node: {
+                      ...add.node,
+                      attributes: {},
+                      childNodes: [],
+                    },
+                  };
+                }
 
-              if (add.node.type === 2 && add.node.tagName === 'style') {
-                return {
-                  ...add,
-                  node: {
-                    ...add.node,
-                    attributes: {},
-                    childNodes: [],
-                  },
-                };
-              }
-
-              return add;
-            }),
-          },
-        };
-      }
-      return e;
-    });
+                return add;
+              }),
+            },
+          };
+        }
+        return e;
+      });
   });
 
   getRRwebTouchEvents = memoize(() =>
@@ -798,6 +784,8 @@ export default class ReplayReader {
   hasCanvasElementInReplay = memoize(() => {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
+
+  isFetching = () => this._fetching;
 
   isVideoReplay = () => this.getVideoEvents().length > 0;
 

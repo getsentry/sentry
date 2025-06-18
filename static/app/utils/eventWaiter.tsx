@@ -25,7 +25,6 @@ export interface EventWaiterProps {
   project: Project;
   disabled?: boolean;
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
-  onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   pollInterval?: number;
 }
 
