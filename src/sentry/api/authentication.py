@@ -26,7 +26,7 @@ from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
-from sentry.hybridcloud.rpc.service import compare_signature
+from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -573,7 +573,6 @@ def compare_service_signature(
         shared_secret_setting: List of shared secrets from settings
         service_name: Name of the service for logging (e.g., "Seer", "Launchpad")
     """
-    from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException
 
     if not shared_secret_setting:
         raise RpcAuthenticationSetupException(
@@ -657,7 +656,6 @@ def generate_service_request_signature(
         shared_secret_setting: List of shared secrets from settings
         service_name: Name of the service for error messages
     """
-    from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException
 
     if not shared_secret_setting:
         raise RpcAuthenticationSetupException(
