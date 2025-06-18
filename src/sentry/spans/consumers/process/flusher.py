@@ -247,7 +247,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.next_step.terminate()
 
     def close(self) -> None:
-        self.stopped.value = True
+        # Do not shut down the flusher here -- this is running at the beginning
+        # of rebalancing, so everytime we are rebalancing we will cause a huge
+        # memory spike in redis
         self.next_step.close()
 
     def join(self, timeout: float | None = None):
