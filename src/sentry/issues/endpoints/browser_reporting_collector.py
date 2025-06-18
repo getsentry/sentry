@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,6 +15,30 @@ from sentry.api.base import Endpoint, all_silo_endpoint, allow_cors_options
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# Known browser report types as defined by the Browser Reporting API specification
+BrowserReportType = Literal[
+    # Core report types (always sent to 'default' endpoint)
+    "deprecation",  # Deprecated API usage
+    "intervention",  # Browser interventions/blocks
+    "crash",  # Browser crashes
+    # Policy violation report types (can be sent to named endpoints)
+    "csp-violation",  # Content Security Policy violations
+    "coep",  # Cross-Origin-Embedder-Policy violations
+    "coop",  # Cross-Origin-Opener-Policy violations
+    "document-policy-violation",  # Document Policy violations
+    "permissions-policy",  # Permissions Policy violations
+]
+
+
+class BrowserReport(TypedDict):
+    body: dict[str, Any]
+    type: BrowserReportType
+    url: str
+    user_agent: str
+    destination: str
+    timestamp: int
+    attempts: int
 
 
 class BrowserReportsJSONParser(JSONParser):
@@ -50,7 +76,7 @@ class BrowserReportingCollectorEndpoint(Endpoint):
         logger.info("browser_report_received", extra={"request_body": request.data})
 
         # Browser Reporting API sends an array of reports
-        reports = request.data if isinstance(request.data, list) else [request.data]
+        reports: list[BrowserReport] = request.data
 
         for report in reports:
             if isinstance(report, dict):
