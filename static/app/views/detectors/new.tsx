@@ -4,9 +4,9 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import Form from 'sentry/components/forms/form';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {
   StickyFooter,
@@ -100,17 +100,4 @@ export default function DetectorNew() {
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
-`;
-
-// Make the form full height
-const FullHeightForm = styled(Form)`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0%;
-
-  & > div:first-child {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
 `;

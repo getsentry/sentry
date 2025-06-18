@@ -14,7 +14,6 @@ export function getAutomationActions(automation: Automation): ActionType[] {
   ] as ActionType[];
 }
 
-export const NEW_AUTOMATION_CONNECTED_IDS_KEY = 'new-automation-connected-ids';
 export function useAutomationProjectIds(automation: Automation): string[] {
   const queries = useDetectorQueriesByIds(automation.detectorIds);
   return [
