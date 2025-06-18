@@ -8,7 +8,6 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Indicators from 'sentry/components/indicators';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -261,7 +260,6 @@ export function WizardProjectSelection({
 
   return (
     <StyledForm onSubmit={handleSubmit}>
-      <Indicators />
       <Heading>{t('Select your Sentry project')}</Heading>
       <FieldWrapper>
         <label>{t('Organization')}</label>
