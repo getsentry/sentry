@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
@@ -89,7 +89,6 @@ jobs:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance:
           [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
-        pg-version: ['14']
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
@@ -143,9 +142,6 @@ jobs:
     name: backend migration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -182,9 +178,6 @@ jobs:
     name: cli test
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        pg-version: ['14']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -252,9 +245,6 @@ jobs:
     needs: files-changed
     name: check migration
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     steps:
       - name: Checkout sentry

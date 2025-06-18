@@ -13,4 +13,4 @@ To register a new provider:
 3. Create a provider module in the new directory.
    - Extend `NotificationProvider` from [`.provider`](./provider.py) and implement its methods/variables.
    - Import `provider_registry` from [`.registry`](./registry.py) and add it via decorator: `@provider_registry.register(<YOUR-KEY-HERE>)`
-4. In [.apps](./apps.py), explicitly import the module to register the provider on initialization.
+4. In [../apps](../apps.py), explicitly import the module to register the provider on initialization.

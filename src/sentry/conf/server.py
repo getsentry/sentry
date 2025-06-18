@@ -408,7 +408,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.sentry_apps",
     "sentry.integrations",
     "sentry.notifications",
-    "sentry.notifications.platform",
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
@@ -3425,20 +3424,21 @@ JIRA_USE_EMAIL_SCOPE = False
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "explore",
+    "feedback",
     "flags",
+    "hybridcloud",
+    "insights",
+    "monitors",
     "nodestore",
+    "notifications",
+    "preprod",
     "replays",
     "sentry",
     "social_auth",
-    "feedback",
-    "hybridcloud",
+    "tempest",
     "uptime",
     "workflow_engine",
-    "tempest",
-    "explore",
-    "insights",
-    "monitors",
-    "preprod",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

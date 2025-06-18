@@ -72,16 +72,18 @@ export default function PlayStationSdkAccessModal({
         )
         .join(', ')}`,
       `Org Slug: ${organization.slug}`,
+      `GitHub Profile: ${formData.githubProfile}`,
     ].join('\n');
 
     // Use captureFeedback with proper user context instead of tags
     captureFeedback(
       {
         message: messageBody,
+        name: user.name,
+        email: user.email,
         source: 'playstation-sdk-access',
         tags: {
           feature: 'playstation-sdk-access',
-          githubProfile: formData.githubProfile,
         },
       },
       {
