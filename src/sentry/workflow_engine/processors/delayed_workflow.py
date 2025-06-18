@@ -371,7 +371,11 @@ def get_condition_query_groups(
     return condition_groups
 
 
-@sentry_sdk.trace
+@metrics.wraps(
+    "workflow_engine.delayed_workflow.get_condition_group_results",
+    # We want this to be accurate enough for alerting, so sample 100%
+    sample_rate=1.0,
+)
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, set[GroupId]],
 ) -> dict[UniqueConditionQuery, QueryResult]:
@@ -460,6 +464,7 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
     }
 
 
+@sentry_sdk.trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
@@ -668,12 +673,7 @@ def process_delayed_workflows(
         },
     )
 
-    with metrics.timer(
-        "workflow_engine.delayed_workflow.get_condition_group_results",
-        # We want this to be accurate enough for alerting, so sample 100%
-        sample_rate=1.0,
-    ):
-        condition_group_results = get_condition_group_results(condition_groups)
+    condition_group_results = get_condition_group_results(condition_groups)
 
     logger.info(
         "delayed_workflow.condition_group_results",
@@ -694,12 +694,11 @@ def process_delayed_workflows(
         extra={"groups_to_dcgs": groups_to_dcgs},
     )
 
-    with sentry_sdk.start_span(op="delayed_workflow.get_group_to_groupevent"):
-        group_to_groupevent = get_group_to_groupevent(
-            event_data,
-            groups_to_dcgs,
-            project_id,
-        )
+    group_to_groupevent = get_group_to_groupevent(
+        event_data,
+        groups_to_dcgs,
+        project_id,
+    )
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, event_data, group_to_groupevent)
     cleanup_redis_buffer(project_id, event_data.events.keys(), batch_key)
