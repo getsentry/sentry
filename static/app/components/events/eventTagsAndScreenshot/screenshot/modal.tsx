@@ -1,7 +1,8 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
@@ -106,6 +107,17 @@ export default function ScreenshotModal({
   }
 
   const AttachmentComponent = getInlineAttachmentRenderer(currentEventAttachment)!;
+
+  useEffect(() => {
+    if (currentEventAttachment && !AttachmentComponent) {
+      Sentry.withScope(scope => {
+        scope.setExtra('mimetype', currentEventAttachment.mimetype);
+        scope.setExtra('attachmentName', currentEventAttachment.name);
+        scope.setFingerprint(['no-inline-attachment-renderer']);
+        scope.captureException(new Error('No screenshot attachment renderer found'));
+      });
+    }
+  }, [currentEventAttachment, AttachmentComponent]);
 
   return (
     <Fragment>

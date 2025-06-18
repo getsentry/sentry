@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
@@ -61,12 +59,6 @@ export const getInlineAttachmentRenderer = (
     return WebMViewer;
   }
 
-  Sentry.withScope(scope => {
-    scope.setExtra('mimetype', attachment.mimetype);
-    scope.setExtra('attachmentName', attachment.name);
-    scope.setFingerprint(['no-inline-attachment-renderer']);
-    scope.captureException(new Error('No inline attachment renderer found'));
-  });
   return undefined;
 };
 
