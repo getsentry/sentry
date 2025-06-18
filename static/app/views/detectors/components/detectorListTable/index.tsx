@@ -60,7 +60,12 @@ function HeaderCell({
   };
 
   return (
-    <HeaderCellDiv className={name} sortable={defined(sortKey)} onClick={handleSort}>
+    <HeaderCellDiv
+      className={name}
+      sortable={defined(sortKey)}
+      onClick={handleSort}
+      role="columnheader"
+    >
       {divider && <HeaderDivider />}
       {sortKey && <InteractionStateLayer />}
       <Heading sorted={isSortedByField}>{children}</Heading>
