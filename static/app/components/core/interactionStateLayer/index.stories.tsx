@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
@@ -47,7 +46,10 @@ export default Storybook.story('InteractionStateLayer', story => {
   });
 });
 
-const StyledPanel = styled(Panel)`
+const StyledPanel = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
   max-width: 300px;
 `;
