@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
@@ -11,55 +10,21 @@ import * as Storybook from 'sentry/stories';
 import {APIReference} from 'sentry/stories/apiReference';
 import {StoryTableOfContents} from 'sentry/stories/view/storyTableOfContents';
 import {space} from 'sentry/styles/space';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 import {StorySourceLinks} from './storySourceLinks';
 import type {StoryDescriptor, StoryResources} from './useStoriesLoader';
 
 export function StoryExports(props: {story: StoryDescriptor}) {
-  if (props.story.filename.endsWith('.mdx')) {
-    return <UI2Story story={props.story} />;
-  }
-
-  return <LegacyStory story={props.story} />;
-}
-
-function LegacyStory(props: {story: StoryDescriptor}) {
-  const {default: DefaultExport, ...namedExports} = props.story.exports;
-  return (
-    <Fragment>
-      <StorySourceLinksContainer>
-        <Flex justify="flex-end" align="center" gap={1}>
-          <ErrorBoundary>
-            <StorySourceLinks story={props.story} />
-          </ErrorBoundary>
-        </Flex>
-      </StorySourceLinksContainer>
-      {/* Render default export first */}
-      {DefaultExport ? (
-        <Story key="default">
-          <DefaultExport />
-        </Story>
-      ) : null}
-      {Object.entries(namedExports).map(([name, MaybeComponent]) => {
-        if (typeof MaybeComponent === 'function') {
-          return (
-            <Story key={name}>
-              <MaybeComponent />
-            </Story>
-          );
-        }
-
-        throw new Error(
-          `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
-        );
-      })}
-    </Fragment>
-  );
+  return <UI2Story story={props.story} />;
 }
 
 function UI2Story(props: {story: StoryDescriptor}) {
-  const {default: DefaultExport, frontmatter = {}, types = {}} = props.story.exports;
+  const {
+    default: DefaultExport,
+    frontmatter = {},
+    types,
+    ...namedExports
+  } = props.story.exports;
   const title = frontmatter.title ?? props.story.filename;
 
   return (
@@ -85,9 +50,25 @@ function UI2Story(props: {story: StoryDescriptor}) {
           <main>
             <TabPanels>
               <TabPanels.Item key="usage">
-                <Storybook.Section>
-                  <DefaultExport />
-                </Storybook.Section>
+                {/* Render default export first */}
+                {DefaultExport ? (
+                  <Storybook.Section key="default">
+                    <DefaultExport />
+                  </Storybook.Section>
+                ) : null}
+                {Object.entries(namedExports).map(([name, MaybeComponent]) => {
+                  if (typeof MaybeComponent === 'function') {
+                    return (
+                      <Storybook.Section key={name}>
+                        <MaybeComponent />
+                      </Storybook.Section>
+                    );
+                  }
+
+                  throw new Error(
+                    `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
+                  );
+                })}
               </TabPanels.Item>
               {frontmatter.resources ? (
                 <TabPanels.Item key="resources">
@@ -173,12 +154,12 @@ const CardTitle = styled('div')`
 `;
 
 const StyledTabs = styled(Tabs)`
-  display: contents;
+  /* display: contents; */
 `;
 
-const StoryHeaderBar = chonkStyled('header')`
+const StoryHeaderBar = styled('header')`
   background: ${p => p.theme.tokens.background.secondary};
-  padding: ${p => `${p.theme.space?.['3xl'] ?? '32px'} 0 0 0`};
+  padding: 32px 0 0 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   grid-area: story-head;
 
@@ -187,12 +168,12 @@ const StoryHeaderBar = chonkStyled('header')`
     font-weight: ${p => p.theme.fontWeightBold};
   }
   p {
-    margin-top: ${p => p.theme.space?.md ?? '8px'};
-    margin-bottom: ${p => p.theme.space?.xl ?? '16px'};
+    margin-top: 8px;
+    margin-bottom: 16px;
   }
 `;
 
-const StoryGrid = chonkStyled('div')`
+const StoryGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr minmax(auto, 360px);
   flex: 1;
@@ -311,12 +292,4 @@ function A11yResource(props: {items: Record<string, string>}) {
 const StorySourceLinksContainer = styled('div')`
   margin-top: auto;
   padding-top: ${space(1.5)};
-`;
-
-const Story = styled('section')`
-  padding-top: ${space(2)};
-
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
