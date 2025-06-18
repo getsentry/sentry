@@ -65,7 +65,7 @@ import {
   isEAPSpanNode,
   isEAPTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
@@ -389,12 +389,17 @@ function EAPSpanNodeDetails({
     enabled: true,
   });
 
+  // EAP spans with is_transaction=false don't have an associated transaction_id that maps to the nodestore transaction.
+  // In that case we use the transaction id attached to the direct parent EAP span where is_transaction=true.
+  const transaction_event_id =
+    node.value.transaction_id ??
+    TraceTree.ParentEAPTransaction(node)?.value.transaction_id;
   const {
     data: eventTransaction,
     isLoading: isEventTransactionLoading,
     isError: isEventTransactionError,
   } = useTransaction({
-    event_id: node.value.transaction_id,
+    event_id: transaction_event_id,
     project_slug: node.value.project_slug,
     organization,
   });
@@ -563,7 +568,7 @@ function EAPSpanNodeDetails({
 
                     <LogDetails />
 
-                    {isTransaction && organization.features.includes('profiling') ? (
+                    {eventTransaction && organization.features.includes('profiling') ? (
                       <ProfileDetails
                         organization={organization}
                         project={project}
