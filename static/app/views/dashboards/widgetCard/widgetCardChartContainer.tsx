@@ -14,7 +14,6 @@ import type {
   EChartEventHandler,
   Series,
 } from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,7 +29,6 @@ import {WidgetCardDataLoader} from './widgetCardDataLoader';
 type Props = {
   api: Client;
   location: Location;
-  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -66,7 +64,6 @@ type Props = {
 };
 
 export function WidgetCardChartContainer({
-  organization,
   selection,
   widget,
   dashboardFilters,
@@ -167,7 +164,6 @@ export function WidgetCardChartContainer({
                 widget={widget}
                 location={location}
                 selection={selection}
-                organization={organization}
               />
             </Fragment>
           );
@@ -187,7 +183,6 @@ export function WidgetCardChartContainer({
               location={location}
               widget={widget}
               selection={selection}
-              organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
               expandNumbers={expandNumbers}

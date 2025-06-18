@@ -30,7 +30,7 @@ import type {
   EChartEventHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -52,6 +52,7 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -76,7 +77,6 @@ type WidgetCardChartProps = Pick<
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
   location: Location;
-  organization: Organization;
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
@@ -136,23 +136,25 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {widget, selection, minTableColumnWidth, organization} = this.props;
+    const {widget, selection, minTableColumnWidth} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
+
+    const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
 
     return tableResults.map((result, _) => {
       return (
         <TableWrapper key={`table:${result.title}`}>
           <TableWidgetVisualization
             loading={loading}
-            organization={organization}
             tableResults={tableResults}
             widget={widget}
-            selection={selection}
+            eventView={eventView}
             minTableColumnWidth={minTableColumnWidth}
             stickyHeader
+            scrollable
             style={DASHBOARD_TABLE_WIDGET_STYLES}
           />
         </TableWrapper>

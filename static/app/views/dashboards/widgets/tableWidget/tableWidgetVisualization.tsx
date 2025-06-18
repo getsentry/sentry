@@ -4,14 +4,12 @@ import {useTheme} from '@emotion/react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
-import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {type Widget} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {
   renderGridBodyCell,
   renderGridHeaderCell,
@@ -19,15 +17,15 @@ import {
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
 interface TableWidgetVisualizationProps {
+  eventView: EventView;
   loading: boolean;
-  organization: Organization;
-  selection: PageFilters;
   tableResults: TableDataWithTitle[];
-  widget: Widget;
   fitMaxContent?: boolean;
   minTableColumnWidth?: number;
+  scrollable?: boolean;
   stickyHeader?: boolean;
   style?: CSSProperties;
+  widget?: Widget;
 }
 
 // Used in widget preview and on the dashboard
@@ -48,30 +46,28 @@ function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const {
     tableResults,
     loading,
-    selection,
+    eventView,
     widget,
     stickyHeader,
+    scrollable,
     minTableColumnWidth,
     style,
   } = props;
   const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
+  const organization = useOrganization();
   const widths: string[] = [];
 
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+  const tableWidget: Widget = {
+    displayType: DisplayType.TABLE,
+    ...widget,
+    queries: [],
+    title: tableResults?.[0]?.title || '',
+    interval: '',
+  };
 
-  const {aggregates, columns} = widget.queries[0]!;
-
-  const fields = defined(widget.queries[0]!.fields)
-    ? widget.queries[0]!.fields
-    : [...columns, ...aggregates];
-
-  let columnOrder = decodeColumnOrder(
-    fields.map(field => ({
-      field,
-    }))
-  );
+  let columnOrder = decodeColumnOrder(eventView.fields);
   columnOrder = columnOrder.map((column, index) => ({
     ...column,
     width: parseInt(widths[index] || '-1', 10),
@@ -87,9 +83,9 @@ function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         grid={{
           renderHeadCell: renderGridHeaderCell({
             ...props,
-            widget,
             tableData: tableResults?.[0],
             onHeaderClick: () => {},
+            widget: tableWidget,
           }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
           renderBodyCell: renderGridBodyCell({
             ...props,
@@ -98,10 +94,12 @@ function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             projects,
             eventView,
             theme,
+            organization,
+            widget: tableWidget,
           }),
         }}
         stickyHeader={stickyHeader}
-        scrollable
+        scrollable={scrollable}
         height={'100%'}
         minimumColWidth={minTableColumnWidth}
         bodyStyle={style}

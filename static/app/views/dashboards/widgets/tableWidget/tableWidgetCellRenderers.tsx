@@ -6,7 +6,6 @@ import type {Location} from 'history';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -35,7 +34,6 @@ interface SharedRenderTableProps {
 interface RenderGridBodyProps extends SharedRenderTableProps {
   location: Location;
   organization: Organization;
-  selection: PageFilters;
   theme: Theme;
   eventView?: EventView;
   isFirstPage?: boolean;
