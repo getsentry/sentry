@@ -69,7 +69,7 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     data_source = SnubaQueryValidator(required=True, timeWindowSeconds=True)
-    condition_group = MetricIssueConditionGroupValidator(required=True)
+    condition_group = BaseDataConditionGroupValidator(required=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

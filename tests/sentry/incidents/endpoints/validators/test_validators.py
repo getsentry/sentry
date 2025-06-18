@@ -11,6 +11,11 @@ from sentry.incidents.metric_issue_detector import (
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     QuerySubscription,
@@ -186,6 +191,96 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        # Verify audit log
+        mock_audit.assert_called_once_with(
+            request=self.context["request"],
+            organization=self.project.organization,
+            target_object=detector.id,
+            event=audit_log.get_event_id("DETECTOR_ADD"),
+            data=detector.get_audit_log_data(),
+        )
+
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_anomaly_detection(self, mock_audit):
+        data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.ANOMALY_DETECTION,
+                        "comparison": {
+                            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                            "seasonality": AnomalyDetectionSeasonality.AUTO,
+                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+                        },
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+            },
+        }
+        validator = MetricIssueDetectorValidator(
+            data=data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        # Verify detector in DB
+        detector = Detector.objects.get(id=detector.id)
+        assert detector.name == "Test Detector"
+        assert detector.type == MetricIssue.slug
+        assert detector.project_id == self.project.id
+
+        # Verify data source and query subscription in DB
+        data_source = DataSource.objects.get(detector=detector)
+        assert data_source.type == data_source_type_registry.get_key(
+            QuerySubscriptionDataSourceHandler
+        )
+        assert data_source.organization_id == self.project.organization_id
+
+        query_sub = QuerySubscription.objects.get(id=data_source.source_id)
+        assert query_sub.project == self.project
+        assert query_sub.type == INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+
+        # Verify the Snuba query
+        snuba_query = query_sub.snuba_query
+        assert snuba_query
+        assert snuba_query.type == SnubaQuery.Type.ERROR.value
+        assert snuba_query.dataset == Dataset.Events.value
+        assert snuba_query.query == "test query"
+        assert snuba_query.aggregate == "count()"
+        assert snuba_query.time_window == 3600
+        assert snuba_query.environment == self.environment
+        assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+
+        condition = conditions[0]
+        assert condition.type == Condition.ANOMALY_DETECTION
+        assert condition.comparison == {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         # Verify audit log
