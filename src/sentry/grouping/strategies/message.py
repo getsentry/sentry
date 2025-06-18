@@ -37,6 +37,24 @@ REGEX_PATTERN_KEYS = (
     "bool",
 )
 
+REGEX_PATTERN_KEYS_WITH_TRACEPARENT = (
+    "email",
+    "url",
+    "hostname",
+    "ip",
+    "traceparent",
+    "uuid",
+    "sha1",
+    "md5",
+    "date",
+    "duration",
+    "hex",
+    "float",
+    "int",
+    "quoted_str",
+    "bool",
+)
+
 EXPERIMENT_PROJECTS = [  # Active internal Sentry projects
     1,
     11276,
@@ -71,11 +89,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
     if trimmed != message:
         trimmed += "..."
 
-    parameterizer = Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS, experiments=(UniqueIdExperiment,)
-    )
-
-    def _shoudl_run_experiment(experiment_name: str) -> bool:
+    def _should_run_experiment(experiment_name: str) -> bool:
         return bool(
             not is_self_hosted()
             and event.project_id
@@ -87,7 +101,16 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
             )
         )
 
-    normalized = parameterizer.parameterize_all(trimmed, _shoudl_run_experiment)
+    parameterizer = Parameterizer(
+        regex_pattern_keys=REGEX_PATTERN_KEYS, experiments=(UniqueIdExperiment,)
+    )
+    if _should_run_experiment("traceparent"):
+        parameterizer = Parameterizer(
+            regex_pattern_keys=REGEX_PATTERN_KEYS_WITH_TRACEPARENT,
+            experiments=(UniqueIdExperiment,),
+        )
+
+    normalized = parameterizer.parameterize_all(trimmed, _should_run_experiment)
 
     for experiment in parameterizer.get_successful_experiments():
         if share_analytics and experiment.counter < 100:

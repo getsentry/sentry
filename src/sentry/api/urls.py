@@ -295,9 +295,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
-from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
-    ProjectPreprodArtifactAssembleEndpoint,
-)
+from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
@@ -2524,11 +2522,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-assemble-dif-files",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
-        ProjectPreprodArtifactAssembleEndpoint.as_view(),
-        name="sentry-api-0-assemble-preprod-artifact-files",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/dsyms/unknown/$",
         UnknownDebugFilesEndpoint.as_view(),
         name="sentry-api-0-unknown-dsym-files",
@@ -2992,6 +2985,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
     ),
+    *preprod_urls.preprod_urlpatterns,
 ]
 
 TEAM_URLS = [
