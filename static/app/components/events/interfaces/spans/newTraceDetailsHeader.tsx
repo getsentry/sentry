@@ -32,7 +32,7 @@ function ServiceBreakdown({
 }) {
   if (!displayBreakdown) {
     return (
-      <BreakDownWrapper direction="column">
+      <BreakDownWrapper>
         <Flex align="center" justify="space-between">
           <div>{t('server side')}</div>
           <Flex>
@@ -57,7 +57,7 @@ function ServiceBreakdown({
   const clientSidePct = 100 - Number(serverSidePct);
 
   return httpDuration ? (
-    <BreakDownWrapper direction="column">
+    <BreakDownWrapper>
       <Flex align="center" justify="space-between">
         <div>{t('server side')}</div>
         <Flex>
@@ -152,7 +152,9 @@ const Pct = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const BreakDownWrapper = styled(Flex)`
+const BreakDownWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
   padding: ${space(2)};
 `;
 
