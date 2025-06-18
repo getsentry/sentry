@@ -282,6 +282,7 @@ def update_project_uptime_subscription(
     trace_sampling: bool | NotSet = NOT_SET,
     status: int = ObjectStatus.ACTIVE,
     mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
+    ensure_assignment: bool = False,
 ):
     """
     Links a project to an uptime subscription so that it can process results.
@@ -344,7 +345,7 @@ def update_project_uptime_subscription(
                 case ObjectStatus.DISABLED:
                     disable_uptime_detector(detector)
                 case ObjectStatus.ACTIVE:
-                    enable_uptime_detector(detector, ensure_assignment=True)
+                    enable_uptime_detector(detector, ensure_assignment=ensure_assignment)
 
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector

@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+
+import Indicators from 'sentry/components/indicators';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -24,10 +27,15 @@ function SetupWizard({hash, enableProjectSelection = false}: Props) {
     return <LoadingError message={t('Failed to load organizations')} />;
   }
 
-  return enableProjectSelection ? (
-    <WizardProjectSelection hash={hash} organizations={organizations} />
-  ) : (
-    <WaitingForWizardToConnect hash={hash} organizations={organizations} />
+  return (
+    <Fragment>
+      <Indicators />
+      {enableProjectSelection ? (
+        <WizardProjectSelection hash={hash} organizations={organizations} />
+      ) : (
+        <WaitingForWizardToConnect hash={hash} organizations={organizations} />
+      )}
+    </Fragment>
   );
 }
 
