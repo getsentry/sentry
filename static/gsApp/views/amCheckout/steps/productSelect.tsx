@@ -49,7 +49,7 @@ function ProductSelect({
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
-      description: (includedBudget: string) =>
+      getProductDescription: (includedBudget: string) =>
         tct(
           'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
           {
@@ -62,7 +62,7 @@ function ProductSelect({
           description: t(
             'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
           ),
-          maxEventPriceDigits: 2,
+          maxEventPriceDigits: 0,
         },
         [DataCategory.SEER_SCANNER]: {
           perEventNameOverride: 'scan',
@@ -87,6 +87,7 @@ function ProductSelect({
           return null;
         }
 
+        // how much the customer is paying for the product
         const priceInCents = utils.getReservedPriceForReservedBudgetCategory({
           plan: activePlan,
           reservedBudgetCategory: productInfo.apiName,
@@ -95,6 +96,7 @@ function ProductSelect({
           cents: priceInCents,
         });
 
+        // how much the customer gets per month for the product
         // if no default budget, then the included budget is how much the customer is paying for the product
         const formattedMonthlyBudget = formatCurrency(
           productInfo.defaultBudget ?? priceInCents
@@ -140,7 +142,7 @@ function ProductSelect({
                     </ProductName>
                   </ProductLabel>
                   <ProductDescription>
-                    {checkoutInfo.description(formattedMonthlyBudget)}
+                    {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
                   </ProductDescription>
                 </Column>
                 <PriceContainer>
@@ -161,24 +163,22 @@ function ProductSelect({
                       key={category}
                       data-test-id={`product-option-feature-${category}`}
                     >
-                      <FeatureRow>
+                      <FeatureHeader>
                         <IconContainer>
                           <IconCheckmark color={checkoutInfo.color} />
                         </IconContainer>
-                        <FeatureTitle key={category}>
-                          <span>
-                            {getSingularCategoryName({
-                              plan: activePlan,
-                              category: category as DataCategory,
-                              hadCustomDynamicSampling: false,
-                              title: true,
-                            })}
-                          </span>
-                        </FeatureTitle>
+                        <span>
+                          {getSingularCategoryName({
+                            plan: activePlan,
+                            category: category as DataCategory,
+                            hadCustomDynamicSampling: false,
+                            title: true,
+                          })}
+                        </span>
                         {eventPrice && (
-                          <EventPriceTag>{`${utils.displayUnitPrice({cents: eventPrice, minDigits: 2, maxDigits: info.maxEventPriceDigits})} / ${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}</EventPriceTag>
+                          <EventPriceTag>{`${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})} / ${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}</EventPriceTag>
                         )}
-                      </FeatureRow>
+                      </FeatureHeader>
                       <FeatureDescription>{info.description}</FeatureDescription>
                     </Feature>
                   );
@@ -332,10 +332,10 @@ const Column = styled('div')<{alignItems?: string}>`
   align-items: ${p => p.alignItems};
 `;
 
-const Row = styled('div')<{justifyContent?: string}>`
+const Row = styled('div')`
   display: flex;
   gap: ${space(4)};
-  justify-content: ${p => p.justifyContent ?? 'space-between'};
+  justify-content: space-between;
 `;
 
 const ProductLabel = styled('div')<{productColor: string}>`
@@ -426,21 +426,16 @@ const Feature = styled(Column)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const FeatureTitle = styled('div')`
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-
-  > span {
-    margin-right: ${space(0.75)};
-  }
-`;
-
-const FeatureRow = styled(Row)`
+const FeatureHeader = styled(Row)`
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: 0px;
+  align-items: center;
+
+  > span {
+    margin-right: ${space(0.75)};
+    font-weight: 600;
+  }
 `;
 
 const FeatureDescription = styled('div')`
@@ -448,15 +443,7 @@ const FeatureDescription = styled('div')`
   margin-left: ${space(3)};
   max-width: unset;
 
-  @media (max-width: 700px) {
-    max-width: 250px;
-  }
-
-  @media (min-width: 1200px) and (max-width: 1300px) {
-    max-width: 250px;
-  }
-
-  @media (min-width: 1400px) and (max-width: 1500px) {
+  @media (max-width: 700px) or ((min-width: 1200px) and (max-width: 1300px)) or ((min-width: 1400px) and (max-width: 1500px)) {
     max-width: 250px;
   }
 `;
