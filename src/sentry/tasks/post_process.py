@@ -955,7 +955,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     """
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
-    from sentry.workflow_engine.processors.workflow import process_workflows
+    from sentry.workflow_engine.tasks import process_workflows_task
 
     # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
@@ -974,7 +974,11 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_event_data)
+        # TODO - Update this to pass `ids` rather than the data object.
+        process_workflows_task.apply_async(
+            args=[workflow_event_data],
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:

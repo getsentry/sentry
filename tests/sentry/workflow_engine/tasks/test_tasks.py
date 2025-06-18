@@ -7,10 +7,15 @@ from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.workflow_engine.tasks import workflow_status_update_handler
+from sentry.workflow_engine.tasks.workflow_tasks import (
+    process_workflows_task,
+    workflow_status_update_handler,
+)
+from sentry.workflow_engine.types import WorkflowEventData
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class IssuePlatformIntegrationTests(TestCase):
+class IssuePlatformIntegrationTest(TestCase):
     def test_handler_invoked__when_resolved(self):
         """
         Integration test to ensure the `update_status` method
@@ -33,7 +38,7 @@ class IssuePlatformIntegrationTests(TestCase):
             detector_id=detector.id,
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflow_tasks.metrics.incr") as mock_incr:
             update_status(group, message)
             mock_incr.assert_called_with(
                 "workflow_engine.process_workflow.activity_update",
@@ -64,6 +69,24 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             detector_id=None,  # No detector_id provided
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflow_tasks.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
             mock_incr.assert_called_with("workflow_engine.error.tasks.no_detector_id")
+
+
+class TestProcessWorkflowTask(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.group, self.event, self.group_event = self.create_group_event()
+        self.event_data = WorkflowEventData(event=self.group_event)
+
+    def test_calls_process_workflows(self):
+        with mock.patch(
+            "sentry.workflow_engine.tasks.workflow_tasks.process_workflows"
+        ) as mock_process_workflows:
+            process_workflows_task.run(self.event_data)
+            mock_process_workflows.assert_called_once_with(self.event_data)
+
+    def test_gathering_data(self):
+        pass
