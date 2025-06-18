@@ -1,8 +1,10 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {Button} from 'sentry/components/core/button';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -110,13 +112,17 @@ function EditingViewTitle({
     inputRef.current?.select();
   }, []);
 
+  const autosizeInputRef = useAutosizeInput({
+    value: title,
+  });
+
   return (
     <StyledGrowingInput
       value={title}
+      ref={mergeRefs(inputRef, autosizeInputRef)}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
       onBlur={() => stopEditing()}
-      ref={inputRef}
       maxLength={128}
     />
   );
@@ -151,7 +157,7 @@ const ViewTitle = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const StyledGrowingInput = styled(GrowingInput)`
+const StyledGrowingInput = styled(Input)`
   position: relative;
   border: none;
   margin: 0;
