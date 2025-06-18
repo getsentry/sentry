@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {space} from 'sentry/styles/space';
