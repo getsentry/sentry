@@ -51,7 +51,6 @@ EXPOSABLE_FEATURES = [
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
-    "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
