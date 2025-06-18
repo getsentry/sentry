@@ -68,16 +68,29 @@ function AiContent({replayRecord}: Props) {
     isPending,
     isError,
     isRefetching,
-    error,
     refetch,
   } = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
       staleTime: 0,
-      enabled: Boolean(replayRecord?.id && project?.slug),
+      enabled: Boolean(
+        replayRecord?.id &&
+          project?.slug &&
+          organization.features.includes('replay-ai-summary')
+      ),
       retry: false,
     }
   );
+
+  if (!organization.features.includes('replay-ai-summary')) {
+    return (
+      <SummaryContainer>
+        <Alert type="info">
+          {t('Replay AI summary is not available for this organization.')}
+        </Alert>
+      </SummaryContainer>
+    );
+  }
 
   if (isPending || isRefetching) {
     return (
@@ -87,12 +100,20 @@ function AiContent({replayRecord}: Props) {
     );
   }
 
-  if (isError || error) {
-    return <Alert type="error">{t('Failed to load AI summary')}</Alert>;
+  if (isError) {
+    return (
+      <SummaryContainer>
+        <Alert type="error">{t('Failed to load AI summary')}</Alert>;
+      </SummaryContainer>
+    );
   }
 
   if (!summaryData) {
-    return <Alert type="info">{t('No summary available for this replay.')}</Alert>;
+    return (
+      <SummaryContainer>
+        <Alert type="info">{t('No summary available for this replay.')}</Alert>
+      </SummaryContainer>
+    );
   }
 
   const chapterData = summaryData?.data.time_ranges.map(
@@ -124,7 +145,7 @@ function AiContent({replayRecord}: Props) {
           </Button>
         </SummaryHeader>
         <SummaryText>{summaryData.data.summary}</SummaryText>
-        <ChapterList>
+        <div>
           {chapterData.map(({title, start, breadcrumbs}, i) => (
             <Details key={i}>
               <Summary>
@@ -160,7 +181,7 @@ function AiContent({replayRecord}: Props) {
               </div>
             </Details>
           ))}
-        </ChapterList>
+        </div>
       </SummaryContainer>
     </ErrorBoundary>
   );
@@ -236,8 +257,6 @@ const SummaryText = styled('p')`
   line-height: 1.6;
   white-space: pre-wrap;
 `;
-
-const ChapterList = styled('div')``;
 
 // Copied from breadcrumbItem
 const ReplayTimestamp = styled('div')`
