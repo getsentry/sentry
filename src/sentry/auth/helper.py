@@ -507,7 +507,6 @@ class AuthIdentityHandler:
                 logger.info(
                     "sso.login-pipeline.missing-verification",
                     extra={
-                        "verification_user_id": verification_value["user_id"],
                         "user_id": self.user.id,
                         "request_user_id": self.request.user.id,
                     },
