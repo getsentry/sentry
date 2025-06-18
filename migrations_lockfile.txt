@@ -23,7 +23,7 @@ preprod: 0001_emerge_upload_models
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0922_rm_eventattachment_fileid_part1
+sentry: 0923_rm_eventattachment_fileid_part2
 
 social_auth: 0001_squashed_0002_default_auto_field
 
