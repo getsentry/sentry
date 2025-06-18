@@ -178,7 +178,7 @@ const StyledTabs = styled(Tabs)`
 
 const StoryHeaderBar = chonkStyled('header')`
   background: ${p => p.theme.tokens.background.secondary};
-  padding: ${p => `${p.theme.space['3xl']} 0 0 0`};
+  padding: ${p => `${p.theme.space?.['3xl'] ?? '32px'} 0 0 0`};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   grid-area: story-head;
 
@@ -187,8 +187,8 @@ const StoryHeaderBar = chonkStyled('header')`
     font-weight: ${p => p.theme.fontWeightBold};
   }
   p {
-    margin-top: ${p => p.theme.space.md};
-    margin-bottom: ${p => p.theme.space.xl};
+    margin-top: ${p => p.theme.space?.md ?? '8px'};
+    margin-bottom: ${p => p.theme.space?.xl ?? '16px'};
   }
 `;
 
