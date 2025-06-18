@@ -78,6 +78,7 @@ export function DetectorListRowSkeleton() {
 const CellWrapper = styled(Flex)`
   padding: 0 ${space(2)};
   flex: 1;
+  overflow: hidden;
 `;
 
 const StyledIssueCell = styled(IssueCell)`
