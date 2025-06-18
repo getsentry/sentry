@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.notifications.platform.target import NotificationTarget
 
 
 class NotificationProviderKey(StrEnum):
@@ -44,3 +45,12 @@ class NotificationData(Protocol):
 
 class NotificationTemplate[T: NotificationData]:
     pass
+
+
+class NotificationStrategy(Protocol):
+    """
+    A strategy for determining which targets to send a notification to.
+    """
+
+    def get_targets(self) -> list[NotificationTarget]:
+        pass

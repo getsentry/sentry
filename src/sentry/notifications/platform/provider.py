@@ -49,7 +49,6 @@ class NotificationProvider[RenderableT](Protocol):
                 f"Target with resource type '{target.resource_type}' is not supported by {cls.__name__}"
                 f"Supported resource types: {', '.join(t.value for t in cls.target_resource_types)}"
             )
-
         return
 
     @classmethod
