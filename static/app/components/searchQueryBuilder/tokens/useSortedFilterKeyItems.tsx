@@ -212,10 +212,11 @@ export function useSortedFilterKeyItems({
         label: '',
         options:
           replaceRawSearchKeys?.map(key => {
-            return createRawSearchFilterValueItem(
-              key,
-              inputValue?.includes(' ') ? `"${inputValue}"` : inputValue
-            );
+            const value = inputValue?.includes(' ')
+              ? `"${inputValue.replace(/"/g, '')}"`
+              : inputValue;
+
+            return createRawSearchFilterValueItem(key, value);
           }) ?? [],
         type: 'section',
       };
