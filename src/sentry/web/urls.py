@@ -197,7 +197,7 @@ urlpatterns += [
                     OAuthTokenView.as_view(),
                 ),
                 re_path(
-                    r"userinfo/$",
+                    r"^userinfo/$",
                     OAuthUserInfoEndpoint.as_view(),
                     name="sentry-api-0-oauth-userinfo",
                 ),
@@ -1200,7 +1200,7 @@ urlpatterns += [
     # since this gets stored in session as the last viewed page.
     # See: https://github.com/getsentry/sentry/issues/2195
     re_path(
-        r"favicon\.ico$",
+        r"^favicon\.ico$",
         lambda r: HttpResponse(status=404),
     ),
     # crossdomain.xml
