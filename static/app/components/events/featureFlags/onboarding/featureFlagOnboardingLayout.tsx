@@ -92,7 +92,7 @@ export function FeatureFlagOnboardingLayout({
           {steps.map(step => (
             <Step key={step.title ?? step.type} {...step} />
           ))}
-          <StyledLinkButton to="/issues/" priority="primary" busy>
+          <StyledLinkButton to="/issues/" priority="primary">
             {t('Take me to Issues')}
           </StyledLinkButton>
         </Steps>
