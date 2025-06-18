@@ -20,6 +20,8 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized-profiles
+    snuba-metrics:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes metrics consumers
     relay:
       description: Service event forwarding and ingestion service
       remote:
@@ -143,19 +145,24 @@ x-sentry-service-config:
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
-    spans:
+    tracing:
       [
         postgres,
-        snuba,
+        snuba-metrics,
         relay,
         spotlight,
         ingest-events,
         ingest-transactions,
+        ingest-metrics,
+        ingest-generic-metrics,
+        billing-metrics-consumer,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
         eap-spans-subscription-results,
         subscription-results-eap-items,
+        metrics-subscription-results,
+        generic-metrics-subscription-results,
         process-spans,
         ingest-occurrences,
         process-segments,
