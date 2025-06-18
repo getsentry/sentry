@@ -3977,36 +3977,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert data_packet_list[0].packet["values"] == {"value": 10}
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
-    def test_process_data_packets_not_called_dynamic_rule(
-        self, mock_process_data_packets, mock_seer_request
-    ):
-        # TODO: remove once we migrate dynamic metric alerts
-        rule = self.dynamic_rule
-        seer_return_value: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.2,
-                        "anomaly_type": AnomalyType.NONE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 5,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        self.send_update(rule, 10)
-        assert mock_process_data_packets.call_count == 0
-
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
     @mock.patch("sentry.incidents.subscription_processor.get_comparison_aggregation_value")
     def test_process_data_packets_not_called(
