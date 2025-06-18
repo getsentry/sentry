@@ -16,7 +16,6 @@ from sentry.api.authentication import (
     ServiceRpcSignatureAuthentication,
     UserAuthTokenAuthentication,
     compare_service_signature,
-    generate_service_request_signature,
 )
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_system_auth
@@ -31,6 +30,7 @@ from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.silo.base import SiloMode
+from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request

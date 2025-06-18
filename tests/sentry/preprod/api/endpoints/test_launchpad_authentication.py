@@ -1,9 +1,25 @@
 import orjson
+from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.preprod.authentication import generate_launchpad_request_signature
+from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
+
+
+def generate_launchpad_request_signature(url_path: str, body: bytes) -> str:
+    """
+    Generate a signature for the request body
+    with the first shared secret. If there are other
+    shared secrets in the list they are only to be used
+    for verification during key rotation.
+
+    NOTE: This function is only used for testing and has been moved
+    from production code since the actual launchpad service doesn't exist yet.
+    """
+    return generate_service_request_signature(
+        url_path, body, settings.LAUNCHPAD_RPC_SHARED_SECRET, "Launchpad"
+    )
 
 
 @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["launchpad-test-secret-key"])
