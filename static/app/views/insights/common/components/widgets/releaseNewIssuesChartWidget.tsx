@@ -15,7 +15,7 @@ export default function ReleaseNewIssuesChartWidget(props: LoadableChartWidgetPr
   });
   const theme = useTheme();
 
-  const colorPalette = theme.chart.getColorPalette(series.length - 2);
+  const colorPalette = theme.chart.getColorPalette(series.length - 1);
   const plottables = series.map(
     (ts, index) =>
       new Bars(convertSeriesToTimeseries(ts), {

@@ -62,7 +62,7 @@ export function transformDeviceClassEvents({
       yAxes.forEach(val => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (transformedData[YAXIS_COLUMNS[val]][release]) {
-          const colors = theme.chart.getColorPalette(3);
+          const colors = theme.chart.getColorPalette(4);
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedData[YAXIS_COLUMNS[val]][release].data[index] = {
             name: deviceClass,
