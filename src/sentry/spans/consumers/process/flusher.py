@@ -61,14 +61,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         # Determine which shards get their own processes vs shared processes
         self.active_shards = min(self.max_processes, len(buffer.assigned_shards))
-        self.shard_to_process_map = {}
+        self.shard_to_process_map: dict[int, list[int]] = {}
         for i, shard in enumerate(buffer.assigned_shards):
             process_index = i % self.active_shards
             if process_index not in self.shard_to_process_map:
                 self.shard_to_process_map[process_index] = []
             self.shard_to_process_map[process_index].append(shard)
 
-        self.processes = {}
+        self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
         self.shard_healthy_since = {
             shard: mp_context.Value("i", int(time.time())) for shard in buffer.assigned_shards
         }
@@ -332,7 +332,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.process_restarts[shard] += 1
 
             try:
-                process.kill()
+                if isinstance(process, multiprocessing.Process):
+                    process.kill()
             except (ValueError, AttributeError):
                 pass  # Process already closed, ignore
 
