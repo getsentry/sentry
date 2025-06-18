@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Literal
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,6 +16,31 @@ from sentry.api.base import Endpoint, all_silo_endpoint, allow_cors_options
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# Known browser report types as defined by the Browser Reporting API specification
+BrowserReportType = Literal[
+    # Core report types (always sent to 'default' endpoint)
+    "deprecation",  # Deprecated API usage
+    "intervention",  # Browser interventions/blocks
+    "crash",  # Browser crashes
+    # Policy violation report types (can be sent to named endpoints)
+    "csp-violation",  # Content Security Policy violations
+    "coep",  # Cross-Origin-Embedder-Policy violations
+    "coop",  # Cross-Origin-Opener-Policy violations
+    "document-policy-violation",  # Document Policy violations
+    "permissions-policy",  # Permissions Policy violations
+]
+
+
+@dataclass
+class BrowserReport:
+    body: dict[str, Any]
+    type: BrowserReportType
+    url: str
+    user_agent: str
+    destination: str
+    timestamp: int
+    attempts: int
 
 
 class BrowserReportsJSONParser(JSONParser):
@@ -49,16 +77,23 @@ class BrowserReportingCollectorEndpoint(Endpoint):
 
         logger.info("browser_report_received", extra={"request_body": request.data})
 
-        report_type = request.data.get("type")
-        metrics.incr(
-            "browser_reporting.raw_report_received",
-            tags={
-                "type": (
-                    report_type
-                    if report_type in ["crash", "deprecation", "intervention"]
-                    else "other"
-                )
-            },
-        )
+        # Browser Reporting API sends an array of reports
+        # request.data could be any type, so we need to validate and cast
+        raw_data: Any = request.data
+
+        if not isinstance(raw_data, list):
+            logger.warning(
+                "browser_report_invalid_format",
+                extra={"data_type": type(raw_data).__name__, "data": raw_data},
+            )
+            return HttpResponse(status=422)
+
+        for report in raw_data:
+            browser_report = BrowserReport(**report)
+            metrics.incr(
+                "browser_reporting.raw_report_received",
+                tags={"browser_report_type": browser_report.type},
+                sample_rate=1.0,  # XXX: Remove this once we have a ballpark figure
+            )
 
         return HttpResponse(status=200)
