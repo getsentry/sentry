@@ -26,4 +26,6 @@ class GroupTombstoneSerializer(Serializer):
             "type": obj.get_event_type(),
             "metadata": obj.get_event_metadata(),
             "actor": attrs.get("user"),
+            "timesSeen": obj.times_seen,
+            "lastSeen": obj.last_seen,
         }
