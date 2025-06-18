@@ -134,6 +134,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
+                created_by_id=self.context["request"].user.id,
             )
             DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
