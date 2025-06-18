@@ -1015,6 +1015,7 @@ def update_dual_written_detector(alert_rule: AlertRule, enabled: bool) -> None:
         if detector:
             status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
             detector.update(status=status)
+            detector.update(enabled=enabled)
 
 
 def enable_alert_rule(alert_rule: AlertRule) -> None:
@@ -1038,14 +1039,11 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
 
 
 def update_detector(detector: Detector, enabled: bool) -> None:
-    expected_detector_status = ObjectStatus.DISABLED if enabled else ObjectStatus.ACTIVE
     updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
-
-    if detector.status != expected_detector_status:
-        return
 
     with transaction.atomic(router.db_for_write(Detector)):
         detector.update(status=updated_detector_status)
+        detector.update(enabled=enabled)
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )

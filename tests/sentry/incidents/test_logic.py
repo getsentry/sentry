@@ -2204,6 +2204,7 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         )
 
         detector.refresh_from_db()
+        assert detector.enabled == enabled
         assert detector.status == detector_status
 
         query_subscriptions = QuerySubscription.objects.filter(
