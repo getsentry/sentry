@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal, TypedDict
+from dataclasses import dataclass
+from typing import Any, Literal
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -31,7 +32,8 @@ BrowserReportType = Literal[
 ]
 
 
-class BrowserReport(TypedDict):
+@dataclass
+class BrowserReport:
     body: dict[str, Any]
     type: BrowserReportType
     url: str
@@ -76,14 +78,22 @@ class BrowserReportingCollectorEndpoint(Endpoint):
         logger.info("browser_report_received", extra={"request_body": request.data})
 
         # Browser Reporting API sends an array of reports
-        reports: list[BrowserReport] = request.data
+        # request.data could be any type, so we need to validate and cast
+        raw_data: Any = request.data
 
-        for report in reports:
-            if isinstance(report, dict):
-                report_type = report.get("type")
-                metrics.incr(
-                    "browser_reporting.raw_report_received",
-                    tags={"browser_report_type": report_type},
-                )
+        if not isinstance(raw_data, list):
+            logger.warning(
+                "browser_report_invalid_format",
+                extra={"data_type": type(raw_data).__name__, "data": raw_data},
+            )
+            return HttpResponse(status=422)
+
+        for report in raw_data:
+            browser_report = BrowserReport(**report)
+            metrics.incr(
+                "browser_reporting.raw_report_received",
+                tags={"browser_report_type": browser_report.type},
+                sample_rate=1.0,  # XXX: Remove this once we have a ballpark figure
+            )
 
         return HttpResponse(status=200)

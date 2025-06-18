@@ -10,7 +10,7 @@ from sentry.testutils.helpers.options import override_options
 class BrowserReportingCollectorEndpointTest(APITestCase):
     endpoint = "sentry-api-0-reporting-api-experiment"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.url = reverse(self.endpoint)
@@ -32,7 +32,7 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
             }
         ]
 
-    def test_404s_by_default(self):
+    def test_404s_by_default(self) -> None:
         response = self.client.post(self.url, self.report_data)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -42,7 +42,7 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
     @patch("sentry.issues.endpoints.browser_reporting_collector.logger.info")
     def test_logs_request_data_if_option_enabled(
         self, mock_logger_info: MagicMock, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         response = self.client.post(
             self.url, self.report_data, content_type="application/reports+json"
         )
@@ -53,12 +53,13 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         )
         mock_metrics_incr.assert_any_call(
             "browser_reporting.raw_report_received",
-            tags={"browser_report_type": self.report_data[0]["type"]},
+            tags={"browser_report_type": "deprecation"},
+            sample_rate=1.0,
         )
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
-    def test_rejects_invalid_content_type(self, mock_metrics_incr: MagicMock):
+    def test_rejects_invalid_content_type(self, mock_metrics_incr: MagicMock) -> None:
         """Test that the endpoint rejects invalid content type and does not call the browser reporting metric"""
         response = self.client.post(self.url, self.report_data, content_type="bad/type/json")
 
@@ -73,7 +74,7 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
     @patch("sentry.issues.endpoints.browser_reporting_collector.logger.info")
     def test_handles_multiple_reports(
         self, mock_logger_info: MagicMock, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         """Test that the endpoint handles multiple reports in a single request"""
         multiple_reports = [
             {
@@ -117,9 +118,12 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         )
         # Should record metrics for each report type
         mock_metrics_incr.assert_any_call(
-            "browser_reporting.raw_report_received", tags={"browser_report_type": "deprecation"}
+            "browser_reporting.raw_report_received",
+            tags={"browser_report_type": "deprecation"},
+            sample_rate=1.0,
         )
         mock_metrics_incr.assert_any_call(
             "browser_reporting.raw_report_received",
             tags={"browser_report_type": "intervention"},
+            sample_rate=1.0,
         )
