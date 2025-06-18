@@ -27,13 +27,13 @@ class TestDeleteReplay(APITestCase, ReplaysSnubaTestCase):
         )
 
         mock_delete_matched_rows.assert_called_once_with(
+            project_id=self.project.id,
             rows=[
                 {
                     "max_segment_id": self.max_segment_id,
                     "platform": self.platform,
-                    "project_id": self.project.id,
                     "replay_id": self.replay_id,
                     "retention_days": self.retention_days,
                 }
-            ]
+            ],
         )

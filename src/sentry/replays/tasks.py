@@ -205,7 +205,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int) -> None:
 
     # Delete the matched rows if any rows were returned.
     if len(results["rows"]) > 0:
-        delete_matched_rows(results["rows"])
+        delete_matched_rows(job.project_id, results["rows"])
 
     if results["has_more"]:
         # If more replays exist then re-schedule the task and continue working. We schedule with
@@ -241,13 +241,13 @@ def delete_replay(
 ) -> None:
     """Single replay deletion task."""
     delete_matched_rows(
+        project_id=project_id,
         rows=[
             {
                 "max_segment_id": max_segment_id,
                 "platform": platform,
-                "project_id": project_id,
                 "replay_id": replay_id,
                 "retention_days": retention_days,
             }
-        ]
+        ],
     )

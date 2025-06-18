@@ -19,6 +19,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         # Create a deletion job
         self.job = ReplayDeletionJobModel.objects.create(
+            organization_id=self.project.organization.id,
             project_id=self.project.id,
             range_start=self.range_start,
             range_end=self.range_end,
@@ -34,8 +35,18 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         # Mock the fetch_rows_matching_pattern to return some rows
         mock_fetch_rows.return_value = {
             "rows": [
-                {"replay_id": "test-replay-1", "project_id": self.project.id},
-                {"replay_id": "test-replay-2", "project_id": self.project.id},
+                {
+                    "retention_days": 90,
+                    "replay_id": "a",
+                    "max_segment_id": 1,
+                    "platform": "javascript",
+                },
+                {
+                    "retention_days": 90,
+                    "replay_id": "b",
+                    "max_segment_id": 0,
+                    "platform": "javascript",
+                },
             ],
             "has_more": True,
         }
@@ -49,7 +60,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.offset == 2, self.job.offset
 
         # Verify the delete operation was called
-        mock_delete_matched_rows.assert_called_once_with(mock_fetch_rows.return_value["rows"])
+        mock_delete_matched_rows.assert_called_once_with(
+            self.project.id, mock_fetch_rows.return_value["rows"]
+        )
 
         # Verify fetch_rows was called with correct parameters
         mock_fetch_rows.assert_called_once_with(
@@ -71,14 +84,12 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "rows": [
                 {
                     "retention_days": 90,
-                    "project_id": 1,
                     "replay_id": "a",
                     "max_segment_id": 1,
                     "platform": "javascript",
                 },
                 {
                     "retention_days": 90,
-                    "project_id": 1,
                     "replay_id": "b",
                     "max_segment_id": 0,
                     "platform": "javascript",
@@ -95,7 +106,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.status == "completed"
 
         # Verify the delete operation was called
-        mock_delete_matched_rows.assert_called_once_with(mock_fetch_rows.return_value["rows"])
+        mock_delete_matched_rows.assert_called_once_with(
+            self.project.id, mock_fetch_rows.return_value["rows"]
+        )
 
         # Verify fetch_rows was called with correct parameters
         mock_fetch_rows.assert_called_once_with(

@@ -22,11 +22,14 @@ from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 
 
-def delete_matched_rows(rows: list[MatchedRow]) -> int | None:
-    for row in rows:
-        delete_replay_recordings(row)
+def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
+    if not rows:
+        return None
 
-    delete_replays(row["project_id"], [row["replay_id"] for row in rows])
+    for row in rows:
+        delete_replay_recordings(project_id, row)
+
+    delete_replays(project_id, [row["replay_id"] for row in rows])
 
 
 def delete_replays(project_id: int, replay_ids: list[str]) -> None:
@@ -37,9 +40,9 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
     publisher.flush()
 
 
-def delete_replay_recordings(row: MatchedRow) -> None:
+def delete_replay_recordings(project_id: int, row: MatchedRow) -> None:
     with cf.ThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, _make_recording_filenames(row))
+        pool.map(_delete_if_exists, _make_recording_filenames(project_id, row))
 
 
 def _delete_if_exists(filename: str) -> None:
@@ -50,11 +53,10 @@ def _delete_if_exists(filename: str) -> None:
         pass
 
 
-def _make_recording_filenames(row: MatchedRow) -> list[str]:
+def _make_recording_filenames(project_id: int, row: MatchedRow) -> list[str]:
     # We assume every segment between 0 and the max_segment_id exists. Its a waste of time to
     # delete a non-existent segment but its not so significant that we'd want to query ClickHouse
     # to verify it exists.
-    project_id = row["project_id"]
     replay_id = row["replay_id"]
     retention_days = row["retention_days"]
     platform = row["platform"]
@@ -62,10 +64,8 @@ def _make_recording_filenames(row: MatchedRow) -> list[str]:
     filenames = []
     for segment_id in range(row["max_segment_id"] + 1):
         segment = RecordingSegmentStorageMeta(project_id, replay_id, segment_id, retention_days)
-        if platform == "javascript":
-            filenames.append(make_recording_filename(segment))
-        else:
-            filenames.append(make_recording_filename(segment))
+        filenames.append(make_recording_filename(segment))
+        if platform != "javascript":
             filenames.append(make_video_filename(segment))
 
     return filenames
@@ -73,7 +73,6 @@ def _make_recording_filenames(row: MatchedRow) -> list[str]:
 
 class MatchedRow(TypedDict):
     retention_days: int
-    project_id: int
     replay_id: str
     max_segment_id: int
     platform: str
@@ -134,7 +133,6 @@ def fetch_rows_matching_pattern(
             {
                 "max_segment_id": row["max_segment_id"],
                 "platform": row["platform"],
-                "project_id": project_id,
                 "replay_id": row["replay_id"],
                 "retention_days": row["retention_days"],
             }
