@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -11,6 +11,7 @@ import {
   useSpanProfileDetails,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -20,12 +21,17 @@ import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {FieldKey} from 'sentry/utils/fields';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   LogsPageDataProvider,
@@ -64,6 +70,7 @@ import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/trace
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import Alerts from './sections/alerts';
@@ -348,6 +355,8 @@ function useAvgSpanDuration(
   return result.data?.[0]?.['avg(span.duration)'];
 }
 
+type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
+
 type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<
   TraceTreeNode<TraceTree.EAPSpan>
 > & {
@@ -418,6 +427,44 @@ function EAPSpanNodeDetails({
     entry => entry.type === EntryType.REQUEST
   );
 
+  const customRenderers = {
+    [FieldKey.PROFILE_ID]: (props: CustomRenderersProps) => {
+      const target = generateProfileFlamechartRoute({
+        organization,
+        projectSlug: project?.slug ?? '',
+        profileId: String(props.item.value),
+      });
+
+      return (
+        <StyledLink
+          data-test-id="view-profile"
+          to={target}
+          onClick={() =>
+            trackAnalytics('profiling_views.go_to_flamegraph', {
+              organization,
+              source: 'performance.trace_view.details',
+            })
+          }
+        >
+          {props.item.value}
+        </StyledLink>
+      );
+    },
+    [FieldKey.REPLAY_ID]: (props: CustomRenderersProps) => {
+      const target: LocationDescriptorObject = {
+        pathname: makeReplaysPathname({
+          path: `/${props.item.value}/`,
+          organization,
+        }),
+        query: {
+          event_t: node.value.start_timestamp,
+          referrer: 'performance.trace_view.details',
+        },
+      };
+      return <StyledLink to={target}>{props.item.value}</StyledLink>;
+    },
+  };
+
   return (
     <TraceDrawerComponents.DetailContainer>
       <SpanNodeDetailHeader
@@ -478,6 +525,7 @@ function EAPSpanNodeDetails({
                       <AttributesTree
                         columnCount={columnCount}
                         attributes={sortAttributes(attributes)}
+                        renderers={customRenderers}
                         rendererExtra={{
                           theme,
                           location,
@@ -584,4 +632,10 @@ const Flex = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const StyledLink = styled(Link)`
+  & div {
+    display: inline;
+  }
 `;
