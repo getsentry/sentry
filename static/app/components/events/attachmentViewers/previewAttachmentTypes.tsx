@@ -7,6 +7,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 
 export const imageMimeTypes = [
   'application/octet-stream',
+  'application/png',
   'image/jpeg',
   'image/png',
   'image/gif',

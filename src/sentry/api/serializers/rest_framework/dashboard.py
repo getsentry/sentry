@@ -983,6 +983,15 @@ class DashboardSerializer(DashboardDetailsSerializer):
     )
 
 
+class DashboardStarredOrderSerializer(serializers.Serializer):
+    dashboard_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+
+    def validate_dashboard_ids(self, dashboard_ids):
+        if len(dashboard_ids) != len(set(dashboard_ids)):
+            raise serializers.ValidationError("Single dashboard cannot take up multiple positions")
+        return dashboard_ids
+
+
 def schedule_update_project_configs(dashboard: Dashboard):
     """
     Schedule a task to update project configs for all projects of an organization when a dashboard is updated.

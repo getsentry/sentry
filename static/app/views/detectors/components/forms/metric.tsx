@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import Duration from 'sentry/components/duration';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -27,6 +28,7 @@ import {
   MobileVital,
   WebVital,
 } from 'sentry/utils/fields';
+import useProjects from 'sentry/utils/useProjects';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -36,6 +38,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
+import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
 
 export function MetricDetectorForm() {
   return (
@@ -74,37 +77,55 @@ function MonitorKind() {
 
 function ResolveSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
-  const thresholdType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.thresholdType
+  const conditionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const conditionComparisonAgo = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
+  );
+  const thresholdSuffix = useDetectorThresholdSuffix();
+
+  let description: string | undefined;
+  if (kind === 'dynamic') {
+    description = t(
+      'Sentry will automatically resolve the issue when the trend goes back to baseline.'
+    );
+  } else if (kind === 'static') {
+    if (conditionType === DataConditionType.GREATER) {
+      description = t(
+        'Issue will be resolved when the query value is less than %s%s.',
+        conditionValue || '0',
+        thresholdSuffix
+      );
+    } else {
+      description = t(
+        'Issue will be resolved when the query value is more than %s%s.',
+        conditionValue || '0',
+        thresholdSuffix
+      );
+    }
+  } else if (kind === 'percent') {
+    if (conditionType === DataConditionType.GREATER) {
+      description = t(
+        'Issue will be resolved when the query value is less than %s%% higher than the previous %s.',
+        conditionValue || '0',
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    } else {
+      description = t(
+        'Issue will be resolved when the query value is less than %s%% lower than the previous %s.',
+        conditionValue || '0',
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    }
+  }
 
   return (
     <Container>
-      <Section
-        title={t('Resolve')}
-        description={
-          kind === 'dynamic'
-            ? t(
-                'Sentry will automatically resolve the issue when the trend goes back to baseline.'
-              )
-            : undefined
-        }
-      >
-        {kind !== 'dynamic' && (
-          <ThresholdField
-            flexibleControlStateSize
-            inline={false}
-            label={
-              thresholdType === AlertRuleThresholdType.BELOW
-                ? t('Close an incident when the value rises above:')
-                : t('Close an incident when the value dips below:')
-            }
-            placeholder="0"
-            name={METRIC_DETECTOR_FORM_FIELDS.resolveThreshold}
-            suffix="s"
-          />
-        )}
-      </Section>
+      <Section title={t('Resolve')} description={description} />
     </Container>
   );
 }
@@ -193,9 +214,9 @@ function DetectSection() {
           </Flex>
         </FirstRow>
         <MonitorKind />
-        <Flex column>
+        <Flex direction="column">
           {(!kind || kind === 'static') && (
-            <Flex column>
+            <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <DirectionField
@@ -226,7 +247,7 @@ function DetectSection() {
             </Flex>
           )}
           {kind === 'percent' && (
-            <Flex column>
+            <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <ChangePercentField
@@ -277,7 +298,7 @@ function DetectSection() {
             </Flex>
           )}
           {kind === 'dynamic' && (
-            <Flex column>
+            <Flex direction="column">
               <SelectField
                 required
                 name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
@@ -319,13 +340,21 @@ function DetectSection() {
 }
 
 function OwnerField() {
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const {projects} = useProjects();
+  const memberOfProjectSlugs = useMemo(() => {
+    const project = projects.find(p => p.id === projectId);
+    return project ? [project.slug] : undefined;
+  }, [projects, projectId]);
+
   return (
     <StyledMemberTeamSelectorField
       placeholder={t('Select a member or team')}
       label={t('Owner')}
       help={t('Sentry will assign new issues to this owner.')}
-      name="owner"
+      name={METRIC_DETECTOR_FORM_FIELDS.owner}
       flexibleControlStateSize
+      memberOfProjectSlugs={memberOfProjectSlugs}
     />
   );
 }
@@ -431,7 +460,7 @@ const MutedText = styled('p')`
 
 function FilterField() {
   return (
-    <Flex column gap={space(0.5)} style={{paddingTop: 16, flex: 1}}>
+    <Flex direction="column" gap={space(0.5)} style={{paddingTop: 16, flex: 1}}>
       <span>Filter</span>
       <SearchQueryBuilder
         initialQuery=""

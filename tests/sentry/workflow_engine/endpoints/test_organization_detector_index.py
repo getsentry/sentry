@@ -281,7 +281,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                 "dataset": Dataset.Events.name.lower(),
                 "query": "test query",
                 "aggregate": "count()",
-                "timeWindow": 60,
+                "timeWindow": 3600,
                 "environment": self.environment.name,
                 "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
