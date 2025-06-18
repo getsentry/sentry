@@ -33,10 +33,15 @@ class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 0)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 1)
 
+        # Add a dashboard starred by another user to verify that it is not returned
+        other_user = self.create_user("other@example.com")
+        other_dashboard = self.create_dashboard(title="Other Dashboard")
+        self.create_dashboard_favorite(other_dashboard, other_user, self.organization, 0)
+
         response = self.do_request("get", self.url)
         assert response.status_code == 200
         assert len(response.data) == 3
-        assert [int(response.data[i]["id"]) for i in range(3)] == [
+        assert [int(dashboard["id"]) for dashboard in response.data] == [
             self.dashboard_2.id,
             self.dashboard_3.id,
             self.dashboard_1.id,
