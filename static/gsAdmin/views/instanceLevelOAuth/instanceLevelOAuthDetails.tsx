@@ -151,7 +151,7 @@ function InstanceLevelOAuthDetails() {
               <b>Date added:</b> {clientDetails.createdAt}
             </p>
           </ApiForm>
-          <FullWidthFlex justify="right">
+          <Flex justify="right">
             <StyledButton
               size="sm"
               priority="danger"
@@ -167,7 +167,7 @@ function InstanceLevelOAuthDetails() {
             >
               Delete client
             </StyledButton>
-          </FullWidthFlex>
+          </Flex>
         </Fragment>
       )}
       {errorMessage && <p>{errorMessage}</p>}
@@ -180,8 +180,4 @@ export default InstanceLevelOAuthDetails;
 const StyledButton = styled(Button)`
   margin-top: 20px;
   margin-bottom: 15px;
-`;
-
-const FullWidthFlex = styled(Flex)`
-  width: 100%;
 `;
