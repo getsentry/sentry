@@ -62,6 +62,6 @@ export default function useFeedbackSummary(): {
     summary: data.summary,
     isPending: false,
     isError: false,
-    tooFewFeedbacks: data.numFeedbacksUsed === 0 && data.success === false,
+    tooFewFeedbacks: data.numFeedbacksUsed === 0 && !data.success,
   };
 }
