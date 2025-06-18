@@ -95,6 +95,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(
+        name="traceparent", raw_pattern=r"""\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b"""
+    ),
+    ParameterizationRegex(
         name="uuid",
         raw_pattern=r"""\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b""",
     ),
