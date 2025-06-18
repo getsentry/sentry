@@ -5,6 +5,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Link from 'sentry/components/links/link';
+import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
@@ -51,38 +52,30 @@ export function InstallPreventCLI({step}: OutputCoverageFileProps) {
         />
         {method === 'pip' ? (
           <Fragment>
-            <p>
+            <Paragraph>
               {t(
-                'If you have Python installed already, you can run the script below to install the Sentry Prevent CLI'
+                'If you have Python installed already, you can run the script below to install the Sentry Prevent CLI.'
               )}
-            </p>
+            </Paragraph>
             <CodeSnippet dark language="bash">
               {SNIPPET}
             </CodeSnippet>
-            <p>
-              {tct('Learn more about the [cliLink]', {
-                cliLink: (
-                  <Link to="https://docs.sentry.io/platforms/python/prevent/cli/">
-                    {t('Sentry CLI Link')}
-                  </Link>
-                ),
-              })}
-            </p>
+            {CLILink}
           </Fragment>
         ) : null}
         {method === 'binary' ? (
           <Fragment>
-            <p>
+            <Paragraph>
               {t(
                 'Select a platform, and following snippet instructs the CLI to upload your reports to Sentry Prevent.'
               )}
-            </p>
+            </Paragraph>
             <StyledSelectControl
               size="md"
               options={[
-                {label: 'macOS', value: 'MacOS'},
-                {label: 'Linux', value: 'Linux'},
-                {label: 'Windows', value: 'Windows'},
+                {label: 'macOS', value: 'macOS'},
+                {label: 'Linux', value: 'linux'},
+                {label: 'Windows', value: 'windows'},
               ]}
               value={selectedPlatform}
               onChange={(option: {value: Platform}) => setSelectedPlatform(option.value)}
@@ -90,15 +83,7 @@ export function InstallPreventCLI({step}: OutputCoverageFileProps) {
             <CodeSnippet dark language="bash">
               {SNIPPET}
             </CodeSnippet>
-            <p>
-              {tct('Learn more about the [cliLink]', {
-                cliLink: (
-                  <Link to="https://docs.sentry.io/platforms/python/prevent/cli/">
-                    {t('Sentry CLI Link')}
-                  </Link>
-                ),
-              })}
-            </p>
+            {CLILink}
           </Fragment>
         ) : null}
         {/* TODO: add dropdown expansion */}
@@ -111,3 +96,24 @@ const StyledSelectControl = styled(Select)`
   width: 110px;
   margin-bottom: ${space(1.5)};
 `;
+
+const Paragraph = styled('div')`
+  margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
+`;
+
+const BottomParagraph = styled('div')`
+  margin-top: ${space(2)};
+`;
+
+const CLILink = (
+  <BottomParagraph>
+    {tct('Learn more about the [cliLink].', {
+      cliLink: (
+        <Link to="https://docs.sentry.io/platforms/python/prevent/cli/">
+          {t('Sentry CLI Link')} <IconOpen size="xs" />
+        </Link>
+      ),
+    })}
+  </BottomParagraph>
+);

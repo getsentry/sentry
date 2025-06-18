@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AddPermissionsBlock} from 'sentry/views/codecov/tests/onboardingSteps/addPermissionsBlock';
 import {AddScriptToYaml} from 'sentry/views/codecov/tests/onboardingSteps/addScriptToYaml';
 import {AddUploadToken} from 'sentry/views/codecov/tests/onboardingSteps/addUploadToken';
 import type {UploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
@@ -63,7 +62,6 @@ export default function TestsOnboardingPage() {
             setSelectedUploadPermission={setSelectedUploadPermission}
           />
           <AddUploadToken step="2b" />
-          <AddPermissionsBlock step="2b" />
           <AddScriptToYaml step="3" />
           <InstallPreventCLI step="3" />
           <EditGHAWorkflow step="3" />
