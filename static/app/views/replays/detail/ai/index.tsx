@@ -2,7 +2,9 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
@@ -42,6 +44,18 @@ function createAISummaryQueryKey(
 }
 
 export default function Ai({replayRecord}: Props) {
+  return (
+    <PaddedFluidHeight>
+      <TabItemContainer data-test-id="replay-details-ai-summary-tab">
+        <ErrorBoundary mini>
+          <AiContent replayRecord={replayRecord} />
+        </ErrorBoundary>
+      </TabItemContainer>
+    </PaddedFluidHeight>
+  );
+}
+
+function AiContent({replayRecord}: Props) {
   const {replay} = useReplayContext();
   const organization = useOrganization();
   const {project: project_id} = useLocationQuery({
@@ -51,56 +65,63 @@ export default function Ai({replayRecord}: Props) {
 
   const {
     data: summaryData,
-    isLoading,
+    isPending,
     isError,
+    isRefetching,
     error,
+    refetch,
   } = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 0,
       enabled: Boolean(replayRecord?.id && project?.slug),
       retry: false,
     }
   );
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
-      );
-    }
-
-    if (isError || error) {
-      return <Alert type="error">{t('Failed to load AI summary')}</Alert>;
-    }
-
-    if (!summaryData) {
-      return <Alert type="info">{t('No summary available for this replay.')}</Alert>;
-    }
-
-    const chapterData = summaryData?.data.time_ranges.map(
-      ({period_title, period_start, period_end}) => ({
-        title: period_title,
-        start: period_start * 1000,
-        end: period_end * 1000,
-        breadcrumbs:
-          replay
-            ?.getChapterFrames()
-            .filter(
-              breadcrumb =>
-                breadcrumb.timestampMs >= period_start * 1000 &&
-                breadcrumb.timestampMs <= period_end * 1000
-            ) ?? [],
-      })
-    );
-
+  if (isPending || isRefetching) {
     return (
+      <LoadingContainer>
+        <LoadingIndicator />
+      </LoadingContainer>
+    );
+  }
+
+  if (isError || error) {
+    return <Alert type="error">{t('Failed to load AI summary')}</Alert>;
+  }
+
+  if (!summaryData) {
+    return <Alert type="info">{t('No summary available for this replay.')}</Alert>;
+  }
+
+  const chapterData = summaryData?.data.time_ranges.map(
+    ({period_title, period_start, period_end}) => ({
+      title: period_title,
+      start: period_start * 1000,
+      end: period_end * 1000,
+      breadcrumbs:
+        replay
+          ?.getChapterFrames()
+          .filter(
+            breadcrumb =>
+              breadcrumb.timestampMs >= period_start * 1000 &&
+              breadcrumb.timestampMs <= period_end * 1000
+          ) ?? [],
+    })
+  );
+
+  return (
+    <ErrorBoundary mini>
       <SummaryContainer>
         <SummaryHeader>
-          <span>{t('Replay Summary')}</span>
-          <Badge type="internal">{t('Internal')}</Badge>
+          <SummaryHeaderTitle>
+            <span>{t('Replay Summary')}</span>
+            <Badge type="internal">{t('Internal')}</Badge>
+          </SummaryHeaderTitle>
+          <Button priority="primary" size="xs" onClick={() => refetch()}>
+            {t('Regenerate')}
+          </Button>
         </SummaryHeader>
         <SummaryText>{summaryData.data.summary}</SummaryText>
         <ChapterList>
@@ -141,15 +162,7 @@ export default function Ai({replayRecord}: Props) {
           ))}
         </ChapterList>
       </SummaryContainer>
-    );
-  };
-
-  return (
-    <PaddedFluidHeight>
-      <TabItemContainer data-test-id="replay-details-ai-summary-tab">
-        {renderContent()}
-      </TabItemContainer>
-    </PaddedFluidHeight>
+    </ErrorBoundary>
   );
 }
 
@@ -169,6 +182,13 @@ const SummaryContainer = styled('div')`
 `;
 
 const SummaryHeader = styled('h3')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  justify-content: space-between;
+`;
+
+const SummaryHeaderTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
