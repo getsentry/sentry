@@ -12,8 +12,6 @@ from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
-from sentry.integrations.base import is_response_error, is_response_success
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.net.http import SafeSession
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
@@ -126,16 +124,6 @@ class BaseApiClient:
         Allows subclasses to add hooks before sending requests out
         """
         return prepared_request
-
-    def _get_redis_key(self):
-        """
-        Returns the redis key for the integration or empty str if cannot make key
-        """
-        if not hasattr(self, "integration_id"):
-            return ""
-        if not self.integration_id:
-            return ""
-        return f"sentry-integration-error:{self.integration_id}"
 
     def is_response_fatal(self, resp: Response) -> bool:
         return False
@@ -270,19 +258,15 @@ class BaseApiClient:
                 resp.raise_for_status()
         except RestrictedIPAddress as e:
             self.track_response_data("restricted_ip_address", e, extra=extra)
-            self.record_error(e)
             raise ApiHostError.from_exception(e) from e
         except ConnectionError as e:
             self.track_response_data("connection_error", e, extra=extra)
-            self.record_error(e)
             raise ApiHostError.from_exception(e) from e
         except Timeout as e:
             self.track_response_data("timeout", e, extra=extra)
-            self.record_error(e)
             raise ApiTimeoutError.from_exception(e) from e
         except RetryError as e:
             self.track_response_data("max_retries", e, extra=extra)
-            self.record_error(e)
             raise ApiRetryError.from_exception(e) from e
         except HTTPError as e:
             error_resp = e.response
@@ -290,11 +274,9 @@ class BaseApiClient:
                 self.track_response_data("unknown", e, extra=extra)
 
                 self.logger.exception("request.error", extra=extra)
-                self.record_error(e)
                 raise ApiError("Internal Error", url=full_url) from e
 
             self.track_response_data(error_resp.status_code, e, resp=error_resp, extra=extra)
-            self.record_error(e)
             raise ApiError.from_response(error_resp, url=full_url) from e
 
         except Exception as e:
@@ -306,20 +288,16 @@ class BaseApiClient:
             # Rather than worrying about what the other layers might be, we just stringify to detect this.
             if "ConnectionResetError" in str(e):
                 self.track_response_data("connection_reset_error", e, extra=extra)
-                self.record_error(e)
                 raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
             # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
             if "InvalidChunkLength" in str(e):
                 self.track_response_data("invalid_chunk_length", e, extra=extra)
-                self.record_error(e)
                 raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
             # If it's not something we recognize, let the caller deal with it
             raise
 
         self.track_response_data(resp.status_code, None, resp, extra=extra)
-
-        self.record_response_for_disabling_integration(resp)
 
         if resp.status_code == 204:
             return {}
@@ -407,47 +385,3 @@ class BaseApiClient:
             if num_results < page_size:
                 return output
         return output
-
-    def record_response_for_disabling_integration(self, response: Response):
-        redis_key = self._get_redis_key()
-        if not len(redis_key):
-            return
-        buffer = IntegrationRequestBuffer(redis_key)
-        if self.is_response_fatal(response):
-            buffer.record_fatal()
-        else:
-            if is_response_success(response):
-                buffer.record_success()
-                return
-            if is_response_error(response):
-                buffer.record_error()
-        if buffer.is_integration_broken():
-            # TODO(ecosystem): We should delete this feature of fix it
-            # disable_integration(buffer, redis_key, self.integration_id)
-            self.logger.info(
-                "integration.should_disable",
-                extra={
-                    "integration_id": self.integration_id,
-                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
-                },
-            )
-
-    def record_error(self, error: Exception):
-        redis_key = self._get_redis_key()
-        if not len(redis_key):
-            return
-        buffer = IntegrationRequestBuffer(redis_key)
-        if self.is_error_fatal(error):
-            buffer.record_fatal()
-        else:
-            buffer.record_error()
-        if buffer.is_integration_broken():
-            # TODO(ecosystem): We should delete this feature of fix it
-            # disable_integration(buffer, redis_key, self.integration_id)
-            self.logger.info(
-                "integration.should_disable",
-                extra={
-                    "integration_id": self.integration_id,
-                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
-                },
-            )
