@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 from unittest.mock import patch
 
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
+from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.helpers import TaskRunner
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
@@ -56,7 +59,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         # Verify the job status was updated
         self.job.refresh_from_db()
-        assert self.job.status == "in-progress"
+        assert self.job.status == "in-progress", self.job.status
         assert self.job.offset == 2, self.job.offset
 
         # Verify the delete operation was called
@@ -103,7 +106,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         # Verify the job status was updated to completed
         self.job.refresh_from_db()
-        assert self.job.status == "completed"
+        assert self.job.status == "completed", self.job.status
 
         # Verify the delete operation was called
         mock_delete_matched_rows.assert_called_once_with(
@@ -151,3 +154,30 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             limit=100,
             offset=0,
         )
+
+    def test_run_bulk_replay_delete_job_chained_runs(self):
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay_id1 = uuid.uuid4().hex
+        replay_id2 = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(t1, self.project.id, replay_id1, segment_id=0, environment="prod")
+        )
+        self.store_replays(
+            mock_replay(t1, self.project.id, replay_id2, segment_id=0, environment="prod")
+        )
+
+        with TaskRunner():
+            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=1)
+
+        # Runs were chained.
+        self.job.refresh_from_db()
+        assert self.job.status == "completed"
+        assert self.job.offset == 2
+
+    def test_run_bulk_replay_delete_job_no_matches(self):
+        with TaskRunner():
+            run_bulk_replay_delete_job.delay(self.job.id, offset=0)
+
+        self.job.refresh_from_db()
+        assert self.job.status == "completed"
+        assert self.job.offset == 0
