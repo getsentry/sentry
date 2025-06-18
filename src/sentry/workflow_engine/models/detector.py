@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import builtins
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from enum import IntEnum
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
@@ -12,7 +13,6 @@ from django.dispatch import receiver
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -29,12 +29,32 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class DetectorStatus(IntEnum):
+    ACTIVE = 0
+    DISABLED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+    SNOOZED = 4
+
+    @classmethod
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
+        return (
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.SNOOZED, "snoozed"),
+        )
+
+
 class DetectorManager(BaseManager["Detector"]):
     def get_queryset(self) -> BaseQuerySet[Detector]:
         return (
             super()
             .get_queryset()
-            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+            .exclude(
+                status__in=(DetectorStatus.PENDING_DELETION, DetectorStatus.DELETION_IN_PROGRESS)
+            )
         )
 
 
@@ -57,7 +77,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     enabled = models.BooleanField(db_default=True)
 
     # The detector's status - used for tracking deletion state
-    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
+    status = models.SmallIntegerField(db_default=DetectorStatus.ACTIVE)
 
     # Optionally set a description of the detector, this will be used in notifications
     description = models.TextField(null=True)
