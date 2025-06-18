@@ -583,10 +583,6 @@ def compare_service_signature(
         logger.error("%s RPC signature validation failed: invalid signature prefix", service_name)
         return False
 
-    if not body:
-        logger.error("%s RPC signature validation failed: no body", service_name)
-        return False
-
     try:
         # We aren't using the version bits currently.
         _, signature_data = signature.split(":", 2)
