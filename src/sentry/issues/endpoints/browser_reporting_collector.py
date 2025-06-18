@@ -49,16 +49,15 @@ class BrowserReportingCollectorEndpoint(Endpoint):
 
         logger.info("browser_report_received", extra={"request_body": request.data})
 
-        report_type = request.data.get("type")
-        metrics.incr(
-            "browser_reporting.raw_report_received",
-            tags={
-                "type": (
-                    report_type
-                    if report_type in ["crash", "deprecation", "intervention"]
-                    else "other"
+        # Browser Reporting API sends an array of reports
+        reports = request.data if isinstance(request.data, list) else [request.data]
+
+        for report in reports:
+            if isinstance(report, dict):
+                report_type = report.get("type")
+                metrics.incr(
+                    "browser_reporting.raw_report_received",
+                    tags={"browser_report_type": report_type},
                 )
-            },
-        )
 
         return HttpResponse(status=200)

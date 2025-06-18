@@ -14,19 +14,23 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         super().setUp()
 
         self.url = reverse(self.endpoint)
-        self.report_data = {
-            "age": 2,
-            "body": {
-                "columnNumber": 12,
-                "id": "RangeExpand",
-                "lineNumber": 31,
-                "message": "Range.expand() is deprecated. Please use Selection.modify() instead.",
-                "sourceFile": "https://dogs.are.great/_next/static/chunks/_4667019e._.js",
-            },
-            "type": "deprecation",
-            "url": "https://dogs.are.great/",
-            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-        }
+        self.report_data = [
+            {
+                "body": {
+                    "columnNumber": 12,
+                    "id": "RangeExpand",
+                    "lineNumber": 31,
+                    "message": "Range.expand() is deprecated. Please use Selection.modify() instead.",
+                    "sourceFile": "https://dogs.are.great/_next/static/chunks/_4667019e._.js",
+                },
+                "type": "deprecation",
+                "url": "https://dogs.are.great/",
+                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+                "destination": "default",
+                "timestamp": 1640995200000,  # January 1, 2022 in milliseconds
+                "attempts": 1,
+            }
+        ]
 
     def test_404s_by_default(self):
         response = self.client.post(self.url, self.report_data)
@@ -48,7 +52,8 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
             "browser_report_received", extra={"request_body": self.report_data}
         )
         mock_metrics_incr.assert_any_call(
-            "browser_reporting.raw_report_received", tags={"type": self.report_data["type"]}
+            "browser_reporting.raw_report_received",
+            tags={"browser_report_type": self.report_data[0]["type"]},
         )
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
@@ -62,3 +67,59 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         # Check that none of the calls were for the browser_reporting.raw_report_received metric
         for call in mock_metrics_incr.call_args_list:
             assert call[0][0] != "browser_reporting.raw_report_received"
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
+    @patch("sentry.issues.endpoints.browser_reporting_collector.logger.info")
+    def test_handles_multiple_reports(
+        self, mock_logger_info: MagicMock, mock_metrics_incr: MagicMock
+    ):
+        """Test that the endpoint handles multiple reports in a single request"""
+        multiple_reports = [
+            {
+                "body": {
+                    "columnNumber": 12,
+                    "id": "RangeExpand",
+                    "lineNumber": 31,
+                    "message": "Range.expand() is deprecated. Please use Selection.modify() instead.",
+                    "sourceFile": "https://dogs.are.great/_next/static/chunks/_4667019e._.js",
+                },
+                "type": "deprecation",
+                "url": "https://dogs.are.great/",
+                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+                "destination": "default",
+                "timestamp": 1640995200000,
+                "attempts": 1,
+            },
+            {
+                "body": {
+                    "id": "NavigatorVibrate",
+                    "message": "The vibrate() method is deprecated.",
+                    "sourceFile": "https://dogs.are.great/app.js",
+                    "lineNumber": 45,
+                },
+                "type": "intervention",
+                "url": "https://dogs.are.great/page2",
+                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+                "destination": "default",
+                "timestamp": 1640995260000,
+                "attempts": 1,
+            },
+        ]
+
+        response = self.client.post(
+            self.url, multiple_reports, content_type="application/reports+json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_logger_info.assert_any_call(
+            "browser_report_received", extra={"request_body": multiple_reports}
+        )
+        # Should record metrics for each report type
+        mock_metrics_incr.assert_any_call(
+            "browser_reporting.raw_report_received", tags={"browser_report_type": "deprecation"}
+        )
+        mock_metrics_incr.assert_any_call(
+            "browser_reporting.raw_report_received",
+            tags={"browser_report_type": "intervention"},
+        )
