@@ -295,7 +295,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
-from sentry.preprod.api.endpoints.urls import preprod_urls
+from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
