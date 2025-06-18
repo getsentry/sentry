@@ -11,7 +11,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
-    AbstractDataConditionValidator,
+    BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -19,9 +19,11 @@ from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSo
 
 
 class MetricIssueComparisonConditionValidator(
-    AbstractDataConditionValidator[float, DetectorPriorityLevel]
+    BaseDataConditionValidator[float, DetectorPriorityLevel]
 ):
-    supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
+    supported_conditions = frozenset(
+        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+    )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
     )
@@ -36,14 +38,6 @@ class MetricIssueComparisonConditionValidator(
             raise serializers.ValidationError(f"Unsupported type {value}")
 
         return type
-
-    def validate_comparison(self, value: float | int | str) -> float:
-        try:
-            value = float(value)
-        except ValueError:
-            raise serializers.ValidationError("A valid number is required.")
-
-        return value
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
@@ -69,7 +63,7 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     data_source = SnubaQueryValidator(required=True, timeWindowSeconds=True)
-    condition_group = BaseDataConditionGroupValidator(required=True)
+    condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
