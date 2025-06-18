@@ -202,9 +202,12 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert_halt_metric(
             mock_record=mock_record, error_msg=SentryAppWebhookHaltReason.MISSING_INSTALLATION
         )
-        # PREPARE_WEBHOOK (failure)
+        # APP_CREATE (success) -> PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
@@ -617,13 +620,13 @@ class TestProcessResourceChange(TestCase):
         assert len(safe_urlopen.mock_calls) == 0
         assert_success_metric(mock_record)
 
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success)
+        # APP_CREATE (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success)
         # Our SentryAppInstallation test fixture automatically runs GrantExchanger to get a valid token
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
 
     @with_feature("organizations:integrations-event-hooks")
@@ -676,12 +679,13 @@ class TestProcessResourceChange(TestCase):
 
         assert_success_metric(mock_record)
 
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        # APP_CREATE (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) ->
+        # SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=6
         )
 
     @responses.activate
@@ -953,12 +957,13 @@ class TestSendResourceChangeWebhook(TestCase):
         assert self.sentry_app_1.webhook_url in call_urls
         assert self.sentry_app_2.webhook_url in call_urls
 
-        # GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (halt) x2
+        # APP_CREATE (success) x 2 -> GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success)
+        # -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (halt) x2
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=9
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=11
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=7
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=9
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
@@ -1023,12 +1028,13 @@ class TestSendResourceChangeWebhook(TestCase):
         assert self.sentry_app_2.webhook_url in call_urls
 
         assert_success_metric(mock_record)
-        # GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2
+        # APP_CREATE (success) x 2 -> GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success)
+        # -> SEND_WEBHOOK (success) x 2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=9
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=11
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=9
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=11
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -1078,12 +1084,12 @@ class TestSendResourceChangeWebhook(TestCase):
         assert_failure_metric(
             mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
         )
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
@@ -1344,12 +1350,12 @@ class TestWorkflowNotification(TestCase):
         assert_failure_metric(
             mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         )
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (error)
+        # APP_CREATE (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (error)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
@@ -1372,12 +1378,12 @@ class TestWorkflowNotification(TestCase):
         assert_failure_metric(
             mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
         )
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1

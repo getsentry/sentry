@@ -112,7 +112,7 @@ class SentryAppUpdater:
     def run(self, user: User | RpcUser) -> SentryApp:
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
-            event_type=SentryAppEventType.APP_CREATE,
+            event_type=SentryAppEventType.APP_UPDATE,
         ).capture():
             with transaction.atomic(router.db_for_write(User)):
                 self._update_name()
