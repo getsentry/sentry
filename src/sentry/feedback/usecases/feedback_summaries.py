@@ -11,21 +11,20 @@ def make_input_prompt(
     feedbacks,
 ):
     feedbacks_string = "\n".join(f"- {msg}" for msg in feedbacks)
-    return f"""Task:
-Instructions: You are an AI assistant that analyzes customer feedback.
-Create a summary based on the user feedbacks that is at most three sentences, and complete the sentence "Users say...". Be concise, but specific in the summary.
+    return f"""Instructions:
 
-User Feedbacks:
+You are an assistant that summarizes customer feedback. Given a list of customer feedback entries, generate a concise summary of 1-2 sentences that reflects the key themes. Begin the summary with "Users...", for example, "Users say...".
+
+Balance specificity and generalization based on the size of the input based *only* on the themes and topics present in the list of customer feedback entries. Prioritize brevity and clarity and trying to capture what users are saying, over trying to mention random specific topics. Please don't write overly long sentences, you can leave certain things out and the decision to mention specific topics or themes should be proportional to the number of times they appear in the user feedback entries.
+
+User Feedback:
 
 {feedbacks_string}
 
 Output Format:
 
-Summary: <1-3 sentence summary>
+<1-2 sentence summary>
 """
-
-
-SUMMARY_REGEX = re.compile(r"Summary:\s*(.*)", re.DOTALL)
 
 
 @metrics.wraps("feedback.summaries", sample_rate=1.0)
@@ -50,10 +49,4 @@ def generate_summary(
 def parse_response(
     text,
 ):
-    summary_match = SUMMARY_REGEX.search(text)
-    if summary_match:
-        raw_summary_text = summary_match.group(1)
-        summary_text = re.sub(r"\s+", " ", raw_summary_text).strip()
-        return summary_text
-    else:
-        raise ValueError("Failed to parse AI feedback summary response")
+    return re.sub(r"\s+", " ", text).strip()
