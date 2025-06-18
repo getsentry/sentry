@@ -503,6 +503,15 @@ class AuthIdentityHandler:
                             "request_user_id": self.request.user.id,
                         },
                     )
+            else:
+                logger.info(
+                    "sso.login-pipeline.missing-verification",
+                    extra={
+                        "verification_user_id": verification_value["user_id"],
+                        "user_id": self.user.id,
+                        "request_user_id": self.request.user.id,
+                    },
+                )
 
         is_new_account = not self.user.is_authenticated  # stateful
         if self._app_user and (self.identity.get("email_verified") or is_account_verified):
