@@ -12,10 +12,11 @@ SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
 
 @instrumented_task(
-    name="sentry.workflow_engine.processors.process_workflow_task",
-    queue="process_workflows",
+    name="sentry.workflow_engine.tasks.process_workflow_activity",
+    queue="workflow_engine.process_workflows",
+    acks_late=True,
     default_retry_delay=5,
-    max_retries=5,
+    max_retries=3,
     soft_time_limit=50,
     time_limit=60,
     silo_mode=SiloMode.REGION,
@@ -28,7 +29,7 @@ SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
         ),
     ),
 )
-def process_workflow_task(activity_id: int, detector_id: int) -> None:
+def process_workflow_activity(activity_id: int, detector_id: int) -> None:
     """
     Process a workflow task identified by the given Activity ID and Detector ID.
 
