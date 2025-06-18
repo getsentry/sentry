@@ -2,7 +2,10 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 
 from sentry.identity.base import Provider
-from sentry.identity.pipeline_types import IdentityPipelineT, IdentityPipelineViewT
+from sentry.pipeline.base import Pipeline
+from sentry.pipeline.store import PipelineSessionStore
+from sentry.pipeline.views.base import PipelineView
+from sentry.users.models.identity import IdentityProvider
 from sentry.utils.http import absolute_uri
 
 
@@ -10,12 +13,16 @@ class BitbucketIdentityProvider(Provider):
     key = "bitbucket"
     name = "Bitbucket"
 
-    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
+    def get_pipeline_views(self) -> list[PipelineView[IdentityProvider, PipelineSessionStore]]:
         return [BitbucketLoginView()]
 
 
-class BitbucketLoginView(IdentityPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IdentityPipelineT) -> HttpResponseBase:
+# XXX: we should use IdentityPipelineViewT here instead of PipelineView, but
+# then mypy crashes.
+class BitbucketLoginView(PipelineView[IdentityProvider, PipelineSessionStore]):
+    def dispatch(
+        self, request: HttpRequest, pipeline: Pipeline[IdentityProvider, PipelineSessionStore]
+    ) -> HttpResponseBase:
         from sentry.integrations.base import IntegrationDomain
         from sentry.integrations.utils.metrics import (
             IntegrationPipelineViewEvent,
