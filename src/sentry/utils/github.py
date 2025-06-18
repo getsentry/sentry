@@ -6,10 +6,30 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from pydantic import BaseModel
+from requests.exceptions import HTTPError
 
 from sentry import options
+from sentry.http import build_session
+from sentry.shared_integrations.exceptions import ApiError
 
-from .github_client import GitHubClient
+
+class _GitHubClient:
+    def __init__(self, *, client_id: str, client_secret: str) -> None:
+        self._client_id = client_id
+        self._client_secret = client_secret
+
+    def get(self, url: str) -> dict[str, Any]:
+        with build_session() as session:
+            try:
+                resp = session.get(
+                    f"https://api.github.com{url}",
+                    headers={"Accept": "application/vnd.github.valkyrie-preview+json"},
+                    auth=(self._client_id, self._client_secret),
+                    allow_redirects=True,
+                )
+            except HTTPError as e:
+                raise ApiError.from_response(e.response)
+        return resp.json()
 
 
 class GitHubKeysPayload(BaseModel):
@@ -22,7 +42,7 @@ def verify_signature(payload: bytes, signature: str, key_id: str, subpath: str) 
 
     client_id = options.get("github-login.client-id")
     client_secret = options.get("github-login.client-secret")
-    client = GitHubClient(client_id=client_id, client_secret=client_secret)
+    client = _GitHubClient(client_id=client_id, client_secret=client_secret)
     response = client.get(f"/meta/public_keys/{subpath}")
     keys = GitHubKeysPayload.parse_obj(response)
 

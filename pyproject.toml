@@ -415,6 +415,7 @@ module = [
     "sentry.utils.forms",
     "sentry.utils.function_cache",
     "sentry.utils.geo",
+    "sentry.utils.github",
     "sentry.utils.imports",
     "sentry.utils.iterators",
     "sentry.utils.javascript",
