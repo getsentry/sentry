@@ -709,7 +709,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }
 
   return (
-    <FulllHeightFlex direction="column">
+    <Flex direction="column" flex={1}>
       <TraceTypeWarnings
         tree={props.tree}
         traceSlug={props.traceSlug}
@@ -805,7 +805,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           />
         </TraceLinksNavigationContainer>
       )}
-    </FulllHeightFlex>
+    </Flex>
   );
 }
 
@@ -865,9 +865,4 @@ export const TraceGrid = styled('div')<{
   grid-template-rows: 1fr auto;
 
   ${p => `border-radius: ${p.theme.borderRadius};`}
-`;
-
-const FulllHeightFlex = styled(Flex)`
-  flex-grow: 1;
-  height: 100%;
 `;
