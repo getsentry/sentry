@@ -148,7 +148,7 @@ class CreateIncidentTest(TestCase):
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentCreatedEvent)
-        assert event.data == {
+        assert event.serialize()["data"] == {
             "organization_id": str(self.organization.id),
             "incident_id": str(incident.id),
             "incident_type": str(IncidentType.ALERT_TRIGGERED.value),
@@ -192,7 +192,7 @@ class UpdateIncidentStatus(TestCase):
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentStatusUpdatedEvent)
-        assert event.data == {
+        assert event.serialize()["data"] == {
             "organization_id": str(self.organization.id),
             "incident_id": str(incident.id),
             "incident_type": str(incident.type),

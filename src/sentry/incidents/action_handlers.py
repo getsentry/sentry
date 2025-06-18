@@ -12,6 +12,7 @@ from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
 from sentry import analytics, features
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -103,14 +104,15 @@ class ActionHandler(metaclass=abc.ABCMeta):
         notification_uuid: str | None = None,
     ) -> None:
         analytics.record(
-            "alert.sent",
-            organization_id=organization_id,
-            project_id=project_id,
-            provider=self.provider,
-            alert_id=alert_id,
-            alert_type="metric_alert",
-            external_id=str(external_id) if external_id is not None else "",
-            notification_uuid=notification_uuid or "",
+            AlertSentEvent(
+                organization_id=organization_id,
+                project_id=project_id,
+                provider=self.provider,
+                alert_id=alert_id,
+                alert_type="metric_alert",
+                external_id=str(external_id) if external_id is not None else "",
+                notification_uuid=notification_uuid or "",
+            )
         )
 
 

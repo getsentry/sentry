@@ -1,4 +1,5 @@
 from sentry import analytics
+from sentry.integrations.analytics import IntegrationDisabledNotified
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.utils.email import MessageBuilder
@@ -90,12 +91,15 @@ def notify_disable(
         msg.send_async([user.email])
 
     analytics.record(
-        "integration.disabled.notified",
-        organization_id=organization.id,
-        provider=(
-            integration_slug if integration_slug and "sentry-app" in redis_key else integration_name
-        ),  # integration_name is the provider for first party integrations
-        integration_type=("sentry_app" if "sentry-app" in redis_key else "first-party"),
-        integration_id=redis_key[redis_key.find(":") + 1 :],
-        user_id=organization.default_owner_id,
+        IntegrationDisabledNotified(
+            organization_id=organization.id,
+            provider=(
+                integration_slug
+                if integration_slug and "sentry-app" in redis_key
+                else integration_name
+            ),  # integration_name is the provider for first party integrations
+            integration_type=("sentry_app" if "sentry-app" in redis_key else "first-party"),
+            integration_id=redis_key[redis_key.find(":") + 1 :],
+            user_id=organization.default_owner_id,
+        )
     )

@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
+from sentry.integrations.analytics import IntegrationRepoAddedEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -198,10 +199,11 @@ class IntegrationRepositoryProvider:
         repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
-            "integration.repo.added",
-            provider=self.id,
-            id=result.get("integration_id"),
-            organization_id=organization.id,
+            IntegrationRepoAddedEvent(
+                provider=self.id,
+                id=result.get("integration_id"),
+                organization_id=organization.id,
+            )
         )
         return Response(
             repository_service.serialize_repository(

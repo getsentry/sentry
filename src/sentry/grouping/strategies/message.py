@@ -4,6 +4,9 @@ from itertools import islice
 from typing import TYPE_CHECKING, Any
 
 from sentry import analytics
+from sentry.analytics.events.grouping_parameterization_experiment import (
+    GroupingParameterizationExperiment,
+)
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.base import (
@@ -93,10 +96,11 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         if share_analytics and experiment.counter < 100:
             experiment.counter += 1
             analytics.record(
-                "grouping.experiments.parameterization",
-                experiment_name=experiment.name,
-                project_id=event.project_id,
-                event_id=event.event_id,
+                GroupingParameterizationExperiment(
+                    experiment_name=experiment.name,
+                    project_id=event.project_id,
+                    event_id=event.event_id,
+                )
             )
 
     for key, value in parameterizer.matches_counter.items():

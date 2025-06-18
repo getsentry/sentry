@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("project_issue.searched")
 class ProjectIssueSearchEvent(analytics.Event):
-    type = "project_issue.searched"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("query"),
-    )
+    user_id: str | None = None
+    organization_id: str
+    project_id: str
+    query: str
 
 
 analytics.register(ProjectIssueSearchEvent)

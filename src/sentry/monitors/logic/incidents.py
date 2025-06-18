@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.analytics.events.cron_monitor_broken_status_recovery import (
+    CronMonitorBrokenStatusRecovery,
+)
 from sentry.monitors.logic.incident_occurrence import (
     dispatch_incident_occurrence,
     resolve_incident_group,
@@ -180,11 +183,12 @@ def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
         ):
             if incident.monitorenvbrokendetection_set.exists():
                 analytics.record(
-                    "cron_monitor_broken_status.recovery",
-                    organization_id=monitor_env.monitor.organization_id,
-                    project_id=monitor_env.monitor.project_id,
-                    monitor_id=monitor_env.monitor.id,
-                    monitor_env_id=monitor_env.id,
+                    CronMonitorBrokenStatusRecovery(
+                        organization_id=monitor_env.monitor.organization_id,
+                        project_id=monitor_env.monitor.project_id,
+                        monitor_id=monitor_env.monitor.id,
+                        monitor_env_id=monitor_env.id,
+                    )
                 )
 
     return True

@@ -105,9 +105,12 @@ class ProjectCodeOwners(Model):
             return
 
         if len(self.raw) > MAX_RAW_LENGTH:
+            from sentry.api.endpoints.codeowners.analytics import CodeOwnersMaxLengthExceeded
+
             analytics.record(
-                "codeowners.max_length_exceeded",
-                organization_id=organization.id,
+                CodeOwnersMaxLengthExceeded(
+                    organization_id=organization.id,
+                )
             )
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return

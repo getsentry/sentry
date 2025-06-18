@@ -10,6 +10,9 @@ from django.urls import reverse
 from requests.exceptions import RequestException
 
 from sentry import analytics, features, nodestore
+from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
+    AlertRuleUiComponentWebhookSentEvent,
+)
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
@@ -222,10 +225,11 @@ def send_alert_webhook_v2(
     # On success, record analytic event for Alert Rule UI Component
     if request_data.data.get("issue_alert"):
         analytics.record(
-            "alert_rule_ui_component_webhook.sent",
-            organization_id=organization.id,
-            sentry_app_id=sentry_app_id,
-            event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
+            AlertRuleUiComponentWebhookSentEvent(
+                organization_id=organization.id,
+                sentry_app_id=sentry_app_id,
+                event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
+            )
         )
 
 

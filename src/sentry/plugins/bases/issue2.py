@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -314,12 +315,13 @@ class IssueTrackingPlugin2(Plugin):
         )
 
         analytics.record(
-            "issue_tracker.used",
-            user_id=request.user.id,
-            default_user_id=group.project.organization.get_default_owner().id,
-            organization_id=group.project.organization_id,
-            project_id=group.project.id,
-            issue_tracker=self.slug,
+            IssueTrackerUsedEvent(
+                user_id=request.user.id,
+                default_user_id=group.project.organization.get_default_owner().id,
+                organization_id=group.project.organization_id,
+                project_id=group.project.id,
+                issue_tracker=self.slug,
+            )
         )
 
         return Response(
