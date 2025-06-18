@@ -209,7 +209,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ProfilingDetailsListItem margin="none">
           <ExportProfileButton
             size="zero"
-            // @ts-expect-error transparent is not a valid priority in legacy UI
             priority={theme.isChonk ? 'transparent' : undefined}
             eventId={params.eventId}
             projectId={params.projectId}
@@ -222,7 +221,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <LayoutSelectionContainer>
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
-                // @ts-expect-error transparent is not a valid priority in legacy UI
                 priority={theme.isChonk ? 'transparent' : undefined}
                 active={flamegraphPreferences.layout === 'table left'}
                 onClick={onTableLeftClick}
@@ -234,7 +232,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
-                // @ts-expect-error transparent is not a valid priority in legacy UI
                 priority={theme.isChonk ? 'transparent' : undefined}
                 active={flamegraphPreferences.layout === 'table bottom'}
                 onClick={onTableBottomClick}
@@ -246,7 +243,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
-                // @ts-expect-error transparent is not a valid priority in legacy UI
                 priority={theme.isChonk ? 'transparent' : undefined}
                 active={flamegraphPreferences.layout === 'table right'}
                 onClick={onTableRightClick}
