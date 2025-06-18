@@ -1,8 +1,9 @@
 from dataclasses import asdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import ANY, Mock, call, patch
 
 import pytest
+from django.utils import timezone
 
 from sentry import buffer
 from sentry.eventstore.models import Event
@@ -43,6 +44,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     EventInstance,
     EventKey,
     EventRedisData,
+    TimeAndGroups,
     UniqueConditionQuery,
     bulk_fetch_events,
     cleanup_redis_buffer,
@@ -396,12 +398,20 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
             self.workflow_filters.id: self.workflow.id,
             other_workflow_filters.id: self.workflow.id,
         }
+        current_time = timezone.now()
+        dcg_to_timestamp = {
+            self.workflow_triggers.id: current_time,
+            self.workflow_filters.id: current_time + timedelta(minutes=1),
+            other_workflow_filters.id: current_time + timedelta(minutes=2),
+            detector_dcg.id: current_time + timedelta(minutes=3),
+        }
         workflows_to_envs: dict[int, int | None] = {self.workflow.id: None}
 
         # Create mock event data with just the required properties
         mock_event_data = Mock(spec=EventRedisData)
         mock_event_data.dcg_to_groups = dcg_to_groups
         mock_event_data.dcg_to_workflow = dcg_to_workflow
+        mock_event_data.dcg_to_timestamp = dcg_to_timestamp
 
         result = get_condition_query_groups(dcgs, mock_event_data, workflows_to_envs)
 
@@ -409,9 +419,17 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         percent_only_query = generate_unique_queries(self.percent_dc, None)[1]
         different_query = generate_unique_queries(other_condition, None)[0]
 
-        assert result[count_query] == {self.group.id, group2.id}  # count and percent condition
-        assert result[percent_only_query] == {self.group.id}
-        assert result[different_query] == {group3.id, group4.id}
+        assert result[count_query].group_ids == {
+            self.group.id,
+            group2.id,
+        }  # count and percent condition
+        assert result[count_query].timestamp == current_time + timedelta(
+            minutes=1
+        )  # uses latest timestamp
+        assert result[percent_only_query].group_ids == {self.group.id}
+        assert result[percent_only_query].timestamp == current_time
+        assert result[different_query].group_ids == {group3.id, group4.id}
+        assert result[different_query].timestamp == current_time + timedelta(minutes=3)
 
 
 @freeze_time(FROZEN_TIME)
@@ -434,9 +452,9 @@ class TestGetSnubaResults(BaseWorkflowTest):
         return event
 
     def create_condition_groups(
-        self, data_conditions: list[DataCondition]
-    ) -> tuple[dict[UniqueConditionQuery, set[int]], int, list[UniqueConditionQuery]]:
-        condition_groups = {}
+        self, data_conditions: list[DataCondition], timestamp: datetime | None = None
+    ) -> tuple[dict[UniqueConditionQuery, TimeAndGroups], int, list[UniqueConditionQuery]]:
+        condition_groups: dict[UniqueConditionQuery, TimeAndGroups] = {}
         all_unique_queries = []
         for data_condition in data_conditions:
             unique_queries = generate_unique_queries(data_condition, self.environment.id)
@@ -448,7 +466,12 @@ class TestGetSnubaResults(BaseWorkflowTest):
             event = self.create_events(comparison_type)
             assert event.group
             group = event.group
-            condition_groups.update({query: {event.group.id} for query in unique_queries})
+            condition_groups.update(
+                {
+                    query: TimeAndGroups(group_ids={event.group.id}, timestamp=timestamp)
+                    for query in unique_queries
+                }
+            )
             all_unique_queries.extend(unique_queries)
         return condition_groups, group.id, all_unique_queries
 
@@ -479,6 +502,18 @@ class TestGetSnubaResults(BaseWorkflowTest):
         results = get_condition_group_results(condition_groups)
         assert results == {
             unique_queries[0]: {group_id: 2},
+        }
+
+    def test_with_enqueue_time(self):
+        dc = self.create_event_frequency_condition()
+        condition_groups, group_id, unique_queries = self.create_condition_groups(
+            [dc], timestamp=timezone.now() - timedelta(minutes=1)
+        )
+
+        # events created at timezone.now(), querying for 1 minute before should return no events
+        results = get_condition_group_results(condition_groups)
+        assert results == {
+            unique_queries[0]: {group_id: 0},
         }
 
     def test_percent_comparison_condition(self):
@@ -531,7 +566,9 @@ class TestGetSnubaResults(BaseWorkflowTest):
             environment_id=None,
         )
 
-        condition_groups = {unique_query: {1}}  # One group ID to query
+        condition_groups = {
+            unique_query: TimeAndGroups(group_ids={1}, timestamp=None)
+        }  # One group ID to query
 
         with pytest.raises(ValueError, match="Escaping exception"):
             get_condition_group_results(condition_groups)
@@ -779,6 +816,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.detector,
         )
 
+    @freeze_time()
     @patch("sentry.workflow_engine.processors.workflow.enqueue_workflows")
     def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
         # enqueue the IF DCGs with slow conditions!
@@ -803,6 +841,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
                                 delayed_conditions=[self.workflow1_dcgs[1].conditions.all()[0]],
                                 event=self.event1.for_group(self.group1),
                                 source=WorkflowDataConditionGroupType.ACTION_FILTER,
+                                timestamp=timezone.now(),
                             ),
                         ],
                     }
@@ -815,6 +854,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
                                 delayed_conditions=[self.workflow2_dcgs[1].conditions.all()[0]],
                                 event=self.event2.for_group(self.group2),
                                 source=WorkflowDataConditionGroupType.ACTION_FILTER,
+                                timestamp=timezone.now(),
                             ),
                         ],
                     }

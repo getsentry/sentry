@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
-from datetime import timedelta
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any, TypeAlias
 
@@ -79,6 +79,7 @@ WorkflowId: TypeAlias = int
 class EventInstance(BaseModel):
     event_id: str
     occurrence_id: str | None = None
+    timestamp: datetime | None = None
 
     class Config:
         # Ignore unknown fields; we'd like to be able to add new fields easily.
@@ -211,6 +212,39 @@ class EventRedisData:
     @cached_property
     def group_ids(self) -> set[GroupId]:
         return {key.group_id for key in self.events}
+
+    @cached_property
+    def dcg_to_timestamp(self) -> dict[int, datetime | None]:
+        # Uses the latest timestamp each DataConditionGroup was enqueued with
+        result: dict[int, datetime | None] = defaultdict(lambda: None)
+
+        for key, instance in self.events.items():
+            timestamp = instance.timestamp
+            for dcg_id in key.dcg_ids:
+                existing_timestamp = result[dcg_id]
+                if timestamp is None:
+                    continue
+                elif existing_timestamp is not None and timestamp > existing_timestamp:
+                    result[dcg_id] = timestamp
+        return result
+
+
+@dataclass
+class TimeAndGroups:
+    """
+    Represents a collection of group IDs and the timestamp of the latest enqueued event for a group in the set. Used to query Snuba for a UniqueConditionQuery.
+    """
+
+    group_ids: set[GroupId] = field(default_factory=set)
+    timestamp: datetime | None = None
+
+    def update_timestamp(self, timestamp: datetime | None) -> None:
+        """
+        Use the latest timestamp for a set of group IDs with the same Snuba query.
+        We will query backwards in time from this point.
+        """
+        if self.timestamp is None or (timestamp is not None and timestamp > self.timestamp):
+            self.timestamp = timestamp
 
 
 @dataclass(frozen=True)
@@ -354,32 +388,36 @@ def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
     workflows_to_envs: Mapping[WorkflowId, int | None],
-) -> dict[UniqueConditionQuery, set[GroupId]]:
+) -> dict[UniqueConditionQuery, TimeAndGroups]:
     """
     Map unique condition queries to the group IDs that need to checked for that query.
     """
-    condition_groups: dict[UniqueConditionQuery, set[GroupId]] = defaultdict(set)
+    condition_groups: dict[UniqueConditionQuery, TimeAndGroups] = defaultdict(TimeAndGroups)
     dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_to_groups.keys()))
 
     for dcg in data_condition_groups:
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
+        timestamp = event_data.dcg_to_timestamp[dcg.id]
         for condition in slow_conditions:
             for condition_query in generate_unique_queries(condition, workflow_env):
-                condition_groups[condition_query].update(event_data.dcg_to_groups[dcg.id])
+                condition_groups[condition_query].group_ids.update(event_data.dcg_to_groups[dcg.id])
+                condition_groups[condition_query].update_timestamp(timestamp)
     return condition_groups
 
 
 @sentry_sdk.trace
 def get_condition_group_results(
-    queries_to_groups: dict[UniqueConditionQuery, set[GroupId]],
+    queries_to_groups: dict[UniqueConditionQuery, TimeAndGroups],
 ) -> dict[UniqueConditionQuery, QueryResult]:
     condition_group_results = {}
     current_time = timezone.now()
 
-    for unique_condition, group_ids in queries_to_groups.items():
+    for unique_condition, time_and_groups in queries_to_groups.items():
         handler = unique_condition.handler()
+        group_ids = time_and_groups.group_ids
+        time = time_and_groups.timestamp or current_time
 
         _, duration = handler.intervals[unique_condition.interval]
 
@@ -393,7 +431,7 @@ def get_condition_group_results(
             duration=duration,
             group_ids=group_ids,
             environment_id=unique_condition.environment_id,
-            current_time=current_time,
+            current_time=time,
             comparison_interval=comparison_interval,
             filters=unique_condition.filters,
         )
