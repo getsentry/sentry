@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from django.db import models
-from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -40,8 +39,8 @@ class GroupTombstone(Model):
         blank=True, null=True
     )
     actor_id = BoundedPositiveIntegerField(null=True)
-    times_seen = BoundedPositiveIntegerField(db_default=0, null=True)
-    last_seen = models.DateTimeField(db_default=Now(), null=True)
+    times_seen = BoundedPositiveIntegerField(db_default=0)
+    last_seen = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
