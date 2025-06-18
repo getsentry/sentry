@@ -79,7 +79,7 @@ urlpatterns = [
     re_path(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
     re_path(r"^debug/mail/feedback-alert/$", DebugFeedbackIssueEmailView.as_view()),
     re_path(
-        r"^debug/mail/performance-alert/(?P<sample_name>[^\/]+)?/$",
+        r"^debug/mail/performance-alert/(?P<sample_name>[^/]+)?/$",
         DebugPerformanceIssueEmailView.as_view(),
     ),
     re_path(r"^debug/mail/generic-alert/$", DebugGenericIssueEmailView.as_view()),
