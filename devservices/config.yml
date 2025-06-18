@@ -142,7 +142,6 @@ x-sentry-service-config:
       [
         postgres,
         snuba,
-        vroom,
         relay,
         spotlight,
         ingest-events,
@@ -150,6 +149,8 @@ x-sentry-service-config:
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
+        eap-spans-subscription-results,
+        subscription-results-eap-items,
         process-spans,
         ingest-occurrences,
         process-segments,
