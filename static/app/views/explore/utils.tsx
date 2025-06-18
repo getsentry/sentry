@@ -602,7 +602,22 @@ function normalizeKey(key: string): string {
 export function formatQueryToNaturalLanguage(query: string): string {
   if (!query.trim()) return '';
   const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  return tokens.map(formatToken).join(', ');
+  const formattedTokens = tokens.map(formatToken);
+
+  return formattedTokens.reduce((result, token, index) => {
+    if (index === 0) return token;
+
+    const prevToken = formattedTokens[index - 1];
+    const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
+    const prevIsLogicalOp =
+      prevToken.toUpperCase() === 'AND' || prevToken.toUpperCase() === 'OR';
+
+    if (isLogicalOp || prevIsLogicalOp) {
+      return `${result} ${token}`;
+    }
+
+    return `${result}, ${token}`;
+  }, '');
 }
 
 function formatToken(token: string): string {
