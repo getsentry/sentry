@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -80,9 +81,8 @@ export const Body = styled(
  * The entire layout is determined by the usage of <th> and <td>.
  */
 export const Grid = styled('table')<{
-  fit?: string;
-  fitMaxContent?: boolean;
-  height?: string | number;
+  fit?: 'max-content';
+  height?: CSSProperties['height'];
   scrollable?: boolean;
 }>`
   position: inherit;
