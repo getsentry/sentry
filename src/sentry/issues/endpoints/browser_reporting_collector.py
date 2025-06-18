@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -14,6 +15,15 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+class BrowserReportsJSONParser(JSONParser):
+    """
+    Custom parser for browser Reporting API that handles the application/reports+json content type.
+    This extends JSONParser since the content is still JSON, just with a different media type.
+    """
+
+    media_type = "application/reports+json"
+
+
 @all_silo_endpoint
 class BrowserReportingCollectorEndpoint(Endpoint):
     """
@@ -23,18 +33,17 @@ class BrowserReportingCollectorEndpoint(Endpoint):
     """
 
     permission_classes = ()
-    # TODO: Do we need to specify this parser? Content type will be `application/reports+json`, so
-    # it might just work automatically.
-    parser_classes = [JSONParser]
+    # Support both standard JSON and browser reporting API content types
+    parser_classes = [BrowserReportsJSONParser, JSONParser]
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
 
-    # TODO: It's unclear if either of these decorators is necessary
+    # CSRF exemption and CORS support required for Browser Reporting API
     @csrf_exempt
     @allow_cors_options
-    def post(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if not options.get("issues.browser_reporting.collector_endpoint_enabled"):
             return HttpResponse(status=404)
 
