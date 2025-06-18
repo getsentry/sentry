@@ -299,7 +299,6 @@ function WidgetCard(props: Props) {
           <WidgetCardChartContainer
             location={location}
             api={api}
-            organization={organization}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
