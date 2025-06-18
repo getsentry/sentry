@@ -2,6 +2,7 @@ from unittest import mock
 
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
+from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
@@ -40,16 +41,17 @@ class IssuePlatformIntegrationTests(TestCase):
             )
 
 
-def WorkflowStatusUpdateHandlerTests(TestCase):
+class WorkflowStatusUpdateHandlerTests(TestCase):
     def test__no_detector_id(self):
         """
         Test that the workflow_status_update_handler does not crash
         when no detector_id is provided in the status change message.
         """
         group = self.create_group(project=self.project)
-        activity = self.create_activity(
+        activity = Activity(
+            project=self.project,
             group=group,
-            type=ActivityType.SET_RESOLVED,
+            type=ActivityType.SET_RESOLVED.value,
             data={"fingerprint": ["test_fingerprint"]},
         )
 
@@ -64,7 +66,4 @@ def WorkflowStatusUpdateHandlerTests(TestCase):
 
         with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
-            mock_incr.assert_called_with(
-                "workflow_engine.error.tasks.no_detector_id",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
-            )
+            mock_incr.assert_called_with("workflow_engine.error.tasks.no_detector_id")
