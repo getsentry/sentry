@@ -18,7 +18,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 // TODO: replace usages of ChartZoom with useChartZoom
 
-type DateTimeUpdate = Parameters<typeof updateDateTime>[0];
+export type DateTimeUpdate = Parameters<typeof updateDateTime>[0];
 
 /**
  * Our api query params expects a specific date format
