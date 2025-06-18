@@ -8,6 +8,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Indicators from 'sentry/components/indicators';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -55,6 +56,15 @@ function getInitialOrgId(organizations: Organization[]) {
     return lastOrg.id;
   }
   return null;
+}
+
+function errorIsHasNoDsnError(e: unknown): boolean | undefined {
+  try {
+    const response = (e as {responseJSON?: {error?: string}}).responseJSON;
+    return response?.error === 'No DSN found for this project';
+  } catch {
+    return false;
+  }
 }
 
 export function WizardProjectSelection({
@@ -215,8 +225,14 @@ export function WizardProjectSelection({
           organizationId: selectedOrg.id,
           projectId,
         });
-      } catch {
-        addErrorMessage(t('Something went wrong! Please try again.'));
+      } catch (e) {
+        const errorMessage = errorIsHasNoDsnError(e)
+          ? t(
+              'The selected project has no active DSN. Please add an active DSN to the project.'
+            )
+          : t('Something went wrong! Please try again.');
+
+        addErrorMessage(errorMessage);
       }
     },
     [
@@ -245,6 +261,7 @@ export function WizardProjectSelection({
 
   return (
     <StyledForm onSubmit={handleSubmit}>
+      <Indicators />
       <Heading>{t('Select your Sentry project')}</Heading>
       <FieldWrapper>
         <label>{t('Organization')}</label>
