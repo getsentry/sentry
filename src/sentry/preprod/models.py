@@ -113,6 +113,9 @@ class PreprodArtifact(DefaultFieldsModel):
 
     commit = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
 
+    # Size analysis wont necessarily be run on every artifact (based on quotas)
+    analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
