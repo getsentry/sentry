@@ -175,8 +175,6 @@ const LayoutGrid = styled('div')`
   }
 `;
 
-// grid-template-columns: minmax(195px, 1fr) 1.5fr; hmm, need to come back to this, i kinda get what it does but it seems a bit sus, but it works better than what was there previously since before there was invalid CSS here
-
 const Container = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};

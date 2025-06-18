@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
-import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
@@ -13,20 +12,16 @@ export default function FeedbackSummary() {
 
   const organization = useOrganization();
 
-  if (!organization.features.includes('user-feedback-ai-summaries')) {
+  if (
+    !organization.features.includes('user-feedback-ai-summaries') ||
+    tooFewFeedbacks ||
+    isError
+  ) {
     return null;
-  }
-
-  if (isError) {
-    return <LoadingError message={t('There was an error loading the summary')} />;
   }
 
   if (isPending) {
     return <Placeholder height="100px" />;
-  }
-
-  if (tooFewFeedbacks) {
-    return null;
   }
 
   return (
@@ -61,7 +56,6 @@ const SummaryContent = styled('p')`
 
 const SummaryIconContainer = styled('div')`
   display: flex;
-  flex-direction: row;
   gap: ${space(1)};
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.border};
