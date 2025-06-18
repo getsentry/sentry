@@ -57,19 +57,9 @@ class MetricIssueComparisonConditionValidator(
         return result
 
 
-class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
-    conditions = serializers.ListField(required=True)
-
-    def validate_conditions(self, value):
-        MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
-            raise_exception=True
-        )
-        return value
-
-
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     data_source = SnubaQueryValidator(required=True, timeWindowSeconds=True)
-    condition_group = MetricIssueConditionGroupValidator(required=True)
+    condition_group = BaseDataConditionGroupValidator(required=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
