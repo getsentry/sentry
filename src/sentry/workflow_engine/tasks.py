@@ -8,7 +8,7 @@ from sentry.taskworker import config, namespaces, retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
-SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED]
+SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
 
 @instrumented_task(
