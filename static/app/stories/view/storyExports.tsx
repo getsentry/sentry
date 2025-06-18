@@ -59,7 +59,7 @@ function LegacyStory(props: {story: StoryDescriptor}) {
 }
 
 function UI2Story(props: {story: StoryDescriptor}) {
-  const {default: DefaultExport, frontmatter = {}, types} = props.story.exports;
+  const {default: DefaultExport, frontmatter = {}, types = {}} = props.story.exports;
   const title = frontmatter.title ?? props.story.filename;
 
   return (
@@ -72,10 +72,8 @@ function UI2Story(props: {story: StoryDescriptor}) {
 
             <TabList>
               <TabList.Item key="usage">Usage</TabList.Item>
-              {props.story.exports.types ? (
-                <TabList.Item key="api">API</TabList.Item>
-              ) : null}
-              {props.story.exports.frontmatter.resources ? (
+              {types ? <TabList.Item key="api">API</TabList.Item> : null}
+              {frontmatter.resources ? (
                 <TabList.Item key="resources">Resources</TabList.Item>
               ) : null}
             </TabList>
@@ -91,14 +89,14 @@ function UI2Story(props: {story: StoryDescriptor}) {
                   <DefaultExport />
                 </Storybook.Section>
               </TabPanels.Item>
-              {props.story.exports.frontmatter.resources ? (
+              {frontmatter.resources ? (
                 <TabPanels.Item key="resources">
                   <Storybook.Section>
                     <StoryResources story={props.story} />
                   </Storybook.Section>
                 </TabPanels.Item>
               ) : null}
-              {props.story.exports.types ? (
+              {types ? (
                 <TabPanels.Item key="api">
                   <APIReference types={types} />
                 </TabPanels.Item>
