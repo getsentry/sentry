@@ -39,7 +39,9 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
     def test_logs_request_data_if_option_enabled(
         self, mock_logger_info: MagicMock, mock_metrics_incr: MagicMock
     ):
-        response = self.client.post(self.url, self.report_data)
+        response = self.client.post(
+            self.url, self.report_data, content_type="application/reports+json"
+        )
 
         assert response.status_code == status.HTTP_200_OK
         mock_logger_info.assert_any_call(
@@ -48,3 +50,15 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         mock_metrics_incr.assert_any_call(
             "browser_reporting.raw_report_received", tags={"type": self.report_data["type"]}
         )
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
+    def test_rejects_invalid_content_type(self, mock_metrics_incr: MagicMock):
+        """Test that the endpoint rejects invalid content type and does not call the browser reporting metric"""
+        response = self.client.post(self.url, self.report_data, content_type="bad/type/json")
+
+        assert response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+        # Verify that the browser_reporting.raw_report_received metric was not called
+        # Check that none of the calls were for the browser_reporting.raw_report_received metric
+        for call in mock_metrics_incr.call_args_list:
+            assert call[0][0] != "browser_reporting.raw_report_received"
