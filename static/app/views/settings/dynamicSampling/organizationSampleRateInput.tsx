@@ -48,7 +48,7 @@ export function OrganizationSampleRateInput({
 
   const showBulkEditButton = hasAccess && isBulkEditEnabled && !isBulkEditActive;
   return (
-    <FlexWrapper gap={space(4)}>
+    <SampleRateRow>
       <Description>
         <Label>{label}</Label>
         <HelpText>{help}</HelpText>
@@ -94,13 +94,15 @@ export function OrganizationSampleRateInput({
           <AllDataStoredMessage>{t('All spans are stored')}</AllDataStoredMessage>
         ) : null}
       </InputWrapper>
-    </FlexWrapper>
+    </SampleRateRow>
   );
 }
 
-const FlexWrapper = styled(Flex)`
+const SampleRateRow = styled('div')`
+  display: flex;
   padding: ${space(1.5)} ${space(2)} ${space(1)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  gap: ${space(4)};
 `;
 
 const Description = styled('div')`
