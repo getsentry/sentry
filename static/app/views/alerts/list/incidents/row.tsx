@@ -4,12 +4,10 @@ import moment from 'moment-timezone';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
 import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
@@ -53,65 +51,68 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
 
   return (
     <ErrorBoundary>
-      <AlertListCell>
-        <StyledLink data-test-id="alert-title" to={alertLink}>
-          {incident.title}
-        </StyledLink>
-      </AlertListCell>
+      <FlexCenter>
+        <Title data-test-id="alert-title">
+          <Link to={alertLink}>{incident.title}</Link>
+        </Title>
+      </FlexCenter>
 
-      <AlertListCell variant="numeric">
+      <NoWrapNumeric>
         {getDynamicText({
           value: <TimeSince date={incident.dateStarted} unitStyle="extraShort" />,
           fixed: '1w ago',
         })}
-      </AlertListCell>
-      <AlertListCell variant="numeric">
+      </NoWrapNumeric>
+      <NoWrapNumeric>
         {incident.status === IncidentStatus.CLOSED ? (
           <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
         ) : (
           <Tag type="warning">{t('Still Active')}</Tag>
         )}
-      </AlertListCell>
+      </NoWrapNumeric>
 
-      <AlertListCell>
+      <FlexCenter>
         <ProjectBadge avatarSize={18} project={projectsLoaded ? project : {slug}} />
-      </AlertListCell>
-      <AlertListCell variant="numeric">#{incident.id}</AlertListCell>
+      </FlexCenter>
+      <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 
-      <AlertListCell>
+      <FlexCenter>
         {teamActor ? (
           <Fragment>
             <StyledActorAvatar actor={teamActor} size={18} hasTooltip={false} />{' '}
-            <TextOverflow>{teamActor.name}</TextOverflow>
+            <TeamWrapper>{teamActor.name}</TeamWrapper>
           </Fragment>
         ) : (
           '-'
         )}
-      </AlertListCell>
+      </FlexCenter>
     </ErrorBoundary>
   );
 }
 
-const AlertListCell = styled(
-  ({children, ...props}: {children: React.ReactNode; variant?: 'numeric'}) => {
-    const {variant: _variant, ...rest} = props;
-    return (
-      <Flex align="center" {...rest}>
-        <TextOverflow>{children}</TextOverflow>
-      </Flex>
-    );
-  }
-)`
-  min-width: 0;
-  font-variant-numeric: ${p => (p.variant === 'numeric' ? 'tabular-nums' : undefined)};
-`;
-
-const StyledLink = styled(Link)`
+const Title = styled('div')`
+  ${p => p.theme.overflowEllipsis}
   min-width: 130px;
 `;
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
+`;
+
+const FlexCenter = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  display: flex;
+  align-items: center;
+  line-height: 1.6;
+`;
+
+const NoWrapNumeric = styled(FlexCenter)`
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+`;
+
+const TeamWrapper = styled('span')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledActorAvatar = styled(ActorAvatar)`
