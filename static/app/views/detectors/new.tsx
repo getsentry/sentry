@@ -20,6 +20,12 @@ import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
+interface NewDetectorFormData {
+  detectorType: string;
+  environment: string;
+  project: string;
+}
+
 export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -28,35 +34,41 @@ export default function DetectorNew() {
 
   const defaultProject = projects.find(p => p.isMember) ?? projects[0];
 
+  const newMonitorName = t('New Monitor');
   return (
     <FullHeightForm
-      onSubmit={data => {
+      onSubmit={formData => {
+        // Form doesn't allow type to be defined, cast to the expected shape
+        const data = formData as NewDetectorFormData;
         navigate({
           pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
-          // Filter out empty values
-          query: Object.fromEntries(
-            Object.entries(data).filter(([_, value]) => value !== '')
-          ),
+          query: {
+            detectorType: data.detectorType,
+            project: data.project,
+            environment: data.environment,
+          },
         });
       }}
       hideFooter
-      initialData={{
-        detectorType: 'metric',
-        project: defaultProject?.id,
-        environment: '',
-      }}
+      initialData={
+        {
+          detectorType: 'metric',
+          project: defaultProject?.id ?? '',
+          environment: '',
+        } satisfies NewDetectorFormData
+      }
     >
-      <SentryDocumentTitle title={t('New Monitor')} />
+      <SentryDocumentTitle title={newMonitorName} />
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
                 {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-                {label: t('New Monitor')},
+                {label: newMonitorName},
               ]}
             />
-            <Layout.Title>{t('New Monitor')}</Layout.Title>
+            <Layout.Title>{newMonitorName}</Layout.Title>
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>
