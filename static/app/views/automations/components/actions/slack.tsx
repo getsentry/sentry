@@ -1,4 +1,4 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
 import {
   OptionalRowLine,
@@ -57,7 +57,7 @@ function SlackTagsAndNotes(action: Action) {
 
 export function SlackNode() {
   return (
-    <Flex column gap={space(1)} flex="1">
+    <Flex direction="column" gap={space(1)} flex="1">
       <RowLine>
         {tct('Send a [logo] Slack message to [workspace] workspace, to [channel]', {
           logo: ActionMetadata[ActionType.SLACK]?.icon,
