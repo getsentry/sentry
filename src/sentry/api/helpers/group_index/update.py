@@ -656,8 +656,8 @@ def merge_groups(
     acting_user: RpcUser | User | None,
     referer: str,
 ) -> MergedGroup:
-    issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
-    similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+    issue_stream_regex = r"^(\/organizations\/[^/]+)?\/issues\/$"
+    similar_issues_tab_regex = r"^(\/organizations\/[^/]+)?\/issues\/\d+\/similar\/$"
 
     metrics.incr(
         "grouping.merge_issues",

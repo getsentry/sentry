@@ -16,7 +16,7 @@ urlpatterns = [
         name="sentry-integration-github-installation",
     ),
     re_path(
-        r"^search/(?P<organization_id_or_slug>[^\/]+)/(?P<integration_id>\d+)/$",
+        r"^search/(?P<organization_id_or_slug>[^/]+)/(?P<integration_id>\d+)/$",
         GithubSharedSearchEndpoint.as_view(),
         name="sentry-integration-github-search",
     ),
