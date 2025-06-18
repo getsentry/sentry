@@ -50,7 +50,10 @@ from sentry.incidents.utils.types import (
 )
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
-from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
+from sentry.seer.anomaly_detection.get_historical_anomalies import (
+    get_anomaly_evaluation_from_workflow_engine,
+)
+from sentry.seer.anomaly_detection.utils import anomaly_has_confidence
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import delete_snuba_subscription
@@ -367,6 +370,7 @@ class SubscriptionProcessor:
         if (
             has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+            and not has_metric_alert_processing
         ):
             logger.info(
                 "Raw subscription update",
@@ -407,7 +411,49 @@ class SubscriptionProcessor:
             # Triggers is the threshold - NOT an instance of a trigger
             metrics_incremented = False
             for trigger in self.triggers:
-                if potential_anomalies:
+                # dual processing of anomaly detection alerts
+                if (
+                    has_anomaly_detection
+                    and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+                    and has_metric_alert_processing
+                ):
+                    has_anomaly = get_anomaly_evaluation_from_workflow_engine(results)
+                    if has_anomaly is None:
+                        # we care about True and False—None indicates no change
+                        continue
+
+                    if has_anomaly and not self.check_trigger_matches_status(
+                        trigger, TriggerStatus.ACTIVE
+                    ):
+                        metrics.incr(
+                            "incidents.alert_rules.threshold.alert",
+                            tags={"detection_type": self.alert_rule.detection_type},
+                        )
+                        incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
+                        if incident_trigger is not None:
+                            fired_incident_triggers.append(incident_trigger)
+                    else:
+                        self.trigger_alert_counts[trigger.id] = 0
+
+                    if (
+                        not has_anomaly
+                        and self.active_incident
+                        and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                    ):
+                        metrics.incr(
+                            "incidents.alert_rules.threshold.resolve",
+                            tags={"detection_type": self.alert_rule.detection_type},
+                        )
+                        incident_trigger = self.trigger_resolve_threshold(
+                            trigger, aggregation_value
+                        )
+
+                        if incident_trigger is not None:
+                            fired_incident_triggers.append(incident_trigger)
+                    else:
+                        self.trigger_resolve_counts[trigger.id] = 0
+
+                elif potential_anomalies:
                     # NOTE: There should only be one anomaly in the list
                     for potential_anomaly in potential_anomalies:
                         # check to see if we have enough data for the dynamic alert rule now
