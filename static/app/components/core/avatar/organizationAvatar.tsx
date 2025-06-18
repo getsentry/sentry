@@ -1,6 +1,7 @@
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
+
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 interface OrganizationAvatarProps extends BaseAvatarProps {
   organization?: OrganizationSummary;
