@@ -402,7 +402,7 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.getColorPalette(theme.chart.colors.length - 1));
+      : theme.chart.getColorPalette(theme.chart.colors.length));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
