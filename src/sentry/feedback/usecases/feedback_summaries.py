@@ -17,7 +17,7 @@ You are an assistant that summarizes customer feedback. Given a list of customer
 
 Balance specificity and generalization based on the size of the input based *only* on the themes and topics present in the list of customer feedback entries. Prioritize brevity and clarity and trying to capture what users are saying, over trying to mention random specific topics. Please don't write overly long sentences, you can leave certain things out and the decision to mention specific topics or themes should be proportional to the number of times they appear in the user feedback entries.
 
-User Feedback:
+User Feedbacks:
 
 {feedbacks_string}
 
