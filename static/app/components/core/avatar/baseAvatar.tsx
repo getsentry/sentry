@@ -1,18 +1,15 @@
 import type React from 'react';
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
 
-import {Gravatar} from 'sentry/components/core/avatar/gravatar';
-import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
-import {
-  type BaseAvatarComponentProps,
-  BaseAvatarComponentStyles,
-} from './baseAvatarComponentStyles';
+import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponentStyles';
+import {Gravatar} from './gravatar';
+import {LetterAvatar} from './letterAvatar';
 
 const DEFAULT_REMOTE_SIZE = 120;
 
@@ -69,6 +66,9 @@ export function BaseAvatar({
   ...props
 }: BaseAvatarProps) {
   const [hasError, setError] = useState<boolean | null>(null);
+
+  // Reset loading errors when avatar type changes
+  useEffect(() => setError(null), [type]);
 
   const handleError = useCallback(() => setError(true), []);
   const handleLoad = useCallback(() => setError(false), []);
@@ -143,6 +143,6 @@ const AvatarContainer = styled('span')<{
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
 `;
 
-const ImageAvatar = styled('img')<BaseAvatarComponentProps>`
-  ${BaseAvatarComponentStyles};
+const ImageAvatar = styled('img')<BaseAvatarStyleProps>`
+  ${baseAvatarStyles};
 `;

@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
 export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {

@@ -1,10 +1,11 @@
 import {Fragment, useEffect} from 'react';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
 import Placeholder from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import AvatarList from './avatarList';
 
 function useLoadedMembers() {
   const {members, loadMore, ...rest} = useMembers({limit: 50});

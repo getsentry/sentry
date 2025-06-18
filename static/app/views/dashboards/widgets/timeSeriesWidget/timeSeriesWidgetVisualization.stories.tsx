@@ -32,7 +32,6 @@ import {Line} from './plottables/line';
 import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
