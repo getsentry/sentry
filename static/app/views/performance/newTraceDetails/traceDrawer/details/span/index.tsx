@@ -438,7 +438,12 @@ function EAPSpanNodeDetails({
       return (
         <StyledLink
           data-test-id="view-profile"
-          to={target}
+          to={{
+            pathname: target,
+            query: {
+              spanId: node.value.event_id,
+            },
+          }}
           onClick={() =>
             trackAnalytics('profiling_views.go_to_flamegraph', {
               organization,
