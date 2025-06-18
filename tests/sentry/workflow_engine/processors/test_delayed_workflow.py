@@ -198,8 +198,15 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         event_id: str | None = None,
         occurrence_id: str | None = None,
         dcg_group: DataConditionHandler.Group = DataConditionHandler.Group.WORKFLOW_TRIGGER,
+        timestamp: datetime | None = None,
     ) -> None:
-        value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
+        value_dict: dict[str, str | None | datetime] = {
+            "event_id": event_id,
+            "occurrence_id": occurrence_id,
+        }
+        if timestamp:
+            value_dict["timestamp"] = timestamp
+        value = json.dumps(value_dict)
         field = f"{workflow_id}:{group_id}:{','.join(map(str, dcg_ids))}:{dcg_group}"
         buffer.backend.push_to_hash(
             model=Workflow,
@@ -208,7 +215,7 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
             value=value,
         )
 
-    def _push_base_events(self) -> None:
+    def _push_base_events(self, timestamp: datetime | None = None) -> None:
         workflow_to_data = {
             self.workflow1: (self.project, self.workflow1_dcgs, self.event1, self.group1),
             self.workflow2: (self.project, self.workflow2_dcgs, self.event2, self.group2),
@@ -229,6 +236,7 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
                     dcg_ids=[dcg.id],
                     event_id=event.event_id,
                     dcg_group=dcg_group[i],
+                    timestamp=timestamp,
                 )
 
 
@@ -261,6 +269,25 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
             self.workflow1.id: self.environment.id,
             self.workflow2.id: None,
         }
+
+    def test_parse_none_timestamps(self):
+        self._push_base_events()
+        event_data = EventRedisData.from_redis_data(
+            fetch_group_to_event_data(self.project.id, Workflow),
+            continue_on_error=False,
+        )
+        for instance in event_data.events.values():
+            assert instance.timestamp is None
+
+    @freeze_time()
+    def test_parse_timestamps(self):
+        self._push_base_events(timestamp=timezone.now())
+        event_data = EventRedisData.from_redis_data(
+            fetch_group_to_event_data(self.project.id, Workflow),
+            continue_on_error=False,
+        )
+        for instance in event_data.events.values():
+            assert instance.timestamp == timezone.now()
 
 
 class TestDelayedWorkflowQueries(BaseWorkflowTest):
