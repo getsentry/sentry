@@ -22,6 +22,11 @@ x-sentry-service-config:
         mode: containerized-profiles
     snuba-metrics:
       description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes metrics consumers
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized-metrics-dev
     relay:
       description: Service event forwarding and ingestion service
       remote:
