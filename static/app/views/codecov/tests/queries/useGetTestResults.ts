@@ -41,6 +41,7 @@ type TestResultItem = {
   flakeRate: number;
   lastDuration: number;
   name: string;
+  totalDuration: number;
   totalFailCount: number;
   totalFlakyFailCount: number;
   totalPassCount: number;
@@ -120,6 +121,7 @@ export function useInfiniteTestResults() {
           ({
             name,
             avgDuration,
+            totalDuration,
             updatedAt,
             totalFailCount,
             totalPassCount,
@@ -134,6 +136,7 @@ export function useInfiniteTestResults() {
               ...other,
               testName: name,
               averageDurationMs: avgDuration * 1000,
+              totalDurationMs: totalDuration * 1000,
               lastRun: updatedAt,
               flakeRate: flakeRate * 100,
               isBrokenTest,
