@@ -97,3 +97,20 @@ def organization_absolute_url(
     if fragment:
         parts.append(fragment)
     return "".join(parts)
+
+
+def api_absolute_url(
+    *, slug: str, path: str, query: str | None = None, fragment: str | None = None
+):
+    path = f"/api/0/organizations/{slug}{path}"
+    uri = absolute_uri(path)
+    parts = [uri]
+    if query and not query.startswith("?"):
+        query = f"?{query}"
+    if query:
+        parts.append(query)
+    if fragment and not fragment.startswith("#"):
+        fragment = f"#{fragment}"
+    if fragment:
+        parts.append(fragment)
+    return "".join(parts)
