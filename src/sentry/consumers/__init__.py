@@ -431,9 +431,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             *multiprocessing_options(default_max_batch_size=100),
             click.Option(
                 ["--flusher-processes", "flusher_processes"],
-                default=None,
+                default=1,
                 type=int,
-                help="Maximum number of processes for the span flusher. Defaults to number of shards if not specified.",
+                help="Maximum number of processes for the span flusher. Defaults to 1.",
             ),
         ],
     },
