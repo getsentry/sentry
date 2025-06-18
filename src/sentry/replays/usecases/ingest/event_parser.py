@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import logging
 import random
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.utils import json
 
@@ -170,6 +173,11 @@ def which(event: dict[str, Any]) -> EventType:
         return EventType.UNKNOWN
 
 
+def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[str, Any]]]:
+    for event in events:
+        yield (which(event), event)
+
+
 def as_log_message(event: dict[str, Any]) -> str | None:
     """Return an event as a log message.
 
@@ -240,6 +248,69 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             return None
         case EventType.OPTIONS:
             return None
+
+
+class MessageContext(TypedDict):
+    organization_id: int
+    project_id: int
+    timestamp: float
+    retention_days: int
+    trace_id: str | None
+    replay_id: str
+
+
+def as_trace_item(
+    context: MessageContext, event_type: EventType, event: dict[str, Any]
+) -> TraceItem:
+    match event_type:
+        case EventType.CLICK:
+            ...
+        case EventType.DEAD_CLICK:
+            ...
+        case EventType.RAGE_CLICK:
+            ...
+        case EventType.NAVIGATION:
+            ...
+        case EventType.CONSOLE:
+            ...
+        case EventType.UI_BLUR:
+            ...
+        case EventType.UI_FOCUS:
+            ...
+        case EventType.RESOURCE_FETCH:
+            ...
+        case EventType.RESOURCE_XHR:
+            ...
+        case EventType.LCP:
+            ...
+        case EventType.FCP:
+            ...
+        case EventType.HYDRATION_ERROR:
+            ...
+        case EventType.MUTATIONS:
+            ...
+        case EventType.UNKNOWN:
+            ...
+        case EventType.FEEDBACK:
+            ...
+        case EventType.CANVAS:
+            ...
+        case EventType.OPTIONS:
+            ...
+
+    return TraceItem(
+        organization_id=None,
+        project_id=None,
+        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+        timestamp=timestamp,
+        trace_id=trace_id or replay_id,
+        item_id=event_hash,
+        received=payload_timestamp,
+        retention_days=retention_days,
+        attributes=attributes,
+        client_sample_rate=1.0,
+        server_sample_rate=1.0,
+    )
 
 
 class HighlightedEvents(TypedDict, total=False):
