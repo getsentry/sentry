@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from django.db import connections, models, router, transaction
+from django.db import models, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -237,7 +237,6 @@ class CustomDynamicSamplingRule(Model):
         Assigns the smallest rule id that is not taken in the
         current organization.
         """
-        table_name = self._meta.db_table
         if self.id is None:
             raise ValueError("Cannot assign rule id to unsaved object")
         if self.rule_id != 0:
@@ -245,15 +244,22 @@ class CustomDynamicSamplingRule(Model):
 
         now = timezone.now()
 
-        raw_sql = (
-            f"UPDATE {table_name} SET rule_id = ( "
-            f"   SELECT COALESCE ((SELECT MIN(rule_id) + 1  FROM {table_name} WHERE rule_id + 1 NOT IN ("
-            f"       SELECT rule_id FROM {table_name} WHERE organization_id = %s AND end_date > %s AND "
-            f"is_active)),1))  "
-            f"WHERE id = %s"
+        # Get all existing rule_ids for active, non-expired rules in this organization
+        existing_rule_ids = set(
+            CustomDynamicSamplingRule.objects.filter(
+                organization_id=self.organization.id,
+                end_date__gt=now,
+                is_active=True
+            ).values_list('rule_id', flat=True)
         )
-        with connections["default"].cursor() as cursor:
-            cursor.execute(raw_sql, (self.organization.id, now, self.id))
+
+        # Find the first available rule_id starting from 1
+        new_rule_id = 1
+        while new_rule_id in existing_rule_ids:
+            new_rule_id += 1
+
+        # Update this instance with the new rule_id
+        CustomDynamicSamplingRule.objects.filter(id=self.id).update(rule_id=new_rule_id)
         self.refresh_from_db()
         return self.rule_id
 
