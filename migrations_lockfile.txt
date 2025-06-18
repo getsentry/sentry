@@ -21,11 +21,11 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0004_add_django_jsonfield
+preprod: 0005_add_git_commit
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0928_move_notifications_models
+sentry: 0929_no_pickle_authenticator
 
 social_auth: 0001_squashed_0002_default_auto_field
 

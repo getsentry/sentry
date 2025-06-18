@@ -29,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {
@@ -327,7 +326,6 @@ export function useReleaseBubbles({
   desiredBuckets = 10,
   flags,
 }: UseReleaseBubblesParams) {
-  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -343,7 +341,6 @@ export function useReleaseBubbles({
       ? new Date(endTimeToUse).getTime()
       : Date.now();
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const totalBubblePaddingY = bubblePadding * 2;
   const defaultBubbleXAxis = useMemo(
     () => ({
@@ -395,8 +392,7 @@ export function useReleaseBubbles({
 
   const buckets = useMemo(
     () =>
-      (hasReleaseBubbles &&
-        (releases?.length || flags?.length) &&
+      ((releases?.length || flags?.length) &&
         minTime &&
         maxTime &&
         createReleaseBuckets({
@@ -408,15 +404,7 @@ export function useReleaseBubbles({
           desiredBuckets,
         })) ||
       [],
-    [
-      desiredBuckets,
-      flags,
-      hasReleaseBubbles,
-      maxTime,
-      minTime,
-      releases,
-      releasesMaxTime,
-    ]
+    [desiredBuckets, flags, maxTime, minTime, releases, releasesMaxTime]
   );
 
   const handleChartRef = useCallback(

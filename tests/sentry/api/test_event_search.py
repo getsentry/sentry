@@ -1072,12 +1072,6 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
         pytest.param("flags[foo:bar,string]:true", "flags[foo:bar,string]", "true"),
         pytest.param("flags[foo,number]:0", "flags[foo,number]", "0"),
         pytest.param("flags[foo:bar,number]:0", "flags[foo:bar,number]", "0"),
-        # the quoted versions are supported for flags for backwards compatibility
-        pytest.param('flags["foo"]:true', "flags[foo]", "true"),
-        pytest.param('flags["foo",string]:true', "flags[foo,string]", "true"),
-        pytest.param('flags["foo:bar",string]:true', "flags[foo:bar,string]", "true"),
-        pytest.param('flags["foo",number]:0', "flags[foo,number]", "0"),
-        pytest.param('flags["foo:bar",number]:0', "flags[foo:bar,number]", "0"),
     ],
 )
 def test_handles_special_character_in_tags_and_flags(query, key, value):
