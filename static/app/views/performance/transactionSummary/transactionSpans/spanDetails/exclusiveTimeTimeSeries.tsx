@@ -120,7 +120,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   top: '40px',
                   bottom: '0px',
                 },
-                colors: theme.chart.getColorPalette(yAxis.length - 2),
+                colors: theme.chart.getColorPalette(yAxis.length - 1),
                 seriesOptions: {
                   showSymbol: false,
                 },
