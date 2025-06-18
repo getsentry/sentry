@@ -317,11 +317,6 @@ class Fixtures:
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
 
-    def create_event_attachment(self, event=None, *args, **kwargs):
-        if event is None:
-            event = self.event
-        return Factories.create_event_attachment(event, *args, **kwargs)
-
     def create_dif_file(self, project: Project | None = None, *args, **kwargs):
         if project is None:
             project = self.project
