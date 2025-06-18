@@ -4,7 +4,7 @@ from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssemb
 
 preprod_urlpatterns = [
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/preprodartifacts/assemble/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
         ProjectPreprodArtifactAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-preprod-artifact-files",
     ),
