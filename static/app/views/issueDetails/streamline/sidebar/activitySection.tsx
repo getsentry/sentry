@@ -35,6 +35,16 @@ import {ViewButton} from 'sentry/views/issueDetails/streamline/sidebar/viewButto
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+function getAuthorName(item: GroupActivity) {
+  if (item.sentry_app) {
+    return item.sentry_app.name;
+  }
+  if (item.user) {
+    return item.user.name;
+  }
+  return 'Sentry';
+}
+
 function TimelineItem({
   item,
   handleDelete,
@@ -52,7 +62,7 @@ function TimelineItem({
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
-  const authorName = item.user ? item.user.name : 'Sentry';
+  const authorName = getAuthorName(item);
   const {title, message} = getGroupActivityItem(
     item,
     organization,
@@ -63,7 +73,11 @@ function TimelineItem({
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
   const Icon = iconMapping?.componentFunction
-    ? iconMapping.componentFunction(item.data, item.user)
+    ? iconMapping.componentFunction({
+        data: item.data,
+        user: item.user,
+        sentry_app: item.sentry_app,
+      })
     : (iconMapping?.Component ?? null);
 
   return (

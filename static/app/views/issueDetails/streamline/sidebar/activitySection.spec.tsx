@@ -1,5 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -177,6 +178,44 @@ describe('StreamlinedActivitySection', function () {
 
     expect(editMock).toHaveBeenCalledTimes(1);
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+  });
+
+  it('renders note from a sentry app', async function () {
+    const newUser = UserFixture({name: 'sentry-app-proxy-user-abcd123'});
+    const sentryApp = SentryAppFixture({
+      name: 'Bug Bot',
+      avatars: [
+        {
+          avatarType: 'upload',
+          avatarUrl: 'https://example.com/avatar.png',
+          avatarUuid: '1234567890',
+          photoType: 'icon',
+          color: true,
+        },
+      ],
+    });
+    const newGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'This note came from my sentry app'},
+          dateCreated: '2020-01-01T00:00:00',
+          sentry_app: sentryApp,
+          user: newUser,
+        },
+      ],
+    });
+
+    render(<StreamlinedActivitySection group={newGroup} />);
+    expect(
+      await screen.findByText('This note came from my sentry app')
+    ).toBeInTheDocument();
+    const icon = screen.getByTestId('upload-avatar');
+    expect(icon).toHaveAttribute('title', sentryApp.name);
+    expect(screen.getByText(sentryApp.name)).toBeInTheDocument();
+    // We should not show the user, if a sentry app is attached
+    expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();
   });
 
   it('renders note but does not allow for deletion if written by someone else', async function () {
