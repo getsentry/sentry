@@ -3,7 +3,8 @@ import {useCallback, useEffect, useRef} from 'react';
 import type {DOMAttributes, FocusableElement} from '@react-types/shared';
 
 import {
-  NAV_PRIMARY_NAV_LINK_DATA_ATTRIBUTE,
+  NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
+  NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAV_SIDEBAR_RESET_DELAY_MS,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -40,11 +41,10 @@ export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
       requestAnimationFrame(() => {
         const target = e.target as HTMLElement;
 
-        // Check if we're inside the primary nav list container
         const isInPrimaryNavListContainer =
-          target.closest(`[${NAV_PRIMARY_NAV_LINK_DATA_ATTRIBUTE}]`) !== null;
+          target.closest(`[${NAV_PRIMARY_LINK_DATA_ATTRIBUTE}]`) !== null;
         const isInSecondaryNavListContainer =
-          target.closest('[data-secondary-navigation-sidebar]') !== null;
+          target.closest(`[${NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE}]`) !== null;
 
         if (isInPrimaryNavListContainer || isInSecondaryNavListContainer) {
           clearResetTimeout();
@@ -62,7 +62,6 @@ export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
     });
   }, [resetActiveNavGroup]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (resetTimeoutRef.current) {

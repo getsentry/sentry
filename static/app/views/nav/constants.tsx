@@ -1,5 +1,5 @@
 export const NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY = 'navigation-sidebar-is-collapsed';
-export const NAV_PRIMARY_NAV_LINK_DATA_ATTRIBUTE = 'data-primary-navigation-link';
+export const NAV_PRIMARY_LINK_DATA_ATTRIBUTE = 'data-primary-navigation-link';
 export const NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE = 'data-secondary-navigation-sidebar';
 
 export const PRIMARY_SIDEBAR_WIDTH = 74;
