@@ -113,6 +113,9 @@ class PreprodArtifact(DefaultFieldsModel):
 
     commit = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
 
+    # Nullable in case the file upload fails
+    analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
