@@ -76,13 +76,13 @@ function AiContent({replayRecord}: Props) {
       enabled: Boolean(
         replayRecord?.id &&
           project?.slug &&
-          organization.features.includes('replay-ai-summary')
+          organization.features.includes('replay-ai-summaries')
       ),
       retry: false,
     }
   );
 
-  if (!organization.features.includes('replay-ai-summary')) {
+  if (!organization.features.includes('replay-ai-summaries')) {
     return (
       <SummaryContainer>
         <Alert type="info">
