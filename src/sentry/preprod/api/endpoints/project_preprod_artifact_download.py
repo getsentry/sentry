@@ -77,21 +77,8 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
         except Exception:
             return Response({"error": "Failed to retrieve preprod artifact file"}, status=500)
 
-        # Determine the filename - use artifact type and id if no specific name
-        artifact_type = (
-            preprod_artifact.get_artifact_type_display()
-            if preprod_artifact.artifact_type
-            else "artifact"
-        )
-        filename = f"preprod_{artifact_type}_{artifact_id}"
-
-        # Add appropriate file extension based on artifact type
-        if preprod_artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            filename += ".xcarchive"
-        elif preprod_artifact.artifact_type == PreprodArtifact.ArtifactType.AAB:
-            filename += ".aab"
-        elif preprod_artifact.artifact_type == PreprodArtifact.ArtifactType.APK:
-            filename += ".apk"
+        # All preprod artifacts are zip files
+        filename = f"preprod_artifact_{artifact_id}.zip"
 
         response = FileResponse(
             ClosesDependentFiles(fp),
