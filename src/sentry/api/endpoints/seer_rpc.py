@@ -45,6 +45,9 @@ from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_file_patches,
     get_issues_related_to_function_names,
 )
+from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
+    get_issues_related_to_exception_type,
+)
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.silo.base import SiloMode
 from sentry.utils import snuba_rpc
@@ -370,6 +373,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
     "get_issues_related_to_function_names": get_issues_related_to_function_names,
+    "get_issues_related_to_exception_type": get_issues_related_to_exception_type,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "get_attribute_names": get_attribute_names,
