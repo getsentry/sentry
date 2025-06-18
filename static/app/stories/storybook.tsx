@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
 import * as Storybook from './';

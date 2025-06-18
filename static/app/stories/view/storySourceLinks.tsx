@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
