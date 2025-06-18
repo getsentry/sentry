@@ -156,6 +156,18 @@ x-sentry-service-config:
         process-segments,
         worker,
       ]
+    crons:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-monitors,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        worker,
+      ]
     profiling:
       [
         postgres,

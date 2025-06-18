@@ -1,4 +1,3 @@
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -99,15 +98,6 @@ interface ReservedUsageChartProps {
   usagePeriodEnd: string;
   usagePeriodStart: string;
   usageStats: CustomerUsage['stats'];
-}
-
-function getCategoryColors(theme: Theme) {
-  return [
-    theme.outcome.accepted,
-    theme.outcome.filtered,
-    theme.outcome.dropped,
-    theme.chartOther, // Projected
-  ];
 }
 
 function selectedCategory(location: Location, categoryOptions: CategoryOption[]) {
@@ -686,7 +676,6 @@ function ReservedUsageChart({
       usageStats={chartData}
       usageDateShowUtc={false}
       categoryOptions={categoryOptions}
-      categoryColors={getCategoryColors(theme)}
       chartSeries={[
         ...(displayMode === 'cost' && chartData.reserved
           ? [

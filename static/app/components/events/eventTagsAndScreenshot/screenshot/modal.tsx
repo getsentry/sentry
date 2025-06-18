@@ -1,14 +1,15 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
@@ -107,13 +108,24 @@ export default function ScreenshotModal({
 
   const AttachmentComponent = getInlineAttachmentRenderer(currentEventAttachment)!;
 
+  useEffect(() => {
+    if (currentEventAttachment && !AttachmentComponent) {
+      Sentry.withScope(scope => {
+        scope.setExtra('mimetype', currentEventAttachment.mimetype);
+        scope.setExtra('attachmentName', currentEventAttachment.name);
+        scope.setFingerprint(['no-inline-attachment-renderer']);
+        scope.captureException(new Error('No screenshot attachment renderer found'));
+      });
+    }
+  }, [currentEventAttachment, AttachmentComponent]);
+
   return (
     <Fragment>
       <Header closeButton>
         <h5>{t('Screenshot')}</h5>
       </Header>
       <Body>
-        <Flex column gap={space(1.5)}>
+        <Flex direction="column" gap={space(1.5)}>
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent
