@@ -74,9 +74,24 @@ export default function Ai({replayRecord}: Props) {
       return <Alert type="info">{t('No summary available for this replay.')}</Alert>;
     }
 
+    console.log(summaryData);
     return (
       <SummaryContainer>
+        <h3>{summaryData.data.title}</h3>
         <SummaryText>{summaryData.data.summary}</SummaryText>
+        <SummaryDetails open>
+          <summary>
+            <h4>Chapters</h4>
+          </summary>
+          {summaryData.data.time_ranges.map(
+            ({period_title, period_start, period_end}) => (
+              <SummaryDetails key={period_title}>
+                <summary>{period_title}</summary>
+                <div>wip</div>
+              </SummaryDetails>
+            )
+          )}
+        </SummaryDetails>
       </SummaryContainer>
     );
   };
@@ -102,6 +117,10 @@ const LoadingContainer = styled('div')`
 
 const SummaryContainer = styled('div')`
   padding: ${space(2)};
+`;
+
+const SummaryDetails = styled('details')`
+  display: list-item;
 `;
 
 const SummaryText = styled('p')`
