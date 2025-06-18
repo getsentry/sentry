@@ -101,7 +101,7 @@ def organization_absolute_url(
 
 def api_absolute_url(
     *, slug: str, path: str, query: str | None = None, fragment: str | None = None
-):
+) -> str:
     path = f"/api/0/organizations/{slug}{path}"
     uri = absolute_uri(path)
     parts = [uri]

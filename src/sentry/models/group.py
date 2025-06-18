@@ -692,7 +692,7 @@ class Group(Model):
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
 
-    def get_api_url(self, params: Mapping[str, str] | None = None):
+    def get_absolute_api_url(self, params: Mapping[str, str] | None = None):
         path = f"/issues/{self.id}/"
         if params:
             query = urlencode(params)
