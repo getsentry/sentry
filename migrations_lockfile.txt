@@ -25,7 +25,7 @@ preprod: 0005_add_git_commit
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0929_no_pickle_authenticator
+sentry: 0930_make_open_period_range_boundary_inclusive
 
 social_auth: 0001_squashed_0002_default_auto_field
 
