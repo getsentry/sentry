@@ -157,7 +157,10 @@ function ProductSelect({
                   const pricingInfo = activePlan.planCategories[category as DataCategory];
                   const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
                   return (
-                    <Feature key={category}>
+                    <Feature
+                      key={category}
+                      data-test-id={`product-option-feature-${category}`}
+                    >
                       <FeatureRow>
                         <IconContainer>
                           <IconCheckmark color={checkoutInfo.color} />
