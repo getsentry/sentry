@@ -1,34 +1,23 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import type {CssSize} from 'sentry/utils/number/toPixels';
-import toPixels from 'sentry/utils/number/toPixels';
-
 interface FlexProps {
   align?: CSSProperties['alignItems'];
-  column?: boolean;
+  direction?: CSSProperties['flexDirection'];
   flex?: CSSProperties['flex'];
-  gap?: number | CssSize;
-  h?: number | CssSize;
+  gap?: CSSProperties['gap'];
   justify?: CSSProperties['justifyContent'];
-  p?: number | CssSize;
-  w?: number | CssSize;
   wrap?: CSSProperties['flexWrap'];
 }
 
 const FlexContainer = styled('div')<FlexProps>`
-  /* these can all come from a better base primitive */
   display: flex;
-  height: ${p => toPixels(p.h)};
-  width: ${p => toPixels(p.w)};
-  padding: ${p => toPixels(p.p)};
-  /* flex specific */
-  flex-direction: ${p => (p.column ? 'column' : 'row')};
+  flex-direction: ${p => p.direction};
   justify-content: ${p => p.justify};
   align-items: ${p => p.align};
-  gap: ${p => toPixels(p.gap)};
+  gap: ${p => p.gap};
   flex-wrap: ${p => p.wrap};
-  flex: ${p => p.flex ?? 'initial'};
+  flex: ${p => p.flex};
 `;
 
 interface FlexItemProps {
@@ -45,6 +34,5 @@ const FlexItem = styled('div')<FlexItemProps>`
 `;
 
 export const Flex = Object.assign(FlexContainer, {
-  ...FlexContainer,
   Item: FlexItem,
 });

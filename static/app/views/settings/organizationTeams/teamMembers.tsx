@@ -9,9 +9,9 @@ import {
 } from 'sentry/actionCreators/modal';
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Flex} from 'sentry/components/container/flex';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';

@@ -2,9 +2,9 @@ import {useCallback, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -113,7 +113,7 @@ export default function DetectorNewSettings() {
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <DetectorBreadcrumbs />
-            <Flex gap={space(1)} column>
+            <Flex gap={space(1)} direction="column">
               <Layout.Title>
                 <EditableDetectorName />
               </Layout.Title>

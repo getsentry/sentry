@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';

@@ -2,9 +2,9 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
@@ -409,7 +409,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         type={SectionKey.STACKTRACE}
         disableCollapsePersistence
       >
-        <Flex column gap={space(2)}>
+        <Flex direction="column" gap={space(2)}>
           {threadComponent}
         </Flex>
       </InterimSection>
