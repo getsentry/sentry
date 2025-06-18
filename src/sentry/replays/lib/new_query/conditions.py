@@ -119,6 +119,24 @@ class IntegerScalar(GenericBase):
         return Condition(expression, Op.NOT_IN, value)
 
 
+class BooleanIntegerScalar(GenericBase):
+    """Boolean integer scalar condition class."""
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: int) -> Condition:
+        if value:
+            return Condition(expression, Op.GT, 0)
+        else:
+            return Condition(expression, Op.EQ, 0)
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: int) -> Condition:
+        if value:
+            return Condition(expression, Op.EQ, 0)
+        else:
+            return Condition(expression, Op.GT, 0)
+
+
 class StringScalar(GenericBase):
     """String scalar condition class."""
 

@@ -64,15 +64,13 @@ function HotkeysLabel({value, forcePlatform}: Props) {
 
   const isMac = forcePlatform
     ? forcePlatform === 'macos'
-    : window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false;
+    : (window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false);
 
   // If we're not using mac find the first key set that is generic.
   // Otherwise show whatever the first hotkey is.
   const finalKeySet = hotkeySets
     .map(keySet => keySet.map(key => keyToDisplay(key, isMac)))
-    .find(keySet =>
-      !isMac ? keySet.every(key => key.specificToOs === 'generic') : true
-    );
+    .find(keySet => (isMac ? true : keySet.every(key => key.specificToOs === 'generic')));
 
   // No key available for the OS. Don't show a hotkey
   if (finalKeySet === undefined) {

@@ -9,7 +9,7 @@ from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.match import MatchType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -73,6 +73,11 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "crash_type": "crash",
                 },
                 "os": {"distribution_name": "ubuntu", "distribution_version": "22.04"},
+                "ota_updates": {
+                    "channel": "production",
+                    "runtime_version": "1.0.0",
+                    "update_id": "123",
+                },
             },
             "threads": {
                 "values": [
@@ -89,18 +94,16 @@ class TestEventAttributeCondition(ConditionTestCase):
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "group_state": GroupState(
-                    {
-                        "id": 1,
-                        "is_regression": False,
-                        "is_new": False,
-                        "is_new_group_environment": False,
-                    }
-                ),
-            }
+        self.event_data = WorkflowEventData(
+            event=self.group_event,
+            group_state=GroupState(
+                {
+                    "id": 1,
+                    "is_regression": False,
+                    "is_new": False,
+                    "is_new_group_environment": False,
+                }
+            ),
         )
 
     def error_setup(self):
@@ -134,6 +137,21 @@ class TestEventAttributeCondition(ConditionTestCase):
         assert dc.comparison == {
             "match": MatchType.EQUAL,
             "value": "php",
+            "attribute": "platform",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+        payload = {
+            "id": EventAttributeCondition.id,
+            "match": MatchType.IS_SET,
+            "attribute": "platform",
+        }
+        dc = self.translate_to_data_condition(payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.IS_SET,
             "attribute": "platform",
         }
         assert dc.condition_result is True
@@ -193,6 +211,16 @@ class TestEventAttributeCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
+        self.dc.comparison.update(
+            {"match": MatchType.IS_SET, "attribute": "platform", "value": 2000}
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"match": MatchType.EQUAL, "attribute": "asdf", "value": 2000})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
     def test_not_in_registry(self):
         with pytest.raises(NoRegistrationExistsError):
             attribute_registry.get("transaction")
@@ -203,24 +231,24 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "asdf",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_equals(self):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "platform", "value": "php"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "platform", "value": "python"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_not_equals(self):
         self.dc.comparison.update(
             {"match": MatchType.NOT_EQUAL, "attribute": "platform", "value": "php"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -229,7 +257,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "python",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_starts_with(self):
         self.dc.comparison.update(
@@ -239,7 +267,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "ph",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -248,7 +276,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "py",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_start_with(self):
         self.dc.comparison.update(
@@ -258,7 +286,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "ph",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -267,13 +295,13 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "py",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_ends_with(self):
         self.dc.comparison.update(
             {"match": MatchType.ENDS_WITH, "attribute": "platform", "value": "hp"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -282,7 +310,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "thon",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_end_with(self):
         self.dc.comparison.update(
@@ -292,7 +320,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "hp",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -301,24 +329,24 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "thon",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_contains(self):
         self.dc.comparison.update(
             {"match": MatchType.CONTAINS, "attribute": "platform", "value": "p"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.CONTAINS, "attribute": "platform", "value": "z"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_contains_message(self):
         self.dc.comparison.update(
             {"match": MatchType.CONTAINS, "attribute": "message", "value": "hello"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         # Validate that this searches message in the same way that snuba does
         self.event = self.get_event(message="")
@@ -327,7 +355,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {"match": MatchType.CONTAINS, "attribute": "message", "value": "hello"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         # The search should also include info from the exception if present
         self.dc.comparison.update(
@@ -337,7 +365,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "SyntaxError",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -346,7 +374,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "not present",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_contain(self):
         self.dc.comparison.update(
@@ -356,7 +384,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "p",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -365,7 +393,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "z",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_message(self):
         self.dc.comparison.update(
@@ -375,12 +403,12 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "hello world",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "message", "value": "php"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_environment(self):
         self.dc.comparison.update(
@@ -390,7 +418,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "production",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -399,7 +427,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "staging",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_compares_case_insensitive(self):
         self.dc.comparison.update(
@@ -409,7 +437,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "PRODUCTION",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_compare_int_value(self):
         self.event.data["extra"]["number"] = 1
@@ -417,18 +445,18 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "extra.number", "value": "1"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_http_method(self):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "http.method", "value": "GET"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "http.method", "value": "POST"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_http_url(self):
         self.dc.comparison.update(
@@ -438,7 +466,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "http://example.com/",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -447,7 +475,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "http://foo.com/",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_http_status_code(self):
         self.dc.comparison.update(
@@ -457,7 +485,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "500",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -466,14 +494,14 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "400",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_user_id(self):
         self.dc.comparison.update({"match": MatchType.EQUAL, "attribute": "user.id", "value": "1"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.EQUAL, "attribute": "user.id", "value": "2"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_user_ip_address(self):
         self.dc.comparison.update(
@@ -483,7 +511,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "127.0.0.1",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -492,7 +520,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "2",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_user_email(self):
         self.dc.comparison.update(
@@ -502,12 +530,12 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "foo@example.com",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "user.email", "value": "2"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_user_username(self):
         self.dc.comparison.update(
@@ -517,12 +545,12 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "foo",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "user.username", "value": "2"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_exception_type(self):
         self.dc.comparison.update(
@@ -532,7 +560,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "SyntaxError",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -541,7 +569,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "TypeError",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch("sentry.eventstore.models.get_interfaces", return_value={})
     def test_exception_type_keyerror(self, mock_get_interfaces):
@@ -552,7 +580,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "SyntaxError",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_error_handled(self):
         self.error_setup()
@@ -563,7 +591,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "False",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -572,7 +600,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "True",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_error_handled_not_defined(self):
         self.dc.comparison.update(
@@ -582,7 +610,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "True",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch("sentry.eventstore.models.get_interfaces", return_value={})
     def test_error_handled_keyerror(self, mock_get_interfaces):
@@ -594,7 +622,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "False",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_error_unhandled(self):
         self.error_setup()
@@ -605,7 +633,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "True",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -614,7 +642,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "False",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_exception_value(self):
         self.dc.comparison.update(
@@ -624,7 +652,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "hello world",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -633,7 +661,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "foo bar",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_sdk_name(self):
         self.dc.comparison.update(
@@ -643,7 +671,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "sentry.javascript.react",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -652,7 +680,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "sentry.python",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_stacktrace_filename(self):
         """Stacktrace.filename should match frames anywhere in the stack."""
@@ -685,7 +713,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "value": value,
                 }
             )
-            self.assert_passes(self.dc, self.job)
+            self.assert_passes(self.dc, self.event_data)
 
         # non-matching filename
         self.dc.comparison.update(
@@ -695,7 +723,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "foo.php",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_stacktrace_attributeerror(self):
         self.event = self.get_event(
@@ -720,7 +748,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "value": value,
                 }
             )
-            self.assert_does_not_pass(self.dc, self.job)
+            self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_stacktrace_module(self):
         """Stacktrace.module should match frames anywhere in the stack."""
@@ -753,7 +781,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "value": value,
                 }
             )
-            self.assert_passes(self.dc, self.job)
+            self.assert_passes(self.dc, self.event_data)
 
         # non-matching module
         self.dc.comparison.update(
@@ -763,7 +791,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "foo",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_stacktrace_code(self):
         """Stacktrace.code should match frames anywhere in the stack."""
@@ -811,7 +839,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "value": value,
                 }
             )
-            self.assert_passes(self.dc, self.job)
+            self.assert_passes(self.dc, self.event_data)
 
         # non-matching code
         self.dc.comparison.update(
@@ -821,7 +849,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "foo",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_stacktrace_abs_path(self):
         """Stacktrace.abs_path should match frames anywhere in the stack."""
@@ -866,7 +894,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "value": value,
                 }
             )
-            self.assert_passes(self.dc, self.job)
+            self.assert_passes(self.dc, self.event_data)
 
         # non-matching abs_path
         self.dc.comparison.update(
@@ -876,7 +904,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "path/to/foo.php",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_stacktrace_package(self):
         """Stacktrace.package should match frames anywhere in the stack."""
@@ -915,7 +943,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "value": value,
                 }
             )
-            self.assert_passes(self.dc, self.job)
+            self.assert_passes(self.dc, self.event_data)
 
         # non-matching filename
         self.dc.comparison.update(
@@ -925,18 +953,18 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "package/otherotherpackage.lib",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_extra_simple_value(self):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "extra.bar", "value": "foo"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "extra.bar", "value": "bar"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_extra_nested_value(self):
         self.dc.comparison.update(
@@ -946,7 +974,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "baz",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -955,27 +983,27 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "bar",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_extra_nested_list(self):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "extra.biz", "value": "baz"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "extra.biz", "value": "bar"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_event_type(self):
         self.event.data["type"] = "error"
         self.setup_group_event_and_job()
         self.dc.comparison.update({"match": MatchType.EQUAL, "attribute": "type", "value": "error"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.EQUAL, "attribute": "type", "value": "csp"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_device_screen_width_pixels(self):
         self.dc.comparison.update(
@@ -985,7 +1013,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "1920",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -994,7 +1022,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "400",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_device_screen_height_pixels(self):
         self.dc.comparison.update(
@@ -1004,7 +1032,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "1080",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1013,7 +1041,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "400",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_device_screen_dpi(self):
         self.dc.comparison.update(
@@ -1023,7 +1051,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "123",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1032,7 +1060,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "400",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_device_screen_density(self):
         self.dc.comparison.update(
@@ -1042,7 +1070,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "2.5",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1051,7 +1079,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "400",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_app_in_foreground(self):
         self.dc.comparison.update(
@@ -1061,7 +1089,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "True",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1070,7 +1098,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "False",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_os_distribution_name_and_version(self):
         self.dc.comparison.update(
@@ -1080,7 +1108,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "ubuntu",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1089,7 +1117,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "slackware",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1098,7 +1126,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "22.04",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1107,7 +1135,71 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "20.04",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+    def test_ota_updates(self):
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "ota_updates.channel",
+                "value": "production",
+            }
+        )
+        self.assert_passes(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "ota_updates.channel",
+                "value": "development",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "ota_updates.runtime_version",
+                "value": "1.0.0",
+            }
+        )
+        self.assert_passes(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "ota_updates.runtime_version",
+                "value": "2.0.0",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "ota_updates.update_id",
+                "value": "123",
+            }
+        )
+        self.assert_passes(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "ota_updates.update_id",
+                "value": "876",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "ota_updates.non_existent",
+                "value": "876",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_unreal_crash_type(self):
         self.dc.comparison.update(
@@ -1117,7 +1209,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "Crash",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1126,7 +1218,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "NoCrash",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_error_with_none(self):
         self.event = self.get_event(
@@ -1159,21 +1251,21 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "SyntaxError",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_is_set(self):
         self.dc.comparison.update({"match": MatchType.IS_SET, "attribute": "platform"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.IS_SET, "attribute": "missing"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_not_set(self):
         self.dc.comparison.update({"match": MatchType.NOT_SET, "attribute": "platform"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.NOT_SET, "attribute": "missing"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_attr_is_in(self):
         self.dc.comparison.update(
@@ -1183,7 +1275,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "php, python",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1192,7 +1284,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "python, ruby",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_attr_not_in(self):
         self.dc.comparison.update(
@@ -1202,7 +1294,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "php, python",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -1211,4 +1303,4 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "value": "python, ruby",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)

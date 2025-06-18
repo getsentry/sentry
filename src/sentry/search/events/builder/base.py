@@ -29,6 +29,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features, options
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -78,7 +79,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
     Dataset.Events: EntityKey.Events,
     Dataset.Transactions: EntityKey.Transactions,
-    Dataset.EventsAnalyticsPlatform: EntityKey.EAPSpans,
+    Dataset.EventsAnalyticsPlatform: EntityKey.EAPItemsSpan,
 }
 
 
@@ -200,12 +201,11 @@ class BaseQueryBuilder:
         array_join: str | None = None,
         entity: Entity | None = None,
     ):
+        sentry_sdk.set_tag("querybuilder.name", type(self).__name__)
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
-        if self.builder_config.parser_config_overrides is None:
-            self.builder_config.parser_config_overrides = {}
 
         self.dataset = dataset
 
@@ -222,7 +222,7 @@ class BaseQueryBuilder:
         self.raw_equations = equations
         self.raw_orderby = orderby
         self.query = query
-        self.selected_columns = selected_columns
+        self.selected_columns = selected_columns or []
         self.groupby_columns = groupby_columns
         self.tips: dict[str, set[str]] = {
             "query": set(),
@@ -386,8 +386,7 @@ class BaseQueryBuilder:
         where_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.SearchFilter):
-                # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
-                condition = self.format_search_filter(cast(event_search.SearchFilter, term))
+                condition = self.format_search_filter(term)
                 if condition:
                     where_conditions.append(condition)
 
@@ -403,10 +402,7 @@ class BaseQueryBuilder:
         having_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.AggregateFilter):
-                # I have no idea why but mypy thinks this is AggregateFilter | AggregateFilter, which is incompatible with AggregateFilter...
-                condition = self.convert_aggregate_filter_to_condition(
-                    cast(event_search.AggregateFilter, term)
-                )
+                condition = self.convert_aggregate_filter_to_condition(term)
                 if condition:
                     having_conditions.append(condition)
 
@@ -535,11 +531,10 @@ class BaseQueryBuilder:
 
         where, having = [], []
 
-        # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
         if isinstance(term, event_search.SearchFilter):
-            where = self.resolve_where([cast(event_search.SearchFilter, term)])
+            where = self.resolve_where([term])
         elif isinstance(term, event_search.AggregateFilter):
-            having = self.resolve_having([cast(event_search.AggregateFilter, term)])
+            having = self.resolve_having([term])
 
         return where, having
 
@@ -984,12 +979,25 @@ class BaseQueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
+        should_use_user_time_range = self.params.organization is not None and features.has(
+            "organizations:performance-discover-get-custom-measurements-reduced-range",
+            self.params.organization,
+            actor=None,
+        )
+
+        start = (
+            self.params.start
+            if should_use_user_time_range
+            else datetime.today() - timedelta(days=90)
+        )
+        end = self.params.end if should_use_user_time_range else datetime.today()
+
         try:
             result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
-                start=datetime.today() - timedelta(days=90),
-                end=datetime.today(),
+                start=start,
+                end=end,
             )
         # Don't fully fail if we can't get the CM, but still capture the exception
         except Exception as error:
@@ -1153,8 +1161,12 @@ class BaseQueryBuilder:
             parsed_terms = event_search.parse_search_query(
                 query,
                 params=self.filter_params,
-                builder=self,
-                config_overrides=self.builder_config.parser_config_overrides,
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    **self.builder_config.parser_config_overrides,
+                ),
+                get_field_type=self.get_field_type,
+                get_function_result_type=self.get_function_result_type,
             )
         except ParseError as e:
             if e.expr is not None:
@@ -1511,6 +1523,10 @@ class BaseQueryBuilder:
 
     def _get_entity_name(self) -> str:
         if self.dataset in DATASET_TO_ENTITY_MAP:
+            if self.dataset == Dataset.EventsAnalyticsPlatform and options.get(
+                "alerts.spans.use-eap-items"
+            ):
+                return EntityKey.EAPItems.value
             return DATASET_TO_ENTITY_MAP[self.dataset].value
         return self.dataset.value
 

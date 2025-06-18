@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:46.521412+00:00'
+created: '2025-05-12T23:41:33.339417+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,59 +10,59 @@ app:
     app*
       exception*
         stacktrace*
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "start"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "UIApplicationMain"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIApplication _run]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "GSEventRunModal"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "CFRunLoopRunSpecific"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__CFRunLoopRun"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "_dispatch_main_queue_callback_4CF"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "_dispatch_client_callout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "_dispatch_call_block_and_release"
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
@@ -70,55 +70,55 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
         type*

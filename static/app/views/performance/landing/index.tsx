@@ -3,8 +3,7 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -16,7 +15,6 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -39,10 +37,12 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
-
-import Onboarding from '../onboarding';
-import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
-import {getPerformanceBaseUrl, getTransactionSearchQuery} from '../utils';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {MetricsEventsDropdown} from 'sentry/views/performance/transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
+import {
+  getPerformanceBaseUrl,
+  getTransactionSearchQuery,
+} from 'sentry/views/performance/utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
 import {BackendView} from './views/backendView';
@@ -62,7 +62,6 @@ import {
 type Props = {
   eventView: EventView;
   handleSearch: (searchQuery: string, currentMEPState?: MEPState) => void;
-  handleTrendsClick: () => void;
   location: Location;
   onboardingProject: Project | undefined;
   organization: Organization;
@@ -82,15 +81,8 @@ const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
 };
 
 export function PerformanceLanding(props: Props) {
-  const {
-    organization,
-    location,
-    eventView,
-    projects,
-    handleSearch,
-    handleTrendsClick,
-    onboardingProject,
-  } = props;
+  const {organization, location, eventView, projects, handleSearch, onboardingProject} =
+    props;
   const {setPageError, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
@@ -217,19 +209,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            {!showOnboarding && (
-              <ButtonBar gap={1}>
-                <Button
-                  size="sm"
-                  priority="primary"
-                  data-test-id="landing-header-trends"
-                  onClick={() => handleTrendsClick()}
-                >
-                  {t('View Trends')}
-                </Button>
-                <FeedbackWidgetButton />
-              </ButtonBar>
-            )}
+            {!showOnboarding && <FeedbackWidgetButton />}
           </Layout.HeaderActions>
 
           <TabList hideBorder>
@@ -271,7 +251,7 @@ export function PerformanceLanding(props: Props) {
                           {showOnboarding ? (
                             <Fragment>
                               {pageFilters}
-                              <Onboarding
+                              <LegacyOnboarding
                                 organization={organization}
                                 project={onboardingProject}
                               />

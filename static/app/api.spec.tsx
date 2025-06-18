@@ -119,7 +119,7 @@ describe('resolveHostname', function () {
   });
 
   afterEach(() => {
-    window.location = location;
+    window.location = location as typeof window.location & string;
     window.__SENTRY_DEV_UI = devUi;
     ConfigStore.loadInitialData(configstate);
   });

@@ -95,7 +95,7 @@ function FieldGroup({
                 <QuestionTooltip
                   position="top"
                   size="sm"
-                  {...(showHelpInTooltip !== true ? showHelpInTooltip : {})}
+                  {...(showHelpInTooltip === true ? {} : showHelpInTooltip)}
                   title={help}
                 />
               </FieldQuestion>

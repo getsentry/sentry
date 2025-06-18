@@ -3,7 +3,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,6 +15,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {ApiApplication} from 'sentry/types/user';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import Row from 'sentry/views/settings/account/apiApplications/row';
@@ -31,15 +32,16 @@ function ApiApplications({router}: Props) {
   const ENDPOINT = '/api-applications/';
 
   const {
-    data: appList,
-    isPending,
+    data: appList = [],
+    isLoading,
     isError,
     refetch,
   } = useApiQuery<ApiApplication[]>([ENDPOINT], {
     staleTime: 0,
+    enabled: !isDemoModeActive(),
   });
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
@@ -90,12 +92,12 @@ function ApiApplications({router}: Props) {
         <PanelHeader>{t('Application Name')}</PanelHeader>
 
         <PanelBody>
-          {!isEmpty ? (
+          {isEmpty ? (
+            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
+          ) : (
             appList.map(app => (
               <Row key={app.id} app={app} onRemove={handleRemoveApplication} />
             ))
-          ) : (
-            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
           )}
         </PanelBody>
       </Panel>

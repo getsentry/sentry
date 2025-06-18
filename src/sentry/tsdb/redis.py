@@ -13,7 +13,14 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from redis.client import Script
 
-from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBItem, TSDBKey, TSDBModel
+from sentry.tsdb.base import (
+    BaseTSDB,
+    IncrMultiOptions,
+    SnubaCondition,
+    TSDBItem,
+    TSDBKey,
+    TSDBModel,
+)
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_redis_script
 from sentry.utils.versioning import Version
@@ -315,6 +322,7 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -521,7 +529,7 @@ class RedisTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model: TSDBModel,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -530,8 +538,9 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[tuple[str, str, str]] | None = None,
-    ) -> dict[int, Any]:
+        conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]:
         """
         Count distinct items during a time range.
         """

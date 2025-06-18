@@ -1,11 +1,13 @@
+from collections.abc import Mapping
 from datetime import datetime
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
@@ -32,7 +34,7 @@ def reraise(self, e: Exception):
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: tuple[type[BasePermission], ...] = ()
 
     def get(self, request):
         return Response({"ok": True})
@@ -54,25 +56,9 @@ class DummyErroringEndpoint(Endpoint):
     # `as_view` requires that any init args passed to it match attributes already on the
     # class, so even though they're really meant to be instance attributes, we have to
     # add them here as class attributes first
-    error = NotImplementedError()
-    handler_context_arg = None
-    scope_arg = None
-
-    def __init__(
-        self,
-        *args,
-        error: Exception,
-        handler_context_arg=None,
-        scope_arg=None,
-        **kwargs,
-    ):
-        # The error which will be thrown when a GET request is made
-        self.error = error
-        # The argumets which will be passed on to `Endpoint.handle_exception_with_details` via `super`
-        self.handler_context_arg = handler_context_arg
-        self.scope_arg = scope_arg
-
-        super().__init__(*args, **kwargs)
+    error: Exception = NotImplementedError()
+    handler_context_arg: Mapping[str, Any] | None = None
+    scope_arg: Scope | None = None
 
     def get(self, request):
         raise self.error
@@ -405,11 +391,13 @@ class CursorGenerationTest(APITestCase):
         request = self.make_request(method="GET", path="/api/0/organizations/")
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
-        result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+        result = endpoint.build_cursor_link(
+            request, "next", Cursor.from_string("1492107369532:0:0")
+        )
 
         assert result == (
             "<http://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
     def test_preserves_ssl_proto(self):
@@ -417,11 +405,13 @@ class CursorGenerationTest(APITestCase):
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
         with override_options({"system.url-prefix": "https://testserver"}):
-            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+            result = endpoint.build_cursor_link(
+                request, "next", Cursor.from_string("1492107369532:0:0")
+            )
 
         assert result == (
             "<https://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
     def test_handles_customer_domains(self):
@@ -436,21 +426,25 @@ class CursorGenerationTest(APITestCase):
                 "system.organization-url-template": "https://{hostname}",
             }
         ):
-            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+            result = endpoint.build_cursor_link(
+                request, "next", Cursor.from_string("1492107369532:0:0")
+            )
 
         assert result == (
             "<https://bebe.testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
     def test_unicode_path(self):
         request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
         endpoint = Endpoint()
-        result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+        result = endpoint.build_cursor_link(
+            request, "next", Cursor.from_string("1492107369532:0:0")
+        )
 
         assert result == (
             "<http://testserver/api/0/organizations/%C3%BCuuuu/?&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
     def test_encodes_url(self):
@@ -465,13 +459,10 @@ class CursorGenerationTest(APITestCase):
 
 
 class PaginateTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-        self.request = self.make_request(method="GET")
-        self.view = DummyPaginationEndpoint().as_view()
+    view = staticmethod(DummyPaginationEndpoint().as_view())
 
     def test_success(self):
-        response = self.view(self.request)
+        response = self.view(self.make_request())
         assert response.status_code == 200, response.content
         assert (
             response["Link"]
@@ -479,27 +470,27 @@ class PaginateTest(APITestCase):
         )
 
     def test_invalid_cursor(self):
-        self.request.GET = {"cursor": "no:no:no"}
-        response = self.view(self.request)
+        request = self.make_request(GET={"cursor": "no:no:no"})
+        response = self.view(request)
         assert response.status_code == 400
 
     def test_non_int_per_page(self):
-        self.request.GET = {"per_page": "nope"}
-        response = self.view(self.request)
+        request = self.make_request(GET={"per_page": "nope"})
+        response = self.view(request)
         assert response.status_code == 400
 
     def test_per_page_too_low(self):
-        self.request.GET = {"per_page": "0"}
-        response = self.view(self.request)
+        request = self.make_request(GET={"per_page": "0"})
+        response = self.view(request)
         assert response.status_code == 400
 
     def test_per_page_too_high(self):
-        self.request.GET = {"per_page": "101"}
-        response = self.view(self.request)
+        request = self.make_request(GET={"per_page": "101"})
+        response = self.view(request)
         assert response.status_code == 400
 
     def test_custom_response_type(self):
-        response = _dummy_streaming_endpoint(self.request)
+        response = _dummy_streaming_endpoint(self.make_request())
         assert response.status_code == 200
         assert isinstance(response, StreamingHttpResponse)
         assert response.has_header("content-type")
@@ -603,3 +594,32 @@ class SuperuserPermissionTest(APITestCase):
         response = self.superuser_or_any_permission_view(self.request)
 
         assert response.status_code == 200, response.content
+
+
+class RequestAccessTest(APITestCase):
+    """Tests for ensuring request.access is properly set before being accessed."""
+
+    def setUp(self):
+        super().setUp()
+        self.org = self.create_organization()
+        self.user = self.create_user()
+        self.create_member(user=self.user, organization=self.org)
+        self.request = self.make_request(user=self.user, method="GET")
+
+    def test_access_property_set_before_convert_args(self):
+        """Test that request.access is available during convert_args"""
+
+        class AccessUsingEndpoint(Endpoint):
+            permission_classes = ()
+
+            def convert_args(self, request, *args, **kwargs):
+                # This should not raise an AttributeError
+                assert request.access is not None
+                return (args, kwargs)
+
+            def get(self, request):
+                return Response({"ok": True})
+
+        response = AccessUsingEndpoint.as_view()(self.request)
+        assert response.status_code == 200
+        assert response.data == {"ok": True}

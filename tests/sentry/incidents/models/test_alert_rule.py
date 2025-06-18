@@ -17,7 +17,6 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.users.services.user.service import user_service
 
 
 class IncidentGetForSubscriptionTest(TestCase):
@@ -196,16 +195,23 @@ class AlertRuleFetchForOrganizationTest(TestCase):
 
 
 class AlertRuleTriggerActionTargetTest(TestCase):
+    def setUp(self):
+        self.metric_alert = self.create_alert_rule()
+        self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
+
     def test_user(self):
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
-        assert trigger.target == user_service.get_user(user_id=self.user.id)
+        assert trigger.target.user_id == self.user.id
 
     def test_invalid_user(self):
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.USER.value, target_identifier="10000000"
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="10000000",
         )
         assert trigger.target is None
 
@@ -241,7 +247,9 @@ class AlertRuleTriggerActionActivateBaseTest:
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        result = trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)  # type: ignore[func-returns-value]
+        result = trigger.fire(
+            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
+        )  # type: ignore[func-returns-value]
 
         # TODO(RyanSkonnord): Remove assertion (see test_handler)
         assert result is None
@@ -253,7 +261,9 @@ class AlertRuleTriggerActionActivateBaseTest:
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        result = getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
+        result = getattr(trigger, self.method)(
+            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
+        )
 
         # TODO(RyanSkonnord): Don't assert on return value.
         # All concrete ActionHandlers return None from their fire and resolve
@@ -284,7 +294,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        trigger.build_handler(Mock(), Mock(), Mock())
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
         self.metrics.incr.assert_called_once_with("alert_rule_trigger.unhandled_type.0")
 
     def test_handled(self):
@@ -293,10 +303,8 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
 
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        incident = Mock()
-        project = Mock()
-        trigger.build_handler(trigger, incident, project)
-        mock_handler.assert_called_once_with(trigger, incident, project)
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
+        mock_handler.assert_called_once_with()
         assert not self.metrics.incr.called
 
 

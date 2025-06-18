@@ -19,6 +19,7 @@ FRONTEND = {
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-tanstackstart-react",
     "javascript-astro",
     "unity",
 }
@@ -142,6 +143,7 @@ DESKTOP = {
     "dotnet-wpf",
     "electron",
     "flutter",
+    "godot",
     "java",
     "javascript-electron",
     "kotlin",

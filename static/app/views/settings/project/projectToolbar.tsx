@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -78,13 +78,13 @@ export default function ProjectToolbarSettings({
       <SettingsPageHeader
         title={t('Dev Toolbar')}
         action={
-          <LinkButton href="https://docs.sentry.io/product/dev-toolbar/" external>
+          <LinkButton href="https://docs.sentry.io/product/sentry-toolbar/" external>
             {t('Read the Docs')}
           </LinkButton>
         }
       />
       <Feature
-        features="dev-toolbar-ui"
+        features="sentry-toolbar-ui"
         organization={organization}
         renderDisabled={NoAccess}
       >
@@ -95,13 +95,15 @@ export default function ProjectToolbarSettings({
         </TextBlock>
         <ProjectPermissionAlert project={project} />
         {domain && (
-          <Alert type="info" showIcon>
-            {tct(
-              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
-              {domain: <strong>{domain}</strong>}
-            )}
-            <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {tct(
+                'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
+                {domain: <strong>{domain}</strong>}
+              )}
+              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+            </Alert>
+          </Alert.Container>
         )}
 
         <Form

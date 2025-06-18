@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
+import {Input} from 'sentry/components/core/input';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +16,7 @@ import type {Item, ItemsBeforeFilter} from './types';
 type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
 type Actions = AutoCompleteChildrenArgs['actions'];
 
-export type MenuFooterChildProps = {
+type MenuFooterChildProps = {
   actions: Actions;
 };
 
@@ -118,7 +118,7 @@ export interface MenuProps
   /**
    * Message to display when there are no items initially
    */
-  emptyMessage?: React.ReactNode;
+  emptyMessage?: string;
 
   /**
    * If this is undefined, autocomplete filter will use this value instead of the
@@ -451,7 +451,7 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: ${p => p.theme.fontWeightNormal};
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -474,7 +474,7 @@ const EmptyMessage = styled('div')`
   text-transform: none;
 `;
 
-export const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
+const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
   position: relative;
   display: inline-block;
   ${p => p.disabled && 'pointer-events: none;'}

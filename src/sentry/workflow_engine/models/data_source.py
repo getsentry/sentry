@@ -36,10 +36,11 @@ class DataSource(DefaultFieldsModel):
 
     detectors = models.ManyToManyField("workflow_engine.Detector", through=DataSourceDetector)
 
-    indexes = [
-        models.Index(fields=("type", "source_id")),
-        models.Index(fields=("organization", "type", "source_id")),
-    ]
+    class Meta:
+        indexes = [
+            models.Index(fields=("type", "source_id")),
+            models.Index(fields=("organization", "type", "source_id")),
+        ]
 
     @property
     def type_handler(self) -> builtins.type[DataSourceTypeHandler]:

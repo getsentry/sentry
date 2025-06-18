@@ -9,6 +9,8 @@ from sentry.auth.superuser import COOKIE_NAME
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import APITestCase, AuthProviderTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
@@ -162,6 +164,16 @@ class AuthVerifyEndpointTest(APITestCase):
             mock.call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
             not in mock_metrics.incr.call_args_list
         )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_rate_limit(self):
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        with freeze_time("2025-02-13"):
+
+            for _ in range(5 + 1):
+                response = self.client.put(self.path, data={"password": "wrongguess"})
+            assert response.status_code == 429
 
 
 @control_silo_test
@@ -534,3 +546,46 @@ class AuthLogoutEndpointTest(APITestCase):
         assert list(self.client.session.keys()) == []
         updated = type(user).objects.get(pk=user.id)
         assert updated.session_nonce != user.session_nonce
+
+
+@control_silo_test
+class AuthLogoutEndpointDemoUserTest(APITestCase):
+    path = "/api/0/auth/"
+
+    def setUp(self):
+        self.normal_user = self.create_user("foo@example.com", id=1)
+        self.readonly_user = self.create_user("bar@example.com", id=2)
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_authenticate(self):
+        self.login_as(self.normal_user)
+        response = self.client.post(self.path)
+        assert response.status_code == 200
+
+        self.login_as(self.readonly_user)
+        response = self.client.post(self.path)
+        assert response.status_code == 403
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_log_out_single_session(self):
+        self.login_as(self.normal_user)
+        response = self.client.delete(self.path)
+        assert response.status_code == 204
+        assert list(self.client.session.keys()) == []
+
+        self.login_as(self.readonly_user)
+        response = self.client.delete(self.path)
+        assert response.status_code == 204
+        assert list(self.client.session.keys()) == []
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_log_out_all_sessions(self):
+        self.login_as(self.normal_user)
+        response = self.client.delete(self.path, {"all": True})
+        assert response.status_code == 204
+        assert list(self.client.session.keys()) == []
+
+        self.login_as(self.readonly_user)
+        response = self.client.delete(self.path, {"all": True})
+        assert response.status_code == 403
+        assert len(list(self.client.session.keys())) > 0

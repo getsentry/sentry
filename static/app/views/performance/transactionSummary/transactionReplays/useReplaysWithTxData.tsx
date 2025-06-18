@@ -7,7 +7,7 @@ type Opts = {
 };
 
 export type ReplayListRecordWithTx = ReplayListRecord & {
-  txEvent: {[x: string]: any};
+  txEvent: Record<string, any>;
 };
 
 type Return = undefined | ReplayListRecordWithTx[];

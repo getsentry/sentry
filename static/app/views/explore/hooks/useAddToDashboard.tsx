@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -8,12 +7,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  DEFAULT_WIDGET_NAME,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {
   useExploreDataset,
-  useExploreFields,
   useExploreGroupBys,
   useExploreMode,
   useExploreQuery,
@@ -22,6 +25,13 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+export const CHART_TYPE_TO_DISPLAY_TYPE = {
+  [ChartType.LINE]: DisplayType.LINE,
+  [ChartType.BAR]: DisplayType.BAR,
+  [ChartType.AREA]: DisplayType.AREA,
+};
 
 export function useAddToDashboard() {
   const location = useLocation();
@@ -34,12 +44,7 @@ export function useAddToDashboard() {
   const groupBys = useExploreGroupBys();
   const sortBys = useExploreSortBys();
   const visualizes = useExploreVisualizes();
-  const sampleFields = useExploreFields();
   const query = useExploreQuery();
-
-  const hasWidgetBuilderRedesign = organization.features.includes(
-    'dashboards-widget-builder-redesign'
-  );
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {
@@ -47,12 +52,7 @@ export function useAddToDashboard() {
 
       let fields: any;
       if (mode === Mode.SAMPLES) {
-        if (hasWidgetBuilderRedesign) {
-          // TODO: Handle the fields for the widget builder if we've selected the samples mode
-          fields = [];
-        } else {
-          fields = sampleFields.filter(Boolean);
-        }
+        fields = [];
       } else {
         fields = [
           ...new Set([...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)]),
@@ -62,7 +62,7 @@ export function useAddToDashboard() {
       const search = new MutableSearch(query);
 
       const discoverQuery: NewQuery = {
-        name: t('Custom Widget'),
+        name: DEFAULT_WIDGET_NAME,
         fields,
         orderby: sortBys.map(formatSort),
         query: search.formatString(),
@@ -76,19 +76,11 @@ export function useAddToDashboard() {
         selection
       );
       newEventView.dataset = dataset;
+      newEventView.display =
+        CHART_TYPE_TO_DISPLAY_TYPE[visualizes[visualizeIndex]!.chartType];
       return newEventView;
     },
-    [
-      visualizes,
-      mode,
-      sampleFields,
-      groupBys,
-      query,
-      dataset,
-      selection,
-      sortBys,
-      hasWidgetBuilderRedesign,
-    ]
+    [visualizes, mode, groupBys, query, dataset, selection, sortBys]
   );
 
   const addToDashboard = useCallback(

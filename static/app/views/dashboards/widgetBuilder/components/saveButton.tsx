@@ -2,20 +2,22 @@ import {useCallback, useState} from 'react';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {Widget} from 'sentry/views/dashboards/types';
+import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
-interface SaveButtonProps {
+export interface SaveButtonProps {
   isEditing: boolean;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   setError: (error: Record<string, any>) => void;
 }
 
@@ -37,12 +39,17 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
     setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
-      onSave({index: Number(widgetIndex), widget});
+      onSave({index: defined(widgetIndex) ? Number(widgetIndex) : undefined, widget});
     } catch (error) {
+      let errorMessage = t('Unable to save widget');
       setIsSaving(false);
-      const errorDetails = error.responseJSON || error;
+      const errorDetails = flattenErrors(error.responseJSON || error, {});
       setError(errorDetails);
-      addErrorMessage(t('Unable to save widget'));
+
+      if (Object.keys(errorDetails).length > 0) {
+        errorMessage = errorDetails[Object.keys(errorDetails)[0]!] as string;
+      }
+      addErrorMessage(errorMessage);
     }
   }, [api, onSave, organization, state, widgetIndex, setError, isEditing]);
 

@@ -34,7 +34,10 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', async function () {
-    render(<OrganizationProjectsContainer />, {router});
+    render(<OrganizationProjectsContainer />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
@@ -63,7 +66,10 @@ describe('OrganizationProjects', function () {
   });
 
   it('should search organization projects', async function () {
-    render(<OrganizationProjectsContainer />, {router});
+    render(<OrganizationProjectsContainer />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 

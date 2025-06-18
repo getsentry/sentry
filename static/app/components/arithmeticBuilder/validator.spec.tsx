@@ -1,5 +1,9 @@
+import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {validateTokens} from 'sentry/components/arithmeticBuilder/validator';
+import {
+  computeNextAllowedTokenKinds,
+  validateTokens,
+} from 'sentry/components/arithmeticBuilder/validator';
 
 describe('vaidateTokens', function () {
   it.each([
@@ -40,5 +44,46 @@ describe('vaidateTokens', function () {
   ])('passes %s', function (expression) {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(true);
+  });
+});
+
+describe('computeNextAllowedTokenKinds', function () {
+  it.each([
+    ['', [[TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION]]],
+    [
+      '(',
+      [
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+      ],
+    ],
+    [
+      'avg(span.duration)',
+      [[TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION], [], [TokenKind.OPERATOR]],
+    ],
+    [
+      '(avg(span.duration)',
+      [
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [],
+        [TokenKind.CLOSE_PARENTHESIS, TokenKind.OPERATOR],
+      ],
+    ],
+    [
+      'avg(span.duration) (',
+      [
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [],
+        [TokenKind.OPERATOR],
+        [],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+      ],
+    ],
+  ])('suggests next token', function (expression, expected) {
+    const tokens = tokenizeExpression(expression);
+    expect(computeNextAllowedTokenKinds(tokens)).toEqual(expected);
   });
 });

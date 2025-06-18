@@ -172,7 +172,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
 
-    @mock.patch("sentry.uptime.endpoints.validators.MAX_MONITORS_PER_DOMAIN", 1)
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1)
     def test_domain_limit(self):
         # First monitor is for test-one.example.com
         self.create_project_uptime_subscription(
@@ -243,7 +243,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         uptime_monitor.refresh_from_db()
         assert uptime_monitor.status == ObjectStatus.DISABLED
         assert resp.data == {
-            "status": ErrorDetail(string="Assignment failed in test", code="invalid")
+            "status": [ErrorDetail(string="Assignment failed in test", code="invalid")]
         }
 
 

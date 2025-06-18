@@ -2,12 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {TabListItemProps} from 'sentry/components/core/tabs';
+import {TabList} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {TabList} from 'sentry/components/tabs';
-import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -17,9 +18,16 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled, isModuleVisible} from 'sentry/views/insights/pages/utils';
-import type {ModuleName} from 'sentry/views/insights/types';
+import {
+  isModuleConsideredNew,
+  isModuleEnabled,
+  isModuleVisible,
+} from 'sentry/views/insights/pages/utils';
+import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
   domainBaseUrl: string;
@@ -50,6 +58,8 @@ export function DomainViewHeader({
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsInsightsEnabled = useIsNextJsInsightsAvailable();
 
   const crumbs: Crumb[] = [
     {
@@ -61,9 +71,11 @@ export function DomainViewHeader({
   ];
 
   const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
+    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
-  const globalQuery = extractSelectionParameters(location?.query);
+  const globalQuery = {
+    ...extractSelectionParameters(location?.query),
+  };
 
   const tabList: TabListItemProps[] = [
     ...(hasOverviewPage
@@ -80,6 +92,7 @@ export function DomainViewHeader({
       .map(moduleName => ({
         key: moduleName,
         children: <TabLabel moduleName={moduleName} />,
+        textValue: moduleName,
         to: {
           pathname: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
           query: globalQuery,
@@ -96,7 +109,24 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
+            {selectedModule === ModuleName.SESSIONS ? (
+              <FeedbackButtonTour />
+            ) : (
+              <FeedbackWidgetButton
+                optionOverrides={
+                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
+                    ? {
+                        tags: {
+                          ['feedback.source']: isLaravelInsightsAvailable
+                            ? 'laravel-insights'
+                            : 'nextjs-insights',
+                          ['feedback.owner']: 'telemetry-experience',
+                        },
+                      }
+                    : undefined
+                }
+              />
+            )}
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
@@ -108,7 +138,7 @@ export function DomainViewHeader({
               ))}
             </TabList>
           )}
-          {hideDefaultTabs && tabs && tabs.tabList}
+          {hideDefaultTabs && tabs?.tabList}
         </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>
@@ -123,19 +153,21 @@ function TabLabel({moduleName}: TabLabelProps) {
   const moduleTitles = useModuleTitles();
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
-  if (showBusinessIcon) {
+
+  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
     return (
-      <TabWithIconContainer>
+      <TabContainer>
         {moduleTitles[moduleName]}
-        <IconBusiness />
-      </TabWithIconContainer>
+        {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
+        {showBusinessIcon && <IconBusiness />}
+      </TabContainer>
     );
   }
 
-  return <Fragment>{moduleTitles[moduleName]}</Fragment>;
+  return moduleTitles[moduleName];
 }
 
-const TabWithIconContainer = styled('div')`
+const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;

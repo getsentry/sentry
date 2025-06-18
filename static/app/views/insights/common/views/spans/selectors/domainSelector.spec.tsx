@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -18,22 +19,7 @@ jest.mock('sentry/utils/usePageFilters');
 describe('DomainSelector', function () {
   const organization = OrganizationFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -53,7 +39,12 @@ describe('DomainSelector', function () {
       headers: {
         Link: '<previous-data>; rel="previous"; results="false"; cursor="0:0:1", <next-data>; rel="next"; results="true"; cursor="0:100:0"',
       },
-      match: [MockApiClient.matchQuery({query: 'has:span.description span.module:db'})],
+      match: [
+        MockApiClient.matchQuery({
+          query:
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis]',
+        }),
+      ],
     });
   });
 
@@ -85,7 +76,8 @@ describe('DomainSelector', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          query: 'has:span.description span.module:db span.domain:*p*',
+          query:
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] span.domain:*p*',
         }),
       ],
     });

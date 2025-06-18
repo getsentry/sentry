@@ -173,12 +173,12 @@ export class CanvasView<T extends {configSpace: Rect}> {
       width: {
         min: this.minWidth,
         max: this.configSpace.width,
-        ...(overrides?.width ?? {}),
+        ...overrides?.width,
       },
       height: {
         min: this.minHeight,
         max: this.configSpace.height,
-        ...(overrides?.height ?? {}),
+        ...overrides?.height,
       },
     });
   }

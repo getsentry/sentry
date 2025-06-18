@@ -15,7 +15,7 @@ import TransactionReplays from 'sentry/views/performance/transactionSummary/tran
 type InitializeOrgProps = {
   location?: {
     pathname?: string;
-    query?: {[key: string]: string};
+    query?: Record<string, string>;
   };
   organizationProps?: {
     features?: string[];
@@ -42,7 +42,7 @@ const renderComponent = ({
     router: {
       routes: [
         {path: '/'},
-        {path: '/organizations/:orgId/performance/summary/'},
+        {path: '/organizations/:orgId/insights/summary/'},
         {path: 'replays/'},
       ],
       location: {
@@ -60,7 +60,11 @@ const renderComponent = ({
   ProjectsStore.init();
   ProjectsStore.loadInitialData(projects);
 
-  return render(<TransactionReplays />, {router, organization});
+  return render(<TransactionReplays />, {
+    router,
+    organization,
+    deprecatedRouterMocks: true,
+  });
 };
 
 describe('TransactionReplays', () => {
@@ -227,7 +231,7 @@ describe('TransactionReplays', () => {
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
     const expectedQuery =
-      'project=1&query=test&referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
+      'project=1&query=test&referrer=%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
     // Expect the first row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
       'href',

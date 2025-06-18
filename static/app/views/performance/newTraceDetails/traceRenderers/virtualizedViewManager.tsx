@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
@@ -8,13 +9,15 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-
-import {isMissingInstrumentationNode} from '../traceGuards';
-import {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {TraceRowWidthMeasurer} from '../traceRenderers/traceRowWidthMeasurer';
-import {TraceTextMeasurer} from '../traceRenderers/traceTextMeasurer';
-import type {TraceView} from '../traceRenderers/traceView';
+import {
+  isEAPError,
+  isMissingInstrumentationNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
+import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
+import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
 import type {TraceScheduler} from './traceScheduler';
 
@@ -55,13 +58,13 @@ export class VirtualizedViewManager {
     new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
     new TraceRowWidthMeasurer();
-  text_measurer: TraceTextMeasurer = new TraceTextMeasurer();
+  text_measurer: TraceTextMeasurer;
 
   resize_observer: ResizeObserver | null = null;
   list: VirtualizedList | null = null;
 
   scrolling_source: 'list' | 'fake scrollbar' | null = null;
-  start_virtualized_index: number = 0;
+  start_virtualized_index = 0;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -81,8 +84,8 @@ export class VirtualizedViewManager {
     {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
   > = [];
   timeline_indicators: Array<HTMLElement | undefined> = [];
-  vertical_indicators: {[key: string]: VerticalIndicator} = {};
-  vertical_indicator_labels: {[key: string]: HTMLElement | undefined} = {};
+  vertical_indicators: Record<string, VerticalIndicator> = {};
+  vertical_indicator_labels: Record<string, HTMLElement | undefined> = {};
   span_bars: Array<
     {color: string; ref: HTMLElement; space: [number, number]} | undefined
   > = [];
@@ -102,9 +105,9 @@ export class VirtualizedViewManager {
     {ref: HTMLElement; space: [number, number]; text: string} | undefined
   > = [];
 
-  row_depth_padding: number = 22;
+  row_depth_padding = 22;
 
-  private scrollbar_width: number = 0;
+  private scrollbar_width = 0;
   // the transformation matrix that is used to render scaled elements to the DOM
   private span_to_px: mat3 = mat3.create();
   private readonly ROW_PADDING_PX = 16;
@@ -139,7 +142,8 @@ export class VirtualizedViewManager {
       span_list: Pick<ViewColumn, 'width'>;
     },
     trace_scheduler: TraceScheduler,
-    trace_view: TraceView
+    trace_view: TraceView,
+    theme: Theme
   ) {
     this.columns = {
       list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
@@ -150,6 +154,9 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+
+    this.text_measurer = new TraceTextMeasurer(theme);
+
     this.scheduler = trace_scheduler;
     this.view = trace_view;
 
@@ -268,6 +275,7 @@ export class VirtualizedViewManager {
 
   registerResetZoomRef(ref: HTMLButtonElement | null) {
     this.reset_zoom_button = ref;
+    this.syncResetZoomButton();
   }
 
   registerGhostRowRef(column: string, ref: HTMLElement | null) {
@@ -391,13 +399,13 @@ export class VirtualizedViewManager {
     index: number,
     indicator: TraceTree['indicators'][0]
   ) {
-    if (!ref) {
+    if (ref) {
+      this.indicators[index] = {ref, indicator};
+    } else {
       const element = this.indicators[index]?.ref;
       if (element) {
         element.removeEventListener('wheel', this.onWheel);
       }
-    } else {
-      this.indicators[index] = {ref, indicator};
     }
 
     if (ref) {
@@ -577,7 +585,7 @@ export class VirtualizedViewManager {
     const distance_width = this.view.trace_view.width - final_width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
+    const p = max_distance === 0 ? 1 : Math.log10(max_distance);
     // We need to clamp the duration to prevent the animation from being too slow,
     // sometimes the distances are very large as traces can be hours in duration
     const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
@@ -990,8 +998,8 @@ export class VirtualizedViewManager {
 
   scrollRowIntoViewHorizontally(
     node: TraceTreeNode<any>,
-    duration: number = 600,
-    offset_px: number = 0,
+    duration = 600,
+    offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
     const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
@@ -1688,22 +1696,31 @@ function getIconTimestamps(
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
 
-  if (!node.errors.size && !node.performance_issues.size) {
+  if (!node.errors.size && !node.occurrences.size) {
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const issue of node.performance_issues) {
-    // Perf issues render icons at the start timestamp
-    if (typeof issue.start === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, issue.start * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, issue.start * 1e3 + icon_width);
+  for (const occurence of node.occurrences) {
+    // Occurences render icons at the start timestamp
+    const start_timestamp =
+      'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+    if (typeof start_timestamp === 'number') {
+      min_icon_timestamp = Math.min(
+        min_icon_timestamp,
+        start_timestamp * 1e3 - icon_width
+      );
+      max_icon_timestamp = Math.max(
+        max_icon_timestamp,
+        start_timestamp * 1e3 + icon_width
+      );
     }
   }
 
   for (const err of node.errors) {
-    if (typeof err.timestamp === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, err.timestamp * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, err.timestamp * 1e3 + icon_width);
+    const timestamp = isEAPError(err) ? err.start_timestamp : err.timestamp;
+    if (typeof timestamp === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
     }
   }
 
@@ -1756,8 +1773,8 @@ function computeTimelineIntervals(
 export class VirtualizedList {
   container: HTMLElement | null = null;
 
-  scrollHeight: number = 0;
-  scrollTop: number = 0;
+  scrollHeight = 0;
+  scrollTop = 0;
 
   scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
     if (!this.container) {

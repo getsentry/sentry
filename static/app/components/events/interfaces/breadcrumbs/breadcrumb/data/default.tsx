@@ -81,11 +81,11 @@ function FormatMessage({
     breadcrumb.category === 'sentry.transaction' && isEventId(message);
 
   const {projects, fetching: fetchingProjects} = useProjects();
-  const maybeProject = !fetchingProjects
-    ? projects.find(project => {
+  const maybeProject = fetchingProjects
+    ? null
+    : projects.find(project => {
         return event && project.id === event.projectID;
-      })
-    : null;
+      });
 
   const transactionData = transactionEvents?.find(
     transaction => transaction.id === message

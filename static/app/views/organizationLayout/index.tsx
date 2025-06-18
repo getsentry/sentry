@@ -1,18 +1,28 @@
+import {ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import DemoHeader from 'sentry/components/demo/demoHeader';
+import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
+import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Nav from 'sentry/components/nav';
-import {NavContextProvider} from 'sentry/components/nav/context';
+import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
+import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
+import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
-import useDevToolbar from 'sentry/utils/useDevToolbar';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import Nav from 'sentry/views/nav';
+import {NavContextProvider} from 'sentry/views/nav/context';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import OrganizationContainer from 'sentry/views/organizationContainer';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 import OrganizationDetailsBody from './body';
 
@@ -24,14 +34,6 @@ const OrganizationHeader = HookOrDefault({
   hookName: 'component:organization-header',
 });
 
-function DevToolInit() {
-  const isEmployee = useIsSentryEmployee();
-  const organization = useOrganization();
-  const showDevToolbar = organization.features.includes('devtoolbar');
-  useDevToolbar({enabled: showDevToolbar && isEmployee});
-  return null;
-}
-
 function OrganizationLayout({children}: Props) {
   useRouteAnalyticsHookSetup();
 
@@ -39,20 +41,40 @@ function OrganizationLayout({children}: Props) {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-  const App = hasNavigationV2 ? AppLayout : LegacyAppLayout;
+  const prefersStackedNav = usePrefersStackedNav();
+  const App = prefersStackedNav ? AppLayout : LegacyAppLayout;
+
+  useRouteAnalyticsParams({
+    prefers_stacked_navigation: prefersStackedNav,
+  });
+
+  useInitSentryToolbar(organization);
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
-        <App organization={organization}>{children}</App>
+        <GlobalDrawer>
+          <App organization={organization}>{children}</App>
+        </GlobalDrawer>
       </OrganizationContainer>
+      <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
   );
 }
 
 interface LayoutProps extends Props {
   organization: Organization | null;
+}
+
+function AppDrawers() {
+  useFeedbackOnboardingDrawer();
+  useReplaysOnboardingDrawer();
+  usePerformanceOnboardingDrawer();
+  useProfilingOnboardingDrawer();
+  useFeatureFlagOnboardingDrawer();
+  useReleasesDrawer();
+
+  return null;
 }
 
 function AppLayout({children, organization}: LayoutProps) {
@@ -64,21 +86,23 @@ function AppLayout({children, organization}: LayoutProps) {
         <BodyContainer id="main">
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
-            {organization && <DevToolInit />}
             <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
           </AppBodyContent>
           <Footer />
         </BodyContainer>
       </AppContainer>
+      {organization ? <AppDrawers /> : null}
     </NavContextProvider>
   );
 }
 
 function LegacyAppLayout({children, organization}: LayoutProps) {
+  useReleasesDrawer();
+
   return (
     <div className="app">
+      <DemoHeader />
       {organization && <OrganizationHeader organization={organization} />}
-      {organization && <DevToolInit />}
       <Sidebar />
       <AppBodyContent>
         <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
@@ -103,6 +127,7 @@ const BodyContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
 `;
 
 export default OrganizationLayout;

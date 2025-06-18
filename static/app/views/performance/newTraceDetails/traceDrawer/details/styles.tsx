@@ -1,40 +1,41 @@
-import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {Fragment, type PropsWithChildren, useCallback, useMemo, useState} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
   type DropdownMenuProps,
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
-import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
-import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import KeyValueData, {
+import {
   CardPanel,
+  KeyValueData,
   type KeyValueDataContentProps,
   Subject,
   ValueSection,
 } from 'sentry/components/keyValueData';
-import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
+import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {
-  IconChevron,
   IconCircleFill,
   IconEllipsis,
   IconFocus,
   IconJson,
-  IconOpen,
   IconPanel,
   IconProfiling,
 } from 'sentry/icons';
@@ -44,56 +45,44 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  SENTRY_SPAN_NUMBER_TAGS,
-  SENTRY_SPAN_STRING_TAGS,
-} from 'sentry/views/explore/constants';
-
-import {traceAnalytics} from '../../traceAnalytics';
-import {useTransaction} from '../../traceApi/useTransaction';
-import {useDrawerContainerRef} from '../../traceDrawer/details/drawerContainerRefContext';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
-} from '../../traceDrawer/traceProfilingLink';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isRootNode,
+  isEAPSpanNode,
   isSpanNode,
-  isTraceErrorNode,
   isTransactionNode,
-} from '../../traceGuards';
-import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
-import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
-import {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
-import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
-import {useHasTraceNewUi} from '../../useHasTraceNewUi';
-
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
-  getSearchInExploreTarget,
-  TraceDrawerActionKind,
-  TraceDrawerActionValueKind,
-} from './utils';
+  useTraceState,
+  useTraceStateDispatch,
+} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
+import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
+import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
+
+const BodyContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
-  padding: ${p => (p.hasNewTraceUi ? `${space(0.5)} ${space(2)}` : space(1))};
   height: calc(100% - 52px);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   ${DataSection} {
     padding: 0;
@@ -103,7 +92,7 @@ const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
 const DetailContainer = styled('div')`
   height: 100%;
   overflow: hidden;
-  padding-bottom: ${space(1)};
+  padding: ${space(1)} ${space(2)};
 `;
 
 const FlexBox = styled('div')`
@@ -135,7 +124,7 @@ const TitleText = styled('div')`
   font-weight: bold;
 `;
 
-function TitleWithTestId(props: PropsWithChildren<{}>) {
+function TitleWithTestId(props: PropsWithChildren) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
@@ -261,9 +250,7 @@ const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
   justify-content: space-between;
   gap: ${space(3)};
-  padding: ${space(0.25)} 0 ${space(0.5)} 0;
-  margin: 0 ${space(2)} ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  margin-bottom: ${space(1)};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -289,7 +276,7 @@ const MIN_PCT_DURATION_DIFFERENCE = 10;
 
 type DurationComparison = {
   deltaPct: number;
-  deltaText: JSX.Element;
+  deltaText: React.JSX.Element;
   status: 'faster' | 'slower' | 'equal';
 } | null;
 
@@ -385,10 +372,10 @@ function TableRow({
   toolTipText,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
   toolTipText?: string;
 }) {
   if (!keep && !children) {
@@ -423,6 +410,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
 function Highlights({
@@ -432,19 +420,35 @@ function Highlights({
   project,
   headerContent,
   bodyContent,
+  highlightedAttributes,
 }: HighlightProps) {
-  if (!isTransactionNode(node) && !isSpanNode(node)) {
+  const dispatch = useTraceStateDispatch();
+  const organization = useOrganization();
+
+  const onOpsBreakdownRowClick = useCallback(
+    (op: string) => {
+      dispatch({type: 'set query', query: `op:${op}`, source: 'external'});
+    },
+    [dispatch]
+  );
+
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return null;
   }
+
+  const isAiNode = getIsAiNode(node);
 
   const startTimestamp = node.space[0];
   const endTimestamp = node.space[0] + node.space[1];
   const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
 
+  const baseDescription = isTransactionNode(node)
+    ? t('Average duration for this transaction over the last 24 hours')
+    : t('Average duration for this span over the last 24 hours');
   const comparison = getDurationComparison(
     avgDuration,
     durationInSeconds,
-    t('Average duration for this transaction over the last 24 hours')
+    baseDescription
   );
 
   return (
@@ -474,11 +478,35 @@ function Highlights({
               </HiglightsDurationComparison>
             ) : null}
           </HighlightsDurationWrapper>
-          <StyledPanel>
-            <StyledPanelHeader>{headerContent}</StyledPanelHeader>
-            <PanelBody>{bodyContent}</PanelBody>
-          </StyledPanel>
-          {event ? <HighLightsOpsBreakdown event={event} /> : null}
+          {highlightedAttributes && highlightedAttributes.length > 0 ? (
+            <HighlightedAttributesWrapper>
+              {highlightedAttributes.map(({name, value}) => (
+                <Fragment key={name}>
+                  <HighlightedAttributeName>{name}</HighlightedAttributeName>
+                  <div>{value}</div>
+                </Fragment>
+              ))}
+            </HighlightedAttributesWrapper>
+          ) : null}
+          {isAiNode && hasAgentInsightsFeature(organization) ? null : (
+            <Fragment>
+              <StyledPanel>
+                <StyledPanelHeader>{headerContent}</StyledPanelHeader>
+                <PanelBody>{bodyContent}</PanelBody>
+              </StyledPanel>
+              {isEAPSpanNode(node) ? (
+                <HighLightEAPOpsBreakdown
+                  onRowClick={onOpsBreakdownRowClick}
+                  node={node}
+                />
+              ) : event ? (
+                <HighLightsOpsBreakdown
+                  onRowClick={onOpsBreakdownRowClick}
+                  event={event}
+                />
+              ) : null}
+            </Fragment>
+          )}
         </HighlightsRightColumn>
       </HighlightsWrapper>
       <SectionDivider />
@@ -490,7 +518,14 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
+function HighLightsOpsBreakdown({
+  event,
+  onRowClick,
+}: {
+  event: EventTransaction;
+  onRowClick: (op: string) => void;
+}) {
+  const theme = useTheme();
   const breakdown = generateStats(event, {type: 'no_filter'});
 
   return (
@@ -503,11 +538,70 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
           const {name, percentage} = currOp;
 
           const operationName = typeof name === 'string' ? name : t('Other');
-          const color = pickBarColor(operationName);
+          const color = pickBarColor(operationName, theme);
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
           return (
-            <HighlightsOpRow key={operationName}>
+            <HighlightsOpRow
+              key={operationName}
+              onClick={() => onRowClick(operationName)}
+            >
+              <IconCircleFill size="xs" color={color as Color} />
+              {operationName}
+              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
+            </HighlightsOpRow>
+          );
+        })}
+      </TopOpsList>
+    </HighlightsOpsBreakdownWrapper>
+  );
+}
+
+function HighLightEAPOpsBreakdown({
+  node,
+  onRowClick,
+}: {
+  node: TraceTreeNode<TraceTree.EAPSpan>;
+  onRowClick: (op: string) => void;
+}) {
+  const theme = useTheme();
+  const breakdown = node.eapSpanOpsBreakdown;
+
+  if (breakdown.length === 0) {
+    return null;
+  }
+
+  const sortedBreakdown = breakdown.toSorted((a, b) => b.count - a.count);
+  const totalCount = sortedBreakdown.reduce((acc, curr) => acc + curr.count, 0);
+
+  const TOP_N = 3;
+  const displayOps = sortedBreakdown.slice(0, TOP_N).map(op => ({
+    op: op.op,
+    percentage: (op.count / totalCount) * 100,
+  }));
+
+  if (sortedBreakdown.length > TOP_N) {
+    const topNPercentage = displayOps.reduce((acc, curr) => acc + curr.percentage, 0);
+    displayOps.push({
+      op: t('Other'),
+      percentage: 100 - topNPercentage,
+    });
+  }
+
+  return (
+    <HighlightsOpsBreakdownWrapper>
+      <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
+      <TopOpsList>
+        {displayOps.map(currOp => {
+          const operationName = currOp.op;
+          const color = pickBarColor(operationName, theme);
+          const pctLabel = Math.round(currOp.percentage);
+
+          return (
+            <HighlightsOpRow
+              key={operationName}
+              onClick={() => onRowClick(operationName)}
+            >
               <IconCircleFill size="xs" color={color as Color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
@@ -522,6 +616,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
 const TopOpsList = styled('div')`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: ${space(1)};
 `;
 
@@ -537,6 +632,7 @@ const HighlightsSpanCount = styled('div')`
 const HighlightsOpRow = styled(FlexBox)`
   font-size: 13px;
   gap: ${space(0.5)};
+  cursor: pointer;
 `;
 
 const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
@@ -576,6 +672,21 @@ const HighlightOp = styled('div')`
   line-height: normal;
 `;
 
+const HighlightedAttributesWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: ${space(1.5)};
+  row-gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  &:not(:last-child) {
+    margin-bottom: ${space(1.5)};
+  }
+`;
+
+const HighlightedAttributeName = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
 const StyledPanelHeader = styled(PanelHeader)`
   font-weight: normal;
   padding: 0;
@@ -586,7 +697,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};
-  margin: ${space(3)} 0 ${space(1.5)} 0;
+  margin: ${space(1)} 0;
 `;
 
 const VerticalLine = styled('div')`
@@ -728,114 +839,26 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
-type KeyValueActionProps = {
-  rowKey: string;
-  rowValue: React.ReactNode;
-  kind?: TraceDrawerActionValueKind;
-  projectIds?: string | string[];
-};
-
 function KeyValueAction({
   rowKey,
   rowValue,
   projectIds,
   kind = TraceDrawerActionValueKind.SENTRY_TAG,
-}: KeyValueActionProps) {
+}: Pick<KeyValueActionParams, 'rowKey' | 'rowValue' | 'kind' | 'projectIds'>) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasNewTraceUi = useHasTraceNewUi();
-  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
   const [isVisible, setIsVisible] = useState(false);
+  const dropdownOptions = getTraceKeyValueActions({
+    rowKey,
+    rowValue,
+    kind,
+    projectIds,
+    location,
+    organization,
+  });
 
-  if (
-    !hasNewTraceUi ||
-    !hasTraceDrawerAction ||
-    !defined(rowValue) ||
-    !defined(rowKey) ||
-    !['string', 'number'].includes(typeof rowValue)
-  ) {
+  if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
     return null;
-  }
-
-  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
-  // Any other key must exist in the static list of sentry tags to be deemed searchable.
-  if (
-    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
-    !(
-      SENTRY_SPAN_NUMBER_TAGS.includes(rowKey) || SENTRY_SPAN_STRING_TAGS.includes(rowKey)
-    )
-  ) {
-    return null;
-  }
-
-  const dropdownOptions = [
-    {
-      key: 'include',
-      label: t('Find more samples with this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        rowValue.toString(),
-        TraceDrawerActionKind.INCLUDE
-      ),
-    },
-    {
-      key: 'exclude',
-      label: t('Find samples excluding this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        rowValue.toLocaleString(),
-        TraceDrawerActionKind.EXCLUDE
-      ),
-    },
-  ];
-
-  const valueType = getFieldDefinition(rowKey, 'span')?.valueType;
-  const isNumeric =
-    typeof rowValue === 'number' ||
-    (valueType &&
-      [
-        FieldValueType.DURATION,
-        FieldValueType.NUMBER,
-        FieldValueType.INTEGER,
-        FieldValueType.PERCENTAGE,
-        FieldValueType.DATE,
-        FieldValueType.RATE,
-        FieldValueType.PERCENT_CHANGE,
-      ].includes(valueType));
-
-  if (isNumeric) {
-    dropdownOptions.push(
-      {
-        key: 'includeGreaterThan',
-        label: t('Find samples with values greater than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          rowValue.toString(),
-          TraceDrawerActionKind.GREATER_THAN
-        ),
-      },
-      {
-        key: 'includeLessThan',
-        label: t('Find samples with values less than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          rowValue.toString(),
-          TraceDrawerActionKind.LESS_THAN
-        ),
-      }
-    );
   }
 
   return (
@@ -855,8 +878,10 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
-          key as TraceDrawerActionKind
+          key as TraceDrawerActionKind,
+          'drawer'
         );
       }}
       items={dropdownOptions}
@@ -877,10 +902,6 @@ const KeyValueActionDropdown = styled(DropdownMenu)`
   }
 `;
 
-function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T> {
-  return value !== null && value !== undefined;
-}
-
 function PanelPositionDropDown({organization}: {organization: Organization}) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
@@ -895,7 +916,7 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
         traceAnalytics.trackLayoutChange('drawer left', organization);
         traceDispatch({type: 'set layout', payload: 'drawer left'});
       },
-      leadingItems: <IconPanel direction="left" size="xs" />,
+      leadingItems: <IconPanel direction="left" />,
       label: t('Left'),
       disabled: traceState.preferences.layout === 'drawer left',
     });
@@ -908,7 +929,7 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
         traceAnalytics.trackLayoutChange('drawer right', organization);
         traceDispatch({type: 'set layout', payload: 'drawer right'});
       },
-      leadingItems: <IconPanel direction="right" size="xs" />,
+      leadingItems: <IconPanel direction="right" />,
       label: t('Right'),
       disabled: traceState.preferences.layout === 'drawer right',
     });
@@ -921,7 +942,7 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
         traceAnalytics.trackLayoutChange('drawer bottom', organization);
         traceDispatch({type: 'set layout', payload: 'drawer bottom'});
       },
-      leadingItems: <IconPanel direction="down" size="xs" />,
+      leadingItems: <IconPanel direction="down" />,
       label: t('Bottom'),
       disabled: traceState.preferences.layout === 'drawer bottom',
     });
@@ -936,9 +957,9 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
         <Tooltip title={t('Panel Position')}>
           <ActionButton
             {...triggerProps}
-            size="xs"
+            size="zero"
             aria-label={t('Panel position')}
-            icon={<IconPanel direction="right" size="xs" />}
+            icon={<IconPanel direction="right" />}
           />
         </Tooltip>
       )}
@@ -958,12 +979,12 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
-  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
   const {data: transaction} = useTransaction({
-    node: isTransactionNode(props.node) ? props.node : null,
+    event_id: props.node.value.event_id,
+    project_slug: props.node.value.project_slug,
     organization,
   });
 
@@ -971,7 +992,7 @@ function NodeActions(props: {
     const profileId = isTransactionNode(props.node)
       ? props.node.value.profile_id
       : isSpanNode(props.node)
-        ? props.node.event?.contexts?.profile?.profile_id ?? ''
+        ? (props.node.event?.contexts?.profile?.profile_id ?? '')
         : '';
     if (!profileId) {
       return null;
@@ -986,7 +1007,7 @@ function NodeActions(props: {
     const profilerId = isTransactionNode(props.node)
       ? props.node.value.profiler_id
       : isSpanNode(props.node)
-        ? props.node.value.sentry_tags?.profiler_id ?? null
+        ? (props.node.value.sentry_tags?.profiler_id ?? null)
         : null;
     if (!profilerId) {
       return null;
@@ -999,58 +1020,48 @@ function NodeActions(props: {
     });
   }, [organization, params.traceSlug, props.node, transaction]);
 
-  if (!hasNewTraceUi) {
-    return (
-      <LegacyNodeActions
-        {...props}
-        continuousProfileTarget={continuousProfileTarget}
-        transactionProfileTarget={transactionProfileTarget}
-      />
-    );
-  }
-
   return (
     <ActionWrapper>
-      <Tooltip title={t('Show in view')}>
+      <Tooltip title={t('Show in view')} skipWrapper>
         <ActionButton
           onClick={_e => {
             traceAnalytics.trackShowInView(props.organization);
             props.onTabScrollToNode(props.node);
           }}
-          size="xs"
+          size="zero"
           aria-label={t('Show in view')}
-          icon={<IconFocus size="xs" />}
+          icon={<IconFocus />}
         />
       </Tooltip>
       {isTransactionNode(props.node) ? (
-        <Tooltip title={t('JSON')}>
-          <ActionButton
+        <Tooltip title={t('JSON')} skipWrapper>
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
             href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
-            size="xs"
+            size="zero"
             aria-label={t('JSON')}
-            icon={<IconJson size="xs" />}
+            icon={<IconJson />}
           />
         </Tooltip>
       ) : null}
       {continuousProfileTarget ? (
-        <Tooltip title={t('Profile')}>
-          <ActionButton
+        <Tooltip title={t('Profile')} skipWrapper>
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewContinuousProfile(props.organization)}
             to={continuousProfileTarget}
-            size="xs"
+            size="zero"
             aria-label={t('Profile')}
-            icon={<IconProfiling size="xs" />}
+            icon={<IconProfiling />}
           />
         </Tooltip>
       ) : transactionProfileTarget ? (
-        <Tooltip title={t('Profile')}>
-          <ActionButton
+        <Tooltip title={t('Profile')} skipWrapper>
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewTransactionProfile(props.organization)}
             to={transactionProfileTarget}
-            size="xs"
+            size="zero"
             aria-label={t('Profile')}
-            icon={<IconProfiling size="xs" />}
+            icon={<IconProfiling />}
           />
         </Tooltip>
       ) : null}
@@ -1059,13 +1070,14 @@ function NodeActions(props: {
   );
 }
 
-const ActionButton = styled(Button)`
+const actionButtonStyles = css`
   border: none;
   background-color: transparent;
   box-shadow: none;
   transition: none !important;
   opacity: 0.8;
   height: 24px;
+  width: 24px;
   max-height: 24px;
 
   &:hover {
@@ -1076,191 +1088,30 @@ const ActionButton = styled(Button)`
   }
 `;
 
+const ActionButton = styled(Button)`
+  ${actionButtonStyles};
+`;
+
+const ActionLinkButton = styled(LinkButton)`
+  ${actionButtonStyles};
+`;
+
 const ActionWrapper = styled('div')`
+  overflow: visible;
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
-`;
-
-function LegacyNodeActions(props: {
-  continuousProfileTarget: LocationDescriptor | null;
-  node: TraceTreeNode<any>;
-  onTabScrollToNode: (
-    node:
-      | TraceTreeNode<any>
-      | ParentAutogroupNode
-      | SiblingAutogroupNode
-      | MissingInstrumentationNode
-  ) => void;
-  organization: Organization;
-  transactionProfileTarget: LocationDescriptor | null;
-  eventSize?: number | undefined;
-}) {
-  const navigate = useNavigate();
-
-  const items = useMemo((): MenuItemProps[] => {
-    const showInView: MenuItemProps = {
-      key: 'show-in-view',
-      label: t('Show in View'),
-      onAction: () => {
-        traceAnalytics.trackShowInView(props.organization);
-        props.onTabScrollToNode(props.node);
-      },
-    };
-
-    const eventId =
-      props.node.metadata.event_id ??
-      TraceTree.ParentTransaction(props.node)?.metadata.event_id;
-    const projectSlug =
-      props.node.metadata.project_slug ??
-      TraceTree.ParentTransaction(props.node)?.metadata.project_slug;
-
-    const eventSize = props.eventSize;
-    const jsonDetails: MenuItemProps = {
-      key: 'json-details',
-      onAction: () => {
-        traceAnalytics.trackViewEventJSON(props.organization);
-        window.open(
-          `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
-          '_blank'
-        );
-      },
-      label:
-        t('JSON') +
-        (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
-    };
-
-    const profileLink: MenuItemProps | null = props.continuousProfileTarget
-      ? {
-          key: 'profile',
-          onAction: () => {
-            traceAnalytics.trackViewContinuousProfile(props.organization);
-            navigate(props.continuousProfileTarget!);
-          },
-          label: t('View Profile'),
-        }
-      : props.transactionProfileTarget
-        ? {
-            key: 'profile',
-            onAction: () => {
-              traceAnalytics.trackViewTransactionProfile(props.organization);
-              navigate(props.transactionProfileTarget!);
-            },
-            label: t('View Profile'),
-          }
-        : null;
-
-    if (isTransactionNode(props.node)) {
-      return [showInView, jsonDetails, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isSpanNode(props.node)) {
-      return [showInView, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isMissingInstrumentationNode(props.node)) {
-      return [showInView, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isTraceErrorNode(props.node)) {
-      return [showInView, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isRootNode(props.node)) {
-      return [showInView];
-    }
-    if (isAutogroupedNode(props.node)) {
-      return [showInView];
-    }
-
-    return [showInView];
-  }, [props, navigate]);
-
-  return (
-    <ActionsContainer>
-      <Actions className="Actions">
-        {props.continuousProfileTarget ? (
-          <LinkButton size="xs" to={props.continuousProfileTarget}>
-            {t('View Profile')}
-          </LinkButton>
-        ) : props.transactionProfileTarget ? (
-          <LinkButton size="xs" to={props.transactionProfileTarget}>
-            {t('View Profile')}
-          </LinkButton>
-        ) : null}
-        <Button
-          size="xs"
-          onClick={_e => {
-            traceAnalytics.trackShowInView(props.organization);
-            props.onTabScrollToNode(props.node);
-          }}
-        >
-          {t('Show in view')}
-        </Button>
-
-        {isTransactionNode(props.node) ? (
-          <LinkButton
-            size="xs"
-            icon={<IconOpen />}
-            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
-            external
-          >
-            {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
-          </LinkButton>
-        ) : null}
-      </Actions>
-      <DropdownMenuWithPortal
-        items={items}
-        className="DropdownMenu"
-        position="bottom-end"
-        trigger={triggerProps => (
-          <ActionsButtonTrigger size="xs" {...triggerProps}>
-            {t('Actions')}
-            <IconChevron direction="down" size="xs" />
-          </ActionsButtonTrigger>
-        )}
-      />
-    </ActionsContainer>
-  );
-}
-
-const ActionsButtonTrigger = styled(Button)`
-  svg {
-    margin-left: ${space(0.5)};
-    width: 10px;
-    height: 10px;
-  }
-`;
-
-const ActionsContainer = styled('div')`
-  display: flex;
-  justify-content: end;
-  align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
-  const hasNewTraceUi = useHasTraceNewUi();
-
-  if (!hasNewTraceUi) {
-    return <LegacyEventTags event={event} projectSlug={projectSlug} />;
-  }
-
-  return <EventTagsDataSection event={event} projectSlug={projectSlug} />;
-}
-
-function LegacyEventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
-    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
-      <TagsWrapper>
-        <EventTagsDataSection event={event} projectSlug={projectSlug} />
-      </TagsWrapper>
-    </LazyRender>
+    <EventTagsDataSection
+      event={event}
+      projectSlug={projectSlug}
+      disableCollapsePersistence
+    />
   );
 }
-
-const TagsWrapper = styled('div')`
-  h3 {
-    color: ${p => p.theme.textColor};
-  }
-`;
 
 export type SectionCardKeyValueList = KeyValueListData;
 
@@ -1382,10 +1233,45 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-export const CardContentSubject = styled('div')`
-  grid-column: span 1;
-  font-family: ${p => p.theme.text.familyMono};
-  word-wrap: break-word;
+const MultilineText = styled('div')`
+  white-space: pre-wrap;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)};
+  word-break: break-word;
+  &:not(:last-child) {
+    margin-bottom: ${space(1.5)};
+  }
+`;
+
+function MultilineJSON({
+  value,
+  maxDefaultDepth = 2,
+}: {
+  value: string;
+  maxDefaultDepth?: number;
+}) {
+  try {
+    const json = JSON.parse(value);
+    return (
+      <TraceDrawerComponents.MultilineText>
+        <StructuredData
+          value={json}
+          maxDefaultDepth={maxDefaultDepth}
+          withAnnotatedText
+        />
+      </TraceDrawerComponents.MultilineText>
+    );
+  } catch (error) {
+    return (
+      <TraceDrawerComponents.MultilineText>{value}</TraceDrawerComponents.MultilineText>
+    );
+  }
+}
+
+const MultilineTextLabel = styled('div')`
+  font-weight: bold;
+  margin-bottom: ${space(1)};
 `;
 
 const TraceDrawerComponents = {
@@ -1419,6 +1305,9 @@ const TraceDrawerComponents = {
   TraceDataSection,
   SectionCardGroup,
   DropdownMenuWithPortal,
+  MultilineText,
+  MultilineJSON,
+  MultilineTextLabel,
 };
 
 export {TraceDrawerComponents};

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:14.110450+00:00'
+created: '2025-02-26T00:34:06.460061+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -350,7 +350,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "dlopen"
           frame (ignored by stack trace rule (category:internals -group))
@@ -377,7 +377,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__report_load"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
           frame (ignored by stack trace rule (category:throw ^-group))

@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
@@ -75,12 +75,10 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
     };
   }, [hasAnyFeedback, organization, projectIds]);
 
-  function trackAnalyticsInternal(
-    eventKey: 'user_feedback.docs_clicked' | 'user_feedback.dialog_opened'
-  ) {
+  function trackAnalyticsInternal(eventKey: 'user_feedback.dialog_opened') {
     trackAnalytics(eventKey, {
       organization,
-      projects: selectedProjects?.join(','),
+      projects: selectedProjects?.map(p => p.id).join(','),
     });
   }
 

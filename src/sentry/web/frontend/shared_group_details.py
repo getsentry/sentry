@@ -1,5 +1,7 @@
+from typing import Any
+
 from django.conf import settings
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 
 from sentry.issues.services.issue.service import issue_service
 from sentry.web.frontend.base import control_silo_view
@@ -8,7 +10,9 @@ from sentry.web.frontend.react_page import GenericReactPageView
 
 @control_silo_view
 class SharedGroupDetailsView(GenericReactPageView):
-    def meta_tags(self, request: Request, share_id):
+    def meta_tags(
+        self, request: HttpRequest, *, share_id: str = "", **kwargs: Any
+    ) -> dict[str, str]:
         org_slug = getattr(request, "subdomain", None)
         if org_slug:
             group = issue_service.get_shared_for_org(slug=org_slug, share_id=share_id)

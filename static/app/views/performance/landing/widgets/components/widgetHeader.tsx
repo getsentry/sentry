@@ -1,17 +1,16 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-
 import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>

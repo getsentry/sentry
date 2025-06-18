@@ -36,10 +36,10 @@ failOnConsole({
       return true;
     }
 
-    // TODO: Remove after either the removal of AsyncComponent or migrating the tests not to use contexts
-    if (
-      /uses the legacy contextTypes API which is no longer supported/.test(errorMessage)
-    ) {
+    // Full text:
+    // Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.
+    // This is a warning from CellMeasurer in react-virtualized. It safely falls back to something compatible with React 19.
+    if (/Accessing element.ref was removed in React 19/.test(errorMessage)) {
       return true;
     }
 

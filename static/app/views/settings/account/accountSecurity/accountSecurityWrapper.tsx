@@ -24,22 +24,24 @@ function AccountSecurityWrapper({children}: Props) {
   const {authId} = useParams<{authId?: string}>();
 
   const orgRequest = useQuery<OrganizationSummary[]>({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['organizations'],
     queryFn: () => fetchOrganizations(api),
     staleTime: 0,
   });
+  const {refetch: refetchOrganizations} = orgRequest;
   const emailsRequest = useApiQuery<UserEmail[]>(['/users/me/emails/'], {staleTime: 0});
   const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
 
   const handleRefresh = useCallback(() => {
-    orgRequest.refetch();
+    refetchOrganizations();
     authenticatorsRequest.refetch();
     emailsRequest.refetch();
-  }, [orgRequest, authenticatorsRequest, emailsRequest]);
+  }, [refetchOrganizations, authenticatorsRequest, emailsRequest]);
 
   const disableAuthenticatorMutation = useMutation({
     mutationFn: async (auth: Authenticator) => {
-      if (!auth || !auth.authId) {
+      if (!auth?.authId) {
         return;
       }
 
@@ -94,7 +96,7 @@ function AccountSecurityWrapper({children}: Props) {
   const countEnrolled = enrolled.length;
   const orgsRequire2fa = organizations.filter(org => org.require2FA) || [];
   const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
-  const hasVerifiedEmail = !!emails.find(({isVerified}) => isVerified);
+  const hasVerifiedEmail = emails.some(({isVerified}) => isVerified);
 
   // This happens when you switch between children views and the next child
   // view is lazy loaded, it can potentially be `null` while the code split
@@ -112,7 +114,7 @@ function AccountSecurityWrapper({children}: Props) {
     countEnrolled,
     hasVerifiedEmail,
     handleRefresh,
-  });
+  } as any);
 }
 
 export default AccountSecurityWrapper;

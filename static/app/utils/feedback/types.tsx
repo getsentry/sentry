@@ -40,6 +40,7 @@ export type FeedbackIssueListItem = Overwrite<
       name: string;
       title: string;
       value: string;
+      associated_event_id?: string;
       sdk?: {
         name: string;
         name_normalized: string;

@@ -60,7 +60,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: backend-ci
       - name: Download Codecov CLI
         run: |

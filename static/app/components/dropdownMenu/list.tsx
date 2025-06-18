@@ -60,11 +60,11 @@ export interface DropdownMenuListProps
   /**
    * To be displayed below the menu items
    */
-  menuFooter?: React.ReactChild;
+  menuFooter?: React.ReactNode;
   /**
    * Title to display on top of the menu
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
   /**
    * Minimum menu width
    */
@@ -140,8 +140,6 @@ function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  const showDividers = stateCollection.some(item => !!item.props.details);
-
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>) => {
     return (
@@ -150,7 +148,6 @@ function DropdownMenuList({
         state={state}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
-        showDivider={showDividers}
       />
     );
   };
@@ -166,7 +163,6 @@ function DropdownMenuList({
         renderAs="div"
         node={node}
         state={state}
-        showDivider={showDividers}
         closeOnSelect={false}
         {...omit(triggerProps, [
           'onClick',
@@ -240,7 +236,7 @@ function DropdownMenuList({
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
-        <DropdownMenuContext.Provider value={contextValue}>
+        <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             <DropdownMenuListWrap
@@ -256,7 +252,7 @@ function DropdownMenuList({
             </DropdownMenuListWrap>
             {menuFooter}
           </StyledOverlay>
-        </DropdownMenuContext.Provider>
+        </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
   );

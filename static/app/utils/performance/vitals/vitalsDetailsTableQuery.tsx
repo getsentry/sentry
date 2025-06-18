@@ -3,10 +3,10 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
 type BaseDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: string | number;
   count: number;
   count_unique_user: number;
   id: string;

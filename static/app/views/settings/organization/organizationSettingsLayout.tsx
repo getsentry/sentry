@@ -1,7 +1,5 @@
-import {Fragment} from 'react';
-
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import useOrganization from 'sentry/utils/useOrganization';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
 
@@ -10,23 +8,14 @@ type Props = RouteComponentProps & {
 };
 
 function OrganizationSettingsLayout(props: Props) {
-  const organization = useOrganization();
-
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-
-  if (hasNavigationV2) {
-    return (
-      <Fragment>
-        <OrganizationSettingsNavigation />
-        <SettingsLayout {...props} />
-      </Fragment>
-    );
-  }
+  const prefersStackedNav = usePrefersStackedNav();
 
   return (
     <SettingsLayout
       {...props}
-      renderNavigation={() => <OrganizationSettingsNavigation />}
+      renderNavigation={
+        prefersStackedNav ? undefined : () => <OrganizationSettingsNavigation />
+      }
     />
   );
 }

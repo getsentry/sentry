@@ -18,7 +18,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -41,7 +41,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorLimitsExceeded,
     MonitorStatus,
-    MonitorType,
 )
 from sentry.monitors.serializers import (
     MonitorBulkEditResponse,
@@ -54,8 +53,6 @@ from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
-
-from .base import OrganizationMonitorPermission
 
 
 def map_value_to_constant(constant, value):
@@ -85,7 +82,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
-    permission_classes = (OrganizationMonitorPermission,)
+    permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
         operation_id="Retrieve Monitors for an Organization",
@@ -235,13 +232,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                         )
                     except ValueError:
                         queryset = queryset.none()
-                elif key == "type":
-                    try:
-                        queryset = queryset.filter(
-                            type__in=map_value_to_constant(MonitorType, value)
-                        )
-                    except ValueError:
-                        queryset = queryset.none()
                 else:
                     queryset = queryset.none()
 
@@ -296,7 +286,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 name=result["name"],
                 slug=result.get("slug"),
                 status=result["status"],
-                type=result["type"],
                 config=result["config"],
             )
         except MonitorLimitsExceeded as e:

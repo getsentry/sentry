@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
@@ -326,6 +327,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         {
           title: t('High Throughput Transactions'),
           displayType: DisplayType.TOP_N,
+          limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
@@ -404,6 +406,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         {
           title: t('Errors by Browser Over Time'),
           displayType: DisplayType.TOP_N,
+          limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
@@ -443,6 +446,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         {
           title: t('Top 5 Issues by Unique Users Over Time'),
           displayType: DisplayType.TOP_N,
+          limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
@@ -854,6 +858,7 @@ export const getDashboardTemplates = (organization: Organization) => {
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
+          limit: TOP_N,
           layout: {
             h: 4,
             minH: 2,
@@ -880,6 +885,7 @@ export const getDashboardTemplates = (organization: Organization) => {
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
+          limit: TOP_N,
           layout: {
             h: 2,
             minH: 2,
@@ -1629,23 +1635,5 @@ export const getDashboardTemplates = (organization: Organization) => {
     },
   ] as DashboardTemplate[];
 };
-
-export const DISPLAY_TYPE_CHOICES = [
-  {label: t('Area Chart'), value: 'area'},
-  {label: t('Bar Chart'), value: 'bar'},
-  {label: t('Line Chart'), value: 'line'},
-  {label: t('Table'), value: 'table'},
-  {label: t('Big Number'), value: 'big_number'},
-  {label: t('Top 5 Events'), value: 'top_n'},
-];
-
-export const INTERVAL_CHOICES = [
-  {label: t('1 Minute'), value: '1m'},
-  {label: t('5 Minutes'), value: '5m'},
-  {label: t('15 Minutes'), value: '15m'},
-  {label: t('30 Minutes'), value: '30m'},
-  {label: t('1 Hour'), value: '1h'},
-  {label: t('1 Day'), value: '1d'},
-];
 
 export const DEFAULT_STATS_PERIOD = '24h';

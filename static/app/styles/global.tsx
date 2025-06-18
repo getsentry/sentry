@@ -176,6 +176,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
   code {
     background-color: transparent;
   }
+  .tsqd-queries-container code {
+    /* Don't override colors inside @tanstack/react-query-devtools */
+    background-color: unset;
+    color: inherit;
+  }
 
   ${prismStyles(theme)}
 
@@ -221,14 +226,18 @@ const styles = (theme: Theme, isDark: boolean) => css`
             h6 {
               color: ${theme.headingColor};
             }
-
-            a {
-              color: ${theme.textColor};
-            }
           }
 
           .box-header {
             border-bottom-color: ${theme.border};
+
+            a {
+              color: ${theme.textColor};
+
+              &:hover {
+                color: ${theme.linkHoverColor};
+              }
+            }
           }
         }
         .loading .loading-indicator {

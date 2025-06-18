@@ -11,10 +11,9 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-
-import {DataScrubbing} from '../components/dataScrubbing';
 
 type Props = {
   organization: Organization;

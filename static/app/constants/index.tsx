@@ -2,7 +2,7 @@
 
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo, Scope} from 'sentry/types/core';
-import {DataCategoryExact} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {PermissionResource} from 'sentry/types/integrations';
 import type {OrgRole} from 'sentry/types/organization';
 
@@ -14,12 +14,12 @@ import type {OrgRole} from 'sentry/types/organization';
 export const ROOT_ELEMENT = 'blk_router';
 
 export const USING_CUSTOMER_DOMAIN =
-  typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
+  typeof window === 'undefined' ? false : Boolean(window?.__initialData?.customerDomain);
 
 export const CUSTOMER_DOMAIN =
-  typeof window !== 'undefined'
-    ? window?.__initialData?.customerDomain?.subdomain
-    : undefined;
+  typeof window === 'undefined'
+    ? undefined
+    : window?.__initialData?.customerDomain?.subdomain;
 
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
@@ -235,6 +235,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
+export const TAXONOMY_DEFAULT_QUERY = 'is:unresolved';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -255,137 +256,309 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
+const DEFAULT_STATS_INFO = {
+  showExternalStats: false,
+  showInternalStats: true,
+  yAxisMinInterval: 100,
+};
+const GIGABYTE = 10 ** 9;
+
 // https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
 export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
-    plural: 'errors',
+    plural: DataCategory.ERRORS,
     displayName: 'error',
     titleName: t('Errors'),
     productName: t('Error Monitoring'),
     uid: 1,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/sentry-basics/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
   },
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
     apiName: 'transaction',
-    plural: 'transactions',
+    plural: DataCategory.TRANSACTIONS,
     displayName: 'transaction',
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
     uid: 2,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/performance/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
   },
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
     apiName: 'attachment',
-    plural: 'attachments',
+    plural: DataCategory.ATTACHMENTS,
     displayName: 'attachment',
     titleName: t('Attachments'),
     productName: t('Attachments'),
     uid: 4,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+      yAxisMinInterval: 0.5 * GIGABYTE,
+    },
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
     apiName: 'profile',
-    plural: 'profiles',
+    plural: DataCategory.PROFILES,
     displayName: 'profile',
     titleName: t('Profiles'),
     productName: t('Continuous Profiling'),
     uid: 6,
     isBilledCategory: false,
+    docsUrl: 'https://docs.sentry.io/product/profiling/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
+  [DataCategoryExact.PROFILE_INDEXED]: {
+    name: DataCategoryExact.PROFILE_INDEXED,
+    apiName: 'profileIndexed',
+    plural: DataCategory.PROFILES_INDEXED,
+    displayName: 'indexed profile',
+    titleName: t('Indexed Profiles'),
+    productName: t('Continuous Profiling'),
+    uid: 11,
+    isBilledCategory: false,
+    statsInfo: DEFAULT_STATS_INFO,
   },
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
     apiName: 'replay',
-    plural: 'replays',
+    plural: DataCategory.REPLAYS,
     displayName: 'replay',
     titleName: t('Session Replays'),
     productName: t('Session Replay'),
     uid: 7,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/session-replay/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
     apiName: 'transactions',
-    plural: 'transactions',
+    plural: DataCategory.TRANSACTIONS_PROCESSED,
     displayName: 'transaction',
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
     uid: 8,
     isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showInternalStats: false,
+    },
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
     name: DataCategoryExact.TRANSACTION_INDEXED,
     apiName: 'transactionIndexed',
-    plural: 'indexed transactions',
+    plural: DataCategory.TRANSACTIONS_INDEXED,
     displayName: 'indexed transaction',
     titleName: t('Indexed Transactions'),
     productName: t('Performance Monitoring'),
     uid: 9,
     isBilledCategory: false,
+    statsInfo: DEFAULT_STATS_INFO,
   },
   [DataCategoryExact.MONITOR]: {
     name: DataCategoryExact.MONITOR,
     apiName: 'monitor',
-    plural: 'monitor check-ins',
+    plural: DataCategory.MONITOR,
     displayName: 'monitor check-in',
     titleName: t('Monitor Check-Ins'),
     productName: t('Cron Monitoring'),
     uid: 10,
     isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
     apiName: 'span',
-    plural: 'spans',
+    plural: DataCategory.SPANS,
     displayName: 'span',
     titleName: t('Spans'), // TODO(DS Spans): Update name
     productName: t('Tracing'),
     uid: 12,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/performance/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
-    plural: 'monitorSeats',
+    plural: DataCategory.MONITOR_SEATS,
     displayName: 'cron monitor',
     titleName: t('Cron Monitors'),
     productName: t('Cron Monitoring'),
     uid: 13,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/crons/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showInternalStats: false,
+    },
   },
   [DataCategoryExact.SPAN_INDEXED]: {
     name: DataCategoryExact.SPAN_INDEXED,
     apiName: 'span_indexed',
-    plural: 'spansIndexed',
+    plural: DataCategory.SPANS_INDEXED,
     displayName: 'stored span',
     titleName: t('Stored Spans'),
     productName: t('Tracing'),
     uid: 16,
     isBilledCategory: false,
+    docsUrl: 'https://docs.sentry.io/product/performance/',
+    statsInfo: DEFAULT_STATS_INFO,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
     apiName: 'profile_duration',
-    plural: 'profileDuration',
-    displayName: 'profile hour',
-    titleName: t('Profile Hours'),
+    plural: DataCategory.PROFILE_DURATION,
+    displayName: 'continuous profile hour',
+    titleName: t('Continuous Profile Hours'),
     productName: t('Continuous Profiling'),
     uid: 17,
-    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    isBilledCategory: true,
+    docsUrl:
+      'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
   },
+  [DataCategoryExact.PROFILE_CHUNK]: {
+    name: DataCategoryExact.PROFILE_CHUNK,
+    apiName: 'profile_chunk',
+    plural: DataCategory.PROFILE_CHUNKS,
+    displayName: 'profile chunk',
+    titleName: t('Profile Chunks'),
+    productName: t('Continuous Profiling'),
+    uid: 18,
+    isBilledCategory: false,
+    statsInfo: DEFAULT_STATS_INFO,
+  },
+  [DataCategoryExact.PROFILE_DURATION_UI]: {
+    name: DataCategoryExact.PROFILE_DURATION_UI,
+    apiName: 'profile_duration_ui',
+    plural: DataCategory.PROFILE_DURATION_UI,
+    displayName: 'UI profile hour',
+    titleName: t('UI Profile Hours'),
+    productName: t('UI Profiling'),
+    uid: 25,
+    isBilledCategory: true,
+    docsUrl:
+      'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
+  [DataCategoryExact.PROFILE_CHUNK_UI]: {
+    name: DataCategoryExact.PROFILE_CHUNK_UI,
+    apiName: 'profile_chunk_ui',
+    plural: DataCategory.PROFILE_CHUNKS_UI,
+    displayName: 'UI profile chunk',
+    titleName: t('UI Profile Chunks'),
+    productName: t('UI Profiling'),
+    uid: 26,
+    isBilledCategory: false,
+    statsInfo: DEFAULT_STATS_INFO,
+  },
+
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,
     apiName: 'uptime',
-    plural: 'uptime',
+    plural: DataCategory.UPTIME,
     displayName: 'uptime monitor',
     titleName: t('Uptime Monitors'),
     productName: t('Uptime Monitoring'),
     uid: 21,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showInternalStats: false,
+    },
+  },
+  [DataCategoryExact.LOG_ITEM]: {
+    name: DataCategoryExact.LOG_ITEM,
+    apiName: 'log_item',
+    plural: DataCategory.LOG_ITEM,
+    displayName: 'log',
+    titleName: t('Log Counts'), // Only currently visible internally, this name should change if we expose this to users.
+    productName: t('Logging'),
+    uid: 23,
+    isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
+  [DataCategoryExact.LOG_BYTE]: {
+    name: DataCategoryExact.LOG_BYTE,
+    apiName: 'log_byte',
+    plural: DataCategory.LOG_BYTE,
+    displayName: 'log byte',
+    titleName: t('Logs'),
+    productName: t('Logging'),
+    uid: 24,
+    isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+      yAxisMinInterval: 0.5 * GIGABYTE,
+    },
+  },
+  [DataCategoryExact.SEER_AUTOFIX]: {
+    name: DataCategoryExact.SEER_AUTOFIX,
+    apiName: 'seer_autofix',
+    plural: DataCategory.SEER_AUTOFIX,
+    displayName: 'issue fix',
+    titleName: t('Issue Fixes'),
+    productName: t('Seer'),
+    uid: 27,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
+  [DataCategoryExact.SEER_SCANNER]: {
+    name: DataCategoryExact.SEER_SCANNER,
+    apiName: 'seer_scanner',
+    plural: DataCategory.SEER_SCANNER,
+    displayName: 'issue scan',
+    titleName: t('Issue Scans'),
+    productName: t('Seer'),
+    uid: 28,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

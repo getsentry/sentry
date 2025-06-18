@@ -10,6 +10,8 @@ from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import tempest_tasks
 from sentry.tempest.models import MessageType, TempestCredentials
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
@@ -43,6 +46,7 @@ def poll_tempest(**kwargs):
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     # FIXME: Try catch this later
@@ -63,7 +67,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         if "latest_id" in result:
             credentials.latest_fetched_item_id = result["latest_id"]
             credentials.message = ""
-            credentials.save(update_fields=["message", "latest_fetched_item_id"])
+            credentials.message_type = MessageType.SUCCESS
+            credentials.save(update_fields=["message", "latest_fetched_item_id", "message_type"])
             return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
@@ -108,6 +113,7 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
@@ -151,7 +157,11 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
 
         result = response.json()
         credentials.latest_fetched_item_id = result["latest_id"]
-        credentials.save(update_fields=["latest_fetched_item_id"])
+        # Make sure that once existing customers pull crashes the message is set to SUCCESS,
+        # since due to legacy reasons they might still have an empty ERROR message.
+        credentials.message = ""
+        credentials.message_type = MessageType.SUCCESS
+        credentials.save(update_fields=["latest_fetched_item_id", "message", "message_type"])
     except Exception as e:
         logger.exception(
             "Fetching the crashes failed.",

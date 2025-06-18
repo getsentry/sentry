@@ -5,11 +5,10 @@ import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import {axisDuration} from 'sentry/utils/duration/axisDuration';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-
-import {axisDuration} from '../duration/axisDuration';
 
 import {categorizeDuration} from './categorizeDuration';
 
@@ -59,7 +58,7 @@ export function tooltipFormatterUsingAggregateOutputType(
 export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
-  abbreviation: boolean = false,
+  abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
   decimalPlaces?: number
@@ -80,10 +79,10 @@ export function axisLabelFormatter(
 export function axisLabelFormatterUsingAggregateOutputType(
   value: number,
   type: string,
-  abbreviation: boolean = false,
+  abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces: number = 0
+  decimalPlaces = 0
 ): string {
   switch (type) {
     case 'integer':

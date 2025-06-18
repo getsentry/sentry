@@ -327,7 +327,7 @@ urlpatterns += [
                     name="sentry-account-confirm-signed-email",
                 ),
                 re_path(
-                    r"^user-confirm/(?P<key>[^\/]+)/$",
+                    r"^user-confirm/(?P<key>[^/]+)/$",
                     AccountConfirmationView.as_view(),
                     name="sentry-idp-email-verification",
                 ),
@@ -389,7 +389,7 @@ urlpatterns += [
                     ),
                 ),
                 re_path(
-                    r"^settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$",
+                    r"^settings/identities/associate/(?P<organization_slug>[^/]+)/(?P<provider_key>[^/]+)/(?P<external_id>[^/]+)/$",
                     AccountIdentityAssociateView.as_view(),
                     name="sentry-account-associate-identity",
                 ),
@@ -407,7 +407,7 @@ urlpatterns += [
                 ),
                 # Project Wizard
                 re_path(
-                    r"^settings/wizard/(?P<wizard_hash>[^\/]+)/$",
+                    r"^settings/wizard/(?P<wizard_hash>[^/]+)/$",
                     SetupWizardView.as_view(),
                     name="sentry-project-wizard-fetch",
                 ),
@@ -659,6 +659,11 @@ urlpatterns += [
                     name="sentry-customer-domain-feature-flags-settings",
                 ),
                 re_path(
+                    r"^stats/",
+                    react_page_view,
+                    name="sentry-customer-domain-stats-settings",
+                ),
+                re_path(
                     r"^developer-settings/",
                     react_page_view,
                     name="sentry-customer-domain-developer-settings-settings",
@@ -762,7 +767,7 @@ urlpatterns += [
     ),
     # Issues
     re_path(
-        r"^issues/(?P<project_id_or_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^issues/(?P<project_id_or_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-customer-domain-sentry-group-tag-export",
     ),
@@ -1107,7 +1112,7 @@ urlpatterns += [
                     name="sentry-organization-crons",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/alerts/rules/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-cron-monitor-details",
                 ),
@@ -1147,22 +1152,22 @@ urlpatterns += [
     ),
     # Avatars
     re_path(
-        r"^avatar/(?P<avatar_id>[^\/]+)/$",
+        r"^avatar/(?P<avatar_id>[^/]+)/$",
         UserAvatarPhotoView.as_view(),
         name="sentry-user-avatar-url",
     ),
     re_path(
-        r"^organization-avatar/(?P<avatar_id>[^\/]+)/$",
+        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
     ),
     re_path(
-        r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",
+        r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",
         SentryAppAvatarPhotoView.as_view(),
         name="sentry-app-avatar-url",
     ),
     re_path(
-        r"^doc-integration-avatar/(?P<avatar_id>[^\/]+)/$",
+        r"^doc-integration-avatar/(?P<avatar_id>[^/]+)/$",
         DocIntegrationAvatarPhotoView.as_view(),
         name="sentry-doc-integration-avatar-url",
     ),
@@ -1319,7 +1324,7 @@ urlpatterns += [
         name="sentry-alert-rule",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
     ),

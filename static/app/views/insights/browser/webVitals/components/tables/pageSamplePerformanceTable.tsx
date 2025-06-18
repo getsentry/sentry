@@ -1,9 +1,13 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -11,10 +15,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -43,6 +45,7 @@ import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings'
 import type {
   SpanSampleRowWithScore,
   TransactionSampleRowWithScore,
+  WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {
   DEFAULT_INDEXED_SORT,
@@ -62,7 +65,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
-type InteractionsColumn = GridColumnHeader<keyof SpanSampleRowWithScore>;
+type SpansColumn = GridColumnHeader<keyof SpanSampleRowWithScore | 'webVital'>;
 
 const PAGELOADS_COLUMN_ORDER: Array<
   GridColumnOrder<keyof TransactionSampleRowWithScore>
@@ -93,16 +96,28 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const SPANS_SAMPLES_COLUMN_ORDER: Array<GridColumnOrder<keyof SpanSampleRowWithScore>> = [
+const SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER: Array<
+  GridColumnOrder<keyof SpanSampleRowWithScore | 'webVital'>
+> = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
     name: t('Description'),
   },
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
-  {key: SpanIndexedField.LCP, width: COL_WIDTH_UNDEFINED, name: 'LCP'},
-  {key: SpanIndexedField.CLS, width: COL_WIDTH_UNDEFINED, name: 'CLS'},
-  {key: SpanIndexedField.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
+  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
+];
+
+const SPANS_SAMPLES_WITHOUT_DESCRIPTION_COLUMN_ORDER: Array<
+  GridColumnOrder<keyof SpanSampleRowWithScore | 'webVital'>
+> = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
+  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
@@ -112,7 +127,20 @@ enum Datatype {
   PAGELOADS = 'pageloads',
   INTERACTIONS = 'interactions',
   SPANS = 'spans',
+  CLS = 'cls',
+  LCP = 'lcp',
+  FCP = 'fcp',
+  TTFB = 'ttfb',
+  INP = 'inp',
 }
+
+const WEB_VITAL_DATATYPES = [
+  Datatype.LCP,
+  Datatype.CLS,
+  Datatype.FCP,
+  Datatype.TTFB,
+  Datatype.INP,
+];
 
 const DATATYPE_KEY = 'type';
 
@@ -133,25 +161,29 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
+  const handleStandaloneClsLcp = organization.features.includes(
+    'performance-vitals-standalone-cls-lcp'
+  );
+
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = decodeList(
     location.query[SpanMetricsField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  let datatype = Datatype.PAGELOADS;
-  switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
-    case 'interactions':
-      datatype = Datatype.INTERACTIONS;
-      break;
-    case 'spans':
-      datatype = Datatype.SPANS;
-      break;
-    default:
-      datatype = Datatype.PAGELOADS;
+  const defaultDatatype = handleStandaloneClsLcp ? Datatype.LCP : Datatype.PAGELOADS;
+  let datatype = defaultDatatype;
+  if (
+    Object.values(Datatype).includes(
+      decodeScalar(location.query[DATATYPE_KEY], defaultDatatype) as Datatype
+    )
+  ) {
+    datatype = decodeScalar(location.query[DATATYPE_KEY], defaultDatatype) as Datatype;
   }
 
   const isSpansBasedDatatype =
-    datatype === Datatype.INTERACTIONS || datatype === Datatype.SPANS;
+    datatype === Datatype.INTERACTIONS ||
+    datatype === Datatype.SPANS ||
+    WEB_VITAL_DATATYPES.includes(datatype);
 
   const sortableFields = SORTABLE_INDEXED_FIELDS;
 
@@ -183,6 +215,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     subregions,
   });
 
+  const webVitalFilter = WEB_VITAL_DATATYPES.includes(datatype)
+    ? `measurements.score.weight.${datatype}:>0`
+    : '';
+
   const {
     data: standaloneSpansTableData,
     isFetching: isStandaloneSpansLoading,
@@ -191,9 +227,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     transaction,
     enabled: isSpansBasedDatatype,
     limit,
-    filter: `${new MutableSearch(query ?? '').formatString()} ${datatype === Datatype.INTERACTIONS ? INTERACTION_SPANS_FILTER : SPANS_FILTER}`,
+    filter: `${new MutableSearch(query ?? '').formatString()} ${datatype === Datatype.INTERACTIONS ? INTERACTION_SPANS_FILTER : SPANS_FILTER} ${webVitalFilter}`,
     browserTypes,
     subregions,
+    webVital: WEB_VITAL_DATATYPES.includes(datatype)
+      ? (datatype as WebVitals)
+      : undefined,
   });
 
   const {profileExists} = useProfileExists(
@@ -206,7 +245,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
 
-  function renderHeadCell(col: Column | InteractionsColumn) {
+  function renderHeadCell(col: Column | SpansColumn) {
     function generateSortLink() {
       const key = ['totalScore', 'inpScore'].includes(col.key)
         ? 'measurements.score.total'
@@ -264,7 +303,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                 isHoverable
                 title={
                   <span>
-                    {t('The overall performance rating of this page.')}
+                    {tct('The [webVital] performance rating of this sample.', {
+                      webVital: handleStandaloneClsLcp
+                        ? datatype.toUpperCase()
+                        : 'overall',
+                    })}
                     <br />
                     <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                       {t('How is this calculated?')}
@@ -272,7 +315,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                   </span>
                 }
               >
-                <TooltipHeader>{t('Perf Score')}</TooltipHeader>
+                <TooltipHeader>
+                  {tct('[webVital] Score', {
+                    webVital: handleStandaloneClsLcp ? datatype.toUpperCase() : 'Perf',
+                  })}
+                </TooltipHeader>
               </StyledTooltip>
             </AlignCenter>
           }
@@ -290,11 +337,28 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         </AlignCenter>
       );
     }
+
+    if (col.key === 'webVital') {
+      return <AlignRight>{datatype.toUpperCase()}</AlignRight>;
+    }
+
+    if (col.key === SpanIndexedField.SPAN_DESCRIPTION) {
+      if (datatype === Datatype.LCP) {
+        return <span>{t('LCP Element')}</span>;
+      }
+      if (datatype === Datatype.CLS) {
+        return <span>{t('CLS Source')}</span>;
+      }
+      if (datatype === Datatype.INP) {
+        return <span>{t('Interaction Target')}</span>;
+      }
+    }
+
     return <span>{col.name}</span>;
   }
 
   function renderBodyCell(
-    col: Column | InteractionsColumn,
+    col: Column | SpansColumn,
     row: TransactionSampleRowWithScore | SpanSampleRowWithScore
   ) {
     const {key} = col;
@@ -325,43 +389,47 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         </NoOverflow>
       );
     }
-    if (
-      [
-        'measurements.fcp',
-        'measurements.lcp',
-        'measurements.ttfb',
-        'measurements.inp',
-        'transaction.duration',
-      ].includes(key)
-    ) {
-      return (
-        <AlignRight>
-          {(row as any)[key] === undefined ? (
-            <NoValue>{NO_VALUE}</NoValue>
-          ) : (
-            getFormattedDuration(((row as any)[key] as number) / 1000)
-          )}
-        </AlignRight>
-      );
-    }
-    if (['measurements.cls', 'opportunity'].includes(key)) {
-      return (
-        <AlignRight>
-          {(row as any)[key] === undefined ? (
-            <NoValue>{NO_VALUE}</NoValue>
-          ) : (
-            Math.round(((row as any)[key] as number) * 100) / 100
-          )}
-        </AlignRight>
-      );
-    }
+    const renderNumber = (numberKey: string) => {
+      if (
+        [
+          'measurements.fcp',
+          'measurements.lcp',
+          'measurements.ttfb',
+          'measurements.inp',
+          'transaction.duration',
+        ].includes(numberKey)
+      ) {
+        return (
+          <AlignRight>
+            {(row as any)[numberKey] === undefined ? (
+              <NoValue>{NO_VALUE}</NoValue>
+            ) : (
+              getFormattedDuration(((row as any)[numberKey] as number) / 1000)
+            )}
+          </AlignRight>
+        );
+      }
+      if (['measurements.cls', 'opportunity'].includes(numberKey)) {
+        return (
+          <AlignRight>
+            {(row as any)[numberKey] === undefined ? (
+              <NoValue>{NO_VALUE}</NoValue>
+            ) : (
+              Math.round(((row as any)[numberKey] as number) * 100) / 100
+            )}
+          </AlignRight>
+        );
+      }
+      return null;
+    };
+
     if (key === 'profile.id') {
       const profileId = String(row[key]);
       const profileTarget =
-        defined(row.projectSlug) && defined(row[key])
+        defined(row.project) && defined(row[key])
           ? generateProfileFlamechartRoute({
               organization,
-              projectSlug: row.projectSlug,
+              projectSlug: row.project,
               profileId,
             })
           : null;
@@ -424,7 +492,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'id' || key === SpanIndexedField.SPAN_DESCRIPTION) {
       const traceViewLink = generateLinkToEventInTraceView({
-        projectSlug: row.projectSlug,
+        projectSlug: row.project,
         traceSlug: row.trace,
         eventId: row.id,
         timestamp: row.timestamp,
@@ -436,7 +504,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
       if (key === 'id' && 'id' in row) {
         return (
-          <Tooltip title={t('View Transaction')}>
+          <Tooltip title={t('View Trace')}>
             <NoOverflow>
               <Link to={traceViewLink}>{getShortEventId(row.trace)}</Link>
             </NoOverflow>
@@ -445,28 +513,37 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       }
 
       if (key === SpanIndexedField.SPAN_DESCRIPTION) {
-        return (
-          <Tooltip title={(row as any)[key]}>
-            <NoOverflow>
-              {organization.features.includes('performance-vitals-standalone-cls-lcp') &&
-              'span.op' in row &&
-              row['span.op'] === 'pageload' &&
-              traceViewLink ? (
-                <Link to={traceViewLink}>{(row as any)[key]}</Link>
-              ) : (
-                (row as any)[key]
-              )}
-            </NoOverflow>
-          </Tooltip>
-        );
+        const description =
+          datatype === 'lcp' &&
+          (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
+            ? (row as SpanSampleRowWithScore)[SpanIndexedField.LCP_ELEMENT]
+            : datatype === 'cls' &&
+                (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
+              ? (row as SpanSampleRowWithScore)[SpanIndexedField.CLS_SOURCE]
+              : (row as SpanSampleRowWithScore)[key];
+
+        if (description) {
+          return (
+            <Tooltip title={description}>
+              <NoOverflow>{description}</NoOverflow>
+            </Tooltip>
+          );
+        }
+        return <NoOverflow>{NO_VALUE}</NoOverflow>;
       }
     }
 
+    if (key === 'webVital') {
+      return renderNumber(`measurements.${datatype}`);
+    }
+
     return (
-      <NoOverflow>
-        {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
-        {row[key] && row[key] !== '' ? row[key] : <NoValue>{NO_VALUE}</NoValue>}
-      </NoOverflow>
+      renderNumber(key) ?? (
+        <NoOverflow>
+          {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
+          {row[key] && row[key] !== '' ? row[key] : <NoValue>{NO_VALUE}</NoValue>}
+        </NoOverflow>
+      )
     );
   }
 
@@ -484,44 +561,58 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        <SegmentedControl
-          size="md"
-          value={datatype}
-          aria-label={t('Data Type')}
-          onChange={newDataSet => {
-            // Reset pagination and sort when switching datatypes
-            trackAnalytics('insight.vital.overview.toggle_data_type', {
-              organization,
-              type: newDataSet,
-            });
-
-            navigate({
-              ...location,
-              query: {
-                ...location.query,
-                sort: undefined,
-                cursor: undefined,
-                [DATATYPE_KEY]: newDataSet,
-              },
-            });
-          }}
-        >
-          <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
-            {t('Pageloads')}
-          </SegmentedControl.Item>
-          {organization.features.includes('performance-vitals-standalone-cls-lcp') ? (
-            <SegmentedControl.Item key={Datatype.SPANS} aria-label={t('Events')}>
-              {t('Events')}
+        {handleStandaloneClsLcp ? (
+          <CompactSelect
+            triggerProps={{prefix: t('Web Vital')}}
+            value={datatype}
+            options={WEB_VITAL_DATATYPES.map(type => ({
+              label: type.toUpperCase(),
+              value: type,
+            }))}
+            onChange={newDataType => {
+              trackAnalytics('insight.vital.overview.toggle_data_type', {
+                organization,
+                type: newDataType.value,
+              });
+              navigate({
+                ...location,
+                query: {...location.query, [DATATYPE_KEY]: newDataType.value},
+              });
+            }}
+          />
+        ) : (
+          <SegmentedControl
+            size="md"
+            value={datatype}
+            aria-label={t('Data Type')}
+            onChange={newDataSet => {
+              // Reset pagination and sort when switching datatypes
+              trackAnalytics('insight.vital.overview.toggle_data_type', {
+                organization,
+                type: newDataSet,
+              });
+              navigate({
+                ...location,
+                query: {
+                  ...location.query,
+                  sort: undefined,
+                  cursor: undefined,
+                  [DATATYPE_KEY]: newDataSet,
+                },
+              });
+            }}
+          >
+            <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
+              {t('Pageloads')}
             </SegmentedControl.Item>
-          ) : (
             <SegmentedControl.Item
               key={Datatype.INTERACTIONS}
               aria-label={t('Interactions')}
             >
               {t('Interactions')}
             </SegmentedControl.Item>
-          )}
-        </SegmentedControl>
+          </SegmentedControl>
+        )}
         <StyledSearchBar>
           <TransactionSearchQueryBuilder
             projects={projectIds}
@@ -534,9 +625,15 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       {datatype === Datatype.PAGELOADS && (
         <GridEditable
           isLoading={isLoading}
-          columnOrder={PAGELOADS_COLUMN_ORDER}
+          columnOrder={
+            handleStandaloneClsLcp
+              ? PAGELOADS_COLUMN_ORDER.filter(
+                  col => !['measurements.cls', 'measurements.lcp'].includes(col.key)
+                )
+              : PAGELOADS_COLUMN_ORDER
+          }
           columnSortBy={[]}
-          data={tableData}
+          data={tableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
           grid={{
             renderHeadCell,
             renderBodyCell,
@@ -550,7 +647,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           columnOrder={
             datatype === Datatype.INTERACTIONS
               ? INTERACTION_SAMPLES_COLUMN_ORDER
-              : SPANS_SAMPLES_COLUMN_ORDER
+              : ['cls', 'lcp', 'inp'].includes(datatype)
+                ? SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER
+                : SPANS_SAMPLES_WITHOUT_DESCRIPTION_COLUMN_ORDER
           }
           columnSortBy={[]}
           data={standaloneSpansTableData}
@@ -615,7 +714,7 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SearchBarContainer = styled('div')`

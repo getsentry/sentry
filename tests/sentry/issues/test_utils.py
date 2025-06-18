@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import GroupsCountResponse
+from sentry.issues.escalating.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
@@ -35,7 +35,7 @@ class OccurrenceTestMixin:
         assert o1.evidence_display == o2.evidence_display
         assert o1.type == o2.type
         assert o1.detection_time == o2.detection_time
-        assert o1.initial_issue_priority == o2.initial_issue_priority
+        assert o1.priority == o2.priority
 
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
@@ -94,6 +94,7 @@ class StatusChangeTestMixin:
             "fingerprint": ["some-fingerprint"],
             "new_status": 1,
             "new_substatus": 1,
+            "detector_id": None,
         }
         kwargs.update(overrides)  # type: ignore[typeddict-item]
 

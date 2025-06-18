@@ -7,9 +7,8 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-
-import type {WidgetBuilderState} from '../hooks/useWidgetBuilderState';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
@@ -45,7 +44,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const defaultSort =
     state.displayType === DisplayType.TABLE && state.dataset === WidgetType.RELEASE
       ? ''
-      : fields?.[0] ?? defaultQuery.orderby;
+      : (fields?.[0] ?? defaultQuery.orderby);
   const sort =
     defined(state.sort) && state.sort.length > 0
       ? _formatSort(state.sort[0]!)

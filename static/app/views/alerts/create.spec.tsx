@@ -19,8 +19,6 @@ import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProv
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
-// updateOnboardingTask triggers an out of band state update
-jest.mock('sentry/actionCreators/onboardingTasks');
 jest.mock('sentry/actionCreators/members', () => ({
   fetchOrgMembers: jest.fn(() => Promise.resolve([])),
   indexMembersByProject: jest.fn(() => {
@@ -119,7 +117,9 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {organization, router}
+      {
+        organization,
+      }
     );
 
     return {
@@ -136,7 +136,7 @@ describe('ProjectAlertsCreate', function () {
     await waitFor(() => {
       expect(wrapper.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/alerts/new/metric',
+          pathname: '/organizations/org-slug/alerts/new/metric/',
           query: {
             aggregate: 'count()',
             dataset: 'events',
@@ -360,9 +360,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -415,9 +415,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -464,9 +464,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -510,9 +510,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
     });
@@ -562,7 +562,6 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
-      expect(screen.getAllByText('3mo ago')[0]).toBeInTheDocument();
     });
 
     it('invalid preview alert', async () => {

@@ -1,15 +1,18 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRoute,
+} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/insights/common/components/samplesTable/common';
@@ -22,7 +25,11 @@ import {
 } from 'sentry/views/insights/common/components/textAlign';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  type ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
@@ -61,12 +68,15 @@ type SpanTableRow = {
   op: string;
   trace: string;
   transaction: {
-    'project.name': string;
+    project: string;
+    'span.duration': number;
     timestamp: string;
-    'transaction.duration': number;
   };
-  'transaction.id': string;
-} & SpanSample;
+  'transaction.span_id': string;
+} & SpanSample & {
+    [SpanIndexedField.PROFILER_ID]?: string;
+    [SpanIndexedField.PROFILE_ID]?: string;
+  };
 
 type Props = {
   avg: number;
@@ -97,7 +107,7 @@ export function SpanSamplesTable({
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
 
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  function renderHeadCell(column: SamplesTableColumnHeader): React.ReactNode {
     if (
       column.key === 'p95_comparison' ||
       column.key === 'avg_comparison' ||
@@ -114,62 +124,69 @@ export function SpanSamplesTable({
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
-  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
+  function renderBodyCell(
+    column: SamplesTableColumnHeader,
+    row: SpanTableRow
+  ): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
-        <Link
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+        <OverflowEllipsisTextContainer>
+          <Link
+            to={generateLinkToEventInTraceView({
+              targetId: row['transaction.span_id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
+              organization,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row['transaction.id'].slice(0, 8)}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row['transaction.span_id'].slice(0, 8)}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
     if (column.key === 'span_id') {
       return (
-        <Link
-          onClick={() =>
-            trackAnalytics('performance_views.sample_spans.span_clicked', {
+        <OverflowEllipsisTextContainer>
+          <Link
+            onClick={() =>
+              trackAnalytics('performance_views.sample_spans.span_clicked', {
+                organization,
+                source: moduleName,
+              })
+            }
+            to={generateLinkToEventInTraceView({
+              targetId: row['transaction.span_id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
               organization,
-              source: moduleName,
-            })
-          }
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row.span_id}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row.span_id}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
@@ -184,16 +201,33 @@ export function SpanSamplesTable({
     }
 
     if (column.key === 'profile_id') {
+      const profileId =
+        row[SpanIndexedField.PROFILEID] || row[SpanIndexedField.PROFILE_ID];
+      const continuousProfilerId = row[SpanIndexedField.PROFILER_ID];
+      const link =
+        continuousProfilerId && row?.transaction
+          ? generateContinuousProfileFlamechartRouteWithQuery({
+              organization,
+              projectSlug: row.project,
+              profilerId: continuousProfilerId,
+              start: new Date(row?.transaction.timestamp).toISOString(),
+              end: new Date(
+                new Date(row?.transaction.timestamp).getTime() +
+                  row?.transaction['span.duration']
+              ).toISOString(),
+            })
+          : profileId
+            ? generateProfileFlamechartRoute({
+                organization,
+                projectSlug: row.project,
+                profileId,
+              })
+            : undefined;
       return (
         <IconWrapper>
-          {row.profile_id ? (
+          {link ? (
             <Tooltip title={t('View Profile')}>
-              <LinkButton
-                to={normalizeUrl(
-                  `/organizations/${organization.slug}/profiling/profile/${row.project}/${row.profile_id}/flamegraph/?spanId=${row.span_id}`
-                )}
-                size="xs"
-              >
+              <LinkButton to={link} size="xs">
                 <IconProfiling size="xs" />
               </LinkButton>
             </Tooltip>

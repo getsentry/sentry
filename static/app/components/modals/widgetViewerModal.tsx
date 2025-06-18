@@ -1,5 +1,5 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -12,19 +12,20 @@ import moment from 'moment-timezone';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Select} from 'sentry/components/core/select';
+import {SelectOption} from 'sentry/components/core/select/option';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Option from 'sentry/components/forms/controls/selectOption';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -38,6 +39,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
+  getAggregateAlias,
   isAggregateField,
   isEquation,
   isEquationAlias,
@@ -89,6 +91,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import type {ReleaseWidgetQueriesProps} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -115,6 +118,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
+  sampleCount?: number;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
@@ -195,7 +199,9 @@ function WidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
     confidence,
+    sampleCount,
   } = props;
+  const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
@@ -280,32 +286,31 @@ function WidgetViewerModal(props: Props) {
       ? tableWidget.queries[0]!.fields
       : [...columns, ...aggregates];
 
-  // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
+  // Timeseries Widgets (Line, Area, Bar) allow the user to specify an orderby
   // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
-    widget.widgetType === WidgetType.DISCOVER &&
     orderby &&
     !isEquationAlias(rawOrderby) &&
-    !fields.includes(rawOrderby)
+    // Normalize to the aggregate alias because we may still have widgets
+    // that store that format
+    !fields.map(getAggregateAlias).includes(getAggregateAlias(rawOrderby))
   ) {
     fields.push(rawOrderby);
-    [tableWidget, primaryWidget].forEach(aggregatesAndColumns => {
-      if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
-        aggregatesAndColumns.queries.forEach(query => {
-          if (!query.aggregates.includes(rawOrderby)) {
-            query.aggregates.push(rawOrderby);
-          }
-        });
-      } else {
-        aggregatesAndColumns.queries.forEach(query => {
-          if (!query.columns.includes(rawOrderby)) {
-            query.columns.push(rawOrderby);
-          }
-        });
-      }
-    });
+    if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
+      tableWidget.queries.forEach(query => {
+        if (!query.aggregates.includes(rawOrderby)) {
+          query.aggregates.push(rawOrderby);
+        }
+      });
+    } else {
+      tableWidget.queries.forEach(query => {
+        if (!query.columns.includes(rawOrderby)) {
+          query.columns.push(rawOrderby);
+        }
+      });
+    }
   }
 
   // Need to set the orderby of the eventsv2 query to equation[index] format
@@ -316,7 +321,8 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // Default table columns for visualizations that don't have a column setting
+  // Default table columns for visualizations that don't have a group by set
+  const hasGroupBy = (widget.queries[0]?.columns.length ?? 0) > 0;
   const shouldReplaceTableColumns =
     [
       DisplayType.AREA,
@@ -326,7 +332,7 @@ function WidgetViewerModal(props: Props) {
     ].includes(widget.displayType) &&
     widget.widgetType &&
     [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType) &&
-    !defined(widget.limit);
+    !hasGroupBy;
 
   // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
@@ -413,11 +419,11 @@ function WidgetViewerModal(props: Props) {
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
-      return parsedQuery !== null ? (
+      return parsedQuery === null ? undefined : (
         <HighlightContainer {...highlightedContainerProps}>
           <HighlightQuery parsedQuery={parsedQuery} />
         </HighlightContainer>
-      ) : undefined;
+      );
     };
 
     return {
@@ -489,6 +495,7 @@ function WidgetViewerModal(props: Props) {
               location,
               widget: tableWidget,
               tableData: tableResults?.[0],
+              theme,
               onHeaderClick: () => {
                 if (
                   [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
@@ -506,6 +513,7 @@ function WidgetViewerModal(props: Props) {
               isFirstPage,
               projects,
               eventView,
+              theme,
             }),
             onResizeColumn,
           }}
@@ -522,7 +530,7 @@ function WidgetViewerModal(props: Props) {
                     [WidgetViewerQueryField.CURSOR]: newCursor,
                   },
                 },
-                {replace: true}
+                {replace: true, preventScrollReset: true}
               );
 
               if (widget.displayType === DisplayType.TABLE) {
@@ -562,6 +570,7 @@ function WidgetViewerModal(props: Props) {
             renderHeadCell: renderIssueGridHeaderCell({
               location,
               organization,
+              theme,
               selection,
               widget: tableWidget,
               onHeaderClick: () => {
@@ -570,6 +579,7 @@ function WidgetViewerModal(props: Props) {
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               location,
+              theme,
               organization,
               selection,
               widget: tableWidget,
@@ -618,7 +628,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderReleaseTable: ReleaseWidgetQueries['props']['children'] = ({
+  const renderReleaseTable: ReleaseWidgetQueriesProps['children'] = ({
     tableResults,
     loading,
     pageLinks,
@@ -636,6 +646,7 @@ function WidgetViewerModal(props: Props) {
             renderHeadCell: renderReleaseGridHeaderCell({
               ...props,
               location,
+              theme,
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
@@ -650,6 +661,7 @@ function WidgetViewerModal(props: Props) {
             renderBodyCell: renderGridBodyCell({
               ...props,
               location,
+              theme,
               tableData: tableResults?.[0],
               isFirstPage,
             }),
@@ -825,9 +837,9 @@ function WidgetViewerModal(props: Props) {
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={
-              widget.displayType !== DisplayType.BIG_NUMBER
-                ? HALF_CONTAINER_HEIGHT
-                : BIG_NUMBER_HEIGHT
+              widget.displayType === DisplayType.BIG_NUMBER
+                ? BIG_NUMBER_HEIGHT
+                : HALF_CONTAINER_HEIGHT
             }
           >
             {(!!seriesData || !!tableData) && chartUnmodified ? (
@@ -854,6 +866,7 @@ function WidgetViewerModal(props: Props) {
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
                 confidence={confidence}
+                sampleCount={sampleCount}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -878,15 +891,17 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <Alert type="info" showIcon>
-            {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
+              )}
+            </Alert>
+          </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>
-            <SelectControl
+            <Select
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
@@ -938,7 +953,7 @@ function WidgetViewerModal(props: Props) {
                     display: 'flex',
                   });
                   return (
-                    <Option
+                    <SelectOption
                       {...(highlightedQuery
                         ? {
                             ...containerProps,
@@ -1040,6 +1055,7 @@ function WidgetViewerModal(props: Props) {
                       {widget.widgetType && (
                         <OpenButton
                           widget={primaryWidget}
+                          dashboardFilters={dashboardFilters}
                           organization={organization}
                           selection={modalSelection}
                           selectedQueryIndex={selectedQueryIndex}
@@ -1064,6 +1080,7 @@ function WidgetViewerModal(props: Props) {
 }
 
 interface OpenButtonProps {
+  dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   selectedQueryIndex: number;
   selection: PageFilters;
@@ -1074,6 +1091,7 @@ interface OpenButtonProps {
 
 function OpenButton({
   widget,
+  dashboardFilters,
   selection,
   organization,
   selectedQueryIndex,
@@ -1087,21 +1105,22 @@ function OpenButton({
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(widget, selection, organization);
+      path = getWidgetIssueUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
-      path = getWidgetReleasesUrl(widget, selection, organization);
+      path = getWidgetReleasesUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.SPANS:
       openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, selection, organization);
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
+        dashboardFilters,
         selection,
         organization,
         0,
@@ -1172,6 +1191,10 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 export const modalCss = css`
   width: 100%;
   max-width: 1200px;
+`;
+
+export const backdropCss = css`
+  z-index: 9998;
 `;
 
 const Container = styled('div')<{height?: number | null}>`

@@ -1,8 +1,7 @@
 import {IconArrow, IconGraph, IconMenu, IconNumber} from 'sentry/icons';
 import {IconGraphArea} from 'sentry/icons/iconGraphArea';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
-
-import {DisplayType} from '../types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 export function getWidgetIcon(displayType: DisplayType) {
   switch (displayType) {

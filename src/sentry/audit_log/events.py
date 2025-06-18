@@ -101,6 +101,16 @@ class MemberPendingAuditLogEvent(AuditLogEvent):
         return f"required member {user_display_name} to setup 2FA"
 
 
+class OrgAddAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=10, name="ORG_ADD", api_name="org.create")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        if channel := audit_log_entry.data.get("channel"):
+            return f"created the organization with {channel} integration"
+        return "created the organization"
+
+
 class OrgEditAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(event_id=11, name="ORG_EDIT", api_name="org.edit")
@@ -171,7 +181,7 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         from sentry.api.endpoints.project_performance_issue_settings import (
-            internal_only_project_settings_to_group_map as map,
+            project_settings_to_group_map as map,
         )
 
         data = audit_log_entry.data

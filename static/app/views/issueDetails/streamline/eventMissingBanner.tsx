@@ -2,10 +2,11 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import Link from 'sentry/components/links/link';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,6 +22,12 @@ export function EventMissingBanner() {
     eventId: string;
     groupId: string;
   }>();
+
+  const retentionHook = HookStore.get('react-hook:use-get-max-retention-days')[0];
+  const useGetMaxRetentionDays = retentionHook ?? (() => MAX_PICKABLE_DAYS);
+  const maxRetentionDays = useGetMaxRetentionDays();
+  const statsPeriod = maxRetentionDays ? `${maxRetentionDays}d` : '30d';
+
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
 
@@ -56,7 +63,7 @@ export function EventMissingBanner() {
           to={{
             pathname: `${baseUrl}/${eventId}/`,
             query: {
-              statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+              statsPeriod,
               ...(location.query.project ? {project: location.query.project} : {}),
             },
           }}
@@ -72,7 +79,7 @@ export function EventMissingBanner() {
     <Flex align="center" justify="center">
       <Flex align="center" gap={36}>
         <img src={compassImage} alt="Compass illustration" height={122} />
-        <Flex justify="center" column gap={space(1)}>
+        <Flex justify="center" direction="column" gap={space(1)}>
           <MainText>
             {tct("We couldn't track down [prep] event", {
               prep: isReservedEventId ? 'an' : 'that',

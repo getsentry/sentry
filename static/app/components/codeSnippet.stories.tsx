@@ -2,20 +2,18 @@ import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconStar} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('CodeSnippet', story => {
+export default Storybook.story('CodeSnippet', story => {
   story('Defaults', () => (
     <Fragment>
       <p>
-        The <JSXNode name="CodeSnippet" /> component is useful when you want to render
-        code instructions in onboarding or other setup situations. By default, the code
-        snippet is able to be copied, selected, and has rounded corners and shows in light
-        mode. It'll also apply formatting automatically, if the language (passed in with
-        the <JSXProperty name="language" value={String} />
+        The <Storybook.JSXNode name="CodeSnippet" /> component is useful when you want to
+        render code instructions in onboarding or other setup situations. By default, the
+        code snippet is able to be copied, selected, and has rounded corners and shows in
+        light mode. It'll also apply formatting automatically, if the language (passed in
+        with the <Storybook.JSXProperty name="language" value={String} />
         prop) is known.
       </p>
 
@@ -47,11 +45,11 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
     return (
       <Fragment>
         <p>
-          You can customize the display of the <JSXNode name="CodeSnippet" />:
+          You can customize the display of the <Storybook.JSXNode name="CodeSnippet" />:
         </p>
 
         <h2>
-          <JSXProperty name="dark" value />
+          <Storybook.JSXProperty name="dark" value />
         </h2>
         <CodeSnippet dark language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
@@ -61,6 +59,16 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+        <br />
+        <h2>with filename</h2>
+        <CodeSnippet filename="index.tsx" language="javascript">
+          {`const myVariable = 'testing';`}
+        </CodeSnippet>
+        <br />
+        <h2>dark filename</h2>
+        <CodeSnippet dark filename="index.tsx" language="javascript">
+          {`const myVariable = 'testing';`}
+        </CodeSnippet>
         <br />
         <h2>with tabs</h2>
         <CodeSnippet
@@ -78,7 +86,7 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         </CodeSnippet>
         <br />
         <h2>
-          <JSXProperty name="isRounded" value={false} />
+          <Storybook.JSXProperty name="isRounded" value={false} />
         </h2>
         <CodeSnippet isRounded={false} dark language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
@@ -90,7 +98,7 @@ const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
         <h2>
-          <JSXProperty name="hideCopyButton" value />
+          <Storybook.JSXProperty name="hideCopyButton" value />
         </h2>
         <CodeSnippet hideCopyButton language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
@@ -102,7 +110,7 @@ const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
         <h2>
-          <JSXProperty name="disableUserSelection" value />
+          <Storybook.JSXProperty name="disableUserSelection" value />
         </h2>
         <CodeSnippet disableUserSelection language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
@@ -114,7 +122,7 @@ const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
         <h2>
-          <JSXProperty name="filename" value="index.jsx" />
+          <Storybook.JSXProperty name="filename" value="index.jsx" />
         </h2>
         <CodeSnippet filename={'index.jsx'} language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
@@ -126,7 +134,7 @@ const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
         <h2>
-          <JSXProperty name="icon" value />
+          <Storybook.JSXProperty name="icon" value />
         </h2>
         <CodeSnippet icon={<IconStar />} language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
@@ -137,8 +145,21 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
 const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
+        <CodeSnippet
+          icon={<IconStar />}
+          filename="yourModule.tsx"
+          language="javascript"
+        >{`Sentry.init({
+  // Note, Replay is NOT instantiated below:
+  integrations: [],
+});
+
+// Sometime later
+const { replayIntegration } = await import("@sentry/browser");
+Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+        <br />
         <h2>
-          <JSXProperty name="linesToHighlight" value={[1, 3, 4]} />
+          <Storybook.JSXProperty name="linesToHighlight" value={[1, 3, 4]} />
         </h2>
         <CodeSnippet
           linesToHighlight={[1, 3, 4]}
@@ -173,7 +194,7 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
           copies the code snippet, or when a tab is clicked by specifying the callback.
         </p>
         <h2>
-          <JSXProperty name="onCopy" value />
+          <Storybook.JSXProperty name="onCopy" value />
         </h2>
         <p>Try pressing the copy button:</p>
         <CodeSnippet onCopy={onCopy} language="javascript">{`Sentry.init({
@@ -186,7 +207,7 @@ const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
         <h2>
-          <JSXProperty name="onSelectAndCopy" value />
+          <Storybook.JSXProperty name="onSelectAndCopy" value />
         </h2>
         <p>Try manually selecting and copying code:</p>
         <CodeSnippet
@@ -202,7 +223,7 @@ const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <br />
         <h2>
-          <JSXProperty name="onTabClick" value />
+          <Storybook.JSXProperty name="onTabClick" value />
         </h2>
         <p>Try switching tabs:</p>
         <CodeSnippet

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {space} from 'sentry/styles/space';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
@@ -39,7 +39,7 @@ export const ShortId = styled('div')`
 export const EventDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
 `;
 
 export const EventDrawerHeader = styled(DrawerHeader)`
@@ -59,9 +59,25 @@ export const EventNavigator = styled('div')`
   column-gap: ${space(1)};
   padding: ${space(0.75)} 24px;
   background: ${p => p.theme.background};
-  z-index: 1;
+  z-index: 2; /* Just above EventStickyControls */
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+`;
+
+export const EventStickyControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(1)};
+  position: sticky;
+  top: -${space(2)};
+  margin-block: -${space(2)};
+  padding-block: ${space(2)};
+  background: ${p => p.theme.background};
+  z-index: 1; /* Just below EventNavigator */
+
+  /* Make this full-width inside DrawerBody */
+  margin-inline: -24px;
+  padding-inline: 24px;
 `;
 
 export const EventDrawerBody = styled(DrawerBody)`
@@ -69,6 +85,9 @@ export const EventDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   /* Move the scrollbar to the left edge */
   scroll-margin: 0 ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
   direction: rtl;
   * {
     direction: ltr;

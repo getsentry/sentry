@@ -5,7 +5,7 @@ import {
   CompactSelect,
   type SelectOption,
   type SelectProps,
-} from 'sentry/components/compactSelect';
+} from 'sentry/components/core/compactSelect';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

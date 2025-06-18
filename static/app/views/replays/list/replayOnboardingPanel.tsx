@@ -3,25 +3,27 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
-import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayPanel from 'sentry/views/replays/list/replayPanel';
 
@@ -47,7 +49,7 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = useCanCreateProject();
 
   const supportedPlatforms = replayPlatforms;
 
@@ -99,7 +101,6 @@ export default function ReplayOnboardingPanel() {
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
-            orgSlug={organization.slug}
             primaryAction={primaryAction}
             disabled={primaryActionDisabled}
           />
@@ -110,7 +111,6 @@ export default function ReplayOnboardingPanel() {
 }
 
 interface SetupReplaysCTAProps {
-  orgSlug: string;
   primaryAction: 'setup' | 'create';
   disabled?: boolean;
 }
@@ -118,11 +118,11 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({
   disabled,
   primaryAction = 'setup',
-  orgSlug,
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
   const {allMobileProj} = useAllMobileProj({});
+  const organization = useOrganization();
 
   const FAQ = [
     {
@@ -256,7 +256,10 @@ export function SetupReplaysCTA({
       >
         <LinkButton
           data-test-id="create-project-btn"
-          to={`/organizations/${orgSlug}/projects/new/`}
+          to={makeProjectsPathname({
+            path: '/new/',
+            organization,
+          })}
           priority="primary"
           disabled={disabled}
         >
@@ -364,7 +367,7 @@ const QuestionContent = styled('div')`
 const StyledHeaderContainer = styled(HeaderContainer)`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: flex;
   gap: ${space(0.5)};
   align-items: center;

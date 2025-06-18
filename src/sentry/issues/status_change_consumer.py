@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.escalating import manage_issue_states
+from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import (
@@ -23,11 +24,13 @@ from sentry.models.project import Project
 from sentry.types.activity import ActivityType
 from sentry.types.group import IGNORED_SUBSTATUS_CHOICES, GroupSubStatus
 from sentry.utils import metrics
+from sentry.utils.registry import Registry
 
 logger = logging.getLogger(__name__)
 
 
 def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
+    activity_type: ActivityType | None = None
     new_status = status_change["new_status"]
     new_substatus = status_change["new_substatus"]
 
@@ -58,11 +61,12 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             return
 
     if new_status == GroupStatus.RESOLVED:
+        activity_type = ActivityType.SET_RESOLVED
         Group.objects.update_group_status(
             groups=[group],
             status=new_status,
             substatus=new_substatus,
-            activity_type=ActivityType.SET_RESOLVED,
+            activity_type=activity_type,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
         kick_off_status_syncs.apply_async(
@@ -80,11 +84,12 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             )
             return
 
+        activity_type = ActivityType.SET_IGNORED
         Group.objects.update_group_status(
             groups=[group],
             status=new_status,
             substatus=new_substatus,
-            activity_type=ActivityType.SET_IGNORED,
+            activity_type=activity_type,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
         kick_off_status_syncs.apply_async(
@@ -136,41 +141,69 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             f"Unsupported status: {status_change['new_status']} {status_change['new_substatus']}"
         )
 
+    if activity_type is not None:
+        """
+        If we have set created an activity, then we'll also notify any registered handlers
+        that the group status has changed.
+
+        This is used to trigger the `workflow_engine` processing status changes.
+        """
+        latest_activity = Activity.objects.filter(
+            group_id=group.id, type=activity_type.value
+        ).order_by("-datetime")
+        for handler in group_status_update_registry.registrations.values():
+            handler(group, status_change, latest_activity[0])
+
+
+def get_group_from_fingerprint(project_id: int, fingerprint: Sequence[str]) -> Group | None:
+    results = bulk_get_groups_from_fingerprints([(project_id, fingerprint)])
+    return results.get((project_id, tuple(fingerprint)))
+
 
 def bulk_get_groups_from_fingerprints(
     project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]]
-) -> dict[tuple[int, str], Group]:
+) -> dict[tuple[int, tuple[str, ...]], Group]:
     """
     Returns a map of (project, fingerprint) to the group.
 
     Note that fingerprints for issue platform are expected to be
     processed via `process_occurrence_data` prior to calling this function.
+
+    If we map to multiple groups, we'll use the group that matches the first fingerprint.
     """
     fingerprints_by_project: dict[int, list[str]] = defaultdict(list)
-    for project_id, fingerprints in project_fingerprint_pairs:
-        fingerprints_by_project[project_id].append(fingerprints[0])
+    for project_id, hashes in project_fingerprint_pairs:
+        fingerprints_by_project[project_id].extend(hashes)
 
     query = GroupHash.objects.none()
-    for project_id, fingerprints in fingerprints_by_project.items():
+    for project_id, hashes in fingerprints_by_project.items():
         query = query.union(
             GroupHash.objects.filter(
                 project=project_id,
-                hash__in=fingerprints,
+                hash__in=hashes,
             ).select_related("group")
         )
 
-    result = {
+    group_hash_result = {
         (grouphash.project_id, grouphash.hash): grouphash.group
         for grouphash in query
         if grouphash.group is not None
     }
+    result = {}
+    for project_id, fingerprint in project_fingerprint_pairs:
+        for hash in fingerprint:
+            # See if we managed to load any of the hashes from the fingerprint. We prioritise the first hash we find
+            # for each fingerprint.
+            if (project_id, hash) in group_hash_result:
+                result[(project_id, tuple(fingerprint))] = group_hash_result[(project_id, hash)]
+                break
 
-    found_fingerprints = set(result.keys())
     fingerprints_set = {
-        (project_id, fingerprint[0]) for project_id, fingerprint in project_fingerprint_pairs
+        (project_id, tuple(fingerprint)) for project_id, fingerprint in project_fingerprint_pairs
     }
-    for project_id, fingerprint in fingerprints_set - found_fingerprints:
-        metrics.incr("occurrence_ingest.grouphash.not_found")
+    missing_count = len(fingerprints_set) - len(result)
+    if missing_count:
+        metrics.incr("occurrence_ingest.grouphash.not_found", amount=missing_count)
 
     return result
 
@@ -216,8 +249,7 @@ def process_status_change_message(
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
         fingerprint = status_change_data["fingerprint"]
-        groups_by_fingerprints = bulk_get_groups_from_fingerprints([(project.id, fingerprint)])
-        group = groups_by_fingerprints.get((project.id, fingerprint[0]), None)
+        group = get_group_from_fingerprint(project.id, fingerprint)
         if not group:
             logger.info(
                 "status_change.dropped_group_not_found",
@@ -241,3 +273,7 @@ def process_status_change_message(
         update_status(group, status_change_data)
 
     return group
+
+
+GroupUpdateHandler = Callable[[Group, StatusChangeMessageData, Activity], None]
+group_status_update_registry = Registry[GroupUpdateHandler](enable_reverse_lookup=False)

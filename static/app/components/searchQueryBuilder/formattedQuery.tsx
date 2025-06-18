@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -14,13 +15,15 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {
   query: string;
+  className?: string;
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeys?: TagCollection;
 };
@@ -41,14 +44,19 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
       <AggregateKeyVisual token={token} />
     </div>
   ) : (
-    <div>{getKeyName(token.key, {showExplicitTagPrefix: true})}</div>
+    <div>{getKeyLabel(token.key)}</div>
   );
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
+  const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} /> {getOperatorInfo(token).label}{' '}
+      <FilterKey token={token} /> {getOperatorInfo(token, hasWildcardOperators).label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>
@@ -87,6 +95,7 @@ function QueryToken({token}: TokenProps) {
  * rendering some filter types such as dates.
  */
 export function FormattedQuery({
+  className,
   query,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
@@ -96,15 +105,48 @@ export function FormattedQuery({
   }, [fieldDefinitionGetter, filterKeys, query]);
 
   if (!parsedQuery) {
-    return <QueryWrapper />;
+    return <QueryWrapper className={className} />;
   }
 
   return (
-    <QueryWrapper aria-label={query}>
+    <QueryWrapper aria-label={query} className={className}>
       {parsedQuery.map((token: any, index: any) => {
         return <QueryToken key={index} token={token} />;
       })}
     </QueryWrapper>
+  );
+}
+
+/**
+ * Renders a formatted query string similar to how it appears in the search bar,
+ * but without all the interactivity.
+ *
+ * Accepts `filterKeys` and `fieldDefinitionGetter`, but is only necessary for
+ * rendering some filter types such as dates.
+ *
+ * Use this one if your component is not wrapped in a `SearchQueryBuilderProvider`.
+ */
+export function ProvidedFormattedQuery({
+  className,
+  query,
+  fieldDefinitionGetter = getFieldDefinition,
+  filterKeys = EMPTY_FILTER_KEYS,
+}: FormattedQueryProps) {
+  return (
+    <SearchQueryBuilderProvider
+      filterKeys={filterKeys}
+      fieldDefinitionGetter={fieldDefinitionGetter}
+      getTagValues={() => Promise.resolve([])}
+      initialQuery={query}
+      searchSource="formatted_query"
+    >
+      <FormattedQuery
+        className={className}
+        query={query}
+        fieldDefinitionGetter={fieldDefinitionGetter}
+        filterKeys={filterKeys}
+      />
+    </SearchQueryBuilderProvider>
   );
 }
 

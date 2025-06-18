@@ -32,12 +32,9 @@ class UserReport(Model):
     __repr__ = sane_repr("event_id", "name", "email")
 
     def notify(self):
-        from django.contrib.auth.models import AnonymousUser
-
-        from sentry.api.serializers import UserReportWithGroupSerializer, serialize
         from sentry.tasks.user_report import user_report
 
         user_report.delay(
             project_id=self.project_id,
-            report=serialize(self, AnonymousUser(), UserReportWithGroupSerializer()),
+            report_id=self.id,
         )

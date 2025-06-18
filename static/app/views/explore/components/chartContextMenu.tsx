@@ -21,7 +21,7 @@ function ChartContextMenu({
   interval: string;
   query: string;
   visualizeIndex: number;
-  visualizeYAxes: string[];
+  visualizeYAxes: readonly string[];
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
@@ -42,7 +42,7 @@ function ChartContextMenu({
       query,
       pageFilters: pageFilters.selection,
       aggregate: yAxis,
-      orgSlug: organization.slug,
+      organization,
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       interval,
     }),
@@ -58,44 +58,40 @@ function ChartContextMenu({
 
   const items: MenuItemProps[] = [];
 
-  if (organization.features.includes('alerts-eap')) {
-    items.push({
-      key: 'create-alert',
-      label: t('Create an alert for'),
-      children: alertsUrls ?? [],
-      disabled: !alertsUrls || alertsUrls.length === 0,
-      isSubmenu: true,
-    });
-  }
+  items.push({
+    key: 'create-alert',
+    label: t('Create an alert for'),
+    children: alertsUrls ?? [],
+    disabled: !alertsUrls || alertsUrls.length === 0,
+    isSubmenu: true,
+  });
 
-  if (organization.features.includes('dashboards-eap')) {
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-    items.push({
-      key: 'add-to-dashboard',
-      textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
-      onAction: () => {
-        if (disableAddToDashboard) {
-          return undefined;
-        }
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'chart',
-          organization,
-        });
-        return addToDashboard(visualizeIndex);
-      },
-    });
-  }
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  items.push({
+    key: 'add-to-dashboard',
+    textValue: t('Add to Dashboard'),
+    label: (
+      <Feature
+        hookName="feature-disabled:dashboards-edit"
+        features="organizations:dashboards-edit"
+        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+      >
+        {t('Add to Dashboard')}
+      </Feature>
+    ),
+    disabled: disableAddToDashboard,
+    onAction: () => {
+      if (disableAddToDashboard) {
+        return undefined;
+      }
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'dashboard',
+        ui_source: 'chart',
+        organization,
+      });
+      return addToDashboard(visualizeIndex);
+    },
+  });
 
   if (items.length === 0) {
     return null;

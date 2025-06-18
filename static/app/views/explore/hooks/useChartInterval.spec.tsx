@@ -11,7 +11,7 @@ describe('useChartInterval', function () {
     PageFiltersStore.init();
   });
 
-  it('allows changing chart interval', async function () {
+  it('allows changing chart interval', function () {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
     let setChartInterval!: ReturnType<typeof useChartInterval>[1];
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
@@ -21,7 +21,7 @@ describe('useChartInterval', function () {
       return null;
     }
 
-    render(<TestPage />, {disableRouterMocks: true});
+    render(<TestPage />);
 
     expect(intervalOptions).toEqual([
       {value: '1h', label: '1 hour'},
@@ -29,13 +29,13 @@ describe('useChartInterval', function () {
       {value: '12h', label: '12 hours'},
       {value: '1d', label: '1 day'},
     ]);
-    expect(chartInterval).toBe('3h'); // default
+    expect(chartInterval).toBe('12h'); // default
 
-    await act(() => setChartInterval('1d'));
-    expect(chartInterval).toBe('1d');
+    act(() => setChartInterval('3h'));
+    expect(chartInterval).toBe('3h');
 
     // Update page filters to change interval options
-    await act(() =>
+    act(() =>
       PageFiltersStore.updateDateTime({
         period: '1h',
         start: null,
@@ -49,7 +49,7 @@ describe('useChartInterval', function () {
       {value: '5m', label: '5 minutes'},
       {value: '15m', label: '15 minutes'},
     ]);
-    await act(() => {
+    act(() => {
       setChartInterval('1m');
     });
     expect(chartInterval).toBe('1m');

@@ -1,5 +1,4 @@
 import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
 
 import GridLayout, {WidthProvider} from 'react-grid-layout';
 import styled from '@emotion/styled';
@@ -19,7 +18,7 @@ import WidgetLine from './chartPreviews/line';
 import WidgetBigNumber from './chartPreviews/number';
 import WidgetTable from './chartPreviews/table';
 
-function miniWidget(displayType: DisplayType): () => JSX.Element {
+function miniWidget(displayType: DisplayType): () => React.JSX.Element {
   switch (displayType) {
     case DisplayType.BAR:
       return WidgetBar;

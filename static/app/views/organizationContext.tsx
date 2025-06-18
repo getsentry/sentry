@@ -20,10 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useParams} from 'sentry/utils/useParams';
 
-interface OrganizationLoaderContextProps {
-  bootstrapIsPending: boolean;
-}
-
 interface Props {
   children: ReactNode;
 }
@@ -32,13 +28,6 @@ interface Props {
  * Holds the current organization if loaded.
  */
 export const OrganizationContext = createContext<Organization | null>(null);
-
-/**
- * Holds a function to load the organization.
- */
-export const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps>({
-  bootstrapIsPending: false,
-});
 
 /**
  * Record if the organization was bootstrapped in the last 10 minutes
@@ -62,7 +51,6 @@ function setRecentBootstrapTag(orgSlug: string) {
  */
 export function OrganizationContextProvider({children}: Props) {
   const configStore = useLegacyStore(ConfigStore);
-
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
   const lastOrganizationSlug: string | null =
@@ -76,11 +64,10 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  const {isFetching: isOrganizationFetching} = useBootstrapOrganizationQuery(orgSlug);
-  const {isFetching: isTeamsFetching} = useBootstrapTeamsQuery(orgSlug);
-  const {isFetching: isProjectsFetching} = useBootstrapProjectsQuery(orgSlug);
-  const bootstrapIsPending =
-    isOrganizationFetching || isTeamsFetching || isProjectsFetching;
+  const {isPending: isOrganizationPending} = useBootstrapOrganizationQuery(orgSlug);
+  const {isPending: isTeamsPending} = useBootstrapTeamsQuery(orgSlug);
+  const {isPending: isProjectsPending} = useBootstrapProjectsQuery(orgSlug);
+  const bootstrapIsPending = isOrganizationPending || isTeamsPending || isProjectsPending;
 
   useEffect(() => {
     // Clear stores when the org slug changes
@@ -166,11 +153,5 @@ export function OrganizationContextProvider({children}: Props) {
     }
   }, [orgSlug]);
 
-  return (
-    <OrganizationLoaderContext.Provider value={{bootstrapIsPending}}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
-    </OrganizationLoaderContext.Provider>
-  );
+  return <OrganizationContext value={organization}>{children}</OrganizationContext>;
 }

@@ -1,25 +1,28 @@
 __all__ = [
+    "AgeComparisonConditionHandler",
+    "AssignedToConditionHandler",
+    "EventAttributeConditionHandler",
     "EventCreatedByDetectorConditionHandler",
     "EventFrequencyCountHandler",
     "EventFrequencyPercentHandler",
-    "PercentSessionsCountHandler",
-    "PercentSessionsPercentHandler",
     "EventSeenCountConditionHandler",
-    "ReappearedEventConditionHandler",
-    "RegressionEventConditionHandler",
     "ExistingHighPriorityIssueConditionHandler",
-    "EventAttributeConditionHandler",
     "FirstSeenEventConditionHandler",
-    "NewHighPriorityIssueConditionHandler",
-    "LevelConditionHandler",
-    "TaggedEventConditionHandler",
-    "AgeComparisonConditionHandler",
-    "AssignedToConditionHandler",
     "IssueCategoryConditionHandler",
     "IssueOccurrencesConditionHandler",
-    "LatestReleaseConditionHandler",
-    "LatestAdoptedReleaseConditionHandler",
     "IssuePriorityCondition",
+    "IssuePriorityGreaterOrEqualConditionHandler",
+    "IssuePriorityDeescalatingConditionHandler",
+    "IssueResolutionConditionHandler",
+    "LatestAdoptedReleaseConditionHandler",
+    "LatestReleaseConditionHandler",
+    "LevelConditionHandler",
+    "NewHighPriorityIssueConditionHandler",
+    "PercentSessionsCountHandler",
+    "PercentSessionsPercentHandler",
+    "ReappearedEventConditionHandler",
+    "RegressionEventConditionHandler",
+    "TaggedEventConditionHandler",
 ]
 
 from .age_comparison_handler import AgeComparisonConditionHandler
@@ -32,7 +35,10 @@ from .existing_high_priority_issue_handler import ExistingHighPriorityIssueCondi
 from .first_seen_event_handler import FirstSeenEventConditionHandler
 from .issue_category_handler import IssueCategoryConditionHandler
 from .issue_occurrences_handler import IssueOccurrencesConditionHandler
+from .issue_priority_deescalating_handler import IssuePriorityDeescalatingConditionHandler
 from .issue_priority_equals import IssuePriorityCondition
+from .issue_priority_greater_or_equal_handler import IssuePriorityGreaterOrEqualConditionHandler
+from .issue_resolution_condition_handler import IssueResolutionConditionHandler
 from .latest_adopted_release_handler import LatestAdoptedReleaseConditionHandler
 from .latest_release_handler import LatestReleaseConditionHandler
 from .level_handler import LevelConditionHandler

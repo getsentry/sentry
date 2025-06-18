@@ -1,19 +1,21 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface Props {
-  tags: Record<string, string>;
+  tags: Record<string, string | ReactNode>;
 }
 
 export default function TagsSection({tags}: Props) {
-  const entries = Object.entries(tags);
+  const orderedEntries = orderBy(Object.entries(tags), ['key'], ['asc']);
 
   return (
     <KeyValueTable noMargin>
@@ -30,7 +32,7 @@ export default function TagsSection({tags}: Props) {
           </StyledButton>
         )}
       >
-        {entries.map(([key, value]) => (
+        {orderedEntries.map(([key, value]) => (
           <KeyValueTableRow
             key={key}
             keyName={key}

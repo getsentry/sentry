@@ -1,7 +1,9 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
+import styled from '@emotion/styled';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -10,7 +12,8 @@ import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
 import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
@@ -40,7 +43,7 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList() {
+export default function NetworkList() {
   const organization = useOrganization();
   const {currentTime, replay} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -131,7 +134,11 @@ function NetworkList() {
         {({measure: _, registerChild}) =>
           rowIndex === 0 ? (
             <NetworkHeaderCell
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               handleSort={handleSort}
               index={columnIndex}
               sortConfig={sortConfig}
@@ -147,7 +154,11 @@ function NetworkList() {
               onMouseLeave={onMouseLeave}
               onClickCell={onClickCell}
               onClickTimestamp={onClickTimestamp}
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               startTimestampMs={startTimestampMs}
@@ -160,14 +171,14 @@ function NetworkList() {
   };
 
   return (
-    <FluidHeight>
+    <PaddedFluidHeight>
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
       <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
-            gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
+            gridTemplateRows: splitSize === undefined ? '1fr' : `1fr auto ${splitSize}px`,
           }}
         >
           {networkFrames ? (
@@ -189,7 +200,19 @@ function NetworkList() {
                         unfilteredItems={networkFrames}
                         clearSearchTerm={clearSearchTerm}
                       >
-                        {t('No network requests recorded')}
+                        {replay?.getReplay()?.sdk.name?.includes('flutter')
+                          ? tct(
+                              'No network requests recorded. Make sure you are using either the [link1:Sentry Dio] or the [link2:Sentry HTTP] integration.',
+                              {
+                                link1: (
+                                  <ExternalLink href="https://docs.sentry.io/platforms/dart/integrations/dio/" />
+                                ),
+                                link2: (
+                                  <ExternalLink href="https://docs.sentry.io/platforms/dart/integrations/http-integration/" />
+                                ),
+                              }
+                            )
+                          : t('No network requests recorded')}
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
@@ -231,8 +254,10 @@ function NetworkList() {
           />
         </SplitPanel>
       </GridTable>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
 
-export default NetworkList;
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;

@@ -6,12 +6,12 @@ import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
@@ -176,9 +176,9 @@ function CustomRepositories({
                   {t('Custom Repositories')}
                   <Tooltip
                     title={
-                      !hasAccess
-                        ? t('You do not have permission to add custom repositories.')
-                        : undefined
+                      hasAccess
+                        ? undefined
+                        : t('You do not have permission to add custom repositories.')
                     }
                   >
                     <DropdownMenu
@@ -195,11 +195,7 @@ function CustomRepositories({
                   </Tooltip>
                 </PanelHeader>
                 <PanelBody>
-                  {!repositories.length ? (
-                    <EmptyStateWarning>
-                      <p>{t('No custom repositories configured')}</p>
-                    </EmptyStateWarning>
-                  ) : (
+                  {repositories.length ? (
                     repositories.map(repository => (
                       <Repository
                         key={repository.id}
@@ -210,6 +206,10 @@ function CustomRepositories({
                         onEdit={handleEditRepository}
                       />
                     ))
+                  ) : (
+                    <EmptyStateWarning>
+                      <p>{t('No custom repositories configured')}</p>
+                    </EmptyStateWarning>
                   )}
                 </PanelBody>
               </Panel>

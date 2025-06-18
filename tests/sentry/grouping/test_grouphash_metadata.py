@@ -9,7 +9,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
-    get_hash_basis_and_metadata,
+    get_grouphash_metadata_data,
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.strategies.base import StrategyConfiguration
@@ -44,7 +44,9 @@ dummy_project = Mock(id=11211231)
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_hash_basis_with_legacy_configs(
-    config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
+    config_name: str,
+    grouping_input: GroupingInput,
+    insta_snapshot: InstaSnapshotter,
 ) -> None:
     """
     Run the grouphash metadata snapshot tests using a minimal (and much more performant) save
@@ -139,8 +141,11 @@ def _assert_and_snapshot_results(
     lines: list[str] = []
     variants = event.get_grouping_variants()
 
-    hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants, {})
+    metadata = get_grouphash_metadata_data(event, project, variants, config_name)
+    hash_basis = metadata["hash_basis"]
+    hashing_metadata = metadata["hashing_metadata"]
 
+    # Check that the right metrics are being recorded
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(
             GroupHashMetadata(hash_basis=hash_basis, hashing_metadata=hashing_metadata),

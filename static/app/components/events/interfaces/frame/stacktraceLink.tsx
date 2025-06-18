@@ -3,12 +3,12 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,16 +27,20 @@ import useProjects from 'sentry/utils/useProjects';
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
-// Keep this list in sync with SUPPORTED_LANGUAGES in code_mapping.py
+// Keep this list in sync with PLATFORMS_CONFIG in auto_source_code_config/constants.py
 const supportedStacktracePlatforms: PlatformKey[] = [
+  'clojure',
   'csharp',
-  'elixir',
+  'elixir', // Elixir is not listed on the main list
   'go',
+  'groovy',
+  'java',
   'javascript',
   'node',
   'php',
   'python',
   'ruby',
+  'scala',
 ];
 const scmProviders = ['github', 'gitlab'];
 
@@ -103,15 +107,19 @@ function CodecovLink({
 }
 
 interface StacktraceLinkProps {
+  /**
+   * If true, the setup button will not be shown
+   */
+  disableSetup: boolean;
   event: Event;
   frame: Frame;
   /**
    * The line of code being linked
    */
-  line: string;
+  line: string | null;
 }
 
-export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
+export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLinkProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
@@ -293,12 +301,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
-    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
   const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
     event.platform as PlatformKey
   );
 
-  const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
+  const hideErrors = isMinifiedJsError || isUnsupportedPlatform || disableSetup;
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
   if (
     frame.sourceLink &&
@@ -363,6 +371,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               <StacktraceLinkModal
                 onSubmit={handleSubmit}
                 filename={filename}
+                module={frame.module ?? undefined}
+                absPath={frame.absPath ?? undefined}
+                platform={event.platform}
                 project={project}
                 organization={organization}
                 integrations={match.integrations}

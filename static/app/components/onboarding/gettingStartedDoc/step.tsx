@@ -1,9 +1,8 @@
 import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import beautify from 'js-beautify';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,7 +59,6 @@ export function TabbedCodeSnippet({
 
   return (
     <OnboardingCodeSnippet
-      dark
       language={language}
       onCopy={onCopy}
       onSelectAndCopy={onSelectAndCopy}
@@ -71,13 +69,7 @@ export function TabbedCodeSnippet({
       onTabClick={value => setSelectedTabValue(value)}
       filename={filename}
     >
-      {language === 'javascript'
-        ? beautify.js(code, {
-            indent_size: 2,
-            e4x: true,
-            brace_style: 'preserve-inline',
-          })
-        : code.trim()}
+      {code}
     </OnboardingCodeSnippet>
   );
 }
@@ -144,6 +136,10 @@ interface BaseStepProps {
    * Useful for when we want to fire analytics events.
    */
   onOptionalToggleClick?: (showOptionalConfig: boolean) => void;
+  /**
+   * Additional items to be displayed to the right of the step title, e.g. a button to copy the configuration to the clipboard.
+   */
+  trailingItems?: React.ReactNode;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -180,20 +176,13 @@ function getConfiguration({
         language &&
         code && (
           <OnboardingCodeSnippet
-            dark
             language={language}
             onCopy={onCopy}
             onSelectAndCopy={onSelectAndCopy}
             hideCopyButton={partialLoading}
             disableUserSelection={partialLoading}
           >
-            {language === 'javascript'
-              ? beautify.js(code, {
-                  indent_size: 2,
-                  e4x: true,
-                  brace_style: 'preserve-inline',
-                })
-              : code.trim()}
+            {code}
           </OnboardingCodeSnippet>
         )
       )}
@@ -210,6 +199,7 @@ export function Step({
   description,
   onOptionalToggleClick,
   collapsible = false,
+  trailingItems,
   codeHeader,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & StepProps) {
@@ -267,6 +257,7 @@ export function Step({
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
         />
+        {trailingItems && <div onClick={e => e.stopPropagation()}>{trailingItems}</div>}
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
     </div>
@@ -299,7 +290,7 @@ const Configuration = styled('div')`
 `;
 
 const Description = styled('div')`
-  code {
+  code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
   }
 
@@ -327,12 +318,16 @@ const GeneralAdditionalInfo = styled(Description)`
 
 const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: ${space(1)};
   margin-bottom: ${p => (p.expanded ? space(2) : 0)};
   cursor: pointer;
 `;
 
 const ToggleButton = styled(Button)`
+  flex: 1;
+  display: flex;
   padding: 0;
   &,
   :hover {

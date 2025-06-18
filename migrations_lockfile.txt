@@ -5,22 +5,32 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-feedback: 0004_index_together
+explore: 0001_squashed_0004_add_explore_last_visited_table
 
-hybridcloud: 0018_add_alert_and_member_invite_scopes_to_sentry_apps
+feedback: 0001_squashed_0004_index_together
 
-nodestore: 0002_nodestore_no_dictfield
+flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-remote_subscriptions: 0003_drop_remote_subscription
+hybridcloud: 0001_squashed_0021_django_arrayfield_scope_list
 
-replays: 0004_index_together
+insights: 0002_backfill_team_starred
 
-sentry: 0832_make_grouphash_metadata_date_added_nullable
+monitors: 0006_add_is_upserting
 
-social_auth: 0002_default_auto_field
+nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-tempest: 0001_create_tempest_credentials_model
+notifications: 0001_move_notifications_models
 
-uptime: 0025_uptime_migrate_constraint
+preprod: 0005_add_git_commit
 
-workflow_engine: 0029_ds_query_id_to_pending
+replays: 0001_squashed_0005_drop_replay_index
+
+sentry: 0929_no_pickle_authenticator
+
+social_auth: 0001_squashed_0002_default_auto_field
+
+tempest: 0001_squashed_0002_make_message_type_nullable
+
+uptime: 0001_squashed_0042_extra_uptime_indexes
+
+workflow_engine: 0070_migrate_remaining_anomaly_detection_alerts

@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -10,7 +12,6 @@ import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -28,6 +29,10 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type TableColumnKeys =
@@ -66,6 +71,9 @@ export default function SpanTable(props: Props) {
     pageLinks,
     transactionName,
   } = props;
+
+  const theme = useTheme();
+  const {view} = useDomainViewFilters();
 
   if (!defined(examples)) {
     return null;
@@ -109,7 +117,9 @@ export default function SpanTable(props: Props) {
               location,
               organization,
               transactionName,
-              suspectSpan
+              theme,
+              suspectSpan,
+              view
             ),
           }}
         />
@@ -137,7 +147,9 @@ function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
   transactionName: string,
-  suspectSpan?: SuspectSpan
+  theme: Theme,
+  suspectSpan?: SuspectSpan,
+  view?: DomainView
 ) {
   return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
     // if the transaction duration is falsey, then just render the span duration on its own
@@ -152,7 +164,7 @@ function renderBodyCellWithMeta(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    let rendered = fieldRenderer(dataRow, {location, organization});
+    let rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     if (column.key === 'id') {
       const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';
@@ -172,6 +184,7 @@ function renderBodyCellWithMeta(
         spanId: worstSpan.id,
         transactionName,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+        view,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;
@@ -241,6 +254,7 @@ type SpanDurationBarProps = {
 };
 
 export function SpanDurationBar(props: SpanDurationBarProps) {
+  const theme = useTheme();
   const {spanOp, spanDuration, transactionDuration} = props;
   const widthPercentage = spanDuration / transactionDuration;
   const position = widthPercentage < 0.7 ? 'right' : 'inset';
@@ -255,7 +269,7 @@ export function SpanDurationBar(props: SpanDurationBarProps) {
           })}
           containerDisplayMode="block"
         >
-          <DurationBarSection style={{backgroundColor: pickBarColor(spanOp)}}>
+          <DurationBarSection style={{backgroundColor: pickBarColor(spanOp, theme)}}>
             <DurationPill durationDisplay={position} showDetail={false}>
               <PerformanceDuration abbreviation milliseconds={spanDuration} />
             </DurationPill>

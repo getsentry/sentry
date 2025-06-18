@@ -2,15 +2,16 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
@@ -23,6 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useExploreQuery} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {
   Description,
@@ -58,6 +60,11 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
   const showErrorState = !isPending && isError;
   const showEmptyState = !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
 
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'traces',
+    data?.data?.length ?? 0
+  );
+
   return (
     <Fragment>
       <StyledPanel>
@@ -69,7 +76,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {!query ? t('Total Spans') : t('Matching Spans')}
+            {query ? t('Matching Spans') : t('Total Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
@@ -78,7 +85,10 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
             {t('Root Duration')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Timestamp')}
+            <Header>
+              {t('Timestamp')}
+              <IconArrow size="xs" direction="down" />
+            </Header>
           </StyledPanelHeader>
           {isPending && (
             <StyledPanelItem span={6} overflow>
@@ -120,7 +130,10 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
           ))}
         </TracePanelContent>
       </StyledPanel>
-      <Pagination pageLinks={getResponseHeader?.('Link')} />
+      <Pagination
+        pageLinks={getResponseHeader?.('Link')}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }
@@ -279,6 +292,11 @@ function Breakdown({trace}: {trace: TraceResult}) {
     </BreakdownPanelItem>
   );
 }
+
+const Header = styled('span')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
 
 const StyledButton = styled(Button)`
   margin-right: ${space(0.5)};

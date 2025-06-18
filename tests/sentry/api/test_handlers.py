@@ -12,14 +12,16 @@ class RateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     def get(self, request):
-        raise RateLimitExceeded()
+        raise RateLimitExceeded(
+            "Rate limit exceeded. Please try your query with a smaller date range or fewer projects."
+        )
 
 
 urlpatterns = [re_path(r"^/$", RateLimitedEndpoint.as_view(), name="sentry-test")]
 
 
 @control_silo_test
-@override_settings(ROOT_URLCONF="tests.sentry.api.test_handlers")
+@override_settings(ROOT_URLCONF=__name__)
 class TestRateLimited(APITestCase):
     endpoint = "sentry-test"
 
@@ -28,4 +30,7 @@ class TestRateLimited(APITestCase):
         resp = self.get_response()
         assert resp.status_code == 429
 
-        assert resp.data["detail"] == "Request was throttled. Expected available in 1 second."
+        assert (
+            resp.data["detail"]
+            == "Rate limit exceeded. Please try your query with a smaller date range or fewer projects."
+        )

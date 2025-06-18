@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.coreapi import APIUnauthorized
 from sentry.sentry_apps.installations import SentryAppInstallationNotifier
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
@@ -109,7 +109,7 @@ class TestInstallationNotifier(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_invalid_installation_action(self, safe_urlopen):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppSentryError):
             assert self.rpc_user, "Rpcuser should exist, unless explicitly noted in test"
             SentryAppInstallationNotifier(
                 sentry_app_installation=self.install, user=self.rpc_user, action="updated"

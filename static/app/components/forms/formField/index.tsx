@@ -9,19 +9,19 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react';
 
-import type {AlertProps} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import type {AlertProps} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
+import FormContext from 'sentry/components/forms/formContext';
+import type FormModel from 'sentry/components/forms/model';
+import {MockModel} from 'sentry/components/forms/model';
+import FormState from 'sentry/components/forms/state';
+import type {FieldValue} from 'sentry/components/forms/types';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
-
-import FieldGroup from '../fieldGroup';
-import type {FieldGroupProps} from '../fieldGroup/types';
-import FormContext from '../formContext';
-import type FormModel from '../model';
-import {MockModel} from '../model';
-import type {FieldValue} from '../types';
 
 import FormFieldControlState from './controlState';
 
@@ -60,8 +60,8 @@ interface FormFieldPropModel extends FormFieldProps {
   model: FormModel;
 }
 
-type ObservedFn<_P, T> = (props: FormFieldPropModel) => T;
-type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
+type ObservedFn<T> = (props: FormFieldPropModel) => T;
+type ObservedFnOrValue<T> = T | ObservedFn<T>;
 
 type ObserverdPropNames = (typeof propsToObserve)[number];
 
@@ -74,12 +74,12 @@ type ObservedPropResolver = [
  * Construct the type for properties that may be given observed functions
  */
 interface ObservableProps {
-  disabled?: ObservedFnOrValue<{}, FieldGroupProps['disabled']>;
-  disabledReason?: ObservedFnOrValue<{}, FieldGroupProps['disabledReason']>;
-  help?: ObservedFnOrValue<{}, FieldGroupProps['help']>;
-  highlighted?: ObservedFnOrValue<{}, FieldGroupProps['highlighted']>;
-  inline?: ObservedFnOrValue<{}, FieldGroupProps['inline']>;
-  visible?: ObservedFnOrValue<{}, FieldGroupProps['visible']>;
+  disabled?: ObservedFnOrValue<FieldGroupProps['disabled']>;
+  disabledReason?: ObservedFnOrValue<FieldGroupProps['disabledReason']>;
+  help?: ObservedFnOrValue<FieldGroupProps['help']>;
+  highlighted?: ObservedFnOrValue<FieldGroupProps['highlighted']>;
+  inline?: ObservedFnOrValue<FieldGroupProps['inline']>;
+  visible?: ObservedFnOrValue<FieldGroupProps['visible']>;
 }
 
 /**
@@ -109,7 +109,7 @@ interface BaseProps {
   // TODO(ts): These are actually props that are needed for some lower
   // component. We should let the rendering component pass these in instead
   defaultValue?: FieldValue;
-  formatMessageValue?: boolean | Function;
+  formatMessageValue?: boolean | ((value: any, props: any) => React.ReactNode);
   /**
    * Transform data when saving on blur.
    */
@@ -121,7 +121,16 @@ interface BaseProps {
   onBlur?: (value: any, event: any) => void;
   onChange?: (value: any, event: any) => void;
   onKeyDown?: (value: any, event: any) => void;
-  placeholder?: ObservedFnOrValue<{}, React.ReactNode>;
+  placeholder?: ObservedFnOrValue<React.ReactNode>;
+
+  /**
+   * If this is true, the field value is preserved in the form model when the
+   * field is unmounted. This is useful for fields that might disappear and
+   * reappear.
+   *
+   * see {@link FormModel.softRemoveField}
+   */
+  preserveOnUnmount?: boolean;
 
   resetOnError?: boolean;
   /**
@@ -141,12 +150,6 @@ interface BaseProps {
   saveOnBlur?: boolean;
 
   /**
-   * A function producing an optional component with extra information.
-   */
-  selectionInfoFunction?: (
-    props: PassthroughProps & {value: FieldValue; error?: string}
-  ) => React.ReactNode;
-  /**
    * Used in the form model to transform the value
    */
   setValue?: (value: FieldValue, props?: any) => any;
@@ -159,7 +162,7 @@ interface BaseProps {
    */
   transformInput?: (value: any) => any;
   // used in prettyFormString
-  validate?: Function;
+  validate?: (props: any) => Array<[string, string]>;
 }
 
 export interface FormFieldProps
@@ -183,7 +186,6 @@ type PassthroughProps = Omit<
   | 'saveOnBlur'
   | 'saveMessage'
   | 'saveMessageAlertType'
-  | 'selectionInfoFunction'
   | 'hideControlState'
   | 'defaultValue'
 >;
@@ -194,7 +196,7 @@ function FormField(props: FormFieldProps) {
   const {name, onBlur, onChange, onKeyDown} = props;
 
   const context = useContext(FormContext);
-  const inputRef = useRef<HTMLElement>();
+  const inputRef = useRef<HTMLElement | null>(null);
 
   const [model] = useState<FormModel>(
     // XXX: MockModel doesn't fully implement the FormModel interface
@@ -305,7 +307,7 @@ function FormField(props: FormFieldProps) {
         }
       }
 
-      inputRef.current = node ?? undefined;
+      inputRef.current = node ?? null;
     },
     [name]
   );
@@ -320,7 +322,6 @@ function FormField(props: FormFieldProps) {
         flexibleControlStateSize,
         saveMessage,
         saveMessageAlertType,
-        selectionInfoFunction,
         // Don't pass `defaultValue` down to input fields, will be handled in
         // form model
         defaultValue: _defaultValue,
@@ -352,6 +353,7 @@ function FormField(props: FormFieldProps) {
               {() => {
                 const error = model.getError(name);
                 const value = model.getValue(name);
+                const isSaving = model.getFieldState(name, FormState.SAVING);
 
                 return (
                   <Fragment>
@@ -361,6 +363,7 @@ function FormField(props: FormFieldProps) {
                       model,
                       name,
                       id,
+                      disabled: fieldProps.disabled || isSaving,
                       onKeyDown: handleKeyDown,
                       onChange: handleChange,
                       onBlur: handleBlur,
@@ -380,22 +383,6 @@ function FormField(props: FormFieldProps) {
               }}
             </Observer>
           </FieldGroup>
-          {selectionInfoFunction && (
-            <Observer>
-              {() => {
-                const error = model.getError(name);
-                const value = model.getValue(name);
-
-                return (
-                  <Fragment>
-                    {fieldProps.visible
-                      ? selectionInfoFunction({...fieldProps, error, value})
-                      : null}
-                  </Fragment>
-                );
-              }}
-            </Observer>
-          )}
           {saveOnBlurFieldOverride && (
             <Observer>
               {() => {
@@ -449,7 +436,7 @@ function FormField(props: FormFieldProps) {
     .filter(p => typeof props[p] === 'function')
     .map<ObservedPropResolver>(p => [
       p,
-      () => (props[p] as ObservedFn<{}, any>)({...props, model}),
+      () => (props[p] as ObservedFn<any>)({...props, model}),
     ]);
 
   // This field has no properties that require observation to compute their

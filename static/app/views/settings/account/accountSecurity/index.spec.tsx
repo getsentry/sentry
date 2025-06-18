@@ -23,8 +23,6 @@ const AUTH_ENDPOINT = '/auth/';
 describe('AccountSecurity', function () {
   const router = RouterFixture();
   beforeEach(function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
@@ -34,10 +32,6 @@ describe('AccountSecurity', function () {
       url: ACCOUNT_EMAILS_ENDPOINT,
       body: AccountEmailsFixture(),
     });
-  });
-
-  afterEach(function () {
-    jest.mocked(window.location.assign).mockRestore();
   });
 
   function renderComponent() {
@@ -58,12 +52,7 @@ describe('AccountSecurity', function () {
           routeParams={router.params}
           params={{...router.params, authId: '15'}}
         />
-      </AccountSecurityWrapper>,
-      {
-        router: {
-          params: {authId: '15'},
-        },
-      }
+      </AccountSecurityWrapper>
     );
   }
 
@@ -215,7 +204,7 @@ describe('AccountSecurity', function () {
 
     expect(
       await screen.findByText(
-        'Two-factor authentication is required for organization(s): test 1 and test 2.'
+        'Two-factor authentication is required for organization(s): test-1 and test-2.'
       )
     ).toBeInTheDocument();
   });
@@ -292,7 +281,7 @@ describe('AccountSecurity', function () {
     renderComponent();
 
     expect(await screen.findByText('Authenticator App')).toBeInTheDocument();
-    expect(screen.getByText('U2F (Universal 2nd Factor)')).toBeInTheDocument();
+    expect(screen.getByText('Passkey / Biometric / Security Key')).toBeInTheDocument();
     expect(screen.queryByText('Text Message')).not.toBeInTheDocument();
   });
 
@@ -404,10 +393,12 @@ describe('AccountSecurity', function () {
     });
 
     renderComponent();
+    renderGlobalModal();
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Sign out of all devices'})
     );
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalled();
     await waitFor(() =>

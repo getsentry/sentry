@@ -2,11 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -30,6 +30,11 @@ import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrat
 
 type Tab = 'public' | 'internal';
 
+const TAB_LABELS: Record<Tab, string> = {
+  internal: t('Internal Integration'),
+  public: t('Public Integration'),
+};
+
 function OrganizationDeveloperSettings() {
   const location = useLocation();
   const organization = useOrganization();
@@ -38,10 +43,6 @@ function OrganizationDeveloperSettings() {
   const value =
     ['public', 'internal'].find(tab => tab === location?.query?.type) || 'internal';
   const analyticsView = 'developer_settings';
-  const tabs: Array<[id: Tab, label: string]> = [
-    ['internal', t('Internal Integration')],
-    ['public', t('Public Integration')],
-  ];
 
   const [tab, setTab] = useState<Tab>(value as Tab);
   const [applicationsState, setApplicationsState] = useState<SentryApp[] | undefined>(
@@ -82,6 +83,7 @@ function OrganizationDeveloperSettings() {
         app={app}
         organization={organization}
         onRemoveApp={removeApp}
+        onPublishSubmission={refetch}
       />
     );
   };
@@ -96,12 +98,12 @@ function OrganizationDeveloperSettings() {
       <Panel>
         <PanelHeader>{t('Internal Integrations')}</PanelHeader>
         <PanelBody>
-          {!isEmpty ? (
-            integrations.map(renderApplicationRow)
-          ) : (
+          {isEmpty ? (
             <EmptyMessage>
               {t('No internal integrations have been created yet.')}
             </EmptyMessage>
+          ) : (
+            integrations.map(renderApplicationRow)
           )}
         </PanelBody>
       </Panel>
@@ -116,12 +118,12 @@ function OrganizationDeveloperSettings() {
       <Panel>
         <PanelHeader>{t('Public Integrations')}</PanelHeader>
         <PanelBody>
-          {!isEmpty ? (
-            integrations.map(renderApplicationRow)
-          ) : (
+          {isEmpty ? (
             <EmptyMessage>
               {t('No public integrations have been created yet.')}
             </EmptyMessage>
+          ) : (
+            integrations.map(renderApplicationRow)
           )}
         </PanelBody>
       </Panel>
@@ -174,21 +176,23 @@ function OrganizationDeveloperSettings() {
           </ActionContainer>
         }
       />
-      <NavTabs underlined>
-        {tabs.map(([type, label]) => (
-          <li
-            key={type}
-            className={tab === type ? 'active' : ''}
-            onClick={() => setTab(type)}
-          >
-            <a>{label}</a>
-          </li>
-        ))}
-      </NavTabs>
+      <TabsContainer>
+        <Tabs value={tab} onChange={setTab}>
+          <TabList>
+            {Object.entries(TAB_LABELS).map(([key, label]) => (
+              <TabList.Item key={key}>{label}</TabList.Item>
+            ))}
+          </TabList>
+        </Tabs>
+      </TabsContainer>
       {renderTabContent()}
     </div>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 const ActionContainer = styled('div')`
   display: flex;

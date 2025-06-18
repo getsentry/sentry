@@ -68,6 +68,49 @@ class CreateAuditEntryTest(TestCase):
 
         self.assert_no_delete_log_created()
 
+    def test_audit_entry_org_add_log(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("ORG_ADD"),
+            data=self.org.get_audit_log_data(),
+        )
+
+        assert entry.actor == self.user
+        assert entry.actor_label is None
+        assert entry.target_object == self.org.id
+        assert entry.event == audit_log.get_event_id("ORG_ADD")
+
+        audit_log_event = audit_log.get(entry.event)
+        assert audit_log_event.render(entry) == "created the organization"
+
+    def test_audit_entry_org_add_log_with_channel(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("ORG_ADD"),
+            data={
+                "channel": "vercel",
+                **self.org.get_audit_log_data(),
+            },
+        )
+
+        assert entry.actor == self.user
+        assert entry.actor_label is None
+        assert entry.target_object == self.org.id
+        assert entry.event == audit_log.get_event_id("ORG_ADD")
+
+        audit_log_event = audit_log.get(entry.event)
+        assert audit_log_event.render(entry) == "created the organization with vercel integration"
+
     def test_audit_entry_org_delete_log(self):
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
@@ -458,16 +501,30 @@ class CreateAuditEntryTest(TestCase):
         entry3 = create_audit_entry(
             request=self.req,
             organization=self.project.organization,
+            target_object=self.integration.id,
+            event=audit_log.get_event_id("INTEGRATION_EDIT"),
+            data={"provider": "github", "name": "config"},
+        )
+        audit_log_event3 = audit_log.get(entry3.event)
+
+        assert ("edited the config for the github integration") in audit_log_event3.render(entry3)
+        assert entry3.actor == self.user
+        assert entry3.target_object == self.integration.id
+        assert entry3.event == audit_log.get_event_id("INTEGRATION_EDIT")
+
+        entry4 = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
             target_object=self.project.id,
             event=audit_log.get_event_id("INTEGRATION_REMOVE"),
             data={"integration": "webhooks", "project": project.slug},
         )
-        audit_log_event3 = audit_log.get(entry3.event)
+        audit_log_event4 = audit_log.get(entry4.event)
 
-        assert ("disable") in audit_log_event3.render(entry3)
-        assert entry3.actor == self.user
-        assert entry3.target_object == self.project.id
-        assert entry3.event == audit_log.get_event_id("INTEGRATION_REMOVE")
+        assert ("disable") in audit_log_event4.render(entry4)
+        assert entry4.actor == self.user
+        assert entry4.target_object == self.project.id
+        assert entry4.event == audit_log.get_event_id("INTEGRATION_REMOVE")
 
     def test_create_system_audit_entry(self):
         entry = create_system_audit_entry(

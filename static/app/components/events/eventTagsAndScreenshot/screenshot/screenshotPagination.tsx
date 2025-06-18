@@ -1,15 +1,14 @@
-import type {ReactEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
   nextDisabled: boolean;
-  onNext: ReactEventHandler;
-  onPrevious: ReactEventHandler;
+  onNext: React.MouseEventHandler;
+  onPrevious: React.MouseEventHandler;
   previousDisabled: boolean;
   className?: string;
   headerText?: React.ReactNode;
@@ -32,7 +31,7 @@ function ScreenshotPagination({
         disabled={previousDisabled}
         onClick={onPrevious}
       />
-      <span data-test-id="pagination-header-text">{headerText}</span>
+      <span>{headerText}</span>
       <Button
         icon={<IconChevron direction="right" />}
         aria-label={t('Next')}

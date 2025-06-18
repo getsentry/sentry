@@ -17,9 +17,6 @@ inputs:
     default: 'default'
 
 outputs:
-  yarn-cache-dir:
-    description: 'Path to yarn cache'
-    value: ${{ steps.config.outputs.yarn-cache-dir }}
   matrix-instance-number:
     description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
@@ -94,7 +91,6 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       run: |
-        echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
 

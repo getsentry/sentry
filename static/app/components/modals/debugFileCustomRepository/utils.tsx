@@ -118,7 +118,7 @@ export function getFormFieldsAndInitialData(
               {
                 link: (
                   <ExternalLink href="https://console.aws.amazon.com/iam/">
-                    IAM console
+                    {t('IAM console')}
                   </ExternalLink>
                 ),
               }
@@ -127,7 +127,7 @@ export function getFormFieldsAndInitialData(
           {
             name: 'secret_key',
             type: 'string',
-            required: true,
+            required: !secret_key,
             label: t('Secret Access Key'),
             placeholder:
               typeof secret_key === 'object'
@@ -139,12 +139,12 @@ export function getFormFieldsAndInitialData(
           commonFields.layoutType,
           commonFields.layoutCasing,
         ],
-        initialData: !initialData
-          ? undefined
-          : {
+        initialData: initialData
+          ? {
               ...initialData,
               secret_key: undefined,
-            },
+            }
+          : undefined,
       };
     case 'gcs':
       return {
@@ -173,7 +173,8 @@ export function getFormFieldsAndInitialData(
           {
             name: 'private_key',
             type: 'string',
-            required: true,
+            // Private key is only required if it's not already set
+            required: !private_key,
             multiline: true,
             autosize: true,
             maxRows: 5,
@@ -199,12 +200,12 @@ export function getFormFieldsAndInitialData(
           commonFields.layoutType,
           commonFields.layoutCasing,
         ],
-        initialData: !initialData
-          ? undefined
-          : {
+        initialData: initialData
+          ? {
               ...initialData,
               private_key: undefined,
-            },
+            }
+          : undefined,
       };
     default: {
       Sentry.captureException(new Error('Unknown custom repository type'));

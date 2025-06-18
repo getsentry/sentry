@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
@@ -149,7 +149,7 @@ function ResolutionBox(props: Props) {
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

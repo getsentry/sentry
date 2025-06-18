@@ -1,8 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -110,7 +110,7 @@ export function SamplesTables({
         {EventSamples && (
           <SegmentedControl
             onChange={value => setSampleType(value)}
-            defaultValue={SPANS}
+            value={sampleType}
             label={t('Sample Type Selection')}
           >
             <SegmentedControl.Item key={SPANS} aria-label={t('By Spans')}>

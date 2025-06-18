@@ -6,9 +6,9 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -26,11 +26,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
-
-const Important = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: 1.2em;
-`;
 
 function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   return (
@@ -114,8 +109,10 @@ function AccountClose() {
         data: {organizations: Array.from(orgsToRemove)},
       });
 
-      openModal(GoodbyeModalContent, {
-        onClose: leaveRedirect,
+      requestAnimationFrame(() => {
+        openModal(GoodbyeModalContent, {
+          onClose: leaveRedirect,
+        });
       });
 
       // Redirect after 10 seconds
@@ -146,17 +143,17 @@ function AccountClose() {
         )}
       </TextBlock>
 
-      <Alert type="error" showIcon>
-        <Important>
+      <Alert.Container>
+        <Alert type="error" showIcon>
           {t('Closing your account is permanent and cannot be undone')}!
-        </Important>
-      </Alert>
+        </Alert>
+      </Alert.Container>
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            <strong>{t('ORGANIZATIONS WITH CHECKED BOXES WILL BE DELETED!')}</strong>
+            {t('Organizations with checked boxes will be deleted!')}
             <br />
             {t(
               'Ownership will remain with other organization owners if an organization is not deleted.'

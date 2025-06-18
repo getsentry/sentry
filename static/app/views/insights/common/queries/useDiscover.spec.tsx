@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -26,9 +27,7 @@ jest.mock('sentry/utils/usePageFilters');
 function Wrapper({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={OrganizationFixture()}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={OrganizationFixture()}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
@@ -37,22 +36,7 @@ describe('useDiscover', () => {
   describe('useSpanMetrics', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -72,7 +56,7 @@ describe('useDiscover', () => {
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: ['spm()'] as SpanMetricsProperty[],
+            fields: ['epm()'] as SpanMetricsProperty[],
             enabled: false,
           },
         }
@@ -90,7 +74,7 @@ describe('useDiscover', () => {
           data: [
             {
               'span.op': 'db',
-              'spm()': 1486.3201388888888,
+              'epm()': 1486.3201388888888,
               'count()': 2140301,
             },
           ],
@@ -118,8 +102,8 @@ describe('useDiscover', () => {
               release: '0.0.1',
               environment: undefined,
             },
-            fields: ['spm()'] as SpanMetricsProperty[],
-            sorts: [{field: 'spm()', kind: 'desc' as const}],
+            fields: ['epm()'] as SpanMetricsProperty[],
+            sorts: [{field: 'epm()', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',
             cursor: undefined,
@@ -136,10 +120,10 @@ describe('useDiscover', () => {
           query: {
             dataset: 'spansMetrics',
             environment: [],
-            field: ['spm()'],
+            field: ['epm()'],
             per_page: 10,
             project: [],
-            sort: '-spm()',
+            sort: '-epm()',
             query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
             referrer: 'api-spec',
             statsPeriod: '10d',
@@ -151,7 +135,7 @@ describe('useDiscover', () => {
       expect(result.current.data).toEqual([
         {
           'span.op': 'db',
-          'spm()': 1486.3201388888888,
+          'epm()': 1486.3201388888888,
           'count()': 2140301,
         },
       ]);
@@ -161,22 +145,20 @@ describe('useDiscover', () => {
   describe('useSpanIndexed', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [],
         },
-        environments: [],
-        projects: [],
-      },
-    });
+      })
+    );
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({

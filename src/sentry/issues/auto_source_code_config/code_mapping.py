@@ -10,14 +10,24 @@ from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
     RepoTreesIntegration,
-    get_extension,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
+from .constants import METRIC_PREFIX
+from .errors import (
+    DoesNotFollowJavaPackageNamingConvention,
+    MissingModuleOrAbsPath,
+    NeedsExtension,
+    UnexpectedPathException,
+    UnsupportedFrameInfo,
+)
+from .frame_info import FrameInfo
 from .integration_utils import InstallationNotFoundError, get_installation
+from .utils.misc import get_straight_path_prefix_end_index
 
 logger = logging.getLogger(__name__)
 
@@ -31,120 +41,60 @@ class CodeMapping(NamedTuple):
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 
-# List of file paths prefixes that should become stack trace roots
-FILE_PATH_PREFIX_LENGTH = {
-    "app:///": 7,
-    "../": 3,
-    "./": 2,
-}
-
-
-class UnexpectedPathException(Exception):
-    pass
-
-
-class UnsupportedFrameFilename(Exception):
-    pass
-
 
 def derive_code_mappings(
     organization: Organization,
     frame: Mapping[str, Any],
+    platform: str | None = None,
 ) -> list[dict[str, str]]:
     installation = get_installation(organization)
     if not isinstance(installation, RepoTreesIntegration):
         return []
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
-    frame_filename = FrameFilename(frame)
-    return trees_helper.list_file_matches(frame_filename)
+    try:
+        frame_filename = FrameInfo(frame, platform)
+        return trees_helper.get_file_and_repo_matches(frame_filename)
+    except NeedsExtension:
+        logger.warning("Needs extension: %s", frame.get("filename"))
 
-
-# XXX: Look at sentry.interfaces.stacktrace and maybe use that
-class FrameFilename:
-    def __init__(self, frame: Mapping[str, Any]) -> None:
-        # XXX: In the next PR, we will use more than just the filename
-        frame_file_path = frame["filename"]
-        self.raw_path = frame_file_path
-        is_windows_path = False
-        if "\\" in frame_file_path:
-            is_windows_path = True
-            frame_file_path = frame_file_path.replace("\\", "/")
-
-        if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
-            frame_file_path = frame_file_path[1:]
-
-        # Using regexes would be better but this is easier to understand
-        if (
-            not frame_file_path
-            or frame_file_path[0] in ["[", "<"]
-            or frame_file_path.find(" ") > -1
-            or frame_file_path.find("/") == -1
-        ):
-            raise UnsupportedFrameFilename("This path is not supported.")
-
-        self.full_path = frame_file_path
-        self.extension = get_extension(frame_file_path)
-        if not self.extension:
-            raise UnsupportedFrameFilename("It needs an extension.")
-
-        # Remove drive letter if it exists
-        if is_windows_path and frame_file_path[1] == ":":
-            frame_file_path = frame_file_path[2:]
-            # windows drive letters can be like C:\ or C:
-            # so we need to remove the slash if it exists
-            if frame_file_path[0] == "/":
-                frame_file_path = frame_file_path[1:]
-
-        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
-        self.straight_path_prefix = frame_file_path[:start_at_index]
-
-        # We normalize the path to be as close to what the path would
-        # look like in the source code repository, hence why we remove
-        # the straight path prefix and drive letter
-        self.normalized_path = frame_file_path[start_at_index:]
-        if start_at_index == 0:
-            self.root = frame_file_path.split("/")[0]
-        else:
-            slash_index = frame_file_path.find("/", start_at_index)
-            self.root = frame_file_path[0:slash_index]
-
-        self.file_name = frame_file_path.split("/")[-1]
-
-    def __repr__(self) -> str:
-        return f"FrameFilename: {self.full_path}"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, FrameFilename):
-            return False
-        return self.full_path == other.full_path
+    return []
 
 
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
+    platform: str | None = None
+
     def __init__(self, trees: Mapping[str, RepoTree]):
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
 
-    def generate_code_mappings(self, frames: Sequence[Mapping[str, Any]]) -> list[CodeMapping]:
+    def generate_code_mappings(
+        self, frames: Sequence[Mapping[str, Any]], platform: str | None = None
+    ) -> list[CodeMapping]:
         """Generate code mappings based on the initial trees object and the list of stack traces"""
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
-        buckets: dict[str, list[FrameFilename]] = self._stacktrace_buckets(frames)
+        self.platform = platform
 
-        # We reprocess stackframes until we are told that no code mappings were produced
-        # This is order to reprocess past stackframes in light of newly discovered code mappings
-        # This allows for idempotency since the order of the stackframes will not matter
-        # This has no performance issue because stackframes that match an existing code mapping
-        # will be skipped
-        while True:
-            if not self._process_stackframes(buckets):
-                break
+        with metrics.timer(
+            f"{METRIC_PREFIX}.generate_code_mappings.duration", tags={"platform": platform}
+        ):
+            buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
+
+            # We reprocess stackframes until we are told that no code mappings were produced
+            # This is order to reprocess past stackframes in light of newly discovered code mappings
+            # This allows for idempotency since the order of the stackframes will not matter
+            # This has no performance issue because stackframes that match an existing code mapping
+            # will be skipped
+            while True:
+                if not self._process_stackframes(buckets):
+                    break
 
         return list(self.code_mappings.values())
 
-    def list_file_matches(self, frame_filename: FrameFilename) -> list[dict[str, str]]:
+    def get_file_and_repo_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
         """List all the files in a repo that match the frame_filename"""
         file_matches = []
         for repo_full_name in self.trees.keys():
@@ -158,25 +108,19 @@ class CodeMappingTreesHelper:
             for file in matches:
                 stack_path = frame_filename.raw_path
                 source_path = file
+                extra = {"stack_path": stack_path, "source_path": source_path}
 
                 try:
-                    stack_root, source_root = find_roots(stack_path, source_path)
+                    stack_root, source_root = find_roots(frame_filename, source_path)
                 except UnexpectedPathException:
-                    logger.info(
-                        "Unexpected format for stack_path or source_path",
-                        extra={"stack_path": stack_path, "source_path": source_path},
-                    )
+                    logger.warning("Unexpected format for stack_path or source_path", extra=extra)
                     continue
 
+                extra.update({"stack_root": stack_root, "source_root": source_root})
                 if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
-                    logger.info(
+                    logger.warning(
                         "Unexpected stack_path/source_path found. A code mapping was not generated.",
-                        extra={
-                            "stack_path": stack_path,
-                            "source_path": source_path,
-                            "stack_root": stack_root,
-                            "source_root": source_root,
-                        },
+                        extra=extra,
                     )
                 else:
                     file_matches.append(
@@ -192,22 +136,28 @@ class CodeMappingTreesHelper:
 
     def _stacktrace_buckets(
         self, frames: Sequence[Mapping[str, Any]]
-    ) -> dict[str, list[FrameFilename]]:
+    ) -> dict[str, list[FrameInfo]]:
         """Groups stacktraces into buckets based on the root of the stacktrace path"""
-        buckets: defaultdict[str, list[FrameFilename]] = defaultdict(list)
+        buckets: defaultdict[str, list[FrameInfo]] = defaultdict(list)
         for frame in frames:
             try:
-                frame_filename = FrameFilename(frame)
+                frame_filename = FrameInfo(frame, self.platform)
                 # Any files without a top directory will be grouped together
-                buckets[frame_filename.root].append(frame_filename)
-            except UnsupportedFrameFilename:
-                logger.info("Frame's filepath not supported: %s", frame.get("filename"))
+                buckets[frame_filename.stack_root].append(frame_filename)
+            except UnsupportedFrameInfo:
+                logger.warning("Frame's filepath not supported: %s", frame.get("filename"))
+            except MissingModuleOrAbsPath:
+                logger.warning("Do not panic. I'm collecting this data.")
+            except NeedsExtension:
+                logger.warning("Needs extension: %s", frame.get("filename"))
+            except DoesNotFollowJavaPackageNamingConvention:
+                pass
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 
         return buckets
 
-    def _process_stackframes(self, buckets: Mapping[str, Sequence[FrameFilename]]) -> bool:
+    def _process_stackframes(self, buckets: Mapping[str, Sequence[FrameInfo]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
@@ -221,7 +171,7 @@ class CodeMappingTreesHelper:
                         self.code_mappings[stackframe_root] = code_mapping
         return reprocess
 
-    def _find_code_mapping(self, frame_filename: FrameFilename) -> CodeMapping | None:
+    def _find_code_mapping(self, frame_filename: FrameInfo) -> CodeMapping | None:
         """Look for the file path through all the trees and a generate code mapping for it if a match is found"""
         code_mappings: list[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
@@ -240,11 +190,11 @@ class CodeMappingTreesHelper:
                 logger.exception("Unexpected error. Processing continues.")
 
         if len(code_mappings) == 0:
-            logger.warning("No files matched for %s", frame_filename.full_path)
+            logger.warning("No files matched for %s", frame_filename.raw_path)
             return None
         # This means that the file has been found in more than one repo
         elif len(code_mappings) > 1:
-            logger.warning("More than one repo matched %s", frame_filename.full_path)
+            logger.warning("More than one repo matched %s", frame_filename.raw_path)
             return None
 
         return code_mappings[0]
@@ -252,7 +202,7 @@ class CodeMappingTreesHelper:
     def _generate_code_mapping_from_tree(
         self,
         repo_tree: RepoTree,
-        frame_filename: FrameFilename,
+        frame_filename: FrameInfo,
     ) -> list[CodeMapping]:
         """
         Finds a match in the repo tree and generates a code mapping for it. At most one code mapping is generated, if any.
@@ -270,24 +220,18 @@ class CodeMappingTreesHelper:
         stack_path = frame_filename.raw_path
         source_path = matched_files[0]
 
+        extra = {"stack_path": stack_path, "source_path": source_path}
         try:
-            stack_root, source_root = find_roots(stack_path, source_path)
+            stack_root, source_root = find_roots(frame_filename, source_path)
         except UnexpectedPathException:
-            logger.info(
-                "Unexpected format for stack_path or source_path",
-                extra={"stack_path": stack_path, "source_path": source_path},
-            )
+            logger.warning("Unexpected format for stack_path or source_path", extra=extra)
             return []
 
+        extra.update({"stack_root": stack_root, "source_root": source_root})
         if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
-            logger.info(
+            logger.warning(
                 "Unexpected stack_path/source_path found. A code mapping was not generated.",
-                extra={
-                    "stack_path": stack_path,
-                    "source_path": source_path,
-                    "stack_root": stack_root,
-                    "source_root": source_root,
-                },
+                extra=extra,
             )
             return []
 
@@ -299,7 +243,7 @@ class CodeMappingTreesHelper:
             )
         ]
 
-    def _is_potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
+    def _is_potential_match(self, src_file: str, frame_filename: FrameInfo) -> bool:
         """
         Tries to see if the stacktrace without the root matches the file from the
         source code. Use existing code mappings to exclude some source files
@@ -339,6 +283,9 @@ class CodeMappingTreesHelper:
             for code_mapping in self.code_mappings.values()
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
+
+    def __repr__(self) -> str:
+        return f"CodeMappingTreesHelper(trees={self.trees}, code_mappings={self.code_mappings})"
 
 
 def convert_stacktrace_frame_path_to_source_path(
@@ -385,11 +332,8 @@ def convert_stacktrace_frame_path_to_source_path(
 
 def create_code_mapping(
     organization: Organization,
+    code_mapping: CodeMapping,
     project: Project,
-    stacktrace_root: str,
-    source_path: str,
-    repo_name: str,
-    branch: str,
 ) -> RepositoryProjectPathConfig:
     installation = get_installation(organization)
     # It helps with typing since org_integration can be None
@@ -397,21 +341,22 @@ def create_code_mapping(
         raise InstallationNotFoundError
 
     repository, _ = Repository.objects.get_or_create(
-        name=repo_name,
+        name=code_mapping.repo.name,
         organization_id=organization.id,
         defaults={"integration_id": installation.model.id},
     )
     new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
-        stack_root=stacktrace_root,
+        stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
             "organization_id": organization.id,
             "integration_id": installation.model.id,
             "organization_integration_id": installation.org_integration.id,
-            "source_root": source_path,
-            "default_branch": branch,
-            "automatically_generated": True,
+            "source_root": code_mapping.source_path,
+            "default_branch": code_mapping.repo.branch,
+            # This function is called from the UI, thus, we know that the code mapping is user generated
+            "automatically_generated": False,
         },
     )
 
@@ -470,25 +415,12 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     return sorted_configs
 
 
-def get_straight_path_prefix_end_index(file_path: str) -> int:
-    """
-    Get the index where the straight path prefix ends in the file path.
-    This is  used for Node projects where the file path can start with
-    "app:///", "../", or "./"
-    """
-    index = 0
-    for prefix in FILE_PATH_PREFIX_LENGTH:
-        while file_path.startswith(prefix):
-            index += FILE_PATH_PREFIX_LENGTH[prefix]
-            file_path = file_path[FILE_PATH_PREFIX_LENGTH[prefix] :]
-    return index
-
-
-def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
+def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     """
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
     """
+    stack_path = frame_filename.raw_path
     stack_root = ""
     if stack_path[0] == "/" or stack_path[0] == "\\":
         stack_root += stack_path[0]
@@ -498,8 +430,10 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
         return (stack_root, "")
     elif source_path.endswith(stack_path):  # "Packaged" logic
         source_prefix = source_path.rpartition(stack_path)[0]
-        package_dir = stack_path.split("/")[0]
-        return (f"{stack_root}{package_dir}/", f"{source_prefix}{package_dir}/")
+        return (
+            f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
+            f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
+        )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
         return (f"{stack_root}{stack_prefix}", "")

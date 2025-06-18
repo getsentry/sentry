@@ -20,7 +20,7 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -1217,9 +1217,35 @@ def test_project_config_cardinality_limits_organization_options_override_options
 
 @django_db_all
 @region_silo_test
-@override_options({"relay.emit-generic-inbound-filters": True})
 def test_project_config_with_generic_filters(default_project):
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
 
     assert config["config"]["filterSettings"]["generic"]["filters"]
+
+
+@django_db_all
+@region_silo_test
+@mock.patch("sentry.relay.config.get_transaction_names_config")
+def test_project_config_with_transaction_name_clustering_disabled(
+    mock_get_transaction_name_config, default_project
+):
+    mock_get_transaction_name_config.return_value = [
+        TransactionNameRule(
+            pattern="dummy_rule",
+            expiry="2999-05-26T00:00:00Z",
+            redaction={"method": "replace", "substitution": "*"},
+        )
+    ]
+
+    # clustering is enabled (by default)
+    config = get_project_config(default_project).to_dict()
+    mock_get_transaction_name_config.assert_called_once()
+    _validate_project_config(config["config"])
+    assert "txNameRules" in config["config"]
+
+    # clustering is disabled (via explicit option)
+    with Feature({"projects:transaction-name-clustering-disabled": True}):
+        config = get_project_config(default_project).to_dict()
+        _validate_project_config(config["config"])
+        assert "txNameRules" not in config["config"]

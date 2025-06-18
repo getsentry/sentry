@@ -1,11 +1,12 @@
-import {cloneElement, Component} from 'react';
+import {cloneElement, Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
-import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {space} from 'sentry/styles/space';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -31,20 +32,25 @@ type Props = DefaultProps &
      * The configuration for this navigation panel
      */
     navigationObjects: NavigationSection[];
+    /**
+     * The primary navigation group for this settings page
+     */
+    primaryNavGroup: PrimaryNavGroup;
   };
 
 function SettingsSecondaryNavigation({
   navigationObjects,
   hookConfigs,
   hooks,
+  primaryNavGroup,
   ...otherProps
 }: Props) {
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
-    <SecondaryNav group={PrimaryNavGroup.SETTINGS}>
+    <Fragment>
       <SecondaryNav.Header>
-        {NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
+        {PRIMARY_NAV_GROUP_CONFIG[primaryNavGroup].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         {navWithHooks.map(config => (
@@ -52,7 +58,7 @@ function SettingsSecondaryNavigation({
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 
@@ -75,16 +81,26 @@ class SettingsNavigation extends Component<Props> {
   }
 
   render() {
-    const {navigationObjects, hooks, hookConfigs, stickyTop, ...otherProps} = this.props;
+    const {
+      navigationObjects,
+      hooks,
+      hookConfigs,
+      stickyTop,
+      organization,
+      primaryNavGroup,
+      ...otherProps
+    } = this.props;
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
-    if (this.props.organization?.features.includes('navigation-sidebar-v2')) {
+    if (organization && prefersStackedNav(organization)) {
       return (
         <SettingsSecondaryNavigation
+          primaryNavGroup={primaryNavGroup}
           navigationObjects={navigationObjects}
           hooks={hooks}
           hookConfigs={hookConfigs}
           stickyTop={stickyTop}
+          organization={organization}
           {...otherProps}
         />
       );
@@ -95,6 +111,7 @@ class SettingsNavigation extends Component<Props> {
         {navWithHooks.map(config => (
           <SettingsNavigationGroupDeprecated
             key={config.name}
+            organization={organization}
             {...otherProps}
             {...config}
           />

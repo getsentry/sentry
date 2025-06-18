@@ -87,7 +87,7 @@ describe('SourceMapsDetails', function () {
 
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, router, project, routerProps} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser'],
         }),
@@ -118,7 +118,9 @@ describe('SourceMapsDetails', function () {
             bundleId: 'bea7335dfaebc0ca6e65a057',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       // Title
@@ -146,7 +148,7 @@ describe('SourceMapsDetails', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, routerProps, project, router} = initializeOrg({
+      const {organization, routerProps, project} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -171,7 +173,9 @@ describe('SourceMapsDetails', function () {
             bundleId: 'bea7335dfaebc0ca6e65a057',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       expect(
@@ -182,7 +186,7 @@ describe('SourceMapsDetails', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, project, routerProps, router} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser', 'project:releases'],
         }),
@@ -216,7 +220,9 @@ describe('SourceMapsDetails', function () {
             bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       // Title
@@ -283,7 +289,7 @@ describe('SourceMapsDetails', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, project, routerProps, router} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -311,7 +317,9 @@ describe('SourceMapsDetails', function () {
             bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       expect(

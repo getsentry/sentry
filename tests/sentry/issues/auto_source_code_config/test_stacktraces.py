@@ -9,6 +9,13 @@ def _exception_with_stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
     return {"exception": {"values": [{"stacktrace": {"frames": frames}}]}}
 
 
+def _stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"stacktrace": {"frames": frames}}
+
+
+BASIC_FRAME = {"in_app": True, "filename": "foo"}
+
+
 @pytest.mark.parametrize(
     "frames, platform, expected",
     [
@@ -64,6 +71,27 @@ def _exception_with_stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
             ],
             id="python_paths",
         ),
+        pytest.param(
+            [
+                # These frames are excluded because they have been categorized
+                {"module": "android.app", "in_app": False, "data": {"category": "foo"}},
+                {"module": "android.app", "in_app": False, "data": {"category": None}},
+                # These frames will be considered since they don't have a category set
+                {"module": "android.app", "in_app": False, "data": {}},
+                {"module": "android.app", "in_app": False, "data": None},
+                {"module": "com.example.foo", "in_app": False, "data": {}},
+                {"module": "com.example.bar", "in_app": False},
+            ],
+            "java",
+            [
+                # These will be considered since they don't have a category set
+                {"module": "android.app", "in_app": False, "data": {}},
+                {"module": "android.app", "in_app": False, "data": None},
+                {"module": "com.example.foo", "in_app": False, "data": {}},
+                {"module": "com.example.bar", "in_app": False},
+            ],
+            id="java_module_with_category",
+        ),
     ],
 )
 def test_get_frames_to_process(
@@ -76,10 +104,16 @@ def test_get_frames_to_process(
 @pytest.mark.parametrize(
     "frames, expected",
     [
+        (None, []),
+        ([None], []),
         ([], []),
-        ([{"in_app": True}], []),
+        ([{"in_app": True}], []),  # Both in_app and filename are required
+        ([BASIC_FRAME, None], [BASIC_FRAME]),  # Handle intermixing of None and dicts
     ],
 )
-def test_find_stacktrace_empty(frames: list[dict[str, Any]], expected: list[str]) -> None:
-    frames = get_frames_to_process(_exception_with_stacktrace(frames))
+def test_with_invalid_frames(frames: list[dict[str, Any]], expected: list[str]) -> None:
+    frames = get_frames_to_process(_exception_with_stacktrace(frames), "python")
+    assert frames == expected
+
+    frames = get_frames_to_process(_stacktrace(frames), "python")
     assert frames == expected

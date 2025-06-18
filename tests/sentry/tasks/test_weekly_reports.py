@@ -1,7 +1,6 @@
 from datetime import timedelta
 from typing import cast
 from unittest import mock
-from uuid import UUID
 
 import pytest
 from django.core import mail
@@ -16,6 +15,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.team import TeamStatus
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -43,6 +43,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
+from sentry.utils import redis
 from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
@@ -57,7 +58,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.two_days_ago = self.now - timedelta(days=2)
         self.three_days_ago = self.now - timedelta(days=3)
 
-    _dummy_batch_id = UUID("20bd6c5b-7fac-4f31-9548-d6f8bb63226d")
+    _dummy_batch_id = "20bd6c5b-7fac-4f31-9548-d6f8bb63226d"
 
     def store_event_outcomes(
         self,
@@ -179,7 +180,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch_id = UUID("77a1d368-33d5-47cd-88cf-d66c97b38333")
+        batch_id = "77a1d368-33d5-47cd-88cf-d66c97b38333"
 
         # disabled
         self._set_option_value("never")
@@ -633,7 +634,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # TODO(RyanSkonnord): Make sure this doesn't cause false negatives after
         #  batch IDs are also used to prevent duplicate sends
-        batch_id = UUID("ea18c80c-d44f-48a4-8973-b0daa3169c44")
+        batch_id = "ea18c80c-d44f-48a4-8973-b0daa3169c44"
 
         with (
             mock.patch(
@@ -886,6 +887,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_email_override_simple(self, message_builder, record):
         user = self.create_user(email="itwasme@dio.xyz")
+        user_id = user.id
         self.create_member(teams=[self.team], user=user, organization=self.organization)
         extra_team = self.create_team(organization=self.organization)
         # create an extra project to ensure our email only gets the user's project
@@ -901,7 +903,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             self.organization.id,
             self._dummy_batch_id,
             dry_run=False,
-            target_user=user,
+            target_user=user_id,
             email_override="joseph@speedwagon.org",
         )
 
@@ -931,7 +933,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         project = self.create_project(organization=organization)
 
         user = self.create_user(email="itwasme@dio.xyz")
-
+        user_id = user.id
         extra_team = self.create_team(organization=organization, members=[])
         self.create_member(teams=[extra_team], user=user, organization=organization)
 
@@ -943,7 +945,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             organization.id,
             self._dummy_batch_id,
             dry_run=False,
-            target_user=user,
+            target_user=user_id,
         )
 
         for call_args in message_builder.call_args_list:
@@ -1000,7 +1002,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         # fill with data so report not skipped
         self.store_event_outcomes(org.id, proj.id, self.two_days_ago, num_times=2)
 
-        batch_id = UUID("ef61f1d1-41a3-4530-8160-615466937076")
+        batch_id = "ef61f1d1-41a3-4530-8160-615466937076"
         prepare_organization_report(
             self.timestamp,
             ONE_DAY * 7,
@@ -1062,8 +1064,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch1_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")
-        batch2_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a1")
+        batch1_id = "abe8ba3e-90af-4a98-b925-5f30250ae6a0"
+        batch2_id = "abe8ba3e-90af-4a98-b925-5f30250ae6a1"
         self._set_option_value("always")
 
         # First send
@@ -1085,3 +1087,139 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "report_date": "1970-01-01",
             },
         )
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
+    def test_schedule_organizations_with_redis_tracking(self, mock_prepare_organization_report):
+        """Test that schedule_organizations uses Redis to track minimum organization ID."""
+        timestamp = self.timestamp
+        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+            "weekly_reports_org_id_min"
+        )
+
+        # Create multiple organizations
+        org1 = self.organization  # Use existing organization
+        org2 = self.create_organization(name="Another Org")
+        org3 = self.create_organization(name="Third Org")
+
+        # Set initial Redis value to simulate a previous run that was interrupted
+        redis_cluster.set(f"weekly_reports_org_id_min:{timestamp}", org1.id)
+
+        # Run the task
+        schedule_organizations(timestamp=timestamp)
+
+        # Verify that prepare_organization_report was called for org2 and org3 but not org1
+        # because we started from org1.id
+        mock_prepare_organization_report.delay.assert_any_call(
+            timestamp, ONE_DAY * 7, org2.id, mock.ANY, dry_run=False
+        )
+        mock_prepare_organization_report.delay.assert_any_call(
+            timestamp, ONE_DAY * 7, org3.id, mock.ANY, dry_run=False
+        )
+
+        # Verify that Redis key was deleted after completion
+        assert redis_cluster.get(f"weekly_reports_org_id_min:{timestamp}") is None
+
+        # Reset call counts for the next test
+        mock_prepare_organization_report.reset_mock()
+
+        # Run again with no Redis value set
+        schedule_organizations(timestamp=timestamp)
+
+        # Verify that prepare_organization_report was called for all organizations
+        assert mock_prepare_organization_report.delay.call_count == 3
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
+    def test_schedule_organizations_updates_redis_during_processing(
+        self, mock_prepare_organization_report
+    ):
+        """Test that schedule_organizations updates Redis with the current organization ID during processing."""
+        timestamp = self.timestamp
+
+        # Create multiple organizations
+        orgs = [
+            self.organization,
+            self.create_organization(name="Org 2"),
+            self.create_organization(name="Org 3"),
+        ]
+
+        # Sort organizations by ID
+        orgs.sort(key=lambda org: org.id)
+
+        # Use a spy to track Redis set calls
+        with mock.patch("redis.client.Redis.set") as mock_redis_set:
+            # Run the task
+            schedule_organizations(timestamp=timestamp)
+
+            # Verify that redis.set was called for each organization
+            expected_key = f"weekly_reports_org_id_min:{timestamp}"
+
+            # Check that set was called at least once for each organization except the last one
+            assert mock_redis_set.call_count > 0, "Redis set was not called"
+
+            # Get the keys that were set
+            set_keys = [args[0] for args, _ in mock_redis_set.call_args_list]
+
+            # Verify that the expected key was used
+            assert expected_key in set_keys, f"Expected key {expected_key} not found in {set_keys}"
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
+    def test_schedule_organizations_starts_from_beginning_when_no_redis_key(
+        self, mock_prepare_organization_report
+    ):
+        """Test that schedule_organizations starts from the beginning when no Redis key exists."""
+        timestamp = self.timestamp
+        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+            "weekly_reports_org_id_min"
+        )
+
+        # Ensure Redis key doesn't exist
+        redis_cluster.delete(f"weekly_reports_org_id_min:{timestamp}")
+
+        # Create multiple organizations
+        orgs = [
+            self.organization,
+            self.create_organization(name="Org 2"),
+            self.create_organization(name="Org 3"),
+        ]
+
+        # Sort organizations by ID
+        orgs.sort(key=lambda org: org.id)
+
+        # Run the task
+        schedule_organizations(timestamp=timestamp)
+
+        # Verify that prepare_organization_report was called for all organizations
+        assert mock_prepare_organization_report.delay.call_count == len(orgs)
+
+        # Verify that each organization was processed
+        for org in orgs:
+            mock_prepare_organization_report.delay.assert_any_call(
+                timestamp, ONE_DAY * 7, org.id, mock.ANY, dry_run=False
+            )
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_user_does_not_see_deleted_team_data(self, message_builder):
+        user = self.create_user(email="test@example.com")
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.team.status = TeamStatus.PENDING_DELETION
+        self.team.save()
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        prepare_organization_report(
+            self.timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            self._dummy_batch_id,
+            dry_run=False,
+            target_user=user.id,
+        )
+
+        # Verify the report is empty as the user's team is pending deletion
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+            assert len(context["trends"]["legend"]) == 0

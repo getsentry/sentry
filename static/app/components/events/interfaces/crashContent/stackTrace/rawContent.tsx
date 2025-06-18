@@ -46,12 +46,12 @@ function getRubyFrame(frame: Frame): string {
   return result;
 }
 
-export function getPHPFrame(frame: Frame, idx: number): string {
+function getPHPFrame(frame: Frame, idx: number): string {
   const funcName = frame.function === 'null' ? '{main}' : frame.function;
   return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
 }
 
-export function getPythonFrame(frame: Frame): string {
+function getPythonFrame(frame: Frame): string {
   let result = '';
   if (defined(frame.filename)) {
     result += '  File "' + frame.filename + '"';
@@ -72,7 +72,7 @@ export function getPythonFrame(frame: Frame): string {
   if (defined(frame.context)) {
     frame.context.forEach(item => {
       if (item[0] === frame.lineNo) {
-        result += '\n    ' + item[1].trim();
+        result += '\n    ' + item[1]?.trim();
       }
     });
   }
@@ -98,7 +98,7 @@ export function getJavaFrame(frame: Frame): string {
   return result;
 }
 
-export function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
+function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
   let result = `  #${frameIdxFromEnd}`;
 
   if (frame.function === '<asynchronous suspension>') {
@@ -126,10 +126,10 @@ export function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
 }
 
 function ljust(str: string, len: number) {
-  return str + Array(Math.max(0, len - str.length) + 1).join(' ');
+  return str + new Array(Math.max(0, len - str.length) + 1).join(' ');
 }
 
-export function getNativeFrame(frame: Frame): string {
+function getNativeFrame(frame: Frame): string {
   let result = '  ';
   if (defined(frame.package)) {
     result += ljust(trimPackage(frame.package), 20);
@@ -199,10 +199,10 @@ function getFrame(
 }
 
 export default function displayRawContent(
-  data: StacktraceType,
+  data: StacktraceType | null,
   platform?: string,
   exception?: ExceptionValue,
-  hasSimilarityEmbeddingsFeature: boolean = false
+  hasSimilarityEmbeddingsFeature = false
 ) {
   const rawFrames = data?.frames || [];
 

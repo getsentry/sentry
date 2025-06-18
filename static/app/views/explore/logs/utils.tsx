@@ -1,5 +1,35 @@
+import type {ReactNode} from 'react';
+import * as Sentry from '@sentry/react';
+
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {
+  type ColumnValueType,
+  CurrencyUnit,
+  DurationUnit,
+  fieldAlignment,
+  type Sort,
+} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  LogAttributesHumanLabel,
+  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+} from 'sentry/views/explore/logs/constants';
+import {
+  type LogAttributeUnits,
+  type LogRowItem,
+  type OurLogFieldKey,
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
+
+const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
   severityNumber: number | null,
@@ -98,4 +128,114 @@ export function getLogBodySearchTerms(search: MutableSearch): string[] {
     }
   }
   return searchTerms;
+}
+
+export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
+  const field = args[0];
+  if (field === OurLogKnownFieldKey.TIMESTAMP) {
+    return 'left';
+  }
+  return fieldAlignment(...args);
+}
+
+export function adjustAliases(attribute: TraceItemResponseAttribute) {
+  switch (attribute.name) {
+    case 'sentry.project_id':
+      warn(
+        fmt`Field ${attribute.name} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+      );
+      return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
+    default:
+      return attribute.name;
+  }
+}
+
+export function getTableHeaderLabel(
+  field: OurLogFieldKey,
+  stringAttributes?: TagCollection,
+  numberAttributes?: TagCollection
+) {
+  const attribute = stringAttributes?.[field] ?? numberAttributes?.[field] ?? null;
+
+  return (
+    LogAttributesHumanLabel[field] ?? attribute?.name ?? prettifyAttributeName(field)
+  );
+}
+
+function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
+  return (
+    unit === null ||
+    Object.values(DurationUnit).includes(unit as DurationUnit) ||
+    Object.values(CurrencyUnit).includes(unit as CurrencyUnit) ||
+    unit === 'count' ||
+    unit === 'percentage' ||
+    unit === 'percent_change'
+  );
+}
+
+export function getLogRowItem(
+  field: OurLogFieldKey,
+  dataRow: OurLogsResponseItem,
+  meta: EventsMetaType | undefined
+): LogRowItem {
+  if (!defined(dataRow[field])) {
+    warn(fmt`Field ${field} in not defined in dataRow ${dataRow}`);
+  }
+
+  return {
+    fieldKey: field,
+    metaFieldType: meta?.fields?.[field] as ColumnValueType,
+    unit: isLogAttributeUnit(meta?.units?.[field] ?? null)
+      ? (meta?.units?.[field] as LogAttributeUnits)
+      : null,
+    value: dataRow[field] ?? '',
+  };
+}
+
+export function checkSortIsTimeBased(sortBys: Sort[]) {
+  return getTimeBasedSortBy(sortBys) !== undefined;
+}
+
+export function getTimeBasedSortBy(sortBys: Sort[]) {
+  return sortBys.find(
+    sortBy =>
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP ||
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  );
+}
+
+export function adjustLogTraceID(traceID: string) {
+  return traceID.replace(/-/g, '');
+}
+
+export function logsPickableDays(organization: Organization): PickableDays {
+  const relativeOptions: Array<[string, ReactNode]> = [
+    ['1h', t('Last hour')],
+    ['24h', t('Last 24 hours')],
+    ['7d', t('Last 7 days')],
+  ];
+
+  if (organization.features.includes('visibility-explore-range-high')) {
+    relativeOptions.push(['14d', t('Last 14 days')]);
+  }
+
+  return {
+    defaultPeriod: '24h',
+    maxPickableDays: 14,
+    relativeOptions: ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
+      ...arbitraryOptions,
+      ...Object.fromEntries(relativeOptions),
+    }),
+  };
+}
+
+export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
+  if (lastPageLength * 0.75 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
+    return Math.floor(lastPageLength * 0.75); // Can be up to 750 on large pages.
+  }
+  return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
 }

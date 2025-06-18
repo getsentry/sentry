@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
@@ -14,7 +13,6 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 const getVerifySnippet = () => `
 using Sentry; // On the top of the script
@@ -37,15 +35,11 @@ const onboarding: OnboardingConfig = {
         {
           language: 'url',
           partialLoading: params.sourcePackageRegistries.isLoading,
-          code: `https://github.com/getsentry/unity.git#${getPackageVersion(
-            params,
-            'sentry.dotnet.unity',
-            '1.5.0'
-          )}`,
+          code: 'https://github.com/getsentry/unity.git',
         },
       ],
       additionalInfo: (
-        <AlertWithoutMarginBottom type="info">
+        <Alert type="info">
           {tct(
             'The Unity SDK now supports line numbers for IL2CPP. The feature is currently in beta, but you can enable it at [code:Tools -> Sentry -> Advanced -> IL2CPP] line numbers. To learn more check out our [link:docs].',
             {
@@ -55,7 +49,7 @@ const onboarding: OnboardingConfig = {
               ),
             }
           )}
-        </AlertWithoutMarginBottom>
+        </Alert>
       ),
     },
   ],
@@ -174,7 +168,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

@@ -12,7 +12,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
-from sentry.api.event_search import SearchFilter
+from sentry.api.event_search import AggregateFilter, SearchFilter
+from sentry.api.helpers.environments import get_environment
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
@@ -20,6 +21,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -44,6 +46,7 @@ advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = 
 ]
 
 DEFAULT_QUERY = "is:unresolved issue.priority:[high, medium]"
+TAXONOMY_DEFAULT_QUERY = "is:unresolved"
 
 
 def parse_and_convert_issue_search_query(
@@ -52,7 +55,7 @@ def parse_and_convert_issue_search_query(
     projects: Sequence[Project],
     environments: Sequence[Environment] | None,
     user: User | AnonymousUser,
-) -> Sequence[SearchFilter]:
+) -> Sequence[SearchFilter | AggregateFilter]:
     try:
         search_filters = convert_query_values(
             parse_search_query(query), projects, user, environments
@@ -92,7 +95,11 @@ def build_query_params_from_request(
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
     if query is None:
-        query = DEFAULT_QUERY
+        query = (
+            TAXONOMY_DEFAULT_QUERY
+            if features.has("organizations:issue-taxonomy", organization)
+            else DEFAULT_QUERY
+        )
 
     query = query.strip()
 
@@ -104,11 +111,12 @@ def build_query_params_from_request(
             if selected_view_id:
                 default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
             else:
-                default_view = GroupSearchView.objects.filter(
+                first_starred_view = GroupSearchViewStarred.objects.filter(
                     organization=organization,
                     user_id=request.user.id,
                     position=0,
                 ).first()
+                default_view = first_starred_view.group_search_view if first_starred_view else None
 
             if default_view:
                 query_kwargs["sort_by"] = default_view.query_sort
@@ -158,7 +166,7 @@ def build_query_params_from_request(
 
 def validate_search_filter_permissions(
     organization: Organization,
-    search_filters: Sequence[SearchFilter],
+    search_filters: Sequence[AggregateFilter | SearchFilter],
     user: User | AnonymousUser,
 ) -> None:
     """
@@ -176,7 +184,7 @@ def validate_search_filter_permissions(
 
     for search_filter in search_filters:
         for feature_condition, feature_name in advanced_search_features:
-            if feature_condition(search_filter):
+            if isinstance(search_filter, SearchFilter) and feature_condition(search_filter):
                 advanced_search_feature_gated.send_robust(
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
@@ -259,13 +267,12 @@ def calculate_stats_period(
 
 
 def prep_search(
-    cls: Any,
     request: Request,
     project: Project,
     extra_query_kwargs: dict[str, Any] | None = None,
 ) -> tuple[CursorResult[Group], dict[str, Any]]:
     try:
-        environment = cls._get_environment_from_request(request, project.organization_id)
+        environment = get_environment(request, project.organization_id)
     except Environment.DoesNotExist:
         result = CursorResult[Group](
             [], Cursor(0, 0, 0), Cursor(0, 0, 0), hits=0, max_hits=SEARCH_MAX_HITS

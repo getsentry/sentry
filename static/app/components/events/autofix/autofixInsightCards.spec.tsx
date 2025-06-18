@@ -110,7 +110,7 @@ describe('AutofixInsightCards', () => {
 
   it('submits edit request when form is submitted', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -121,11 +121,11 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/1/autofix/update/',
+      '/organizations/org-slug/issues/1/autofix/update/',
       expect.objectContaining({
         method: 'POST',
         data: expect.objectContaining({
@@ -134,7 +134,7 @@ describe('AutofixInsightCards', () => {
             type: 'restart_from_point_with_feedback',
             message: 'Here is my insight.',
             step_index: 0,
-            retain_insight_card_index: 0,
+            retain_insight_card_index: 1,
           }),
         }),
       })
@@ -143,7 +143,7 @@ describe('AutofixInsightCards', () => {
 
   it('shows success message after successful edit submission', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -154,17 +154,17 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
+      expect(addSuccessMessage).toHaveBeenCalledWith('Rethinking this...');
     });
   });
 
   it('shows error message after failed edit submission', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
       statusCode: 500,
     });
@@ -176,12 +176,12 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(
-        'Something went wrong when sending Autofix your message.'
+        'Something went wrong when sending Seer your message.'
       );
     });
   });

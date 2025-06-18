@@ -1,7 +1,8 @@
-from django.http import HttpResponse
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 
 from sentry.identity.base import Provider
-from sentry.pipeline import PipelineView
+from sentry.identity.pipeline_types import IdentityPipelineT, IdentityPipelineViewT
 from sentry.utils.http import absolute_uri
 
 
@@ -9,15 +10,12 @@ class BitbucketIdentityProvider(Provider):
     key = "bitbucket"
     name = "Bitbucket"
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
         return [BitbucketLoginView()]
 
 
-from rest_framework.request import Request
-
-
-class BitbucketLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+class BitbucketLoginView(IdentityPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IdentityPipelineT) -> HttpResponseBase:
         from sentry.integrations.base import IntegrationDomain
         from sentry.integrations.utils.metrics import (
             IntegrationPipelineViewEvent,
@@ -31,7 +29,7 @@ class BitbucketLoginView(PipelineView):
         ).capture():
             jwt = request.GET.get("jwt")
             if jwt is None:
-                return self.redirect(
+                return HttpResponseRedirect(
                     "https://bitbucket.org/site/addons/authorize?descriptor_uri=%s"
                     % (absolute_uri("/extensions/bitbucket/descriptor/"),)
                 )

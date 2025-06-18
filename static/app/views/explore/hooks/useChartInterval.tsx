@@ -2,9 +2,11 @@ import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
 import {
+  FIVE_MINUTES,
   FORTY_EIGHT_HOURS,
   getDiffInMinutes,
   GranularityLadder,
+  ONE_HOUR,
   ONE_WEEK,
   SIX_HOURS,
   THIRTY_DAYS,
@@ -55,11 +57,15 @@ function useChartIntervalImpl({
   const interval: string = useMemo(() => {
     const decodedInterval = decodeScalar(location.query.interval);
 
+    // Default to the second largest option or largest option
+    const fallbackInterval =
+      intervalOptions[intervalOptions.length - 2]?.value ??
+      intervalOptions[intervalOptions.length - 1]!.value;
+
     return decodedInterval &&
       intervalOptions.some(option => option.value === decodedInterval)
       ? decodedInterval
-      : // Default to the second option so we're not defaulting to the smallest option
-        intervalOptions[1]!.value;
+      : fallbackInterval;
   }, [location.query.interval, intervalOptions]);
 
   const setInterval = useCallback(
@@ -105,10 +111,12 @@ const MINIMUM_INTERVAL = new GranularityLadder([
 const MAXIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '1d'],
   [TWO_WEEKS, '1d'],
-  [ONE_WEEK, '1d'],
+  [ONE_WEEK, '12h'],
   [FORTY_EIGHT_HOURS, '4h'],
   [SIX_HOURS, '1h'],
-  [0, '15m'],
+  [ONE_HOUR, '15m'],
+  [FIVE_MINUTES, '5m'],
+  [0, '1m'],
 ]);
 
 export function getIntervalOptionsForPageFilter(datetime: PageFilters['datetime']) {

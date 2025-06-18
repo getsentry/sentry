@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:43.587959+00:00'
+created: '2025-02-26T00:32:24.398457+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -45,13 +45,13 @@ contributing variants:
             frame*
               function*
                 "_main"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               function*
                 "std::rt::lang_start_internal"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               function*
                 "std::panicking::try::do_call"
-            frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+            frame*
               function*
                 "log_demo::main"
           type*

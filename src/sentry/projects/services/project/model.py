@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, TypedDict
 
 from pydantic.fields import Field
@@ -18,6 +19,13 @@ def _project_status_visible() -> int:
 
 class ProjectFilterArgs(TypedDict, total=False):
     project_ids: list[int]
+
+
+class ProjectUpdateArgs(TypedDict, total=False):
+    name: str
+    slug: str
+    platform: str | None
+    external_id: str | None
 
 
 class RpcProjectFlags(RpcModel):
@@ -57,6 +65,7 @@ class RpcProject(RpcModel):
     name: str = ""
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
+    first_event: datetime | None = None
     platform: str | None = None
     external_id: str | None = None
 

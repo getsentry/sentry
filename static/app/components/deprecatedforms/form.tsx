@@ -2,8 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/button';
-import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
+import {Button} from 'sentry/components/core/button';
 import FormContext from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
@@ -41,9 +40,6 @@ type FormClassState = {
   state: FormState;
 };
 
-// Re-export for compatibility alias.
-export type Context = FormContextData;
-
 class Form<
   Props extends FormProps = FormProps,
   State extends FormClassState = FormClassState,
@@ -62,8 +58,8 @@ class Form<
     ),
   };
 
-  constructor(props: Props, context: Context) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
     this.state = {
       data: {...this.props.initialData},
       errors: {},
@@ -95,7 +91,7 @@ class Form<
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: {...this.state.data, ...(data || {})},
+      initialData: {...this.state.data, ...data},
     });
     this.props.onSubmitSuccess?.(data);
   };
@@ -135,7 +131,7 @@ class Form<
     const nonFieldErrors = this.state.errors?.non_field_errors;
 
     return (
-      <FormContext.Provider value={this.getContext()}>
+      <FormContext value={this.getContext()}>
         <StyledForm
           onSubmit={this.onSubmit}
           className={this.props.className}
@@ -185,7 +181,7 @@ class Form<
             {this.props.extraButton}
           </div>
         </StyledForm>
-      </FormContext.Provider>
+      </FormContext>
     );
   }
 }

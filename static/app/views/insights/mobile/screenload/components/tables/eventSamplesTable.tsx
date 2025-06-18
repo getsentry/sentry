@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,7 +36,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 type Props = {
   columnNameMap: Record<string, string>;
   cursorName: string;
-  eventIdKey: 'id' | 'transaction.id';
+  eventIdKey: 'id' | 'transaction.id' | 'transaction.span_id';
   eventView: EventView;
   isLoading: boolean;
   profileIdKey: 'profile.id' | 'profile_id';
@@ -64,6 +65,7 @@ export function EventSamplesTable({
   footerAlignedPagination = false,
 }: Props) {
   const navigate = useNavigate();
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
@@ -79,7 +81,7 @@ export function EventSamplesTable({
         <Link
           to={generateLinkToEventInTraceView({
             eventId: row[eventIdKey],
-            projectSlug: row['project.name'],
+            projectSlug: row.project,
             traceSlug: row.trace,
             timestamp: row.timestamp,
             organization,
@@ -95,10 +97,10 @@ export function EventSamplesTable({
 
     if (column.key === profileIdKey) {
       const profileTarget =
-        defined(row['project.name']) && defined(row[profileIdKey])
+        defined(row.project) && defined(row[profileIdKey])
           ? generateProfileFlamechartRoute({
               organization,
-              projectSlug: row['project.name'],
+              projectSlug: row.project,
               profileId: String(row[profileIdKey]),
             })
           : null;
@@ -120,6 +122,7 @@ export function EventSamplesTable({
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     return rendered;
   }
@@ -200,10 +203,10 @@ export function EventSamplesTable({
           isLoading={isLoading}
           data={data?.data as TableDataRow[]}
           columnOrder={eventViewColumns
-            .filter((col: TableColumn<React.ReactText>) =>
+            .filter((col: TableColumn<string | number>) =>
               Object.keys(columnNameMap).includes(col.name)
             )
-            .map((col: TableColumn<React.ReactText>) => {
+            .map((col: TableColumn<string | number>) => {
               return {...col, name: columnNameMap[col.key]!};
             })}
           columnSortBy={columnSortBy}

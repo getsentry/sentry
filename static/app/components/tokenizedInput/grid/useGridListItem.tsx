@@ -8,7 +8,7 @@ import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 
 interface UseGridListItemOptions<T> {
   item: Node<T>;
-  ref: RefObject<HTMLDivElement>;
+  ref: RefObject<HTMLDivElement | null>;
   state: ListState<T>;
 }
 

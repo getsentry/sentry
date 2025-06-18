@@ -142,7 +142,7 @@ class WebhookTest(GitLabTestCase):
 
     def test_push_event_multiple_organizations_one_missing_repo(self):
         # Create a repo on the primary organization
-        repo = self.create_repo("getsentry/sentry")
+        repo = self.create_gitlab_repo("getsentry/sentry")
 
         # Second org with no repo.
         other_org = self.create_organization(owner=self.user)
@@ -165,7 +165,7 @@ class WebhookTest(GitLabTestCase):
 
     def test_push_event_multiple_organizations(self):
         # Create a repo on the primary organization
-        repo = self.create_repo("getsentry/sentry")
+        repo = self.create_gitlab_repo("getsentry/sentry")
 
         # Second org with the same repo
         other_org = self.create_organization(owner=self.user)
@@ -173,7 +173,7 @@ class WebhookTest(GitLabTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(other_org, self.user)
 
-        other_repo = self.create_repo("getsentry/sentry", organization_id=other_org.id)
+        other_repo = self.create_gitlab_repo("getsentry/sentry", organization_id=other_org.id)
 
         response = self.client.post(
             self.url,
@@ -195,7 +195,7 @@ class WebhookTest(GitLabTestCase):
             assert commit.organization_id == other_org.id
 
     def test_push_event_create_commits_and_authors(self):
-        repo = self.create_repo("getsentry/sentry")
+        repo = self.create_gitlab_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -224,7 +224,7 @@ class WebhookTest(GitLabTestCase):
             assert author.organization_id == self.organization.id
 
     def test_push_event_create_commits_with_no_author_email(self):
-        repo = self.create_repo("getsentry/sentry")
+        repo = self.create_gitlab_repo("getsentry/sentry")
         push_event = orjson.loads(PUSH_EVENT)
         push_event["commits"][0]["author"]["email"] = None
 
@@ -259,7 +259,7 @@ class WebhookTest(GitLabTestCase):
             assert author.organization_id == self.organization.id
 
     def test_push_event_ignore_commit(self):
-        self.create_repo("getsentry/sentry")
+        self.create_gitlab_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
             data=PUSH_EVENT_IGNORED_COMMIT,
@@ -274,7 +274,7 @@ class WebhookTest(GitLabTestCase):
         CommitAuthor.objects.create(
             organization_id=self.organization.id, email="jordi@example.org", name="Jordi"
         )
-        self.create_repo("getsentry/sentry")
+        self.create_gitlab_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -335,8 +335,9 @@ class WebhookTest(GitLabTestCase):
 
         assert_success_metric(mock_record)
 
-    def test_merge_event_create_pull_request(self):
-        self.create_repo("getsentry/sentry")
+    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
+    def test_merge_event_create_pull_request(self, mock_delay):
+        self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
         response = self.client.post(
             self.url,
@@ -353,8 +354,11 @@ class WebhookTest(GitLabTestCase):
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
-    def test_merge_event_update_pull_request(self):
-        repo = self.create_repo("getsentry/sentry")
+        mock_delay.assert_called_once_with(pr_id=pull.id)
+
+    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
+    def test_merge_event_update_pull_request(self, mock_delay):
+        repo = self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
         PullRequest.objects.create(
             organization_id=self.organization.id,
@@ -382,8 +386,10 @@ class WebhookTest(GitLabTestCase):
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
+        assert mock_delay.call_count == 0
+
     def test_update_repo_path(self):
-        repo_out_of_date_path = self.create_repo(
+        repo_out_of_date_path = self.create_gitlab_repo(
             name="Cool Group / Sentry", url="http://example.com/cool-group/sentry"
         )
         repo_out_of_date_path.update(
@@ -407,7 +413,7 @@ class WebhookTest(GitLabTestCase):
         assert repo_out_of_date_path.config["path"] == "cool-group/sentry"
 
     def test_update_repo_url(self):
-        repo_out_of_date_url = self.create_repo(
+        repo_out_of_date_url = self.create_gitlab_repo(
             name="Cool Group / Sentry",
             url="http://example.com/uncool-group/sentry",  # url out of date
         )
@@ -430,7 +436,7 @@ class WebhookTest(GitLabTestCase):
         assert repo_out_of_date_url.url == "http://example.com/cool-group/sentry"
 
     def test_no_valid_integration_for_organization(self):
-        self.create_repo("getsentry/sentry")
+        self.create_gitlab_repo("getsentry/sentry")
         self.create_group(project=self.project, short_id=9)
 
         with assume_test_silo_mode_of(Integration):

@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
@@ -31,7 +31,7 @@ export interface FilterValueItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface RecentFilterItem extends SelectOptionWithKey<string> {
+interface RecentFilterItem extends SelectOptionWithKey<string> {
   type: 'recent-filter';
   value: string;
 }

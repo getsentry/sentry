@@ -11,10 +11,10 @@ from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.conf import settings
+from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
-from rest_framework.exceptions import APIException, ParseError
-from rest_framework.request import Request
+from rest_framework.exceptions import APIException, ParseError, Throttled
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
@@ -34,13 +34,17 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE, TIMEOUT_RPC_ERROR_MESSAGE
+from sentry.search.events.constants import (
+    RATE_LIMIT_ERROR_MESSAGE,
+    TIMEOUT_ERROR_MESSAGE,
+    TIMEOUT_RPC_ERROR_MESSAGE,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -266,7 +270,7 @@ def clamp_date_range(
 # The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
 # If you can use the wider more correct type, please do.
 def is_member_disabled_from_limit(
-    request: Request,
+    request: HttpRequest,
     organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
 ) -> bool:
     user = request.user
@@ -374,14 +378,18 @@ def handle_query_errors() -> Generator[None]:
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+        sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
+        if isinstance(error, RateLimitExceeded):
+            sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+            sentry_sdk.capture_exception(error)
+            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
             (
-                RateLimitExceeded,
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
@@ -417,6 +425,17 @@ def handle_query_errors() -> Generator[None]:
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
+    except OperationalError as error:
+        error_message = str(error)
+        is_timeout = "canceling statement due to statement timeout" in error_message
+        if is_timeout:
+            sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
+            sentry_sdk.capture_exception(error, level="warning")
+            raise Throttled(
+                detail="Query timeout. Please try with a smaller date range or fewer conditions."
+            )
+        # Let other OperationalErrors propagate as normal
+        raise
 
 
 def update_snuba_params_with_timestamp(
@@ -435,7 +454,7 @@ def update_snuba_params_with_timestamp(
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
         time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        set_span_attribute("trace_view.transactions.time_buffer", time_buffer)
         example_start = example_timestamp - timedelta(days=time_buffer)
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
@@ -443,3 +462,11 @@ def update_snuba_params_with_timestamp(
 
         params.start = max(params.start_date, example_start)
         params.end = min(params.end_date, example_end)
+
+
+def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:
+    """
+    `timestamp_ms` arrives from Snuba in a slightly different format (no `T` and no timezone), so we convert to datetime and
+    back to isoformat to keep it standardized with other timestamp fields
+    """
+    return datetime.datetime.fromisoformat(timestamp_ms).astimezone().isoformat()

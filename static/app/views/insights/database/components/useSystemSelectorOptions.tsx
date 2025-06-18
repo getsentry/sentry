@@ -1,4 +1,4 @@
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -43,7 +43,7 @@ export function useSystemSelectorOptions() {
   });
 
   // Edge case: Invalid DB system was retrieved from localStorage
-  if (!options.find(option => selectedSystem === option.value) && options.length > 0) {
+  if (!options.some(option => selectedSystem === option.value) && options.length > 0) {
     setSelectedSystem(options[0]!.value);
   }
 

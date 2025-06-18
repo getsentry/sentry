@@ -24,6 +24,10 @@ function TestComponent() {
 }
 
 describe('TimelineCursor', function () {
+  beforeEach(() => {
+    document.elementsFromPoint = () => [];
+  });
+
   it('renders', async function () {
     render(<TestComponent />);
 

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:07.439416+00:00'
+created: '2025-04-25T21:24:05.490353+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,36 +30,36 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "stripped_application_code"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "@callee_guaranteed"
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "stripped_application_code"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "@callee_guaranteed"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "@callee_guaranteed"
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "stripped_application_code"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "@callee_guaranteed"
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "stripped_application_code"
           type*

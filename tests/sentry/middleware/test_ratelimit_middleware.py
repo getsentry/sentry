@@ -118,6 +118,39 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
+            assert "You are attempting to use this endpoint too frequently. Limit is 0 requests in 100 seconds" in response.serialize().decode(  # type: ignore[attr-defined]
+                "utf-8"
+            )
+            assert response["Access-Control-Allow-Methods"] == "GET"
+            assert response["Access-Control-Allow-Origin"] == "*"
+            assert response["Access-Control-Allow-Headers"]
+            assert response["Access-Control-Expose-Headers"]
+
+    @patch("sentry.middleware.ratelimit.get_rate_limit_value")
+    @patch("sentry.ratelimits.utils.ratelimiter.is_limited_with_value")
+    @override_settings(ENFORCE_CONCURRENT_RATE_LIMITS=True)
+    def test_positive_concurrent_rate_limit_response_headers(
+        self, is_limited_with_value, default_rate_limit_mock
+    ):
+        request = self.factory.get("/")
+
+        with (
+            freeze_time("2000-01-01"),
+            patch.object(RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True),
+            patch("sentry.ratelimits.concurrent.rate_limit_info") as rate_limit_info,
+        ):
+            rate_limit_info.return_value = (1, False, 0)
+
+            default_rate_limit_mock.return_value = RateLimit(
+                limit=0, window=100, concurrent_limit=1
+            )
+            is_limited_with_value.return_value = (False, 0, 0)
+            response = self.middleware.process_view(request, self._test_endpoint, [], {})
+            assert request.will_be_rate_limited
+            assert response
+            assert "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is 1" in response.serialize().decode(  # type: ignore[attr-defined]
+                "utf-8"
+            )
             assert response["Access-Control-Allow-Methods"] == "GET"
             assert response["Access-Control-Allow-Origin"] == "*"
             assert response["Access-Control-Allow-Headers"]
@@ -316,9 +349,7 @@ urlpatterns = [
 ]
 
 
-@override_settings(
-    ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
-)
+@override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class TestRatelimitHeader(APITestCase):
     endpoint = "ratelimit-header-endpoint"
 
@@ -378,9 +409,7 @@ class TestRatelimitHeader(APITestCase):
         assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
 
 
-@override_settings(
-    ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
-)
+@override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class TestConcurrentRateLimiter(APITestCase):
     endpoint = "concurrent-endpoint"
 
@@ -430,9 +459,7 @@ class TestConcurrentRateLimiter(APITestCase):
             )
 
 
-@override_settings(
-    ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
-)
+@override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class TestCallableRateLimitConfig(APITestCase):
     endpoint = "callable-config-endpoint"
 

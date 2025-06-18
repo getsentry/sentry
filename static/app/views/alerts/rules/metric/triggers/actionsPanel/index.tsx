@@ -4,9 +4,10 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -150,40 +151,32 @@ class ActionsPanel extends PureComponent<Props> {
     const newAction = {...actions[index]};
     if (newAction.type === 'slack') {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Having rate limiting problems? Enter a channel or user ID.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
     if (newAction.type === 'discord') {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
     return null;
@@ -288,7 +281,7 @@ class ActionsPanel extends PureComponent<Props> {
   updateParentFromSentryAppRule = (
     triggerIndex: number,
     actionIndex: number,
-    formData: {[key: string]: string}
+    formData: Record<string, string>
   ): void => {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex]!;
@@ -364,7 +357,7 @@ class ActionsPanel extends PureComponent<Props> {
               <RuleRowContainer>
                 <PanelItemGrid>
                   <PanelItemSelects>
-                    <SelectControl
+                    <Select
                       name="select-level"
                       aria-label={t('Select a status level')}
                       isDisabled={disabled || loading}
@@ -381,7 +374,7 @@ class ActionsPanel extends PureComponent<Props> {
                           : levels
                       }
                     />
-                    <SelectControl
+                    <Select
                       name="select-action"
                       aria-label={t('Select an Action')}
                       isDisabled={disabled || loading}
@@ -396,7 +389,7 @@ class ActionsPanel extends PureComponent<Props> {
                     />
 
                     {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
-                      <SelectControl
+                      <Select
                         isDisabled={disabled || loading}
                         value={action.targetType}
                         options={availableAction?.allowedTargetTypes?.map(
@@ -473,7 +466,7 @@ class ActionsPanel extends PureComponent<Props> {
                     {availableAction &&
                     (availableAction.type === 'opsgenie' ||
                       availableAction.type === 'pagerduty') ? (
-                      <SelectControl
+                      <Select
                         isDisabled={disabled || loading}
                         value={action.priority}
                         placeholder={
@@ -566,13 +559,12 @@ const PerformActionsListItem = styled(StyledListItem)`
   line-height: 1.3;
 `;
 
-const MarginlessAlert = styled(Alert)`
+const FooterAlert = styled(Alert)`
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  border: 1px ${p => p.theme.border} solid;
-  border-top-width: 0;
-  margin: 0;
-  padding: ${space(1)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: -1px; /* remove double border on panel bottom */
+  a {
+    white-space: nowrap;
+  }
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

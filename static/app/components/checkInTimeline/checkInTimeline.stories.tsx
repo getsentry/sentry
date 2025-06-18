@@ -1,14 +1,12 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
@@ -79,7 +77,7 @@ function generateMockTickData(
     .filter(([ts, _]) => ts <= timeWindowConfig.end.getTime() / 1000);
 }
 
-export default storyBook('CheckInTimeline', story => {
+export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
     const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
@@ -94,8 +92,8 @@ export default storyBook('CheckInTimeline', story => {
     return (
       <PageFiltersContainer>
         <p>
-          The <JSXNode name="CheckInTimeline" /> component may be used to render a
-          timeline of 'check-ins'.
+          The <Storybook.JSXNode name="CheckInTimeline" /> component may be used to render
+          a timeline of 'check-ins'.
         </p>
         <p>
           The timeline is given a list of "Buckets" where each bucket contains a time
@@ -133,7 +131,8 @@ export default storyBook('CheckInTimeline', story => {
         <p>
           You may compose various components exposed in the <code>checkInTimeline</code>{' '}
           module together to create a more visually useful timeline. See:{' '}
-          <JSXNode name="GridLineOverlay" /> and <JSXNode name="GridLineLabels" />
+          <Storybook.JSXNode name="GridLineOverlay" /> and{' '}
+          <Storybook.JSXNode name="GridLineLabels" />
         </p>
 
         <ExampleContainer>
@@ -151,9 +150,10 @@ export default storyBook('CheckInTimeline', story => {
         </ExampleContainer>
 
         <p>
-          Enabling the <JSXProperty name="allowZoom" value /> and{' '}
-          <JSXProperty name="showCursor" value /> attributes of the{' '}
-          <JSXNode name="GridLineOverlay" /> will make the timeline more interactive.
+          Enabling the <Storybook.JSXProperty name="allowZoom" value /> and{' '}
+          <Storybook.JSXProperty name="showCursor" value /> attributes of the{' '}
+          <Storybook.JSXNode name="GridLineOverlay" /> will make the timeline more
+          interactive.
         </p>
 
         <ExampleContainer>

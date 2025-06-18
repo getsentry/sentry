@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import moment from 'moment-timezone';
 
-import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -13,14 +12,14 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
@@ -31,13 +30,12 @@ import {
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
-
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 import type {TimePeriodType} from './constants';
 import {SELECTOR_RELATIVE_PERIODS} from './constants';
@@ -47,10 +45,7 @@ import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
 import {getFilter, getPeriodInterval} from './utils';
 
-export interface MetricDetailsBodyProps extends RouteComponentProps {
-  api: Client;
-  location: Location;
-  organization: Organization;
+interface MetricDetailsBodyProps {
   timePeriod: TimePeriodType;
   anomalies?: Anomaly[];
   incidents?: Incident[];
@@ -60,23 +55,23 @@ export interface MetricDetailsBodyProps extends RouteComponentProps {
 }
 
 export default function MetricDetailsBody({
-  api,
   project,
   rule,
   incidents,
-  organization,
   timePeriod,
   selectedIncident,
-  location,
-  router,
   anomalies,
 }: MetricDetailsBodyProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
     if (start && end) {
-      return router.push({
+      return navigate({
         ...location,
         query: {
           start: moment(start).utc().format(),
@@ -85,7 +80,7 @@ export default function MetricDetailsBody({
       });
     }
 
-    return router.push({
+    return navigate({
       ...location,
       query: {
         period: relative,
@@ -139,28 +134,30 @@ export default function MetricDetailsBody({
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <StyledAlert type="warning" showIcon>
+          <Alert type="warning" showIcon>
             {t('Alert Rule settings have been updated since this alert was triggered.')}
-          </StyledAlert>
+          </Alert>
         </StyledLayoutBody>
       )}
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
-            <Alert type="warning" showIcon>
-              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
-                ? tct(
-                    "[creator] muted this alert so these notifications won't be sent in the future.",
-                    {creator: rule.snoozeCreatedBy}
-                  )
-                : tct(
-                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                    {
-                      creator: rule.snoozeCreatedBy,
-                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                    }
-                  )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning" showIcon>
+                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                  ? tct(
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
+              </Alert>
+            </Alert.Container>
           )}
           <StyledSubHeader>
             <StyledTimeRangeSelector
@@ -207,15 +204,12 @@ export default function MetricDetailsBody({
           )}
 
           <ErrorMigrationWarning project={project} rule={rule} />
-
           <MetricChart
-            api={api}
             rule={rule}
             incidents={incidents}
             anomalies={anomalies}
             timePeriod={timePeriod}
             formattedAggregate={formattedAggregate}
-            organization={organization}
             project={project}
             interval={getPeriodInterval(timePeriod, rule)}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
@@ -281,10 +275,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
 `;
 
 const ActivityWrapper = styled('div')`

@@ -1,14 +1,13 @@
 import type React from 'react';
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -17,8 +16,6 @@ import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatP
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
-const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1]!;
-
 interface Props extends React.ComponentProps<typeof StyledPanel> {
   sampleCounts: ProjectSampleCount[];
   sampleRates: Record<string, number>;
@@ -52,6 +49,7 @@ export function SamplingBreakdown({
   isLoading,
   ...props
 }: Props) {
+  const theme = useTheme();
   const spansWithSampleRates = sampleCounts
     ?.map(item => {
       const sampleRate = clampPercentRate(sampleRates[item.project.id] ?? 1);
@@ -78,6 +76,7 @@ export function SamplingBreakdown({
 
   const getSpanRate = (spanCount: any) => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
+  const palette = theme.chart.getColorPalette(ITEMS_TO_SHOW);
 
   return (
     <StyledPanel {...props}>
@@ -89,7 +88,7 @@ export function SamplingBreakdown({
             margin: 0;
           `}
         />
-      ) : (
+      ) : sampleCounts.length > 0 ? (
         <Fragment>
           <Breakdown>
             {topItems.map((item: any, index: any) => {
@@ -162,6 +161,8 @@ export function SamplingBreakdown({
             </Total>
           </Footer>
         </Fragment>
+      ) : (
+        <EmptyStateText>{t('No spans found in the selected period.')}</EmptyStateText>
       )}
     </StyledPanel>
   );
@@ -216,6 +217,12 @@ const LegendItem = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
+`;
+
+const EmptyStateText = styled('div')`
+  text-align: center;
+  padding: ${space(0.5)} 0 ${space(3)};
+  color: ${p => p.theme.subText};
 `;

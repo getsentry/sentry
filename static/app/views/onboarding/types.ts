@@ -1,12 +1,6 @@
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {
-  OnboardingRecentCreatedProject,
-  OnboardingSelectedSDK,
-} from 'sentry/types/onboarding';
-
-export type StepData = {
-  platform?: OnboardingSelectedSDK | null;
-};
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Project} from 'sentry/types/project';
 
 // Not sure if we need platform info to be passed down
 export type StepProps = Pick<RouteComponentProps, 'router' | 'route' | 'location'> & {
@@ -16,7 +10,7 @@ export type StepProps = Pick<RouteComponentProps, 'router' | 'route' | 'location
   orgId: string;
   search: string;
   stepIndex: number;
-  recentCreatedProject?: OnboardingRecentCreatedProject;
+  recentCreatedProject?: Project;
 };
 
 export type StepDescriptor = {

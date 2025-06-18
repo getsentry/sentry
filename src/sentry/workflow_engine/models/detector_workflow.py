@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -14,3 +16,9 @@ class DetectorWorkflow(DefaultFieldsModel):
 
     detector = FlexibleForeignKey("workflow_engine.Detector", on_delete=models.CASCADE)
     workflow = FlexibleForeignKey("workflow_engine.Workflow", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = (("detector", "workflow"),)
+
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {"detector_id": self.detector.id, "workflow_id": self.workflow.id}

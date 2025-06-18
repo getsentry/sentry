@@ -1,3 +1,4 @@
+import copy
 import datetime
 import pickle
 from collections import defaultdict
@@ -38,7 +39,7 @@ def _hgetall_decode_keys(client, key, is_redis_cluster):
 class TestRedisBuffer:
     @pytest.fixture(params=["cluster", "blaster"])
     def buffer(self, set_sentry_option, request):
-        value = options.get("redis.clusters")
+        value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param == "cluster"
         set_sentry_option("redis.clusters", value)
         return RedisBuffer()
@@ -233,8 +234,7 @@ class TestRedisBuffer:
         event4_id = 11
 
         # store the project ids
-        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=[project_id, project_id2])
 
         # store the rules and group per project
         self.buf.push_to_hash(
@@ -289,7 +289,7 @@ class TestRedisBuffer:
         redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         assert mock.call_count == 1
 
-    @mock.patch("sentry.rules.processing.delayed_processing.metrics.timer")
+    @mock.patch("sentry.rules.processing.buffer_processing.metrics.timer")
     def test_callback(self, mock_metrics_timer):
         redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
         self.buf.process_batch()

@@ -21,17 +21,17 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByRole('heading', {name: 'Quick Links'})).toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(3);
+    expect(screen.getAllByRole('link')).toHaveLength(2);
 
     const userFeedback = screen.getByRole('link', {name: 'User Feedback'});
     const keyTransactions = screen.getByRole('link', {name: 'View Transactions'});
-    const mostChangedTransactions = screen.getByRole('link', {
-      name: 'Most Improved/Regressed Transactions',
-    });
 
     await userEvent.click(userFeedback);
     expect(router.push).toHaveBeenCalledWith({
@@ -41,18 +41,8 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
 
     await userEvent.click(keyTransactions);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/',
+      pathname: '/organizations/org-slug/insights/backend/',
       query: {project: '2'},
-    });
-
-    await userEvent.click(mostChangedTransactions);
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/trends/',
-      query: {
-        cursor: undefined,
-        project: '2',
-        query: 'tpm():>0.01 transaction.duration:>0 transaction.duration:<15min',
-      },
     });
   });
 
@@ -63,7 +53,10 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const keyTransactions = screen.getByText('View Transactions');

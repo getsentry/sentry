@@ -38,6 +38,10 @@ export type IssueTypeConfig = {
     resolution: string;
   };
   /**
+   * Default time period to use for the issue type
+   */
+  defaultTimePeriod: {sinceFirstSeen: boolean};
+  /**
    * Should show detector section in the sidebar
    * Optionally set a custom title for it
    */
@@ -99,7 +103,7 @@ export type IssueTypeConfig = {
     /**
      * Is the Cron Checks page shown for this issue
      */
-    cronChecks: DisabledWithReasonConfig;
+    checkIns: DisabledWithReasonConfig;
     /**
      * Is the All Events/Occurrences page shown for this issue
      */
@@ -146,7 +150,7 @@ export type IssueTypeConfig = {
    * about the given issue type
    */
   resources: {
-    description: string | JSX.Element;
+    description: string | React.JSX.Element;
     /**
      * Resources to be shown for all platforms
      */

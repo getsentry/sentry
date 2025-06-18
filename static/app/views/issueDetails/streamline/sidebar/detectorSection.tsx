@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -8,6 +8,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
@@ -33,12 +34,17 @@ export function getDetectorDetails({
    * for Alert Rule IDs. Hopefully we can consolidate this when we move to the detector system.
    * Ideally, this function wouldn't even check the event, but rather the group/issue.
    */
-  const metricAlertRuleId = event?.contexts?.metric_alert?.alert_rule_id;
+  const metricAlertRuleId =
+    event?.occurrence?.evidenceData?.alertId ||
+    event?.contexts?.metric_alert?.alert_rule_id;
   if (metricAlertRuleId) {
     return {
       detectorType: 'metric_alert',
       detectorId: metricAlertRuleId,
-      detectorPath: `/organizations/${organization.slug}/alerts/rules/details/${metricAlertRuleId}/`,
+      detectorPath: makeAlertsPathname({
+        path: `/rules/details/${metricAlertRuleId}/`,
+        organization,
+      }),
       // TODO(issues): We can probably enrich this description with details from the alert itself.
       description: t(
         'This issue was created by a metric alert detector. View the detector details to learn more.'
@@ -53,7 +59,10 @@ export function getDetectorDetails({
       detectorType: 'cron_monitor',
       detectorId: cronId,
       detectorSlug: cronSlug,
-      detectorPath: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${cronSlug}/details/`,
+      detectorPath: makeAlertsPathname({
+        path: `/rules/crons/${project.slug}/${cronSlug}/details/`,
+        organization,
+      }),
       description: t(
         'This issue was created by a cron monitor. View the monitor details to learn more.'
       ),
@@ -65,7 +74,10 @@ export function getDetectorDetails({
     return {
       detectorType: 'uptime_monitor',
       detectorId: uptimeAlertRuleId,
-      detectorPath: `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
+      detectorPath: makeAlertsPathname({
+        path: `/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
+        organization,
+      }),
       // TODO(issues): Update this to mention detectors when that language is user-facing
       description: t(
         'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'
@@ -92,7 +104,7 @@ export function DetectorSection({group, project}: {group: Group; project: Projec
       {description && <DetectorDescription>{description}</DetectorDescription>}
       <LinkButton
         aria-label={issueConfig.detector.ctaText ?? t('View detector details')}
-        href={detectorPath}
+        to={detectorPath}
         style={{width: '100%'}}
         size="sm"
       >

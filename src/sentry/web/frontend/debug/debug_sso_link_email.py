@@ -9,7 +9,7 @@ from .mail import MailPreview
 
 def get_context(request):
     org = Organization(name="My Company")
-    provider = DummyProvider("dummy")
+    provider = DummyProvider()
 
     return {"organization": org, "actor_email": request.user.email, "provider": provider}
 

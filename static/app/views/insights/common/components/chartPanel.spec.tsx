@@ -9,11 +9,11 @@ describe('chartPanel', function () {
   });
   it('should render', function () {
     render(
-      <ChartPanel title="Avg Latency">
+      <ChartPanel title="Average Duration">
         <div />
       </ChartPanel>,
       {organization}
     );
-    expect(screen.getByText('Avg Latency')).toBeInTheDocument();
+    expect(screen.getByText('Average Duration')).toBeInTheDocument();
   });
 });

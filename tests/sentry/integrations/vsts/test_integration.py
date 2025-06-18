@@ -17,7 +17,7 @@ from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
@@ -115,6 +115,82 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
             VstsIntegrationProvider.NEW_SCOPES
         )
 
+    # Test that on reinstall of new migration, we keep the migration version
+    @with_feature("organizations:migrate-azure-devops-integration")
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
+    def test_migration_after_reinstall(self, mock_get_scopes):
+        state = {
+            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
+            "base_url": self.vsts_base_url,
+            "identity": {
+                "data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
+                }
+            },
+            "integration_migration_version": 1,
+            "subscription": {
+                "id": "123",
+                "secret": "456",
+            },
+        }
+
+        external_id = self.vsts_account_id
+
+        # Create the integration with old integration metadata
+        integration = self.create_provider_integration(
+            metadata=state, provider="vsts", external_id=external_id
+        )
+        self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+
+        data = provider.build_integration(
+            {
+                "account": {"accountName": self.vsts_account_name, "accountId": external_id},
+                "base_url": self.vsts_base_url,
+                "identity": {
+                    "data": {
+                        "access_token": "new_access_token",
+                        "expires_in": "3600",
+                        "refresh_token": "new_refresh_token",
+                        "token_type": "bearer",
+                    }
+                },
+                "subscription": {
+                    "id": "123",
+                    "secret": "456",
+                },
+                "integration_migration_version": 1,
+            }
+        )
+        assert external_id == data["external_id"]
+        subscription = data["metadata"]["subscription"]
+        assert subscription["id"] is not None and subscription["secret"] is not None
+        metadata = data.get("metadata")
+        assert metadata is not None
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
+        assert metadata["integration_migration_version"] == 1
+
+        # Make sure the integration object is updated
+        # ensure_integration will be called in _finish_pipeline
+        new_integration_obj = ensure_integration("vsts", data)
+        assert new_integration_obj.metadata["integration_migration_version"] == 1
+        assert set(new_integration_obj.metadata["scopes"]) == set(
+            VstsIntegrationProvider.NEW_SCOPES
+        )
+
 
 @control_silo_test
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
@@ -186,7 +262,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert resp.status_code == 200, resp.content
         assert b"No accounts found" in resp.content
 
-        assert_failure_metric(mock_record, "no_accounts")
+        assert_halt_metric(mock_record, "no_accounts")
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_webhook_subscription_created_once(self, mock_get_scopes):
@@ -584,9 +660,11 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
         integration.get_client()
 
-        domain_name = integration.model.metadata["domain_name"]
+        model.refresh_from_db()
+
+        domain_name = model.metadata["domain_name"]
         assert domain_name == account_uri
-        assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
+        assert model.metadata["domain_name"] == account_uri
 
     def test_get_repositories(self):
         self.assert_installation()
@@ -615,6 +693,43 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         )
         with pytest.raises(IntegrationError):
             installation.get_repositories()
+
+    def test_format_source_url_with_spaces(self):
+        """Test that format_source_url correctly handles project names with spaces."""
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Create a repository with spaces in the project name
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="sentry-sdk",
+                url=f"{self.vsts_base_url}/_git/sentry-sdk",
+                provider="visualstudio",
+                external_id="123456",
+                config={
+                    "name": "sentry-sdk",
+                    "project": "Sentry Error Monitoring",  # Project name with spaces
+                },
+                integration_id=integration.id,
+            )
+
+            # Test with normal project name
+            source_url = installation.format_source_url(repo, "src/sentry.js", "master")
+
+            # Verify the URL is correctly encoded (spaces as %20, not double-encoded as %2520)
+            assert "Sentry%20Error%20Monitoring" in source_url
+            assert "%2520" not in source_url
+
+            # Test with already encoded project name
+            repo.config["project"] = "Sentry%20Error%20Monitoring"  # Already encoded project name
+            repo.save()
+
+            source_url = installation.format_source_url(repo, "src/sentry.js", "master")
+
+            # Verify the URL is still correctly encoded (not double-encoded)
+            assert "Sentry%20Error%20Monitoring" in source_url
+            assert "%2520" not in source_url
 
 
 @control_silo_test

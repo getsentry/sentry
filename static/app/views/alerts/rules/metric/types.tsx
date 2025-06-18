@@ -1,8 +1,7 @@
 import {t} from 'sentry/locale';
+import type {Incident} from 'sentry/views/alerts/types';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
-import type {Incident} from '../../types';
 
 export enum AlertRuleThresholdType {
   ABOVE = 0,
@@ -46,6 +45,8 @@ export enum EventTypes {
   TRANSACTION = 'transaction',
   USER = 'user',
   SESSION = 'session',
+  TRACE_ITEM_SPAN = 'trace_item_span',
+  TRACE_ITEM_LOG = 'trace_item_log',
 }
 
 export enum Datasource {

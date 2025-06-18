@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import importlib.metadata
+import json
 import os
 import shlex
+import shutil
 import subprocess
 
 from devenv import constants
@@ -81,8 +83,43 @@ def check_minimum_version(minimum_version: str) -> bool:
     return parsed_version >= parsed_minimum_version
 
 
+def installed_pnpm(version: str, binroot: str) -> bool:
+    if shutil.which("pnpm", path=binroot) != f"{binroot}/pnpm" or not os.path.exists(
+        f"{binroot}/node-env/bin/pnpm"
+    ):
+        return False
+
+    stdout = proc.run((f"{binroot}/pnpm", "--version"), stdout=True)
+    installed_version = stdout.strip()
+    return version == installed_version
+
+
+def install_pnpm(version: str, reporoot: str) -> None:
+    binroot = fs.ensure_binroot(reporoot)
+
+    if installed_pnpm(version, binroot):
+        return
+
+    print(f"installing pnpm {version}...")
+
+    # {binroot}/npm is a devenv-managed shim, so
+    # this install -g ends up putting pnpm into
+    # .devenv/bin/node-env/bin/pnpm which is pointed
+    # to by the {binroot}/pnpm shim
+    proc.run((f"{binroot}/npm", "install", "-g", f"pnpm@{version}"), stdout=True)
+
+    fs.write_script(
+        f"{binroot}/pnpm",
+        """#!/bin/sh
+export PATH={binroot}/node-env/bin:"${{PATH}}"
+exec {binroot}/node-env/bin/pnpm "$@"
+""",
+        shell_escape={"binroot": binroot},
+    )
+
+
 def main(context: dict[str, str]) -> int:
-    minimum_version = "1.13.0"
+    minimum_version = "1.14.2"
     if not check_minimum_version(minimum_version):
         raise SystemExit(
             f"""
@@ -111,13 +148,10 @@ Then, use it to run sync this one time.
 
     USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 
-    if constants.DARWIN and check_minimum_version("1.14.2"):
-        # `devenv update`ing to >=1.14.0 will install global colima
-        # so if it's there, uninstall the repo local stuff
-        if os.path.exists(f"{constants.root}/bin/colima"):
-            binroot = f"{reporoot}/.devenv/bin"
-            colima.uninstall(binroot)
-            limactl.uninstall(binroot)
+    if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
+        binroot = f"{reporoot}/.devenv/bin"
+        colima.uninstall(binroot)
+        limactl.uninstall(binroot)
 
     from devenv.lib import node
 
@@ -127,7 +161,14 @@ Then, use it to run sync this one time.
         repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
         reporoot,
     )
-    node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
+
+    with open(f"{reporoot}/package.json") as f:
+        package_json = json.load(f)
+        pnpm = package_json["packageManager"]
+        pnpm_version = pnpm.split("@")[-1]
+
+    # TODO: move pnpm install into devenv
+    install_pnpm(pnpm_version, reporoot)
 
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled
@@ -138,20 +179,6 @@ Then, use it to run sync this one time.
     url, sha256 = config.get_python(reporoot, python_version)
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
-
-    if constants.DARWIN:
-        colima.install(
-            repo_config["colima"]["version"],
-            repo_config["colima"][constants.SYSTEM_MACHINE],
-            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-        limactl.install(
-            repo_config["lima"]["version"],
-            repo_config["lima"][constants.SYSTEM_MACHINE],
-            repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
 
     if not run_procs(
         repo,
@@ -186,14 +213,17 @@ Then, use it to run sync this one time.
                 # then py in the next batch.
                 "javascript dependencies (1/1)",
                 (
-                    "yarn",
+                    "pnpm",
                     "install",
                     "--frozen-lockfile",
-                    "--no-progress",
-                    "--non-interactive",
+                    "--reporter=append-only",
                 ),
                 {
                     "NODE_ENV": "development",
+                    # this ensures interactive prompts are answered by
+                    # the defaults (usually yes), useful for recreating
+                    # node_modules if configuration or node version changes
+                    "CI": "true",
                 },
             ),
         ),

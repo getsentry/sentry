@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -26,24 +27,23 @@ type Row = Pick<
   | 'project'
   | 'project.id'
   | 'span.domain'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
   | 'span.domain'
   | 'project'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
-  | 'time_spent_percentage()'
+  | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -58,7 +58,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -83,7 +83,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -91,11 +91,11 @@ const COLUMN_ORDER: Column[] = [
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
-  'spm()',
+  'epm()',
   'http_response_rate(3)',
   'http_response_rate(4)',
   'http_response_rate(5)',
-  'time_spent_percentage()',
+  'sum(span.self_time)',
 ] as const;
 
 type ValidSort = Sort & {
@@ -122,7 +122,7 @@ export function DomainsTable({response, sort}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-
+  const theme = useTheme();
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
       pathname,
@@ -157,7 +157,7 @@ export function DomainsTable({response, sort}: Props) {
               sortParameterName: QueryParameterNames.DOMAINS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
       <Pagination
@@ -180,7 +180,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'span.domain') {
     return (
@@ -203,6 +204,7 @@ function renderBodyCell(
       location,
       organization,
       unit: meta.units?.[column.key],
+      theme,
     }
   );
 }

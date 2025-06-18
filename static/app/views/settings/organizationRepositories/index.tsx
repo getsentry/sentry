@@ -42,7 +42,7 @@ function OrganizationRepositoriesContainer() {
       queryClient,
       [`/organizations/${organization.slug}/repos/`, {query: location.query}],
       oldItemList =>
-        oldItemList.map(item =>
+        oldItemList?.map(item =>
           item.id === data.id ? {...item, status: data.status} : item
         )
     );

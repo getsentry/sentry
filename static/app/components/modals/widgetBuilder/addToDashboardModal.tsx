@@ -10,9 +10,10 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
@@ -22,19 +23,26 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {
   DashboardDetails,
   DashboardListItem,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {DisplayType, MAX_WIDGETS, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DEFAULT_WIDGET_NAME,
+  DisplayType,
+  MAX_WIDGETS,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
 } from 'sentry/views/dashboards/utils';
+import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {
   type DataSet,
   NEW_DASHBOARD_ID,
@@ -84,6 +92,13 @@ const DEFAULT_ACTIONS: AddToDashboardModalActions[] = [
   'open-in-widget-builder',
 ];
 
+function getFallbackWidgetTitle(widget: Widget): string {
+  // Metric widgets have their default title derived from the query
+  return widget.title === '' && widget.widgetType === WidgetType.METRICS
+    ? DEFAULT_WIDGET_NAME
+    : widget.title;
+}
+
 function AddToDashboardModal({
   Header,
   Body,
@@ -99,11 +114,24 @@ function AddToDashboardModal({
   allowCreateNewDashboard = true,
 }: Props) {
   const api = useApi();
+  const navigate = useNavigate();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
   const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
     null
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
+  const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
+    getFallbackWidgetTitle(widget)
+  );
+
+  // Set custom title, or fallback to default title for widget
+  const updateWidgetTitle = (newTitle: string) => {
+    if (newTitle === '') {
+      setNewWidgetTitle(getFallbackWidgetTitle(widget));
+      return;
+    }
+    setNewWidgetTitle(newTitle);
+  };
 
   useEffect(() => {
     // Track mounted state so we dont call setState on unmounted components
@@ -151,11 +179,7 @@ function AddToDashboardModal({
         ? `/organizations/${organization.slug}/dashboards/new/`
         : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/`;
 
-    const builderSuffix = organization.features.includes(
-      'dashboards-widget-builder-redesign'
-    )
-      ? 'widget-builder/widget/new/'
-      : 'widget/new/';
+    const builderSuffix = 'widget-builder/widget/new/';
 
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
@@ -165,6 +189,7 @@ function AddToDashboardModal({
         pathname,
         query: {
           ...widgetAsQueryParams,
+          title: newWidgetTitle,
           ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
         },
       })
@@ -183,15 +208,9 @@ function AddToDashboardModal({
     }
     const query = widget.queries[0]!;
 
-    const title =
-      // Metric widgets have their default title derived from the query
-      widget.title === '' && widget.widgetType !== WidgetType.METRICS
-        ? t('Custom Widget')
-        : widget.title;
-
     const newWidget = {
       ...widget,
-      title,
+      title: newWidgetTitle,
       queries: [{...query, orderby}],
     };
 
@@ -244,7 +263,7 @@ function AddToDashboardModal({
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
-    router,
+    navigate,
     organization,
     dashboard: selectedDashboard,
   });
@@ -261,7 +280,7 @@ function AddToDashboardModal({
       </Header>
       <Body>
         <Wrapper>
-          <SelectControl
+          <Select
             disabled={dashboards === null}
             menuPlacement="auto"
             name="dashboard"
@@ -277,6 +296,15 @@ function AddToDashboardModal({
           />
         </Wrapper>
         <Wrapper>
+          <SectionHeader title={t('Widget Name')} optional />
+          <Input
+            type="text"
+            aria-label={t('Optional Widget Name')}
+            placeholder={t('Name')}
+            onChange={e => updateWidgetTitle(e.target.value)}
+          />
+        </Wrapper>
+        <Wrapper>
           {t(
             'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
           )}
@@ -284,7 +312,7 @@ function AddToDashboardModal({
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
             organization={organization}
-            eventView={eventViewFromWidget(widget.title, widget.queries[0]!, selection)}
+            eventView={eventViewFromWidget(newWidgetTitle, widget.queries[0]!, selection)}
             location={location}
             hideLoadingIndicator
           >
@@ -307,7 +335,7 @@ function AddToDashboardModal({
                     dashboardFilters={
                       getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
                     }
-                    widget={widget}
+                    widget={{...widget, title: newWidgetTitle}}
                     shouldResize={false}
                     widgetLegendState={widgetLegendState}
                     onLegendSelectChanged={() => {}}

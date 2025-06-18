@@ -3,9 +3,9 @@ import type {Event} from 'sentry/types/event';
 
 export default function getStacktraceBody(
   event: Event,
-  hasSimilarityEmbeddingsFeature: boolean = false
+  hasSimilarityEmbeddingsFeature = false
 ) {
-  if (!event || !event.entries) {
+  if (!event?.entries) {
     return [];
   }
 

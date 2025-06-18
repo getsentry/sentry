@@ -52,6 +52,8 @@ from sentry.signals import (
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
+UNKNOWN_DEFAULT_USER_ID = "unknown"
+
 DEFAULT_TAGS = frozenset(
     [
         "level",
@@ -96,42 +98,62 @@ def record_first_event(project, **kwargs):
 
 
 def record_event_processed(project, event, **kwargs):
-    feature_slugs = []
+    return record_generic_event_processed(
+        project,
+        platform=event.group.platform if event.group else event.platform,
+        release=event.get_tag("sentry:release"),
+        environment=event.get_tag("environment"),
+        user_keys=event.data.get("user", {}).keys(),
+        tag_keys={tag[0] for tag in event.tags},
+        has_sourcemap=has_sourcemap(event),
+        has_breadcrumbs=event.data.get("breadcrumbs"),
+    )
 
-    platform = event.group.platform if event.group else event.platform
+
+def record_generic_event_processed(
+    project,
+    platform=None,
+    release=None,
+    environment=None,
+    user_keys=None,
+    tag_keys=None,
+    has_sourcemap=False,
+    has_breadcrumbs=False,
+    **kwargs,
+):
+    feature_slugs = []
 
     # Platform
     if platform in manager.location_slugs("language"):
         feature_slugs.append(platform)
 
     # Release Tracking
-    if event.get_tag("sentry:release"):
+    if release:
         feature_slugs.append("release_tracking")
 
     # Environment Tracking
-    if event.get_tag("environment"):
+    if environment:
         feature_slugs.append("environment_tracking")
 
     # User Tracking
-    user_context = event.data.get("user")
     # We'd like them to tag with id or email.
     # Certain SDKs automatically tag with ip address.
     # Check to make sure more the ip address is being sent.
     # testing for this in test_no_user_tracking_for_ip_address_only
     # list(d.keys()) pattern is to make this python3 safe
-    if user_context and len(user_context.keys() - {"ip_address", "sentry_user"}) > 0:
+    if user_keys and len(set(user_keys) - {"ip_address", "sentry_user"}) > 0:
         feature_slugs.append("user_tracking")
 
     # Custom Tags
-    if {tag[0] for tag in event.tags} - DEFAULT_TAGS:
+    if tag_keys and set(tag_keys) - DEFAULT_TAGS:
         feature_slugs.append("custom_tags")
 
     # Sourcemaps
-    if has_sourcemap(event):
+    if has_sourcemap:
         feature_slugs.append("source_maps")
 
     # Breadcrumbs
-    if event.data.get("breadcrumbs"):
+    if has_breadcrumbs:
         feature_slugs.append("breadcrumbs")
 
     if not feature_slugs:
@@ -176,7 +198,7 @@ def record_issue_assigned(project, group, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
     analytics.record(
         "issue.assigned",
         user_id=user_id,
@@ -207,7 +229,7 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
     analytics.record(
         "issue.resolved",
@@ -228,7 +250,7 @@ def record_issue_unresolved(project, user, group, transition_type, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
     analytics.record(
         "issue.unresolved",

@@ -26,7 +26,7 @@ describe('DebugMeta', function () {
   it('opens details modal', async function () {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
-    const image = eventEntryDebugMeta.data.images[0];
+    const image = eventEntryDebugMeta.data.images![0];
     const mockGetDebug = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${image?.debug_id}`,
       method: 'GET',
@@ -43,11 +43,16 @@ describe('DebugMeta', function () {
     );
     renderGlobalModal();
 
-    screen.getByRole('heading', {name: 'Images Loaded'});
+    expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
     const imageName = image?.debug_file as string;
     expect(screen.queryByText(imageName)).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'View Images Loaded Section'})
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Collapse Images Loaded Section'})
+    ).toBeInTheDocument();
     expect(screen.getByText('Ok')).toBeInTheDocument();
     expect(screen.getByText(imageName)).toBeInTheDocument();
     expect(screen.getByText('Symbolication')).toBeInTheDocument();
@@ -62,7 +67,7 @@ describe('DebugMeta', function () {
 
   it('can open debug modal when debug id and code id are missing', async function () {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
-    eventEntryDebugMeta.data.images[0] = {
+    eventEntryDebugMeta.data.images![0] = {
       // Missing both debug_id and code_id
       code_file: '/data/app/code_file/code_file',
       debug_file: '/data/app/debug_file/debug_file',
@@ -71,7 +76,7 @@ describe('DebugMeta', function () {
       candidates: [],
       debug_status: ImageStatus.MISSING,
       features: {
-        ...eventEntryDebugMeta.data.images[0]!.features,
+        ...eventEntryDebugMeta.data.images![0]!.features,
       },
       unwind_status: ImageStatus.MISSING,
       type: 'elf',
@@ -89,12 +94,11 @@ describe('DebugMeta', function () {
     renderGlobalModal();
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
     await userEvent.click(screen.getByRole('button', {name: 'View'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(
       within(screen.getByRole('dialog')).getByText(
-        eventEntryDebugMeta.data.images[0].debug_file!
+        eventEntryDebugMeta.data.images![0].debug_file!
       )
     ).toBeInTheDocument();
   });
@@ -102,7 +106,7 @@ describe('DebugMeta', function () {
   it('searches image contents', async function () {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
-    const image = eventEntryDebugMeta.data.images[0];
+    const image = eventEntryDebugMeta.data.images![0];
 
     render(
       <DebugMeta
@@ -115,17 +119,14 @@ describe('DebugMeta', function () {
     const imageName = image?.debug_file as string;
     const codeFile = image?.code_file as string;
 
-    screen.getByRole('heading', {name: 'Images Loaded'});
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
     const imageNode = screen.getByText(imageName);
     expect(imageNode).toBeInTheDocument();
 
     const searchBar = screen.getByRole('textbox');
     await userEvent.type(searchBar, 'some jibberish');
     expect(screen.queryByText(imageName)).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Sorry, no images match your search query')
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no images match your search query/i)).toBeInTheDocument();
     await userEvent.clear(searchBar);
     expect(screen.getByText(imageName)).toBeInTheDocument();
     await userEvent.type(searchBar, codeFile);
@@ -158,8 +159,7 @@ describe('DebugMeta', function () {
       {organization}
     );
 
-    screen.getByRole('heading', {name: 'Images Loaded'});
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    expect(screen.getByText('Images Loaded')).toBeInTheDocument();
     expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
     expect(screen.getByText(secondImage?.debug_file)).toBeInTheDocument();
 
@@ -169,5 +169,28 @@ describe('DebugMeta', function () {
     await userEvent.click(screen.getByRole('option', {name: 'Missing'}));
     expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
     expect(screen.queryByText(secondImage?.debug_file)).not.toBeInTheDocument();
+  });
+
+  it('skips section when only sdk__info is present', function () {
+    const eventEntryDebugMeta = EntryDebugMetaFixture();
+    eventEntryDebugMeta.data.images = undefined;
+    eventEntryDebugMeta.data.sdk_info = {
+      sdk_name: 'ios',
+      version_major: 16,
+      version_minor: 3,
+      version_patchlevel: 1,
+    };
+    const event = EventFixture({entries: [eventEntryDebugMeta]});
+
+    const {container} = render(
+      <DebugMeta
+        projectSlug={project.slug}
+        event={event}
+        data={eventEntryDebugMeta.data}
+      />,
+      {organization}
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

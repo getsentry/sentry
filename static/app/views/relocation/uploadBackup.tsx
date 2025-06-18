@@ -4,9 +4,8 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import Well from 'sentry/components/well';
-import {IconFile, IconUpload} from 'sentry/icons';
+import {Button} from 'sentry/components/core/button';
+import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -15,15 +14,6 @@ import {useUser} from 'sentry/utils/useUser';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
-
-type UploadWellProps = {
-  centered: boolean;
-  draggedOver: boolean;
-  onDragEnter: Function;
-  onDragLeave: Function;
-  onDragOver: Function;
-  onDrop: Function;
-};
 
 const DEFAULT_ERROR_MSG = t(
   'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
@@ -45,7 +35,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const user = useUser();
 
-  const handleDragEnter = (event: any) => {
+  const handleDragEnter = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(dragCounter + 1);
   };
@@ -54,7 +44,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
     setDragCounter(dragCounter - 1);
   };
 
-  const handleDrop = (event: any) => {
+  const handleDrop = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(0);
 
@@ -134,19 +124,25 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
           )}
         </p>
         {file ? (
-          <FinishedWell centered>
-            <IconFile className="file-icon" size="xl" />
-            <div>
-              <p>{file.name}</p>
-              <a onClick={() => setFile(undefined)}>{t('Remove file')}</a>
-            </div>
-            <StartRelocationButton
+          <FinishedWell>
+            <IconFile size="lg" />
+            <FileInfo>
+              <div>{file.name}</div>
+              <Button
+                aria-label={t('Remove file')}
+                icon={<IconDelete />}
+                borderless
+                size="xs"
+                onClick={() => setFile(undefined)}
+              />
+            </FileInfo>
+            <Button
               priority="primary"
               onClick={handleStartRelocation}
               icon={<IconUpload className="upload-icon" size="xs" />}
             >
               {t('Start Relocation')}
-            </StartRelocationButton>
+            </Button>
           </FinishedWell>
         ) : (
           <UploadWell
@@ -154,7 +150,6 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
             onDragOver={event => event.preventDefault()}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            centered
             aria-label={t('dropzone')}
             draggedOver={dragCounter > 0}
           >
@@ -180,8 +175,6 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   );
 }
 
-export default UploadBackup;
-
 const StyledUploadIcon = styled(IconUpload)`
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
@@ -199,7 +192,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
@@ -217,39 +210,42 @@ const Wrapper = styled('div')`
   }
 `;
 
-const StartRelocationButton = styled(Button)`
-  margin-left: auto;
+const FinishedWell = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: ${space(1)};
+  align-items: center;
+
+  justify-content: center;
+  margin: ${space(2)} 0;
+  padding: ${space(2)} ${space(3)};
+  border-radius: 3px;
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
-const FinishedWell = styled(Well)`
+const FileInfo = styled('div')`
   display: flex;
   align-items: center;
-  text-align: left;
-  div {
-    margin-left: ${space(2)};
-    line-height: 1;
-  }
-  a {
-    color: ${p => p.theme.translucentGray200};
-    font-size: 14px;
-  }
-  a:hover {
-    color: ${p => p.theme.gray300};
-  }
+  gap: ${space(0.5)};
 `;
 
-const UploadWell = styled(Well)<UploadWellProps>`
-  margin-top: ${space(2)};
-  height: 140px;
-  border-style: ${props => (props.draggedOver ? 'solid' : 'dashed')};
-  border-width: medium;
+const UploadWell = styled('div')<{draggedOver: boolean}>`
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  .file-icon,
+  justify-content: center;
+  margin: ${space(2)} 0;
+  padding: ${space(2)} ${space(3)};
+  height: 140px;
+  border-radius: 3px;
+  border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')} ${p => p.theme.border};
+  background: ${props =>
+    props.draggedOver ? p => p.theme.purple100 : p => p.theme.surface400};
+
   .upload-icon {
     color: ${p => p.theme.gray500};
   }
-  background: ${props =>
-    props.draggedOver ? p => p.theme.purple100 : p => p.theme.surface400};
 `;
 
 const UploadInput = styled('input')`

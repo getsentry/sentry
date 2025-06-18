@@ -359,8 +359,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         # Two authenticators to ensure the user list is distinct
         with assume_test_silo_mode(SiloMode.CONTROL):
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=1)
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=2)
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=1, config={})
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=2, config={})
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
@@ -536,6 +536,19 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert "emails" not in member_data["user"]
         assert all("email" not in team for team in member_data.get("teams", []))
         assert all("email" not in role for role in member_data.get("teamRoles", []))
+
+    def test_does_not_include_placeholder_org_members(self):
+        # do not list the placeholder org members created for OrganizationMemberInvite objects
+        user = self.create_user("real@member.com")
+        self.create_member(organization=self.organization, user=user)
+        invite = self.create_member_invite(organization=self.organization)
+        placeholder_member = invite.organization_member
+
+        response = self.get_success_response(self.organization.slug)
+
+        # check that the placeholder org member is not serialized
+        member_ids = [m["id"] for m in response.data]
+        assert str(placeholder_member.id) not in member_ids
 
 
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):

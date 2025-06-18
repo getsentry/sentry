@@ -65,7 +65,7 @@ class NoGroupsHandler extends Component<Props, State> {
    *
    * This is something to revisit if we refactor API client
    */
-  private _isMounted: boolean = false;
+  private _isMounted = false;
 
   async fetchSentFirstEvent() {
     this.setState({
@@ -135,38 +135,32 @@ class NoGroupsHandler extends Component<Props, State> {
       'node',
       'javascript-nextjs',
       'android',
-      ...(organization.features.includes('issue-stream-empty-state-additional-platforms')
-        ? [
-            'apple-ios',
-            'dotnet',
-            'dotnet-aspnetcore',
-            'flutter',
-            'go',
-            'java',
-            'java-spring-boot',
-            'javascript',
-            'javascript-angular',
-            'javascript-react',
-            'javascript-vue',
-            'node-express',
-            'node-nestjs',
-            'php',
-            'php-laravel',
-            'python',
-            'python-fastapi',
-            'python-flask',
-            'react-native',
-            'ruby',
-            'ruby-rails',
-            'unity',
-          ]
-        : []),
+      'apple-ios',
+      'dotnet',
+      'dotnet-aspnetcore',
+      'flutter',
+      'go',
+      'java',
+      'java-spring-boot',
+      'javascript',
+      'javascript-angular',
+      'javascript-react',
+      'javascript-vue',
+      'node-express',
+      'node-nestjs',
+      'php',
+      'php-laravel',
+      'python',
+      'python-fastapi',
+      'python-flask',
+      'react-native',
+      'ruby',
+      'ruby-rails',
+      'unity',
     ];
 
     const hasUpdatedEmptyState =
-      organization.features.includes('issue-stream-empty-state') &&
-      project?.platform &&
-      updatedEmptyStatePlatforms.includes(project.platform);
+      project?.platform && updatedEmptyStatePlatforms.includes(project.platform);
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>

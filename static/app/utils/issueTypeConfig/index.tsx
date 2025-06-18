@@ -2,11 +2,18 @@ import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
+import dbQueryConfig from 'sentry/utils/issueTypeConfig/dbQueryConfig';
 import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
+import feedbackConfig from 'sentry/utils/issueTypeConfig/feedbackConfig';
+import frontendConfig from 'sentry/utils/issueTypeConfig/frontendConfig';
+import httpClientConfig from 'sentry/utils/issueTypeConfig/httpClientConfig';
+import metricConfig from 'sentry/utils/issueTypeConfig/metricConfig';
 import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
+import mobileConfig from 'sentry/utils/issueTypeConfig/mobileConfig';
+import outageConfig from 'sentry/utils/issueTypeConfig/outageConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
@@ -29,7 +36,7 @@ type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategory
 const BASE_CONFIG: IssueTypeConfig = {
   actions: {
     archiveUntilOccurrence: {enabled: true},
-    delete: {enabled: false},
+    delete: {enabled: true},
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
@@ -37,6 +44,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
+  defaultTimePeriod: {sinceFirstSeen: true},
   header: {
     filterBar: {enabled: true, fixedEnvironment: false},
     graph: {enabled: true, type: 'discover-events'},
@@ -51,7 +59,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     landingPage: Tab.DETAILS,
     events: {enabled: true},
     openPeriods: {enabled: false},
-    cronChecks: {enabled: false},
+    checkIns: {enabled: false},
     uptimeChecks: {enabled: false},
     attachments: {enabled: false},
     userFeedback: {enabled: false},
@@ -87,6 +95,13 @@ const issueTypeConfig: Config = {
   [IssueCategory.REPLAY]: replayConfig,
   [IssueCategory.UPTIME]: uptimeConfig,
   [IssueCategory.METRIC_ALERT]: metricIssueConfig,
+  [IssueCategory.OUTAGE]: outageConfig,
+  [IssueCategory.FEEDBACK]: feedbackConfig,
+  [IssueCategory.FRONTEND]: frontendConfig,
+  [IssueCategory.HTTP_CLIENT]: httpClientConfig,
+  [IssueCategory.DB_QUERY]: dbQueryConfig,
+  [IssueCategory.MOBILE]: mobileConfig,
+  [IssueCategory.METRIC]: metricConfig,
 };
 
 /**
@@ -138,6 +153,11 @@ export const getConfigForIssueType = (
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
+  const refinedIssueType: IssueType | undefined = issueType?.replace(
+    '_experimental',
+    ''
+  ) as IssueType | undefined;
+
   const categoryMap = issueTypeConfig[issueCategory];
 
   if (!categoryMap) {
@@ -145,7 +165,8 @@ export const getConfigForIssueType = (
   }
 
   const categoryConfig = categoryMap._categoryDefaults;
-  const overrideConfig = issueType ? categoryMap[issueType] : {};
+
+  const overrideConfig = refinedIssueType ? categoryMap[refinedIssueType] : {};
   const errorResourceConfig = shouldShowCustomErrorResourceConfig(params, project)
     ? getErrorHelpResource({title: title!, project})
     : null;

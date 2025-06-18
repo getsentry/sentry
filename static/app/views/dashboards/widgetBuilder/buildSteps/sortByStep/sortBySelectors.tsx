@@ -1,10 +1,10 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -16,15 +16,21 @@ import {
   getEquation,
   isEquation,
   isEquationAlias,
+  parseFunction,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {
+  type SortDirection,
+  sortDirections,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 
@@ -45,6 +51,10 @@ interface Props {
   disableSortReason?: string;
   hasGroupBy?: boolean;
 }
+
+// Lock the sort by parameter option when the value is `count(span.duration)`
+// because we do not want to expose the concept of counting by other fields
+const LOCKED_SPAN_COUNT_SORT = 'count(span.duration)';
 
 export function SortBySelectors({
   values,
@@ -76,13 +86,42 @@ export function SortBySelectors({
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
 
+  const timeseriesSortOptions = useMemo(() => {
+    let options: Record<string, SelectValue<FieldValue>> = {};
+    if (displayType !== DisplayType.TABLE) {
+      options = datasetConfig.getTimeseriesSortOptions!(organization, widgetQuery, tags);
+      const parsedFunction = parseFunction(values.sortBy);
+      if (
+        widgetType === WidgetType.SPANS &&
+        parsedFunction?.name === 'count' &&
+        options['measurement:span.duration']
+      ) {
+        // Re-map the span duration measurement label so we can simply render
+        // `spans` in the parameter UI
+        options['measurement:span.duration'] = {
+          ...options['measurement:span.duration'],
+          label: t('spans'),
+        };
+      }
+    }
+    return options;
+  }, [
+    datasetConfig,
+    organization,
+    tags,
+    widgetQuery,
+    widgetType,
+    displayType,
+    values.sortBy,
+  ]);
+
   return (
     <Wrapper>
       <Tooltip
         title={disableSortReason}
         disabled={!disableSortDirection || (disableSortDirection && disableSort)}
       >
-        <SelectControl
+        <Select
           name="sortDirection"
           aria-label={t('Sort direction')}
           menuPlacement="auto"
@@ -106,7 +145,7 @@ export function SortBySelectors({
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
         {displayType === DisplayType.TABLE ? (
-          <SelectControl
+          <Select
             name="sortBy"
             aria-label={t('Sort by')}
             menuPlacement="auto"
@@ -135,17 +174,16 @@ export function SortBySelectors({
                   ? explodeField({field: CUSTOM_EQUATION_VALUE})
                   : explodeField({field: values.sortBy})
             }
-            fieldOptions={datasetConfig.getTimeseriesSortOptions!(
-              organization,
-              widgetQuery,
-              tags
-            )}
+            fieldOptions={timeseriesSortOptions}
             filterPrimaryOptions={
               datasetConfig.filterSeriesSortOptions
                 ? datasetConfig.filterSeriesSortOptions(columnSet)
                 : undefined
             }
             filterAggregateParameters={datasetConfig.filterAggregateParams}
+            disableParameterSelector={
+              widgetType === WidgetType.SPANS && values.sortBy === LOCKED_SPAN_COUNT_SORT
+            }
             onChange={value => {
               if (value.alias && isEquationAlias(value.alias)) {
                 onChange({
@@ -155,18 +193,49 @@ export function SortBySelectors({
                 return;
               }
 
-              const parsedValue = generateFieldAsString(value);
+              let parsedValue = generateFieldAsString(value);
               const isSortingByCustomEquation = isEquation(parsedValue);
               setShowCustomEquation(isSortingByCustomEquation);
               if (isSortingByCustomEquation) {
                 onChange(customEquation);
                 return;
               }
+              if (
+                widgetType === WidgetType.SPANS &&
+                value.kind === FieldValueKind.FUNCTION
+              ) {
+                // A spans function is selected, check if the argument is compatible with the function
+                const functionName = value.function[0];
+                const newValidOptions = getColumnOptions(
+                  widgetType,
+                  value,
+                  timeseriesSortOptions,
+                  datasetConfig.filterAggregateParams ?? (() => true),
+                  true
+                );
+                const newOptionSet = new Set(newValidOptions.map(option => option.value));
+                const newFunctionOption =
+                  timeseriesSortOptions[`function:${functionName}`];
+                if (
+                  value.function[1] &&
+                  !newOptionSet.has(value.function[1]) &&
+                  newFunctionOption?.value?.kind === FieldValueKind.FUNCTION
+                ) {
+                  // Select the default value if it exists, otherwise get the first option from
+                  // the new valid options
+                  const defaultValue: string =
+                    newFunctionOption.value?.meta?.parameters?.[0]?.defaultValue ??
+                    newValidOptions[0]?.value ??
+                    '';
+                  parsedValue = `${functionName}(${defaultValue})`;
+                }
+              }
               onChange({
                 sortBy: parsedValue,
                 sortDirection: values.sortDirection,
               });
             }}
+            useMenuPortal
           />
         )}
       </Tooltip>
@@ -175,7 +244,6 @@ export function SortBySelectors({
           <ArithmeticInput
             name="arithmetic"
             type="text"
-            required
             placeholder={t('Enter Equation')}
             value={getEquation(customEquation.sortBy)}
             onUpdate={value => {

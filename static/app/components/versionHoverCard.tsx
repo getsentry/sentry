@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
-import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
@@ -72,7 +72,7 @@ function VersionHoverCard({
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <LinkButton to={`/organizations/${orgSlug}/repos/`} priority="primary">
+          <LinkButton to={`/settings/${orgSlug}/repos/`} priority="primary">
             {t('Connect a repository')}
           </LinkButton>
         </ConnectRepo>
@@ -109,7 +109,7 @@ function VersionHoverCard({
     return {
       header: <VersionHoverHeader releaseVersion={releaseVersion} />,
       body: (
-        <Flex column gap={space(2)}>
+        <Flex direction="column" gap={space(2)}>
           <Flex gap={space(2)} justify="space-between">
             <div>
               <h6>{t('New Issues')}</h6>
@@ -121,7 +121,7 @@ function VersionHoverCard({
             </div>
           </Flex>
           {parsedVersion?.package && (
-            <Flex column gap={space(2)} justify="space-between">
+            <Flex direction="column" gap={space(2)} justify="space-between">
               {parsedVersion.package && (
                 <div>
                   <h6>{t('Package')}</h6>
@@ -132,23 +132,25 @@ function VersionHoverCard({
                 <div>
                   <h6>
                     {release.commitCount}{' '}
-                    {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
+                    {release.commitCount === 1 ? t('commit ') : t('commits ')} {t('by ')}{' '}
                     {release.authors.length}{' '}
-                    {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
+                    {release.authors.length === 1 ? t('author') : t('authors')}{' '}
                   </h6>
-                  <AvatarList
-                    users={authors}
-                    avatarSize={25}
-                    tooltipOptions={{container: 'body'} as any}
-                    typeAvatars="authors"
-                  />
+                  <AvatarListContainer>
+                    <AvatarList
+                      users={authors}
+                      avatarSize={25}
+                      tooltipOptions={{container: 'body'} as any}
+                      typeAvatars="authors"
+                    />
+                  </AvatarListContainer>
                 </div>
               ) : null}
             </Flex>
           )}
           {release.lastCommit && <LastCommit commit={release.lastCommit} />}
           {deploys.length > 0 && (
-            <Flex column gap={space(0.5)}>
+            <Flex direction="column" gap={space(0.5)}>
               <h6>{t('Deploys')}</h6>
               {recentDeploysByEnvironment.map(deploy => {
                 return (
@@ -158,9 +160,7 @@ function VersionHoverCard({
                     gap={space(1)}
                     justify="space-between"
                   >
-                    <Tag type="highlight" textMaxWidth={150}>
-                      {deploy.environment}
-                    </Tag>
+                    <Tag type="highlight">{deploy.environment}</Tag>
                     {deploy.dateFinished && (
                       <StyledTimeSince date={deploy.dateFinished} />
                     )}
@@ -224,7 +224,7 @@ const ConnectRepo = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -243,4 +243,9 @@ const StyledVersion = styled(Version)`
 const CountSince = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
+`;
+
+const AvatarListContainer = styled('div')`
+  display: flex;
+  padding-left: ${space(0.5)};
 `;

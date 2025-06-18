@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:13.449464+00:00'
+created: '2025-02-26T00:31:53.611363+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -49,17 +49,17 @@ contributing variants:
                 "winmain.cpp"
               function*
                 "wWinMain"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "xstring"
               function*
                 "std::basic_string<T>::{ctor}"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "xstring"
               function*
                 "std::basic_string<T>::assign"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "xstring"
               function*
@@ -67,7 +67,7 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "functional"
               function*

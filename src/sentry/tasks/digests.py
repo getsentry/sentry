@@ -1,6 +1,5 @@
 import logging
 import time
-from datetime import datetime
 
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -10,6 +9,8 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import digests_tasks
 from sentry.utils import snuba
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.digests.schedule_digests",
     queue="digests.scheduling",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=digests_tasks),
 )
 def schedule_digests() -> None:
     from sentry import digests
@@ -44,10 +46,14 @@ def schedule_digests() -> None:
     name="sentry.tasks.digests.deliver_digest",
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=digests_tasks,
+        processing_deadline_duration=300,
+    ),
 )
 def deliver_digest(
     key: str,
-    schedule_timestamp: datetime | None = None,
+    schedule_timestamp: float | None = None,
     notification_uuid: str | None = None,
 ) -> None:
     from sentry import digests

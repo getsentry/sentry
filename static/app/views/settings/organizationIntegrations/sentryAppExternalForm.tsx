@@ -3,12 +3,12 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import type {GeneralSelectValue} from 'sentry/components/core/select';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import type {Field, FieldValue} from 'sentry/components/forms/types';
+import type {Field, FieldValue, OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
@@ -43,7 +43,7 @@ type SentryAppSetting = {
 // only need required_fields and optional_fields
 type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
-  selectedOptions: {[name: string]: GeneralSelectValue};
+  selectedOptions: Record<string, GeneralSelectValue>;
 };
 
 type Props = {
@@ -52,16 +52,21 @@ type Props = {
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: Function;
+  onSubmitSuccess: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {new: FieldValue; old: FieldValue}
+  ) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request
    */
-  extraFields?: {[key: string]: any};
+  extraFields?: Record<string, any>;
   /**
    * Additional body parameters to submit with the request
    */
-  extraRequestBody?: {[key: string]: any};
+  extraRequestBody?: Record<string, any>;
   /**
    * Function to provide fields with pre-written data if a default is specified
    */
@@ -83,7 +88,7 @@ type Props = {
  *
  *  See (#28465) for more details.
  */
-export class SentryAppExternalForm extends Component<Props, State> {
+class SentryAppExternalForm extends Component<Props, State> {
   state: State = {optionsByField: new Map(), selectedOptions: {}};
 
   componentDidMount() {
@@ -238,7 +243,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
   makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
     const {extraRequestBody = {}, sentryAppInstallationUuid} = this.props;
-    const query: {[key: string]: any} = {
+    const query: Record<string, any> = {
       ...extraRequestBody,
       uri: field.uri,
       query: input,
@@ -412,7 +417,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     );
   };
 
-  handleAlertRuleSubmit = (formData: any, onSubmitSuccess: any) => {
+  handleAlertRuleSubmit: OnSubmitCallback = (formData, onSubmitSuccess) => {
     const {sentryAppInstallationUuid} = this.props;
     if (this.model.validateForm()) {
       onSubmitSuccess({
@@ -423,6 +428,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
           // If the field is a SelectAsync, we need to preserve the label since the next time it's rendered,
           // we can't be sure the options will contain this selection
           if (stateOption?.value === value) {
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             savedSetting.label = `${stateOption?.label}`;
           }
           return savedSetting;

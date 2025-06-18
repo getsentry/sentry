@@ -5,14 +5,13 @@ import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -28,6 +27,7 @@ import {
   setGroupedEntityTag,
 } from 'sentry/utils/performanceForSentry';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,6 +36,8 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';
@@ -79,10 +81,60 @@ function addProjectsToTeams(teams: Team[], projects: Project[]): TeamWithProject
   }));
 }
 
+function getFilteredProjectsBasedOnTeams({
+  allTeams,
+  userTeams,
+  selectedTeams,
+  isAllTeams,
+  showNonMemberProjects,
+  projects,
+  projectQuery,
+}: {
+  allTeams: Team[];
+  isAllTeams: boolean;
+  projectQuery: string;
+  projects: Project[];
+  selectedTeams: string[];
+  showNonMemberProjects: boolean;
+  userTeams: Team[];
+}): Project[] {
+  const myTeamIds = new Set(userTeams.map(team => team.id));
+  const includeMyTeams = isAllTeams || selectedTeams.includes('myteams');
+  const selectedOtherTeamIds = new Set(
+    selectedTeams.filter(teamId => teamId !== 'myteams')
+  );
+  const myTeams = includeMyTeams ? allTeams.filter(team => myTeamIds.has(team.id)) : [];
+  const otherTeams = isAllTeams
+    ? allTeams
+    : allTeams.filter(team => selectedOtherTeamIds.has(String(team.id)));
+
+  const visibleTeams = [...myTeams, ...otherTeams].filter(team => {
+    if (showNonMemberProjects) {
+      return true;
+    }
+    return team.isMember;
+  });
+  const teamsWithProjects = addProjectsToTeams(visibleTeams, projects);
+  const currentProjects = uniqBy(
+    teamsWithProjects.flatMap(team => team.projects),
+    'id'
+  );
+  const currentProjectIds = new Set(currentProjects.map(p => p.id));
+  const unassignedProjects =
+    isAllTeams && showNonMemberProjects
+      ? projects.filter(project => !currentProjectIds.has(project.id))
+      : [];
+  return [...currentProjects, ...unassignedProjects].filter(project =>
+    project.slug.includes(projectQuery)
+  );
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const prefersStackedNav = usePrefersStackedNav();
+
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
@@ -101,6 +153,7 @@ function Dashboard() {
     []
   );
   const {projects, fetching, fetchError} = useProjects();
+  const canUserCreateProject = useCanCreateProject();
 
   const showNonMemberProjects = useMemo(() => {
     const isOrgAdminOrManager =
@@ -118,37 +171,21 @@ function Dashboard() {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const includeMyTeams = isAllTeams || selectedTeams.some(team => team === 'myteams');
-  const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
-  const myTeams = includeMyTeams ? userTeams : [];
-  const otherTeams = isAllTeams
-    ? allTeams
-    : hasOtherTeams
-      ? allTeams.filter(team => selectedTeams.includes(`${team.id}`))
-      : [];
-  const filteredTeams = [...myTeams, ...otherTeams].filter(team => {
-    if (showNonMemberProjects) {
-      return true;
-    }
-
-    return team.isMember;
+  const filteredProjects = getFilteredProjectsBasedOnTeams({
+    allTeams,
+    userTeams,
+    selectedTeams,
+    isAllTeams,
+    showNonMemberProjects,
+    projects,
+    projectQuery,
   });
-  const filteredTeamsWithProjects = addProjectsToTeams(filteredTeams, projects);
 
-  const currentProjects = uniqBy(
-    filteredTeamsWithProjects.flatMap(team => team.projects),
-    'id'
-  );
   setGroupedEntityTag('projects.total', 1000, projects.length);
-
-  const filteredProjects = currentProjects.filter(project =>
-    project.slug.includes(projectQuery)
-  );
 
   const showResources = projects.length === 1 && !projects[0]!.firstEvent;
 
   const canJoinTeam = organization.access.includes('team:read');
-  const canUserCreateProject = canCreateProject(organization);
 
   function handleSearch(searchQuery: string) {
     setProjectQuery(searchQuery);
@@ -167,8 +204,8 @@ function Dashboard() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <Layout.Header>
-        <Layout.HeaderContent>
+      <Layout.Header unified={prefersStackedNav}>
+        <Layout.HeaderContent unified={prefersStackedNav}>
           <Layout.Title>
             {t('Projects')}
             <PageHeadingQuestionTooltip
@@ -198,11 +235,14 @@ function Dashboard() {
               priority="primary"
               disabled={!canUserCreateProject}
               title={
-                !canUserCreateProject
-                  ? t('You do not have permission to create projects')
-                  : undefined
+                canUserCreateProject
+                  ? undefined
+                  : t('You do not have permission to create projects')
               }
-              to={`/organizations/${organization.slug}/projects/new/`}
+              to={makeProjectsPathname({
+                path: '/new/',
+                organization,
+              })}
               icon={<IconAdd isCircled />}
               data-test-id="create-project"
             >

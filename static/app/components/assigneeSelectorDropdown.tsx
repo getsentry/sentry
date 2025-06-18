@@ -3,20 +3,20 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
-import {Button} from 'sentry/components/button';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
-} from 'sentry/components/compactSelect';
+} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
+import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -58,7 +58,7 @@ type AssignableTeam = {
   team: Team;
 };
 
-export interface AssigneeSelectorDropdownProps {
+interface AssigneeSelectorDropdownProps {
   /**
    * The group (issue) that the assignee selector is for
    * TODO: generalize this for alerts
@@ -112,7 +112,7 @@ export interface AssigneeSelectorDropdownProps {
   ) => React.ReactNode;
 }
 
-export function AssigneeAvatar({
+function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
 }: {
@@ -475,11 +475,11 @@ export default function AssigneeSelectorDropdown({
 
     // Remove suggested assignees from the member list and team list to avoid duplicates
     memList = memList.filter(
-      user => !suggestedUsers.find(suggested => suggested.id === user.id)
+      user => !suggestedUsers.some(suggested => suggested.id === user.id)
     );
     assignableTeamList = assignableTeamList.filter(
       assignableTeam =>
-        !suggestedTeams.find(suggested => suggested.id === assignableTeam.team.id)
+        !suggestedTeams.some(suggested => suggested.id === assignableTeam.team.id)
     );
 
     const memberOptions = {
@@ -545,7 +545,7 @@ export default function AssigneeSelectorDropdown({
         size="xs"
         aria-label={t('Invite Member')}
         disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
         }}
@@ -581,14 +581,16 @@ export default function AssigneeSelectorDropdown({
         menuFooter={footerInviteButton}
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
+        strategy="fixed"
       />
     </AssigneeWrapper>
   );
 }
 
-const AssigneeWrapper = styled('div')`
+export const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
+  text-align: left;
 `;
 
 const AssigneeDropdownButton = styled(DropdownButton)`

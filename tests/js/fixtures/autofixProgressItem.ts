@@ -1,4 +1,4 @@
-import {AutofixProgressItem} from 'sentry/components/events/autofix/types';
+import type {AutofixProgressItem} from 'sentry/components/events/autofix/types';
 
 export function AutofixProgressItemFixture(
   params: Partial<AutofixProgressItem>

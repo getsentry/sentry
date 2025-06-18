@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
-import Anchor from 'sentry/components/links/anchor';
+import {Anchor} from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -30,6 +30,7 @@ export interface EventDataSectionProps {
    * you want the overlay to be interactive)
    */
   isHelpHoverable?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Should the permalink be enabled for this section?
    *
@@ -180,7 +181,7 @@ const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionContents = styled('div')`
+const SectionContents = styled('div')`
   position: relative;
 `;
 

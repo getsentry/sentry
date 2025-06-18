@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {
   BaseTraceChildrenProps,
   TraceMeta,
@@ -42,7 +42,7 @@ function TraceMetaQuery({
   const eventView = makeEventView({start, end, statsPeriod});
 
   return (
-    <GenericDiscoverQuery<TraceMeta, {}>
+    <GenericDiscoverQuery<TraceMeta, Record<string, unknown>>
       route={`events-trace-meta/${traceId}`}
       getRequestPayload={getTraceRequestPayload}
       eventView={eventView}

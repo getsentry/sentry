@@ -87,6 +87,8 @@ class OrganizationTeamMemberPermission(OrganizationPermission):
             "member:read",
             "member:write",
             "member:admin",
+            "team:admin",
+            "team:write",
         ],
         "DELETE": ["org:read", "org:write", "org:admin", "team:admin"],
     }

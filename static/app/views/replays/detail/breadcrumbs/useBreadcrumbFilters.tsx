@@ -9,7 +9,7 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
-export type FilterFields = {
+type FilterFields = {
   f_b_search: string;
   f_b_type: string[];
 };

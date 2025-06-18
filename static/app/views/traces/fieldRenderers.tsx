@@ -3,15 +3,16 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {ProjectList} from 'sentry/components/projectList';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,10 +25,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {TraceViewSources} from '../performance/newTraceDetails/traceHeader/breadcrumbs';
 
 import type {TraceResult} from './hooks/useTraces';
 import {BREAKDOWN_SLICES} from './hooks/useTraces';
@@ -66,116 +66,31 @@ export function ProjectsRenderer({
   projectSlugs,
   maxVisibleProjects = 2,
 }: ProjectsRendererProps) {
-  const organization = useOrganization();
-
   return (
-    <Projects orgId={organization.slug} slugs={projectSlugs}>
-      {({projects}) => {
-        // ensure that projectAvatars is in the same order as the projectSlugs prop
-        const projectAvatars = projectSlugs.map(slug => {
-          return projects.find(project => project.slug === slug) ?? {slug};
-        });
-        const numProjects = projectAvatars.length;
-        const numVisibleProjects =
-          maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
-        const visibleProjectAvatars = projectAvatars
-          .slice(0, numVisibleProjects)
-          .reverse();
-        const collapsedProjectAvatars = projectAvatars.slice(numVisibleProjects);
-        const numCollapsedProjects = collapsedProjectAvatars.length;
-
-        return (
-          <ProjectList>
-            {numCollapsedProjects > 0 && (
-              <Tooltip
-                skipWrapper
-                title={
-                  <CollapsedProjects>
-                    {tn(
-                      'This trace contains %s more project.',
-                      'This trace contains %s more projects.',
-                      numCollapsedProjects
-                    )}
-                    {collapsedProjectAvatars.map(project => (
-                      <ProjectBadge
-                        key={project.slug}
-                        project={project}
-                        avatarSize={16}
-                      />
-                    ))}
-                  </CollapsedProjects>
-                }
-              >
-                <CollapsedBadge
-                  size={20}
-                  fontSize={10}
-                  data-test-id="collapsed-projects-badge"
-                >
-                  +{numCollapsedProjects}
-                </CollapsedBadge>
-              </Tooltip>
-            )}
-            {visibleProjectAvatars.map(project => (
-              <StyledProjectBadge
-                key={project.slug}
-                hideName
-                project={project}
-                avatarSize={16}
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            ))}
-          </ProjectList>
-        );
-      }}
-    </Projects>
+    <ProjectList
+      maxVisibleProjects={maxVisibleProjects}
+      projectSlugs={projectSlugs}
+      collapsedProjectsTooltip={projects => (
+        <CollapsedProjects>
+          {tn(
+            'This trace contains %s more project.',
+            'This trace contains %s more projects.',
+            projects.length
+          )}
+          {projects.map(project => (
+            <ProjectBadge key={project.slug} project={project} avatarSize={16} />
+          ))}
+        </CollapsedProjects>
+      )}
+    />
   );
 }
-
-const ProjectList = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-direction: row-reverse;
-  justify-content: flex-end;
-  padding-right: 8px;
-`;
 
 const CollapsedProjects = styled('div')`
   width: 200px;
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-`;
-
-const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.background};
-  margin-right: -8px;
-  cursor: default;
-
-  &:hover {
-    z-index: 1;
-  }
-`;
-
-const StyledProjectBadge = styled(ProjectBadge)`
-  overflow: hidden;
-  z-index: 0;
-  ${AvatarStyle}
-`;
-
-const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  text-align: center;
-  font-weight: ${p => p.theme.fontWeightBold};
-  background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.fontSize}px;
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
-  border-radius: ${p => p.theme.borderRadius};
-  ${AvatarStyle}
 `;
 
 interface ProjectRendererProps {
@@ -332,17 +247,19 @@ export function SpanBreakdownSliceRenderer({
   const relativeSliceStart = sliceStart - trace.start;
 
   const stylingSliceName = getStylingSliceName(sliceName, sliceSecondaryName);
-  const sliceColor = stylingSliceName ? pickBarColor(stylingSliceName) : theme.gray100;
+  const sliceColor = stylingSliceName
+    ? pickBarColor(stylingSliceName, theme)
+    : theme.gray100;
 
   const sliceWidth =
-    sliceNumberWidth !== undefined
-      ? pixelsPerSlice * sliceNumberWidth
-      : pixelsPerSlice * Math.ceil(BREAKDOWN_SLICES * (sliceDuration / traceDuration));
+    sliceNumberWidth === undefined
+      ? pixelsPerSlice * Math.ceil(BREAKDOWN_SLICES * (sliceDuration / traceDuration))
+      : pixelsPerSlice * sliceNumberWidth;
   const sliceOffset =
-    sliceNumberStart !== undefined
-      ? pixelsPerSlice * sliceNumberStart
-      : pixelsPerSlice *
-        Math.floor((BREAKDOWN_SLICES * relativeSliceStart) / traceDuration);
+    sliceNumberStart === undefined
+      ? pixelsPerSlice *
+        Math.floor((BREAKDOWN_SLICES * relativeSliceStart) / traceDuration)
+      : pixelsPerSlice * sliceNumberStart;
 
   return (
     <BreakdownSlice
@@ -381,7 +298,7 @@ export function SpanBreakdownSliceRenderer({
 
 const Subtext = styled('span')`
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 const FlexContainer = styled('div')`
   display: flex;
@@ -521,7 +438,7 @@ export function TraceIssuesRenderer({
   return (
     <LinkButton
       to={normalizeUrl({
-        pathname: `/organizations/${organization.slug}/issues`,
+        pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           query: `trace:"${trace.trace}"`,
         },
@@ -586,7 +503,7 @@ const OMITTED_SPAN_STATUS = ['unknown'];
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
-export function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
+function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
   const tagType = statusToTagType(status);
 
   if (!tagType) {
@@ -597,7 +514,7 @@ export function StatusTag({status, onClick}: {status: string; onClick?: () => vo
     return null;
   }
   return (
-    <StyledTag type={tagType} onClick={onClick} borderStyle="solid">
+    <StyledTag type={tagType} onClick={onClick}>
       {status}
     </StyledTag>
   );

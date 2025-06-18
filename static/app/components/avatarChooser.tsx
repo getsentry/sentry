@@ -1,11 +1,13 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
-import Avatar from 'sentry/components/avatar';
 import {AvatarUploader} from 'sentry/components/avatarUploader';
-import {Button} from 'sentry/components/button';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
+import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -13,88 +15,66 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import Well from 'sentry/components/well';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SentryApp} from 'sentry/types/integrations';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Avatar} from 'sentry/types/core';
+import type {SentryApp, SentryAppAvatarPhotoType} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
-export type Model = Pick<AvatarUser, 'avatar'>;
-type AvatarType = Required<Model>['avatar']['avatarType'];
+export interface Model {
+  avatar?: Avatar;
+}
+
+type AvatarType = Avatar['avatarType'];
+
 type AvatarChooserType =
   | 'user'
-  | 'team'
   | 'organization'
   | 'sentryAppColor'
   | 'sentryAppSimple'
   | 'docIntegration';
+
 type DefaultChoice = {
-  allowDefault?: boolean;
   choiceText?: string;
   preview?: React.ReactNode;
 };
 
-type DefaultProps = {
-  onSave: (model: Model) => void;
-  allowGravatar?: boolean;
-  allowLetter?: boolean;
-  allowUpload?: boolean;
-  defaultChoice?: DefaultChoice;
-  type?: AvatarChooserType;
-  uploadDomain?: string;
-};
-
-type Props = {
-  api: Client;
+interface AvatarChooserProps {
   endpoint: string;
   model: Model;
+  supportedTypes: AvatarType[];
+  defaultChoice?: DefaultChoice;
   disabled?: boolean;
   help?: React.ReactNode;
-  isUser?: boolean;
-  savedDataUrl?: string;
+  onSave?: (model: Model) => void;
   title?: string;
-} & DefaultProps;
+  type?: AvatarChooserType;
+  uploadDomain?: string;
+}
 
-type State = {
-  hasError: boolean;
-  model: Model;
-  dataUrl?: string | null;
-  savedDataUrl?: string | null;
-};
+function AvatarChooser(props: AvatarChooserProps) {
+  const {
+    endpoint,
+    model: propsModel,
+    disabled,
+    title,
+    help,
+    supportedTypes,
+    type = 'user',
+    onSave,
+    defaultChoice = {},
+    uploadDomain = '',
+  } = props;
 
-class AvatarChooser extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    allowGravatar: true,
-    allowLetter: true,
-    allowUpload: true,
-    type: 'user',
-    onSave: () => {},
-    defaultChoice: {
-      allowDefault: false,
-    },
-    uploadDomain: '',
-  };
+  const api = useApi();
+  const [model, setModel] = useState(propsModel);
+  const [newAvatar, setNewAvatar] = useState<string | null>(null);
 
-  state: State = {
-    model: this.props.model,
-    savedDataUrl: null,
-    dataUrl: null,
-    hasError: false,
-  };
+  const hasError = false;
 
-  componentDidUpdate(prevProps: Props) {
-    const {model} = this.props;
-
-    // Update local state if defined in props
-    if (model !== undefined && model !== prevProps.model) {
-      this.setState({model});
-    }
-  }
-
-  getModelFromResponse(resp: any): Model {
-    const {type} = this.props;
+  const getModelFromResponse = (resp: any): Model => {
     const isSentryApp = type?.startsWith('sentryApp');
     // SentryApp endpoint returns all avatars, we need to return only the edited one
     if (!isSentryApp) {
@@ -104,31 +84,17 @@ class AvatarChooser extends Component<Props, State> {
     return {
       avatar: resp?.avatars?.find(({color}: any) => color === isColor) ?? undefined,
     };
-  }
+  };
 
-  handleError(msg: string) {
-    addErrorMessage(msg);
-  }
-
-  handleSuccess(model: Model) {
-    const {onSave} = this.props;
-    this.setState({model});
-    onSave(model);
-    addSuccessMessage(t('Successfully saved avatar preferences'));
-  }
-
-  handleSaveSettings = (ev: React.MouseEvent) => {
-    const {endpoint, api, type} = this.props;
-    const {model, dataUrl} = this.state;
-
-    ev.preventDefault();
+  const handleSaveSettings = () => {
     const avatarType = model?.avatar?.avatarType;
-    const avatarPhoto = dataUrl?.split(',')[1];
+    const avatarPhoto = newAvatar?.split(',')[1];
 
     const data: {
       avatar_photo?: string;
       avatar_type?: string;
       color?: boolean;
+      photoType?: SentryAppAvatarPhotoType;
     } = {avatar_type: avatarType};
 
     // If an image has been uploaded, then another option is selected, we should not submit the uploaded image
@@ -138,144 +104,130 @@ class AvatarChooser extends Component<Props, State> {
 
     if (type?.startsWith('sentryApp')) {
       data.color = type === 'sentryAppColor';
+      data.photoType = data.color ? 'logo' : 'icon';
     }
 
     api.request(endpoint, {
       method: 'PUT',
       data,
       success: resp => {
-        this.setState({savedDataUrl: this.state.dataUrl});
-        this.handleSuccess(this.getModelFromResponse(resp));
+        const newModel = getModelFromResponse(resp);
+        setModel(newModel);
+        onSave?.(newModel);
+        addSuccessMessage(t('Successfully saved avatar preferences'));
       },
       error: resp => {
         const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
         if (avatarPhotoErrors.length) {
-          avatarPhotoErrors.map(this.handleError);
+          avatarPhotoErrors.map(addErrorMessage);
         } else {
-          this.handleError.bind(this, t('There was an error saving your preferences.'));
+          addErrorMessage(t('There was an error saving your preferences.'));
         }
       },
     });
   };
 
-  handleChange = (id: AvatarType) =>
-    this.setState(state => ({
-      model: {
-        ...state.model,
-        avatar: {avatarUuid: state.model.avatar?.avatarUuid ?? '', avatarType: id},
-      },
-    }));
-
-  render() {
-    const {
-      allowGravatar,
-      allowUpload,
-      allowLetter,
-      savedDataUrl,
-      type,
-      isUser,
-      disabled,
-      title,
-      help,
-      defaultChoice,
-      uploadDomain,
-    } = this.props;
-    const {hasError, model, dataUrl} = this.state;
-
-    if (hasError) {
-      return <LoadingError />;
-    }
-    if (!model) {
-      return <LoadingIndicator />;
-    }
-    const {allowDefault, preview, choiceText: defaultChoiceText} = defaultChoice || {};
-
-    const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
-    const isLetter = avatarType === 'letter_avatar';
-    const isDefault = Boolean(preview && avatarType === 'default');
-
-    const isTeam = type === 'team';
-    const isOrganization = type === 'organization';
-    const isSentryApp = type?.startsWith('sentryApp');
-
-    const choices: Array<[AvatarType, string]> = [];
-
-    if (allowDefault && preview) {
-      choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);
-    }
-    if (allowLetter) {
-      choices.push(['letter_avatar', t('Use initials')]);
-    }
-    if (allowUpload) {
-      choices.push(['upload', t('Upload an image')]);
-    }
-    if (allowGravatar) {
-      choices.push(['gravatar', t('Use Gravatar')]);
-    }
-    return (
-      <Panel>
-        <PanelHeader>{title || t('Avatar')}</PanelHeader>
-        <PanelBody>
-          <AvatarForm>
-            <AvatarGroup inline={isLetter || isDefault}>
-              <RadioGroup
-                style={{flex: 1}}
-                choices={choices}
-                value={avatarType}
-                label={t('Avatar Type')}
-                onChange={this.handleChange}
-                disabled={disabled}
-              />
-              {isLetter && (
-                <Avatar
-                  gravatar={false}
-                  style={{width: 90, height: 90}}
-                  user={isUser ? (model as AvatarUser) : undefined}
-                  organization={isOrganization ? (model as Organization) : undefined}
-                  team={isTeam ? (model as Team) : undefined}
-                  sentryApp={isSentryApp ? (model as SentryApp) : undefined}
-                />
-              )}
-              {isDefault && preview}
-            </AvatarGroup>
-            <AvatarUploadSection>
-              {allowGravatar && avatarType === 'gravatar' && (
-                <Well>
-                  {t('Gravatars are managed through ')}
-                  <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-                </Well>
-              )}
-              {model.avatar && avatarType === 'upload' && (
-                <AvatarUploader
-                  {...this.props}
-                  type={type!}
-                  model={model}
-                  savedDataUrl={savedDataUrl}
-                  uploadDomain={uploadDomain ?? ''}
-                  updateDataUrlState={dataState => this.setState(dataState)}
-                />
-              )}
-              <AvatarSubmit className="form-actions">
-                {help && <AvatarHelp>{help}</AvatarHelp>}
-                <Button
-                  priority="primary"
-                  onClick={this.handleSaveSettings}
-                  disabled={disabled || (avatarType === 'upload' && !dataUrl)}
-                >
-                  {t('Save Avatar')}
-                </Button>
-              </AvatarSubmit>
-            </AvatarUploadSection>
-          </AvatarForm>
-        </PanelBody>
-      </Panel>
-    );
+  if (hasError) {
+    return <LoadingError />;
   }
+  if (!model) {
+    return <LoadingIndicator />;
+  }
+  const {preview, choiceText: defaultChoiceText} = defaultChoice || {};
+
+  const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
+  const isLetter = avatarType === 'letter_avatar';
+  const isDefault = !!preview && avatarType === 'default';
+
+  const isUser = type === 'user';
+  const isOrganization = type === 'organization';
+  const isSentryApp = type?.startsWith('sentryApp');
+
+  const gravatarLink = <ExternalLink href="https://gravatar.com" />;
+
+  const options: Array<RadioOption<AvatarType>> = [
+    ['default', defaultChoiceText ?? t('Use default avatar')],
+    ['letter_avatar', t('Use initials')],
+    ['upload', t('Upload an image')],
+    [
+      'gravatar',
+      t('Use Gravatar'),
+      tct('Manage your Gravatar on [gravatarLink:gravatar.com].', {gravatarLink}),
+    ],
+  ];
+
+  const choices = options.filter(([key]) => supportedTypes.includes(key));
+
+  const sharedAvatarProps = {
+    gravatar: false,
+    style: {width: 90, height: 90},
+  };
+
+  const avatar = isUser ? (
+    <UserAvatar {...sharedAvatarProps} user={model as AvatarUser} />
+  ) : isOrganization ? (
+    <OrganizationAvatar {...sharedAvatarProps} organization={model as Organization} />
+  ) : isSentryApp ? (
+    <SentryAppAvatar {...sharedAvatarProps} sentryApp={model as SentryApp} />
+  ) : null;
+
+  return (
+    <Panel>
+      <PanelHeader>{title || t('Avatar')}</PanelHeader>
+      <PanelBody>
+        <AvatarForm>
+          <AvatarGroup inline={isLetter || isDefault}>
+            <RadioGroup
+              style={{flex: 1}}
+              choices={choices}
+              value={avatarType}
+              label={t('Avatar Type')}
+              onChange={newType =>
+                setModel(prevModel => ({
+                  ...prevModel,
+                  avatar: {
+                    avatarUuid: prevModel.avatar?.avatarUuid ?? '',
+                    avatarType: newType,
+                  },
+                }))
+              }
+              disabled={disabled}
+            />
+            {isLetter && avatar}
+            {isDefault && preview}
+          </AvatarGroup>
+          <AvatarUploadSection>
+            {model.avatar && avatarType === 'upload' && (
+              <AvatarUploader
+                {...props}
+                type={type}
+                model={model}
+                uploadDomain={uploadDomain ?? ''}
+                updateDataUrlState={({dataUrl: newDataUrl}) =>
+                  setNewAvatar(newDataUrl ?? null)
+                }
+              />
+            )}
+            <AvatarSubmit className="form-actions">
+              {help && <AvatarHelp>{help}</AvatarHelp>}
+              <Button
+                priority="primary"
+                onClick={handleSaveSettings}
+                disabled={disabled || (avatarType === 'upload' && !newAvatar)}
+              >
+                {t('Save Avatar')}
+              </Button>
+            </AvatarSubmit>
+          </AvatarUploadSection>
+        </AvatarForm>
+      </PanelBody>
+    </Panel>
+  );
 }
 
 const AvatarHelp = styled('p')`
   margin-right: auto;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: 14px;
   width: 50%;
 `;
@@ -302,4 +254,4 @@ const AvatarUploadSection = styled('div')`
   margin-top: ${space(1.5)};
 `;
 
-export default withApi(AvatarChooser);
+export default AvatarChooser;

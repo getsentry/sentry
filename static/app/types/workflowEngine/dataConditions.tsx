@@ -1,0 +1,96 @@
+import type {Action} from './actions';
+
+export enum DataConditionType {
+  // operators
+  EQUAL = 'eq',
+  GREATER_OR_EQUAL = 'gte',
+  GREATER = 'gt',
+  LESS_OR_EQUAL = 'lte',
+  LESS = 'lt',
+  NOT_EQUAL = 'ne',
+
+  // operators
+  AGE_COMPARISON = 'age_comparison',
+  ASSIGNED_TO = 'assigned_to',
+  EVENT_ATTRIBUTE = 'event_attribute',
+  EVENT_CREATED_BY_DETECTOR = 'event_created_by_detector',
+  EVENT_SEEN_COUNT = 'event_seen_count',
+  EXISTING_HIGH_PRIORITY_ISSUE = 'existing_high_priority_issue',
+  FIRST_SEEN_EVENT = 'first_seen_event',
+  ISSUE_CATEGORY = 'issue_category',
+  ISSUE_OCCURRENCES = 'issue_occurrences',
+  LATEST_ADOPTED_RELEASE = 'latest_adopted_release',
+  LATEST_RELEASE = 'latest_release',
+  LEVEL = 'level',
+  NEW_HIGH_PRIORITY_ISSUE = 'new_high_priority_issue',
+  REGRESSION_EVENT = 'regression_event',
+  REAPPEARED_EVENT = 'reappeared_event',
+  TAGGED_EVENT = 'tagged_event',
+  ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
+  ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',
+
+  // frequency
+  EVENT_FREQUENCY_COUNT = 'event_frequency_count',
+  EVENT_FREQUENCY_PERCENT = 'event_frequency_percent',
+  EVENT_UNIQUE_USER_FREQUENCY_COUNT = 'event_unique_user_frequency_count',
+  EVENT_UNIQUE_USER_FREQUENCY_PERCENT = 'event_unique_user_frequency_percent',
+  PERCENT_SESSIONS_COUNT = 'percent_sessions_count',
+  PERCENT_SESSIONS_PERCENT = 'percent_sessions_percent',
+  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = 'event_unique_user_frequency_with_conditions_count',
+  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = 'event_unique_user_frequency_with_conditions_percent',
+
+  // frequency types for UI only
+  EVENT_FREQUENCY = 'event_frequency',
+  EVENT_UNIQUE_USER_FREQUENCY = 'event_unique_user_frequency',
+  PERCENT_SESSIONS = 'percent_sessions',
+}
+
+export enum DataConditionGroupLogicType {
+  ANY = 'any',
+  ANY_SHORT_CIRCUIT = 'any-short',
+  ALL = 'all',
+  NONE = 'none',
+}
+
+export enum DetectorPriorityLevel {
+  OK = 0,
+  LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
+}
+
+/**
+ * See DataConditionSerializer
+ */
+export interface DataCondition {
+  comparison: any;
+  id: string;
+  type: DataConditionType;
+  conditionResult?: DetectorPriorityLevel;
+}
+
+export interface DataConditionGroup {
+  conditions: DataCondition[];
+  id: string;
+  logicType: DataConditionGroupLogicType;
+  actions?: Action[];
+}
+
+export enum DataConditionHandlerGroupType {
+  DETECTOR_TRIGGER = 'detector_trigger',
+  WORKFLOW_TRIGGER = 'workflow_trigger',
+  ACTION_FILTER = 'action_filter',
+}
+
+export enum DataConditionHandlerSubgroupType {
+  ISSUE_ATTRIBUTES = 'issue_attributes',
+  FREQUENCY = 'frequency',
+  EVENT_ATTRIBUTES = 'event_attributes',
+}
+
+export interface DataConditionHandler {
+  comparisonJsonSchema: Record<string, any>;
+  handlerGroup: DataConditionHandlerGroupType;
+  handlerSubgroup: DataConditionHandlerSubgroupType;
+  type: DataConditionType;
+}

@@ -487,8 +487,8 @@ export function useVirtualizedTree<T extends TreeLike>(
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
       const previousNode = latestStateRef.current.selectedNodeIndex
-        ? latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
-          null
+        ? (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
+          null)
         : null;
 
       latestTreeRef.current.expandNode(node, expand, opts);
@@ -523,8 +523,8 @@ export function useVirtualizedTree<T extends TreeLike>(
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
       const previousNode = latestStateRef.current.selectedNodeIndex
-        ? latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
-          null
+        ? (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
+          null)
         : null;
 
       latestTreeRef.current.sort(sortFn);

@@ -12,7 +12,7 @@ const Wrapper = styled('div')`
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
   width: 100%;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
@@ -33,7 +33,7 @@ const Wrapper = styled('div')`
     padding-bottom: ${space(1)};
   }
   .encrypt-note {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     padding-top: ${space(1)};
   }
 `;

@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
-
-import Link from '../links/link';
 
 import BadgeDisplayName from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
@@ -62,7 +61,7 @@ const Name = styled('span')<{hideEmail: boolean}>`
 const Email = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
 `;
 

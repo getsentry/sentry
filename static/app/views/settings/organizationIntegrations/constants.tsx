@@ -3,7 +3,7 @@ export const NOT_INSTALLED = 'Not Installed';
 export const PENDING = 'Pending';
 export const DISABLED = 'Disabled';
 export const PENDING_DELETION = 'Pending Deletion';
-export const LEARN_MORE = 'Learn More';
+const LEARN_MORE = 'Learn More';
 
 export const COLORS = {
   [INSTALLED]: 'success',
@@ -20,9 +20,7 @@ export const COLORS = {
  * Sentry-apps which read popularity from the db.
  */
 
-export const POPULARITY_WEIGHT: {
-  [key: string]: number;
-} = {
+export const POPULARITY_WEIGHT: Record<string, number> = {
   // First-party-integrations
   slack: 50,
   github: 20,

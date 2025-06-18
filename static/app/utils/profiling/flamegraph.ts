@@ -40,7 +40,7 @@ export class Flamegraph {
   profile: Profile;
   frames: readonly FlamegraphFrame[] = [];
 
-  inverted: boolean = false;
+  inverted = false;
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
 
   depth = 0;
@@ -255,7 +255,7 @@ export class Flamegraph {
         depth: 0,
         start: value,
         end: value,
-        profileIds: profile.callTreeNodeProfileIdMap.get(node),
+        profileIds: Array.from(profile.callTreeNodeProfileIdMap.get(node) || []),
       };
 
       if (parent) {

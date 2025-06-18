@@ -2,28 +2,20 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {ActualMinimap} from 'sentry/components/events/interfaces/spans/header';
 import {useSpanWaterfallModelFromTransaction} from 'sentry/components/events/interfaces/spans/useSpanWaterfallModelFromTransaction';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {LandingDisplayField} from 'sentry/views/insights/browser/webVitals/views/pageOverview';
 
 type Props = {
   transaction: string;
   aggregateSpansLocation?: Location;
 };
 
-export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Props) {
+export function MiniAggregateWaterfall({transaction}: Props) {
   const theme = useTheme();
-  const location = useLocation();
-  const organization = useOrganization();
 
   // Pageload transactions don't seem to store http.method, so don't include one here
   const {waterfallModel, event, isLoading} =
@@ -31,13 +23,6 @@ export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Pr
   if (isLoading) {
     return <LoadingIndicator />;
   }
-  const AggregateSpanWaterfallLocation = aggregateSpansLocation ?? {
-    ...location,
-    query: {
-      ...location.query,
-      tab: LandingDisplayField.SPANS,
-    },
-  };
   const minimap = (
     <ActualMinimap
       theme={theme}
@@ -60,18 +45,6 @@ export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Pr
     <span>
       <MinimapContainer>{minimap}</MinimapContainer>
       <BreakdownContainer>{opsBreakdown}</BreakdownContainer>
-      <LinkButton
-        aria-label={t('View Full Waterfall')}
-        size="sm"
-        to={AggregateSpanWaterfallLocation}
-        onClick={() => {
-          trackAnalytics('insight.vital.overview.open_full_waterfall', {
-            organization,
-          });
-        }}
-      >
-        {t('View Full Waterfall')}
-      </LinkButton>
     </span>
   );
 }

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AlertLink from 'sentry/components/alertLink';
-import {LinkButton} from 'sentry/components/button';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withOrganizations from 'sentry/utils/withOrganizations';
+import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
   NOTIFICATION_FEATURE_MAP,
   NOTIFICATION_SETTINGS_PATHNAMES,
@@ -48,9 +49,9 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     return true;
   });
 
-  const renderOneSetting = (type: string) => {
+  const renderOneSetting = (type: NotificationSettingsType) => {
     // TODO(isabella): Once GA, remove this
-    const field = NOTIFICATION_SETTING_FIELDS[type]!;
+    const field = NOTIFICATION_SETTING_FIELDS[type];
     if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
       field.label = t('Spend');
       field.help = t('Notifications that help avoid surprise invoices.');
@@ -68,7 +69,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
             borderless
             aria-label={t('Notification Settings')}
             data-test-id="fine-tuning"
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}
           />
         </IconWrapper>
@@ -87,7 +87,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     isError,
     isSuccess,
     refetch,
-  } = useApiQuery<{[key: string]: string}>(['/users/me/notifications/'], {
+  } = useApiQuery<Record<string, string>>(['/users/me/notifications/'], {
     staleTime: 0,
   });
 
@@ -124,9 +124,11 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
           </Form>
         )}
       </BottomFormWrapper>
-      <AlertLink to="/settings/account/emails" icon={<IconMail />}>
-        {t('Looking to add or remove an email address? Use the emails panel.')}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink type="info" to="/settings/account/emails" trailingItems={<IconMail />}>
+          {t('Looking to add or remove an email address? Use the emails panel.')}
+        </AlertLink>
+      </AlertLink.Container>
     </Fragment>
   );
 }
@@ -138,7 +140,7 @@ const FieldLabel = styled('div')`
 
 const FieldHelp = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const FieldWrapper = styled('div')`

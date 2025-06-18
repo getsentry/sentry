@@ -55,6 +55,7 @@ def query(
     granularity: int | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -79,6 +80,7 @@ def query(
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                parser_config_overrides={"allow_not_has_filter": False},
             ),
         )
         if referrer is None:
@@ -91,6 +93,8 @@ def query(
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
+        if debug:
+            results["meta"]["query"] = str(metrics_query.get_snql_query().query)
         sentry_sdk.set_tag("performance.dataset", "metrics")
         sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
@@ -182,6 +186,7 @@ def bulk_timeseries_query(
                         functions_acl=functions_acl,
                         allow_metric_aggregates=allow_metric_aggregates,
                         use_metrics_layer=use_metrics_layer,
+                        parser_config_overrides={"allow_not_has_filter": False},
                     ),
                 )
                 snql_query = metrics_query.get_snql_query()
@@ -291,6 +296,7 @@ def timeseries_query(
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
                     on_demand_metrics_type=on_demand_metrics_type,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    parser_config_overrides={"allow_not_has_filter": False},
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
@@ -449,6 +455,7 @@ def top_events_timeseries(
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             on_demand_metrics_type=on_demand_metrics_type,
             transform_alias_to_input_format=transform_alias_to_input_format,
+            parser_config_overrides={"allow_not_has_filter": False},
         ),
     )
     if len(top_events["data"]) == limit and include_other:

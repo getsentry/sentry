@@ -4,7 +4,7 @@ import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
@@ -183,22 +183,22 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? t('Open in GitHub is not supported for this platform')
-                  : sourceCodeLink.isPending
+                isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
+                  ? sourceCodeLink.isPending
                     ? 'Resolving link'
                     : sourceCodeLink.isSuccess &&
                         (!sourceCodeLink.data.sourceUrl ||
                           sourceCodeLink.data.config?.provider?.key !== 'github')
                       ? t('Could not find source code location in GitHub')
                       : undefined
+                  : t('Open in GitHub is not supported for this platform')
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,
               })}
               icon={
                 sourceCodeLink.isPending ? (
-                  <StyledLoadingIndicator size={10} hideMessage />
+                  <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
                 )
@@ -258,7 +258,12 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -443,7 +448,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
               })}
               icon={
                 sourceCodeLink.isPending ? (
-                  <StyledLoadingIndicator size={10} hideMessage />
+                  <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
                 )
@@ -503,7 +508,12 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -562,7 +572,7 @@ function ProfileIdsSubMenu(props: {
     [popper]
   );
 
-  const currentTarget = useRef<Node | null>();
+  const currentTarget = useRef<Node | null>(null);
   useEffect(() => {
     const listener = (e: MouseEvent) => {
       currentTarget.current = e.target as Node;
@@ -598,10 +608,10 @@ function ProfileIdsSubMenu(props: {
           setIsOpen(true);
         }}
       >
-        <Flex w="100%" justify="space-between" align="center">
+        <FullWidthFlex justify="space-between" align="center">
           <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)}</Flex.Item>
           <IconChevron direction="right" size="xs" />
-        </Flex>
+        </FullWidthFlex>
       </ProfilingContextMenuItemButton>
       {isOpen &&
         props.subMenuPortalRef &&
@@ -617,7 +627,8 @@ function ProfileIdsSubMenu(props: {
               {props.profileIds.map((profileId, i) => {
                 const projectSlug =
                   typeof profileId !== 'string' && 'project_id' in profileId
-                    ? projectLookupTable[profileId.project_id]?.slug ?? props.projectSlug
+                    ? (projectLookupTable[profileId.project_id]?.slug ??
+                      props.projectSlug)
                     : props.projectSlug;
 
                 if (!projectSlug) {
@@ -661,3 +672,7 @@ function ProfileIdsSubMenu(props: {
     </Fragment>
   );
 }
+
+const FullWidthFlex = styled(Flex)`
+  width: 100%;
+`;

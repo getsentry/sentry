@@ -2,7 +2,7 @@ import type React from 'react';
 import {createContext, Fragment, useCallback, useContext, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {IconClose} from 'sentry/icons';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
@@ -13,7 +13,7 @@ export enum DismissId {
   CACHE_SDK_UPDATE_ALERT = 1,
 }
 
-export type PageAlertOptions = {
+type PageAlertOptions = {
   message: React.ReactNode | undefined;
   type: PageAlertType;
   dismissId?: DismissId;
@@ -26,7 +26,7 @@ type PageAlertSetter = (
   options?: Pick<PageAlertOptions, 'dismissId'>
 ) => void;
 
-const pageErrorContext = createContext<{
+const PageErrorContext = createContext<{
   setPageError: PageAlertSetter;
   setPageInfo: PageAlertSetter;
   setPageMuted: PageAlertSetter;
@@ -66,7 +66,7 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
   }, []);
 
   return (
-    <pageErrorContext.Provider
+    <PageErrorContext
       value={{
         pageAlert,
         setPageInfo,
@@ -77,18 +77,18 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
       }}
     >
       {children}
-    </pageErrorContext.Provider>
+    </PageErrorContext>
   );
 }
 
 export function PageAlert() {
-  const {pageAlert} = useContext(pageErrorContext);
+  const {pageAlert} = useContext(PageErrorContext);
   const [dismissedAlerts, setDismissedAlerts] = useLocalStorageState<number[]>(
     localStorageKey,
     []
   );
 
-  if (!pageAlert || !pageAlert.message) {
+  if (!pageAlert?.message) {
     return null;
   }
 
@@ -107,15 +107,17 @@ export function PageAlert() {
   };
 
   return (
-    <Alert
-      type={pageAlert.type}
-      data-test-id="page-error-alert"
-      showIcon
-      trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
-    >
-      <Fragment>{message}</Fragment>
-    </Alert>
+    <Alert.Container>
+      <Alert
+        type={pageAlert.type}
+        data-test-id="page-error-alert"
+        showIcon
+        trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
+      >
+        <Fragment>{message}</Fragment>
+      </Alert>
+    </Alert.Container>
   );
 }
 
-export const usePageAlert = () => useContext(pageErrorContext);
+export const usePageAlert = () => useContext(PageErrorContext);

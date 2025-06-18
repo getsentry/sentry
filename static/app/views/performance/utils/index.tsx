@@ -11,9 +11,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
@@ -29,8 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-
-import {DEFAULT_MAX_DURATION} from '../trends/utils';
+import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -42,8 +39,6 @@ export const QUERY_KEYS = [
 ] as const;
 
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
-const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can be deleted in the future when all data for this transaction name is gone.
-export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 export enum DiscoverQueryPageSource {
@@ -176,7 +171,7 @@ export function platformAndConditionsToPerformanceType(
   if (performanceType === ProjectPerformanceType.FRONTEND) {
     const conditions = new MutableSearch(eventView.query);
     const ops = conditions.getFilterValues('!transaction.op');
-    if (ops.some(op => op === 'pageload')) {
+    if (ops.includes('pageload')) {
       return ProjectPerformanceType.FRONTEND_OTHER;
     }
   }
@@ -203,40 +198,15 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
-// TODO - remove in favour of `getPerformanceBaseUrl`
-export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `${getPerformanceBaseUrl(organization.slug)}/`;
-}
-
-export function getPerformanceTrendsUrl(
+function getPerformanceTrendsUrl(
   organization: OrganizationSummary,
   view?: DomainView
 ): string {
   return `${getPerformanceBaseUrl(organization.slug, view)}/trends/`;
 }
 
-export function getTransactionSearchQuery(location: Location, query: string = '') {
+export function getTransactionSearchQuery(location: Location, query = '') {
   return decodeScalar(location.query.query, query).trim();
-}
-
-export function handleTrendsClick({
-  location,
-  organization,
-  projectPlatforms,
-}: {
-  location: Location;
-  organization: Organization;
-  projectPlatforms: string;
-}) {
-  trackAnalytics('performance_views.change_view', {
-    organization,
-    view_name: 'TRENDS',
-    project_platforms: projectPlatforms,
-  });
-
-  const target = trendsTargetRoute({location, organization});
-
-  browserHistory.push(normalizeUrl(target));
 }
 
 export function trendsTargetRoute({
@@ -248,7 +218,7 @@ export function trendsTargetRoute({
 }: {
   location: Location;
   organization: Organization;
-  additionalQuery?: {[x: string]: string};
+  additionalQuery?: Record<string, string>;
   initialConditions?: MutableSearch;
   view?: DomainView;
 }) {
@@ -414,13 +384,10 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
 
 export function getPerformanceBaseUrl(
   orgSlug: string,
-  view?: DomainView,
-  bare: boolean = false
+  view: DomainView = 'backend',
+  bare = false
 ) {
-  let url = 'performance';
-  if (view) {
-    url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
-  }
+  const url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
 
   return bare ? url : normalizeUrl(`/organizations/${orgSlug}/${url}`);
 }

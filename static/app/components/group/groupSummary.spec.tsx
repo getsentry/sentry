@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -12,7 +13,6 @@ describe('GroupSummary', function () {
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
@@ -29,31 +29,39 @@ describe('GroupSummary', function () {
     },
   };
 
-  const mockSummaryDataWithLowScores = {
+  const mockSummaryDataWithNullScores = {
     groupId: '1',
     whatsWrong: 'Test whats wrong',
     trace: 'Test trace',
     possibleCause: 'Test possible cause',
     headline: 'Test headline',
-    scores: {
-      possibleCauseConfidence: 0.5,
-      possibleCauseNovelty: 0.0,
-    },
+    scores: null,
   };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
         },
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {
+          ok: true,
+          repos: [
+            {
+              ok: true,
+              owner: 'owner',
+              name: 'hello-world',
+              provider: 'integrations:github',
+            },
+          ],
+        },
+      }),
     });
   });
 
@@ -69,20 +77,20 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.getByText('In the trace')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
-  it('renders the summary without possible cause', async function () {
+  it('renders the summary with all sections when scores are null', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
-      body: mockSummaryDataWithLowScores,
+      body: mockSummaryDataWithNullScores,
     });
 
     render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -90,13 +98,13 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.getByText('In the trace')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.queryByText('Possible cause')).not.toBeInTheDocument();
-    expect(screen.queryByText('Test possible cause')).not.toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
   it('shows loading state', function () {
@@ -110,8 +118,8 @@ describe('GroupSummary', function () {
       organization,
     });
 
-    // Should show loading placeholders. Currently we load the whatsWrong section
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(1);
+    // Should show loading placeholders. Currently we load the whatsWrong and possibleCause sections
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
   });
 
   it('shows error state', async function () {
@@ -146,11 +154,11 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
-    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.queryByText('In the Trace')).not.toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
@@ -167,8 +175,12 @@ describe('GroupSummary', function () {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+      expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test possible cause')).toBeInTheDocument();
+    expect(screen.queryByText('What Happened')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test whats wrong')).not.toBeInTheDocument();
+    expect(screen.queryByText('In the Trace')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test trace')).not.toBeInTheDocument();
   });
 });

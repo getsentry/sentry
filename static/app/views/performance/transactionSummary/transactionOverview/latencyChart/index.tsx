@@ -5,9 +5,8 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
-
-import type {ViewProps} from '../../../types';
-import {SpanOperationBreakdownFilter} from '../../filter';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Content from './content';
 

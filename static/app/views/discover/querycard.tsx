@@ -114,7 +114,7 @@ const QueryTitle = styled('div')`
 const QueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   line-height: 1.5;
   ${p => p.theme.overflowEllipsis};
 `;

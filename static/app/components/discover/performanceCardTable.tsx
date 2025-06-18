@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
@@ -49,6 +49,7 @@ function PerformanceCardTable({
   performanceType,
   isLoading,
 }: PerformanceCardTableProps) {
+  const theme = useTheme();
   const miseryRenderer =
     allReleasesTableData?.meta &&
     getFieldRenderer('user_misery()', allReleasesTableData.meta, false);
@@ -239,12 +240,13 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
               const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -267,12 +269,13 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
               const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -419,10 +422,15 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
-              const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
+              const allReleasesApdex = apdexRenderer?.(dataRow, {
+                organization,
+                location,
+                theme,
+              });
               const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -442,13 +450,15 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesApdex = apdexRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -543,9 +553,10 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -563,9 +574,10 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -613,6 +625,7 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
 
               return (
@@ -627,6 +640,7 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
 
               return (
@@ -830,7 +844,6 @@ const StyledAlert = styled(Alert)`
   border-top: 1px solid ${p => p.theme.border};
   border-right: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
-  margin-bottom: 0;
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

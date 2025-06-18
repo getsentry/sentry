@@ -65,7 +65,7 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
 
   onDelete: (changeId: string, itemIds: ItemIds) => void;
-  onDeleteError: (changeId: string, itemIds: ItemIds, error: Error) => void;
+  onDeleteError: (changeId: string, itemIds: ItemIds, response: RequestError) => void;
   onDeleteSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
 
   onDiscard: (changeId: string, itemId: string) => void;
@@ -347,8 +347,12 @@ const storeConfig: GroupStoreDefinition = {
     this.updateItems(ids);
   },
 
-  onDeleteError(_changeId, itemIds, _response) {
-    showAlert(t('Unable to delete events. Please try again.'), 'error');
+  onDeleteError(_changeId, itemIds, response) {
+    if (response.status === 403) {
+      showAlert(t('You do not have permission to delete issues'), 'error');
+    } else {
+      showAlert(t('Unable to delete events. Please try again.'), 'error');
+    }
 
     if (!itemIds) {
       return;

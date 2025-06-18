@@ -39,7 +39,7 @@ function renderComponent({
   data?: TableDataRow;
   handleCellAction?: (
     action: Actions,
-    value: React.ReactText | null[] | string[] | null
+    value: string | number | null[] | string[] | null
   ) => void;
 }) {
   return render(

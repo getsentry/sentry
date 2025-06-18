@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -181,17 +182,17 @@ export function DataScrubbing({
       </PanelAlert>
       <PanelBody>
         {project && <OrganizationRules organization={organization} />}
-        {!rules.length ? (
-          <EmptyMessage
-            icon={<IconWarning size="xl" />}
-            description={t('You have no data scrubbing rules')}
-          />
-        ) : (
+        {rules.length ? (
           <Rules
             rules={rules}
             onDeleteRule={handleDelete}
             onEditRule={handleEdit}
             disabled={disabled}
+          />
+        ) : (
+          <EmptyMessage
+            icon={<IconWarning size="xl" />}
+            description={t('You have no data scrubbing rules')}
           />
         )}
         <PanelAction>

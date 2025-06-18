@@ -490,15 +490,24 @@ class MsTeamsWebhookEndpoint(Endpoint):
         with MessagingInteractionEvent(
             interaction_type, MsTeamsMessagingSpec()
         ).capture() as lifecycle:
-            response = client.put(
-                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-                params={"id": group.id},
-                data=action_data,
-                user=user_service.get_user(user_id=identity.user_id),
-                auth=event_write_key,
-            )
-            if response.status_code >= 400:
-                lifecycle.record_failure()
+            try:
+                response = client.put(
+                    path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
+                    params={"id": group.id},
+                    data=action_data,
+                    user=user_service.get_user(user_id=identity.user_id),
+                    auth=event_write_key,
+                )
+            except client.ApiError as e:
+                if e.status_code == 403:
+                    lifecycle.record_halt(e)
+                # If the user hasn't configured their releases properly, we recieve errors like:
+                # sentry.api.client.ApiError: status=400 body={'statusDetails': {'inNextRelease': [xxx])]}}"
+                # We can mark these as halt
+                elif e.status_code == 400 and e.body.get("statusDetails", {}).get("inNextRelease"):
+                    lifecycle.record_halt(e)
+                elif e.status_code >= 400:
+                    lifecycle.record_failure(e)
             return response
 
     def _handle_action_submitted(self, request: Request) -> Response:

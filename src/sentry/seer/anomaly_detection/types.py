@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum, StrEnum
 from typing import NotRequired, TypedDict
 
 
@@ -13,8 +13,16 @@ class TimeSeriesPoint(TypedDict):
     anomaly: NotRequired[Anomaly]
 
 
+class DataSourceType(IntEnum):
+    SNUBA_QUERY_SUBSCRIPTION = 0
+
+
 class AlertInSeer(TypedDict):
-    id: int
+    id: NotRequired[int]
+    source_id: NotRequired[
+        int
+    ]  # during our dual processing rollout, some requests will be sending ID and some will send source_id/source_type
+    source_type: NotRequired[DataSourceType]
     cur_window: NotRequired[TimeSeriesPoint]
 
 
@@ -69,8 +77,35 @@ class DetectAnomaliesResponse(TypedDict):
     timeseries: list[TimeSeriesPoint]
 
 
-class AnomalyType(Enum):
+class AnomalyType(StrEnum):
     HIGH_CONFIDENCE = "anomaly_higher_confidence"
     LOW_CONFIDENCE = "anomaly_lower_confidence"
     NONE = "none"
     NO_DATA = "no_data"
+
+
+class AnomalyDetectionSensitivity(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class AnomalyDetectionSeasonality(StrEnum):
+    """All combinations of multi select fields for anomaly detection alerts
+    We do not anticipate adding more
+    """
+
+    AUTO = "auto"
+    HOURLY = "hourly"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    HOURLY_DAILY = "hourly_daily"
+    HOURLY_WEEKLY = "hourly_weekly"
+    HOURLY_DAILY_WEEKLY = "hourly_daily_weekly"
+    DAILY_WEEKLY = "daily_weekly"
+
+
+class AnomalyDetectionThresholdType(IntEnum):
+    ABOVE = 0
+    BELOW = 1
+    ABOVE_AND_BELOW = 2

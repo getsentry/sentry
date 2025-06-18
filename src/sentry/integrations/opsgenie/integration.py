@@ -5,14 +5,15 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django import forms
-from django.http import HttpResponse
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -23,8 +24,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
-from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -101,8 +103,8 @@ class InstallationForm(forms.Form):
     )
 
 
-class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type: ignore[explicit-override, override]
+class InstallationConfigView(IntegrationPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -206,7 +208,6 @@ class OpsgenieIntegration(IntegrationInstallation):
                         )
                     elif e.code == 401:
                         invalid_keys.append(integration_key)
-                        pass
                     elif e.json and e.json.get("message"):
                         raise ApiError(e.json["message"])
                     else:
@@ -231,16 +232,21 @@ class OpsgenieIntegration(IntegrationInstallation):
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
-    key = "opsgenie"
+    key = IntegrationProviderSlug.OPSGENIE.value
     name = "Opsgenie"
     metadata = metadata
     integration_cls = OpsgenieIntegration
-    features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
+    features = frozenset(
+        [
+            IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
+            IntegrationFeatures.ENTERPRISE_ALERT_RULE,
+        ]
+    )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
         return [InstallationConfigView()]
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state["installation_data"]["api_key"]
         base_url = state["installation_data"]["base_url"]
         name = state["installation_data"]["provider"]
@@ -257,8 +263,9 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         with record_event(OnCallInteractionType.POST_INSTALL).capture():
             try:

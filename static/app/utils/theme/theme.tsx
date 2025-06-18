@@ -7,14 +7,252 @@
  * - Light and dark theme definitions
  * - Theme type exports
  */
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {type DataCategory, Outcome} from 'sentry/types/core';
+// palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
+const CHART_PALETTE = [
+  ['#444674'],
+  ['#444674', '#f2b712'],
+  ['#444674', '#d6567f', '#f2b712'],
+  ['#444674', '#a35488', '#ef7061', '#f2b712'],
+  ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
+  ['#444674', '#7a5088', '#b85586', '#e9626e', '#f58c46', '#f2b712'],
+  ['#444674', '#704f87', '#a35488', '#d6567f', '#ef7061', '#f59340', '#f2b712'],
+  [
+    '#444674',
+    '#694e86',
+    '#955389',
+    '#c15584',
+    '#e65d73',
+    '#f27a58',
+    '#f6983b',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#644d85',
+    '#895289',
+    '#b05587',
+    '#d6567f',
+    '#ec6868',
+    '#f38150',
+    '#f69b38',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#614c84',
+    '#815189',
+    '#a35488',
+    '#c65683',
+    '#e35a78',
+    '#ef7061',
+    '#f4884b',
+    '#f59f34',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#5c4c82',
+    '#7a5088',
+    '#9a5389',
+    '#b85586',
+    '#d7567f',
+    '#e9626e',
+    '#f1785a',
+    '#f58c46',
+    '#f5a132',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#5b4b82',
+    '#764f88',
+    '#925289',
+    '#ae5487',
+    '#c85682',
+    '#e2587a',
+    '#ec6b66',
+    '#f37d54',
+    '#f59143',
+    '#f5a42f',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#584b80',
+    '#704f87',
+    '#895289',
+    '#a35488',
+    '#bd5585',
+    '#d6567f',
+    '#e75f71',
+    '#ef7061',
+    '#f38150',
+    '#f59340',
+    '#f5a52d',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#574b80',
+    '#6d4e87',
+    '#855189',
+    '#9d5389',
+    '#b35586',
+    '#ca5682',
+    '#e2577b',
+    '#eb666a',
+    '#f0765b',
+    '#f4854d',
+    '#f6953e',
+    '#f5a62c',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#564a7f',
+    '#694e86',
+    '#805089',
+    '#955389',
+    '#ab5487',
+    '#c15584',
+    '#d6567f',
+    '#e65d73',
+    '#ed6c65',
+    '#f27a58',
+    '#f5894a',
+    '#f6983b',
+    '#f5a72b',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#544a7f',
+    '#674d85',
+    '#7a5088',
+    '#8f5289',
+    '#a35488',
+    '#b85586',
+    '#cd5681',
+    '#e1567c',
+    '#e9626e',
+    '#ef7061',
+    '#f37d54',
+    '#f58c46',
+    '#f69a39',
+    '#f5a829',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#524a7e',
+    '#644d85',
+    '#784f88',
+    '#895289',
+    '#9e5389',
+    '#b05587',
+    '#c45683',
+    '#d6567f',
+    '#e55b76',
+    '#ec6868',
+    '#f0745c',
+    '#f38150',
+    '#f58e44',
+    '#f69b38',
+    '#f4a928',
+    '#f2b712',
+  ],
+  [
+    '#444674',
+    '#524a7e',
+    '#624d84',
+    '#744f88',
+    '#865189',
+    '#985389',
+    '#aa5488',
+    '#bc5585',
+    '#cd5681',
+    '#df567c',
+    '#e86070',
+    '#ed6c64',
+    '#f17959',
+    '#f4854e',
+    '#f59242',
+    '#f59e35',
+    '#f4aa27',
+    '#f2b712',
+  ],
+] as const;
 
-export const generateThemeAliases = (colors: Colors) => ({
+type ChartColorPalette = typeof CHART_PALETTE;
+type ColorLength = (typeof CHART_PALETTE)['length'];
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+  ? A
+  : TupleOf<N, [...A, A['length']]>;
+
+type ValidLengthArgument = TupleOf<ColorLength>[number];
+
+/**
+ * Returns the color palette for a given number of series.
+ * If length argument is statically analyzable, the return type will be narrowed
+ * to the specific color palette index.
+ * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
+ * return a single color, not two colors. It smells like either a bug or off by one error.
+ * @param length - The number of series to return a color palette for?
+ */
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
+  return function getChartColorPalette<Length extends ValidLengthArgument>(
+    length: Length | number
+  ): T[Length] {
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as T[Length];
+  };
+}
+
+const generateTokens = (colors: Colors) => ({
+  content: {
+    primary: colors.gray400, // theme.textColor
+    muted: colors.gray300, // theme.subText
+    accent: colors.purple400, // new
+    promotion: colors.pink400, // new
+    danger: colors.red400, // theme.errorText
+    warning: colors.yellow400, // theme.warningText
+    success: colors.green400, // theme.successText
+  },
+  graphics: {
+    muted: colors.gray300,
+    accent: colors.blue300,
+    promotion: colors.pink300,
+    danger: colors.red300,
+    warning: colors.yellow300,
+    success: colors.green300,
+  },
+  background: {
+    primary: colors.surface300, // theme.background
+    secondary: colors.surface200, // theme.backgroundSecondary
+    tertiary: colors.surface100, // theme.backgroundTertiary
+  },
+  border: {
+    primary: colors.gray200, // theme.border
+    muted: colors.gray100, // theme.innerBorder
+    accent: colors.purple300, // theme.focusBorder
+    promotion: colors.pink400, // new
+    danger: colors.red200, // theme.errorFocus
+    warning: colors.yellow200, // theme.warningFocus
+    success: colors.green200, // theme.successFocus
+  },
+});
+
+const generateThemeAliases = (colors: Colors) => ({
   /**
    * Heading text color
    */
@@ -129,11 +367,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   focusBorder: colors.purple300,
 
   /**
-   * Inactive
-   */
-  inactive: colors.gray300,
-
-  /**
    * Link color indicates that something is clickable
    */
   linkColor: colors.blue400,
@@ -145,11 +378,6 @@ export const generateThemeAliases = (colors: Colors) => ({
    * Form placeholder text color
    */
   formPlaceholder: colors.gray300,
-
-  /**
-   * Default form text color
-   */
-  formText: colors.gray400,
 
   /**
    *
@@ -173,6 +401,11 @@ export const generateThemeAliases = (colors: Colors) => ({
   chartOther: colors.gray200,
 
   /**
+   * Hover color of the drag handle used in the content slider diff view.
+   */
+  diffSliderDragHandleHover: colors.purple400,
+
+  /**
    * Default Progressbar color
    */
   progressBar: colors.purple300,
@@ -181,11 +414,6 @@ export const generateThemeAliases = (colors: Colors) => ({
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
 
   /**
    * Tag progress bars
@@ -218,16 +446,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   },
 
   /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: colors.gray500,
-
-  /**
    * Background of alert banners at the top
    */
   bannerBackground: colors.gray500,
@@ -235,8 +453,9 @@ export const generateThemeAliases = (colors: Colors) => ({
 
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 
-type AlertColors = {
-  [key in Alert]: {
+type AlertColors = Record<
+  Alert,
+  {
     background: string;
     backgroundLight: string;
     border: string;
@@ -244,17 +463,17 @@ type AlertColors = {
     color: string;
     // @TODO(jonasbadalic): Why is textLight optional and only set on error?
     textLight?: string;
-  };
-};
+  }
+>;
 
 export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
-    textDecoration: `underline dotted ${
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      colors[underlineColor] ?? aliases[underlineColor]
-    }`,
+    textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
     display: block;
@@ -342,29 +561,26 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
+  transparent: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: 'transparent',
+    backgroundActive: 'transparent',
+    border: 'transparent',
+    borderActive: 'transparent',
+    borderTranslucent: 'transparent',
+    focusBorder: 'transparent',
+    focusShadow: 'transparent',
+  },
 });
 
 export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
-  muted: {
-    background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
-    color: 'inherit',
-  },
   info: {
-    background: colors.blue300,
-    backgroundLight: colors.blue100,
     border: colors.blue200,
-    borderHover: colors.blue300,
+    background: colors.blue300,
     color: colors.blue400,
-  },
-  warning: {
-    background: colors.yellow300,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow300,
-    color: colors.yellow400,
+    backgroundLight: colors.blue100,
+    borderHover: colors.blue300,
   },
   success: {
     background: colors.green300,
@@ -372,6 +588,20 @@ export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors 
     border: colors.green200,
     borderHover: colors.green300,
     color: colors.green400,
+  },
+  muted: {
+    background: colors.gray200,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
+    borderHover: alias.border,
+    color: 'inherit',
+  },
+  warning: {
+    background: colors.yellow300,
+    backgroundLight: colors.yellow100,
+    border: colors.yellow200,
+    borderHover: colors.yellow300,
+    color: colors.yellow400,
   },
   error: {
     background: colors.red300,
@@ -394,49 +624,6 @@ export const generateLevelTheme = (colors: Colors): LevelColors => ({
   fatal: colors.red300,
   default: colors.gray300,
   unknown: colors.gray200,
-});
-
-export const generateBadgeTheme = (colors: Colors): BadgeColors => ({
-  default: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  alpha: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
-    indicatorColor: colors.pink300,
-    color: colors.white,
-  },
-  beta: {
-    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
-    indicatorColor: colors.purple300,
-    color: colors.white,
-  },
-  new: {
-    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
-    indicatorColor: colors.green300,
-    color: colors.white,
-  },
-  experimental: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  internal: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  warning: {
-    background: colors.yellow300,
-    indicatorColor: colors.yellow300,
-    color: colors.gray500,
-  },
-  gray: {
-    background: `rgba(43, 34, 51, 0.08)`,
-    indicatorColor: `rgba(43, 34, 51, 0.08)`,
-    color: colors.gray500,
-  },
 });
 
 export const generateTagTheme = (colors: Colors): TagColors => ({
@@ -567,7 +754,7 @@ const lightColors: Colors = {
   lightModeWhite: '#FFFFFF',
 
   surface100: '#F5F3F7',
-  surface200: '#FAF9FB',
+  surface200: '#F7F6F9',
   surface300: '#FFFFFF',
   surface400: '#FFFFFF',
 
@@ -583,7 +770,7 @@ const lightColors: Colors = {
 
   gray500: '#2B2233',
   gray400: '#3E3446',
-  gray300: '#80708F',
+  gray300: '#71637E',
   gray200: '#E0DCE5',
   gray100: '#F0ECF3',
 
@@ -737,25 +924,6 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-type Badge =
-  | 'default'
-  | 'alpha'
-  | 'beta'
-  | 'warning'
-  | 'new'
-  | 'experimental'
-  // @TODO(jonasbadalic): What is gray a tag type?
-  | 'gray'
-  | 'internal';
-
-type BadgeColors = {
-  [key in Badge]: {
-    background: string;
-    color: string;
-    indicatorColor: string;
-  };
-};
-
 type Tag =
   | 'default'
   | 'promotion'
@@ -768,24 +936,24 @@ type Tag =
   | 'white'
   | 'black';
 
-type TagColors = {
-  [key in Tag]: {
+type TagColors = Record<
+  Tag,
+  {
     background: string;
     border: string;
     color: string;
-  };
-};
+  }
+>;
 
 // @TODO: is this loose coupling enough?
 type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = {
-  [key in Level]: string;
-};
+type LevelColors = Record<Level, string>;
 
 // @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled';
-type ButtonColors = {
-  [key in Button]: {
+type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
+type ButtonColors = Record<
+  Button,
+  {
     background: string;
     backgroundActive: string;
     border: string;
@@ -795,18 +963,19 @@ type ButtonColors = {
     colorActive: string;
     focusBorder: string;
     focusShadow: string;
-  };
-};
+  }
+>;
 
 type ButtonSize = 'md' | 'sm' | 'xs';
-type ButtonPaddingSizes = {
-  [key in ButtonSize]: {
+type ButtonPaddingSizes = Record<
+  ButtonSize,
+  {
     paddingBottom: number;
     paddingLeft: number;
     paddingRight: number;
     paddingTop: number;
-  };
-};
+  }
+>;
 const buttonPaddingSizes: ButtonPaddingSizes = {
   md: {
     paddingLeft: 16,
@@ -841,9 +1010,7 @@ const breakpoints = {
 } as const satisfies Breakpoints;
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-type Sizes = {
-  [key in Size]: string;
-};
+type Sizes = Record<Size, string>;
 const iconNumberSizes: Record<Size, number> = {
   xs: 12,
   sm: 14,
@@ -864,62 +1031,99 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
 
 export type FormSize = 'xs' | 'sm' | 'md';
 
-type FormSizes = {
-  [key in FormSize]: {
-    fontSize: string;
-    height: number;
-    lineHeight: string;
-    minHeight: number;
-  };
+export type FormTheme = {
+  form: Record<
+    FormSize,
+    {
+      fontSize: string;
+      height: string;
+      lineHeight: string;
+      minHeight: string;
+    }
+  >;
+  formPadding: Record<
+    FormSize,
+    {
+      paddingBottom: number;
+      paddingLeft: number;
+      paddingRight: number;
+      paddingTop: number;
+    }
+  >;
+  formRadius: Record<
+    FormSize,
+    {
+      borderRadius: string;
+    }
+  >;
+  formSpacing: Record<FormSize, string>;
 };
 
-const formSizes: FormSizes = {
-  md: {
-    height: 38,
-    minHeight: 38,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: '38px',
+      minHeight: '38px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xs: {
+      height: '26px',
+      minHeight: '26px',
+      fontSize: '0.75rem',
+      lineHeight: '0.875rem',
+    },
   },
-  sm: {
-    height: 32,
-    minHeight: 32,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
-  },
-  xs: {
-    height: 26,
-    minHeight: 26,
-    fontSize: '0.75rem',
-    lineHeight: '0.875rem',
-  },
-} as const;
 
-type FormPaddingSizes = {
-  [key in FormSize]: {
-    paddingBottom: number;
-    paddingLeft: number;
-    paddingRight: number;
-    paddingTop: number;
-  };
-};
-const formPaddingSizes: FormPaddingSizes = {
-  md: {
-    paddingLeft: 16,
-    paddingRight: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
+  /**
+   * Padding for form inputs
+   * @TODO(jonasbadalic) This should exist on form component
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 10,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
   },
-  sm: {
-    paddingLeft: 12,
-    paddingRight: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
+  formRadius: {
+    md: {
+      borderRadius: '6px',
+    },
+    sm: {
+      borderRadius: '6px',
+    },
+    xs: {
+      borderRadius: '6px',
+    },
   },
-  xs: {
-    paddingLeft: 8,
-    paddingRight: 6,
-    paddingTop: 6,
-    paddingBottom: 6,
+  formSpacing: {
+    md: '8px',
+    sm: '6px',
+    xs: '4px',
   },
 };
 
@@ -931,39 +1135,6 @@ const iconSizes: Sizes = {
   xl: `${iconNumberSizes.xl}px`,
   xxl: `${iconNumberSizes.xxl}px`,
 } as const;
-
-// @TODO(jonasbadalic): This was missing profiles, profileChunks, profileDuration, spans, spansIndexed, uptime, what do we do with them?
-const dataCategory: Record<
-  Exclude<
-    DataCategory,
-    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
-  >,
-  string
-> = {
-  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
-  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
-  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
-  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
-};
-
-/**
- * Default colors for data usage outcomes
- * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
- */
-type OutcomeColors = Record<
-  Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
-  string
->;
-
-const outcome: OutcomeColors = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
-  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
-  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
-  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
-  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
-  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
-};
 
 /**
  * Values shared between light and dark theme
@@ -1033,6 +1204,12 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
+    tour: {
+      blur: 10100,
+      element: 10101,
+      overlay: 10102,
+    },
+
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 2,
@@ -1045,12 +1222,12 @@ const commonTheme = {
 
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
-  fontSizeRelativeSmall: '0.9em',
-  fontSizeExtraSmall: '11px',
-  fontSizeSmall: '12px',
-  fontSizeMedium: '14px',
-  fontSizeLarge: '16px',
-  fontSizeExtraLarge: '18px',
+  fontSizeRelativeSmall: '0.9em' as const,
+  fontSizeExtraSmall: '11px' as const,
+  fontSizeSmall: '12px' as const,
+  fontSizeMedium: '14px' as const,
+  fontSizeLarge: '16px' as const,
+  fontSizeExtraLarge: '18px' as const,
 
   codeFontSize: '13px',
   headerFontSize: '22px',
@@ -1066,59 +1243,57 @@ const commonTheme = {
   },
 
   /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: formSizes,
-
-  /**
    * Padding for buttons
    * @TODO(jonasbadalic) This should exist on button component
    */
   buttonPadding: buttonPaddingSizes,
 
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: formPaddingSizes,
-
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-
-  // @TODO(jonasbadalic) Do these need to be here?
-  outcome,
-  dataCategory,
-
-  charts: {
-    // We have an array that maps `number + 1` --> list of `number` colors
-    getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
-  },
 };
+
+const lightTokens = generateTokens(lightColors);
+const darkTokens = generateTokens(darkColors);
 
 // Light and dark theme definitions
 const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
 export const lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
+  tokens: lightTokens,
   inverted: {
     ...darkColors,
     ...darkAliases,
+    tokens: darkTokens,
   },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
+  tour: {
+    background: darkColors.surface400,
+    header: darkColors.white,
+    text: darkAliases.textColor,
+    next: lightAliases.textColor,
+    previous: darkColors.white,
+    close: lightColors.white,
+  },
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+  },
   prismVariables: generateThemePrismVariables(
     prismLight,
     lightAliases.backgroundSecondary
@@ -1138,19 +1313,24 @@ export const lightTheme = {
   },
 };
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
 export const darkTheme: typeof lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
+  tokens: darkTokens,
   inverted: {
     ...lightColors,
     ...lightAliases,
+    tokens: lightTokens,
   },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
@@ -1161,6 +1341,18 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
+  tour: {
+    background: darkColors.purple300,
+    header: darkColors.white,
+    text: darkAliases.textColor,
+    next: lightAliases.textColor,
+    previous: darkColors.white,
+    close: lightColors.white,
+  },
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+  },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?
     background: '#181622',
@@ -1177,6 +1369,15 @@ export type Color = keyof typeof lightColors;
 export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
+export type Theme = typeof lightTheme;
+
+export type StrictCSSObject = {
+  [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
+} & Partial<{
+  [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
+  [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
+}>;
 
 /**
  * Do not import theme values directly as they only define light color theme.
@@ -1184,13 +1385,7 @@ export type ColorOrAlias = keyof Aliases | Color;
  * @deprecated use useTheme hook instead.
  */
 const commonThemeExport = {...commonTheme};
-export default commonThemeExport;
-
 /**
- * Configure Emotion to use our theme
+ * @deprecated Do not import the theme directly, use useTheme hook instead.
  */
-declare module '@emotion/react' {
-  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  type SentryTheme = typeof lightTheme;
-  export interface Theme extends SentryTheme {}
-}
+export default commonThemeExport;

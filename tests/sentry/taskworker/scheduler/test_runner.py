@@ -34,38 +34,43 @@ def run_storage() -> RunStorage:
     return RunStorage(redis)
 
 
+@pytest.mark.django_db
 def test_schedulerunner_add_invalid(taskregistry) -> None:
     run_storage = Mock(spec=RunStorage)
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
 
     with pytest.raises(ValueError) as err:
         schedule_set.add(
+            "invalid",
             {
                 "task": "invalid",
                 "schedule": timedelta(minutes=5),
-            }
+            },
         )
     assert "Invalid task name" in str(err)
 
     with pytest.raises(KeyError) as key_err:
         schedule_set.add(
+            "invalid",
             {
                 "task": "test:invalid",
                 "schedule": timedelta(minutes=5),
-            }
+            },
         )
     assert "No task registered" in str(key_err)
 
     with pytest.raises(ValueError) as err:
         schedule_set.add(
+            "valid",
             {
                 "task": "test:valid",
                 "schedule": timedelta(microseconds=99),
-            }
+            },
         )
     assert "microseconds" in str(err)
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: RunStorage) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
 
@@ -74,16 +79,18 @@ def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: R
         assert sleep_time == 60
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_time_remaining(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
 
     schedule_set.add(
+        "valid",
         {
             "task": "test:valid",
             "schedule": timedelta(minutes=5),
-        }
+        },
     )
     # Last run was two minutes ago.
     with freeze_time("2025-01-24 14:23:00"):
@@ -99,16 +106,18 @@ def test_schedulerunner_tick_one_task_time_remaining(
     assert last_run == datetime(2025, 1, 24, 14, 23, 0, tzinfo=UTC)
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_spawned(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     run_storage = Mock(spec=RunStorage)
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
+        "valid",
         {
             "task": "test:valid",
             "schedule": timedelta(minutes=5),
-        }
+        },
     )
 
     # Last run was 5 minutes from the freeze_time below
@@ -128,15 +137,70 @@ def test_schedulerunner_tick_one_task_spawned(
     run_storage.set.assert_called_with("test:valid", datetime(2025, 1, 24, 14, 30, 0, tzinfo=UTC))
 
 
+@pytest.mark.django_db
+@patch("sentry.taskworker.scheduler.runner.capture_checkin")
+def test_schedulerunner_tick_create_checkin(
+    mock_capture_checkin: Mock, taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
+    run_storage = Mock(spec=RunStorage)
+    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set.add(
+        "important-task",
+        {
+            "task": "test:valid",
+            "schedule": timedelta(minutes=5),
+        },
+    )
+
+    # Last run was 5 minutes from the freeze_time below
+    run_storage.read_many.return_value = {
+        "test:valid": datetime(2025, 1, 24, 14, 19, 55),
+    }
+    run_storage.set.return_value = True
+    mock_capture_checkin.return_value = "checkin-id"
+
+    namespace = taskregistry.get("test")
+    with (
+        freeze_time("2025-01-24 14:25:00"),
+        patch.object(namespace, "send_task") as mock_send,
+    ):
+        sleep_time = schedule_set.tick()
+        assert sleep_time == 300
+
+        assert mock_send.call_count == 1
+
+        # assert that the activation had the correct headers
+        send_args = mock_send.call_args
+        assert "sentry-monitor-check-in-id" in send_args.args[0].headers
+        assert send_args.args[0].headers["sentry-monitor-slug"] == "important-task"
+
+        # Ensure a checkin was created
+        assert mock_capture_checkin.call_count == 1
+        mock_capture_checkin.assert_called_with(
+            monitor_slug="important-task",
+            monitor_config={
+                "schedule": {
+                    "type": "interval",
+                    "unit": "minute",
+                    "value": 5,
+                },
+                "timezone": "UTC",
+            },
+            status="in_progress",
+        )
+
+
+@pytest.mark.django_db
 def test_schedulerunner_tick_key_exists_no_spawn(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
+        "valid",
         {
             "task": "test:valid",
             "schedule": timedelta(minutes=5),
-        }
+        },
     )
 
     namespace = taskregistry.get("test")
@@ -160,15 +224,17 @@ def test_schedulerunner_tick_key_exists_no_spawn(
         assert mock_send.call_count == 1
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_multiple_ticks(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
+        "valid",
         {
             "task": "test:valid",
             "schedule": timedelta(minutes=5),
-        }
+        },
     )
 
     with freeze_time("2025-01-24 14:25:00"):
@@ -184,15 +250,17 @@ def test_schedulerunner_tick_one_task_multiple_ticks(
         assert sleep_time == 120
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_multiple_ticks_crontab(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
+        "valid",
         {
             "task": "test:valid",
             "schedule": crontab(minute="*/2"),
-        }
+        },
     )
 
     namespace = taskregistry.get("test")
@@ -214,21 +282,24 @@ def test_schedulerunner_tick_one_task_multiple_ticks_crontab(
         assert mock_send.call_count == 2
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_multiple_tasks(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
+        "valid",
         {
             "task": "test:valid",
             "schedule": timedelta(minutes=5),
-        }
+        },
     )
     schedule_set.add(
+        "second",
         {
             "task": "test:second",
             "schedule": timedelta(minutes=2),
-        }
+        },
     )
 
     namespace = taskregistry.get("test")
@@ -255,21 +326,24 @@ def test_schedulerunner_tick_multiple_tasks(
         assert mock_send.call_count == 3
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_fast_and_slow(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
+        "valid",
         {
             "task": "test:valid",
             "schedule": timedelta(seconds=30),
-        }
+        },
     )
     schedule_set.add(
+        "second",
         {
             "task": "test:second",
             "schedule": crontab(minute="*/2"),
-        }
+        },
     )
 
     namespace = taskregistry.get("test")

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
@@ -34,7 +34,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = RouteComponentProps<{projectId: string}>;
 
@@ -69,7 +69,7 @@ function ProjectTags(props: Props) {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
         [`/projects/${organization.slug}/${projectId}/tags/`],
-        oldTags => oldTags.filter(tag => tag.key !== key)
+        oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },
     onError: () => {
@@ -85,12 +85,12 @@ function ProjectTags(props: Props) {
     return <LoadingError />;
   }
 
-  const isEmpty = !tags || !tags.length;
+  const isEmpty = !tags?.length;
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
       <SettingsPageHeader title={t('Tags & Context')} />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       <HighlightsSettingsForm projectSlug={projectId} />
       <TextBlock>
         {tct(

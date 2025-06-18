@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import KeyValueData, {
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('KeyValueData', story => {
+export default Storybook.story('KeyValueData', story => {
   story('Usage', () => (
     <CodeSnippet language="js">
       import KeyValueData from 'sentry/components/keyValueData';
@@ -277,7 +278,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         subject: 'null-subject-node',
         subjectNode: null,
         value: (
-          <Alert type="warning" showIcon style={{margin: 0}}>
+          <Alert type="warning" showIcon>
             Custom value can also span full length
           </Alert>
         ),

@@ -1,13 +1,15 @@
 import {useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
+import {useScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -62,7 +64,7 @@ export default function TimeAndScrubberGrid({
   showZoom = false,
   isLoading,
 }: TimeAndScrubberGridProps) {
-  const {currentTime, replay} = useReplayContext();
+  const {replay} = useReplayContext();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
@@ -74,11 +76,7 @@ export default function TimeAndScrubberGrid({
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
         <Numeric style={{gridArea: 'currentTime'}}>
-          {timestampType === 'absolute' ? (
-            <DateTime timeOnly seconds date={startTimestamp + currentTime} />
-          ) : (
-            <Duration duration={[currentTime, 'ms']} precision="sec" />
-          )}
+          <ReplayCurrentTime />
         </Numeric>
 
         <div style={{gridArea: 'timeline'}}>
@@ -115,11 +113,11 @@ const Grid = styled('div')<{isCompact: boolean}>`
   align-items: center;
   ${p =>
     p.isCompact
-      ? `
-        order: -1;
-        min-width: 100%;
-        margin-top: -8px;
-      `
+      ? css`
+          order: -1;
+          min-width: 100%;
+          margin-top: -8px;
+        `
       : ''}
 `;
 
@@ -130,7 +128,7 @@ const StyledScrubber = styled('div')`
 `;
 
 const Numeric = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
   font-weight: ${p => p.theme.fontWeightBold};

@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -16,6 +16,23 @@ export const getFeedbackConfigureDescription = ({
 }) =>
   tct(
     'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even [linkButton:link the widget to a custom button] if you don’t want to use our auto-injected floating button. Learn more about configuring User Feedback by reading the [linkConfig:configuration docs].',
+    {
+      code: <code />,
+      break: <br />,
+      linkConfig: <ExternalLink href={linkConfig} />,
+      linkButton: <ExternalLink href={linkButton} />,
+    }
+  );
+
+export const getFeedbackConfigureMobileDescription = ({
+  linkConfig,
+  linkButton,
+}: {
+  linkButton: string;
+  linkConfig: string;
+}) =>
+  tct(
+    'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even [linkButton:customize your button] style. Learn more about configuring User Feedback by reading the [linkConfig:configuration docs].',
     {
       code: <code />,
       break: <br />,
@@ -58,16 +75,18 @@ export const getCrashReportInstallDescription = () =>
 
 export function FeedbackOnboardingWebApiBanner() {
   return (
-    <Alert type="info" showIcon>
-      {tct(
-        `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
-          ),
-        }
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type="info" showIcon>
+        {tct(
+          `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
+            ),
+          }
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

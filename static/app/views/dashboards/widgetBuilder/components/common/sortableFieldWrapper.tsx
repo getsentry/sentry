@@ -3,7 +3,7 @@ import {CSS} from '@dnd-kit/utilities';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,7 +30,7 @@ function SortableVisualizeFieldWrapper({
     transition,
     zIndex: 'auto',
     display: 'flex',
-    gap: space(1),
+    gap: space(0.5),
     width: '100%',
   } as React.CSSProperties;
 
@@ -65,7 +65,7 @@ function SortableVisualizeFieldWrapper({
 export default SortableVisualizeFieldWrapper;
 
 const DragAndReorderButton = styled(Button)<{isDragging: boolean}>`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 
   ${p => p.isDragging && p.theme.visuallyHidden}
 `;

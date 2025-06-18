@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useRef} from 'react';
 
-import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 
 type Option = SelectOption<SelectKey>;
 

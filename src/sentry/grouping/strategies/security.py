@@ -1,6 +1,7 @@
-from typing import Any
+from __future__ import annotations
 
-from sentry.eventstore.models import Event
+from typing import TYPE_CHECKING, Any
+
 from sentry.grouping.component import (
     CSPGroupingComponent,
     ExpectCTGroupingComponent,
@@ -18,6 +19,9 @@ from sentry.grouping.strategies.base import (
     strategy,
 )
 from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 
 @strategy(ids=["expect-ct:v1"], interface=ExpectCT, score=1000)

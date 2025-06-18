@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, TypedDict
 
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
@@ -9,14 +10,17 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.api.serializers import serialize
+from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationData
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline_types import IntegrationPipelineT
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
+from sentry.pipeline import PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -28,8 +32,14 @@ __all__ = ["IntegrationPipeline"]
 logger = logging.getLogger(__name__)
 
 
-def ensure_integration(key, data):
-    defaults = {
+class _IntegrationDefaults(TypedDict):
+    metadata: dict[str, Any]
+    name: str
+    status: int
+
+
+def ensure_integration(key: str, data: IntegrationData) -> Integration:
+    defaults: _IntegrationDefaults = {
         "metadata": data.get("metadata", {}),
         "name": data.get("name", data["external_id"]),
         "status": ObjectStatus.ACTIVE,
@@ -79,7 +89,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     return mapping.region_name not in region_names
 
 
-class IntegrationPipeline(Pipeline):
+class IntegrationPipeline(IntegrationPipelineT):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 
@@ -101,8 +111,8 @@ class IntegrationPipeline(Pipeline):
 
         if (
             org_context
-            and org_context.member
-            and "org:integrations" not in org_context.member.scopes
+            and (not org_context.member or "org:integrations" not in org_context.member.scopes)
+            and not superuser_has_permission(self.request, ["org:integrations"])
         ):
             error_message = (
                 "You must be an organization owner, manager or admin to install this integration."
@@ -145,7 +155,7 @@ class IntegrationPipeline(Pipeline):
 
         response = self._finish_pipeline(data)
 
-        extra = data.get("post_install_data")
+        extra = data.get("post_install_data", {})
 
         self.provider.create_audit_log_entry(
             self.integration, self.organization, self.request, "install", extra=extra
@@ -159,7 +169,7 @@ class IntegrationPipeline(Pipeline):
 
         return response
 
-    def _finish_pipeline(self, data):
+    def _finish_pipeline(self, data: IntegrationData):
         if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]

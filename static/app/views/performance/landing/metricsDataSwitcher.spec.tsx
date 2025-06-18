@@ -39,7 +39,6 @@ function WrappedComponent({
         selection={eventView.getPageFilters()}
         onboardingProject={undefined}
         handleSearch={() => {}}
-        handleTrendsClick={() => {}}
         setError={() => {}}
         withStaticFilters={withStaticFilters}
       />
@@ -53,12 +52,8 @@ const features = [
 ];
 
 describe('Performance > Landing > MetricsDataSwitcher', function () {
-  let wrapper: any;
-
   act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -115,14 +110,9 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
-
-    if (wrapper) {
-      wrapper.unmount();
-      wrapper = undefined;
-    }
   });
 
-  it('renders basic UI elements', function () {
+  it('renders basic UI elements', async function () {
     addMetricsDataMock();
     const project = ProjectFixture();
     const data = initializeData({
@@ -131,8 +121,8 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
-    expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
+    render(<WrappedComponent data={data} />, {organization: data.organization});
+    expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
   it('renders with feature flag and all metric data', async function () {
@@ -144,7 +134,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
 
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
   });
@@ -162,7 +152,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
 
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
   });
@@ -180,7 +170,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-single-project-incompatible')
@@ -202,7 +192,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-multi-project-incompatible')
@@ -224,7 +214,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-multi-project-all-incompatible')
@@ -244,7 +234,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-unnamed-discover')
@@ -264,7 +254,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-unnamed-discover-or-set')
@@ -284,7 +274,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {organization: data.organization});
+    render(<WrappedComponent data={data} />, {organization: data.organization});
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-unnamed-discover')

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:19.265209+00:00'
+created: '2025-04-25T21:22:15.466823+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,42 +10,42 @@ app:
     app*
       exception*
         stacktrace*
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "eventsystem.cs"
             function*
               "UnityEngine.EventSystems.EventSystem:Update()"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "executeevents.cs"
             function*
               "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "executeevents.cs"
             function*
               "UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "button.cs"
             function*
               "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "button.cs"
             function*
               "UnityEngine.UI.Button.Press ()"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "unityevent_0.cs"
             function*
               "UnityEngine.Events.UnityEvent.Invoke ()"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "unityevent.cs"
             function*
               "UnityEngine.Events.InvokableCall.Invoke ()"
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "samplescript.cs"
             function*

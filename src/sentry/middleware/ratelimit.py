@@ -26,6 +26,10 @@ DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
     "{limit} requests in {window} seconds"
 )
+DEFAULT_CONCURRENT_ERROR_MESSAGE = (
+    "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is "
+    "{limit}"
+)
 logger = logging.getLogger("sentry.api.rate-limit")
 
 
@@ -109,15 +113,17 @@ class RatelimitMiddleware:
                             "window": request.rate_limit_metadata.window,
                         },
                     )
-                    response = HttpResponse(
-                        orjson.dumps(
-                            DEFAULT_ERROR_MESSAGE.format(
-                                limit=request.rate_limit_metadata.limit,
-                                window=request.rate_limit_metadata.window,
-                            )
-                        ),
-                        status=429,
-                    )
+                    if request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW:
+                        response_text = DEFAULT_ERROR_MESSAGE.format(
+                            limit=request.rate_limit_metadata.limit,
+                            window=request.rate_limit_metadata.window,
+                        )
+                    else:
+                        response_text = DEFAULT_CONCURRENT_ERROR_MESSAGE.format(
+                            limit=request.rate_limit_metadata.concurrent_limit
+                        )
+
+                    response = HttpResponse(orjson.dumps(response_text), status=429)
                     assert request.method is not None
                     return apply_cors_headers(
                         request=request, response=response, allowed_methods=[request.method]

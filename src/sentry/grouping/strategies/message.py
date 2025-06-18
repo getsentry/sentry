@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from itertools import islice
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry import analytics
-from sentry.eventstore.models import Event
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.base import (
@@ -14,6 +15,45 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.message import Message
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
+from sentry.utils.settings import is_self_hosted
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
+REGEX_PATTERN_KEYS = (
+    "email",
+    "url",
+    "hostname",
+    "ip",
+    "uuid",
+    "sha1",
+    "md5",
+    "date",
+    "duration",
+    "hex",
+    "float",
+    "int",
+    "quoted_str",
+    "bool",
+)
+
+EXPERIMENT_PROJECTS = [  # Active internal Sentry projects
+    1,
+    11276,
+    54785,
+    155735,
+    162676,
+    221969,
+    300688,
+    1267915,
+    1269704,
+    1492057,
+    6424467,
+    6690737,
+    4503972821204992,
+    4505469596663808,
+    4506400311934976,
+]
 
 
 @metrics.wraps("grouping.normalize_message_for_grouping")
@@ -32,50 +72,18 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         trimmed += "..."
 
     parameterizer = Parameterizer(
-        regex_pattern_keys=(
-            "email",
-            "url",
-            "hostname",
-            "ip",
-            "uuid",
-            "sha1",
-            "md5",
-            "date",
-            "duration",
-            "hex",
-            "float",
-            "int",
-            "quoted_str",
-            "bool",
-        ),
-        experiments=(UniqueIdExperiment,),
+        regex_pattern_keys=REGEX_PATTERN_KEYS, experiments=(UniqueIdExperiment,)
     )
 
     def _shoudl_run_experiment(experiment_name: str) -> bool:
         return bool(
-            event.project_id
+            not is_self_hosted()
+            and event.project_id
             and (
                 in_rollout_group(
                     f"grouping.experiments.parameterization.{experiment_name}", event.project_id
                 )
-                or event.project_id
-                in [  # Active internal Sentry projects
-                    155735,
-                    4503972821204992,
-                    1267915,
-                    221969,
-                    11276,
-                    1269704,
-                    4505469596663808,
-                    1,
-                    54785,
-                    1492057,
-                    162676,
-                    6690737,
-                    300688,
-                    4506400311934976,
-                    6424467,
-                ]
+                or event.project_id in EXPERIMENT_PROJECTS
             )
         )
 

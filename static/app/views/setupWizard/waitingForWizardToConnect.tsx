@@ -49,17 +49,17 @@ export function WaitingForWizardToConnect({
     return () => window.clearInterval(pollingInterval);
   }, [checkFinished]);
 
-  return !finished ? (
-    <LoadingIndicator style={{margin: '2em auto'}}>
-      <h5>{t('Waiting for wizard to connect')}</h5>
-    </LoadingIndicator>
-  ) : (
+  return finished ? (
     <SuccessWrapper>
       <SuccessCheckmark color="green300" size="xl" isCircled />
       <SuccessHeading>
         {t('Return to your terminal to complete your setup.')}
       </SuccessHeading>
     </SuccessWrapper>
+  ) : (
+    <LoadingIndicator style={{margin: '2em auto'}}>
+      <h5>{t('Waiting for wizard to connect')}</h5>
+    </LoadingIndicator>
   );
 }
 

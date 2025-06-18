@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

@@ -568,9 +568,21 @@ class _CategoryStats(TypedDict):
     reason: NotRequired[str]
 
 
+class _Project(TypedDict):
+    id: int
+    slug: str
+    stats: list[_CategoryStats]
+
+
+class _Period(TypedDict):
+    start: str
+    end: str
+    projects: list[_Project]
+
+
 def massage_sessions_result_summary(
     query, result_totals, outcome_query=None
-) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], dict[str, list[Any]]]:
+) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], _Period]:
     """
     Post-processes the query result.
 
@@ -679,7 +691,7 @@ def massage_sessions_result_summary(
     # format stats for each project
     for key, values in projects.items():
         categories = values["categories"]
-        project_dict = {"id": key, "slug": project_id_to_slug[key], "stats": []}
+        project_dict: _Project = {"id": key, "slug": project_id_to_slug[key], "stats": []}
 
         for key, stats in categories.items():
             project_dict["stats"].append(stats)

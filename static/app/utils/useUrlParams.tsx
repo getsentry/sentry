@@ -30,8 +30,8 @@ function useUrlParams(defaultKey?: string, defaultValue?: string) {
       // from this function, so we return the first string (this is picked
       // arbitrarily) if it's string[]
       return Array.isArray(currentQuery[key])
-        ? currentQuery[key]?.at(0) ?? defaultValue
-        : currentQuery[key] ?? defaultValue;
+        ? (currentQuery[key]?.at(0) ?? defaultValue)
+        : (currentQuery[key] ?? defaultValue);
     },
     [defaultValue]
   );

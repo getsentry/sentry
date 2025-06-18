@@ -1,18 +1,16 @@
 from django.apps import AppConfig
 
-from sentry.auth.partnership_configs import ChannelName
-
 
 class Config(AppConfig):
     name = "sentry.auth.providers.fly"
 
-    def ready(self):
+    def ready(self) -> None:
         from sentry import auth, options
 
         from .provider import FlyOAuth2Provider, NonPartnerFlyOAuth2Provider
 
-        auth.register(ChannelName.FLY_IO.value, FlyOAuth2Provider)
-        auth.register(ChannelName.FLY_NON_PARTNER.value, NonPartnerFlyOAuth2Provider)
+        auth.register(FlyOAuth2Provider)
+        auth.register(NonPartnerFlyOAuth2Provider)
 
         options.register(
             "auth-fly.client-id",

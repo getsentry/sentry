@@ -18,12 +18,12 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
 
-    def validate_detector_type(self, value: str):
-        detector_type = super().validate_detector_type(value)
-        if detector_type.slug != "error":
+    def validate_type(self, value: str):
+        type = super().validate_type(value)
+        if type.slug != "error":
             raise serializers.ValidationError("Detector type must be error")
 
-        return detector_type
+        return type
 
     def validate_fingerprinting_rules(self, value):
         if not value:
@@ -48,13 +48,11 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
                 # no workflow_condition_group
-                type=validated_data["detector_type"].slug,
+                type=validated_data["type"].slug,
                 config={},
             )
 
-            project: Project | None = detector.project
-            if not project:
-                raise serializers.ValidationError("Error detector must have a project")
+            project: Project = detector.project
 
             # update configs, which are project options. continue using them
             for config in validated_data:
@@ -67,7 +65,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
                 request=self.context["request"],
                 organization=self.context["organization"],
                 target_object=detector.id,
-                event=audit_log.get_event_id("WORKFLOW_ENGINE_DETECTOR_ADD"),
+                event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
         return detector

@@ -1,15 +1,14 @@
-import React, {Component, Fragment, useState} from 'react';
-import {createBrowserRouter, RouterProvider} from 'react-router-dom';
+import React, {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import U2fContainer from 'sentry/components/u2f/u2fContainer';
+import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -17,7 +16,13 @@ import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import withApi from 'sentry/utils/withApi';
 
-type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
+interface WebAuthnParams {
+  challenge: string;
+  response: string;
+  isSuperuserModal?: boolean;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
+}
 
 type Props = {
   api: Client;
@@ -111,7 +116,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
     }
   };
 
-  handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
+  handleWebAuthn = async (data: WebAuthnParams) => {
     const {api} = this.props;
 
     if (!this.props.hasStaff) {
@@ -202,14 +207,14 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
           ) : (
             <React.Fragment>
               {error && (
-                <StyledAlert type="error" showIcon>
+                <Alert type="error" showIcon>
                   {errorType}
-                </StyledAlert>
+                </Alert>
               )}
-              <U2fContainer
+              <WebAuthn
+                mode="sudo"
                 authenticators={authenticators}
-                displayMode="sudo"
-                onTap={this.handleU2fTap}
+                onWebAuthn={this.handleWebAuthn}
               />
             </React.Fragment>
           )
@@ -228,16 +233,16 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             resetOnError
           >
             {error && (
-              <StyledAlert type="error" showIcon>
+              <Alert type="error" showIcon>
                 {errorType}
-              </StyledAlert>
+              </Alert>
             )}
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
-              <U2fContainer
+              <WebAuthn
+                mode="sudo"
                 authenticators={authenticators}
-                displayMode="sudo"
-                onTap={this.handleU2fTap}
+                onWebAuthn={this.handleWebAuthn}
               />
             )}
           </Form>
@@ -247,23 +252,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
   }
 }
 
-const FormWithApi = withApi(SuperuserStaffAccessFormContent);
-
-export default function SuperuserStaffAccessForm({hasStaff}: Props) {
-  const [router] = useState(() =>
-    createBrowserRouter([
-      {
-        path: '*',
-        element: <FormWithApi hasStaff={hasStaff} />,
-      },
-    ])
-  );
-  return <RouterProvider router={router} />;
-}
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;
+export default withApi(SuperuserStaffAccessFormContent);
 
 const BackWrapper = styled('div')`
   width: 100%;

@@ -8,12 +8,12 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 class OrganizationIssuesCountTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-issues-count"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
-    def test_issue_count_flag_query(self):
+    def test_issue_count_flag_query(self) -> None:
         # Found event.
         self.store_event(
             data={
@@ -28,6 +28,6 @@ class OrganizationIssuesCountTest(APITestCase, SnubaTestCase, SearchIssueTestMix
             project_id=self.project.id,
         )
 
-        response = self.client.get(self.url + '?query=flags["test:flag"]:true')
+        response = self.client.get(self.url + "?query=flags[test:flag]:true")
         assert response.status_code == 200
-        assert response.json() == {'flags["test:flag"]:true': 1}
+        assert response.json() == {"flags[test:flag]:true": 1}

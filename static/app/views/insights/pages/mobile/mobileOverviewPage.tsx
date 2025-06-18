@@ -6,88 +6,71 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
+  isAValidSort,
+  MobileOverviewTable,
+  type ValidSort,
+} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {OldMobileOverviewPage} from 'sentry/views/insights/pages/mobile/oldMobileOverviewPage';
+import {
+  DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
-  MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import {categorizeProjects} from 'sentry/views/insights/pages/utils';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
   generateGenericPerformanceEventView,
   generateMobilePerformanceEventView,
-  USER_MISERY_TOOLTIP,
 } from 'sentry/views/performance/data';
-import {checkIsReactNative} from 'sentry/views/performance/landing/utils';
 import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import Onboarding from 'sentry/views/performance/onboarding';
-import Table from 'sentry/views/performance/table';
-import {
-  getTransactionSearchQuery,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-const MOBILE_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'slow frame %'},
-  {title: 'frozen frame %'},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
-];
+function EAPMobileOverviewPage() {
+  useOverviewPageTrackPageload();
 
-const REACT_NATIVE_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'slow frame %'},
-  {title: 'frozen frame %'},
-  {title: 'stall %'},
-  {title: 'users'},
-  {title: 'user misery'},
-];
-
-function MobileOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
-  const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
   const withStaticFilters = canUseMetricsData(organization);
 
@@ -96,25 +79,18 @@ function MobileOverviewPage() {
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
     withStaticFilters,
-    organization
+    organization,
+    true
   );
-  const searchBarEventView = eventView.clone();
-
-  let columnTitles = checkIsReactNative(eventView)
-    ? REACT_NATIVE_COLUMN_TITLES
-    : MOBILE_COLUMN_TITLES;
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedMobileProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
-  );
+  const {mobileProjects: selectedMobileProjects, otherProjects: selectedOtherProjects} =
+    categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp('(');
+  existingQuery.addFilterValue('span.op', `[${OVERVIEW_PAGE_ALLOWED_OPS.join(',')}]`);
   if (selectedMobileProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
@@ -122,6 +98,7 @@ function MobileOverviewPage() {
       `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
     );
   }
+  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 
@@ -146,11 +123,6 @@ function MobileOverviewPage() {
   );
 
   if (organization.features.includes('mobile-vitals')) {
-    columnTitles = [
-      ...columnTitles.slice(0, 5),
-      {title: 'ttid'},
-      ...columnTitles.slice(5, 0),
-    ];
     tripleChartRowCharts.push(
       ...[
         PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
@@ -202,7 +174,46 @@ function MobileOverviewPage() {
     });
   }
 
-  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+  const {query: searchBarQuery} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
+
+  const sorts: [ValidSort, ValidSort] = [
+    {
+      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      kind: 'desc',
+    },
+    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+  ];
+
+  existingQuery.addFilterValue('is_transaction', 'true');
+
+  const response = useEAPSpans(
+    {
+      search: existingQuery,
+      sorts,
+      cursor,
+      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
+      fields: [
+        'is_starred_transaction',
+        'transaction',
+        'span.op',
+        'project',
+        'epm()',
+        'p75(measurements.frames_slow_rate)',
+        'p75(measurements.frames_frozen_rate)',
+        'count_unique(user)',
+        'sum(span.duration)',
+      ],
+    },
+    'api.performance.landing-table'
+  );
+
+  const searchBarProjectsIds = [...selectedMobileProjects, ...selectedOtherProjects].map(
+    project => project.id
+  );
 
   return (
     <Feature
@@ -210,65 +221,48 @@ function MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader
-        headerTitle={MOBILE_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
-      />
+      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
+                  <InsightsProjectSelector />
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={searchBarEventView}
+                    projectIds={searchBarProjectsIds}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)!}
+                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                   />
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <DoubleChartRow
-                      allowedCharts={doubleChartRowCharts}
-                      {...sharedProps}
-                      eventView={doubleChartRowEventView}
-                    />
-                    <TripleChartRow
-                      allowedCharts={tripleChartRowCharts}
-                      {...sharedProps}
-                    />
-                    <Table
-                      projects={projects}
-                      columnTitles={columnTitles}
-                      setError={setPageError}
-                      {...sharedProps}
-                    />
-                  </TeamKeyTransactionManager.Provider>
+                  <DoubleChartRow
+                    allowedCharts={doubleChartRowCharts}
+                    {...sharedProps}
+                    eventView={doubleChartRowEventView}
+                  />
+                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                  <MobileOverviewTable response={response} sort={sorts[1]} />
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <Onboarding project={onboardingProject} organization={organization} />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
@@ -279,9 +273,10 @@ function MobileOverviewPage() {
 }
 
 function MobileOverviewPageWithProviders() {
+  const useEap = useInsightsEap();
   return (
     <DomainOverviewPageProviders>
-      <MobileOverviewPage />
+      {useEap ? <EAPMobileOverviewPage /> : <OldMobileOverviewPage />}
     </DomainOverviewPageProviders>
   );
 }

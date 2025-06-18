@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef} from 'react';
+import {useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
@@ -19,6 +19,7 @@ import {ArithmeticTokenFreeText} from 'sentry/components/arithmeticBuilder/token
 import {ArithmeticTokenFunction} from 'sentry/components/arithmeticBuilder/token/function';
 import {ArithmeticTokenOperator} from 'sentry/components/arithmeticBuilder/token/operator';
 import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/token/parenthesis';
+import {computeNextAllowedTokenKinds} from 'sentry/components/arithmeticBuilder/validator';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -103,9 +104,14 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 
   useApplyFocusOverride(state);
 
+  const nextAllowedTokenKindsAtIndex = useMemo(() => {
+    const tokens = [...state.collection].map(item => item.value);
+    return computeNextAllowedTokenKinds(tokens);
+  }, [state.collection]);
+
   return (
     <TokenGridWrapper {...gridProps} ref={ref}>
-      {[...state.collection].map(item => {
+      {[...state.collection].map((item, i) => {
         const token = item.value;
 
         if (!defined(token)) {
@@ -142,6 +148,7 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
               state={state}
               token={token}
               showPlaceholder={showPlaceholder}
+              nextAllowedTokenKinds={nextAllowedTokenKindsAtIndex[i]!}
             />
           );
         }

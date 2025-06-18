@@ -1,4 +1,4 @@
-import type {CheckInBucket, RollupConfig} from '../types';
+import type {CheckInBucket, RollupConfig} from 'sentry/components/checkInTimeline/types';
 
 import {mergeBuckets} from './mergeBuckets';
 import {generateTestStats, type TestStatusCounts, testStatusPrecedent} from './testUtils';
@@ -19,7 +19,8 @@ describe.skip('mergeBucketsWithStats', function () {
     interval: 0,
     timelineUnderscanWidth: 0,
     totalBuckets: 0,
-    underscanPeriod: 0,
+    underscanBuckets: 0,
+    underscanStartOffset: 0,
   };
 
   it('does not generate ticks less than 3px width', function () {

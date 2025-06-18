@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -36,7 +36,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const environments = useEnvironmentsFromUrl();
 
   const lastSeen = issueTypeConfig.useOpenPeriodChecks
-    ? group.openPeriods?.[0]?.lastChecked ?? group.lastSeen
+    ? (group.openPeriods?.[0]?.lastChecked ?? group.lastSeen)
     : group.lastSeen;
 
   const shortEnvironmentLabel =
@@ -48,10 +48,10 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
 
   const dateGlobal = issueTypeConfig.useOpenPeriodChecks
     ? lastSeen
-    : allEnvironments?.lastSeen ?? lastSeen;
+    : (allEnvironments?.lastSeen ?? lastSeen);
 
   return (
-    <Flex column gap={space(0.75)}>
+    <Flex direction="column" gap={space(0.75)}>
       <div>
         <Flex gap={space(0.5)}>
           <Title>{t('Last seen')}</Title>
@@ -64,7 +64,9 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
             environment={shortEnvironmentLabel}
           />
         </Flex>
-        <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
+        {lastSeen && (
+          <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
+        )}
       </div>
       <div>
         <Flex gap={space(0.5)}>
@@ -78,7 +80,9 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
             environment={shortEnvironmentLabel}
           />
         </Flex>
-        <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
+        {group.firstSeen && (
+          <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
+        )}
       </div>
     </Flex>
   );
@@ -112,7 +116,7 @@ function ReleaseText({project, release}: {project: Project; release?: Release}) 
 
 const ReleaseWrapper = styled('span')`
   a {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     text-decoration: underline;
     text-decoration-style: dotted;
   }

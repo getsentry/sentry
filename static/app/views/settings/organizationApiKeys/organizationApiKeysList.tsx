@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import AlertLink from 'sentry/components/alertLink';
-import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -73,15 +72,16 @@ function OrganizationApiKeysList({
         )}
       </TextBlock>
 
-      <AlertLink to="/settings/account/api/auth-tokens/" priority="info">
-        {tct(
-          'Until Sentry supports OAuth, you might want to switch to using [tokens:User Auth Tokens] instead.',
-          {
-            tokens: <u />,
-          }
-        )}
-      </AlertLink>
-
+      <AlertLink.Container>
+        <AlertLink to="/settings/account/api/auth-tokens/" type="info">
+          {tct(
+            'Until Sentry supports OAuth, you might want to switch to using [tokens:Personal Tokens] instead.',
+            {
+              tokens: <u />,
+            }
+          )}
+        </AlertLink>
+      </AlertLink.Container>
       <PanelTable
         isLoading={loading}
         isEmpty={!hasKeys}
@@ -100,21 +100,14 @@ function OrganizationApiKeysList({
               </TextCopyInput>
 
               <Cell>
-                <LinkWithConfirmation
-                  aria-label={t('Remove API Key')}
-                  className="btn btn-default btn-sm"
+                <Confirm
                   onConfirm={() => onRemove(id)}
                   message={t('Are you sure you want to remove this API key?')}
-                  title={t('Remove API Key?')}
                 >
-                  <IconDelete
-                    size="xs"
-                    css={css`
-                      position: relative;
-                      top: 2px;
-                    `}
-                  />
-                </LinkWithConfirmation>
+                  <Button priority="danger" size="sm" icon={<IconDelete />}>
+                    {t('Remove API Key')}
+                  </Button>
+                </Confirm>
               </Cell>
             </Fragment>
           );

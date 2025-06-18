@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:40.231203+00:00'
+created: '2025-02-26T00:33:46.336940+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -150,10 +150,10 @@ system:
     system*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "start"
           frame
@@ -260,22 +260,22 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "_CFBundleDlfcnLoadBundle"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dlopen"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dlopen_internal"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dyld::link"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "ImageLoader::link"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "ImageLoader::recursiveRebase"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "ImageLoaderMachOCompressed::rebase"
         type*

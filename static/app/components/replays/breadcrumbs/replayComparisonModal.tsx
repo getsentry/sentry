@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -13,7 +14,6 @@ import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCom
 import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
 import DiffTimestampPicker from 'sentry/components/replays/diff/picker/diffTimestampPicker';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
@@ -104,11 +104,13 @@ export default function ReplayComparisonModal({
         </Header>
         <Body>
           {isSameTimestamp ? (
-            <Alert type="warning" showIcon>
-              {t(
-                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning" showIcon>
+                {t(
+                  "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
+                )}
+              </Alert>
+            </Alert.Container>
           ) : null}
           <RelativePosition>
             <ReplayDiffChooser />
@@ -141,12 +143,12 @@ const Title = styled('h4')`
   gap: ${space(1)};
 `;
 
-export const Before = styled('span')`
+const Before = styled('span')`
   color: ${p => p.theme.red300};
   font-weight: bold;
 `;
 
-export const After = styled('span')`
+const After = styled('span')`
   color: ${p => p.theme.green300};
   font-weight: bold;
 `;

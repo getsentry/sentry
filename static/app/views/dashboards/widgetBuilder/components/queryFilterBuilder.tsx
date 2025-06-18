@@ -2,8 +2,8 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,7 +59,6 @@ function WidgetBuilderQueryFilterBuilder({
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
-    state.dataset !== WidgetType.SPANS &&
     state.query &&
     state.query.length < 3;
 
@@ -196,6 +195,7 @@ function WidgetBuilderQueryFilterBuilder({
             }}
             widgetQuery={widget.queries[index]!}
             dataset={getDiscoverDatasetFromWidgetType(widgetType)}
+            portalTarget={document.body}
           />
           {canHaveAlias && (
             <LegendAliasInput
@@ -256,7 +256,7 @@ function WidgetBuilderQueryFilterBuilder({
 
 export default WidgetBuilderQueryFilterBuilder;
 
-export function DeleteButton({onDelete}: {onDelete: () => void}) {
+function DeleteButton({onDelete}: {onDelete: () => void}) {
   return (
     <Button
       size="zero"

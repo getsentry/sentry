@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Badge from 'sentry/components/badge/badge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Badge} from 'sentry/components/core/badge';
+import {TabList} from 'sentry/components/core/tabs';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {TabList} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
@@ -19,6 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import ReleaseActions from './releaseActions';
 
@@ -42,16 +43,20 @@ function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
-  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-    version
-  )}/`;
+  const releasePath = makeReleasesPathname({
+    organization,
+    path: `/${encodeURIComponent(version)}/`,
+  });
 
   const tabs = [
     {title: t('Overview'), to: ''},
     {
       title: (
         <Fragment>
-          {t('Commits')} <NavTabsBadge text={formatAbbreviatedNumber(commitCount)} />
+          {t('Commits')}{' '}
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(commitCount)}
+          </NavTabsBadge>
         </Fragment>
       ),
       to: `commits/`,
@@ -60,7 +65,9 @@ function ReleaseHeader({
       title: (
         <Fragment>
           {t('Files Changed')}
-          <NavTabsBadge text={formatAbbreviatedNumber(commitFilesChanged)} />
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(commitFilesChanged)}
+          </NavTabsBadge>
         </Fragment>
       ),
       to: `files-changed/`,
@@ -91,7 +98,10 @@ function ReleaseHeader({
         <Breadcrumbs
           crumbs={[
             {
-              to: `/organizations/${organization.slug}/releases/`,
+              to: makeReleasesPathname({
+                organization,
+                path: '/',
+              }),
               label: t('Releases'),
               preservePageFilters: true,
             },
@@ -150,7 +160,7 @@ const IconWrapper = styled('span')`
 
   &,
   a {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     display: flex;
     &:hover {
       cursor: pointer;

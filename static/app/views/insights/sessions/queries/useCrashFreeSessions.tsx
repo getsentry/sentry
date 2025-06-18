@@ -1,13 +1,18 @@
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
-import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useSessionProjectTotal from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
+import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useCrashFreeSessions() {
-  const location = useLocation();
+export default function useCrashFreeSessions({pageFilters}: {pageFilters?: PageFilters}) {
   const organization = useOrganization();
+  const {selection: defaultPageFilters} = usePageFilters();
+
   const {
     data: sessionData,
     isPending,
@@ -17,7 +22,10 @@ export default function useCrashFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...location.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+          interval: getSessionsInterval(
+            pageFilters ? pageFilters.datetime : defaultPageFilters.datetime
+          ),
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },
@@ -26,27 +34,39 @@ export default function useCrashFreeSessions() {
     {staleTime: 0}
   );
 
-  const projectTotal = useSessionAdoptionRate();
+  const projectTotal = useSessionProjectTotal({pageFilters});
 
-  if (isPending) {
+  if (isPending || !sessionData) {
     return {
       series: [],
-      isPending: true,
+      isPending,
       error,
     };
   }
 
-  if (!sessionData && !isPending) {
+  // No data to report, just map the intervals to a value of 0
+  if (!sessionData.groups.length) {
     return {
-      series: [],
-      isPending: false,
+      series: [
+        {
+          seriesName: 'crash_free_session_rate',
+          data: sessionData.intervals.map(interval => ({
+            name: interval,
+            value: 0,
+          })),
+          meta: {
+            fields: {
+              [`crash_free_session_rate`]: 'percentage' as const,
+              time: 'date' as const,
+            },
+            units: {},
+          },
+        },
+      ],
+      isPending,
       error,
     };
   }
-
-  const getStatusSeries = (status: string, groups: typeof sessionData.groups) =>
-    groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
-    [];
 
   // Maps release to its API response groups
   const releaseGroupMap = new Map<string, typeof sessionData.groups>();
@@ -78,7 +98,7 @@ export default function useCrashFreeSessions() {
     }
   });
 
-  // Get top 5 releases
+  // Get top 5 releases based on highest adoption rate (most sessions out of the project total)
   const topReleases = Array.from(releaseAdoptionMap.entries())
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
@@ -88,19 +108,21 @@ export default function useCrashFreeSessions() {
     const groups = releaseGroupMap.get(release)!;
 
     // Get all status series at once and calculate crash-free session percentage for each interval
-    const seriesData = getStatusSeries('crashed', groups).map((crashedCount, idx) => {
-      const intervalTotal = [
-        crashedCount,
-        getStatusSeries('abnormal', groups)[idx] || 0,
-        getStatusSeries('crashed', groups)[idx] || 0,
-        getStatusSeries('healthy', groups)[idx] || 0,
-      ].reduce((sum, val) => sum + val, 0);
+    const seriesData = getSessionStatusSeries('crashed', groups).map(
+      (crashedCount, idx) => {
+        const intervalTotal = [
+          crashedCount,
+          getSessionStatusSeries('abnormal', groups)[idx] || 0,
+          getSessionStatusSeries('crashed', groups)[idx] || 0,
+          getSessionStatusSeries('healthy', groups)[idx] || 0,
+        ].reduce((sum, val) => sum + val, 0);
 
-      return {
-        name: sessionData.intervals[idx] ?? '',
-        value: intervalTotal > 0 ? 1 - crashedCount / intervalTotal : 1,
-      };
-    });
+        return {
+          name: sessionData.intervals[idx] ?? '',
+          value: intervalTotal > 0 ? 1 - crashedCount / intervalTotal : 1,
+        };
+      }
+    );
 
     return {
       data: seriesData,

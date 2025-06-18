@@ -24,7 +24,6 @@ function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props
       </div>
       <div>
         <CustomRepositoryActions
-          repositoryName={repository.name}
           hasFeature={hasFeature}
           hasAccess={hasAccess}
           onDelete={() => onDelete(repository.id)}
@@ -45,7 +44,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const TypeAndStatus = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   flex-wrap: wrap;

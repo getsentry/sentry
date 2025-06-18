@@ -8,13 +8,13 @@ import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/conte
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 
 const organization = OrganizationFixture({
-  features: ['dashboards-widget-builder-redesign'],
+  features: [],
 });
 
 describe('WidgetBuilderGroupBySelector', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
   });

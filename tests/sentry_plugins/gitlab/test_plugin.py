@@ -6,7 +6,16 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.gitlab.plugin import GitLabPlugin
+
+
+def test_conf_key() -> None:
+    assert GitLabPlugin().conf_key == "gitlab"
+
+
+def test_entry_point() -> None:
+    assert_plugin_installed("gitlab", GitLabPlugin())
 
 
 class GitLabPluginTest(PluginTestCase):
@@ -17,12 +26,6 @@ class GitLabPluginTest(PluginTestCase):
     @cached_property
     def request(self):
         return RequestFactory()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "gitlab"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("gitlab", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

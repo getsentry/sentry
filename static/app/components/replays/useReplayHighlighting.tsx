@@ -9,7 +9,7 @@ import {
 } from 'sentry/utils/replays/highlightNode';
 
 interface Props {
-  replayerRef: RefObject<Replayer>;
+  replayerRef: RefObject<Replayer | null>;
 }
 
 type HighlightParams = Parameters<typeof highlightNode>[1];

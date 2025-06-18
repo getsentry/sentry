@@ -139,7 +139,10 @@ SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-ag
 `;
 
 const getSentryPropertiesSnippet = (params: Params) => `
-dsn=${params.dsn.public}${
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
+send-default-pii=true${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -150,7 +153,11 @@ const getConfigureSnippet = (params: Params) => `
 import io.sentry.Sentry;
 
 Sentry.init(options -> {
-  options.setDsn("${params.dsn.public}");${
+  options.setDsn("${params.dsn.public}");
+
+  // Add data like request headers and IP for users,
+  // see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
+  options.setSendDefaultPii(true);${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -191,9 +198,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
           language: 'bash',

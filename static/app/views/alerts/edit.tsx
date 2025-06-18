@@ -80,7 +80,9 @@ function ProjectAlertsEditor(props: Props) {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        {!teamsLoading ? (
+        {teamsLoading ? (
+          <LoadingIndicator />
+        ) : (
           <Fragment>
             {alertType === CombinedAlertType.ISSUE && (
               <IssueEditor
@@ -111,8 +113,6 @@ function ProjectAlertsEditor(props: Props) {
               <CronRulesEdit {...props} project={project} onChangeTitle={setTitle} />
             )}
           </Fragment>
-        ) : (
-          <LoadingIndicator />
         )}
       </Layout.Body>
     </Fragment>

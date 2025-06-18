@@ -18,7 +18,9 @@ export function getSelectedProjectList(
     acc[project.id] = project;
     return acc;
   }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
+  return selectedProjects
+    .map(id => projectsByProjectId[id])
+    .filter((project): project is Project => !!project);
 }
 
 export default function useSelectedProjectsHaveField(field: keyof Project) {
@@ -27,7 +29,7 @@ export default function useSelectedProjectsHaveField(field: keyof Project) {
 
   const hasField = useMemo(() => {
     const selectedProjects = getSelectedProjectList(selection.projects, projects);
-    const hasSetupOneFeedback = selectedProjects.some(project => project![field]);
+    const hasSetupOneFeedback = selectedProjects.some(project => project[field]);
     return hasSetupOneFeedback;
   }, [field, selection.projects, projects]);
 

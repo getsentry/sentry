@@ -1,15 +1,13 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {
@@ -32,14 +30,6 @@ function SharedGroupHeader({group}: Props) {
               shortId={group.shortId}
               avatar={<ProjectBadge project={group.project} avatarSize={20} hideName />}
             />
-            {group.issueCategory === IssueCategory.PERFORMANCE && (
-              <FeatureBadge
-                type="beta"
-                title={t(
-                  'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
-                )}
-              />
-            )}
           </ShortIdWrapper>
           {event && (event.dateCreated ?? event.dateReceived) && (
             <TimeStamp data-test-id="sgh-timestamp">

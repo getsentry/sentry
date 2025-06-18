@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -28,6 +28,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
@@ -49,8 +50,12 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             return super().has_object_permission(request, view, obj)
 
         if isinstance(obj, Dashboard):
-            # allow for Managers and Owners
-            if request.access.has_scope("org:write"):
+            is_superuser = is_active_superuser(request)
+            # allow strictly for Owners and superusers, this allows them to delete dashboards
+            # of users that no longer have access to the organization
+            if is_superuser or request.access.has_role_in_organization(
+                role=roles.get_top_dog().id, organization=obj.organization, user_id=request.user.id
+            ):
                 return True
 
             # check if user is restricted from editing dashboard
@@ -91,21 +96,21 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Retrieve a list of custom dashboards that are associated with the given organization.
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            filter_by = request.query_params.get("filter")
-            if filter_by == "onlyFavorites":
-                dashboards = Dashboard.objects.filter(
-                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-                )
-            elif filter_by == "excludeFavorites":
-                dashboards = Dashboard.objects.exclude(
-                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-                )
-            else:
-                dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        filter_by = request.query_params.get("filter")
+        if filter_by == "onlyFavorites":
+            dashboards = Dashboard.objects.filter(
+                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+            )
+        elif filter_by == "excludeFavorites":
+            dashboards = Dashboard.objects.exclude(
+                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
@@ -187,23 +192,20 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             order_by = ["title"]
 
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            pin_by = request.query_params.get("pin")
-            if pin_by == "favorites":
-                favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                    dashboard=OuterRef("pk"), user_id=request.user.id
-                )
+        pin_by = request.query_params.get("pin")
+        if pin_by == "favorites":
+            favorited_by_subquery = DashboardFavoriteUser.objects.filter(
+                dashboard=OuterRef("pk"), user_id=request.user.id
+            )
 
-                order_by_favorites = [
-                    Case(
-                        When(Exists(favorited_by_subquery), then=-1),
-                        default=1,
-                        output_field=IntegerField(),
-                    )
-                ]
-                dashboards = dashboards.order_by(*order_by_favorites, *order_by)
-            else:
-                dashboards = dashboards.order_by(*order_by)
+            order_by_favorites = [
+                Case(
+                    When(Exists(favorited_by_subquery), then=-1),
+                    default=1,
+                    output_field=IntegerField(),
+                )
+            ]
+            dashboards = dashboards.order_by(*order_by_favorites, *order_by)
         else:
             dashboards = dashboards.order_by(*order_by)
 
@@ -228,9 +230,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
-                render_pre_built_dashboard = False
+        if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
+            render_pre_built_dashboard = False
 
         return self.paginate(
             request=request,

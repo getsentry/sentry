@@ -1,6 +1,7 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tabs} from 'sentry/components/tabs';
+import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
 
 /**
@@ -25,14 +26,30 @@ export const Page = styled('main')<{withPadding?: boolean}>`
 export const Header = styled('header')<{
   borderStyle?: 'dashed' | 'solid';
   noActionWrap?: boolean;
+  /**
+   * Whether to use the unified header variant. Unified headers have the
+   * same background color as the main content area and no border, thus
+   * "unifying" the two areas.
+   */
+  unified?: boolean;
 }>`
   display: grid;
   grid-template-columns: ${p =>
-    !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
+    p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background-color: transparent;
-  border-bottom: 1px ${p => p.borderStyle ?? 'solid'} ${p => p.theme.border};
+  background-color: ${p =>
+    p.theme.isChonk
+      ? p.theme.background
+      : p.unified
+        ? p.theme.background
+        : 'transparent'};
+
+  ${p =>
+    !p.unified &&
+    css`
+      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
@@ -44,17 +61,12 @@ export const Header = styled('header')<{
  * Use HeaderContent to create horizontal regions in the header
  * that contain a heading/breadcrumbs and a button group.
  */
-export const HeaderContent = styled('div')`
+export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${space(2)};
   overflow: hidden;
   max-width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: ${space(1)};
-  }
 `;
 
 /**
@@ -113,15 +125,14 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p =>
-      !p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`};
+    padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
+    gap: ${p => (p.noRowGap ? `0 ${space(3)}` : `${space(3)}`)};
   }
 `;
 

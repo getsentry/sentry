@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -18,6 +18,7 @@ import type {Actor} from 'sentry/types/core';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -52,13 +53,6 @@ function TriggerDescription({
       : label === AlertRuleTriggerType.WARNING
         ? t('Warning')
         : t('Resolved');
-
-  const statusIconColor =
-    label === AlertRuleTriggerType.CRITICAL
-      ? 'errorText'
-      : label === AlertRuleTriggerType.WARNING
-        ? 'warningText'
-        : 'successText';
 
   const defaultAction = t('Change alert status to %s', status);
 
@@ -104,22 +98,22 @@ function TriggerDescription({
   return (
     <TriggerContainer>
       <TriggerTitle>
-        <IconDiamond color={statusIconColor} size="xs" />
+        <StyledIconDiamond
+          type={
+            label === AlertRuleTriggerType.CRITICAL
+              ? 'critical'
+              : label === AlertRuleTriggerType.WARNING
+                ? 'warning'
+                : 'success'
+          }
+          size="xs"
+        />
         <TriggerTitleText>{t('%s Conditions', status)}</TriggerTitleText>
       </TriggerTitle>
       <TriggerStep>
         <TriggerTitleText>{t('When')}</TriggerTitleText>
         <TriggerActions>
-          <TriggerText>
-            {thresholdText}
-            {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
-              <FeatureBadge
-                type="alpha"
-                title="Anomaly detection is in alpha and may produce inaccurate results"
-                tooltipProps={{isHoverable: true}}
-              />
-            ) : null}
-          </TriggerText>
+          <TriggerText>{thresholdText}</TriggerText>
         </TriggerActions>
       </TriggerStep>
       <TriggerStep>
@@ -134,6 +128,24 @@ function TriggerDescription({
     </TriggerContainer>
   );
 }
+
+function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
+  if (isChonkTheme(theme)) {
+    return type === 'critical'
+      ? theme.colors.chonk.red400
+      : type === 'warning'
+        ? theme.colors.chonk.yellow400
+        : theme.colors.chonk.green400;
+  }
+  return type === 'critical'
+    ? theme.errorText
+    : type === 'warning'
+      ? theme.warningText
+      : theme.successText;
+}
+const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
+  fill: ${p => getColor(p.theme, p.type)};
+`;
 
 export function MetricDetailsSidebar({
   rule,

@@ -1,7 +1,7 @@
 import {isValidElement, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -50,7 +50,8 @@ function SettingsLayout(props: Props) {
   const {renderNavigation, children, params, routes, route} = props;
 
   // We want child's view's props
-  const childProps = children && isValidElement(children) ? children.props : props;
+  const childProps =
+    children && isValidElement(children) ? (children.props as Props) : props;
   const childRoutes = childProps.routes || routes || [];
   const childRoute = childProps.route || route || {};
   const shouldRenderNavigation = typeof renderNavigation === 'function';
@@ -187,15 +188,6 @@ const Content = styled('div')`
    * it under the hood. This prevents double padding.
    */
   ${Layout.Page} {
-    padding: 0;
-  }
-
-  /**
-   * Components which use Layout.Header will provide their own padding.
-   * TODO: Refactor existing components to use Layout.Header and Layout.Body,
-   * then remove the padding from this component.
-   */
-  &:has(${Layout.Header}) {
     padding: 0;
   }
 `;

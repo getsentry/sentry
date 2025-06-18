@@ -5,14 +5,12 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MiniAggregateWaterfall} from 'sentry/views/insights/browser/webVitals/components/miniAggregateWaterfall';
@@ -45,29 +43,17 @@ export function PageOverviewSidebar({
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
-  const shouldDoublePeriod = shouldFetchPreviousPeriod({
-    includePrevious: true,
-    period,
-    start,
-    end,
-  });
-  const doubledPeriod = getPeriod({period, start, end}, {shouldDoublePeriod});
-  const doubledDatetime: PageFilters['datetime'] = {
-    period: doubledPeriod.statsPeriod ?? null,
-    start: doubledPeriod.start ?? null,
-    end: doubledPeriod.end ?? null,
-    utc,
-  };
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
-    datetime: doubledDatetime,
     browserTypes,
     subregions,
   });
 
+  const shouldDoublePeriod = false;
+
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data?.count,
+    data['count()'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -86,7 +72,7 @@ export function PageOverviewSidebar({
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data.countInp,
+    data['count_scores(measurements.score.inp)'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -118,7 +104,7 @@ export function PageOverviewSidebar({
     return undefined;
   };
 
-  const ringSegmentColors = theme.charts.getColorPalette(3) ?? [];
+  const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (
@@ -271,12 +257,12 @@ const processSeriesData = (
   {period, start, end}: PageFilters['datetime'],
   shouldDoublePeriod: boolean
 ) => {
-  let seriesData = !isLoading
-    ? count.map(({name, value}) => ({
+  let seriesData = isLoading
+    ? []
+    : count.map(({name, value}) => ({
         name,
         value,
-      }))
-    : [];
+      }));
 
   // Trim off last data point since it's incomplete
   if (seriesData.length > 0 && period && !start && !end) {
@@ -288,12 +274,12 @@ const processSeriesData = (
     : seriesData;
   const previousSeries = seriesData.slice(0, dataMiddleIndex);
 
-  const initialCount = !isLoading
-    ? previousSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
-  const currentCount = !isLoading
-    ? currentSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
+  const initialCount = isLoading
+    ? undefined
+    : previousSeries.reduce((acc, {value}) => acc + value, 0);
+  const currentCount = isLoading
+    ? undefined
+    : currentSeries.reduce((acc, {value}) => acc + value, 0);
   const countDiff =
     !isLoading && currentCount !== undefined && initialCount !== undefined
       ? currentCount / initialCount

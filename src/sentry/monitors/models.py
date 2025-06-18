@@ -190,26 +190,6 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 )
 
 
-class MonitorType:
-    # In the future we may have other types of monitors such as health check
-    # monitors. But for now we just have CRON_JOB style monitors.
-    UNKNOWN = 0
-    CRON_JOB = 3
-    UPTIME = 4
-
-    @classmethod
-    def as_choices(cls):
-        return (
-            (cls.UNKNOWN, "unknown"),
-            (cls.CRON_JOB, "cron_job"),
-            (cls.UPTIME, "uptime"),
-        )
-
-    @classmethod
-    def get_name(cls, value):
-        return dict(cls.as_choices())[value]
-
-
 class ScheduleType:
     UNKNOWN = 0
     CRONTAB = 1
@@ -252,7 +232,7 @@ class Monitor(Model):
     check-in payloads. The slug can be changed.
     """
 
-    is_muted = models.BooleanField(default=False)
+    is_muted = models.BooleanField(default=False, db_default=False)
     """
     Monitor is operating normally but will not produce incidents or produce
     occurrences into the issues platform.
@@ -263,12 +243,9 @@ class Monitor(Model):
     Human readable name of the monitor. Used for display purposes.
     """
 
-    type = BoundedPositiveIntegerField(
-        default=MonitorType.UNKNOWN,
-        choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
-    )
+    is_upserting = models.BooleanField(default=False, db_default=False)
     """
-    Type of monitor. Currently there are only CRON_JOB monitors.
+    Indicates that the most recently received check-in was an upsert check-in.
     """
 
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -287,7 +264,7 @@ class Monitor(Model):
     """
 
     class Meta:
-        app_label = "sentry"
+        app_label = "monitors"
         db_table = "sentry_monitor"
         unique_together = (("project_id", "slug"),)
         indexes = [
@@ -346,7 +323,6 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {
             "name": self.name,
-            "type": self.type,
             "status": self.status,
             "config": self.config,
             "is_muted": self.is_muted,
@@ -474,16 +450,14 @@ class MonitorCheckIn(Model):
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
-    monitor = FlexibleForeignKey("sentry.Monitor")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
-    location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
+    monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
+    monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
     """
     status = BoundedPositiveIntegerField(
         default=CheckInStatus.UNKNOWN,
         choices=CheckInStatus.as_choices(),
-        db_index=True,
     )
     """
     The status of the check-in
@@ -496,14 +470,23 @@ class MonitorCheckIn(Model):
     check-in.
     """
 
+    date_created = models.DateTimeField(default=timezone.now, null=True)
+    """
+    Represents when the check-in was actually recorded into the database. This
+    is a real wall-clock time and is not tied to the "clock" time that
+    check-ins are processed in the context of.
+    """
+
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
     """
-    Represents the time the checkin was made. This CAN BE back-dated in some
-    cases, and does not necessarily represent the insertion time of the row in
-    the database.
+    Represents the time the checkin was made. This date comes from the time
+    relay received the envelope containing the check-in.
+    """
 
-    This date comes from the time relay reiceved the envelope containing the
-    check-in.
+    date_updated = models.DateTimeField(default=timezone.now)
+    """
+    Represents the last time a check-in was updated. This will typically be by
+    the terminal state.
     """
 
     date_clock = models.DateTimeField(null=True)
@@ -515,18 +498,10 @@ class MonitorCheckIn(Model):
     as detecting misses)
     """
 
-    date_created = models.DateTimeField(default=timezone.now, null=True)
+    date_in_progress = models.DateTimeField(null=True)
     """
-    Represents when the check-in was actually recorded into the database. This
-    is a real wall-clock time and is not tied to the "clock" time that
-    check-ins are processed in the contenxt of.
-    """
-
-    date_updated = models.DateTimeField(default=timezone.now)
-    """
-    Currently only updated when a in_progress check-in is sent with this
-    check-in's guid. Can be used to extend the lifetime of a check-in so that
-    it does not time out.
+    Records the time when the first in_progress check-in was received by relay.
+    If no in_progress check-in was ever sent this will remain null.
     """
 
     expected_time = models.DateTimeField(null=True)
@@ -555,10 +530,12 @@ class MonitorCheckIn(Model):
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
-        app_label = "sentry"
+        app_label = "monitors"
         db_table = "sentry_monitorcheckin"
         indexes = [
             # used for endpoints for monitor stats + list check-ins
+            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor", "date_added", "status"]),
             # used for latest on api endpoints
             models.Index(
@@ -566,9 +543,12 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="api_latest",
             ),
-            # TODO(rjo100): to be removed when above is confirmed working
+            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
+            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor_environment", "date_added", "status"]),
             # used for latest in monitor consumer
             models.Index(
@@ -576,14 +556,19 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="consumer_latest",
             ),
-            # TODO(rjo100): to be removed when above is confirmed working
+            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
+            # Note: If we remove all indexes that start with `status`, we need to add the index back on the column
             models.Index(fields=["status", "timeout_at"]),
             # used for dispatch_mark_unknown
-            models.Index(fields=["status", "date_added"]),
-            # used for check-in list
-            models.Index(fields=["trace_id"]),
+            models.Index(
+                fields=["-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                include=["id", "monitor_environment_id"],
+                name="sentry_monitorcheckin_unknown",
+            ),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "status")
@@ -599,22 +584,6 @@ class MonitorCheckIn(Model):
     # what we want to happen, so kill it here
     def _update_timestamps(self):
         pass
-
-
-@region_silo_model
-class MonitorLocation(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    guid = UUIDField(unique=True, auto_add=True)
-    name = models.CharField(max_length=128)
-    date_added = models.DateTimeField(default=timezone.now)
-    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_monitorlocation"
-
-    __repr__ = sane_repr("guid", "name")
 
 
 class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
@@ -653,7 +622,7 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
 class MonitorEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    monitor = FlexibleForeignKey("sentry.Monitor")
+    monitor = FlexibleForeignKey("monitors.Monitor")
     environment_id = BoundedBigIntegerField(db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -667,7 +636,7 @@ class MonitorEnvironment(Model):
     check-ins. It is denormalized for simplicity.
     """
 
-    is_muted = models.BooleanField(default=False)
+    is_muted = models.BooleanField(default=False, db_default=False)
     """
     Monitor environment is operating normally but will not produce incidents or produce
     occurrences into the issues platform.
@@ -694,7 +663,7 @@ class MonitorEnvironment(Model):
     objects: ClassVar[MonitorEnvironmentManager] = MonitorEnvironmentManager()
 
     class Meta:
-        app_label = "sentry"
+        app_label = "monitors"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment_id"),)
         indexes = [
@@ -756,10 +725,10 @@ def default_grouphash():
 class MonitorIncident(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    monitor = FlexibleForeignKey("sentry.Monitor")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
+    monitor = FlexibleForeignKey("monitors.Monitor")
+    monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment")
     starting_checkin = FlexibleForeignKey(
-        "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
+        "monitors.MonitorCheckIn", null=True, related_name="created_incidents"
     )
     starting_timestamp = models.DateTimeField(null=True)
     """
@@ -767,7 +736,7 @@ class MonitorIncident(Model):
     """
 
     resolving_checkin = FlexibleForeignKey(
-        "sentry.MonitorCheckIn", null=True, related_name="resolved_incidents"
+        "monitors.MonitorCheckIn", null=True, related_name="resolved_incidents"
     )
     resolving_timestamp = models.DateTimeField(null=True)
     """
@@ -783,7 +752,7 @@ class MonitorIncident(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "monitors"
         db_table = "sentry_monitorincident"
         indexes = [
             models.Index(fields=["monitor_environment", "resolving_checkin"]),
@@ -813,11 +782,11 @@ class MonitorEnvBrokenDetection(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
+    monitor_incident = FlexibleForeignKey("monitors.MonitorIncident")
     detection_timestamp = models.DateTimeField(auto_now_add=True)
     user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
     env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "monitors"
         db_table = "sentry_monitorenvbrokendetection"

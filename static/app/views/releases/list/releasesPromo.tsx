@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
@@ -8,8 +9,9 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
@@ -18,7 +20,6 @@ import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -407,7 +408,7 @@ const MenuItemWrapper = styled('div')<{
   font-size: 13px;
   ${p =>
     typeof p.py !== 'undefined' &&
-    `
+    css`
       padding-top: ${p.py};
       padding-bottom: ${p.py};
     `};

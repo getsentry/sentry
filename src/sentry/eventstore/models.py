@@ -478,16 +478,14 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return len(orjson.dumps(dict(self.data)).decode())
 
     def get_email_subject(self) -> str:
-        template = self.project.get_option("mail:subject_template")
-        if template:
-            template = EventSubjectTemplate(template)
+        subject_template = self.project.get_option("mail:subject_template")
+        if subject_template:
+            template = EventSubjectTemplate(subject_template)
         elif self.group.issue_category == GroupCategory.PERFORMANCE:
             template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return cast(
-            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
-        )
+        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
 
     def as_dict(self) -> dict[str, Any]:
         """Returns the data in normalized form for external consumers."""
@@ -529,9 +527,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         event_metadata = self.get_event_metadata()
 
-        if event_metadata is None:
-            event_metadata = eventtypes.get(self.get_event_type())().get_metadata(self.data)
-
         message = ""
 
         if data.get("logentry"):
@@ -555,6 +550,29 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def _get_column_name(self, column: Columns) -> str:
         # Events are currently populated from the Events dataset
         return cast(str, column.value.event_name)
+
+    @property
+    def should_skip_seer(self) -> bool:
+        """
+        A convenience property to allow us to skip calling Seer in cases where there's been a race
+        condition and multiple events with the same new grouphash are going through ingestion
+        simultaneously. When we detect that, we can set this property on events that lose the race,
+        so that only the one event which wins the race gets sent to Seer.
+
+        (The race-losers may not be able to store Seer results in any case, as the race condition
+        means their `metadata` properties may not point to real database records.)
+
+        Doing this reduces the load on Seer and also helps protect projects from hitting their Seer
+        rate limit.
+        """
+        try:
+            return self._should_skip_seer
+        except AttributeError:
+            return False
+
+    @should_skip_seer.setter
+    def should_skip_seer(self, should_skip: bool) -> None:
+        self._should_skip_seer = should_skip
 
 
 class Event(BaseEvent):

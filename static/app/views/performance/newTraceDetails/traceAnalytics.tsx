@@ -2,13 +2,15 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
+
+const {info, fmt} = Sentry.logger;
 
 const trackTraceMetadata = (
   tree: TraceTree,
@@ -60,13 +62,15 @@ const trackExploreSearch = (
   organization: Organization,
   key: string,
   value: string | number,
-  kind: TraceDrawerActionKind
+  kind: TraceDrawerActionKind,
+  source: 'drawer' | 'toolbar_menu'
 ) =>
   trackAnalytics('trace.trace_drawer_explore_search', {
     organization,
     key,
     value,
     kind,
+    source,
   });
 
 const trackShowInView = (organization: Organization) =>
@@ -74,18 +78,53 @@ const trackShowInView = (organization: Organization) =>
     organization,
   });
 
+const trackTracingOnboarding = (
+  organization: Organization,
+  platform: PlatformKey,
+  supports_performance: boolean,
+  supports_onboarding_checklist: boolean
+) =>
+  trackAnalytics('trace.tracing_onboarding', {
+    organization,
+    platform,
+    supports_performance,
+    supports_onboarding_checklist,
+  });
+
+const trackPlatformDocsViewed = (organization: Organization, platform: string) =>
+  trackAnalytics('trace.tracing_onboarding_platform_docs_viewed', {
+    organization,
+    platform,
+  });
+
+const trackPerformanceSetupDocsViewed = (organization: Organization, platform: string) =>
+  trackAnalytics('trace.tracing_onboarding_performance_docs_viewed', {
+    organization,
+    platform,
+  });
+
 const trackViewEventJSON = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_event_json', {
     organization,
   });
-const trackViewContinuousProfile = (organization: Organization) =>
+const trackViewContinuousProfile = (organization: Organization) => {
   trackAnalytics('trace.trace_layout.view_continuous_profile', {
     organization,
   });
-const trackViewTransactionProfile = (organization: Organization) =>
+  trackAnalytics('profiling_views.go_to_flamegraph', {
+    organization,
+    source: 'performance.trace_view.details',
+  });
+};
+const trackViewTransactionProfile = (organization: Organization) => {
   trackAnalytics('trace.trace_layout.view_transaction_profile', {
     organization,
   });
+  trackAnalytics('profiling_views.go_to_flamegraph', {
+    organization,
+    source: 'performance.trace_view.details',
+  });
+};
 
 const trackTabPin = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.tab_pin', {
@@ -224,11 +263,16 @@ function trackTraceShape(
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
+      info(fmt`Unknown trace type: ${tree.shape}`);
     }
   }
 }
 
 const traceAnalytics = {
+  // Trace Onboarding
+  trackTracingOnboarding,
+  trackPlatformDocsViewed,
+  trackPerformanceSetupDocsViewed,
   // Trace shape
   trackTraceMetadata,
   trackTraceShape,

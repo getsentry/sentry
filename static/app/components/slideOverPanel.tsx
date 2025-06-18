@@ -1,5 +1,4 @@
-import type {ForwardedRef} from 'react';
-import {forwardRef, useEffect} from 'react';
+import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -20,7 +19,7 @@ const OPEN_STYLES = {
 const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
-  left: {opacity: 0, x: -200, y: 0},
+  left: {opacity: 0, x: '-100%', y: 0},
 };
 
 type SlideOverPanelProps = {
@@ -30,25 +29,26 @@ type SlideOverPanelProps = {
   className?: string;
   'data-test-id'?: string;
   onOpen?: () => void;
+  panelWidth?: string;
+  ref?: React.Ref<HTMLDivElement>;
   slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
 };
 
-export default forwardRef(SlideOverPanel);
+export default SlideOverPanel;
 
-function SlideOverPanel(
-  {
-    'data-test-id': testId,
-    ariaLabel,
-    collapsed,
-    children,
-    className,
-    onOpen,
-    slidePosition,
-    transitionProps = {},
-  }: SlideOverPanelProps,
-  ref: ForwardedRef<HTMLDivElement>
-) {
+function SlideOverPanel({
+  'data-test-id': testId,
+  ariaLabel,
+  collapsed,
+  children,
+  className,
+  onOpen,
+  slidePosition,
+  transitionProps = {},
+  panelWidth,
+  ref,
+}: SlideOverPanelProps) {
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();
@@ -70,7 +70,7 @@ function SlideOverPanel(
       slidePosition={slidePosition}
       transition={{
         type: 'spring',
-        stiffness: 500,
+        stiffness: 1000,
         damping: 50,
         ...transitionProps,
       }}
@@ -79,6 +79,7 @@ function SlideOverPanel(
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
       data-test-id={testId}
+      panelWidth={panelWidth}
     >
       {children}
     </_SlideOverPanel>
@@ -90,6 +91,7 @@ const _SlideOverPanel = styled(motion.div, {
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
+  panelWidth?: string;
   slidePosition?: 'right' | 'bottom' | 'left';
 }>`
   position: fixed;
@@ -128,7 +130,7 @@ const _SlideOverPanel = styled(motion.div, {
           ? css`
               position: fixed;
 
-              width: ${PANEL_WIDTH};
+              width: ${p.panelWidth ?? PANEL_WIDTH};
               height: 100%;
 
               top: 0;
@@ -139,7 +141,7 @@ const _SlideOverPanel = styled(motion.div, {
           : css`
               position: relative;
 
-              width: ${LEFT_SIDE_PANEL_WIDTH};
+              width: ${p.panelWidth ?? LEFT_SIDE_PANEL_WIDTH};
               min-width: 450px;
               height: 100%;
 

@@ -8,10 +8,10 @@ import re
 import sys
 import threading
 import typing
-from collections.abc import Callable, Collection, Generator, Iterable, MutableSet, Sequence
+from collections.abc import Callable, Collection, Generator, Iterable, Mapping, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, overload
 from unittest import TestCase
 
 import pytest
@@ -155,6 +155,16 @@ class SiloModeTestDecorator:
 
     def __init__(self, *silo_modes: SiloMode) -> None:
         self.silo_modes = frozenset(silo_modes)
+
+    @overload
+    def __call__[T: (type[Any], Callable[..., Any])](self, decorated_obj: T) -> T: ...
+
+    @overload
+    def __call__[
+        T: (type[Any], Callable[..., Any])
+    ](self, *, regions: Sequence[Region] = (), include_monolith_run: bool = False) -> Callable[
+        [T], T
+    ]: ...
 
     def __call__(
         self,
@@ -467,7 +477,7 @@ def get_protected_operations() -> list[re.Pattern]:
     return _protected_operations
 
 
-def validate_protected_queries(queries: Sequence[dict[str, str]]) -> None:
+def validate_protected_queries(queries: Sequence[Mapping[str, str | None]]) -> None:
     """
     Validate a list of queries to ensure that protected queries
     are wrapped in role_override fence values.
@@ -480,11 +490,8 @@ def validate_protected_queries(queries: Sequence[dict[str, str]]) -> None:
 
     for index, query in enumerate(queries):
         sql = query["sql"]
-        # The real type of queries is Iterable[Dict[str, str | None]], due to some weird bugs in django which can result
-        # in None sql query dicts.  However, typing the parameter that way breaks things due to a lack of covariance in
-        # the VT TypeVar for Dict.
         if sql is None:
-            continue  # type: ignore[unreachable]
+            continue
         match = match_fence_query(sql)
         if match:
             operation = match.group("operation")
@@ -519,6 +526,8 @@ def validate_protected_queries(queries: Sequence[dict[str, str]]) -> None:
                     "",
                 ]
                 for query in query_slice:
+                    if query["sql"] is None:
+                        continue
                     msg.append(query["sql"])
                     if query["sql"] == sql:
                         msg.append("^" * len(sql))

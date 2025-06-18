@@ -8,6 +8,25 @@ family:native package:/private/var/containers/Bundle/Application/**  +app
 family:native package:**/Developer/CoreSimulator/Devices/**          +app
 family:native package:**/Containers/Bundle/Application/**            +app
 
+# well known path components for mac paths
+family:native package:**.app/Contents/**                             +app
+family:native package:/Users/**                                      +app
+
+# Unreal Engine
+
+## UE internal assertion handling
+family:native stack.function:FDebug::CheckVerifyFailedImpl*                v+app -app ^-app
+
+## UE internal ensure handling
+family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app -app ^-app
+
+## UE SDK USentrySubsystem event capturing
+family:native stack.function:USentrySubsystem::CaptureMessage*             v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureMessageWithScope*    v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEvent*               v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app -app ^-app
+family:native stack.function:USentrySubsystem::*execCapture*               v+app -app ^-app
+
 # known well locations for unix paths
 family:native package:/lib/**                                        -app
 family:native package:/usr/lib/**                                    -app
@@ -15,21 +34,20 @@ family:native path:/usr/local/lib/**                                 -app
 family:native path:/usr/local/Cellar/**                              -app
 family:native package:linux-gate.so*                                 -app
 
-# well known path components for mac paths
-family:native package:**.app/Contents/**                             +app
-family:native package:/Users/**                                      +app
-
-# rust common modules
+# rust common modules/functions
 family:native function:std::*                                     -app
 family:native function:core::*                                    -app
 family:native function:alloc::*                                   -app
 family:native function:__rust_*                                   -app
+family:native function:rust_begin_unwind                          -app
 
 # rust borders
 family:native function:std::panicking::begin_panic                ^-group -group ^-app -app
 family:native function:core::panicking::begin_panic               ^-group -group ^-app -app
 family:native function:failure::backtrace::Backtrace::new         ^-group -group ^-app -app
 family:native function:error_chain::make_backtrace                ^-group -group ^-app -app
+family:native function:std::panicking::panic_fmt                  ^-app -app
+family:native function:core::panicking::panic_fmt                 ^-app -app
 
 # C++ borders
 family:native function:_CxxThrowException                         ^-group -group ^-app -app
@@ -304,6 +322,9 @@ category:throw ^-group
 # raise() called by abort() should only group by abort()
 [ category:throw ] | category:throw category=internals
 
+# Frames from the OS should never be considered in-app
+category:system -app
+
 # Thread bases such as `main()` are just noise and are called by noise.
 category:threadbase -group v-group
 
@@ -368,6 +389,7 @@ family:native function:*.cold.1 category=indirection
 [ category:runtime ]    | category:runtime category=internals
 [ category:dtor ]       | category:dtor    category=internals
 
+
 # SDK specific rules
 
 ## general
@@ -407,20 +429,27 @@ function:nextTick -app -group
 path:**/go/pkg/mod/** -app
 
 ## java
-module:jdk.* -app
-module:sun.* -app
-module:com.sun.* -app
-module:java.* -app
-module:scala.* -app
-module:akka.* -app
-module:javax.* -app
-module:org.apache.* -app
-module:org.springframework.* -app
-module:org.glassfish.* -app
-module:org.jboss.* -app
-module:feign.* -app
-module:io.opentelemetry.* -app
-module:io.sentry.* -app -group
+module:akka.* category=framework
+module:com.fasterxml.* category=framework
+module:com.microsoft.* category=framework
+module:com.sun.* category=framework
+module:feign.* category=framework
+module:io.opentelemetry.* category=framework
+module:io.sentry.* category=framework -group
+module:jdk.* category=framework
+module:oauth.* category=framework
+module:org.apache.* category=framework
+module:org.glassfish.* category=framework
+module:org.jboss.* category=framework
+module:org.jdesktop.* category=framework
+module:org.postgresql.* category=framework
+module:org.springframework.* category=framework
+module:org.web3j.* category=framework
+module:reactor.core.* category=framework
+module:scala.* category=framework
+module:sun.* category=framework
+
+category:framework -app
 
 ## kotlin
 module:kotlin.* -app

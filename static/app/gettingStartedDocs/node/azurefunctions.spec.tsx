@@ -15,7 +15,9 @@ describe('express onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
 
     // Includes import statement
     const allMatches = screen.getAllByText(
@@ -39,7 +41,7 @@ describe('express onboarding docs', function () {
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 
@@ -68,6 +70,7 @@ describe('express onboarding docs', function () {
         )
       )
     ).toBeInTheDocument();
+
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
@@ -94,17 +97,16 @@ describe('express onboarding docs', function () {
       )
     ).toBeInTheDocument();
 
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+
     // Profiles sample rate should not be set for continuous profiling
     expect(
       screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).not.toBeInTheDocument();
-
-    // Should have start and stop profiling calls
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
-    ).toBeInTheDocument();
   });
 });

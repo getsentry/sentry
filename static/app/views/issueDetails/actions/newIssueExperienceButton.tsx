@@ -1,183 +1,283 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {TourAction, TourGuide} from 'sentry/components/tours/components';
+import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {
+  ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  useIssueDetailsTour,
+} from 'sentry/views/issueDetails/issueDetailsTour';
+import {
+  IssueDetailsTourModal,
+  IssueDetailsTourModalCss,
+} from 'sentry/views/issueDetails/issueDetailsTourModal';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-export function NewIssueExperienceButton() {
-  const user = useUser();
+/**
+ * This hook will cause the promotional modal to appear if:
+ *  - All the steps have been registered
+ *  - The tour has not been completed
+ *  - The tour is not currently active
+ *  - The streamline UI is enabled
+ *  - The user's browser has not stored that they've seen the promo
+ *
+ * Returns a function that can be used to reset the modal.
+ */
+function useIssueDetailsPromoModal() {
   const organization = useOrganization();
-  const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
-  const hasEnforceStreamlinedUIFlag = organization.features.includes(
-    'issue-details-streamline-enforce'
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const {mutate: mutateAssistant} = useMutateAssistant();
+  const {
+    startTour,
+    endTour,
+    currentStepId,
+    isRegistered: isTourRegistered,
+    isCompleted: isTourCompleted,
+  } = useIssueDetailsTour();
+
+  const [localTourState, setLocalTourState] = useLocalStorageState(
+    ISSUE_DETAILS_TOUR_GUIDE_KEY,
+    {hasSeen: false}
   );
-  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
+
+  const isPromoVisible =
+    isTourRegistered &&
+    !isTourCompleted &&
+    currentStepId === null &&
+    hasStreamlinedUI &&
+    !localTourState.hasSeen;
+
+  const handleEndTour = useCallback(() => {
+    setLocalTourState({hasSeen: true});
+    mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
+    endTour();
+    trackAnalytics('issue_details.tour.skipped', {organization});
+  }, [mutateAssistant, organization, endTour, setLocalTourState]);
+
+  useEffect(() => {
+    if (isPromoVisible) {
+      openModal(
+        props => (
+          <IssueDetailsTourModal
+            handleDismissTour={() => {
+              handleEndTour();
+              props.closeModal();
+            }}
+            handleStartTour={() => {
+              props.closeModal();
+              setLocalTourState({hasSeen: true});
+              startTour();
+              trackAnalytics('issue_details.tour.started', {
+                organization,
+                method: 'modal',
+              });
+            }}
+          />
+        ),
+        {
+          modalCss: IssueDetailsTourModalCss,
+          onClose: reason => {
+            if (reason) {
+              handleEndTour();
+            }
+          },
+        }
+      );
+    }
+  }, [
+    isPromoVisible,
+    mutateAssistant,
+    organization,
+    endTour,
+    startTour,
+    setLocalTourState,
+    handleEndTour,
+  ]);
+
+  const resetModal = useCallback(() => {
+    setLocalTourState({hasSeen: false});
+    mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'restart'});
+  }, [mutateAssistant, setLocalTourState]);
+
+  return {resetModal};
+}
+
+export function NewIssueExperienceButton() {
+  const organization = useOrganization();
+  const isSuperUser = isActiveSuperuser();
+  const {
+    startTour,
+    isRegistered: isTourRegistered,
+    isCompleted: isTourCompleted,
+  } = useIssueDetailsTour();
+  const {resetModal} = useIssueDetailsPromoModal();
+
+  // XXX: We use a ref to track the previous state of tour completion
+  // since we only show the banner when the tour goes from incomplete to complete
+  const isTourCompletedRef = useRef(isTourCompleted);
+  const [isReminderVisible, setIsReminderVisible] = useState(false);
+  useEffect(() => {
+    // If the tour becomes completed, and started off incomplete, show the reminder.
+    let timeout: NodeJS.Timeout | undefined;
+    if (isTourCompleted && !isTourCompletedRef.current) {
+      setIsReminderVisible(true);
+      // Auto-dismiss after 5 seconds
+      timeout = setTimeout(() => {
+        setIsReminderVisible(false);
+        trackAnalytics('issue_details.tour.reminder', {organization, method: 'timeout'});
+      }, 5000);
+    }
+    isTourCompletedRef.current = isTourCompleted;
+    return () => clearTimeout(timeout);
+  }, [isTourCompleted, organization]);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const hasNewUIOnly = Boolean(organization.streamlineOnly);
+  const user = useUser();
+  const userStreamlinePreference = user?.options?.prefersIssueDetailsStreamlinedUI;
+
   const openForm = useFeedbackForm();
-  const {mutate} = useMutateUserOptions();
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
 
   const handleToggle = useCallback(() => {
-    mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
+    mutateUserOptions({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
+      enforced_streamline_ui:
+        organization.features.includes('issue-details-streamline-enforce') &&
+        userStreamlinePreference === null,
     });
-  }, [mutate, organization, hasStreamlinedUI]);
+  }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
 
-  // We hide the toggle if the org...
-  if (
-    // doesn't have the 'opt-in' flag,
-    !hasStreamlinedUIFlag ||
-    // has the 'remove opt-out' flag,
-    hasEnforceStreamlinedUIFlag ||
-    // has access to only one interface (via the organization option).
-    hasOnlyOneUIOption
-  ) {
-    return null;
-  }
-
-  if (!openForm || !hasStreamlinedUI) {
-    const label = hasStreamlinedUI
-      ? t('Switch to the old issue experience')
-      : t('Switch to the new issue experience');
-    const text = hasStreamlinedUI ? null : t('Try New UI');
-
+  if (!hasStreamlinedUI) {
     return (
-      <ToggleButtonWrapper>
-        <ToggleButton
-          enabled={hasStreamlinedUI}
-          size={hasStreamlinedUI ? 'xs' : 'sm'}
-          icon={
-            defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
-              <IconLab isSolid={hasStreamlinedUI} />
-            ) : (
-              <motion.div
-                style={{height: 14}}
-                animate={{
-                  rotate: [null, 6, -6, 12, -12, 6, -6, 0],
-                }}
-                transition={{
-                  duration: 1,
-                  delay: 1,
-                  repeatDelay: 3,
-                  repeat: 3,
-                }}
-              >
-                <IconLab isSolid={hasStreamlinedUI} />
-              </motion.div>
-            )
-          }
-          title={label}
-          aria-label={label}
-          borderless={!hasStreamlinedUI}
-          onClick={handleToggle}
-        >
-          {text ? <span>{text}</span> : null}
-          {!hasStreamlinedUI && <ToggleBorder />}
-        </ToggleButton>
-      </ToggleButtonWrapper>
+      <TryNewButton
+        icon={<IconLab />}
+        size="sm"
+        title={t('Switch to the new issue experience')}
+        aria-label={t('Switch to the new issue experience')}
+        onClick={() => {
+          handleToggle();
+        }}
+      >
+        {t('Try New UI')}
+      </TryNewButton>
     );
   }
 
-  return (
-    <DropdownMenu
-      trigger={triggerProps => (
-        <StyledDropdownButton
-          {...triggerProps}
-          enabled={hasStreamlinedUI}
-          size={hasStreamlinedUI ? 'xs' : 'sm'}
-          aria-label={t('Switch issue experience')}
-        >
-          {/* Passing icon as child to avoid extra icon margin */}
-          <IconLab isSolid={hasStreamlinedUI} />
-        </StyledDropdownButton>
-      )}
-      items={[
-        {
-          key: 'switch-to-old-ui',
-          label: t('Switch to the old issue experience'),
-          onAction: handleToggle,
-        },
-        {
-          key: 'give-feedback',
-          label: t('Give feedback on new UI'),
-          hidden: !openForm,
-          onAction: () => {
-            openForm({
-              messagePlaceholder: t(
-                'Excluding bribes, what would make you excited to use the new UI?'
-              ),
-              tags: {
-                ['feedback.source']: 'streamlined_issue_details',
-                ['feedback.owner']: 'issues',
-              },
-            });
+  const items = [
+    {
+      key: 'take-tour',
+      label: t('Take a tour'),
+      hidden: hasStreamlinedUI && !isTourRegistered,
+      onAction: () => {
+        trackAnalytics('issue_details.tour.started', {organization, method: 'dropdown'});
+        startTour();
+      },
+    },
+    {
+      key: 'give-feedback',
+      label: t('Give feedback on the UI'),
+      hidden: !openForm,
+      onAction: () => {
+        openForm?.({
+          messagePlaceholder: t('Tell us what you think about the new UI'),
+          tags: {
+            ['feedback.source']: 'streamlined_issue_details',
+            ['feedback.owner']: 'issues',
           },
-        },
-      ]}
-      position="bottom-end"
-    />
+        });
+      },
+    },
+    {
+      key: 'switch-to-old-ui',
+      label: t('Switch to the old issue experience'),
+      // Do not show the toggle out of the new UI if any of these are true:
+      //  - The user is on the old UI
+      //  - The org has the new UI only option
+      hidden: !hasStreamlinedUI || hasNewUIOnly,
+      onAction: handleToggle,
+    },
+    {
+      key: 'reset-tour-modal',
+      label: t('Reset tour modal (Superuser only)'),
+      hidden: !isSuperUser || !isTourCompleted,
+      onAction: resetModal,
+    },
+  ];
+
+  if (items.every(item => item.hidden)) {
+    return null;
+  }
+
+  return (
+    <TourGuide
+      title={t('Come back anytime')}
+      description={t('Click here to take the tour or share feedback with the team.')}
+      actions={
+        <TourAction
+          size="xs"
+          onClick={() => {
+            trackAnalytics('issue_details.tour.reminder', {
+              organization,
+              method: 'dismissed',
+            });
+            setIsReminderVisible(false);
+          }}
+        >
+          {t('Got it')}
+        </TourAction>
+      }
+      isOpen={isReminderVisible}
+    >
+      <DropdownMenu
+        trigger={triggerProps => (
+          <StyledDropdownButton
+            {...triggerProps}
+            size={hasStreamlinedUI ? 'xs' : 'sm'}
+            aria-label={t('Manage issue experience')}
+          >
+            {/* Passing icon as child to avoid extra icon margin */}
+            <IconLab isSolid={hasStreamlinedUI} />
+          </StyledDropdownButton>
+        )}
+        items={items}
+        position="bottom-end"
+      />
+    </TourGuide>
   );
 }
 
-const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.button.primary.background};
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+    color: ${p => p.theme.button.primary.background};
   }
 `;
 
-const ToggleButtonWrapper = styled('div')`
-  overflow: hidden;
-  margin: 0 -1px;
-  border-radius: 7px;
-`;
-
-const ToggleButton = styled(Button)<{enabled: boolean}>`
-  position: relative;
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
-  :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+const TryNewButton = styled(Button)`
+  background: linear-gradient(90deg, #3468d8, #248574);
+  color: ${p => p.theme.white};
+  &:hover,
+  &:active,
+  &:focus {
+    color: ${p => p.theme.white};
   }
-  &:after {
-    position: absolute;
-    content: '';
-    inset: 0;
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
+  ::after {
+    background: linear-gradient(90deg, #3468d8, #248574);
   }
-  span {
-    z-index: 1;
-  }
-`;
-
-const ToggleBorder = styled('div')`
-  @keyframes rotating {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  position: absolute;
-  content: '';
-  z-index: -1;
-  width: 125px;
-  height: 125px;
-  border-radius: 7px;
-  background: ${p => p.theme.badge.beta.background};
-  animation: rotating 10s linear infinite;
 `;

@@ -6,8 +6,9 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,8 +24,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
-
-import {getFileName} from '../utils';
 
 import Candidates from './candidates';
 import GeneralInfo from './generalInfo';

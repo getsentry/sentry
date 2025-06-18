@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
@@ -11,13 +12,13 @@ import {
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
@@ -28,16 +29,16 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
+  newestFirst: boolean;
   projectSlug: Project['slug'];
   type: StackType;
+  values: ExceptionType['values'];
   meta?: Record<any, any>;
-  newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
   threadId?: number;
-} & Pick<ExceptionType, 'values'> &
-  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
+} & Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
-type CollapsedExceptionMap = {[exceptionId: number]: boolean};
+type CollapsedExceptionMap = Record<number, boolean>;
 
 const useCollapsedExceptions = (values?: ExceptionValue[]) => {
   const [collapsedExceptions, setCollapsedSections] = useState<CollapsedExceptionMap>(
@@ -130,6 +131,8 @@ export function Content({
   meta,
   threadId,
 }: Props) {
+  const {projects} = useProjects({slugs: [projectSlug]});
+
   const {collapsedExceptions, toggleException, expandException} =
     useCollapsedExceptions(values);
 
@@ -144,6 +147,7 @@ export function Content({
     return null;
   }
 
+  const project = projects.find(({slug}) => slug === projectSlug);
   const children = values.map((exc, excIdx) => {
     const id = defined(exc.mechanism?.exception_id)
       ? `exception-${exc.mechanism?.exception_id}`
@@ -155,7 +159,8 @@ export function Content({
       prepareSourceMapDebuggerFrameInformation(
         sourceMapDebuggerData,
         debuggerFrame,
-        event
+        event,
+        project?.platform
       )
     );
     const exceptionValue = exc.value

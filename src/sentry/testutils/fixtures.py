@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
+from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -26,9 +27,9 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import (
     Monitor,
+    MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorType,
     ScheduleType,
 )
 from sentry.organizations.services.organization import RpcOrganization
@@ -45,10 +46,12 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
+    create_detector_from_project_subscription,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -68,12 +71,16 @@ class Fixtures:
 
     @cached_property
     def user(self) -> User:
-        return self.create_user(
-            "admin@localhost",
-            is_superuser=True,
-            is_staff=True,
-            is_sentry_app=False,
-        )
+        try:
+            return self.create_user(
+                "admin@localhost",
+                is_superuser=True,
+                is_staff=True,
+                is_sentry_app=False,
+            )
+        except IntegrityError:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
@@ -156,6 +163,9 @@ class Fixtures:
 
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
+
+    def create_member_invite(self, *args, **kwargs):
+        return Factories.create_member_invite(*args, **kwargs)
 
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
@@ -449,7 +459,6 @@ class Fixtures:
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=project_id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
@@ -464,6 +473,9 @@ class Fixtures:
 
     def create_monitor_incident(self, **kwargs):
         return MonitorIncident.objects.create(**kwargs)
+
+    def create_monitor_checkin(self, **kwargs):
+        return MonitorCheckIn.objects.create(**kwargs)
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
@@ -645,17 +657,33 @@ class Fixtures:
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
 
-    def create_data_condition_group(self, *args, organization=None, **kwargs):
+    def create_data_condition_group(self, organization=None, **kwargs):
         if organization is None:
             organization = self.organization
 
-        return Factories.create_data_condition_group(*args, organization=organization, **kwargs)
+        return Factories.create_data_condition_group(organization=organization, **kwargs)
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
+
+    def create_alert_rule_detector(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_alert_rule_detector(*args, **kwargs)
+
+    def create_action_alert_rule_trigger_action(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_action_alert_rule_trigger_action(*args, **kwargs)
+
+    def create_alert_rule_workflow(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_alert_rule_workflow(*args, **kwargs)
+
+    def create_incident_group_open_period(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_incident_group_open_period(*args, **kwargs)
 
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
@@ -671,6 +699,7 @@ class Fixtures:
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
         url: str | None = None,
         host_provider_id="TEST",
+        host_provider_name="TEST",
         url_domain="sentry",
         url_domain_suffix="io",
         interval_seconds=60,
@@ -681,6 +710,8 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
+        uptime_status=UptimeStatus.OK,
+        uptime_status_update_date: datetime | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -688,6 +719,8 @@ class Fixtures:
             headers = []
         if region_slugs is None:
             region_slugs = []
+        if uptime_status_update_date is None:
+            uptime_status_update_date = timezone.now()
 
         subscription = Factories.create_uptime_subscription(
             type=type,
@@ -697,6 +730,7 @@ class Fixtures:
             url_domain=url_domain,
             url_domain_suffix=url_domain_suffix,
             host_provider_id=host_provider_id,
+            host_provider_name=host_provider_name,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
@@ -704,11 +738,21 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
         )
         for region_slug in region_slugs:
-            Factories.create_uptime_subscription_region(subscription, region_slug)
+            self.create_uptime_subscription_region(subscription, region_slug)
 
         return subscription
+
+    def create_uptime_subscription_region(
+        self,
+        subscription: UptimeSubscription,
+        region_slug: str,
+        mode: UptimeSubscriptionRegion.RegionMode = UptimeSubscriptionRegion.RegionMode.ACTIVE,
+    ):
+        Factories.create_uptime_subscription_region(subscription, region_slug, mode)
 
     def create_project_uptime_subscription(
         self,
@@ -720,6 +764,8 @@ class Fixtures:
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
+        uptime_status_update_date: datetime | None = None,
+        id: int | None = None,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
@@ -727,8 +773,11 @@ class Fixtures:
             env = self.environment
 
         if uptime_subscription is None:
-            uptime_subscription = self.create_uptime_subscription()
-        return Factories.create_project_uptime_subscription(
+            uptime_subscription = self.create_uptime_subscription(
+                uptime_status=uptime_status,
+                uptime_status_update_date=uptime_status_update_date,
+            )
+        monitor = Factories.create_project_uptime_subscription(
             project,
             env,
             uptime_subscription,
@@ -736,8 +785,13 @@ class Fixtures:
             mode,
             name,
             Actor.from_object(owner) if owner else None,
-            uptime_status,
+            id,
         )
+        # TODO(epurkhiser): Dual create a detector as well, can be removed
+        # once we completely remove ProjectUptimeSubscription
+        create_detector_from_project_subscription(monitor)
+
+        return monitor
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

@@ -15,8 +15,6 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  # Disables sentry reporting for devservices
-  DEVSERVICES_DISABLE_SENTRY: 1
   SNUBA_NO_WORKERS: 1
 
 jobs:
@@ -52,7 +50,9 @@ jobs:
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -61,11 +61,8 @@ jobs:
           mode: default
 
       - name: Run API docs tests
-        # install ts-node for ts build scripts to execute properly without potentially installing
-        # conflicting deps when running scripts locally
-        # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          yarn add ts-node && make test-api-docs
+          make test-api-docs
 
       - name: Inspect failure
         if: failure()
@@ -83,19 +80,21 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      actions: read # used for DIM metadata
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        pg-version: ['14']
+        instance:
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: 11
+      MATRIX_INSTANCE_TOTAL: 22
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -143,9 +142,6 @@ jobs:
     name: backend migration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -182,9 +178,6 @@ jobs:
     name: cli test
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        pg-version: ['14']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -252,9 +245,6 @@ jobs:
     needs: files-changed
     name: check migration
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     steps:
       - name: Checkout sentry

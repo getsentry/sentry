@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from typing import Literal
 
+from sentry import features
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
-from sentry.integrations.opsgenie.metrics import record_event
+from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
+from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.shared_integrations.exceptions import ApiError
 
 OPSGENIE_API_VERSION = "v2"
 # Defaults to P3 if null, but we can be explicit - https://docs.opsgenie.com/docs/alert-api
@@ -37,15 +41,30 @@ class OpsgenieClient(ApiClient):
         path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
 
+    def _get_workflow_urls(self, group, rules):
+        organization = group.project.organization
+        workflow_urls = []
+        for rule in rules:
+            # fetch the workflow_id from the rule.data
+            workflow_id = get_key_from_rule_data(rule, "workflow_id")
+            workflow_urls.append(
+                organization.absolute_url(create_link_to_workflow(organization.id, workflow_id))
+            )
+        return workflow_urls
+
     def _get_rule_urls(self, group, rules):
         organization = group.project.organization
         rule_urls = []
         for rule in rules:
-            path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule.id}/details/"
+            rule_id = rule.id
+            if features.has("organizations:workflow-engine-trigger-actions", organization):
+                rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
+
+            path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
 
-    def _get_issue_alert_payload(
+    def build_issue_alert_payload(
         self,
         data,
         rules,
@@ -65,12 +84,24 @@ class OpsgenieClient(ApiClient):
             "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
         }
         if group:
-            rule_urls = self._get_rule_urls(group, rules)
             payload["alias"] = f"sentry: {group.id}"
             payload["entity"] = group.culprit if group.culprit else ""
             group_params = {"referrer": "opsgenie"}
             if notification_uuid:
                 group_params["notification_uuid"] = notification_uuid
+            rule_workflow_context = {}
+            if features.has("organizations:workflow-engine-ui-links", group.project.organization):
+                workflow_urls = self._get_workflow_urls(group, rules)
+                rule_workflow_context = {
+                    "Triggering Workflows": ", ".join([rule.label for rule in rules]),
+                    "Triggering Workflow URLs": "\n".join(workflow_urls),
+                }
+            else:
+                rule_urls = self._get_rule_urls(group, rules)
+                rule_workflow_context = {
+                    "Triggering Rules": ", ".join([rule.label for rule in rules]),
+                    "Triggering Rule URLs": "\n".join(rule_urls),
+                }
             payload["details"] = {
                 "Sentry ID": str(group.id),
                 "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
@@ -79,46 +110,43 @@ class OpsgenieClient(ApiClient):
                 "Logger": group.logger,
                 "Level": group.get_level_display(),
                 "Issue URL": group.get_absolute_url(params=group_params),
-                "Triggering Rules": ", ".join([rule.label for rule in rules]),
-                "Triggering Rule URLs": "\n".join(rule_urls),
                 "Release": data.release,
+                **rule_workflow_context,
             }
         return payload
 
-    def send_notification(
-        self,
-        data,
-        priority: OpsgeniePriority | None = None,
-        rules=None,
-        notification_uuid: str | None = None,
-    ):
+    def send_notification(self, data):
         headers = self._get_auth_headers()
-        interaction_type = OnCallInteractionType.CREATE
-        if isinstance(data, (Event, GroupEvent)):
-            group = data.group
-            event = data
-            payload = self._get_issue_alert_payload(
-                data=data,
-                rules=rules,
-                event=event,
-                group=group,
-                priority=priority,
-                notification_uuid=notification_uuid,
-            )
-        else:
-            # if we're closing the alert—meaning that the Sentry alert was resolved
-            if data.get("identifier"):
-                interaction_type = OnCallInteractionType.RESOLVE
-                alias = data["identifier"]
-                resp = self.post(
-                    f"/alerts/{alias}/close",
-                    data={},
-                    params={"identifierType": "alias"},
-                    headers=headers,
-                )
-                return resp
-            # this is a metric alert
-            payload = data
-        with record_event(interaction_type).capture():
-            resp = self.post("/alerts", data=payload, headers=headers)
-        return resp
+        with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
+            try:
+                return self.post("/alerts", data=data, headers=headers)
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                raise
+
+    # TODO(iamrajjoshi): We need to delete this method during notification platform
+    def send_metric_alert_notification(self, data):
+        headers = self._get_auth_headers()
+
+        # If closing an alert (when Sentry alert was resolved)
+        if data.get("identifier"):
+            alias = data["identifier"]
+            with record_event(OnCallInteractionType.RESOLVE).capture() as lifecycle:
+                try:
+                    return self.post(
+                        f"/alerts/{alias}/close",
+                        data={},
+                        params={"identifierType": "alias"},
+                        headers=headers,
+                    )
+                except ApiError as e:
+                    record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                    raise
+
+        # Creating a metric alert
+        with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
+            try:
+                return self.post("/alerts", data=data, headers=headers)
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                raise

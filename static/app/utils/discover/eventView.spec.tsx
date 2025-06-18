@@ -3122,7 +3122,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
       breakdown,
       webVital,
     });
-    expect(result.pathname).toBe('/organizations/org-slug/performance/summary/events/');
+    expect(result.pathname).toBe('/organizations/org-slug/insights/summary/events/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toBe('42');
     expect(result.query.sort).toBe('-count');
@@ -3139,7 +3139,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
       breakdown,
       webVital,
     });
-    expect(result.pathname).toBe('/performance/summary/events/');
+    expect(result.pathname).toBe('/insights/summary/events/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toBe('42');
     expect(result.query.sort).toBe('-count');

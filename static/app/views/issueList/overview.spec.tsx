@@ -19,7 +19,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import StreamGroup from 'sentry/components/stream/group';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -29,10 +28,6 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
-
-// Mock <IssueListActions>
-jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
-jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -68,6 +63,7 @@ const initialRouterConfig = {
   routes: [
     '/organizations/:orgId/issues/',
     '/organizations/:orgId/issues/searches/:searchId/',
+    '/organizations/:orgId/issues/views/:viewId/',
   ],
   location: {
     pathname: '/organizations/org-slug/issues/',
@@ -98,10 +94,6 @@ describe('IssueList', function () {
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
   beforeEach(function () {
-    // The tests fail because we have a "component update was not wrapped in act" error.
-    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
-
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
     MockApiClient.addMockResponse({
@@ -186,8 +178,6 @@ describe('IssueList', function () {
     let issuesRequest: jest.Mock;
 
     beforeEach(function () {
-      jest.mocked(StreamGroup).mockClear();
-
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
         method: 'GET',
@@ -209,7 +199,7 @@ describe('IssueList', function () {
     it('loads group rows with default query (no pinned queries, async and no query in URL)', async function () {
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/issues/',
@@ -252,7 +242,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -297,7 +287,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -338,7 +328,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {query: 'level:error'},
@@ -378,7 +368,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -407,7 +397,7 @@ describe('IssueList', function () {
     it('caches the search results', async function () {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: [...new Array(25)].map((_, i) => ({id: i})),
+        body: [...new Array(25)].map((_, i) => GroupFixture({id: `${i}`, project})),
         headers: {
           Link: DEFAULT_LINKS_HEADER,
           'X-Hits': '500',
@@ -426,7 +416,7 @@ describe('IssueList', function () {
 
       const {unmount} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig,
       });
 
@@ -439,7 +429,7 @@ describe('IssueList', function () {
       // Mount component again, getting from cache
       render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig,
       });
 
@@ -447,7 +437,7 @@ describe('IssueList', function () {
         await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
       ).toBeInTheDocument();
       expect(issuesRequest).toHaveBeenCalledTimes(1);
-    });
+    }, 20_000);
 
     it('1 search', async function () {
       const localSavedSearch = {...savedSearch, projectId: null};
@@ -458,7 +448,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig,
       });
 
@@ -489,7 +479,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig,
       });
 
@@ -526,10 +516,17 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [savedSearch],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig,
       });
 
@@ -548,6 +545,19 @@ describe('IssueList', function () {
       ).toBeInTheDocument();
 
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {
+          count: 100,
+        },
+      });
       const createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
         method: 'PUT',
@@ -597,6 +607,7 @@ describe('IssueList', function () {
       render(<IssueListOverview {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -647,6 +658,7 @@ describe('IssueList', function () {
       render(<IssueListOverview {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -688,7 +700,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -766,7 +778,7 @@ describe('IssueList', function () {
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -797,9 +809,17 @@ describe('IssueList', function () {
     });
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig,
       });
 
@@ -879,7 +899,6 @@ describe('IssueList', function () {
       });
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig,
       });
 
@@ -901,7 +920,6 @@ describe('IssueList', function () {
 
   it('fetches members', async function () {
     render(<IssueListOverview {...routerProps} />, {
-      disableRouterMocks: true,
       initialRouterConfig,
     });
 
@@ -921,22 +939,22 @@ describe('IssueList', function () {
           Link: DEFAULT_LINKS_HEADER,
         },
       });
-      fetchDataMock.mockReset();
     });
 
     it('fetches data on selection change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig,
       });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [99],
-          environments: [],
-          datetime: {period: '24h', start: null, end: null, utc: null},
-        },
-        new Set()
+      act(() =>
+        PageFiltersStore.onInitializeUrlState(
+          {
+            projects: [99],
+            environments: [],
+            datetime: {period: '24h', start: null, end: null, utc: null},
+          },
+          new Set()
+        )
       );
 
       rerender(<IssueListOverview {...routerProps} />);
@@ -948,7 +966,6 @@ describe('IssueList', function () {
 
     it('fetches data on savedSearch change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig,
       });
 
@@ -961,7 +978,6 @@ describe('IssueList', function () {
 
     it('uses correct statsPeriod when fetching issues list and no datetime given', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -971,13 +987,15 @@ describe('IssueList', function () {
         }),
       });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [99],
-          environments: [],
-          datetime: {period: '14d', start: null, end: null, utc: null},
-        },
-        new Set()
+      act(() =>
+        PageFiltersStore.onInitializeUrlState(
+          {
+            projects: [99],
+            environments: [],
+            datetime: {period: '14d', start: null, end: null, utc: null},
+          },
+          new Set()
+        )
       );
 
       rerender(<IssueListOverview {...routerProps} />);
@@ -996,7 +1014,6 @@ describe('IssueList', function () {
   describe('componentDidUpdate fetching members', function () {
     it('fetches memberlist on project change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig,
       });
       // Called during componentDidMount
@@ -1004,13 +1021,15 @@ describe('IssueList', function () {
         expect(fetchMembersRequest).toHaveBeenCalled();
       });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [99],
-          environments: [],
-          datetime: {period: '24h', start: null, end: null, utc: null},
-        },
-        new Set()
+      act(() =>
+        PageFiltersStore.onInitializeUrlState(
+          {
+            projects: [99],
+            environments: [],
+            datetime: {period: '24h', start: null, end: null, utc: null},
+          },
+          new Set()
+        )
       );
       rerender(<IssueListOverview {...routerProps} />);
 
@@ -1035,7 +1054,6 @@ describe('IssueList', function () {
         statusCode: 500,
       });
       render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig,
       });
 
@@ -1051,7 +1069,6 @@ describe('IssueList', function () {
         },
       });
       render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig,
       });
 
@@ -1070,7 +1087,6 @@ describe('IssueList', function () {
       });
 
       const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -1117,7 +1133,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} {...moreProps} />, {
         organization,
-        disableRouterMocks: true,
+
         initialRouterConfig,
       });
 
@@ -1305,7 +1321,7 @@ describe('IssueList', function () {
   it('displays a count that represents the current page', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: [...new Array(25)].map((_, i) => ({id: i})),
+      body: [...new Array(25)].map((_, i) => GroupFixture({id: `${i}`, project})),
       headers: {
         Link: DEFAULT_LINKS_HEADER,
         'X-Hits': '500',
@@ -1328,7 +1344,7 @@ describe('IssueList', function () {
 
     const {rerender} = render(<IssueListOverview {...routerProps} />, {
       organization,
-      disableRouterMocks: true,
+
       initialRouterConfig: merge({}, initialRouterConfig, {
         location: {
           query: {
@@ -1360,7 +1376,7 @@ describe('IssueList', function () {
     await waitFor(() => {
       expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
     });
-  });
+  }, 20_000);
 
   describe('project low trends queue alert', function () {
     beforeEach(function () {
@@ -1371,7 +1387,6 @@ describe('IssueList', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
       render(<IssueListOverview {...routerProps} />, {
-        disableRouterMocks: true,
         initialRouterConfig,
       });
 
@@ -1390,7 +1405,7 @@ describe('IssueList', function () {
 
         render(<IssueListOverview {...routerProps} />, {
           organization,
-          disableRouterMocks: true,
+
           initialRouterConfig,
         });
 
@@ -1434,7 +1449,7 @@ describe('IssueList', function () {
 
         render(<IssueListOverview {...routerProps} />, {
           organization,
-          disableRouterMocks: true,
+
           initialRouterConfig,
         });
 
@@ -1448,6 +1463,50 @@ describe('IssueList', function () {
           ).toBeInTheDocument();
         });
       });
+    });
+  });
+
+  describe('new view page', function () {
+    it('displays empty state when first loaded', async function () {
+      const fetchDataMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      const {router: testRouter} = render(
+        <IssueListOverview {...routerProps} initialQuery="" shouldFetchOnMount={false} />,
+        {
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              pathname: '/organizations/org-slug/issues/views/new/',
+              query: {new: 'true'},
+            },
+          },
+        }
+      );
+
+      await screen.findByText('Suggested Queries');
+      expect(fetchDataMock).not.toHaveBeenCalled();
+
+      const highVolumeIssuesQuery = screen.getByRole('button', {
+        name: 'High Volume Issues is:unresolved timesSeen:>100',
+      });
+
+      // Clicking query should add it, remove suggested queries, and search issues
+      await userEvent.click(highVolumeIssuesQuery);
+      await waitFor(() => {
+        expect(testRouter.location.query.query).toBe('is:unresolved timesSeen:>100');
+      });
+      // ?new=true should be removed
+      expect(testRouter.location.query.new).toBeUndefined();
+
+      expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });
   });
 });

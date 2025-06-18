@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {space} from 'sentry/styles/space';
 
@@ -59,7 +59,7 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   margin: 0;
 `;
 
-export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
+const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
   color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

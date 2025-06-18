@@ -12,6 +12,7 @@ function ProjectDetailContainer(
 ) {
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === props.params.projectId);
+
   useRouteAnalyticsParams(
     project
       ? {
@@ -20,6 +21,7 @@ function ProjectDetailContainer(
         }
       : {}
   );
+
   return <ProjectDetail {...props} />;
 }
 

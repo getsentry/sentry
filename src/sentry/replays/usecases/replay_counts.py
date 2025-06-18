@@ -4,9 +4,9 @@ import dataclasses
 import uuid
 from collections import defaultdict
 from collections.abc import Generator, Sequence
-from typing import Any
+from typing import Any, Literal, overload
 
-from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
+from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
 from sentry.search.events.types import SnubaParams
@@ -23,7 +23,21 @@ MAX_VALS_PROVIDED = {
 FILTER_HAS_A_REPLAY = ' AND !replay.id:""'
 
 
-def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
+@overload
+def get_replay_counts(
+    snuba_params: SnubaParams, query: str, data_source: str | Dataset, *, return_ids: Literal[True]
+) -> dict[int, list[str]]: ...
+
+
+@overload
+def get_replay_counts(
+    snuba_params: SnubaParams, query: str, data_source: str | Dataset, *, return_ids: Literal[False]
+) -> dict[int, int]: ...
+
+
+def get_replay_counts(
+    snuba_params: SnubaParams, query: str, data_source: str | Dataset, *, return_ids: bool
+) -> dict[int, list[str]] | dict[int, int]:
     """
     Queries snuba/clickhouse for replay count of each identifier (usually an issue or transaction).
     - Identifier is parsed from 'query' (select column), and 'snuba_params' is used to filter on time range + project_id
@@ -33,6 +47,9 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
+
+    if isinstance(data_source, Dataset):
+        data_source = data_source.value
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
@@ -56,30 +73,29 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 
 
 def _get_replay_id_mappings(
-    query, snuba_params, data_source=Dataset.Discover
-) -> dict[str, list[str]]:
+    query: str, snuba_params: SnubaParams, data_source: str = Dataset.Discover.value
+) -> dict[str, list[int]]:
     """
     Parses select_column ("identifier") from a query, then queries data_source to map replay_id -> [identifier].
     If select_column is replay_id, return an identity map of replay_id -> [replay_id].
     The keys of the returned dict are UUIDs, represented as 32 char hex strings (all '-'s stripped)
     """
-
-    if data_source == Dataset.Discover:
+    if data_source == Dataset.Discover.value:
         search_query_func = discover.query
-    elif data_source == Dataset.IssuePlatform:
+    elif data_source == Dataset.IssuePlatform.value:
         search_query_func = issue_platform.query  # type: ignore[assignment]
+    else:
+        raise ValueError("Invalid data source")
 
     select_column, column_value = _get_select_column(query)
     query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover.
-        # parses, validates, and formats the user-provided UUID's in a query/request.
         identity_map = {}
         for replay_id in column_value:
-            replay_id = uuid.UUID(
-                hex=replay_id, version=4
-            ).hex  # raises ValueError if invalid. Strips '-'
+            # raises ValueError if invalid. Strips '-'
+            replay_id = uuid.UUID(hex=replay_id, version=4).hex
             identity_map[replay_id] = [replay_id]
         return identity_map
 
@@ -94,7 +110,7 @@ def _get_replay_id_mappings(
     # provide every project_id manually.
     if select_column == "issue.id":
         groups = Group.objects.select_related("project").filter(
-            project__organization_id=snuba_params.organization.id,
+            project__organization_id=snuba_params.organization.id,  # type: ignore[union-attr]
             id__in=column_value,
         )
         snuba_params = dataclasses.replace(
@@ -128,11 +144,11 @@ def _get_replay_id_mappings(
     return replay_id_to_issue_map
 
 
-def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
+def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[int]]) -> dict[int, int]:
     """
     Get the number of existing replays associated with each identifier (ex identifier: issue_id)
     """
-    ret: dict[str, int] = defaultdict(int)
+    ret: dict[int, int] = defaultdict(int)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[
             row["rid"]
@@ -143,13 +159,13 @@ def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -
 
 
 def _get_replay_ids(
-    replay_results: Any, replay_ids_mapping: dict[str, list[str]]
-) -> dict[str, list[str]]:
+    replay_results: Any, replay_ids_mapping: dict[str, list[int]]
+) -> dict[int, list[str]]:
     """
     Get replay ids associated with each identifier (identifier -> [replay_id]) (ex identifier: issue_id)
     Can think of it as the inverse of _get_replay_id_mappings, excluding the replay_ids that don't exist
     """
-    ret: dict[str, list[str]] = defaultdict(list)
+    ret: dict[int, list[str]] = defaultdict(list)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["rid"]]
         for identifier in identifiers:
@@ -180,7 +196,7 @@ def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
     return condition.key.name, condition.value.raw_value
 
 
-def extract_columns_recursive(query: list[Any]) -> Generator[SearchFilter]:
+def extract_columns_recursive(query: Sequence[QueryToken]) -> Generator[SearchFilter]:
     for condition in query:
         if isinstance(condition, SearchFilter):
             if condition.key.name in ("issue.id", "transaction", "replay_id"):

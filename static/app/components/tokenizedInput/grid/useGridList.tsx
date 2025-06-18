@@ -7,7 +7,7 @@ import type {ListState} from '@react-stately/list';
 
 interface UseGridListProps<T> {
   props: AriaGridListOptions<T>;
-  ref: RefObject<HTMLDivElement>;
+  ref: RefObject<HTMLDivElement | null>;
   state: ListState<T>;
 }
 

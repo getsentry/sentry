@@ -1,10 +1,13 @@
 import {useCallback, useMemo} from 'react';
-import type {Location} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -14,23 +17,23 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 // Read utils begin
 
 export type ReadableExploreQueryParts = {
-  chartType: ChartType;
   fields: string[];
   groupBys: string[];
   query: string;
   sortBys: Sort[];
   yAxes: string[];
+  chartType?: ChartType;
 };
 
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
-  chartType: ChartType.LINE,
   yAxes: [DEFAULT_VISUALIZATION],
-  sortBys: [{kind: 'desc', field: DEFAULT_VISUALIZATION_FIELD!}],
-  fields: ['id', DEFAULT_VISUALIZATION_FIELD!],
+  sortBys: [{kind: 'desc', field: 'timestamp'}],
+  fields: ['id', DEFAULT_VISUALIZATION_FIELD, 'timestamp'],
   groupBys: [],
   query: '',
 };
@@ -44,12 +47,18 @@ function validateSortBys(
   const mode = getQueryMode(groupBys);
 
   if (parsedSortBys.length > 0) {
-    if (
-      mode === Mode.SAMPLES &&
-      parsedSortBys.every(sort => fields?.includes(sort.field))
-    ) {
-      return parsedSortBys;
+    if (mode === Mode.SAMPLES) {
+      if (parsedSortBys.every(sort => fields?.includes(sort.field))) {
+        return parsedSortBys;
+      }
+      return [
+        {
+          field: 'timestamp',
+          kind: 'desc' as const,
+        },
+      ];
     }
+
     if (
       mode === Mode.AGGREGATE &&
       parsedSortBys.every(
@@ -75,9 +84,9 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       return DEFAULT_QUERY;
     }
 
-    let chartType = Number(parsed.chartType);
+    let chartType: number | undefined = Number(parsed.chartType);
     if (isNaN(chartType) || !Object.values(ChartType).includes(chartType)) {
-      chartType = ChartType.LINE;
+      chartType = undefined;
     }
 
     const groupBys: string[] = parsed.groupBys ?? [];
@@ -117,7 +126,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 
 // Write utils begin
 
-export type WritableExploreQueryParts = {
+type WritableExploreQueryParts = {
   chartType?: ChartType;
   fields?: string[];
   groupBys?: string[];
@@ -126,26 +135,31 @@ export type WritableExploreQueryParts = {
   yAxes?: string[];
 };
 
+function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
+  return queries.map(query =>
+    JSON.stringify({
+      chartType: query.chartType,
+      fields: query.fields,
+      groupBys: query.groupBys,
+      query: query.query,
+      sortBys: query.sortBys?.map(encodeSort),
+      yAxes: query.yAxes,
+    })
+  );
+}
+
 function getUpdatedLocationWithQueries(
   location: Location,
   queries: WritableExploreQueryParts[] | null | undefined
 ) {
-  if (defined(queries)) {
-    location.query.queries = queries.map(query =>
-      JSON.stringify({
-        chartType: query.chartType,
-        fields: query.fields,
-        groupBys: query.groupBys,
-        query: query.query,
-        sortBys: query.sortBys?.map(encodeSort),
-        yAxes: query.yAxes,
-      })
-    );
-  } else if (queries === null) {
-    delete location.query.queries;
-  }
-
-  return location;
+  const targetQueries = defined(queries) ? getQueriesAsUrlParam(queries) : null;
+  return {
+    ...location,
+    query: {
+      ...location.query,
+      queries: targetQueries,
+    },
+  };
 }
 
 export function useUpdateQueryAtIndex(index: number) {
@@ -198,6 +212,53 @@ export function useDeleteQueryAtIndex() {
   );
 }
 
+export function useDuplicateQueryAtIndex() {
+  const location = useLocation();
+  const queries = useReadQueriesFromLocation();
+  const navigate = useNavigate();
+
+  return useCallback(
+    (index: number) => {
+      const query = queries[index];
+      if (defined(query)) {
+        const duplicate = structuredClone(query);
+        const newQueries = queries.toSpliced(index + 1, 0, duplicate);
+        const target = getUpdatedLocationWithQueries(location, newQueries);
+        navigate(target);
+      }
+    },
+    [location, navigate, queries]
+  );
+}
+
+export function getSamplesTargetAtIndex(
+  index: number,
+  queries: ReadableExploreQueryParts[],
+  row: Record<string, any>,
+  location: Location
+): Location {
+  const queryToUpdate = queries[index];
+  if (!queryToUpdate) {
+    return location;
+  }
+
+  const queryString = queryToUpdate.query ?? '';
+  const search = new MutableSearch(queryString);
+  for (const groupBy of queryToUpdate.groupBys) {
+    const value = row[groupBy];
+    search.setFilterValues(groupBy, [value]);
+  }
+
+  const newQuery = {...queryToUpdate, groupBys: [], query: search.formatString()};
+  newQuery.fields = getFieldsForConstructedQuery(newQuery.yAxes);
+  const newQueries = [...queries];
+  newQueries[index] = newQuery;
+
+  const target = getUpdatedLocationWithQueries(location, newQueries);
+
+  return target;
+}
+
 // Write utils end
 
 // General utils
@@ -216,9 +277,58 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
     fields.push(arg);
   }
 
+  fields.push('timestamp');
+
   return fields;
 }
 
 export function getQueryMode(groupBys?: string[]): Mode {
   return groupBys?.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;
+}
+
+function getCompareBaseUrl(organization: Organization) {
+  return makeTracesPathname({
+    organization,
+    path: '/compare/',
+  });
+}
+
+type CompareRouteProps = {
+  location: Location;
+  mode: Mode;
+  organization: Organization;
+  queries: WritableExploreQueryParts[];
+};
+
+export function generateExploreCompareRoute({
+  organization,
+  location,
+  mode,
+  queries,
+}: CompareRouteProps): LocationDescriptorObject {
+  const url = getCompareBaseUrl(organization);
+  const compareQueries = queries.map(query => ({
+    ...query,
+    // Filter out empty strings which are used to indicate no grouping
+    // in Trace Explorer. The same assumption does not exist for the
+    // comparison view.
+    groupBys: mode === Mode.AGGREGATE ? query.groupBys?.filter(Boolean) : [],
+  }));
+
+  if (compareQueries.length < 2) {
+    compareQueries.push(DEFAULT_QUERY);
+  }
+
+  return {
+    pathname: url,
+    query: {
+      [URL_PARAM.END]: location.query.end,
+      [URL_PARAM.START]: location.query.start,
+      [URL_PARAM.UTC]: location.query.utc,
+      [URL_PARAM.PERIOD]: location.query.statsPeriod,
+      [URL_PARAM.PROJECT]: location.query.project,
+      [URL_PARAM.ENVIRONMENT]: location.query.environment,
+      queries: getQueriesAsUrlParam(compareQueries),
+    },
+  };
 }

@@ -319,9 +319,9 @@ export function findRangeBinarySearch(
   }
 }
 
-export const fract = (x: number): number => x - Math.floor(x);
-export const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;
-export function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
+const fract = (x: number): number => x - Math.floor(x);
+const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;
+function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
   const hPrime = H / 60;
   const X = C * (1 - Math.abs((hPrime % 2) - 1));
   const [R1, G1, B1] =

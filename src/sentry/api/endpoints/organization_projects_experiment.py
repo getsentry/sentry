@@ -17,9 +17,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.team_projects import ProjectPostSerializer
+from sentry.api.endpoints.team_projects import ProjectPostSerializer, apply_default_project_settings
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project import ProjectSummarySerializer
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -142,8 +143,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                 )
                 project = Project.objects.create(
                     name=project_name,
-                    # slug is set to None to avoid a duplicate slug error
-                    slug=None,
+                    # slug is *not* set so we get an automatic one
                     organization=organization,
                     platform=result.get("platform"),
                 )
@@ -184,14 +184,14 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             "organization": team.organization,
             "target_object": project.id,
         }
-
-        if request.data.get("origin"):
+        origin = request.data.get("origin")
+        if origin:
             self.create_audit_entry(
                 **common_audit_data,
                 event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
                 data={
                     **project.get_audit_log_data(),
-                    "origin": request.data.get("origin"),
+                    "origin": origin,
                 },
             )
         else:
@@ -201,10 +201,13 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                 data={**project.get_audit_log_data()},
             )
 
-        project_created.send(
+        apply_default_project_settings(organization, project)
+
+        project_created.send_robust(
             project=project,
             user=request.user,
             default_rules=result.get("default_rules", True),
+            origin=origin,
             sender=self,
         )
         self.create_audit_entry(
@@ -217,7 +220,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             "created team through project creation flow",
             extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
-        serialized_response = serialize(project, request.user)
+        serialized_response = serialize(
+            project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
+        )
         serialized_response["team_slug"] = team.slug
 
         return Response(serialized_response, status=201)

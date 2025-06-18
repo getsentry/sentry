@@ -69,6 +69,11 @@ describe('normalizeUrl', function () {
       ['/settings/account/security/', '/settings/account/security/'],
       ['/settings/account/details/', '/settings/account/details/'],
 
+      // Stats views should stay the same
+      ['/settings/stats/', '/settings/stats/'],
+      ['/settings/stats/issues/', '/settings/stats/issues/'],
+      ['/settings/stats/health/', '/settings/stats/health/'],
+
       ['/join-request/acme', '/join-request/'],
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],

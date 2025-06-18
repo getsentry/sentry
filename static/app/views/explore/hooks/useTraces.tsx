@@ -1,3 +1,5 @@
+import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -48,7 +50,7 @@ export interface TraceResult {
   trace: string;
 }
 
-export type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
+type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
 
 interface TraceResults {
   data: TraceResult[];
@@ -60,6 +62,7 @@ interface UseTracesOptions {
   dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
+  keepPreviousData?: boolean;
   limit?: number;
   query?: string | string[];
   sort?: 'timestamp' | '-timestamp';
@@ -77,6 +80,7 @@ export function useTraces({
   limit,
   query,
   sort,
+  keepPreviousData,
 }: UseTracesOptions): UseTracesResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -88,7 +92,6 @@ export function useTraces({
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      // RPC not supported here yet, fall back to EAP directly
       dataset:
         dataset === DiscoverDatasets.SPANS_EAP_RPC ? DiscoverDatasets.SPANS_EAP : dataset,
       query,
@@ -104,6 +107,7 @@ export function useTraces({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: false,
+    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     enabled,
   });
 

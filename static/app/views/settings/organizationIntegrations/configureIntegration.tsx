@@ -3,16 +3,17 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,7 +25,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -148,9 +149,11 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }
 
   const onTabChange = (value: Tab) => {
+    // XXX: Omit the cursor to prevent paginating the next tab's queries.
+    const {cursor: _, ...query} = location.query;
     router.push({
       pathname: location.pathname,
-      query: {...location.query, tab: value},
+      query: {...query, tab: value},
     });
   };
 
@@ -376,23 +379,27 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         )}
 
         {instructions && instructions.length > 0 && (
-          <Alert type="info">
-            {instructions.length === 1 ? (
-              <span
-                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
-              />
-            ) : (
-              <List symbol={<IconArrow size="xs" direction="right" />}>
-                {instructions.map((instruction, i) => (
-                  <ListItem key={i}>
-                    <span
-                      dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}}
-                    />
-                  </ListItem>
-                )) ?? null}
-              </List>
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info">
+              {instructions.length === 1 ? (
+                <span
+                  dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
+                />
+              ) : (
+                <List symbol={<IconArrow size="xs" direction="right" />}>
+                  {instructions.map((instruction, i) => (
+                    <ListItem key={i}>
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: singleLineRenderer(instruction),
+                        }}
+                      />
+                    </ListItem>
+                  )) ?? null}
+                </List>
+              )}
+            </Alert>
+          </Alert.Container>
         )}
 
         {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
@@ -434,37 +441,57 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     }
   }
 
-  // renders everything below header
   function renderMainContent() {
     const hasStacktraceLinking = provider!.features.includes('stacktrace-link');
     const hasCodeOwners =
       provider!.features.includes('codeowners') &&
       organization.features.includes('integrations-codeowners');
-    // if no code mappings, render the single tab
-    if (!hasStacktraceLinking) {
+    const hasUserMapping = provider!.features.includes('user-mapping');
+
+    const tabs: Array<[Tab, string]> = [];
+    const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
+      ? [
+          ['repos', t('Repositories')],
+          ['codeMappings', t('Code Mappings')],
+        ]
+      : [];
+
+    const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
+      ? [
+          ['userMappings', t('User Mappings')],
+          ['teamMappings', t('Team Mappings')],
+        ]
+      : [];
+
+    // User mappings are mutually exclusive with stacktrace linking
+    // and code owners, so only render the main settings tab and user mappings.
+    const userMappingTabs: Array<[Tab, string]> = hasUserMapping
+      ? [
+          ['repos', t('Settings')],
+          ['userMappings', t('User Mappings')],
+        ]
+      : [];
+
+    const allTabs = tabs
+      .concat(stackTraceLinkingTabs)
+      .concat(codeOwnerTabs)
+      .concat(userMappingTabs);
+
+    if (allTabs.length === 0) {
       return renderMainTab();
     }
-    // otherwise render the tab view
-    const tabs = [
-      ['repos', t('Repositories')],
-      ['codeMappings', t('Code Mappings')],
-      ...(hasCodeOwners ? [['userMappings', t('User Mappings')]] : []),
-      ...(hasCodeOwners ? [['teamMappings', t('Team Mappings')]] : []),
-    ] as Array<[id: Tab, label: string]>;
 
     return (
       <Fragment>
-        <NavTabs underlined>
-          {tabs.map(tabTuple => (
-            <li
-              key={tabTuple[0]}
-              className={tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => onTabChange(tabTuple[0])}
-            >
-              <CapitalizedLink>{tabTuple[1]}</CapitalizedLink>
-            </li>
-          ))}
-        </NavTabs>
+        <TabsContainer>
+          <Tabs value={tab} onChange={onTabChange}>
+            <TabList>
+              {allTabs.map(tabTuple => (
+                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
         {renderTabContent()}
       </Fragment>
     );
@@ -498,13 +525,13 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   );
 }
 
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
 export default ConfigureIntegration;
 
 const BackButtonWrapper = styled('div')`
   margin-bottom: ${space(2)};
   width: 100%;
-`;
-
-const CapitalizedLink = styled('a')`
-  text-transform: capitalize;
 `;

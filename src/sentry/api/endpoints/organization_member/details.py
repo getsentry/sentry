@@ -1,24 +1,23 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from sentry import audit_log, features, ratelimits, roles
+from sentry import audit_log, features, quotas, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
-from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import (
-    ROLE_CHOICES,
-    OrganizationMemberRequestSerializer,
-)
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
+from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES, RelaxedMemberPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -37,6 +36,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
+from sentry.users.models.user import User
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
@@ -74,22 +74,6 @@ Configures the team role of the member. The two roles are:
 """
 
 
-class RelaxedMemberPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PUT": ["member:invite", "member:write", "member:admin"],
-        # DELETE checks for role comparison as you can either remove a member
-        # with a lower access role, or yourself, without having the req. scope
-        "DELETE": ["member:read", "member:write", "member:admin"],
-    }
-
-    # Allow deletions to happen for disabled members so they can remove themselves
-    # allowing other methods should be fine as well even if we don't strictly need to allow them
-    def is_member_disabled_from_limit(self, request: Request, organization):
-        return False
-
-
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
@@ -103,14 +87,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request: Request,
+        request_user: User,
         organization: Organization,
-        member_id: int | str,
+        member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
         try:
             return super()._get_member(
-                request, organization, member_id, invite_status=InviteStatus.APPROVED
+                request_user, organization, member_id, invite_status=InviteStatus.APPROVED
             )
         except ValueError:
             raise OrganizationMember.DoesNotExist()
@@ -197,6 +181,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         For example, an organization Manager may change someone's role from
         Member to Manager, but not to Owner.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
@@ -243,6 +230,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             if not is_reinvite_request_only:
                 return Response({"detail": ERR_EDIT_WHEN_REINVITING}, status=403)
             if member.is_pending:
+                assert member.email is not None
                 if ratelimits.for_organization_member_invite(
                     organization=organization,
                     email=member.email,
@@ -268,7 +256,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     return Response({"detail": ERR_EXPIRED}, status=400)
                 member.send_invite_email()
             elif auth_provider and not getattr(member.flags, "sso:linked"):
-                member.send_sso_link_email(request.user.id, auth_provider)
+                member.send_sso_link_email(request.user.email, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
@@ -355,7 +343,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
                 return Response({"detail": message}, status=400)
 
+            previous_role = member.role
             self._change_org_role(member, assigned_org_role)
+
+            # Run any Subscription logic that needs to happen when a role is changed.
+            quotas.backend.on_role_change(
+                organization=organization,
+                organization_member=member,
+                previous_role=previous_role,
+                new_role=assigned_org_role,
+            )
 
         self.create_audit_entry(
             request=request,
@@ -452,7 +449,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Remove an organization member.
         """
-
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):
@@ -507,7 +503,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
         if member.user_id is None:
-            uos = ()
+            uos = []
         else:
             uos = user_option_service.get_many(
                 filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")

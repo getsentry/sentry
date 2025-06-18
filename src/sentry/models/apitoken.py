@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from datetime import timedelta
 from typing import Any, ClassVar
 
@@ -19,7 +19,9 @@ from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.models.apigrant import ApiGrant
+from sentry.locks import locks
+from sentry.models.apiapplication import ApiApplicationStatus
+from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
 from sentry.types.region import find_all_region_names
 from sentry.types.token import AuthTokenType
@@ -121,7 +123,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=71, unique=True, default=generate_token)
     hashed_token = models.CharField(max_length=128, unique=True, null=True)
-    token_type = models.CharField(max_length=7, choices=AuthTokenType, null=True)
+    token_type = models.CharField(max_length=7, choices=AuthTokenType.choices(), null=True)
     token_last_characters = models.CharField(max_length=4, null=True)
     refresh_token = models.CharField(max_length=71, unique=True, null=True, default=generate_token)
     hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
@@ -260,18 +262,49 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         )
 
     @classmethod
-    def from_grant(cls, grant: ApiGrant):
-        with transaction.atomic(router.db_for_write(cls)):
-            api_token = cls.objects.create(
-                application=grant.application,
-                user=grant.user,
-                scope_list=grant.get_scopes(),
-                scoping_organization_id=grant.organization_id,
-            )
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        from sentry.hybridcloud.services.replica import region_replica_service
 
-            # remove the ApiGrant from the database to prevent reuse of the same
-            # authorization code
-            grant.delete()
+        region_replica_service.delete_replicated_api_token(
+            apitoken_id=identifier,
+            region_name=region_name,
+        )
+
+    @classmethod
+    def from_grant(cls, grant: ApiGrant):
+        if grant.application.status != ApiApplicationStatus.active:
+            raise InvalidGrantError()
+
+        if grant.is_expired():
+            raise ExpiredGrantError()
+
+        lock = locks.get(
+            ApiGrant.get_lock_key(grant.id),
+            duration=10,
+            name="api_grant",
+        )
+
+        # we use a lock to prevent race conditions when creating the ApiToken
+        # an attacker could send two requests to create an access/refresh token pair
+        # at the same time, using the same grant, and get two different tokens
+        with lock.acquire():
+            with transaction.atomic(router.db_for_write(cls)):
+                api_token = cls.objects.create(
+                    application=grant.application,
+                    user=grant.user,
+                    scope_list=grant.get_scopes(),
+                    scoping_organization_id=grant.organization_id,
+                )
+
+                # remove the ApiGrant from the database to prevent reuse of the same
+                # authorization code
+                grant.delete()
 
             return api_token
 
@@ -284,10 +317,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     def get_audit_log_data(self):
         return {"scopes": self.get_scopes()}
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if self.application:
             return self.application.get_allowed_origins()
-        return ()
+        return []
 
     def refresh(self, expires_at=None):
         if self.token_type == AuthTokenType.USER:

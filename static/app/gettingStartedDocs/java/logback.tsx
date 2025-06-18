@@ -125,7 +125,10 @@ SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-ag
 `;
 
 const getSentryPropertiesSnippet = (params: Params) => `
-dsn=${params.dsn.public}${
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info
+send-default-pii=true${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -147,6 +150,8 @@ const getConsoleAppenderSnippet = (params: Params) => `
       ? `
     <options>
       <dsn>${params.dsn.public}</dsn>
+      <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
+      <sendDefaultPii>true</sendDefaultPii>
     </options>`
       : ''
   }
@@ -166,6 +171,8 @@ const getLogLevelSnippet = (params: Params) => `
     ? `
   <options>
     <dsn>${params.dsn.public}</dsn>
+    <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
+    <sendDefaultPii>true</sendDefaultPii>
   </options>`
     : ''
 }
@@ -217,9 +224,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
           language: 'bash',

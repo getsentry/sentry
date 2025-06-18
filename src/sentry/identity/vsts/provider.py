@@ -1,10 +1,18 @@
+from __future__ import annotations
+
+from typing import Any
+from urllib.parse import parse_qsl
+
 import orjson
 from django.core.exceptions import PermissionDenied
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 
 from sentry import http, options
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider, record_event
+from sentry.identity.pipeline_types import IdentityPipelineT, IdentityPipelineViewT
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 
@@ -51,10 +59,10 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vsts.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
         return [
             OAuth2LoginView(
                 authorize_url=self.oauth_authorize_url,
@@ -71,8 +79,9 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_headers(self):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
-    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
-        identity = kwargs["identity"]
+    def get_refresh_token_params(
+        self, refresh_token: str, identity: Identity, **kwargs: Any
+    ) -> dict[str, str | None]:
         client_secret = options.get("vsts.client-secret")
 
         # The token refresh flow does not operate within a pipeline in the same way
@@ -115,12 +124,9 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(self, request: Request, pipeline, code):
-        from urllib.parse import parse_qsl
-
-        from sentry.http import safe_urlopen, safe_urlread
-        from sentry.utils.http import absolute_uri
-
+    def exchange_token(
+        self, request: HttpRequest, pipeline: IdentityPipelineT, code: str
+    ) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture():
@@ -135,7 +141,7 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
                     "client_assertion": self.client_secret,
                     "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
                     "assertion": code,
-                    "redirect_uri": absolute_uri(pipeline.redirect_url()),
+                    "redirect_uri": pipeline.config.get("redirect_url"),
                 },
             )
             body = safe_urlread(req)
@@ -162,7 +168,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vsts_new.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
     def get_pipeline_views(self):
@@ -183,7 +189,9 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     def get_refresh_token_headers(self):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
-    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
+    def get_refresh_token_params(
+        self, refresh_token: str, identity: Identity, **kwargs: Any
+    ) -> dict[str, str | None]:
         # TODO(iamrajjoshi): Fix vsts-limited here
         # Note: ignoring the below from the original provider
         # # If "vso.code" is missing from the identity.scopes, we know that we installed
@@ -221,24 +229,25 @@ class VSTSNewIdentityProvider(OAuth2Provider):
 
 class VSTSOAuth2LoginView(OAuth2LoginView):
     def get_authorize_params(self, state, redirect_uri):
-        return {
+        params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": redirect_uri,
             "response_mode": "query",
             "scope": self.get_scope(),
             "state": state,
-            "prompt": "consent",
         }
+
+        if options.get("vsts.consent-prompt"):
+            params["prompt"] = "consent"
+
+        return params
 
 
 class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(self, request: Request, pipeline, code):
-        from urllib.parse import parse_qsl
-
-        from sentry.http import safe_urlopen, safe_urlread
-        from sentry.utils.http import absolute_uri
-
+    def exchange_token(
+        self, request: HttpRequest, pipeline: IdentityPipelineT, code: str
+    ) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture():
@@ -253,7 +262,7 @@ class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
                     "code": code,
-                    "redirect_uri": absolute_uri(pipeline.redirect_url()),
+                    "redirect_uri": absolute_uri(pipeline.config.get("redirect_url")),
                 },
             )
             body = safe_urlread(req)

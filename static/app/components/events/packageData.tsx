@@ -5,7 +5,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import KeyValueData from 'sentry/components/keyValueData';
+import {KeyValueData} from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -87,13 +87,13 @@ export function EventPackageData({event}: Props) {
   );
 }
 
-export const ColumnsContainer = styled('div')<{columnCount: number}>`
+const ColumnsContainer = styled('div')<{columnCount: number}>`
   display: grid;
   align-items: start;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
 `;
 
-export const Column = styled('div')`
+const Column = styled('div')`
   display: grid;
   grid-template-columns: fit-content(65%) 1fr;
   font-size: ${p => p.theme.fontSizeSmall};

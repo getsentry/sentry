@@ -31,6 +31,7 @@ from sentry.incidents.logic import (
     AlertRuleTriggerLabelAlreadyUsedError,
     AlertTarget,
     ChannelLookupTimeoutError,
+    GetMetricIssueAggregatesParams,
     InvalidTriggerActionError,
     create_alert_rule,
     create_alert_rule_trigger,
@@ -46,7 +47,7 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
-    get_incident_aggregates,
+    get_metric_issue_aggregates,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
     translate_aggregate_field,
@@ -269,9 +270,8 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
         )
 
 
-class BaseIncidentAggregatesTest(BaseIncidentsTest):
-    @property
-    def project_incident(self):
+class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
+    def test_projects(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
@@ -279,12 +279,15 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
         self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
         self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
         self.create_event(self.now - timedelta(minutes=2), user={"id": 124})
-        return incident
-
-
-class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
-    def test_projects(self):
-        assert get_incident_aggregates(self.project_incident) == {"count": 4}
+        snuba_query = incident.alert_rule.snuba_query
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=[self.project.id],
+        )
+        assert get_metric_issue_aggregates(params) == {"count": 4}
 
     def test_is_unresolved_query(self):
         incident = self.create_incident(
@@ -298,7 +301,16 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         self.create_event(self.now - timedelta(minutes=4))
 
         event.group.update(status=GroupStatus.UNRESOLVED)
-        assert get_incident_aggregates(incident) == {"count": 4}
+
+        snuba_query = incident.alert_rule.snuba_query
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=[self.project.id],
+        )
+        assert get_metric_issue_aggregates(params) == {"count": 4}
 
 
 class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
@@ -322,7 +334,18 @@ class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
         )
         incident.update(alert_rule=alert_rule)
-        incident_aggregates = get_incident_aggregates(incident)
+        snuba_query = incident.alert_rule.snuba_query
+        project_ids = list(
+            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+        )
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=project_ids,
+        )
+        incident_aggregates = get_metric_issue_aggregates(params)
         assert "count" in incident_aggregates
         assert incident_aggregates["count"] == 100.0
 
@@ -835,25 +858,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.threshold_period == threshold_period
         assert self.alert_rule.projects.all().count() == 2
         assert self.alert_rule.projects.all()[0] == updated_projects[0]
-
-    @mock.patch(
-        "sentry.workflow_engine.migration_helpers.alert_rule.dual_update_migrated_alert_rule"
-    )
-    def test_dual_update(self, mock_dual_update):
-        # test that we call the ACI dual update helpers-will be removed after dual write period ends
-        name = "hojicha"
-
-        updated_rule = update_alert_rule(
-            self.alert_rule,
-            name=name,
-        )
-        assert self.alert_rule.id == updated_rule.id
-        assert self.alert_rule.name == name
-
-        assert mock_dual_update.call_count == 1
-        call_args = mock_dual_update.call_args_list[0][0]
-        assert call_args[0] == self.alert_rule
-        assert call_args[1]["name"] == name
 
     def test_update_subscription(self):
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
@@ -2123,38 +2127,41 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
 
-class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
-    @cached_property
-    def alert_rule(self):
-        return self.create_alert_rule()
+class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
+    def setUp(self):
+        self.detector = self.create_detector()
+        self.alert_rule = self.create_alert_rule()
+        self.create_alert_rule_detector(alert_rule_id=self.alert_rule.id, detector=self.detector)
 
-    def test(self):
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_enable(self):
         with self.tasks():
             disable_alert_rule(self.alert_rule)
+            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
+            assert self.detector.status == ObjectStatus.DISABLED
 
             enable_alert_rule(self.alert_rule)
+            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
+            assert self.detector.status == ObjectStatus.ACTIVE
 
-
-class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
-    @cached_property
-    def alert_rule(self):
-        return self.create_alert_rule()
-
-    def test(self):
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_disable(self):
         with self.tasks():
             disable_alert_rule(self.alert_rule)
+            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
+            assert self.detector.status == ObjectStatus.DISABLED
 
 
 class CreateAlertRuleTriggerTest(TestCase):
@@ -2208,22 +2215,6 @@ class UpdateAlertRuleTriggerTest(TestCase):
         trigger = update_alert_rule_trigger(trigger, label=label, alert_threshold=alert_threshold)
         assert trigger.label == label
         assert trigger.alert_threshold == alert_threshold
-
-    @mock.patch(
-        "sentry.workflow_engine.migration_helpers.alert_rule.dual_update_migrated_alert_rule_trigger"
-    )
-    def test_dual_update(self, mock_dual_update):
-        # test that we can call the ACI dual update helpers—will be removed after dual write period ends
-        trigger = create_alert_rule_trigger(self.alert_rule, "hello", 1000)
-
-        label = "matcha"
-        trigger = update_alert_rule_trigger(trigger, label=label)
-        assert trigger.label == label
-
-        assert mock_dual_update.call_count == 1
-        call_args = mock_dual_update.call_args_list[0][0]
-        assert call_args[0] == trigger
-        assert call_args[1]["label"] == label
 
     def test_name_used(self):
         label = "uh oh"
@@ -2652,20 +2643,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert self.action.type == type.value
         assert self.action.target_type == target_type.value
         assert self.action.target_identifier == target_identifier
-
-    @mock.patch(
-        "sentry.workflow_engine.migration_helpers.alert_rule.dual_update_migrated_alert_rule_trigger_action"
-    )
-    def test_dual_update(self, mock_dual_update):
-        # test that we call the ACI dual update helpers—will be removed after dual wrie period ends
-        type = AlertRuleTriggerAction.Type.EMAIL
-        update_alert_rule_trigger_action(self.action, type=type)
-        assert self.action.type == type.value
-
-        assert mock_dual_update.call_count == 1
-        call_args = mock_dual_update.call_args_list[0][0]
-        assert call_args[0] == self.action
-        assert call_args[1]["type"] == type
 
     @responses.activate
     def test_slack(self):

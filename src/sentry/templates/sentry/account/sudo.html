@@ -46,7 +46,7 @@
                 </div>
 
                 {% if u2f_challenge %}
-                    <div id="u2f-challenge">
+                    <div id="webauthn-container">
                       <div class="loading">
                         <div class="loading-mask"></div>
                         <div class="loading-indicator" data-test-id="loading-indicator"></div>
@@ -57,8 +57,8 @@
                       window.__onSentryInit = window.__onSentryInit || [];
                       window.__onSentryInit.push({
                         name: 'renderReact',
-                        component: 'U2fSign',
-                        container: '#u2f-challenge',
+                        component: 'WebAuthnAssert',
+                        container: '#webauthn-container',
                         props: {
                           challengeData: {{ u2f_challenge|to_json|safe }},
                           displayMode: 'sudo'

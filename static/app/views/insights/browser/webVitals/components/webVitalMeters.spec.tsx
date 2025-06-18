@@ -1,11 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import WebVitalMeters, {
+  type ProjectData,
+} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 
 jest.mock('sentry/utils/useLocation');
@@ -20,9 +22,7 @@ describe('WebVitalMeters', function () {
     ttfbScore: 100,
     inpScore: 100,
   };
-  const projectData: TableData = {
-    data: [],
-  };
+  const projectData: ProjectData[] = [];
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -34,22 +34,7 @@ describe('WebVitalMeters', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
   });
 
   it('renders web vital meters with interaction to next paint', async () => {

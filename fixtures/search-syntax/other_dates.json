@@ -54,7 +54,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">2015-05-18", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">2015-05-18",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

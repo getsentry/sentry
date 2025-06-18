@@ -1,18 +1,19 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
+import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Tag from 'sentry/components/badge/tag';
-import {Chevron} from 'sentry/components/chevron';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
@@ -33,7 +34,6 @@ export function AssigneeBadge({
   loading = false,
   isTooltipDisabled,
 }: AssigneeBadgeProps) {
-  const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
       commit: (
@@ -61,20 +61,18 @@ export function AssigneeBadge({
           }}
         />
         {showLabel && (
-          <div
-            style={{color: theme.textColor}}
-          >{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</div>
+          <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
-        <Chevron light color="subText" direction={chevronDirection} size="small" />
+        <IconChevron color="subText" direction={chevronDirection} size="xs" />
       </Fragment>
     );
   };
 
   const loadingIcon = (
     <Fragment>
-      <StyledLoadingIndicator mini hideMessage relative size={AVATAR_SIZE} />
+      <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
-      <Chevron light color="subText" direction={chevronDirection} size="small" />
+      <IconChevron color="subText" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -87,7 +85,7 @@ export function AssigneeBadge({
         height={`${AVATAR_SIZE}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <Chevron light color="subText" direction={chevronDirection} size="small" />
+      <IconChevron color="subText" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -106,6 +104,7 @@ export function AssigneeBadge({
           )}
         </TooltipWrapper>
       }
+      skipWrapper
     >
       <StyledTag icon={makeAssignedIcon(assignedTo)} />
     </Tooltip>
@@ -128,8 +127,9 @@ export function AssigneeBadge({
           </TooltipSubtext>
         </TooltipWrapper>
       }
+      skipWrapper
     >
-      <StyledTag icon={unassignedIcon} borderStyle="dashed" />
+      <UnassignedTag icon={unassignedIcon} />
     </Tooltip>
   );
 }
@@ -143,19 +143,29 @@ const TooltipWrapper = styled('div')`
   text-align: left;
 `;
 
+const StyledText = styled('div')`
+  color: ${p => p.theme.textColor};
+  max-width: 114px;
+  ${p => p.theme.overflowEllipsis};
+`;
+
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.5)};
-  }
-  & > div {
-    height: 24px;
-    padding: ${space(0.5)};
-    padding-right: ${space(0.25)};
-  }
+  gap: ${space(0.5)};
+  height: 24px;
+  padding: ${space(0.5)};
+  padding-right: ${space(0.25)};
   color: ${p => p.theme.subText};
 `;
+
+const UnassignedTag = withChonk(
+  styled(StyledTag)`
+    border-style: dashed;
+  `,
+  styled(StyledTag)<{theme: DO_NOT_USE_ChonkTheme}>`
+    border: 1px dashed ${p => p.theme.border};
+    background-color: transparent;
+  `
+);
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import orjson
@@ -24,12 +27,15 @@ from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
 
+if TYPE_CHECKING:
+    from sentry.users.models.user import User
 
-def decode_credential_id(device):
+
+def decode_credential_id(device) -> str:
     return urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
 
 
-def create_credential_object(registeredKey):
+def create_credential_object(registeredKey: dict[str, str]) -> base:
     return base.AttestedCredentialData.from_ctap1(
         websafe_decode(registeredKey["keyHandle"]),
         websafe_decode(registeredKey["publicKey"]),
@@ -44,13 +50,9 @@ class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = "u2f"
     configure_button = _("Configure")
-    name = _("U2F (Universal 2nd Factor)")
+    name = _("Passkey / Biometric / Security Key")
     description = _(
-        "Authenticate with a U2F hardware device. This is a "
-        "device like a Yubikey or something similar which "
-        "supports FIDO's U2F specification. This also requires "
-        "a browser which supports this system (like Google "
-        "Chrome)."
+        "Authenticate using a Passkey, Biometrics, or a physical security key such as a YubiKey."
     )
     allow_multi_enrollment = True
 
@@ -68,7 +70,9 @@ class U2fInterface(AuthenticatorInterface):
     def webauthn_registration_server(self) -> Fido2Server:
         return Fido2Server(self.rp)
 
-    def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
+    def __init__(
+        self, authenticator=None, status: EnrollmentStatus = EnrollmentStatus.EXISTING
+    ) -> None:
         super().__init__(authenticator, status)
 
         self.webauthn_authentication_server = U2FFido2Server(
@@ -92,7 +96,7 @@ class U2fInterface(AuthenticatorInterface):
         url_prefix = _get_url_prefix()
         return url_prefix and url_prefix.startswith("https://")
 
-    def _get_kept_devices(self, key):
+    def _get_kept_devices(self, key: str):
         def _key_does_not_match(device):
             if isinstance(device["binding"], AuthenticatorData):
                 return decode_credential_id(device) != key
@@ -104,7 +108,7 @@ class U2fInterface(AuthenticatorInterface):
     def generate_new_config(self):
         return {}
 
-    def start_enrollment(self, user):
+    def start_enrollment(self, user: User) -> tuple[cbor, Fido2Server]:
         credentials = self.credentials()
         registration_data, state = self.webauthn_registration_server.register_begin(
             user={
@@ -144,7 +148,7 @@ class U2fInterface(AuthenticatorInterface):
                 credentials.append(create_credential_object(device))
         return credentials
 
-    def remove_u2f_device(self, key):
+    def remove_u2f_device(self, key: str) -> bool:
         """Removes a U2F device but never removes the last one.  This returns
         False if the last device would be removed.
         """
@@ -155,7 +159,7 @@ class U2fInterface(AuthenticatorInterface):
             return True
         return False
 
-    def get_device_name(self, key):
+    def get_device_name(self, key: str):
         for device in self.config.get("devices", ()):
             if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == key:
@@ -187,7 +191,9 @@ class U2fInterface(AuthenticatorInterface):
         rv.sort(key=lambda x: x["name"])
         return rv
 
-    def try_enroll(self, enrollment_data, response_data, device_name=None, state=None):
+    def try_enroll(
+        self, enrollment_data: str, response_data: str, device_name=None, state=None
+    ) -> None:
         data = orjson.loads(response_data)
         client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
         att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
@@ -205,7 +211,7 @@ class U2fInterface(AuthenticatorInterface):
         request.session["webauthn_authentication_state"] = state
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request: HttpRequest, challenge, response):
+    def validate_response(self, request: HttpRequest, challenge, response) -> bool:
         try:
             credentials = self.credentials()
             self.webauthn_authentication_server.authenticate_complete(

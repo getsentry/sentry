@@ -51,6 +51,7 @@ OPTION_KEYS = frozenset(
         "sentry:grouping_config",
         "sentry:grouping_enhancements",
         "sentry:grouping_enhancements_base",
+        "sentry:derived_grouping_enhancements",
         "sentry:secondary_grouping_config",
         "sentry:secondary_grouping_expiry",
         "sentry:similarity_backfill_completed",
@@ -58,12 +59,15 @@ OPTION_KEYS = frozenset(
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
+        "sentry:dynamic_sampling_minimum_sample_rate",
         "sentry:target_sample_rate",
         "sentry:tempest_fetch_screenshots",
         "sentry:tempest_fetch_dumps",
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:uptime_autodetection",
+        "sentry:autofix_automation_tuning",
+        "sentry:seer_scanner_automation",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
@@ -185,6 +189,9 @@ class ProjectOption(Model):
         app_label = "sentry"
         db_table = "sentry_projectoptions"
         unique_together = (("project", "key"),)
+        indexes = [
+            models.Index(fields=["key"]),
+        ]
 
     __repr__ = sane_repr("project_id", "key", "value")
 

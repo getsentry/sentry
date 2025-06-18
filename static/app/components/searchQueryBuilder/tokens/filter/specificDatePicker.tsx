@@ -1,21 +1,14 @@
-import {
-  type ForwardedRef,
-  forwardRef,
-  Fragment,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {DatePicker} from 'sentry/components/calendar';
-import Checkbox from 'sentry/components/checkbox';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {inputStyles} from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
@@ -24,7 +17,6 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 interface SearchBarDatePickerProps
   extends CustomComboboxMenuProps<SelectOptionWithKey<string>> {
@@ -39,6 +31,7 @@ type TimeInputProps = {
   disabled: boolean;
   setTime: (newTime: string) => void;
   time: string;
+  ref?: React.Ref<HTMLInputElement>;
 };
 
 const ISO_DATE_FORMAT = 'YYYY-MM-DD';
@@ -217,52 +210,50 @@ function SpecificDatePicker({
  * back to the search bar. We make sure to keep focus within the input
  * until the user is done making changes.
  */
-const TimeInput = forwardRef(
-  ({disabled, time, setTime}: TimeInputProps, ref: ForwardedRef<HTMLInputElement>) => {
-    const [localTime, setLocalTime] = useState(time);
-    const [isFocused, setIsFocused] = useState(false);
-    const timeInputRef = useRef<HTMLInputElement | null>(null);
+function TimeInput({ref, disabled, time, setTime}: TimeInputProps) {
+  const [localTime, setLocalTime] = useState(time);
+  const [isFocused, setIsFocused] = useState(false);
+  const timeInputRef = useRef<HTMLInputElement | null>(null);
 
-    useEffect(() => {
-      setLocalTime(time);
-    }, [time]);
+  useEffect(() => {
+    setLocalTime(time);
+  }, [time]);
 
-    return (
-      <Input
-        ref={mergeRefs([ref, timeInputRef])}
-        aria-label={t('Time')}
-        disabled={disabled}
-        type="time"
-        data-test-id="search-bar-date-picker-time-input"
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const newStartTime = e.target.value || DEFAULT_DAY_START_TIME;
-          setLocalTime(newStartTime);
+  return (
+    <StyledInput
+      ref={mergeRefs(ref, timeInputRef)}
+      aria-label={t('Time')}
+      disabled={disabled}
+      type="time"
+      data-test-id="search-bar-date-picker-time-input"
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        const newStartTime = e.target.value || DEFAULT_DAY_START_TIME;
+        setLocalTime(newStartTime);
 
-          if (!isFocused) {
-            setTime(newStartTime);
-          }
-        }}
-        onBlur={() => {
+        if (!isFocused) {
+          setTime(newStartTime);
+        }
+      }}
+      onBlur={() => {
+        setTime(localTime);
+        setIsFocused(false);
+      }}
+      onFocus={() => setIsFocused(true)}
+      onKeyDown={e => {
+        if (e.key === 'Enter') {
           setTime(localTime);
-          setIsFocused(false);
-        }}
-        onFocus={() => setIsFocused(true)}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            setTime(localTime);
-            timeInputRef.current?.blur();
-          }
-          e.stopPropagation();
-        }}
-        onClick={e => {
-          e.stopPropagation();
-        }}
-        value={localTime}
-        step={1}
-      />
-    );
-  }
-);
+          timeInputRef.current?.blur();
+        }
+        e.stopPropagation();
+      }}
+      onClick={e => {
+        e.stopPropagation();
+      }}
+      value={localTime}
+      step={1}
+    />
+  );
+}
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
@@ -275,8 +266,7 @@ const SearchBarDatePickerOverlay = styled(Overlay)`
   cursor: default;
 `;
 
-const Input = styled('input')`
-  ${inputStyles};
+const StyledInput = styled(Input)`
   resize: none;
 `;
 

@@ -2,11 +2,11 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
@@ -50,11 +50,6 @@ class Login extends Component<Props, State> {
     this.fetchData();
   }
 
-  handleSetTab = (activeTab: ActiveTab, event: React.MouseEvent) => {
-    this.setState({activeTab});
-    event.preventDefault();
-  };
-
   fetchData = async () => {
     const {api} = this.props;
     try {
@@ -87,6 +82,7 @@ class Login extends Component<Props, State> {
 
   render() {
     const {loading, error, activeTab, authConfig} = this.state;
+    const {orgId} = this.props.params;
 
     const FormComponent = FORM_COMPONENTS[activeTab];
 
@@ -96,22 +92,29 @@ class Login extends Component<Props, State> {
       ['register', t('Register'), !authConfig?.canRegister],
     ];
 
-    const renderTab = ([key, label, disabled]: TabConfig) =>
-      !disabled && (
-        <li key={key} className={activeTab === key ? 'active' : ''}>
-          <a href="#" onClick={e => this.handleSetTab(key, e)}>
-            {label}
-          </a>
-        </li>
-      );
-
-    const {orgId} = this.props.params;
-
     return (
       <Fragment>
         <Header>
           <Heading>{t('Sign in to continue')}</Heading>
-          <AuthNavTabs>{tabs.map(renderTab)}</AuthNavTabs>
+          <TabsContainer>
+            <Tabs
+              value={activeTab}
+              onChange={tab => {
+                this.setState({activeTab: tab});
+              }}
+            >
+              <TabList>
+                {tabs
+                  .map(([key, label, disabled]) => {
+                    if (disabled) {
+                      return null;
+                    }
+                    return <TabList.Item key={key}>{label}</TabList.Item>;
+                  })
+                  .filter(n => !!n)}
+              </TabList>
+            </Tabs>
+          </TabsContainer>
         </Header>
         {loading && <LoadingIndicator />}
 
@@ -124,19 +127,21 @@ class Login extends Component<Props, State> {
         {!loading && authConfig !== null && !error && (
           <FormWrapper hasAuthProviders={this.hasAuthProviders}>
             {orgId !== undefined && (
-              <Alert
-                type="warning"
-                trailingItems={
-                  <LinkButton to="/" size="xs">
-                    Reload
-                  </LinkButton>
-                }
-              >
-                {tct(
-                  "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
-                  {org: this.props.params.orgId}
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert
+                  type="warning"
+                  trailingItems={
+                    <LinkButton to="/" size="xs">
+                      Reload
+                    </LinkButton>
+                  }
+                >
+                  {tct(
+                    "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
+                    {org: this.props.params.orgId}
+                  )}
+                </Alert>
+              </Alert.Container>
             )}
             <FormComponent {...{authConfig}} />
           </FormWrapper>
@@ -160,8 +165,8 @@ const Heading = styled('h3')`
   margin: 0 0 20px 0;
 `;
 
-const AuthNavTabs = styled(NavTabs)`
-  margin: 0;
+const TabsContainer = styled(Tabs)`
+  margin-bottom: ${space(2)};
 `;
 
 const FormWrapper = styled('div')<{hasAuthProviders: boolean}>`

@@ -69,7 +69,6 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 "name": monitor.name,
                 "slug": monitor.slug,
                 "status": monitor.status,
-                "type": monitor.type,
                 "config": monitor.config,
                 "project": project,
             },

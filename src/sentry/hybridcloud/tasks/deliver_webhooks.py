@@ -1,11 +1,10 @@
 import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Never
 
 import orjson
 import sentry_sdk
-from django.db.models import Min, Subquery
+from django.db.models import Case, CharField, Min, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -24,6 +23,8 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -58,6 +59,14 @@ The older a webhook gets the less valuable it is as there are likely other
 actions that have been made to the relevant resources.
 """
 
+# Define priorities for different webhook providers
+# Lower number means higher priority
+PROVIDER_PRIORITY = {
+    "stripe": 1,
+}
+# Default priority for providers not explicitly listed above
+DEFAULT_PROVIDER_PRIORITY = 10
+
 
 class DeliveryFailed(Exception):
     """
@@ -71,36 +80,64 @@ class DeliveryFailed(Exception):
     name="sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
     queue="webhook.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
-def schedule_webhook_delivery(**kwargs: Never) -> None:
+def schedule_webhook_delivery() -> None:
     """
     Find mailboxes that contain undelivered webhooks that were scheduled
     to be delivered now or in the past.
 
+    Prioritizes webhooks based on provider importance.
+
     Triggered frequently by celery beat.
     """
-    # The double call to .values() ensures that the group by includes mailbox_nam
+    # Se use the replica for any read queries to webhook payload
+    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
+
+    # The double call to .values() ensures that the group by includes mailbox_name
     # but only id_min is selected
     head_of_line = (
-        WebhookPayload.objects.all()
+        WebhookPayloadReplica.all()
         .values("mailbox_name")
         .annotate(id_min=Min("id"))
         .values("id_min")
     )
+
     # Get any heads that are scheduled to run
-    scheduled_mailboxes = WebhookPayload.objects.filter(
-        schedule_for__lte=timezone.now(),
-        id__in=Subquery(head_of_line),
-    ).values("id", "mailbox_name")
+    # Use provider field directly, with default priority for null values
+    scheduled_mailboxes = (
+        WebhookPayloadReplica.filter(
+            schedule_for__lte=timezone.now(),
+            id__in=Subquery(head_of_line),
+        )
+        # Set priority value based on provider field
+        .annotate(
+            provider_priority=Case(
+                # For providers that match our priority list
+                *[
+                    When(provider=provider, then=Value(priority))
+                    for provider, priority in PROVIDER_PRIORITY.items()
+                ],
+                # Default value for all other cases (including null providers)
+                default=Value(DEFAULT_PROVIDER_PRIORITY),
+                output_field=CharField(),
+            )
+        )
+        # Order by priority first (lowest number = highest priority), then ID
+        .order_by("provider_priority", "id").values("id", "mailbox_name")
+    )
 
     metrics.distribution(
         "hybridcloud.schedule_webhook_delivery.mailbox_count", scheduled_mailboxes.count()
     )
+
     for record in scheduled_mailboxes[:BATCH_SIZE]:
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
         mailbox_batch = (
-            WebhookPayload.objects.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
+            WebhookPayloadReplica.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
             .order_by("id")
             .values("id")[:MAX_MAILBOX_DRAIN]
         )
@@ -118,6 +155,9 @@ def schedule_webhook_delivery(**kwargs: Never) -> None:
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox",
     queue="webhook.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
 def drain_mailbox(payload_id: int) -> None:
     """
@@ -126,8 +166,10 @@ def drain_mailbox(payload_id: int) -> None:
     Messages will be delivered in order until one fails or 50 are delivered.
     Once messages have successfully been delivered or discarded, they are deleted.
     """
+    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
+
     try:
-        payload = WebhookPayload.objects.get(id=payload_id)
+        payload = WebhookPayloadReplica.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
@@ -160,7 +202,7 @@ def drain_mailbox(payload_id: int) -> None:
 
         # Fetch records from the batch in slices of 100. This avoids reading
         # redundant data should we hit an error and should help keep query duration low.
-        query = WebhookPayload.objects.filter(
+        query = WebhookPayloadReplica.filter(
             id__gte=payload.id, mailbox_name=payload.mailbox_name
         ).order_by("id")
 
@@ -176,7 +218,7 @@ def drain_mailbox(payload_id: int) -> None:
 
         # No more messages to deliver
         if batch_count < 1:
-            logger.info(
+            logger.debug(
                 "deliver_webhook.delivery_complete",
                 extra={
                     "mailbox_name": payload.mailbox_name,
@@ -190,6 +232,9 @@ def drain_mailbox(payload_id: int) -> None:
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel",
     queue="webhook.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
 def drain_mailbox_parallel(payload_id: int) -> None:
     """
@@ -389,7 +434,7 @@ def perform_request(payload: WebhookPayload) -> None:
                 data=payload.request_body.encode("utf-8"),
                 json=False,
             )
-        logger.info(
+        logger.debug(
             "deliver_webhooks.success",
             extra={
                 "status": getattr(

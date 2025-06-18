@@ -1796,6 +1796,7 @@ class MetricsDatasetConfig(DatasetConfig):
             return Function("toFloat64", [self.total_score_weights[column]], alias)
 
         # Pull out browser.name filters from the query
+        assert self.builder.query is not None
         parsed_terms = parse_search_query(self.builder.query)
         query = " ".join(
             term.to_query_string()
@@ -1803,7 +1804,7 @@ class MetricsDatasetConfig(DatasetConfig):
             if (isinstance(term, SearchFilter) and term.key.name == "browser.name")
             or (
                 isinstance(term, ParenExpression)
-                and all(  # type: ignore[unreachable]
+                and all(
                     (isinstance(child_term, SearchFilter) and child_term.key.name == "browser.name")
                     or child_term == "OR"
                     for child_term in term.children

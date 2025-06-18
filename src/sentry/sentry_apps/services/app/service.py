@@ -89,6 +89,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_apps_by_proxy_users(self, *, proxy_user_ids: list[int]) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
 
@@ -161,6 +166,17 @@ class AppService(RpcService):
         :param filter: The filtering conditions, same conditions as get_many()
         :param component_type: The sentry-app component to get
         """
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_installation_component_contexts(
+        self,
+        *,
+        filter: SentryAppInstallationFilterArgs,
+        component_type: str,
+        include_contexts_without_component: bool,
+    ) -> list[RpcSentryAppComponentContext]:
+        pass
 
     @rpc_method
     @abc.abstractmethod

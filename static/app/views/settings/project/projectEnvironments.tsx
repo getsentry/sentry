@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ListLink from 'sentry/components/links/listLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -81,13 +80,10 @@ class ProjectEnvironments extends Component<Props, State> {
     const {projectId} = this.props.params;
 
     this.props.api.request(
-      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(
-        env
-      )}/`,
+      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(env)}/`,
       {
         method: 'PUT',
         data: {
-          name: env.name,
           isHidden: shouldHide,
         },
         success: () => {
@@ -196,14 +192,18 @@ class ProjectEnvironments extends Component<Props, State> {
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <NavTabs underlined>
-              <ListLink to={baseUrl} index isActive={() => !isHidden}>
-                {t('Environments')}
-              </ListLink>
-              <ListLink to={`${baseUrl}hidden/`} index isActive={() => isHidden}>
-                {t('Hidden')}
-              </ListLink>
-            </NavTabs>
+            <TabsContainer>
+              <Tabs value={isHidden ? 'hidden' : 'environments'}>
+                <TabList>
+                  <TabList.Item key="environments" to={baseUrl}>
+                    {t('Environments')}
+                  </TabList.Item>
+                  <TabList.Item key="hidden" to={`${baseUrl}hidden/`}>
+                    {t('Hidden')}
+                  </TabList.Item>
+                </TabList>
+              </Tabs>
+            </TabsContainer>
           }
         />
         <ProjectPermissionAlert project={project} />
@@ -265,6 +265,10 @@ const EnvironmentItem = styled(PanelItem)`
   justify-content: space-between;
 `;
 
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
 const Name = styled('div')`
   display: flex;
   align-items: center;
@@ -274,5 +278,4 @@ const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;
 
-export {ProjectEnvironments};
 export default withApi(ProjectEnvironments);

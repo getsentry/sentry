@@ -53,6 +53,10 @@ export type NavigationItem = {
 };
 
 export type NavigationSection = {
+  /**
+   * Unique identifier for the navigation section, used to save collapsed state
+   */
+  id: string;
   items: NavigationItem[];
   /**
    * Heading of the navigation section

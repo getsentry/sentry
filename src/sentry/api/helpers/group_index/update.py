@@ -38,6 +38,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import update_group_open_period
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -612,7 +613,7 @@ def process_group_resolution(
     group.substatus = None
     group.resolved_at = now
     if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send(
+        post_save.send_robust(
             sender=Group,
             instance=group,
             created=False,
@@ -641,6 +642,13 @@ def process_group_resolution(
         if not len(group_list) > 1:
             transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
 
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            resolution_time=now,
+            resolution_activity=activity,
+        )
+
 
 def merge_groups(
     group_list: Sequence[Group],
@@ -648,8 +656,8 @@ def merge_groups(
     acting_user: RpcUser | User | None,
     referer: str,
 ) -> MergedGroup:
-    issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
-    similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+    issue_stream_regex = r"^(\/organizations\/[^/]+)?\/issues\/$"
+    similar_issues_tab_regex = r"^(\/organizations\/[^/]+)?\/issues\/\d+\/similar\/$"
 
     metrics.incr(
         "grouping.merge_issues",
@@ -797,6 +805,9 @@ def prepare_response(
             sender=update_groups,
         )
 
+    # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
+    # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this
+    # cannot be enforced currently. If changing fields, please update that type.
     return Response(result)
 
 

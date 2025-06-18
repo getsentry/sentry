@@ -42,7 +42,6 @@ export function makeDefaultCta({
   dataset,
   openInDiscoverDataset,
 }: PresetCtaOpts): PresetCta {
-  const orgSlug = organization.slug;
   if (!rule) {
     return {
       buttonText: t('Open in Discover'),
@@ -54,8 +53,8 @@ export function makeDefaultCta({
       buttonText: t('Open in Explore'),
       to: getAlertRuleExploreUrl({
         rule,
-        orgSlug,
-        period: timePeriod.period,
+        organization,
+        timePeriod,
         projectId: projects[0]!.id,
       }),
     };

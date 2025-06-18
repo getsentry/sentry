@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import formatDuration from 'sentry/utils/duration/formatDuration';
@@ -42,7 +42,7 @@ export default function CrumbItem({
             </LeftAligned>
           }
         >
-          <Flex column gap={space(0.5)}>
+          <Flex direction="column" gap={space(0.5)}>
             <Flex gap={space(0.75)} align="center">
               {icon}
               {formattedDuration}

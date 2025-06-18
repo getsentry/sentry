@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,7 +38,7 @@ function LastUsed({
             />
           ),
           project: (
-            <Link to={`/settings/${organization.slug}/${projectLastUsed.slug}/`}>
+            <Link to={`/settings/${organization.slug}/projects/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
             </Link>
           ),
@@ -159,13 +158,7 @@ export function OrganizationAuthTokensAuthTokenRow({
               size="sm"
               disabled={isRevoking || !revokeToken}
               aria-label={t('Revoke %s', token.name)}
-              icon={
-                isRevoking ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={<IconSubtract isCircled size="xs" />}
             >
               {t('Revoke')}
             </Button>
@@ -190,9 +183,9 @@ const DateTime = styled('div')`
 `;
 
 const NeverUsed = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

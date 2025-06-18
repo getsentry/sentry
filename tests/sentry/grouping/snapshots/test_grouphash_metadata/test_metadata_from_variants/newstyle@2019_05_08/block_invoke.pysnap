@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:07.213683+00:00'
+created: '2025-04-25T21:24:04.933150+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,7 +30,7 @@ contributing variants:
       app*
         threads*
           stacktrace*
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by the client)
               function*
                 "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
             frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
@@ -43,10 +43,10 @@ contributing variants:
       system*
         threads*
           stacktrace*
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame*
               function*
                 "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame*
               function*
                 "__99+[Something else]_block_invoke_2"
             frame*

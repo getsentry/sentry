@@ -1,21 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import FrontendOverviewPage from 'sentry/views/insights/pages/frontend/frontendOverviewPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 const organization = OrganizationFixture({features: ['performance-view']});
 const pageFilterSelection = PageFiltersFixture({
@@ -28,8 +23,8 @@ const pageFilterSelection = PageFiltersFixture({
   },
 });
 const projects = [
-  ProjectFixture({id: '1', platform: 'javascript-react'}),
-  ProjectFixture({id: '2', platform: undefined}),
+  ProjectFixture({id: '1', platform: 'javascript-react', firstTransactionEvent: true}),
+  ProjectFixture({id: '2', platform: undefined, firstTransactionEvent: true}),
 ];
 
 let mainTableApiCall: jest.Mock;
@@ -42,7 +37,7 @@ describe('FrontendOverviewPage', () => {
 
   describe('data fetching', () => {
     it('fetches correct data with unknown + frontend platform', async () => {
-      render(<FrontendOverviewPage />);
+      render(<FrontendOverviewPage />, {organization});
 
       expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent(
         'Frontend'
@@ -59,18 +54,16 @@ describe('FrontendOverviewPage', () => {
     });
 
     it('fetches correct data with unknown platform', async () => {
-      jest.mocked(usePageFilters).mockReturnValue({
-        isReady: true,
-        desyncedFilters: new Set(),
-        pinnedFilters: new Set(),
-        shouldPersist: true,
-        selection: {
-          projects: [2],
-          datetime: pageFilterSelection.datetime,
-          environments: [],
-        },
-      });
-      render(<FrontendOverviewPage />);
+      jest.mocked(usePageFilters).mockReturnValue(
+        PageFilterStateFixture({
+          selection: {
+            datetime: pageFilterSelection.datetime,
+            environments: [],
+            projects: [2],
+          },
+        })
+      );
+      render(<FrontendOverviewPage />, {organization});
 
       expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent(
         'Frontend'
@@ -193,23 +186,8 @@ const setupMocks = () => {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: pageFilterSelection,
-  });
-  jest.mocked(useProjects).mockReturnValue({
-    projects,
-    fetchError: null,
-    hasMore: false,
-    initiallyLoaded: true,
-    onSearch: () => Promise.resolve(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-  });
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  jest
+    .mocked(usePageFilters)
+    .mockReturnValue(PageFilterStateFixture({selection: pageFilterSelection}));
+  ProjectsStore.loadInitialData(projects);
 };

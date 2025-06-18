@@ -10,6 +10,7 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
+import {appleProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/apple';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
@@ -30,7 +31,11 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn.public}"
-        options.debug = true // Enabling debug when first installing is always helpful${
+        options.debug = true // Enabling debug when first installing is always helpful
+
+        // Adds IP for users.
+        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+        options.sendDefaultPii = true${
           params.isPerformanceSelected
             ? `
 
@@ -75,7 +80,11 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn.public}"
-            options.debug = true // Enabling debug when first installing is always helpful${
+            options.debug = true // Enabling debug when first installing is always helpful
+
+            // Adds IP for users.
+            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+            options.sendDefaultPii = true${
               params.isPerformanceSelected
                 ? `
 
@@ -98,7 +107,7 @@ struct SwiftUIApp: App {
           params.profilingOptions?.defaultProfilingMode === 'continuous'
             ? `
 
-        // Manually call start_profiler and stop_profiler
+        // Manually call startProfiler and stopProfiler
         // to profile the code in between
         SentrySDK.startProfiler()
         // do some work here
@@ -331,6 +340,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: appleFeedbackOnboarding,
   crashReportOnboarding: appleFeedbackOnboarding,
+  profilingOnboarding: appleProfilingOnboarding,
 };
 
 export default docs;

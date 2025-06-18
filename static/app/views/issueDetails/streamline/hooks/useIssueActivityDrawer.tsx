@@ -23,17 +23,23 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
   const openIssueActivityDrawer = useCallback(() => {
     openDrawer(() => <ActivityDrawer group={group} project={project} />, {
       ariaLabel: t('Issue Activity'),
+      drawerKey: 'issue-activity-drawer',
       shouldCloseOnInteractOutside: () => false,
       onClose: () => {
         navigate(
           {
             pathname: baseUrl,
-            query: location.query,
+            query: {
+              ...location.query,
+              filter: undefined,
+            },
           },
-          {replace: true}
+          {preventScrollReset: true}
         );
       },
-      transitionProps: {stiffness: 1000},
+      shouldCloseOnLocationChange: newLocation => {
+        return !newLocation.pathname.includes('/activity');
+      },
     });
   }, [openDrawer, baseUrl, navigate, location.query, group, project]);
 

@@ -75,6 +75,29 @@ def inline_css(value: str) -> str:
     return html
 
 
+def message_to_dict(message: EmailMultiAlternatives) -> dict[str, Any]:
+    return {
+        "subject": message.subject,
+        "body": message.body,
+        "from_email": message.from_email,
+        "to": message.to,
+        "cc": message.cc,
+        "bcc": message.bcc,
+        "attachments": message.attachments,
+        "headers": message.extra_headers,
+        "reply_to": message.reply_to,
+        "alternatives": [
+            # Django 5.2 uses a class for alternatives. Previously it was a tuple
+            [msg[0], msg[1]]
+            for msg in message.alternatives
+        ],
+    }
+
+
+def message_from_dict(raw: dict[str, Any]) -> EmailMultiAlternatives:
+    return EmailMultiAlternatives(**raw)
+
+
 class MessageBuilder:
     def __init__(
         self,
@@ -153,7 +176,6 @@ class MessageBuilder:
             reply_to = headers["X-Sentry-Reply-To"]
         else:
             reply_to = set(reply_to or ())
-            reply_to.discard(to)
             reply_to = ", ".join(reply_to)
 
         if reply_to:
@@ -199,13 +221,14 @@ class MessageBuilder:
     def get_built_messages(
         self,
         to: Iterable[str] | None = None,
+        reply_to: Iterable[str] | None = None,
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
     ) -> Sequence[EmailMultiAlternatives]:
         send_to = set(to or ())
         send_to.update(self._send_to)
         results = [
-            self.build(to=email, reply_to=send_to, cc=cc, bcc=bcc) for email in send_to if email
+            self.build(to=email, reply_to=reply_to, cc=cc, bcc=bcc) for email in send_to if email
         ]
         if not results:
             logger.debug("Did not build any messages, no users to send to.")
@@ -232,13 +255,14 @@ class MessageBuilder:
     def send_async(
         self,
         to: Iterable[str] | None = None,
+        reply_to: Iterable[str] | None = None,
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
     ) -> None:
         from sentry.tasks.email import send_email, send_email_control
 
         fmt = options.get("system.logging-format")
-        messages = self.get_built_messages(to, cc=cc, bcc=bcc)
+        messages = self.get_built_messages(to, reply_to, cc=cc, bcc=bcc)
         extra: MutableMapping[str, str | tuple[str]] = {"message_type": self.type}
         loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
         for context in loggable:
@@ -249,7 +273,7 @@ class MessageBuilder:
             send_email_task = send_email.delay
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 send_email_task = send_email_control.delay
-            safe_execute(send_email_task, message=message)
+            safe_execute(send_email_task, message=message_to_dict(message))
             extra["message_id"] = message.extra_headers["Message-Id"]
             metrics.incr("email.queued", instance=self.type, skip_internal=False)
             if fmt == LoggingFormat.HUMAN:

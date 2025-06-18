@@ -17,7 +17,7 @@ export function Exception({breadcrumb, searchTerm, meta}: Props) {
   const {data, message} = breadcrumb;
 
   return (
-    <Summary kvData={!data ? data : omit(data, ['type', 'value'])} meta={meta}>
+    <Summary kvData={data ? omit(data, ['type', 'value']) : data} meta={meta}>
       {meta?.type?.[''] ? (
         <AnnotatedText value={data?.type} meta={meta?.type?.['']} />
       ) : (

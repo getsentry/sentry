@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -210,6 +210,7 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
+        <div />
         <DisplayRole isHidden={teamRoleName === null}>{teamRoleName}</DisplayRole>
         <div>
           {this.state.loading ? (
@@ -272,7 +273,6 @@ const TeamLink = styled(Link)`
   }
 `;
 
-export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
 export const GRID_TEMPLATE = `

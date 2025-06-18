@@ -99,10 +99,14 @@ class DiscoverSavedQuery(Model):
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     is_homepage = models.BooleanField(null=True, blank=True)
     dataset = BoundedPositiveIntegerField(
-        choices=DiscoverSavedQueryTypes.as_choices(), default=DiscoverSavedQueryTypes.DISCOVER
+        choices=DiscoverSavedQueryTypes.as_choices(),
+        default=DiscoverSavedQueryTypes.DISCOVER,
+        db_default=DiscoverSavedQueryTypes.DISCOVER,
     )
     dataset_source = BoundedPositiveIntegerField(
-        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+        choices=DatasetSourcesTypes.as_choices(),
+        default=DatasetSourcesTypes.UNKNOWN.value,
+        db_default=DatasetSourcesTypes.UNKNOWN.value,
     )
 
     class Meta:

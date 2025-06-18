@@ -190,6 +190,7 @@ class ResolvedInCommitTest(TestCase):
         )[0].data == {
             "assignee": str(user.id),
             "assigneeEmail": user.email,
+            "assigneeName": user.name,
             "assigneeType": "user",
         }
 

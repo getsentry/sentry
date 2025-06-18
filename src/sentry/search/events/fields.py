@@ -47,7 +47,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import NormalizedArg, ParamsType
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import (
     SESSIONS_SNUBA_MAP,
     get_json_type,
@@ -92,7 +92,7 @@ class PseudoField:
             return expression
         return self.alias
 
-    def validate(self):
+    def validate(self) -> None:
         assert self.alias is not None, f"{self.name}: alias is required"
         assert (
             self.expression is None or self.expression_fn is None
@@ -135,7 +135,7 @@ def project_threshold_config_expression(
         "project_threshold.count.grouped",
         format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
     )
-    set_measurement("project_threshold.count", num_project_thresholds)
+    set_span_attribute("project_threshold.count", num_project_thresholds)
 
     num_transaction_thresholds = transaction_threshold_configs.count()
     sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
@@ -143,7 +143,7 @@ def project_threshold_config_expression(
         "txn_threshold.count.grouped",
         format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
     )
-    set_measurement("txn_threshold.count", num_transaction_thresholds)
+    set_span_attribute("txn_threshold.count", num_transaction_thresholds)
 
     if num_project_thresholds + num_transaction_thresholds == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
@@ -283,7 +283,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     sentry_sdk.set_tag(
         "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
     )
-    set_measurement("team_key_txns.count", count)
+    set_span_attribute("team_key_txns.count", count)
 
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:
@@ -453,7 +453,7 @@ FIELD_ALIASES = {
 }
 
 
-def format_column_arguments(column_args, arguments):
+def format_column_arguments(column_args, arguments) -> None:
     for i in range(len(column_args)):
         if isinstance(column_args[i], (list, tuple)):
             if isinstance(column_args[i][0], ArgValue):
@@ -670,6 +670,13 @@ def is_function(field: str) -> Match[str] | None:
     return FUNCTION_PATTERN.search(field)
 
 
+def is_typed_numeric_tag(key: str) -> bool:
+    match = TYPED_TAG_KEY_RE.search(key)
+    if match and match.group("type") == "number":
+        return True
+    return False
+
+
 def get_function_alias(field: str) -> str:
     match = FUNCTION_PATTERN.search(field)
     if match is None:
@@ -796,7 +803,7 @@ class FunctionArg:
         self.name = name
         self.has_default = False
 
-    def get_default(self, _):
+    def get_default(self, _) -> object:
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
     def normalize(
@@ -804,7 +811,7 @@ class FunctionArg:
     ) -> str | float | datetime | list[Any] | None:
         return value
 
-    def get_type(self, _):
+    def get_type(self, _) -> str:
         raise InvalidFunctionArgument(f"{self.name} has no type defined")
 
 
@@ -1434,7 +1441,7 @@ class DiscoverFunction:
         self.validate_result_type(result_type)
         return result_type
 
-    def validate(self):
+    def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
             assert (
@@ -1500,7 +1507,7 @@ class DiscoverFunction:
                     f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
-    def validate_result_type(self, result_type):
+    def validate_result_type(self, result_type) -> None:
         assert (
             result_type is None or result_type in RESULT_TYPES
         ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"

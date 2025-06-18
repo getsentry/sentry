@@ -63,7 +63,11 @@ describe('Breadcrumb Data Exception', function () {
           event_id: null,
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(
@@ -100,7 +104,11 @@ describe('Breadcrumb Data Exception', function () {
           event_id: null,
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(

@@ -21,6 +21,10 @@ function isTraceSpan(value: TraceTree.NodeValue): value is TraceTree.Span {
   );
 }
 
+function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value);
+}
+
 function isTraceAutogroup(
   value: TraceTree.NodeValue
 ): value is TraceTree.ChildrenAutogroup | TraceTree.SiblingAutogroup {
@@ -28,6 +32,11 @@ function isTraceAutogroup(
 }
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
+  // Only collapse EAP spans if they are a segments/transactions
+  if (isEAPSpan(node.value)) {
+    return node.value.is_transaction;
+  }
+
   if (isTraceSpan(node.value)) {
     // Android creates TCP connection spans which are noisy and not useful in most cases.
     // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
@@ -46,9 +55,9 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   value: T;
 
-  canFetch: boolean = false;
-  expanded: boolean = true;
-  zoomedIn: boolean = false;
+  canFetch = false;
+  expanded = true;
+  zoomedIn = false;
 
   metadata: TraceTree.Metadata = {
     project_slug: undefined,
@@ -56,11 +65,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     spans: undefined,
   };
 
+  eapSpanOpsBreakdown: TraceTree.OpsBreakdown = [];
+
   event: EventTransaction | null = null;
 
   // Events associated with the node, these are inferred from the node value.
-  errors = new Set<TraceTree.TraceError>();
-  performance_issues = new Set<TraceTree.TracePerformanceIssue>();
+  errors = new Set<TraceTree.TraceErrorIssue>();
+  occurrences = new Set<TraceTree.TraceOccurrence>();
   profiles: TraceTree.Profile[] = [];
 
   space: [number, number] = [0, 0];
@@ -84,17 +95,25 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     // otherwise we can only infer a timestamp.
     if (
       value &&
-      'timestamp' in value &&
+      (('end_timestamp' in value && typeof value.end_timestamp === 'number') ||
+        ('timestamp' in value && typeof value.timestamp === 'number')) &&
       'start_timestamp' in value &&
-      typeof value.timestamp === 'number' &&
       typeof value.start_timestamp === 'number'
     ) {
+      const end_timestamp =
+        'end_timestamp' in value ? value.end_timestamp : value.timestamp;
       this.space = [
         value.start_timestamp * 1e3,
-        (value.timestamp - value.start_timestamp) * 1e3,
+        (end_timestamp - value.start_timestamp) * 1e3,
       ];
     } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
       this.space = [value.timestamp * 1e3, 0];
+    } else if (
+      value &&
+      'start_timestamp' in value &&
+      typeof value.start_timestamp === 'number'
+    ) {
+      this.space = [value.start_timestamp * 1e3, 0];
     }
 
     if (value) {
@@ -103,14 +122,31 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       }
 
       if ('performance_issues' in value && Array.isArray(value.performance_issues)) {
-        value.performance_issues.forEach(issue => this.performance_issues.add(issue));
+        value.performance_issues.forEach(issue => this.occurrences.add(issue));
       }
 
-      if ('profile_id' in value && typeof value.profile_id === 'string') {
-        this.profiles.push({profile_id: value.profile_id});
+      // EAP spans can have occurences
+      if ('occurrences' in value && Array.isArray(value.occurrences)) {
+        value.occurrences.forEach(occurence => this.occurrences.add(occurence));
       }
-      if ('profiler_id' in value && typeof value.profiler_id === 'string') {
-        this.profiles.push({profiler_id: value.profiler_id});
+
+      const isNonTransactionEAPSpan = isEAPSpan(value) && !value.is_transaction;
+
+      if (!isNonTransactionEAPSpan) {
+        if (
+          'profile_id' in value &&
+          typeof value.profile_id === 'string' &&
+          value.profile_id.trim() !== ''
+        ) {
+          this.profiles.push({profile_id: value.profile_id});
+        }
+        if (
+          'profiler_id' in value &&
+          typeof value.profiler_id === 'string' &&
+          value.profiler_id.trim() !== ''
+        ) {
+          this.profiles.push({profiler_id: value.profiler_id});
+        }
       }
     }
 
@@ -127,7 +163,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   }
 
   get hasErrors(): boolean {
-    return this.errors.size > 0 || this.performance_issues.size > 0;
+    return this.errors.size > 0 || this.occurrences.size > 0;
   }
 
   private _max_severity: keyof Theme['level'] | undefined;

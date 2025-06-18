@@ -59,11 +59,12 @@ export function getTraceContextData({
             return undefined;
           }
           const link = generateTraceTarget(event, organization, location);
+          const hasPerformanceView = organization.features.includes('performance-view');
           return {
             key: ctxKey,
             subject: t('Trace ID'),
             value: traceId,
-            action: {link},
+            action: hasPerformanceView ? {link} : undefined,
           };
         }
         case TraceContextKeys.SPAN_ID: {

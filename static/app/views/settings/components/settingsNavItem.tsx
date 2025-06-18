@@ -2,13 +2,13 @@ import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
 type Props = {
   label: React.ReactNode;
@@ -26,17 +26,17 @@ const LabelHook = HookOrDefault({
 
 function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
-    return <FeatureBadge type={badge} variant="short" />;
+    return <FeatureBadge type={badge} />;
   }
   if (badge === 'warning') {
     return (
       <Tooltip title={t('This setting needs review')} position="right">
-        <StyledBadge text={badge} type="warning" />
+        <StyledBadge type="warning">{badge}</StyledBadge>
       </Tooltip>
     );
   }
   if (typeof badge === 'string' || typeof badge === 'number') {
-    return <StyledBadge text={badge} />;
+    return <StyledBadge type="default">{badge}</StyledBadge>;
   }
 
   return badge;
@@ -48,6 +48,7 @@ function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
       to={to}
       end={index}
       trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
+      analyticsItemName={id ? `settings_${id}` : undefined}
       {...props}
     >
       <LabelHook id={id}>{label}</LabelHook>

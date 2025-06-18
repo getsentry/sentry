@@ -99,6 +99,7 @@ def assert_project_equals(orm_project: Project, project: RpcProject) -> None:
     assert project.slug == orm_project.slug
     assert project.organization_id == orm_project.organization_id
     assert project.name == orm_project.name
+    assert project.first_event == orm_project.first_event
 
 
 @assume_test_silo_mode(SiloMode.REGION)

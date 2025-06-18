@@ -4,13 +4,13 @@ import type {Location} from 'history';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconNext, IconPrevious} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,10 +18,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-
-import {isReleaseArchived} from '../../utils';
+import {isReleaseArchived} from 'sentry/views/releases/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   location: Location;
@@ -47,7 +46,12 @@ function ReleaseActions({
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(normalizeUrl(`/organizations/${organization.slug}/releases/`));
+      browserHistory.push(
+        makeReleasesPathname({
+          organization,
+          path: '/',
+        })
+      );
     } catch {
       // do nothing, action creator is already displaying error message
     }

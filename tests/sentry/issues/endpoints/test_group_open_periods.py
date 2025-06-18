@@ -4,7 +4,8 @@ from django.utils import timezone
 
 from sentry.issues.grouptype import MetricIssuePOC, ProfileFileIOGroupType
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus, get_open_periods_for_group
+from sentry.models.group import GroupStatus
+from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType

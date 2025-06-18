@@ -1,0 +1,1 @@
+export const SUSPECT_SCORE_THRESHOLD = 7;

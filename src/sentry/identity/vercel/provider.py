@@ -1,5 +1,6 @@
 from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2Provider
+from sentry.identity.pipeline_types import IdentityPipelineViewT
 
 
 class VercelIdentityProvider(OAuth2Provider):
@@ -15,10 +16,10 @@ class VercelIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vercel.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
         return [
             OAuth2CallbackView(
                 access_token_url=self.oauth_access_token_url,

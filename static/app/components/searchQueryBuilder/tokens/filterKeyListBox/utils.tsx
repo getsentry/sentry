@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from 'sentry/components/compactSelect/utils';
+import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
@@ -14,10 +14,15 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  getKeyLabel as getFilterKeyLabel,
+  getKeyName,
+} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
@@ -40,7 +45,7 @@ export function createRecentFilterOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_FILTER_KEY_PREFIX}${filter}`);
 }
 
-export function createRecentQueryOptionKey(filter: string) {
+function createRecentQueryOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_QUERY_KEY_PREFIX}${filter}`);
 }
 
@@ -59,7 +64,9 @@ export function getKeyLabel(
     return `${tag.key}()`;
   }
 
-  return tag.key;
+  // Some columns in explore can be formatted as an explicity number tag.
+  // We want to strip the explicit tag syntax before displaying where possible.
+  return prettifyTagKey(tag.key);
 }
 
 export function createSection(
@@ -136,13 +143,14 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
   };
 }
 
-export function createRecentFilterItem({filter}: {filter: string}) {
+export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
+  const key = getKeyName(filter.key);
   return {
-    key: createRecentFilterOptionKey(filter),
-    value: filter,
-    textValue: filter,
+    key: createRecentFilterOptionKey(key),
+    value: key,
+    textValue: key,
     type: 'recent-filter' as const,
-    label: filter,
+    label: getFilterKeyLabel(filter.key),
   };
 }
 

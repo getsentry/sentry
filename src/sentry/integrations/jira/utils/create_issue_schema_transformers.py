@@ -88,15 +88,20 @@ def transform_fields(
     transformed_data = {}
 
     # Special handling for fields that don't map cleanly to the transformer logic
-    data["summary"] = data.get("title")
+    # Also, we need to truncate the title field to prevent Jira from erroring
+    # when it's too long.
+    title = data.get("title")
+    data["summary"] = title[:255] if title else None
     if labels := data.get("labels"):
         data["labels"] = [label.strip() for label in labels.split(",") if label.strip()]
 
     type_transformers = get_type_transformer_mappings(user_id_field)
     custom_field_transformers = get_custom_field_transformer_mappings()
 
+    lowercased_data = {k.lower(): v for k, v in data.items()}
+
     for field in jira_fields:
-        field_data = data.get(field.key)
+        field_data = lowercased_data.get(field.key.lower())
 
         # Skip any values that indicate no value should be provided.
         # We have some older alert templates with "" values, which will raise

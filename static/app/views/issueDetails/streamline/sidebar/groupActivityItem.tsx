@@ -34,8 +34,8 @@ export default function getGroupActivityItem(
   const issuesLink = `/organizations/${organization.slug}/issues/`;
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     if (data.ignoreDuration) {
       return {
@@ -168,8 +168,8 @@ export default function getGroupActivityItem(
   }
 
   function getEscalatingMessage(data: GroupActivitySetEscalating['data']): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     if (data.forecast) {
       return {
@@ -247,8 +247,8 @@ export default function getGroupActivityItem(
   }
 
   function renderContent(): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     switch (activity.type) {
       case GroupActivityType.NOTE:
@@ -257,7 +257,7 @@ export default function getGroupActivityItem(
           message: activity.data.text,
         };
       case GroupActivityType.SET_RESOLVED: {
-        let resolvedMessage: JSX.Element;
+        let resolvedMessage: React.JSX.Element;
         if ('integration_id' in activity.data && activity.data.integration_id) {
           resolvedMessage = tct('by [author] via [integration]', {
             integration: (
@@ -696,6 +696,6 @@ const StyledRuleSpan = styled('span')`
 `;
 
 const ReleaseVersion = styled(Version)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
 `;

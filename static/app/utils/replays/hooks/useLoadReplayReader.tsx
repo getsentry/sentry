@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import type {Group} from 'sentry/types/group';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   orgSlug: string;
@@ -12,6 +11,7 @@ type Props = {
     endTimestampMs: number;
     startTimestampMs: number;
   };
+  eventTimestampMs?: number;
   group?: Group;
 };
 
@@ -24,14 +24,16 @@ export default function useLoadReplayReader({
   orgSlug,
   replaySlug,
   clipWindow,
+  eventTimestampMs,
   group,
 }: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, fetching, ...replayData} = useReplayData({
-    orgSlug,
-    replayId,
-  });
+  const {attachments, errors, replayRecord, status, isError, isPending, ...replayData} =
+    useReplayData({
+      orgSlug,
+      replayId,
+    });
 
   // get first error matching our group
   const firstMatchingError = useMemo(
@@ -54,29 +56,29 @@ export default function useLoadReplayReader({
     );
   }, [clipWindow, firstMatchingError]);
 
-  const featureFlags = useOrganization().features;
-
   const replay = useMemo(
     () =>
       ReplayReader.factory({
         attachments,
         clipWindow: memoizedClipWindow,
         errors,
-        featureFlags,
-        fetching,
+        fetching: isPending,
         replayRecord,
+        eventTimestampMs,
       }),
-    [attachments, memoizedClipWindow, errors, featureFlags, fetching, replayRecord]
+    [attachments, memoizedClipWindow, errors, isPending, replayRecord, eventTimestampMs]
   );
 
   return {
     ...replayData,
     attachments,
     errors,
-    fetching,
+    isError,
+    isPending,
     replay,
     replayId,
     replayRecord,
+    status,
   };
 }
 

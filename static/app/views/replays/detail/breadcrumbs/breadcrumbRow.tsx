@@ -1,16 +1,15 @@
 import type {CSSProperties} from 'react';
-import {forwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Props {
-  extraction: Extraction | undefined;
+  allowShowSnippet: boolean;
   frame: ReplayFrame;
   index: number;
   onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
@@ -19,25 +18,30 @@ interface Props {
     path: string,
     expandedState: Record<string, boolean>
   ) => void;
+  onShowSnippet: (index: number) => void;
+  showSnippet: boolean;
   startTimestampMs: number;
   style: CSSProperties;
   breadcrumbIndex?: number[][];
   expandPaths?: string[];
+  ref?: React.Ref<HTMLDivElement>;
+  updateDimensions?: () => void;
 }
 
-const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
-  {
-    expandPaths,
-    extraction,
-    frame,
-    index,
-    onClick,
-    onInspectorExpanded,
-    startTimestampMs,
-    style,
-  },
-  ref
-) {
+function BreadcrumbRow({
+  expandPaths,
+  frame,
+  index,
+  onClick,
+  onInspectorExpanded,
+  showSnippet,
+  startTimestampMs,
+  style,
+  ref,
+  onShowSnippet,
+  updateDimensions,
+  allowShowSnippet,
+}: Props) {
   const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
 
@@ -47,6 +51,10 @@ const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
     (path: any, expandedState: any) => onInspectorExpanded?.(index, path, expandedState),
     [index, onInspectorExpanded]
   );
+
+  const handleShowSnippet = useCallback(() => {
+    onShowSnippet(index);
+  }, [index, onShowSnippet]);
 
   const hasOccurred = currentTime >= frame.offsetMs;
   const isBeforeHover =
@@ -58,20 +66,23 @@ const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
-        beforeHoverTime: currentHoverTime !== undefined ? isBeforeHover : undefined,
-        afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
+        beforeHoverTime: currentHoverTime === undefined ? undefined : isBeforeHover,
+        afterHoverTime: currentHoverTime === undefined ? undefined : !isBeforeHover,
       })}
       style={style}
       frame={frame}
-      extraction={extraction}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
       expandPaths={expandPaths}
       onInspectorExpanded={handleObjectInspectorExpanded}
+      showSnippet={showSnippet}
+      allowShowSnippet={allowShowSnippet}
+      updateDimensions={updateDimensions}
+      onShowSnippet={handleShowSnippet}
     />
   );
-});
+}
 
 export default BreadcrumbRow;

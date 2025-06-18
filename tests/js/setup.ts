@@ -66,6 +66,12 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 
+jest.mock('getsentry/utils/stripe');
+jest.mock('getsentry/utils/trackMarketingEvent');
+jest.mock('getsentry/utils/trackAmplitudeEvent');
+jest.mock('getsentry/utils/trackReloadEvent');
+jest.mock('getsentry/utils/trackMetric');
+
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
   push: jest.fn(),
@@ -148,6 +154,15 @@ jest.mock('@sentry/react', function sentryReact() {
 
 ConfigStore.loadInitialData(ConfigFixture());
 
+// Default browser timezone to UTC
+jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
+  locale: 'en-US',
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+}));
+
 /**
  * Test Globals
  */
@@ -174,6 +189,8 @@ window.tick = () => new Promise(resolve => setTimeout(resolve));
 window.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
+
+window.ra = {event: jest.fn()};
 
 // We need to re-define `window.location`, otherwise we can't spyOn certain
 // methods as `window.location` is read-only
@@ -235,3 +252,24 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
+
+// Using `:focus-visible` in `querySelector` or `matches` will throw an error in JSDOM.
+// See https://github.com/jsdom/jsdom/issues/3055
+// eslint-disable-next-line testing-library/no-node-access
+const originalQuerySelector = HTMLElement.prototype.querySelector;
+const originalMatches = HTMLElement.prototype.matches;
+// eslint-disable-next-line testing-library/no-node-access
+HTMLElement.prototype.querySelector = function (selectors: string) {
+  if (selectors === ':focus-visible') {
+    return null;
+  }
+
+  return originalQuerySelector.call(this, selectors);
+};
+HTMLElement.prototype.matches = function (selectors: string) {
+  if (selectors === ':focus-visible') {
+    return false;
+  }
+
+  return originalMatches.call(this, selectors);
+};

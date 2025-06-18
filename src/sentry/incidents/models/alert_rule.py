@@ -28,6 +28,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import (
@@ -38,8 +39,6 @@ from sentry.notifications.models.notificationaction import (
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
-from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -204,7 +203,9 @@ class AlertRule(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     name = models.TextField()
-    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
+    status = models.SmallIntegerField(
+        default=AlertRuleStatus.PENDING.value, db_default=AlertRuleStatus.PENDING.value
+    )
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
@@ -214,10 +215,15 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(choices=ComparisonDeltaChoices.choices, null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
+    monitor_type = models.IntegerField(
+        default=AlertRuleMonitorTypeInt.CONTINUOUS, db_default=AlertRuleMonitorTypeInt.CONTINUOUS
+    )
     description = models.CharField(max_length=1000, null=True)
     detection_type = models.CharField(
-        default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
+        max_length=32,
+        default=AlertRuleDetectionType.STATIC,
+        db_default=AlertRuleDetectionType.STATIC,
+        choices=AlertRuleDetectionType.choices,
     )
     sensitivity = models.CharField(choices=AlertRuleSensitivity.choices, null=True)
     seasonality = models.CharField(choices=AlertRuleSeasonality.choices, null=True)
@@ -359,12 +365,7 @@ class ActionHandlerFactory(abc.ABC):
         self.integration_provider = integration_provider
 
     @abc.abstractmethod
-    def build_handler(
-        self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-    ) -> ActionHandler:
+    def build_handler(self) -> ActionHandler:
         raise NotImplementedError
 
 
@@ -386,10 +387,8 @@ class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
         super().__init__(slug, service_type, supported_target_types, integration_provider)
         self.trigger_action_class = trigger_action_class
 
-    def build_handler(
-        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
-    ) -> ActionHandler:
-        return self.trigger_action_class(action, incident, project)
+    def build_handler(self) -> ActionHandler:
+        return self.trigger_action_class()
 
 
 class _FactoryRegistry:
@@ -450,7 +449,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         dict[str, Any] | list[dict[str, Any]] | None,
     ] = JSONField(null=True)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+        default=ObjectStatus.ACTIVE,
+        db_default=ObjectStatus.ACTIVE,
+        choices=ObjectStatus.as_choices(),
     )
 
     class Meta:
@@ -458,32 +459,38 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         db_table = "sentry_alertruletriggeraction"
 
     @property
-    def target(self) -> RpcUser | Team | str | None:
+    def target(self) -> OrganizationMember | Team | str | None:
         if self.target_identifier is None:
             return None
 
         if self.target_type == self.TargetType.USER.value:
-            return user_service.get_user(user_id=int(self.target_identifier))
+            try:
+                return OrganizationMember.objects.get(
+                    user_id=int(self.target_identifier),
+                    organization=self.alert_rule_trigger.alert_rule.organization_id,
+                )
+            except OrganizationMember.DoesNotExist:
+                pass
+
         elif self.target_type == self.TargetType.TEAM.value:
             try:
                 return Team.objects.get(id=int(self.target_identifier))
             except Team.DoesNotExist:
                 pass
+
         elif self.target_type == self.TargetType.SPECIFIC.value:
             # TODO: This is only for email. We should have a way of validating that it's
             # ok to contact this email.
             return self.target_identifier
         return None
 
-    def build_handler(
-        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
-    ) -> ActionHandler | None:
-        service_type = AlertRuleTriggerAction.Type(self.type)
-        factory = self._factory_registrations.by_action_service.get(service_type)
+    @staticmethod
+    def build_handler(type: ActionService) -> ActionHandler | None:
+        factory = AlertRuleTriggerAction._factory_registrations.by_action_service.get(type)
         if factory is not None:
-            return factory.build_handler(action, incident, project)
+            return factory.build_handler()
         else:
-            metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
+            metrics.incr(f"alert_rule_trigger.unhandled_type.{type}")
             return None
 
     def fire(
@@ -491,26 +498,40 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
-        handler = self.build_handler(action, incident, project)
+        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
         if handler:
-            return handler.fire(metric_value, new_status, notification_uuid)
+            return handler.fire(
+                action=action,
+                incident=incident,
+                project=project,
+                new_status=new_status,
+                metric_value=metric_value,
+                notification_uuid=notification_uuid,
+            )
 
     def resolve(
         self,
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
-        handler = self.build_handler(action, incident, project)
+        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
         if handler:
-            return handler.resolve(metric_value, new_status, notification_uuid)
+            return handler.resolve(
+                action=action,
+                incident=incident,
+                project=project,
+                metric_value=metric_value,
+                new_status=new_status,
+                notification_uuid=notification_uuid,
+            )
 
     def get_single_sentry_app_config(self) -> dict[str, Any] | None:
         value = self.sentry_app_config

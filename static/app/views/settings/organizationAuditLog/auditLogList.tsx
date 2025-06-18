@@ -2,15 +2,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Tag from 'sentry/components/badge/tag';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuditLog, Organization} from 'sentry/types/organization';
@@ -49,8 +50,10 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   if (logEntryUser?.isSuperuser) {
     return (
       <Name data-test-id="actor-name">
-        {logEntryUser.name}
-        <StaffTag>{t('Sentry Staff')}</StaffTag>
+        <Flex align="center" gap={space(1)}>
+          {logEntryUser.name}
+          <Tag>{t('Sentry Staff')}</Tag>
+        </Flex>
       </Name>
     );
   }
@@ -333,11 +336,7 @@ const Name = styled('strong')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const StaffTag = styled(Tag)`
-  padding: ${space(1)};
-`;
-
-const EventSelector = styled(SelectControl)`
+const EventSelector = styled(Select)`
   width: 250px;
 `;
 

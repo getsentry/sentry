@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -68,9 +69,11 @@ function ApiApplicationsDetails() {
         <Fragment>
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
-            <Alert type="info" showIcon>
-              {t('This will be the only time your client secret is visible!')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info" showIcon>
+                {t('This will be the only time your client secret is visible!')}
+              </Alert>
+            </Alert.Container>
             <TextCopyInput aria-label={t('new-client-secret')}>
               {data.clientSecret}
             </TextCopyInput>
@@ -112,7 +115,7 @@ function ApiApplicationsDetails() {
           <PanelHeader>{t('Credentials')}</PanelHeader>
 
           <PanelBody>
-            <FormField name="clientID" label="Client ID">
+            <FormField name="clientID" label="Client ID" flexibleControlStateSize>
               {({value}: any) => (
                 <TextCopyInput>
                   {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
@@ -125,6 +128,7 @@ function ApiApplicationsDetails() {
               label={t('Client Secret')}
               help={t(`Your secret is only available briefly after application creation. Make
                   sure to save this value!`)}
+              flexibleControlStateSize
             >
               {({value}: any) =>
                 value ? (
@@ -149,13 +153,13 @@ function ApiApplicationsDetails() {
               }
             </FormField>
 
-            <FormField name="" label={t('Authorization URL')}>
-              {() => <TextCopyInput>{`${urlPrefix}/oauth/authorize/`}</TextCopyInput>}
-            </FormField>
+            <FieldGroup label={t('Authorization URL')} flexibleControlStateSize>
+              <TextCopyInput>{`${urlPrefix}/oauth/authorize/`}</TextCopyInput>
+            </FieldGroup>
 
-            <FormField name="" label={t('Token URL')}>
-              {() => <TextCopyInput>{`${urlPrefix}/oauth/token/`}</TextCopyInput>}
-            </FormField>
+            <FieldGroup label={t('Token URL')} flexibleControlStateSize>
+              <TextCopyInput>{`${urlPrefix}/oauth/token/`}</TextCopyInput>
+            </FieldGroup>
           </PanelBody>
         </Panel>
       </Form>

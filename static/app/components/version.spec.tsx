@@ -13,12 +13,16 @@ describe('Version', () => {
   });
 
   it('renders', () => {
-    render(<Version version={VERSION} />);
+    render(<Version version={VERSION} />, {
+      deprecatedRouterMocks: true,
+    });
   });
 
   it('shows correct parsed version', () => {
     // component uses @sentry/release-parser package for parsing versions
-    render(<Version version={VERSION} />);
+    render(<Version version={VERSION} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(screen.getByText('1.0.0 (20200101)')).toBeInTheDocument();
   });
@@ -26,12 +30,18 @@ describe('Version', () => {
   it('links to release page', async () => {
     render(<Version version={VERSION} projectId="1" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByText('1.0.0 (20200101)'));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/releases/foo.bar.Baz%401.0.0%2B20200101/',
-      query: {project: '1'},
+      pathname: '/mock-pathname/',
+      query: {
+        rd: 'show',
+        rdRelease: 'foo.bar.Baz@1.0.0+20200101',
+        rdReleaseProjectId: '1',
+        rdSource: 'release-version-link',
+      },
     });
   });
 
@@ -39,6 +49,7 @@ describe('Version', () => {
     jest.useFakeTimers();
     render(<Version version={VERSION} tooltipRawVersion />, {
       router,
+      deprecatedRouterMocks: true,
     });
     expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 

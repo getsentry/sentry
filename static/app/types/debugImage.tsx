@@ -148,6 +148,7 @@ export enum ImageStatus {
   UNUSED = 'unused',
   MISSING = 'missing',
   MALFORMED = 'malformed',
+  UNSUPPORTED = 'unsupported',
   FETCHING_FAILED = 'fetching_failed',
   TIMEOUT = 'timeout',
   OTHER = 'other',

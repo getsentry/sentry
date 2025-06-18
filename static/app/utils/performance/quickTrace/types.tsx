@@ -95,7 +95,7 @@ export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLit
   transactions: U[];
 };
 
-export type TraceProps = {
+type TraceProps = {
   traceId: string;
   end?: string;
   start?: string;
@@ -104,7 +104,7 @@ export type TraceProps = {
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
-export type EmptyQuickTrace = {
+type EmptyQuickTrace = {
   trace: QuickTraceEvent[];
   type: 'empty' | 'missing';
   orphanErrors?: TraceError[];
@@ -142,4 +142,13 @@ export type TraceMeta = {
   span_count_map: Record<string, number>;
   transaction_child_count_map: Record<string, number>;
   transactions: number;
+};
+
+export type EAPTraceMeta = {
+  errors: number;
+  logs: number;
+  performance_issues: number;
+  span_count: number;
+  span_count_map: Record<string, number>;
+  transaction_child_count_map: Record<string, number>;
 };

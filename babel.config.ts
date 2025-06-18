@@ -13,7 +13,7 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.37',
+        corejs: '3.41',
       },
     ],
     // TODO: Remove allowDeclareFields when we upgrade to Babel 8
@@ -24,10 +24,7 @@ const config: TransformOptions = {
   env: {
     production: {},
     development: {
-      plugins: [
-        '@emotion/babel-plugin',
-        ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
-      ],
+      plugins: ['@emotion/babel-plugin'],
     },
     test: {
       sourceMaps: process.env.CI ? false : true,

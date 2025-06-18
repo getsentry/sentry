@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from django.http import Http404, HttpRequest
 from django.http.response import HttpResponseBase
-from sentry_sdk.tracing import TRANSACTION_SOURCE_VIEW
+from sentry_sdk.tracing import TransactionSource
 
 from sentry import features
 from sentry.features.exceptions import FeatureNotRegistered
@@ -21,8 +21,8 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
     csrf_protect = False
 
     def handle(self, request: HttpRequest, organization, provider_id) -> HttpResponseBase:
-        scope = sentry_sdk.Scope.get_current_scope()
-        scope.set_transaction_name(f"integration.{provider_id}", source=TRANSACTION_SOURCE_VIEW)
+        scope = sentry_sdk.get_current_scope()
+        scope.set_transaction_name(f"integration.{provider_id}", source=TransactionSource.VIEW)
 
         pipeline = IntegrationPipeline(
             request=request, organization=organization, provider_key=provider_id

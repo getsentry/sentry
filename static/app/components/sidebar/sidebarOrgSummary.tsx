@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {IconWarning} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

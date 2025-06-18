@@ -10,20 +10,23 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
+  isEAPSpanNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export type TraceSearchResult = {
   index: number;
   value: TraceTreeNode<TraceTree.NodeValue>;
 };
+
+const {info, fmt} = Sentry.logger;
 
 /**
  * Evaluates the infix token representation against the token list. The logic is the same as
@@ -134,6 +137,7 @@ export function searchInTraceTreeTokens(
           bool = token;
           if (stack.length < 2) {
             Sentry.captureMessage('Unbalanced tree - missing left or right token');
+            info(fmt`Unbalanced tree - missing left or right token`);
             if (typeof handle.id === 'number') {
               window.cancelAnimationFrame(handle.id);
             }
@@ -155,6 +159,7 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing boolean token'
       );
+      info(fmt`Invalid state in searchInTraceTreeTokens, missing boolean token`);
       if (typeof handle.id === 'number') {
         window.cancelAnimationFrame(handle.id);
       }
@@ -165,6 +170,7 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing left or right token'
       );
+      info(fmt`Invalid state in searchInTraceTreeTokens, missing left or right token`);
       if (typeof handle.id === 'number') {
         window.cancelAnimationFrame(handle.id);
       }
@@ -393,6 +399,7 @@ function evaluateValueDate<T extends Token.VALUE_ISO_8601_DATE>(
     }
     default: {
       Sentry.captureMessage('Unsupported operator for number filter, got ' + operator);
+      info(fmt`Unsupported operator for number filter, got ${operator}`);
       return false;
     }
   }
@@ -426,6 +433,7 @@ function evaluateValueNumber<T extends Token.VALUE_DURATION | Token.VALUE_NUMBER
     }
     default: {
       Sentry.captureMessage('Unsupported operator for number filter, got ' + operator);
+      info(fmt`Unsupported operator for number filter, got ${operator}`);
       return false;
     }
   }
@@ -464,12 +472,13 @@ function resolveValueFromKey(
 
         if (
           SPAN_DURATION_ALIASES.has(token.key.value) &&
-          isSpanNode(node) &&
+          (isSpanNode(node) || isEAPSpanNode(node)) &&
           node.space
         ) {
           return node.space[1];
         }
 
+        // TODO Abdullah Khan: Add EAPSpanNode support for exclusive_time
         if (
           SPAN_SELF_TIME_ALIASES.has(token.key.value) &&
           isSpanNode(node) &&
@@ -485,6 +494,7 @@ function resolveValueFromKey(
       case Token.KEY_EXPLICIT_TAG:
       default: {
         Sentry.captureMessage(`Unsupported key type for filter, got ${token.key.type}`);
+        info(fmt`Unsupported key type for filter, got ${token.key.type}`);
       }
     }
 
@@ -504,7 +514,7 @@ function resolveValueFromKey(
           }
           case 'issue':
           case 'issues':
-            return node.errors.size > 0 || node.performance_issues.size > 0;
+            return node.errors.size > 0 || node.occurrences.size > 0;
           case 'profile':
           case 'profiles':
             return node.profiles.length > 0;
@@ -535,7 +545,7 @@ function resolveValueFromKey(
       const [maybeEntity, ...rest] = key.split('.');
       switch (maybeEntity) {
         case 'span':
-          if (isSpanNode(node)) {
+          if (isSpanNode(node) || isEAPSpanNode(node)) {
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             return value[rest.join('.')];
           }
@@ -552,7 +562,7 @@ function resolveValueFromKey(
     }
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return key ? value[key] ?? null : null;
+    return key ? (value[key] ?? null) : null;
   }
 
   return null;
@@ -566,14 +576,16 @@ function evaluateNodeFreeText(
   query: string,
   node: TraceTreeNode<TraceTree.NodeValue>
 ): boolean {
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     if (node.value.op?.includes(query)) {
       return true;
     }
     if (node.value.description?.includes(query)) {
       return true;
     }
-    if (node.value.span_id && node.value.span_id === query) {
+
+    const spanId = 'span_id' in node.value ? node.value.span_id : node.value.event_id;
+    if (spanId && spanId === query) {
       return true;
     }
   }
@@ -599,11 +611,18 @@ function evaluateNodeFreeText(
     }
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     if (node.value.level === query) {
       return true;
     }
-    if (node.value.title?.includes(query)) {
+    if (
+      isTraceErrorNode(node) &&
+      (node.value.title?.includes(query) || node.value.message?.includes(query))
+    ) {
+      return true;
+    }
+
+    if (isEAPErrorNode(node) && node.value.description?.includes(query)) {
       return true;
     }
   }

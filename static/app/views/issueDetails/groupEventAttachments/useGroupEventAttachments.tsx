@@ -111,6 +111,8 @@ export function useGroupEventAttachments({
   const eventQuery = useEventQuery({groupId: group.id});
   const eventView = useIssueDetailsEventView({group});
 
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
   const fetchAllAvailable = hasStreamlinedUI ? options?.fetchAllAvailable : true;
   const {
     data: attachments = [],
@@ -126,9 +128,10 @@ export function useGroupEventAttachments({
       cursor: location.query.cursor as string | undefined,
       // We only want to filter by date/query/environment if we're using the Streamlined UI
       environment: fetchAllAvailable ? undefined : (eventView.environment as string[]),
-      start: fetchAllAvailable ? undefined : eventView.start,
-      end: fetchAllAvailable ? undefined : eventView.end,
-      statsPeriod: fetchAllAvailable ? undefined : eventView.statsPeriod,
+      start: fetchAllAvailable && !hasSetStatsPeriod ? undefined : eventView.start,
+      end: fetchAllAvailable && !hasSetStatsPeriod ? undefined : eventView.end,
+      statsPeriod:
+        fetchAllAvailable && !hasSetStatsPeriod ? undefined : eventView.statsPeriod,
       eventQuery: fetchAllAvailable ? undefined : eventQuery,
     }),
     {placeholderData: options?.placeholderData, staleTime: 60_000}

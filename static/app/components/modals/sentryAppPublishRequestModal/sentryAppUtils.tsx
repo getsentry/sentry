@@ -1,10 +1,10 @@
 export const INTEGRATION_CATEGORIES: Array<[string, string]> = [
   ['notifications', 'Notifications & Incidents'],
-  ['scm', 'Source Code Management'],
+  ['source-code-management', 'Source Code Management'],
   ['issue-tracking', 'Issue Tracking'],
   ['deployment', 'Deployment'],
-  ['data-viz', 'Data & Visualization'],
-  ['replay', 'Session Replay'],
+  ['data-visualization', 'Data & Visualization'],
+  ['session-replay', 'Session Replay'],
   ['debugging', 'Debugging'],
   ['feature-flags', 'Feature Flags'],
   ['compliance', 'Compliance'],

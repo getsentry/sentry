@@ -16,11 +16,11 @@ function CreateTeamModal({Body, Header, ...props}: Props) {
   const {onClose, closeModal, organization} = props;
   const api = useApi();
 
-  async function handleSubmit(
-    data: {slug: string},
-    onSuccess: Function,
-    onError: Function
-  ) {
+  const handleSubmit: React.ComponentProps<typeof CreateTeamForm>['onSubmit'] = async (
+    data,
+    onSuccess,
+    onError
+  ) => {
     try {
       const team: Team = await createTeam(api, data, {orgId: organization.slug});
 
@@ -30,7 +30,7 @@ function CreateTeamModal({Body, Header, ...props}: Props) {
     } catch (err) {
       onError(err);
     }
-  }
+  };
 
   return (
     <Fragment>

@@ -11,7 +11,6 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.client import ApiClient
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -231,15 +230,13 @@ class DiscordClient(ApiClient):
         )
         self.logger.info("handled discord success", extra=log_params)
 
-    def send_message(
-        self, channel_id: str, message: DiscordMessageBuilder, notification_uuid: str | None = None
-    ) -> None:
+    def send_message(self, channel_id: str, message: dict[str, object]) -> None:
         """
         Send a message to the specified channel.
         """
         self.post(
             MESSAGE_URL.format(channel_id=channel_id),
-            data=message.build(notification_uuid=notification_uuid),
+            data=message,
             timeout=5,
             headers=self.prepare_auth_header(),
         )

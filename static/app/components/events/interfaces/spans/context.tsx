@@ -8,16 +8,12 @@ type ChildTransaction = {
   transaction: string;
 };
 
-export type SpanEntryContextChildrenProps = {
+type SpanEntryContextChildrenProps = {
   getViewChildTransactionTarget: (
     props: ChildTransaction
   ) => LocationDescriptor | undefined;
 };
 
-const SpanEntryContext = createContext<SpanEntryContextChildrenProps>({
+export const SpanEntryContext = createContext<SpanEntryContextChildrenProps>({
   getViewChildTransactionTarget: () => undefined,
 });
-
-export const Provider = SpanEntryContext.Provider;
-
-export const Consumer = SpanEntryContext.Consumer;

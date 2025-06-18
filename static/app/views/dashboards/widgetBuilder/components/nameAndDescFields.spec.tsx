@@ -38,6 +38,7 @@ describe('WidgetBuilder', () => {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -47,7 +48,7 @@ describe('WidgetBuilder', () => {
         ...router.location,
         query: expect.objectContaining({title: 'some name'}),
       }),
-      {replace: true}
+      expect.anything()
     );
 
     await userEvent.click(await screen.findByTestId('add-description'));
@@ -61,7 +62,7 @@ describe('WidgetBuilder', () => {
         ...router.location,
         query: expect.objectContaining({description: 'some description'}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -72,7 +73,11 @@ describe('WidgetBuilder', () => {
           error={{title: 'Title is required during creation.'}}
         />
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(

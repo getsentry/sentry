@@ -1,12 +1,12 @@
+import type {Compiler, RspackPluginInstance} from '@rspack/core';
 import fs from 'node:fs';
 import path from 'node:path';
-import type webpack from 'webpack';
 
 type Options = {
   basePath: string;
 };
 
-class LastBuiltPlugin {
+class LastBuiltPlugin implements RspackPluginInstance {
   basePath: string;
   isWatchMode: boolean;
 
@@ -15,7 +15,7 @@ class LastBuiltPlugin {
     this.isWatchMode = false;
   }
 
-  apply(compiler: webpack.Compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.watchRun.tapAsync('LastBuiltPlugin', (_, callback) => {
       this.isWatchMode = true;
       callback();

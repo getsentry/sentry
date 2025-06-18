@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
-    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_HISTORICAL_ANOMALY_DETECTION_TIMEOUT,
 )
 
 

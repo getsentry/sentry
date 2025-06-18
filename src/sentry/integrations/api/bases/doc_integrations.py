@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
+import sentry_sdk
 from django.http import Http404
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.api.validators.doc_integration import METADATA_PROPERTIES
 from sentry.auth.superuser import is_active_superuser
 from sentry.integrations.api.bases.integration import PARANOID_GET
+from sentry.integrations.api.parsers.doc_integration import METADATA_PROPERTIES
 from sentry.integrations.models.doc_integration import DocIntegration
-from sentry.utils.sdk import Scope
 
 
 class DocIntegrationsPermission(SentryPermission):
@@ -26,7 +27,7 @@ class DocIntegrationsPermission(SentryPermission):
 
     scope_map = {"GET": PARANOID_GET}
 
-    def has_permission(self, request: Request, view: object) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
         if not super().has_permission(request, view):
             return False
 
@@ -38,7 +39,7 @@ class DocIntegrationsPermission(SentryPermission):
         return False
 
     def has_object_permission(
-        self, request: Request, view: object, doc_integration: DocIntegration
+        self, request: Request, view: APIView, doc_integration: DocIntegration
     ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
@@ -88,7 +89,7 @@ class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):
 
         self.check_object_permissions(request, doc_integration)
 
-        Scope.get_isolation_scope().set_tag("doc_integration", doc_integration.slug)
+        sentry_sdk.get_isolation_scope().set_tag("doc_integration", doc_integration.slug)
 
         kwargs["doc_integration"] = doc_integration
         return (args, kwargs)

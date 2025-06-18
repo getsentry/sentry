@@ -8,11 +8,17 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-
-import submitRules from '../submitRules';
-import type {KeysOfUnion, Rule} from '../types';
-import {EventIdStatus, MethodType, RuleType} from '../types';
-import {valueSuggestions} from '../utils';
+import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
+import type {
+  KeysOfUnion,
+  Rule,
+} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  EventIdStatus,
+  MethodType,
+  RuleType,
+} from 'sentry/views/settings/components/dataScrubbing/types';
+import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import Form from './form';
 import handleError, {ErrorType} from './handleError';
@@ -75,7 +81,7 @@ class ModalManager extends Component<Props, State> {
       isFormValid: false,
       eventId: {
         value: eventId,
-        status: !eventId ? EventIdStatus.UNDEFINED : EventIdStatus.LOADED,
+        status: eventId ? EventIdStatus.LOADED : EventIdStatus.UNDEFINED,
       },
       sourceSuggestions,
     } as Readonly<State>;

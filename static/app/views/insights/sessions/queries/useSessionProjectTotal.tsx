@@ -1,11 +1,19 @@
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function useSessionProjectTotal() {
-  const location = useLocation();
+export default function useSessionProjectTotal({
+  pageFilters,
+}: {
+  pageFilters?: PageFilters;
+}) {
   const organization = useOrganization();
+  const {selection: defaultPageFilters} = usePageFilters();
+
   const {
     data: projSessionData,
     isPending,
@@ -15,7 +23,10 @@ export default function useSessionProjectTotal() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...location.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+          interval: getSessionsInterval(
+            pageFilters ? pageFilters.datetime : defaultPageFilters.datetime
+          ),
           field: ['sum(session)'],
           groupBy: ['project'],
         },
@@ -29,6 +40,6 @@ export default function useSessionProjectTotal() {
   }
 
   return projSessionData.groups.length
-    ? projSessionData.groups[0]!.totals['sum(session)'] ?? 0
+    ? (projSessionData.groups[0]!.totals['sum(session)'] ?? 0)
     : 0;
 }

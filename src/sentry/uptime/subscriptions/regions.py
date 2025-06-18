@@ -1,21 +1,39 @@
-from collections.abc import Sequence
+from __future__ import annotations
+
+import dataclasses
+from collections.abc import Mapping, Sequence
 
 from django.conf import settings
 
 from sentry import options
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.uptime.models import UptimeSubscriptionRegion
 
 
-def get_active_region_configs() -> list[UptimeRegionConfig]:
+@dataclasses.dataclass(frozen=True)
+class UptimeRegionWithMode:
+    slug: str
+    mode: UptimeSubscriptionRegion.RegionMode = UptimeSubscriptionRegion.RegionMode.ACTIVE
+
+
+def get_active_regions() -> list[UptimeRegionWithMode]:
     configured_regions: Sequence[UptimeRegionConfig] = settings.UPTIME_REGIONS
-    disabled_region_slugs: Sequence[str] = options.get("uptime.disabled-checker-regions")
+    region_mode_override: Mapping[str, str] = options.get("uptime.checker-regions-mode-override")
 
-    return [c for c in configured_regions if c.slug not in disabled_region_slugs]
+    return [
+        (
+            UptimeRegionWithMode(
+                c.slug,
+                UptimeSubscriptionRegion.RegionMode(
+                    region_mode_override.get(c.slug, UptimeSubscriptionRegion.RegionMode.ACTIVE)
+                ),
+            )
+        )
+        for c in configured_regions
+        if region_mode_override.get(c.slug, UptimeSubscriptionRegion.RegionMode.ACTIVE)
+        in [UptimeSubscriptionRegion.RegionMode.ACTIVE, UptimeSubscriptionRegion.RegionMode.SHADOW]
+    ]
 
 
 def get_region_config(region_slug: str) -> UptimeRegionConfig | None:
-    region = next((r for r in settings.UPTIME_REGIONS if r.slug == region_slug), None)
-    if region is None:
-        # XXX: Temporary hack to guarantee we get a config
-        region = get_active_region_configs()[0]
-    return region
+    return next((r for r in settings.UPTIME_REGIONS if r.slug == region_slug), None)

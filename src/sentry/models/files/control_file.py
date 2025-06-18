@@ -26,8 +26,9 @@ class ControlFile(AbstractFile[ControlFileBlobIndex, ControlFileBlob]):
     DELETE_UNREFERENCED_BLOB_TASK = delete_unreferenced_blobs_control
 
     def _blob_index_records(self) -> Sequence[ControlFileBlobIndex]:
-        return list(
-            ControlFileBlobIndex.objects.filter(file=self).select_related("blob").order_by("offset")
+        return sorted(
+            ControlFileBlobIndex.objects.filter(file=self).select_related("blob"),
+            key=lambda fbi: fbi.offset,
         )
 
     def _create_blob_index(self, blob: ControlFileBlob, offset: int) -> ControlFileBlobIndex:

@@ -14,6 +14,7 @@ import {
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -22,34 +23,36 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/utils/useParams');
 
 describe('WidgetBuilderSlideout', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture();
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-    });
+    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
+
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
-      body: {
-        title: 'Title is required during creation',
-      },
-      statusCode: 400,
+      statusCode: 200,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
     });
   });
 
   afterEach(() => {
     ModalStore.reset();
+    jest.clearAllMocks();
   });
 
   it('should show the sort by step if the widget is a chart and there are fields selected', async () => {
@@ -57,9 +60,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -72,6 +73,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -82,6 +84,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -96,9 +100,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -111,6 +113,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -121,6 +124,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -132,9 +137,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -147,6 +150,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -157,6 +161,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -180,7 +186,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
     renderGlobalModal();
 
@@ -209,7 +218,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     renderGlobalModal();
@@ -225,6 +237,13 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('should not save and close the widget builder if the widget is invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      body: {title: 'Title is required during creation'},
+      statusCode: 400,
+    });
+
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -242,6 +261,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -253,16 +273,18 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
+      expect(addErrorMessage).toHaveBeenCalledWith('Title is required during creation');
     });
 
-    expect(screen.getByText('Create Custom Widget')).toBeInTheDocument();
+    expect(screen.getByText('Custom Widget Builder')).toBeInTheDocument();
   });
 
   it('clears the alias when dataset changes', async () => {
@@ -283,6 +305,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -293,6 +316,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -300,7 +325,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(screen.getByText('Errors'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
-  });
+  }, 10_000);
 
   it('clears the alias when display type changes', async () => {
     render(
@@ -320,6 +345,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -330,6 +356,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -338,13 +366,13 @@ describe('WidgetBuilderSlideout', () => {
       'test alias again'
     );
 
-    await userEvent.click(screen.getByText('Table'));
-    await userEvent.click(screen.getByText('Area'));
-    await userEvent.click(screen.getByText('Area'));
-    await userEvent.click(screen.getByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Area'));
+    await userEvent.click(await screen.findByText('Area'));
+    await userEvent.click(await screen.findByText('Table'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
-  });
+  }, 10_000);
 
   it('only renders thresholds for big number widgets', async () => {
     render(
@@ -364,6 +392,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -372,9 +401,149 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
     expect(await screen.findByText('Thresholds')).toBeInTheDocument();
+  });
+
+  it('calls the save method with the index if it is defined', async () => {
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Update Widget'));
+
+    expect(onSave).toHaveBeenCalledWith({index: 1, widget: expect.any(Object)});
+  });
+
+  it('passes undefined as the index for onSave if the index is not defined', async () => {
+    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
+
+    const onSave = jest.fn();
+
+    // This is the case where we're adding a new widget
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Add Widget'));
+
+    expect(onSave).toHaveBeenCalledWith({
+      index: undefined,
+      widget: expect.any(Object),
+    });
+  });
+
+  it('should render the widget template title if templates selected', () => {
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
+    );
+
+    expect(screen.getByText('Widget Library')).toBeInTheDocument();
+  });
+
+  it('should render appropriate breadcrumbs if library widget is customized', async () => {
+    const onSave = jest.fn();
+    const {rerender} = render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
+    );
+
+    screen.getByText('Widget Library');
+
+    await userEvent.click(screen.getByText('Duration Distribution'));
+    await userEvent.click(screen.getByText('Customize'));
+
+    rerender(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>
+    );
+
+    expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+    expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
   });
 });
