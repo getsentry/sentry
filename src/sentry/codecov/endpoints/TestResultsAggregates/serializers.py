@@ -13,10 +13,6 @@ class TestResultAggregatesSerializer(serializers.Serializer):
 
     totalDuration = serializers.FloatField()
     totalDurationPercentChange = serializers.FloatField()
-    slowestTestsDuration = serializers.FloatField()
-    slowestTestsDurationPercentChange = serializers.FloatField()
-    totalSlowTests = serializers.IntegerField()
-    totalSlowTestsPercentChange = serializers.FloatField()
     totalFails = serializers.IntegerField()
     totalFailsPercentChange = serializers.FloatField()
     totalSkips = serializers.IntegerField()

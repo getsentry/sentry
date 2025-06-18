@@ -11,10 +11,6 @@ query = """query GetTestResultsAggregates(
                     testResultsAggregates(interval: $interval) {
                         totalDuration
                         totalDurationPercentChange
-                        slowestTestsDuration
-                        slowestTestsDurationPercentChange
-                        totalSlowTests
-                        totalSlowTestsPercentChange
                         totalFails
                         totalFailsPercentChange
                         totalSkips
