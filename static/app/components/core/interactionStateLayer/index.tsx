@@ -24,6 +24,7 @@ const defaultProps = {
 };
 
 /**
+ * use core components with built-in interaction states
  * @deprecated
  */
 const InteractionStateLayer = styled(
