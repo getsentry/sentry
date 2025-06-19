@@ -53,7 +53,7 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -164,8 +164,8 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
-  const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
-  const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
