@@ -22,7 +22,10 @@ import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
+import {
+  makeHideAiFeaturesField,
+  makeHidePRReviewTestGenField,
+} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
@@ -121,6 +124,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
         ),
       },
       ...formsConfig[0]!.fields.slice(3),
+      makeHidePRReviewTestGenField(organization),
     ];
     return formsConfig;
   }, [access, organization]);

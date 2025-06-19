@@ -185,6 +185,12 @@ ORG_OPTIONS = (
         HIDE_AI_FEATURES_DEFAULT,
     ),
     (
+        "hidePRReviewTestGen",
+        "sentry:hide_pr_review_test_gen",
+        bool,
+        False,
+    ),
+    (
         "githubPRBot",
         "sentry:github_pr_bot",
         bool,
@@ -293,6 +299,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
+    hidePRReviewTestGen = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
@@ -717,6 +724,10 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     hideAiFeatures = serializers.BooleanField(
         help_text="Specify `true` to hide AI features from the organization.",
+        required=False,
+    )
+    hidePRReviewTestGen = serializers.BooleanField(
+        help_text="Specify `true` to hide PR Review and Test Generation features from the organization.",
         required=False,
     )
     codecovAccess = serializers.BooleanField(

@@ -60,6 +60,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     githubPRBot: false,
     gitlabPRBot: false,
     hideAiFeatures: false,
+    hidePRReviewTestGen: false,
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,

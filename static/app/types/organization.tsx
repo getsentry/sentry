@@ -26,6 +26,7 @@ export interface OrganizationSummary {
   githubPRBot: boolean;
   gitlabPRBot: boolean;
   hideAiFeatures: boolean;
+  hidePRReviewTestGen: boolean;
   id: string;
   isEarlyAdopter: boolean;
   issueAlertsThreadFlag: boolean;

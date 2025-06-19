@@ -192,8 +192,11 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
     github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
+    pr_review_features_enabled = not org.get_option("sentry:hide_pr_review_test_gen", False)
+
     return {
-        "consent": seer_org_acknowledgement or github_extension_enabled,
+        "consent": (seer_org_acknowledgement or github_extension_enabled)
+        and pr_review_features_enabled,
     }
 
 
@@ -203,14 +206,16 @@ def get_organization_seer_consent_by_org_name(
     org_integrations = integration_service.get_organization_integrations(
         provider=provider, name=org_name
     )
-
     for org_integration in org_integrations:
         try:
             org: Organization = Organization.objects.get(id=org_integration.organization_id)
             seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
             github_extension_enabled = org.id in options.get("github-extension.enabled-orgs")
+            pr_review_features_enabled = not org.get_option("sentry:hide_pr_review_test_gen", False)
 
-            if seer_org_acknowledgement or github_extension_enabled:
+            if (
+                seer_org_acknowledgement or github_extension_enabled
+            ) and pr_review_features_enabled:
                 return {"consent": True}
 
         except Organization.DoesNotExist:

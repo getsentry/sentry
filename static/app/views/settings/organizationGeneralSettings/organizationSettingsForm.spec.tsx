@@ -249,28 +249,51 @@ describe('OrganizationSettingsForm', function () {
     expect(toggle).toBeEnabled();
   });
 
-  it('renders PR Review and Test Generation field', function () {
+  it('can toggle "Show PR Review and Test Generation"', async function () {
+    // Default org fixture has hidePRReviewTestGen: false, so features are enabled by default
+    const hiddenPRReviewOrg = OrganizationFixture({hidePRReviewTestGen: true});
     render(
       <OrganizationSettingsForm
         {...routerProps}
         initialData={OrganizationFixture()}
         onSave={onSave}
-      />
+      />,
+      {organization: hiddenPRReviewOrg}
     );
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+    });
 
-    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Show PR Review and Test Generation',
+    });
 
-    expect(screen.getByText('beta')).toBeInTheDocument();
+    // Inverted from hidePRReviewTestGen
+    expect(checkbox).not.toBeChecked();
 
-    expect(
-      screen.getByText('Use AI to generate feedback and tests in pull requests')
-    ).toBeInTheDocument();
+    // Click to check (enable PR Review -> hidePRReviewTestGen = false)
+    await userEvent.click(checkbox);
 
-    const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
-    expect(learnMoreLink).toBeInTheDocument();
-    expect(learnMoreLink).toHaveAttribute(
-      'href',
-      'https://github.com/apps/seer-by-sentry/'
-    );
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          data: {hidePRReviewTestGen: false},
+        })
+      );
+    });
+
+    // Inverted from hidePRReviewTestGen
+    expect(checkbox).toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {hidePRReviewTestGen: true}})
+      );
+    });
   });
 });
