@@ -21,6 +21,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
   NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
@@ -217,6 +218,9 @@ function SidebarNavLink({
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      {...{
+        [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+      }}
       {...hoverProps}
     >
       {layout === NavLayout.MOBILE ? (

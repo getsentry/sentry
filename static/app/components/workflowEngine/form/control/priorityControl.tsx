@@ -2,9 +2,9 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
-import {Flex} from 'sentry/components/container/flex';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import FormContext from 'sentry/components/forms/formContext';
 import {IconArrow, IconChevron} from 'sentry/icons';
@@ -105,7 +105,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
     <Grid>
       <PrioritizeRow
         left={
-          <Flex align="center" column>
+          <Flex align="center" direction="column">
             {!detectorKind || detectorKind === 'static' ? (
               <ThresholdPriority />
             ) : (

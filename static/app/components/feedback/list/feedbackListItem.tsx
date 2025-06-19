@@ -1,10 +1,10 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
