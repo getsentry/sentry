@@ -383,7 +383,7 @@ function EAPSpanNodeDetails({
   } = useTraceItemDetails({
     traceItemId: node.value.event_id,
     projectId: node.value.project_id.toString(),
-    traceId,
+    traceId: node.metadata.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.SPANS,
     referrer: 'api.explore.log-item-details', // TODO: change to span details
     enabled: true,
