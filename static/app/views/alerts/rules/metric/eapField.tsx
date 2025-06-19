@@ -17,7 +17,7 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 const DEFAULT_EAP_AGGREGATION = 'count';
 const DEFAULT_EAP_FIELD = 'span.duration';
@@ -48,8 +48,8 @@ function EAPField({aggregate, onChange}: Props) {
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
-  const {tags: storedStringTags} = useSpanTags('string');
-  const {tags: storedNumberTags} = useSpanTags('number');
+  const {tags: storedStringTags} = useTraceItemTags('string');
+  const {tags: storedNumberTags} = useTraceItemTags('number');
   const storedTags =
     aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
   const numberTags: TagCollection = useMemo(() => {

@@ -21,7 +21,7 @@ import {
   updateVisualizeAggregate,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
 import {
@@ -136,8 +136,8 @@ function VisualizeDropdown({
   yAxis,
   label,
 }: VisualizeDropdownProps) {
-  const {tags: stringTags} = useSpanTags('string');
-  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
 
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
 

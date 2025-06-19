@@ -52,7 +52,7 @@ import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const NONE = 'none';
 
@@ -255,8 +255,8 @@ function Visualize({error, setError}: VisualizeProps) {
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
-  const {tags: numericSpanTags} = useSpanTags('number');
-  const {tags: stringSpanTags} = useSpanTags('string');
+  const {tags: numericSpanTags} = useTraceItemTags('number');
+  const {tags: stringSpanTags} = useTraceItemTags('string');
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for

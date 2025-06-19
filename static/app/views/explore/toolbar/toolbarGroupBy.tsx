@@ -18,7 +18,7 @@ import {
   useSetExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 
@@ -36,7 +36,7 @@ interface ToolbarGroupBy {
 }
 
 export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
-  const {tags} = useSpanTags();
+  const {tags} = useTraceItemTags();
 
   const groupBys = useExploreGroupBys();
   const setGroupBys = useSetExploreGroupBys();

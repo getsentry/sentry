@@ -30,7 +30,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
@@ -95,8 +95,8 @@ function AggregatesTable({
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(fields, tableRef, {
@@ -231,8 +231,8 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
     [fields]
   );
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {

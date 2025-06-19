@@ -19,11 +19,10 @@ import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {TraceExploreAiQueryProvider} from 'sentry/views/explore/components/traceExploreAiQueryProvider';
 import {
   PageParamsProvider,
-  useExploreDataset,
   useExploreId,
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
@@ -35,6 +34,7 @@ import {
   useExploreSpansTourModal,
 } from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -115,12 +115,10 @@ function SpansTabTourTrigger() {
 }
 
 function ExploreTagsProvider({children}: SpansTabContextProps) {
-  const dataset = useExploreDataset();
-
   return (
-    <SpanTagsProvider dataset={dataset} enabled>
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
       {children}
-    </SpanTagsProvider>
+    </TraceItemAttributeProvider>
   );
 }
 

@@ -12,7 +12,6 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExploreFields,
@@ -23,8 +22,9 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -58,9 +58,9 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -81,9 +81,9 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -117,9 +117,9 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -144,9 +144,9 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -186,9 +186,9 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -231,9 +231,9 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -295,9 +295,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -347,9 +347,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -376,9 +376,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -401,9 +401,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -465,9 +465,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -505,9 +505,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -548,9 +548,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -632,9 +632,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -659,9 +659,9 @@ describe('ExploreToolbar', function () {
     router.push(router.location);
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,

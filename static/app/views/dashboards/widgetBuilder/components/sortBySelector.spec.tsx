@@ -5,11 +5,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {ELLIPSIS} from 'sentry/views/insights/common/utils/centerTruncate';
 
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -51,9 +51,9 @@ describe('WidgetBuilderSortBySelector', function () {
   it('renders', async function () {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -79,9 +79,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router: tableRouter,
@@ -101,9 +101,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -142,9 +142,9 @@ describe('WidgetBuilderSortBySelector', function () {
   it('renders the correct limit options', async function () {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -169,9 +169,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router: moreAggregatesRouter,
@@ -190,9 +190,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -250,9 +250,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,

@@ -3,9 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('EAPField', () => {
   const organization = OrganizationFixture();
@@ -20,9 +20,9 @@ describe('EAPField', () => {
 
   it('renders', () => {
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField aggregate={'count(span.duration)'} onChange={() => {}} />
-      </SpanTagsProvider>
+      </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -49,9 +49,9 @@ describe('EAPField', () => {
 
   it('renders epm with argument disabled', () => {
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField aggregate={'epm()'} onChange={() => {}} />
-      </SpanTagsProvider>
+      </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -78,9 +78,9 @@ describe('EAPField', () => {
 
   it('renders failure_rate with argument disabled', () => {
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField aggregate={'failure_rate()'} onChange={() => {}} />
-      </SpanTagsProvider>
+      </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -108,9 +108,9 @@ describe('EAPField', () => {
   it('should call onChange with the new aggregate string when switching aggregates', async () => {
     const onChange = jest.fn();
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField aggregate={'count(span.duration)'} onChange={onChange} />
-      </SpanTagsProvider>
+      </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -133,9 +133,9 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <EAPField aggregate={aggregate} onChange={setAggregate} />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       );
     }
 
@@ -162,9 +162,9 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <EAPField aggregate={aggregate} onChange={setAggregate} />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       );
     }
 
