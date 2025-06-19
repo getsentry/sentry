@@ -6,10 +6,10 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
 
-export function JetpackComposePiiWarning() {
+export function JetpackComposePiiNotice() {
   return (
     <AndroidSdkWarningContainer>
-      <Alert type="warning" showIcon>
+      <Alert type="error" showIcon>
         {tct(
           'There is a known PII/masking issue with [jetpack:Jetpack Compose versions 1.8 and above]. [link:Update your Sentry SDK to version 8.14.0 or later] to ensure replays are properly masked.',
           {

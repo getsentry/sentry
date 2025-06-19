@@ -20,7 +20,7 @@ import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {JetpackComposePiiWarning} from 'sentry/views/replays/jetpackComposePiiWarning';
+import {JetpackComposePiiNotice} from 'sentry/views/replays/jetpackComposePiiNotice';
 
 import {CanvasSupportNotice} from './canvasSupportNotice';
 
@@ -91,7 +91,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
                 replay?.getReplay()?.sdk.version || '',
                 MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.minVersion
               ) === -1 ? (
-                <JetpackComposePiiWarning />
+                <JetpackComposePiiNotice />
               ) : null}
               <CanvasSupportNotice />
               <Panel>

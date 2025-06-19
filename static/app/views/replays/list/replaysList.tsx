@@ -15,7 +15,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import {JetpackComposePiiWarning} from 'sentry/views/replays/jetpackComposePiiWarning';
+import {JetpackComposePiiNotice} from 'sentry/views/replays/jetpackComposePiiNotice';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
@@ -99,7 +99,7 @@ function ReplaysList() {
 
   return (
     <Fragment>
-      {needsJetpackComposePiiWarning && <JetpackComposePiiWarning />}
+      {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ReplayTable
         referrerLocation={'replay'}
         fetchError={error}
