@@ -206,7 +206,7 @@ def get_organization_seer_consent_by_org_name(
 
     for org_integration in org_integrations:
         try:
-            org: Organization = Organization.objects.get(id=org_integration.organization_id)
+            org = Organization.objects.get(id=org_integration.organization_id)
             seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
             github_extension_enabled = org.id in options.get("github-extension.enabled-orgs")
 

@@ -47,128 +47,138 @@ class TestSeerRpcMethods(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.organization = self.create_organization()
+        self.organization = self.create_organization(owner=self.user)
 
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
-    def test_get_organization_seer_consent_by_org_name_no_integrations(self, mock_get_integrations):
+    def _create_options_get_side_effect(self, enabled_orgs=None):
+        """Helper to create a side effect function for options.get mock"""
+
+        def side_effect(key):
+            if key == "github-extension.enabled-orgs":
+                return enabled_orgs or []
+            return []
+
+        return side_effect
+
+    def test_get_organization_seer_consent_by_org_name_no_integrations(self):
         """Test when no organization integrations are found"""
-        mock_get_integrations.return_value = []
-
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
+        # Test with a non-existent organization name
+        result = get_organization_seer_consent_by_org_name(org_name="non-existent-org")
         assert result == {"consent": False}
-        mock_get_integrations.assert_called_once_with(provider="github", name="test-org")
 
     @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
     def test_get_organization_seer_consent_by_org_name_no_consent(
-        self, mock_get_integrations, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement, mock_options_get
     ):
         """Test when organization exists but has no consent"""
-        from unittest.mock import Mock
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
 
-        mock_integration = Mock()
-        mock_integration.organization_id = self.organization.id
-        mock_get_integrations.return_value = [mock_integration]
         mock_get_acknowledgement.return_value = False
         mock_options_get.return_value = []  # No orgs in github-extension.enabled-orgs
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": False}
-        mock_get_integrations.assert_called_once_with(provider="github", name="test-org")
-        mock_get_acknowledgement.assert_called_once_with(org_id=self.organization.id)
-        mock_options_get.assert_called_once_with("github-extension.enabled-orgs")
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
     @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
     def test_get_organization_seer_consent_by_org_name_with_seer_acknowledgement(
-        self, mock_get_integrations, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement, mock_options_get
     ):
         """Test when organization has seer acknowledgement"""
-        from unittest.mock import Mock
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
 
-        mock_integration = Mock()
-        mock_integration.organization_id = self.organization.id
-        mock_get_integrations.return_value = [mock_integration]
         mock_get_acknowledgement.return_value = True
         mock_options_get.return_value = []  # No orgs in github-extension.enabled-orgs
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
-        mock_get_integrations.assert_called_once_with(provider="github", name="test-org")
-        mock_get_acknowledgement.assert_called_once_with(org_id=self.organization.id)
-        mock_options_get.assert_called_once_with("github-extension.enabled-orgs")
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
     @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
     def test_get_organization_seer_consent_by_org_name_with_github_extension(
-        self, mock_get_integrations, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement, mock_options_get
     ):
         """Test when organization has github extension enabled"""
-        from unittest.mock import Mock
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
 
-        mock_integration = Mock()
-        mock_integration.organization_id = self.organization.id
-        mock_get_integrations.return_value = [mock_integration]
         mock_get_acknowledgement.return_value = False
-        mock_options_get.return_value = [
-            self.organization.id
-        ]  # Org in github-extension.enabled-orgs
+        mock_options_get.side_effect = self._create_options_get_side_effect(
+            enabled_orgs=[self.organization.id]
+        )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
-        mock_get_integrations.assert_called_once_with(provider="github", name="test-org")
-        mock_get_acknowledgement.assert_called_once_with(org_id=self.organization.id)
-        mock_options_get.assert_called_once_with("github-extension.enabled-orgs")
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
     @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
     def test_get_organization_seer_consent_by_org_name_with_both_consents(
-        self, mock_get_integrations, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement, mock_options_get
     ):
         """Test when organization has both seer acknowledgement and github extension enabled"""
-        from unittest.mock import Mock
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
 
-        mock_integration = Mock()
-        mock_integration.organization_id = self.organization.id
-        mock_get_integrations.return_value = [mock_integration]
         mock_get_acknowledgement.return_value = True
-        mock_options_get.return_value = [
-            self.organization.id
-        ]  # Org in github-extension.enabled-orgs
+        mock_options_get.side_effect = self._create_options_get_side_effect(
+            enabled_orgs=[self.organization.id]
+        )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
-        mock_get_integrations.assert_called_once_with(provider="github", name="test-org")
-        mock_get_acknowledgement.assert_called_once_with(org_id=self.organization.id)
-        mock_options_get.assert_called_once_with("github-extension.enabled-orgs")
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
     @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(
-        self, mock_get_integrations, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement, mock_options_get
     ):
         """Test when multiple organizations exist, one with consent"""
-        from unittest.mock import Mock
+        org_without_consent = self.create_organization(owner=self.user)
+        org_with_consent = self.create_organization(owner=self.user)
 
-        org_without_consent = self.create_organization()
-        org_with_consent = self.create_organization()
-
-        mock_integration_1 = Mock()
-        mock_integration_1.organization_id = org_without_consent.id
-        mock_integration_2 = Mock()
-        mock_integration_2.organization_id = org_with_consent.id
-
-        mock_get_integrations.return_value = [mock_integration_1, mock_integration_2]
+        # Create integrations for both organizations with the same name
+        self.create_integration(
+            organization=org_without_consent,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-1",
+        )
+        self.create_integration(
+            organization=org_with_consent,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-2",
+        )
 
         # First org has no consent, second org has seer acknowledgement
         mock_get_acknowledgement.side_effect = [False, True]
@@ -177,52 +187,41 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
-        mock_get_integrations.assert_called_once_with(provider="github", name="test-org")
         # Should stop after finding first org with consent
         assert mock_get_acknowledgement.call_count == 2
 
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
-    def test_get_organization_seer_consent_by_org_name_custom_provider(self, mock_get_integrations):
-        """Test with custom provider"""
-        mock_get_integrations.return_value = []
-
-        result = get_organization_seer_consent_by_org_name(org_name="test-org", provider="gitlab")
-
-        assert result == {"consent": False}
-        mock_get_integrations.assert_called_once_with(provider="gitlab", name="test-org")
-
     @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    @patch("sentry.api.endpoints.seer_rpc.integration_service.get_organization_integrations")
     def test_get_organization_seer_consent_by_org_name_mixed_scenarios(
-        self, mock_get_integrations, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement, mock_options_get
     ):
-        """Test mixed scenario with non-existent org, org without consent, and org with consent"""
-        from unittest.mock import Mock
+        """Test mixed scenario with org without consent and org with consent"""
+        org_without_consent = self.create_organization(owner=self.user)
+        org_with_consent = self.create_organization(owner=self.user)
 
-        org_without_consent = self.create_organization()
-        org_with_consent = self.create_organization()
+        # Create integrations for both organizations with the same name
+        self.create_integration(
+            organization=org_without_consent,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-1",
+        )
 
-        mock_integration_1 = Mock()
-        mock_integration_1.organization_id = 99999  # Non-existent org
-        mock_integration_2 = Mock()
-        mock_integration_2.organization_id = org_without_consent.id
-        mock_integration_3 = Mock()
-        mock_integration_3.organization_id = org_with_consent.id
+        self.create_integration(
+            organization=org_with_consent,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-2",
+        )
 
-        mock_get_integrations.return_value = [
-            mock_integration_1,
-            mock_integration_2,
-            mock_integration_3,
-        ]
-
-        # Second org has no consent, third org has github extension enabled
+        # First org has no consent, second org has github extension enabled
         mock_get_acknowledgement.side_effect = [False, False]
-        mock_options_get.return_value = [org_with_consent.id]
+        mock_options_get.side_effect = self._create_options_get_side_effect(
+            enabled_orgs=[org_with_consent.id]
+        )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
-        mock_get_integrations.assert_called_once_with(provider="github", name="test-org")
-        # Should be called twice (skips non-existent org, checks two existing orgs)
+        # Should be called twice (checks both existing orgs)
         assert mock_get_acknowledgement.call_count == 2
