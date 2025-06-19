@@ -69,6 +69,10 @@ type Props = {
   xAxisIndex?: number | number[];
 };
 
+type State = {
+  zooming: (() => void) | null;
+};
+
 /**
  * This is a very opinionated component that takes a render prop through `children`. It
  * will provide props to be passed to `BaseChart` to enable support of zooming without
@@ -77,7 +81,7 @@ type Props = {
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
  */
-class ChartZoom extends Component<Props> {
+class ChartZoom extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -87,6 +91,10 @@ class ChartZoom extends Component<Props> {
     // Initialize current period instance state for zoom history
     this.saveCurrentPeriod(props);
   }
+
+  state = {
+    zooming: null,
+  };
 
   componentDidUpdate() {
     if (this.props.disabled) {
@@ -154,38 +162,36 @@ class ChartZoom extends Component<Props> {
       end: endFormatted,
     });
 
-    this.zooming = () => {
-      if (usePageDate && router) {
-        const newQuery = {
-          ...router.location.query,
-          pageStart: start ? getUtcDateString(start) : undefined,
-          pageEnd: end ? getUtcDateString(end) : undefined,
-          pageStatsPeriod: period ?? undefined,
-        };
+    if (usePageDate && router) {
+      const newQuery = {
+        ...router.location.query,
+        pageStart: start ? getUtcDateString(start) : undefined,
+        pageEnd: end ? getUtcDateString(end) : undefined,
+        pageStatsPeriod: period ?? undefined,
+      };
 
-        // Only push new location if query params has changed because this will cause a heavy re-render
-        if (qs.stringify(newQuery) !== qs.stringify(router.location.query)) {
-          router.push({
-            pathname: router.location.pathname,
-            query: newQuery,
-          });
-        }
-      } else {
-        updateDateTime(
-          {
-            period,
-            start: startFormatted
-              ? getUtcToLocalDateObject(startFormatted)
-              : startFormatted,
-            end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
-          },
-          router,
-          {save: saveOnZoom}
-        );
+      // Only push new location if query params has changed because this will cause a heavy re-render
+      if (qs.stringify(newQuery) !== qs.stringify(router.location.query)) {
+        router.push({
+          pathname: router.location.pathname,
+          query: newQuery,
+        });
       }
+    } else {
+      updateDateTime(
+        {
+          period,
+          start: startFormatted
+            ? getUtcToLocalDateObject(startFormatted)
+            : startFormatted,
+          end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
+        },
+        router,
+        {save: saveOnZoom}
+      );
+    }
 
-      this.saveCurrentPeriod({period, start, end});
-    };
+    this.saveCurrentPeriod({period, start, end});
   };
 
   /**
@@ -290,17 +296,8 @@ class ChartZoom extends Component<Props> {
 
   /**
    * Chart event when *any* rendering+animation finishes
-   *
-   * `this.zooming` acts as a callback function so that
-   * we can let the native zoom animation on the chart complete
-   * before we update URL state and re-render
    */
   handleChartFinished = (_props: any, chart: any) => {
-    if (typeof this.zooming === 'function') {
-      this.zooming();
-      this.zooming = null;
-    }
-
     // This attempts to activate the area zoom toolbox feature
     const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
