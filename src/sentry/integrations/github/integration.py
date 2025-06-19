@@ -405,7 +405,6 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
             [
                 self.get_merged_pr_single_issue_template(
                     title=issue.title,
-                    subtitle=self.format_comment_subtitle(issue.culprit or "unknown culprit"),
                     url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
                     environment=self.get_environment_info(issue),
                 )

@@ -330,16 +330,11 @@ class TestGetCommentBody(GitlabCommentTestCase):
         expected_comment = f"""## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-‼️ **{ev1.group.title}** `{ev1.group.culprit}`
- - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=gitlab-pr-bot)
- - Environment: `dev`
+* ‼️ [**{ev1.group.title}**](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=gitlab-pr-bot) in `dev`
 
-‼️ **{ev2.group.title}** `{ev2.group.culprit}`
- - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
+* ‼️ [**{ev2.group.title}**](http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
 
-‼️ **{ev3.group.title}** `{ev3.group.culprit}`
- - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/?referrer=gitlab-pr-bot)
- - Environment: `prod`
+* ‼️ [**{ev3.group.title}**](http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/?referrer=gitlab-pr-bot) in `prod`
 """
         assert formatted_comment == expected_comment
 
@@ -361,7 +356,6 @@ class TestCommentWorkflow(GitlabCommentTestCase):
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
-        culprits = [g.culprit for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
         responses.add(
@@ -378,11 +372,9 @@ class TestCommentWorkflow(GitlabCommentTestCase):
 ## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-‼️ **{titles[0]}** `{culprits[0]}`
- - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
+* ‼️ [**{titles[0]}**](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
 
-‼️ **{titles[1]}** `{culprits[1]}`
- - [View Issue](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
+* ‼️ [**{titles[1]}**](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
 """
         }
 
@@ -402,7 +394,6 @@ This merge request was deployed and Sentry observed the following issues:
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
-        culprits = [g.culprit for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
         pull_request_comment = PullRequestComment.objects.create(
             external_id=1,
@@ -436,11 +427,9 @@ This merge request was deployed and Sentry observed the following issues:
 ## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-‼️ **{titles[0]}** `{culprits[0]}`
- - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
+* ‼️ [**{titles[0]}**](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
 
-‼️ **{titles[1]}** `{culprits[1]}`
- - [View Issue](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
+* ‼️ [**{titles[1]}**](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
 """
         }
 

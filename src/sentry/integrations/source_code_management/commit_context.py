@@ -139,9 +139,8 @@ class PullRequestFile:
     patch: str
 
 
-MERGED_PR_SINGLE_ISSUE_TEMPLATE = (
-    "‼️ **{title}** `{subtitle}`\n - [View Issue]({url}){environment}\n"
-)
+ISSUE_TITLE_MAX_LENGTH = 50
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "* ‼️ [**{title}**]({url}){environment}\n"
 
 
 class CommitContextIntegration(ABC):
@@ -575,13 +574,20 @@ class PRCommentWorkflow(ABC):
         )
         return raw_snql_query(request, referrer=self.referrer.value)["data"]
 
+    @staticmethod
+    def _truncate_title(title: str, max_length: int = ISSUE_TITLE_MAX_LENGTH) -> str:
+        """Truncate title if it's too long and add ellipsis."""
+        if len(title) <= max_length:
+            return title
+        return title[:max_length].rstrip() + "..."
+
     def get_environment_info(self, issue: Group) -> str:
         try:
             recommended_event = issue.get_recommended_event()
             if recommended_event:
                 environment = recommended_event.get_environment()
                 if environment and environment.name:
-                    return f"\n - Environment: `{environment.name}`"
+                    return f" in `{environment.name}`"
         except Exception as e:
             # If anything goes wrong, just continue without environment info
             logger.info(
@@ -591,12 +597,10 @@ class PRCommentWorkflow(ABC):
         return ""
 
     @staticmethod
-    def get_merged_pr_single_issue_template(
-        title: str, subtitle: str, url: str, environment: str
-    ) -> str:
+    def get_merged_pr_single_issue_template(title: str, url: str, environment: str) -> str:
+        truncated_title = PRCommentWorkflow._truncate_title(title)
         return MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
-            title=title,
-            subtitle=subtitle,
+            title=truncated_title,
             url=url,
             environment=environment,
         )
