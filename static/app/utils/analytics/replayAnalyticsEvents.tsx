@@ -153,6 +153,8 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-missing-replay-alert': 'Render Missing Replay Alert',
   'replay.search': 'Searched Replay',
+  'replay.timeline.zoom-in': 'Zoomed In Replay Timeline',
+  'replay.timeline.zoom-out': 'Zoomed Out Replay Timeline',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
   'replay.view-html': 'Clicked "View HTML" in Replay Breadcrumb',
 };
