@@ -12,7 +12,6 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 /**
- * @internal
  * Renderers here are used as a default fallback when no renderer function is supplied
  */
 
@@ -27,6 +26,7 @@ interface DefaultBodyCellRenderProps extends DefaultCellRenderProps {
 }
 
 // TODO: expand on some basic sorting functionality
+/** @internal */
 export const renderDefaultHeadCell = ({tableData}: DefaultCellRenderProps) =>
   function (
     column: TableColumn<keyof TableDataRow>,
@@ -47,6 +47,7 @@ export const renderDefaultHeadCell = ({tableData}: DefaultCellRenderProps) =>
     );
   };
 
+/** @internal */
 export const renderDefaultBodyCell = ({
   tableData,
   location,
