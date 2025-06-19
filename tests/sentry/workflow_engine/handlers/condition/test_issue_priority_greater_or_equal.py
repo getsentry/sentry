@@ -14,7 +14,7 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger_warning = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="warning"
