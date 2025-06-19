@@ -162,40 +162,36 @@ class ChartZoom extends Component<Props, State> {
       end: endFormatted,
     });
 
-    this.setState({
-      zooming: () => {
-        if (usePageDate && router) {
-          const newQuery = {
-            ...router.location.query,
-            pageStart: start ? getUtcDateString(start) : undefined,
-            pageEnd: end ? getUtcDateString(end) : undefined,
-            pageStatsPeriod: period ?? undefined,
-          };
+    if (usePageDate && router) {
+      const newQuery = {
+        ...router.location.query,
+        pageStart: start ? getUtcDateString(start) : undefined,
+        pageEnd: end ? getUtcDateString(end) : undefined,
+        pageStatsPeriod: period ?? undefined,
+      };
 
-          // Only push new location if query params has changed because this will cause a heavy re-render
-          if (qs.stringify(newQuery) !== qs.stringify(router.location.query)) {
-            router.push({
-              pathname: router.location.pathname,
-              query: newQuery,
-            });
-          }
-        } else {
-          updateDateTime(
-            {
-              period,
-              start: startFormatted
-                ? getUtcToLocalDateObject(startFormatted)
-                : startFormatted,
-              end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
-            },
-            router,
-            {save: saveOnZoom}
-          );
-        }
+      // Only push new location if query params has changed because this will cause a heavy re-render
+      if (qs.stringify(newQuery) !== qs.stringify(router.location.query)) {
+        router.push({
+          pathname: router.location.pathname,
+          query: newQuery,
+        });
+      }
+    } else {
+      updateDateTime(
+        {
+          period,
+          start: startFormatted
+            ? getUtcToLocalDateObject(startFormatted)
+            : startFormatted,
+          end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
+        },
+        router,
+        {save: saveOnZoom}
+      );
+    }
 
-        this.saveCurrentPeriod({period, start, end});
-      },
-    });
+    this.saveCurrentPeriod({period, start, end});
   };
 
   /**
@@ -300,18 +296,8 @@ class ChartZoom extends Component<Props, State> {
 
   /**
    * Chart event when *any* rendering+animation finishes
-   *
-   * `this.zooming` acts as a callback function so that
-   * we can let the native zoom animation on the chart complete
-   * before we update URL state and re-render
    */
   handleChartFinished = (_props: any, chart: any) => {
-    const {zooming} = this.state;
-    if (typeof zooming === 'function') {
-      (zooming as () => void)();
-      this.setState({zooming: null});
-    }
-
     // This attempts to activate the area zoom toolbox feature
     const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
@@ -387,7 +373,6 @@ class ChartZoom extends Component<Props, State> {
         }
       ),
       onDataZoom: this.handleDataZoom,
-      // this isn't triggered
       onFinished: this.handleChartFinished,
       onRestore: this.handleZoomRestore,
       ...props,
