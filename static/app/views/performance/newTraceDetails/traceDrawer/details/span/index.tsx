@@ -52,6 +52,7 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {
@@ -594,6 +595,10 @@ function EAPSpanNodeDetails({
                         project={project}
                         group={undefined}
                       />
+                    ) : null}
+
+                    {isTransaction ? (
+                      <BreadCrumbs event={eventTransaction} organization={organization} />
                     ) : null}
 
                     {isTransaction && project ? (
