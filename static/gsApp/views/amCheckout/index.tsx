@@ -131,16 +131,23 @@ class AMCheckout extends Component<Props, State> {
       isBizPlanFamily(props.subscription.planDetails) &&
       props.checkoutTier === props.subscription.planTier
     ) {
-      const selectedAll = props.subscription.reservedBudgets?.every(budget => {
-        if (
-          Object.values(SelectableProduct).includes(
-            budget.apiName as string as SelectableProduct
-          )
-        ) {
-          return budget.reservedBudget > 0;
-        }
-        return !props.organization.features.includes(budget.billingFlag || '');
-      });
+      // TODO(billing): cleanup condition after backfill
+      const selectedAll = props.organization.features.includes('seer-billing')
+        ? props.subscription.reservedBudgets &&
+          props.subscription.reservedBudgets.length > 0
+          ? props.subscription.reservedBudgets.every(budget => {
+              if (
+                Object.values(SelectableProduct).includes(
+                  budget.apiName as string as SelectableProduct
+                )
+              ) {
+                return budget.reservedBudget > 0;
+              }
+              return !props.organization.features.includes(budget.billingFlag || '');
+            })
+          : false // don't skip before backfill
+        : true; // skip if seer hasn't launched
+
       if (selectedAll) {
         step = 2;
       }

@@ -13,8 +13,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
+import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 type TraceMetaQueryParams =
@@ -151,13 +150,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const api = useApi();
   const filters = usePageFilters();
   const organization = useOrganization();
-  const [storedTraceFormat] = useSyncedLocalStorageState(
-    TRACE_FORMAT_PREFERENCE_KEY,
-    'non-eap'
-  );
-
-  const isEAP: boolean =
-    storedTraceFormat === 'eap' && organization.features.includes('trace-spans-format');
+  const isEAP = useIsEAPTraceEnabled();
 
   const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);

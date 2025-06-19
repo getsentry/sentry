@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, Never, TypedDict
+from typing import Any, TypedDict
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -21,10 +21,10 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline_types import IntegrationPipelineViewT
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
-from sentry.pipeline.views.base import PipelineView
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.sentry_apps.logic import SentryAppCreator
@@ -366,15 +366,16 @@ class VercelIntegrationProvider(IntegrationProvider):
     # feature flag handler is in getsentry
     requires_feature_flag = True
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
-        return [
-            NestedPipelineView(
-                bind_key="identity",
-                provider_key=self.key,
-                pipeline_cls=IdentityProviderPipeline,
-                config={"redirect_url": absolute_uri(self.oauth_redirect_url)},
-            )
-        ]
+    def _identity_pipeline_view(self) -> IntegrationPipelineViewT:
+        return NestedPipelineView(
+            bind_key="identity",
+            provider_key=self.key,
+            pipeline_cls=IdentityProviderPipeline,
+            config={"redirect_url": absolute_uri(self.oauth_redirect_url)},
+        )
+
+    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
+        return [self._identity_pipeline_view()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]

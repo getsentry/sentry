@@ -5,8 +5,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
@@ -349,7 +349,7 @@ const TrailingItems = styled('div')`
 `;
 
 const SeparatorWrapper = styled('div')`
-  padding: ${space(1.5)} 0;
+  margin: ${space(1.5)} 0;
   display: none;
 `;
 
@@ -366,7 +366,7 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;

@@ -1,17 +1,17 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
 type SectionProps = {
-  children: React.ReactNode;
   title: string;
+  children?: React.ReactNode;
   description?: string;
 };
 
 export default function Section({children, title, description}: SectionProps) {
   return (
-    <Flex column gap={space(1)}>
+    <Flex direction="column" gap={space(1)}>
       <SectionHeading>{title}</SectionHeading>
       {description && <SectionDescription>{description}</SectionDescription>}
       {children}

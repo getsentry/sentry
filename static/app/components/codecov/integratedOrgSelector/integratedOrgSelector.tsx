@@ -11,7 +11,9 @@ import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-const SAMPLE_ORG_ITEMS = ['codecov', 'sentry', 'my-other-org-with-a-super-long-name'];
+import {IconIntegratedOrg} from './iconIntegratedOrg';
+
+const SAMPLE_ORG_ITEMS = ['codecov', 'getsentry'];
 
 function AddIntegratedOrgButton() {
   return (
@@ -93,9 +95,14 @@ export function IntegratedOrgSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <TriggerLabel>
-                {integratedOrg || t('Select integrated organization')}
-              </TriggerLabel>
+              <TriggerFlexContainer>
+                <IconContainer>
+                  <IconIntegratedOrg />
+                </IconContainer>
+                <TriggerLabel>
+                  {integratedOrg || t('Select integrated organization')}
+                </TriggerLabel>
+              </TriggerFlexContainer>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -109,6 +116,7 @@ export function IntegratedOrgSelector() {
 const TriggerLabelWrap = styled('span')`
   position: relative;
   min-width: 0;
+  max-width: 200px;
 `;
 
 const TriggerLabel = styled('span')`
@@ -117,6 +125,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const OptionLabel = styled('span')`
+  white-space: normal;
   /* Remove custom margin added by SelectorItemLabel. Once we update custom hooks and
   remove SelectorItemLabel, we can delete this. */
   div {
@@ -141,6 +150,7 @@ const MenuFooterDivider = styled('div')`
   padding: ${space(1)} 0;
   &:before {
     display: block;
+    white-space: normal;
     position: absolute;
     content: '';
     height: 1px;
@@ -155,4 +165,17 @@ const FlexContainer = styled('div')`
   flex-direction: row;
   justify-content: flex-start;
   gap: ${space(1)};
+`;
+
+const TriggerFlexContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: ${space(0.75)};
+  align-items: center;
+`;
+
+const IconContainer = styled('div')`
+  flex: 1 0 14px;
+  height: 14px;
 `;

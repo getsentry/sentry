@@ -425,24 +425,13 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "process-spans": {
         "topic": Topic.INGEST_SPANS,
+        "dlq_topic": Topic.INGEST_SPANS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": [
-            click.Option(
-                ["--max-flush-segments", "max_flush_segments"],
-                type=int,
-                default=500,
-                help="DEPRECATED. Use option `spans.buffer.max-flush-segments` instead.",
-            ),
-            click.Option(
-                ["--max-memory-percentage", "max_memory_percentage"],
-                default=1.0,
-                help="DEPRECATED. Use option `spans.buffer.max-memory-percentage` instead.",
-            ),
-            *multiprocessing_options(default_max_batch_size=100),
-        ],
+        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
+        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": [
             click.Option(

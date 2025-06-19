@@ -5502,6 +5502,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "field": [
                     "file_extension",
                 ],
+                "orderby": "file_extension",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -5514,3 +5515,65 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["file_extension"] == "css"
         assert data[1]["file_extension"] == "js"
         assert meta["dataset"] == self.dataset
+
+    def test_filter_timestamp(self):
+        one_day_ago = before_now(days=1).replace(microsecond=0)
+        three_days_ago = before_now(days=3).replace(microsecond=0)
+
+        span1 = self.create_span({}, start_ts=one_day_ago)
+        span2 = self.create_span({}, start_ts=three_days_ago)
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        request = {
+            "field": ["timestamp"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(
+            {
+                **request,
+                "query": "timestamp:-2d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "timestamp": one_day_ago.isoformat(),
+            },
+        ]
+
+        timestamp = before_now(days=2).isoformat()
+        timestamp = timestamp.split("T", 2)[0]
+
+        response = self.do_request(
+            {
+                **request,
+                "query": f"timestamp:>{timestamp}",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "timestamp": one_day_ago.isoformat(),
+            },
+        ]
+
+        response = self.do_request(
+            {
+                **request,
+                "query": f"timestamp:<{timestamp}",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "timestamp": three_days_ago.isoformat(),
+            },
+        ]

@@ -1,10 +1,10 @@
 import type React from 'react';
 
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 export interface UserAvatarProps extends BaseAvatarProps {
   gravatar?: boolean;
@@ -34,7 +34,7 @@ export function UserAvatar({
   const type = inferAvatarType(user, gravatar);
   let tooltip: React.ReactNode = null;
 
-  if (isRenderFunc(renderTooltip)) {
+  if (renderTooltip) {
     tooltip = renderTooltip(user);
   } else if (props.tooltip) {
     tooltip = props.tooltip;

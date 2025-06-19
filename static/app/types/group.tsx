@@ -8,6 +8,7 @@ import type {FieldKind} from 'sentry/utils/fields';
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {
+  AvatarSentryApp,
   Commit,
   ExternalIssue,
   PlatformExternalIssue,
@@ -472,6 +473,7 @@ interface GroupActivityBase {
   id: string;
   assignee?: string;
   issue?: Group;
+  sentry_app?: AvatarSentryApp;
   user?: null | User;
 }
 

@@ -48,6 +48,7 @@ export function JobsTable() {
     query: 'span.op:queue.process',
     fields: [
       'count()',
+      'project.id',
       'messaging.destination.name',
       'avg(messaging.message.receive.latency)',
       'avg_if(span.duration,span.op,queue.process)',
@@ -80,7 +81,12 @@ export function JobsTable() {
         case 'messaging.destination.name':
           return <DestinationCell destination={dataRow['messaging.destination.name']} />;
         case 'failure_rate()':
-          return <ErrorRateCell errorRate={dataRow['failure_rate()']} />;
+          return (
+            <ErrorRateCell
+              errorRate={dataRow['failure_rate()']}
+              total={dataRow['count()']}
+            />
+          );
         case 'avg(messaging.message.receive.latency)':
         case 'avg_if(span.duration,span.op,queue.process)':
           return <DurationCell milliseconds={dataRow[column.key]} />;

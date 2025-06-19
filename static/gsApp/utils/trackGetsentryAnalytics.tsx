@@ -91,6 +91,7 @@ type GetsentryEventParameters = {
     SelectableProduct,
     {
       enabled: boolean;
+      previously_enabled: boolean;
     }
   > &
     HasSub;
@@ -131,6 +132,7 @@ type GetsentryEventParameters = {
     value: FieldValue;
   };
   'gen_ai_consent.view_in_settings_clicked': Record<PropertyKey, unknown>;
+  'github.multi_org.upsell': {source?: string};
   'grace_period_modal.seen': HasSub;
   'growth.clicked_enter_sandbox': {
     scenario: string;
@@ -239,6 +241,7 @@ export type GetsentryEventKey = keyof GetsentryEventParameters;
 
 const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'power_icon.clicked': 'Clicked Power Icon',
+  'github.multi_org.upsell': 'Github Multi-Org Upsell Clicked',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_need_help': 'Growth: Onboarding Clicked Need Help',
   'growth.onboarding_clicked_upgrade': 'Growth: Onboarding Clicked Upgrade',

@@ -56,7 +56,10 @@ import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
-import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
+import {
+  isEapAlertType,
+  shouldUseErrorsDiscoverDataset,
+} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   alertDetailsLink,
@@ -284,7 +287,7 @@ export default function MetricChart({
             </Fragment>
           </StyledInlineContainer>
           {!isSessionAggregate(rule.aggregate) &&
-            (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            (isEapAlertType(getAlertTypeFromAggregateDataset(rule)) ? (
               <Feature features="visibility-explore-view">
                 <LinkButton size="sm" {...props}>
                   {buttonText}

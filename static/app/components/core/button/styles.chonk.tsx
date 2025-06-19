@@ -1,7 +1,9 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
+// eslint-disable-next-line boundaries/element-types
 import type {StrictCSSObject} from 'sentry/utils/theme';
+// eslint-disable-next-line boundaries/element-types
 import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO: remove Link type in the future
@@ -113,6 +115,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     '&:focus-visible': {
       outline: 'none',
+      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
 
       '&::after': {
         border: `1px solid ${p.theme.focusBorder}`,

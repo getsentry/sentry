@@ -154,6 +154,8 @@ export function OverviewTimeline({monitorList}: Props) {
         cursorOffsets={{right: 40}}
         additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
+        cursorOverlayAnchor="top"
+        cursorOverlayAnchorOffset={10}
       />
 
       <MonitorRows>

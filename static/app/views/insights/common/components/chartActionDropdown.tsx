@@ -53,6 +53,7 @@ export function ChartActionDropdown({
     query: search?.formatString(),
     sort: undefined,
     groupBy,
+    referrer,
   });
 
   const alertsUrls = yAxes.map((yAxis, index) => {

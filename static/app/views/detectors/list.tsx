@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import SearchBar from 'sentry/components/searchBar';
+import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
@@ -12,10 +12,14 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
@@ -23,16 +27,30 @@ export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
 
   const location = useLocation();
+  const navigate = useNavigate();
   const {selection} = usePageFilters();
 
-  const query =
-    typeof location.query.query === 'string' ? location.query.query : undefined;
-  const sortBy =
-    typeof location.query.sort === 'string' ? location.query.sort : undefined;
-
-  const {data: detectors, isPending} = useDetectorsQuery({
+  const {
+    sort: sorts,
     query,
-    sortBy,
+    cursor,
+  } = useLocationQuery({
+    fields: {
+      sort: decodeSorts,
+      query: decodeScalar,
+      cursor: decodeScalar,
+    },
+  });
+  const sort = sorts[0] ?? {kind: 'desc', field: 'connectedWorkflows'};
+
+  const {
+    data: detectors,
+    isPending,
+    getResponseHeader,
+  } = useDetectorsQuery({
+    cursor,
+    query,
+    sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
     projects: selection.projects,
   });
 
@@ -42,7 +60,22 @@ export default function DetectorsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <DetectorListTable detectors={detectors ?? []} isPending={isPending} />
+            <div>
+              <DetectorListTable
+                detectors={detectors ?? []}
+                isPending={isPending}
+                sort={sort}
+              />
+              <Pagination
+                pageLinks={getResponseHeader?.('Link')}
+                onCursor={newCursor => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, cursor: newCursor},
+                  });
+                }}
+              />
+            </div>
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>
@@ -55,7 +88,7 @@ function TableHeader() {
     <Flex gap={space(2)}>
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
-        <SearchBar placeholder={t('Search for events, users, tags, and more')} />
+        <DetectorSearch />
       </div>
     </Flex>
   );

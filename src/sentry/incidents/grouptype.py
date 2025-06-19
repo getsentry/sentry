@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
-from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
+from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
@@ -32,7 +32,7 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 
 @dataclass
-class MetricIssueEvidenceData(EvidenceData):
+class MetricIssueEvidenceData(EvidenceData[float]):
     alert_id: int
 
 
@@ -79,18 +79,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         except Exception:
             assignee = None
 
-        title = self.construct_title(snuba_query, detector_trigger, priority)
-        event_data = {
-            "environment": self.detector.config.get("environment"),
-            "platform": None,
-            "sdk": None,
-        }  # XXX: may need to add to this
-
         return (
             DetectorOccurrence(
                 issue_title=self.detector.name,
-                subtitle=title,
-                resource_id=None,
+                subtitle=self.construct_title(snuba_query, detector_trigger, priority),
                 evidence_data={
                     "alert_id": alert_id,
                 },
@@ -98,10 +90,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
                 type=MetricIssue,
                 level="error",
                 culprit="",
-                priority=priority,
                 assignee=assignee,
+                priority=priority,
             ),
-            event_data,
+            {},
         )
 
     def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
@@ -174,10 +166,9 @@ class MetricIssue(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-    enable_status_change_workflow_notifications = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
-        validator=MetricAlertsDetectorValidator,
+        validator=MetricIssueDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of a metric alert firing",

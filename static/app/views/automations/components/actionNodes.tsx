@@ -39,7 +39,10 @@ import {
   PagerdutyNode,
 } from 'sentry/views/automations/components/actions/pagerduty';
 import {PluginNode} from 'sentry/views/automations/components/actions/plugin';
-import {SentryAppNode} from 'sentry/views/automations/components/actions/sentryApp';
+import {
+  SentryAppDetails,
+  SentryAppNode,
+} from 'sentry/views/automations/components/actions/sentryApp';
 import {SlackDetails, SlackNode} from 'sentry/views/automations/components/actions/slack';
 import {
   WebhookDetails,
@@ -132,6 +135,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
     ActionType.SENTRY_APP,
     {
       action: SentryAppNode,
+      details: SentryAppDetails,
     },
   ],
   [

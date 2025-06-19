@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -36,7 +35,6 @@ function withProviders(Layout: any) {
 
 const List = withProviders(ListLayout);
 const Detail = withProviders(DetailLayout);
-const Edit = withProviders(EditLayout);
 
 const Container = styled(Flex)`
   background: ${p => p.theme.background};
@@ -146,41 +144,6 @@ export default Storybook.story('Layout Components', story => {
               <Placeholder>sidebar</Placeholder>
             </DetailLayout.Sidebar>
           </Detail>
-        </Container>
-      </Storybook.SizingWindow>
-    </Fragment>
-  ));
-
-  story('EditLayout', () => (
-    <Fragment>
-      <p>
-        Configuration pages for Monitors and Automations both use the{' '}
-        <Storybook.JSXNode name="EditLayout" /> component.
-      </p>
-
-      <p>
-        The <Storybook.JSXNode name="EditLayout" /> component expects{' '}
-        <Storybook.JSXProperty name="children" value={undefined} /> to be{' '}
-        <Storybook.JSXNode name="EditLayout.Chart" /> and{' '}
-        <Storybook.JSXNode name="EditLayout.Panels" /> components.
-      </p>
-
-      <Storybook.SizingWindow display="block">
-        <Container>
-          <Edit
-            title="Notify Slack team"
-            breadcrumb="Automations"
-            action={<Button priority="primary">Save</Button>}
-          >
-            <EditLayout.Chart>
-              <Placeholder>chart</Placeholder>
-            </EditLayout.Chart>
-            <EditLayout.Panels>
-              <Placeholder>panels</Placeholder>
-              <Placeholder>panels</Placeholder>
-              <Placeholder>panels</Placeholder>
-            </EditLayout.Panels>
-          </Edit>
         </Container>
       </Storybook.SizingWindow>
     </Fragment>
