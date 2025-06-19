@@ -5,9 +5,9 @@ import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {TextArea} from 'sentry/components/core/textarea';
 import type {RepoSettings} from 'sentry/components/events/autofix/types';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   IconChevron as IconExpandToggle,

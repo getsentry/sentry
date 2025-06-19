@@ -1,8 +1,8 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {Component, createRef, Fragment} from 'react';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';

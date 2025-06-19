@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-import Panel from './panels/panel';
-import InteractionStateLayer from './interactionStateLayer';
+import InteractionStateLayer from './';
 
 export default Storybook.story('InteractionStateLayer', story => {
   story('Getting Started', () => {
@@ -47,7 +46,10 @@ export default Storybook.story('InteractionStateLayer', story => {
   });
 });
 
-const StyledPanel = styled(Panel)`
+const StyledPanel = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
   max-width: 300px;
 `;
