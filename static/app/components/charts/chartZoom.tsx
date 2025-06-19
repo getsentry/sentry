@@ -69,10 +69,6 @@ type Props = {
   xAxisIndex?: number | number[];
 };
 
-type State = {
-  zooming: (() => void) | null;
-};
-
 /**
  * This is a very opinionated component that takes a render prop through `children`. It
  * will provide props to be passed to `BaseChart` to enable support of zooming without
@@ -81,7 +77,7 @@ type State = {
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
  */
-class ChartZoom extends Component<Props, State> {
+class ChartZoom extends Component<Props> {
   constructor(props: Props) {
     super(props);
 
@@ -91,10 +87,6 @@ class ChartZoom extends Component<Props, State> {
     // Initialize current period instance state for zoom history
     this.saveCurrentPeriod(props);
   }
-
-  state = {
-    zooming: null,
-  };
 
   componentDidUpdate() {
     if (this.props.disabled) {
