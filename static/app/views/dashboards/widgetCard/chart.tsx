@@ -60,7 +60,7 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
-import TableWidgetVisualization from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -171,11 +171,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         <TableWrapper key={`table:${result.title}`}>
           {org.features.includes('use-table-widget-visualization') ? (
             <TableWidgetVisualization
-              loading={widget.widgetType === WidgetType.SPANS ? false : loading}
               columns={[]}
               tableData={{
                 data: [],
-                meta: undefined,
+                meta: {
+                  fields: {},
+                  units: {},
+                },
               }}
             />
           ) : (

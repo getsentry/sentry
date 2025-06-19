@@ -6,33 +6,48 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import type {Organization} from 'sentry/types/organization';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 /**
- * Renderers here are used as a default fallback when no renderer function is supplied
+ * Renderers that use any supplied renderer, but fallback to default rendering if none are provided
  */
-
-interface DefaultCellRenderProps {
-  tableData?: TableData;
+interface DefaultHeadCellRenderProps {
+  renderTableHeadCell?: (
+    column: GridColumnOrder,
+    columnIndex: number
+  ) => React.ReactNode | undefined;
 }
 
-interface DefaultBodyCellRenderProps extends DefaultCellRenderProps {
+interface DefaultBodyCellRenderProps {
   location: Location;
   organization: Organization;
   theme: Theme;
+  renderTableBodyCell?: (
+    column: GridColumnOrder,
+    dataRow: Record<string, any>,
+    rowIndex: number,
+    columnIndex: number
+  ) => React.ReactNode | undefined;
+  tableData?: TabularData;
 }
 
 // TODO: expand on some basic sorting functionality
-export const renderDefaultHeadCell = ({tableData}: DefaultCellRenderProps) =>
+export const renderDefaultHeadCell = ({
+  renderTableHeadCell,
+}: DefaultHeadCellRenderProps) =>
   function (
     column: TableColumn<keyof TableDataRow>,
     _columnIndex: number
   ): React.ReactNode {
-    const tableMeta = tableData?.meta;
-    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const cell: React.ReactNode = renderTableHeadCell?.(column, _columnIndex);
+    if (cell) {
+      return cell;
+    }
+    const align = fieldAlignment(column.name, column.type);
 
     return (
       <SortLink
@@ -51,6 +66,7 @@ export const renderDefaultBodyCell = ({
   location,
   organization,
   theme,
+  renderTableBodyCell,
 }: DefaultBodyCellRenderProps) =>
   function (
     column: GridColumnOrder,
@@ -58,13 +74,23 @@ export const renderDefaultBodyCell = ({
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode {
+    const cell: React.ReactNode = renderTableBodyCell?.(
+      column,
+      dataRow,
+      rowIndex,
+      columnIndex
+    );
+    if (cell) {
+      return cell;
+    }
+
     const columnKey = String(column.key);
     if (!tableData?.meta) {
       return dataRow[column.key];
     }
 
-    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
-    const unit = tableData.meta.units?.[columnKey];
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta.fields, false);
+    const unit = tableData.meta.units?.[columnKey] as string;
 
     return (
       <div key={`${rowIndex}-${columnIndex}:${column.name}`}>

@@ -1,11 +1,36 @@
 import {Fragment} from 'react';
 
 import * as Storybook from 'sentry/stories';
-import {
-  SAMPLE_TABLE_COLUMNS,
-  SAMPLE_TABLE_DATA,
-} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleTableProps';
-import TableWidgetVisualization from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleTableData';
+import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+
+const TABLE_COLUMNS: Array<TableColumn<string>> = [
+  {
+    key: 'http.request_method',
+    name: 'http.request_method',
+    type: 'never',
+    isSortable: false,
+    column: {
+      kind: 'field',
+      field: 'http.request_method',
+      alias: '',
+    },
+    width: -1,
+  },
+  {
+    key: 'count(span.duration)',
+    name: 'count(span.duration)',
+    type: 'number',
+    isSortable: true,
+    column: {
+      kind: 'function',
+      function: ['count', 'span.duration', undefined, undefined],
+      alias: '',
+    },
+    width: -1,
+  },
+];
 
 export default Storybook.story('TableWidgetVisualization', story => {
   story('Getting Started', () => {
@@ -15,7 +40,10 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <Storybook.JSXNode name="TableWidgetVisualization" /> is meant to be a robust
           and eventual replacement to all tables in Dashboards and Insights (and
           potentially more). The inner component of this table is{' '}
-          <Storybook.JSXNode name="GridEditable" />.
+          <Storybook.JSXNode name="GridEditable" />. The table allows for custom
+          renderers, but is also able to correctly render fields on its own using
+          fallbacks. Future features planned include sorting, resizing and customizable
+          cell actions.
         </p>
         <p>
           Below is the the most basic example of the table which requires
@@ -23,9 +51,8 @@ export default Storybook.story('TableWidgetVisualization', story => {
           table body respectively.
         </p>
         <TableWidgetVisualization
-          loading={false}
-          tableData={SAMPLE_TABLE_DATA}
-          columns={SAMPLE_TABLE_COLUMNS}
+          tableData={sampleHTTPRequestTableData}
+          columns={TABLE_COLUMNS}
         />
       </Fragment>
     );
@@ -37,7 +64,7 @@ export default Storybook.story('TableWidgetVisualization', story => {
         <p>
           Currently, the columns use the type <code>TableColumn[]</code> and are rendered
           in the order they are supplied. The table data uses the type{' '}
-          <code>TableData</code>.
+          <code>TabularData</code>.
         </p>
       </Fragment>
     );
@@ -48,36 +75,49 @@ export default Storybook.story('TableWidgetVisualization', story => {
       <Fragment>
         <p>By default, the table falls back on predefined default rendering functions.</p>
         <p>
-          If custom cell rendering is required, pass
-          <Storybook.JSXProperty name="renderTableBodyCell" value="function" /> and{' '}
-          <Storybook.JSXProperty name="renderTableHeadCell" value="function" /> which
-          replace the rendering of table body cells and table headers respectively
+          If custom cell rendering is required, pass the functions
+          <code>renderTableBodyCell</code> and <code>renderTableHeadCell</code>
+          which replace the rendering of table body cells and table headers respectively.
+          These functions should return a <code>React.ReactNode</code>, but are allowed to
+          return an undefined value, in which case the fallback renderer will run allowing
+          for partial custom rendering
         </p>
         <p>Ex. (to update...)</p>
         <TableWidgetVisualization
-          loading={false}
-          tableData={SAMPLE_TABLE_DATA}
-          columns={SAMPLE_TABLE_COLUMNS}
+          tableData={sampleHTTPRequestTableData}
+          columns={TABLE_COLUMNS}
         />
       </Fragment>
     );
   });
 
-  story('Custom Styling', () => {
+  story('Widget Frame styles', () => {
     return (
       <Fragment>
         <p>
-          The underlying <Storybook.JSXNode name="GridEditable" /> component allows for
-          several useful styling props to be used to format the table. Similarly, this
-          table allow allows for users to pass any overriding styles.
+          This table can also be used in widget frames (ex. the widgets on a dashboard),
+          which have different styling (no borders on the side and no rounded top
+          corners). Use{' '}
+          <Storybook.JSXProperty name="applyWidgetFrameStyle" value={Boolean} /> to apply
+          these styles to the table
         </p>
-        <p>Ex. we can pass custom styles to remove the border of the table:</p>
         <TableWidgetVisualization
-          loading={false}
-          tableData={SAMPLE_TABLE_DATA}
-          columns={SAMPLE_TABLE_COLUMNS}
-          style={{border: 'none'}}
+          tableData={sampleHTTPRequestTableData}
+          columns={TABLE_COLUMNS}
+          applyWidgetFrameStyle
         />
+      </Fragment>
+    );
+  });
+
+  story('Table Loading', () => {
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="TableWidgetVisualization.LoadingPlaceholder" /> can be
+          used as a loading placeholder
+        </p>
+        <TableWidgetVisualization.LoadingPlaceholder />
       </Fragment>
     );
   });
