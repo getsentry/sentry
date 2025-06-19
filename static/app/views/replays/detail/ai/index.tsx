@@ -103,7 +103,7 @@ function AiContent({replayRecord}: Props) {
   if (isError) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Failed to load AI summary')}</Alert>;
+        <Alert type="error">{t('Failed to load AI summary')}</Alert>
       </SummaryContainer>
     );
   }
