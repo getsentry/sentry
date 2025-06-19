@@ -2,11 +2,11 @@ from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderer,
     NotificationTargetResourceType,
     NotificationTemplate,
 )
@@ -20,7 +20,9 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     provider_key = NotificationProviderKey.MSTEAMS
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> MSTeamsRenderable:
+    def render[
+        T: NotificationData
+    ](cls, *, data: T, template: NotificationTemplate[T]) -> MSTeamsRenderable:
         return {}
 
 

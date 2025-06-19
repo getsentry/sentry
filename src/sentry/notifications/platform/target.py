@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any
 
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -7,6 +7,7 @@ from sentry.integrations.services.integration.model import (
 )
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
+    NotificationTarget,
     NotificationTargetResourceType,
 )
 
@@ -16,16 +17,13 @@ class NotificationTargetError(Exception):
 
 
 @dataclass(kw_only=True, frozen=True)
-class NotificationTarget(Protocol):
+class GenericNotificationTarget(NotificationTarget):
     """
     A designated recipient for a notification. This could be a user, a team, or a channel.
     Accepts the renderable object type that matches the connected provider.
     """
 
     is_prepared: bool = field(init=False, default=False)
-    """
-    Metadata field to track whether the target been prepared.
-    """
     provider_key: NotificationProviderKey
     resource_type: NotificationTargetResourceType
     resource_id: str
@@ -43,7 +41,7 @@ class NotificationTarget(Protocol):
 
 
 @dataclass(kw_only=True, frozen=True)
-class IntegrationNotificationTarget(NotificationTarget):
+class IntegrationNotificationTarget(GenericNotificationTarget):
     """
     Adds necessary properties and methods to designate a target within an integration.
     Accepts the renderable object type that matches the connected provider.
@@ -62,4 +60,10 @@ class IntegrationNotificationTarget(NotificationTarget):
 
 
 def prepare_targets(targets: list[NotificationTarget]) -> None:
-    pass
+    """
+    This method is used to prepare the targets for receiving a notification.
+    For example, with IntegrationNotificationTargets, this will populate the `integration` and
+    `organization_integration` fields by making RPC/DB calls.
+    """
+    for target in targets:
+        object.__setattr__(target, "is_prepared", True)

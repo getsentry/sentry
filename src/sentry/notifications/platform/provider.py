@@ -1,15 +1,13 @@
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
+    NotificationRenderer,
+    NotificationTarget,
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
-
-if TYPE_CHECKING:
-    from sentry.notifications.platform.renderer import NotificationRenderer
-    from sentry.notifications.platform.target import NotificationTarget
 
 
 class NotificationProviderError(Exception):
@@ -25,8 +23,8 @@ class NotificationProvider[RenderableT](Protocol):
     """
 
     key: NotificationProviderKey
-    default_renderer: type["NotificationRenderer[RenderableT]"]
-    target_class: type["NotificationTarget"]
+    default_renderer: NotificationRenderer[RenderableT]
+    target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
 
     @classmethod
@@ -52,9 +50,7 @@ class NotificationProvider[RenderableT](Protocol):
         return
 
     @classmethod
-    def get_renderer(
-        cls, *, category: NotificationCategory
-    ) -> type["NotificationRenderer[RenderableT]"]:
+    def get_renderer(cls, *, category: NotificationCategory) -> NotificationRenderer[RenderableT]:
         """
         Returns the renderer for a given notification type, falling back to the default renderer.
         Override this to method to permit different renderers for the provider, though keep in mind

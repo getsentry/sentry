@@ -1,5 +1,5 @@
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
-from sentry.notifications.platform.target import NotificationTarget
+from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
@@ -19,7 +19,7 @@ class EmailNotificationProviderTest(TestCase):
     def test_basic_fields(self):
         provider = EmailNotificationProvider()
         assert provider.key == NotificationProviderKey.EMAIL
-        assert provider.target_class == NotificationTarget
+        assert provider.target_class == GenericNotificationTarget
         assert provider.target_resource_types == [NotificationTargetResourceType.EMAIL]
 
     def test_is_available(self):

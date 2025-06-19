@@ -2,11 +2,11 @@ from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderer,
     NotificationTargetResourceType,
     NotificationTemplate,
 )
@@ -20,7 +20,9 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     provider_key = NotificationProviderKey.SLACK
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> SlackRenderable:
+    def render[
+        T: NotificationData
+    ](cls, *, data: T, template: NotificationTemplate[T]) -> SlackRenderable:
         return {}
 
 

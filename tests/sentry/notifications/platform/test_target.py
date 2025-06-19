@@ -1,4 +1,7 @@
-from sentry.notifications.platform.target import IntegrationNotificationTarget, NotificationTarget
+from sentry.notifications.platform.target import (
+    GenericNotificationTarget,
+    IntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
@@ -8,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 class NotificationTargetTest(TestCase):
     def test_initializes(self):
-        NotificationTarget(
+        GenericNotificationTarget(
             provider_key=NotificationProviderKey.EMAIL,
             resource_type=NotificationTargetResourceType.EMAIL,
             resource_id="test@example.com",

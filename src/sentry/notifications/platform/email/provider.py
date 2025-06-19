@@ -2,11 +2,11 @@ from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.renderer import NotificationRenderer
-from sentry.notifications.platform.target import NotificationTarget
+from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderer,
     NotificationTargetResourceType,
     NotificationTemplate,
 )
@@ -20,7 +20,9 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
     provider_key = NotificationProviderKey.EMAIL
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> EmailRenderable:
+    def render[
+        T: NotificationData
+    ](cls, *, data: T, template: NotificationTemplate[T]) -> EmailRenderable:
         return {}
 
 
@@ -28,7 +30,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
 class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     key = NotificationProviderKey.EMAIL
     default_renderer = EmailRenderer
-    target_class = NotificationTarget
+    target_class = GenericNotificationTarget
     target_resource_types = [NotificationTargetResourceType.EMAIL]
 
     @classmethod
