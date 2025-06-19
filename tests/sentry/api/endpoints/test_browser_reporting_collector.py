@@ -6,6 +6,39 @@ from rest_framework import status
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
+# Working Draft format
+DEPRECATION_REPORT = {
+    "body": {
+        "columnNumber": 12,
+        "id": "RangeExpand",
+        "lineNumber": 31,
+        "message": "Range.expand() is deprecated. Please use Selection.modify() instead.",
+        "sourceFile": "https://dogs.are.great/_next/static/chunks/_4667019e._.js",
+    },
+    "type": "deprecation",
+    "url": "https://dogs.are.great/",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "destination": "default",
+    "timestamp": 1640995200000,  # January 1, 2022 in milliseconds
+    "attempts": 1,
+}
+
+# Editor's Draft format
+INTERVENTION_REPORT = {
+    "body": {
+        "id": "NavigatorVibrate",
+        "message": "The vibrate() method is deprecated.",
+        "sourceFile": "https://dogs.are.great/app.js",
+        "lineNumber": 45,
+    },
+    "type": "intervention",
+    "url": "https://dogs.are.great/page2",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "destination": "default",
+    "age": 2,
+    "attempts": 1,
+}
+
 
 class BrowserReportingCollectorEndpointTest(APITestCase):
     endpoint = "sentry-api-0-reporting-api-experiment"
@@ -14,23 +47,7 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         super().setUp()
 
         self.url = reverse(self.endpoint)
-        self.report_data = [
-            {
-                "body": {
-                    "columnNumber": 12,
-                    "id": "RangeExpand",
-                    "lineNumber": 31,
-                    "message": "Range.expand() is deprecated. Please use Selection.modify() instead.",
-                    "sourceFile": "https://dogs.are.great/_next/static/chunks/_4667019e._.js",
-                },
-                "type": "deprecation",
-                "url": "https://dogs.are.great/",
-                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-                "destination": "default",
-                "timestamp": 1640995200000,  # January 1, 2022 in milliseconds
-                "attempts": 1,
-            }
-        ]
+        self.report_data = [DEPRECATION_REPORT]
 
     def test_404s_by_default(self) -> None:
         response = self.client.post(self.url, self.report_data)
@@ -39,18 +56,10 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
-    @patch("sentry.issues.endpoints.browser_reporting_collector.logger.info")
-    def test_logs_request_data_if_option_enabled(
-        self, mock_logger_info: MagicMock, mock_metrics_incr: MagicMock
-    ) -> None:
-        response = self.client.post(
-            self.url, self.report_data, content_type="application/reports+json"
-        )
+    def test_logs_request_data_if_option_enabled(self, mock_metrics_incr: MagicMock) -> None:
+        response = self.client.post(self.url, self.report_data)
 
         assert response.status_code == status.HTTP_200_OK
-        mock_logger_info.assert_any_call(
-            "browser_report_received", extra={"request_body": self.report_data}
-        )
         mock_metrics_incr.assert_any_call(
             "browser_reporting.raw_report_received",
             tags={"browser_report_type": "deprecation"},
@@ -71,51 +80,13 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
-    @patch("sentry.issues.endpoints.browser_reporting_collector.logger.info")
-    def test_handles_multiple_reports(
-        self, mock_logger_info: MagicMock, mock_metrics_incr: MagicMock
-    ) -> None:
+    def test_handles_multiple_reports_both_specs(self, mock_metrics_incr: MagicMock) -> None:
         """Test that the endpoint handles multiple reports in a single request"""
-        multiple_reports = [
-            {
-                "body": {
-                    "columnNumber": 12,
-                    "id": "RangeExpand",
-                    "lineNumber": 31,
-                    "message": "Range.expand() is deprecated. Please use Selection.modify() instead.",
-                    "sourceFile": "https://dogs.are.great/_next/static/chunks/_4667019e._.js",
-                },
-                "type": "deprecation",
-                "url": "https://dogs.are.great/",
-                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-                "destination": "default",
-                "timestamp": 1640995200000,
-                "attempts": 1,
-            },
-            {
-                "body": {
-                    "id": "NavigatorVibrate",
-                    "message": "The vibrate() method is deprecated.",
-                    "sourceFile": "https://dogs.are.great/app.js",
-                    "lineNumber": 45,
-                },
-                "type": "intervention",
-                "url": "https://dogs.are.great/page2",
-                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-                "destination": "default",
-                "timestamp": 1640995260000,
-                "attempts": 1,
-            },
-        ]
+        multiple_reports = [DEPRECATION_REPORT, INTERVENTION_REPORT]
 
-        response = self.client.post(
-            self.url, multiple_reports, content_type="application/reports+json"
-        )
+        response = self.client.post(self.url, multiple_reports)
 
         assert response.status_code == status.HTTP_200_OK
-        mock_logger_info.assert_any_call(
-            "browser_report_received", extra={"request_body": multiple_reports}
-        )
         # Should record metrics for each report type
         mock_metrics_incr.assert_any_call(
             "browser_reporting.raw_report_received",
@@ -127,3 +98,171 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
             tags={"browser_report_type": "intervention"},
             sample_rate=1.0,
         )
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_rejects_missing_required_fields(self) -> None:
+        """Test that missing required fields are properly validated"""
+        # Missing required fields: url, user_agent, destination, attempts
+        invalid_report = [{"body": {"message": "test"}, "type": "deprecation"}]
+
+        response = self.client.post(self.url, invalid_report)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        response_data = response.json()
+        assert response_data["error"] == "Invalid report data"
+
+        assert response_data["details"] == {
+            "url": ["This field is required."],
+            "user_agent": ["This field is required."],
+            "destination": ["This field is required."],
+            "attempts": ["This field is required."],
+        }
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_rejects_invalid_report_type(self) -> None:
+        """Test that invalid report types are rejected"""
+        invalid_report = [
+            {
+                "body": {"message": "test"},
+                "type": "invalid-type",  # Invalid type
+                "url": "https://example.com",
+                "user_agent": "Mozilla/5.0",
+                "destination": "default",
+                "timestamp": 1640995200000,
+                "attempts": 1,
+            }
+        ]
+
+        response = self.client.post(self.url, invalid_report)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        response_data = response.json()
+        assert response_data["error"] == "Invalid report data"
+        assert response_data["details"] == {"type": ['"invalid-type" is not a valid choice.']}
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_rejects_invalid_url(self) -> None:
+        """Test that invalid URLs are rejected"""
+        invalid_report = [
+            {
+                "body": {"message": "test"},
+                "type": "deprecation",
+                "url": "not-a-valid-url",  # Invalid URL
+                "user_agent": "Mozilla/5.0",
+                "destination": "default",
+                "timestamp": 1640995200000,
+                "attempts": 1,
+            }
+        ]
+
+        response = self.client.post(self.url, invalid_report)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        response_data = response.json()
+        assert response_data["error"] == "Invalid report data"
+        assert response_data["details"] == {
+            "url": ["Enter a valid URL."],
+        }
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_rejects_invalid_timestamp(self) -> None:
+        """Test that invalid timestamps are rejected"""
+        invalid_report = [
+            {
+                "body": {"message": "test"},
+                "type": "deprecation",
+                "url": "https://example.com",
+                "user_agent": "Mozilla/5.0",
+                "destination": "default",
+                "timestamp": -1,  # Negative timestamp
+                "attempts": 1,
+            }
+        ]
+
+        response = self.client.post(self.url, invalid_report)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        response_data = response.json()
+        assert response_data["error"] == "Invalid report data"
+        assert response_data["details"] == {
+            "timestamp": ["Timestamp must be non-negative"],
+        }
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_rejects_invalid_attempts(self) -> None:
+        """Test that invalid attempts values are rejected"""
+        invalid_report = [
+            {
+                "body": {"message": "test"},
+                "type": "deprecation",
+                "url": "https://example.com",
+                "user_agent": "Mozilla/5.0",
+                "destination": "default",
+                "timestamp": 1640995200000,
+                "attempts": 0,  # Must be at least 1
+            }
+        ]
+
+        response = self.client.post(self.url, invalid_report)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        response_data = response.json()
+        assert response_data["error"] == "Invalid report data"
+        assert response_data["details"] == {
+            "attempts": ["Ensure this value is greater than or equal to 1."],
+        }
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_rejects_non_dict_body(self) -> None:
+        """Test that non-dict body values are rejected"""
+        invalid_report = [
+            {
+                "body": "not-a-dict",  # Body must be a dict
+                "type": "deprecation",
+                "url": "https://example.com",
+                "user_agent": "Mozilla/5.0",
+                "destination": "default",
+                "timestamp": 1640995200000,
+                "attempts": 1,
+            }
+        ]
+
+        response = self.client.post(self.url, invalid_report)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        response_data = response.json()
+        assert response_data["error"] == "Invalid report data"
+        assert response_data["details"] == {
+            "body": ['Expected a dictionary of items but got type "str".']
+        }
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_validates_second_report_in_array(self) -> None:
+        """Test that validation errors in the second report are properly handled"""
+        invalid_reports = [
+            DEPRECATION_REPORT,
+            # This report has an invalid type
+            {
+                "body": {"message": "test"},
+                "type": "invalid-type",  # Invalid type
+                "url": "https://example.com",
+                "user_agent": "Mozilla/5.0",
+                "destination": "default",
+                "timestamp": 1640995200000,
+                "attempts": 1,
+            },
+        ]
+
+        response = self.client.post(self.url, invalid_reports)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        response_data = response.json()
+        assert response_data["error"] == "Invalid report data"
+        assert response_data["details"] == {"type": ['"invalid-type" is not a valid choice.']}
