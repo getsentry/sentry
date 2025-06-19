@@ -2,11 +2,11 @@ from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
+from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
-    NotificationRenderer,
     NotificationTarget,
     NotificationTargetResourceType,
     NotificationTemplate,

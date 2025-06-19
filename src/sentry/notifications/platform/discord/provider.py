@@ -2,11 +2,11 @@ from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
+from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
-    NotificationRenderer,
     NotificationTarget,
     NotificationTargetResourceType,
     NotificationTemplate,
@@ -23,10 +23,6 @@ class DiscordRenderer[DataT: NotificationData](NotificationRenderer[DiscordRende
     def render(self, *, template: NotificationTemplate[DataT]) -> DiscordRenderable:
         return {}
 
-    @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
-        pass
-
 
 @provider_registry.register(NotificationProviderKey.DISCORD)
 class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
@@ -42,3 +38,7 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
+        pass

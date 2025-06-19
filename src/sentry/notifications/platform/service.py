@@ -49,7 +49,9 @@ class NotificationService[T: NotificationData]:
 
         # Step 4: Render the template
         renderer = provider.get_renderer(data=self.data)
-        renderable = renderer.render(template=template)
+        renderable = renderer.render(
+            template=template
+        )  # This line is failing in typechecking, even though T is bound to NotificationData
 
         # Step 5: Send the notification
         provider.send(target=target, renderable=renderable)

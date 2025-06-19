@@ -2,11 +2,11 @@ from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
+from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
-    NotificationRenderer,
     NotificationTarget,
     NotificationTargetResourceType,
     NotificationTemplate,
@@ -23,10 +23,6 @@ class EmailRenderer[DataT: NotificationData](NotificationRenderer[EmailRenderabl
     def render(self, *, template: NotificationTemplate[DataT]) -> EmailRenderable:
         return {}
 
-    @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: EmailRenderable) -> None:
-        pass
-
 
 @provider_registry.register(NotificationProviderKey.EMAIL)
 class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
@@ -38,3 +34,7 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         return True
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: EmailRenderable) -> None:
+        pass
