@@ -1,5 +1,4 @@
-import abc
-from typing import Final
+from typing import Protocol
 
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -12,21 +11,20 @@ from sentry.notifications.platform.types import (
 # If there is only one method, and the class usage is just to call a method, the Callable route might make more sense.
 # The typing T is also sketchy being in only the return position, and not inherently connected to the provider class.
 # The concept of renderers could just be a subset of functionality on the base provider class.
-class NotificationRenderer[RenderableT, DataT: NotificationData](abc.ABC):
+class NotificationRenderer[RenderableT](Protocol):
     """
-    An abstract base class for all notification renderers.
+    A protocol metaclass for all notification renderers.
     RenderableT is a type that matches the connected provider.
     """
 
     provider_key: NotificationProviderKey
 
-    def __init__(self, *, data: DataT):
-        self.data: Final[DataT] = data
-
-    @abc.abstractmethod
-    def render(self, *, template: NotificationTemplate[DataT]) -> RenderableT:
+    @classmethod
+    def render(
+        self, *, data: NotificationData, template: NotificationTemplate[NotificationData]
+    ) -> RenderableT:
         """
         Convert template, and data into a renderable object.
         The form of the renderable object is defined by the provider.
         """
-        raise NotImplementedError
+        ...

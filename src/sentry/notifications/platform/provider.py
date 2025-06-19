@@ -2,7 +2,7 @@ from typing import Protocol
 
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.types import (
-    NotificationData,
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTarget,
     NotificationTargetResourceType,
@@ -23,7 +23,7 @@ class NotificationProvider[RenderableT](Protocol):
     """
 
     key: NotificationProviderKey
-    default_renderer: type[NotificationRenderer[RenderableT, NotificationData]]
+    default_renderer: NotificationRenderer[RenderableT]
     target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
 
@@ -50,15 +50,13 @@ class NotificationProvider[RenderableT](Protocol):
         return
 
     @classmethod
-    def get_renderer(
-        cls, *, data: NotificationData
-    ) -> NotificationRenderer[RenderableT, NotificationData]:
+    def get_renderer(cls, *, category: NotificationCategory) -> NotificationRenderer[RenderableT]:
         """
         Returns an instance of a renderer for a given notification, falling back to the default renderer.
         Override this to method to permit different renderers for the provider, though keep in mind
         that this may produce inconsistencies between notifications.
         """
-        return cls.default_renderer(data=data)
+        return cls.default_renderer
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:

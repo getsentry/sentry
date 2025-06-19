@@ -17,10 +17,13 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 type MSTeamsRenderable = Any
 
 
-class MSTeamsRenderer[DataT: NotificationData](NotificationRenderer[MSTeamsRenderable, DataT]):
+class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     provider_key = NotificationProviderKey.MSTEAMS
 
-    def render(self, *, template: NotificationTemplate[DataT]) -> MSTeamsRenderable:
+    @classmethod
+    def render(
+        self, *, data: NotificationData, template: NotificationTemplate[NotificationData]
+    ) -> MSTeamsRenderable:
         return {}
 
 

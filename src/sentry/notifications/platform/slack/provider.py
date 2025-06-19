@@ -17,10 +17,13 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 type SlackRenderable = Any
 
 
-class SlackRenderer[DataT: NotificationData](NotificationRenderer[SlackRenderable, DataT]):
+class SlackRenderer(NotificationRenderer[SlackRenderable]):
     provider_key = NotificationProviderKey.DISCORD
 
-    def render(self, *, template: NotificationTemplate[DataT]) -> SlackRenderable:
+    @classmethod
+    def render(
+        self, *, data: NotificationData, template: NotificationTemplate[NotificationData]
+    ) -> SlackRenderable:
         return {}
 
 

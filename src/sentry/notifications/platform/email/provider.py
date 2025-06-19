@@ -17,10 +17,13 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 type EmailRenderable = Any
 
 
-class EmailRenderer[DataT: NotificationData](NotificationRenderer[EmailRenderable, DataT]):
+class EmailRenderer(NotificationRenderer[EmailRenderable]):
     provider_key = NotificationProviderKey.EMAIL
 
-    def render(self, *, template: NotificationTemplate[DataT]) -> EmailRenderable:
+    @classmethod
+    def render(
+        self, *, data: NotificationData, template: NotificationTemplate[NotificationData]
+    ) -> EmailRenderable:
         return {}
 
 

@@ -17,10 +17,13 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 type DiscordRenderable = Any
 
 
-class DiscordRenderer[DataT: NotificationData](NotificationRenderer[DiscordRenderable, DataT]):
+class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
     provider_key = NotificationProviderKey.DISCORD
 
-    def render(self, *, template: NotificationTemplate[DataT]) -> DiscordRenderable:
+    @classmethod
+    def render(
+        self, *, data: NotificationData, template: NotificationTemplate[NotificationData]
+    ) -> DiscordRenderable:
         return {}
 
 

@@ -1,5 +1,5 @@
 import logging
-from typing import Final
+from typing import Final, cast
 
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.target import prepare_targets
@@ -48,10 +48,11 @@ class NotificationService[T: NotificationData]:
         provider.validate_target(target=target)
 
         # Step 4: Render the template
-        renderer = provider.get_renderer(data=self.data)
+        renderer = provider.get_renderer(category=self.data.category)
+        # TODO(ecosystem): Figure out a way to get rid of this cast.
         renderable = renderer.render(
-            template=template
-        )  # This line is failing in typechecking, even though T is bound to NotificationData
+            data=self.data, template=cast(NotificationTemplate[NotificationData], template)
+        )
 
         # Step 5: Send the notification
         provider.send(target=target, renderable=renderable)
