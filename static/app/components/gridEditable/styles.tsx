@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -57,7 +58,7 @@ export const Body = styled(
     showVerticalScrollbar?: boolean;
   }) => (
     <Panel {...props}>
-      <PanelBody>{children}</PanelBody>
+      <StyledPanelBody>{children}</StyledPanelBody>
     </Panel>
   )
 )`
@@ -79,7 +80,11 @@ export const Body = styled(
  * <thead>, <tbody>, <tr> are ignored by CSS Grid.
  * The entire layout is determined by the usage of <th> and <td>.
  */
-export const Grid = styled('table')<{height?: string | number; scrollable?: boolean}>`
+export const Grid = styled('table')<{
+  fit?: 'max-content';
+  height?: CSSProperties['height'];
+  scrollable?: boolean;
+}>`
   position: inherit;
   display: grid;
 
@@ -103,6 +108,8 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
           max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
         `
       : ''}
+
+  width: ${p => p.fit}
 `;
 
 /**
@@ -331,4 +338,8 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     background-color: ${p => p.theme.purple300};
     opacity: 0.4;
   }
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  height: 100%;
 `;
