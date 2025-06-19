@@ -12,6 +12,7 @@ from sentry.api.endpoints.organization_auth_token_details import (
 )
 from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokensEndpoint
 from sentry.api.endpoints.organization_dashboards_starred import (
+    OrganizationDashboardsStarredEndpoint,
     OrganizationDashboardsStarredOrderEndpoint,
 )
 from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
@@ -1388,6 +1389,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-widget-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/$",
+        OrganizationDashboardsStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
+        OrganizationDashboardsStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred-order",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/$",
         OrganizationDashboardDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-details",
@@ -1396,11 +1407,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/visit/$",
         OrganizationDashboardVisitEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-visit",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
-        OrganizationDashboardsStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-starred-order",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/favorite/$",
