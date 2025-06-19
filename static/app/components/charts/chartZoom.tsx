@@ -376,6 +376,7 @@ class ChartZoom extends Component<Props> {
         }
       ),
       onDataZoom: this.handleDataZoom,
+      // this isn't triggered
       onFinished: this.handleChartFinished,
       onRestore: this.handleZoomRestore,
       ...props,
