@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useContext, useMemo, useState} from 'react';
 
 import {useUser} from 'sentry/utils/useUser';
 
@@ -43,8 +43,48 @@ export function UserTimezoneProvider({children}: CommonProps) {
 }
 
 /**
+ * Allows components that use useTimezone (such as <DateTime />) that are
+ * within this provider to be overridden using the useTimezoneOverride hook.
+ */
+export function OverrideTimezoneProvider({children}: CommonProps) {
+  const parentTimezone = useTimezone();
+  const [override, setOverride] = useState<string | null>(null);
+
+  const timezone = override ?? parentTimezone;
+  const value = useMemo(() => ({timezone, setOverride}), [timezone]);
+
+  return <Provider value={value}>{children}</Provider>;
+}
+
+/**
  * Get the currently configured timezone.
  */
 export function useTimezone() {
   return useContext(Provider).timezone;
+}
+
+/**
+ * This hook may be used to override the result of useTimezone in the nearest
+ * OverrideTimezoneProvider. The result is a pair of {setOverride,
+ * clearOverride} functions.
+ *
+ * It is the callers responsibility to call clearOverride to restore the
+ * timezone in the OverrideTimezoneProvider.
+ */
+export function useTimezoneOverride() {
+  const {setOverride} = useContext(Provider);
+
+  if (setOverride === undefined) {
+    throw new Error('useTimezoneOverride requires a OverrideTimezoneProvider');
+  }
+
+  const result = useMemo(
+    () => ({
+      setOverride: (timezone: string) => setOverride(timezone),
+      clearOverride: () => setOverride(null),
+    }),
+    [setOverride]
+  );
+
+  return result;
 }
