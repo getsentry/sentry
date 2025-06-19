@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

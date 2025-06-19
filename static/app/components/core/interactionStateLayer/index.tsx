@@ -23,6 +23,10 @@ const defaultProps = {
   hasSelectedBackground: true,
 };
 
+/**
+ * use core components with built-in interaction states
+ * @deprecated
+ */
 const InteractionStateLayer = styled(
   (props: StateLayerProps) => {
     // Prevent type checking of `rest` as it has hundreds of properties and is slow

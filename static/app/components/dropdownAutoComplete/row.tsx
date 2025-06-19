@@ -2,7 +2,7 @@ import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type AutoComplete from 'sentry/components/autoComplete';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 
 import type {Item} from './types';
