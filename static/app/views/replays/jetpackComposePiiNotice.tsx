@@ -11,9 +11,12 @@ export function JetpackComposePiiNotice() {
     <AndroidSdkWarningContainer>
       <Alert type="error" showIcon>
         {tct(
-          'There is a known PII/masking issue with [jetpack:Jetpack Compose versions 1.8 and above]. [link:Update your Sentry SDK to version 8.14.0 or later] to ensure replays are properly masked.',
+          'There is a [advisory:known PII/masking issue] with [jetpack:Jetpack Compose versions 1.8 and above]. [link:Update your Sentry SDK to version 8.14.0 or later] to ensure replays are properly masked.',
           {
             jetpack: <strong />,
+            advisory: (
+              <ExternalLink href="https://github.com/getsentry/sentry-java/security/advisories/GHSA-7cjh-xx4r-qh3f" />
+            ),
             link: (
               <ExternalLink href={MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.changelog} />
             ),
