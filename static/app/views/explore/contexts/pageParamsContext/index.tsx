@@ -178,7 +178,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
   const pageParams: ReadablePageParams = useMemo(() => {
     const aggregateFields = getAggregateFieldsFromLocation(location, organization);
     const dataset = getDatasetFromLocation(location);
-    const fields = getFieldsFromLocation(location);
+    const fields = getFieldsFromLocation(location, organization);
     const mode = getModeFromLocation(location);
     const query = getQueryFromLocation(location);
     const groupBys = aggregateFields.filter(isGroupBy).map(groupBy => groupBy.groupBy);
