@@ -83,5 +83,4 @@ function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   );
 }
 
-/** @internal */
 export default TableWidgetVisualization;

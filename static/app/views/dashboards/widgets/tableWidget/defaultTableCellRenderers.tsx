@@ -26,7 +26,6 @@ interface DefaultBodyCellRenderProps extends DefaultCellRenderProps {
 }
 
 // TODO: expand on some basic sorting functionality
-/** @internal */
 export const renderDefaultHeadCell = ({tableData}: DefaultCellRenderProps) =>
   function (
     column: TableColumn<keyof TableDataRow>,
@@ -47,7 +46,6 @@ export const renderDefaultHeadCell = ({tableData}: DefaultCellRenderProps) =>
     );
   };
 
-/** @internal */
 export const renderDefaultBodyCell = ({
   tableData,
   location,
