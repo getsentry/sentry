@@ -31,20 +31,6 @@ interface TableWidgetVisualizationProps {
   style?: CSSProperties;
 }
 
-// Used in widget preview and on the dashboard
-export const DASHBOARD_TABLE_WIDGET_STYLES = {
-  // Makes the top edges of the table sharp
-  borderTopLeftRadius: 0,
-  borderTopRightRadius: 0,
-  // Removes extra bordering from the table
-  marginBottom: 0,
-  borderLeft: 0,
-  borderRight: 0,
-  borderBottom: 0,
-  // Get sticky headers to work
-  height: '100%',
-};
-
 function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const {
     tableData,
