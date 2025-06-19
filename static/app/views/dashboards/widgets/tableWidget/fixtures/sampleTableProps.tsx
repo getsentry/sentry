@@ -1,4 +1,4 @@
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 export const SAMPLE_TABLE_COLUMNS: Array<TableColumn<string>> = [
@@ -28,7 +28,7 @@ export const SAMPLE_TABLE_COLUMNS: Array<TableColumn<string>> = [
   },
 ];
 
-export const SAMPLE_TABLE_DATA: TableDataWithTitle = {
+export const SAMPLE_TABLE_DATA: TableData = {
   data: [
     {
       'http.request_method': 'PATCH',
@@ -92,5 +92,4 @@ export const SAMPLE_TABLE_DATA: TableDataWithTitle = {
       'count(span.duration)': 'integer',
     },
   },
-  title: '',
 };

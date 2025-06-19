@@ -4,7 +4,7 @@ import * as Storybook from 'sentry/stories';
 import {
   SAMPLE_TABLE_COLUMNS,
   SAMPLE_TABLE_DATA,
-} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleTableResults';
+} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleTableProps';
 import TableWidgetVisualization from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 export default Storybook.story('TableWidgetVisualization', story => {
