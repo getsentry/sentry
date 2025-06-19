@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from 'react';
+import React, {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
@@ -107,7 +107,6 @@ function VitalMeter({
   showTooltip = true,
 }: VitalMeterProps) {
   const organization = useOrganization();
-  const [isIssuesButtonHovered, setIsIssuesButtonHovered] = useState(false);
   const webVitalExists = score !== undefined;
 
   const formattedMeterValueText =
@@ -137,13 +136,11 @@ function VitalMeter({
             event.stopPropagation();
           }}
           disabled={!hasIssues}
-          onMouseEnter={() => setIsIssuesButtonHovered(true)}
-          onMouseLeave={() => setIsIssuesButtonHovered(false)}
           title={
             issues &&
             issues.length > 0 &&
             (issues.length === 1
-              ? t('There is 1 performance issue potentially affecting [webVital].', {
+              ? tct('There is 1 performance issue potentially affecting [webVital].', {
                   webVital: webVital.toUpperCase(),
                 })
               : tct(
@@ -194,7 +191,6 @@ function VitalMeter({
       meterBody={meterBody}
       onClick={onClick}
       isAggregateMode={isAggregateMode}
-      isIssuesButtonHovered={isIssuesButtonHovered}
     />
   );
 }
@@ -204,7 +200,6 @@ type VitalContainerProps = {
   webVital: WebVitals;
   webVitalExists: boolean;
   isAggregateMode?: boolean;
-  isIssuesButtonHovered?: boolean;
   onClick?: (webVital: WebVitals) => void;
 };
 
@@ -213,24 +208,15 @@ function VitalContainer({
   webVitalExists,
   meterBody,
   onClick,
-  isIssuesButtonHovered,
   isAggregateMode = true,
 }: VitalContainerProps) {
-  const [isHovered, setIsHovered] = useState(false);
   return (
     <MeterBarContainer
       key={webVital}
       onClick={() => webVitalExists && onClick?.(webVital)}
       clickable={webVitalExists}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {webVitalExists && (
-        <InteractionStateLayer
-          isHovered={isHovered && !isIssuesButtonHovered}
-          isPressed={false}
-        />
-      )}
+      {webVitalExists && <InteractionStateLayer />}
       {webVitalExists && meterBody}
       {!webVitalExists && (
         <StyledTooltip
@@ -273,6 +259,11 @@ const Flex = styled('div')<{gap?: number}>`
   flex-wrap: wrap;
 `;
 
+const StyledIssuesButton = styled(LinkButton)`
+  position: absolute;
+  right: ${space(1)};
+`;
+
 const MeterBarContainer = styled('div')<{clickable?: boolean}>`
   background-color: ${p => p.theme.background};
   flex: 1;
@@ -280,6 +271,10 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
   padding: 0;
   cursor: ${p => (p.clickable ? 'pointer' : 'default')};
   min-width: 140px;
+
+  :has(${StyledIssuesButton}:hover) > ${InteractionStateLayer} {
+    display: none;
+  }
 `;
 
 const MeterBarBody = styled('div')`
@@ -322,11 +317,6 @@ function NoValue() {
 const StyledTooltip = styled(Tooltip)`
   display: block;
   width: 100%;
-`;
-
-const StyledIssuesButton = styled(LinkButton)`
-  position: absolute;
-  right: ${space(1)};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
