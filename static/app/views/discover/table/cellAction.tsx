@@ -242,7 +242,7 @@ function makeCellActions({
     );
   }
 
-  addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
+  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
   if (actions.length === 0) {
     return null;
