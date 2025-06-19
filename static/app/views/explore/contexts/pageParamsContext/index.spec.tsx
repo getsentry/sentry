@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -739,6 +741,25 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+  });
+
+  it('uses OTel-friendly default fields in OTel-friendly mode', function () {
+    const organization = OrganizationFixture({
+      features: ['performance-otel-friendly-ui'],
+    });
+
+    render(
+      <PageParamsProvider>
+        <Component />
+      </PageParamsProvider>,
+      {organization}
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'span.name', 'span.duration', 'timestamp'],
       })
     );
   });
