@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
@@ -20,6 +20,8 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
@@ -32,14 +34,16 @@ from sentry.integrations.source_code_management.commit_context import (
     PullRequestIssue,
     _open_pr_comment_log,
 )
-from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
+from sentry.integrations.source_code_management.language_parsers import (
+    get_patch_parsers_for_organization,
+)
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
+from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -47,7 +51,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
-from sentry.types.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
@@ -343,7 +346,8 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         changed_lines_count = 0
         filtered_diffs = []
 
-        patch_parsers = PATCH_PARSERS
+        organization = Organization.objects.get_from_cache(id=repo.organization_id)
+        patch_parsers = get_patch_parsers_for_organization(organization)
 
         for diff in diffs:
             filename = diff["new_path"]
@@ -553,8 +557,8 @@ class InstallationForm(forms.Form):
         return self.cleaned_data["url"].rstrip("/")
 
 
-class InstallationConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class InstallationConfigView(IntegrationPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -595,8 +599,8 @@ class InstallationConfigView(PipelineView):
         )
 
 
-class InstallationGuideView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class InstallationGuideView(IntegrationPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(
@@ -632,7 +636,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def _make_identity_pipeline_view(self):
+    def _make_identity_pipeline_view(self) -> IntegrationPipelineViewT:
         """
         Make the nested identity provider view. It is important that this view is
         not constructed until we reach this step and the
@@ -685,12 +689,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 f"The requested GitLab group {requested_group} could not be found."
             )
 
-    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
-        return [
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[IntegrationPipelineViewT | Callable[[], IntegrationPipelineViewT]]:
+        return (
             InstallationGuideView(),
             InstallationConfigView(),
             lambda: self._make_identity_pipeline_view(),
-        ]
+        )
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]

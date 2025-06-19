@@ -9,7 +9,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -151,6 +151,8 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
         timeWindowConfig={timeWindowConfig}
         labelPosition="center-bottom"
         envCount={statEnvironments.length}
+        cursorOverlayAnchor="bottom"
+        cursorOverlayAnchorOffset={4}
       />
       <IssueGridLineLabels
         timeWindowConfig={timeWindowConfig}

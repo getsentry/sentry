@@ -13,15 +13,18 @@ import {
 interface TableBodyProps {
   column: Column;
   row: Row;
+  wrapToggleValue: boolean;
 }
 
-export function renderTableBody({column, row}: TableBodyProps) {
+export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) {
   const key = column.key;
   const value = row[key];
   const alignment = RIGHT_ALIGNED_FIELDS.has(key) ? 'right' : 'left';
 
   if (key === 'testName') {
-    return <Container alignment={alignment}>{value}</Container>;
+    return (
+      <TestNameContainer wrapToggleValue={wrapToggleValue}>{value}</TestNameContainer>
+    );
   }
 
   if (key === 'averageDurationMs') {
@@ -37,7 +40,7 @@ export function renderTableBody({column, row}: TableBodyProps) {
     return (
       <NumberContainer>
         {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
-        {value}%
+        {Number(value).toFixed(2)}%
       </NumberContainer>
     );
   }
@@ -56,6 +59,13 @@ export function renderTableBody({column, row}: TableBodyProps) {
 
   return <Container alignment={alignment}>{value}</Container>;
 }
+
+export const TestNameContainer = styled('div')<{wrapToggleValue: boolean}>`
+  ${p => !p.wrapToggleValue && p.theme.overflowEllipsis};
+  overflow-wrap: break-word;
+  font-family: ${p => p.theme.text.familyMono};
+  text-align: left;
+`;
 
 export const Container = styled('div')<{alignment: string}>`
   ${p => p.theme.overflowEllipsis};

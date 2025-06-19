@@ -4,12 +4,11 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -215,20 +214,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         <SeerDrawerNavigator>
           <Flex align="center" gap={space(1)}>
             <Header>{t('Seer')}</Header>
-            <FeatureBadge
-              type="beta"
-              tooltipProps={{
-                title: tct(
-                  'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-                  {email: <a href="mailto:autofix@sentry.io" />}
-                ),
-                isHoverable: true,
-              }}
-            />
             <QuestionTooltip
               isHoverable
               title={
-                <Flex column gap={space(1)}>
+                <Flex direction="column" gap={space(1)}>
                   <div>
                     {tct(
                       'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
@@ -272,7 +261,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                 {aiConfig.hasAutofix && (
                   <Button
                     size="xs"
-                    onClick={reset}
+                    onClick={() => {
+                      reset();
+                      aiConfig.refetchAutofixSetup?.();
+                    }}
                     title={
                       autofixData?.last_triggered_at
                         ? tct('Last run at [date]', {

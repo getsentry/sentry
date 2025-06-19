@@ -6,10 +6,10 @@ import {useHover} from '@react-aria/interactions';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link, {linkStyles} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
@@ -21,7 +21,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  NAV_SIDEBAR_OPEN_DELAY_MS,
+  NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
+  NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -70,7 +71,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disableTooltip?: boolean;
 }
 
-export function SidebarItem({
+function SidebarItem({
   children,
   label,
   showLabel,
@@ -89,6 +90,20 @@ export function SidebarItem({
       >
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
+    </IconDefaultsProvider>
+  );
+}
+
+function SidebarItemIcon({
+  children,
+  layout,
+}: {
+  children: React.ReactNode;
+  layout: NavLayout;
+}) {
+  return (
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
+      {children}
     </IconDefaultsProvider>
   );
 }
@@ -131,12 +146,16 @@ export function SidebarMenu({
                 onOpen?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
+              icon={
+                showLabel ? (
+                  <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
+                ) : null
+              }
             >
               {theme.isChonk ? null : (
                 <InteractionStateLayer hasSelectedBackground={isOpen} />
               )}
-              {children}
-              {showLabel ? label : null}
+              {showLabel ? label : children}
             </NavButton>
           </SidebarItem>
         );
@@ -147,7 +166,7 @@ export function SidebarMenu({
 }
 
 function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
-  const {isCollapsed, activePrimaryNavGroup, setActivePrimaryNavGroup} = useNavContext();
+  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
 
   // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -157,16 +176,14 @@ function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
         clearTimeout(timeoutRef.current);
       }
 
-      // Setting the nav group immediately when there isn't already a selection
-      // ensures that the correct menu is immediately shown when the sidebar expands
-      if (!activePrimaryNavGroup && isCollapsed) {
+      if (isCollapsed && !collapsedNavIsOpen) {
         setActivePrimaryNavGroup(group);
         return;
       }
 
       timeoutRef.current = setTimeout(() => {
         setActivePrimaryNavGroup(group);
-      }, NAV_SIDEBAR_OPEN_DELAY_MS);
+      }, NAV_SIDEBAR_PREVIEW_DELAY_MS);
     },
     onHoverEnd: () => {
       if (timeoutRef.current) {
@@ -201,6 +218,9 @@ function SidebarNavLink({
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      {...{
+        [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+      }}
       {...hoverProps}
     >
       {layout === NavLayout.MOBILE ? (
@@ -265,10 +285,12 @@ export function SidebarButton({
           buttonProps.onClick?.(e);
           onClick?.(e);
         }}
+        icon={
+          showLabel ? <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon> : null
+        }
       >
         {theme.isChonk ? null : <InteractionStateLayer />}
-        {children}
-        {showLabel ? label : null}
+        {showLabel ? label : children}
       </NavButton>
     </SidebarItem>
   );
@@ -356,7 +378,7 @@ const ChonkNavLinkIconContainer = chonkStyled('span')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
-  border-radius: ${p => p.theme.radius.lg};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const NavLinkIconContainer = withChonk(
@@ -430,7 +452,7 @@ const ChonkNavLink = chonkStyled(Link, {
     left: 0px;
     width: 4px;
     height: 20px;
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
@@ -545,7 +567,6 @@ const StyledNavButton = styled(Button, {
   position: relative;
   background: transparent;
 
-  ${linkStyles}
   ${baseNavItemStyles}
 `;
 
@@ -554,7 +575,7 @@ type NavButtonProps = ButtonProps & {
 };
 
 // Use a manual theme switch because the types of Button dont seem to play well with withChonk.
-export const NavButton = styled((p: NavButtonProps) => {
+const NavButton = styled((p: NavButtonProps) => {
   const theme = useTheme();
   if (theme.isChonk) {
     return (
@@ -571,7 +592,7 @@ export const NavButton = styled((p: NavButtonProps) => {
 export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   position: absolute;
   top: ${p => (p.isMobile ? `8px` : `calc(50% - 12px)`)};
-  left: ${p => (p.isMobile ? '32px' : `calc(50% + 14px)`)};
+  left: ${p => (p.isMobile ? '36px' : `calc(50% + 14px)`)};
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
@@ -582,6 +603,14 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   height: 10px;
   border-radius: 50%;
   border: 2px solid ${p => p.theme.background};
+
+  ${p =>
+    p.theme.isChonk &&
+    p.isMobile &&
+    css`
+      top: 5px;
+      left: 12px;
+    `}
 `;
 
 export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`

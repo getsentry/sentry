@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -107,19 +107,12 @@ function ThresholdTypeForm({
   if (
     hasAnomalyDetection &&
     (validAnomalyDetectionAlertTypes.has(alertType) ||
-      (hasAnomalyDetectionForEAP && alertType === 'eap_metrics'))
+      (hasAnomalyDetectionForEAP && isEapAlertType(alertType)))
   ) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
-        <StyledFeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t('Anomaly detection is in beta and may produce unexpected results'),
-            isHoverable: true,
-          }}
-        />
       </ComparisonContainer>,
     ] as RadioOption);
   }
@@ -160,10 +153,6 @@ const StyledRadioGroup = styled(RadioGroup)`
   & > label {
     height: 33px;
   }
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: ${space(0.25)};
 `;
 
 export default ThresholdTypeForm;

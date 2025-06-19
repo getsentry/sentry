@@ -5,10 +5,11 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
+import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import type {
   AggregateFilter,
@@ -28,7 +29,7 @@ type AggregateKeyProps = {
 
 export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
   const fnName = getKeyName(token.key);
-  const fnParams = token.key.args?.text ?? '';
+  const fnParams = useAggregateParamVisual({token});
 
   return (
     <Fragment>
@@ -84,6 +85,7 @@ export function AggregateKey({
         </UnfocusedText>
         <Parameters>
           <SearchQueryBuilderParametersCombobox
+            state={state}
             token={token}
             onDelete={() => {
               filterRef.current?.focus();

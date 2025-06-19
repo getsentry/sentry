@@ -27,7 +27,7 @@ type Props = {
   value?: string;
 };
 
-const WEB_VITAL_FULL_NAME_MAP = {
+export const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
   inp: t('Interaction to Next Paint'),
@@ -122,7 +122,7 @@ export const VITAL_DESCRIPTIONS: Partial<
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
-  const colors = theme.chart.getColorPalette(3);
+  const colors = theme.chart.getColorPalette(4);
   const dotColor = colors[ORDER.indexOf(webVital)]!;
   const status = score === undefined ? undefined : scoreToStatus(score);
 

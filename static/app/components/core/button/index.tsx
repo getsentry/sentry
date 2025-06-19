@@ -1,9 +1,11 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+// eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+// eslint-disable-next-line boundaries/element-types
 import {space} from 'sentry/styles/space';
 
 import {
@@ -78,6 +80,7 @@ const ButtonLabel = styled('span', {
     !['size', 'borderless'].includes(prop),
 })<Pick<CommonButtonProps, 'size' | 'borderless'>>`
   height: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;

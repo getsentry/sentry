@@ -65,14 +65,17 @@ from __future__ import annotations
 
 import itertools
 import logging
+import math
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
 import rapidjson
+import zstandard
 from django.conf import settings
 from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry import options
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.utils import metrics, redis
 
@@ -90,14 +93,23 @@ logger = logging.getLogger(__name__)
 
 
 def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
-    return parse_segment_key(segment_key)[2]
+    return parse_segment_key(segment_key)[-1]
 
 
 def parse_segment_key(segment_key: SegmentKey) -> tuple[bytes, bytes, bytes]:
     segment_key_parts = segment_key.split(b":")
-    project_id = segment_key_parts[2][1:]
-    trace_id = segment_key_parts[3][:-1]
-    span_id = segment_key_parts[4]
+
+    if len(segment_key_parts) == 5:
+        project_id = segment_key_parts[2][1:]
+        trace_id = segment_key_parts[3][:-1]
+        span_id = segment_key_parts[4]
+    elif len(segment_key_parts) == 6:
+        # Temporary format with partition on index 2
+        project_id = segment_key_parts[3]
+        trace_id = segment_key_parts[4]
+        span_id = segment_key_parts[5]
+    else:
+        raise ValueError("unsupported segment key format")
 
     return project_id, trace_id, span_id
 
@@ -120,9 +132,8 @@ class Span(NamedTuple):
 
     def effective_parent_id(self):
         # Note: For the case where the span's parent is in another project, we
-        # will still flush the segment-without-root-span as one unit, just
-        # after span_buffer_timeout_secs rather than
-        # span_buffer_root_timeout_secs.
+        # will still flush the segment-without-root-span as one unit, just after
+        # `timeout` rather than `root-timeout` seconds.
         if self.is_segment_span:
             return self.span_id
         else:
@@ -139,24 +150,13 @@ class FlushedSegment(NamedTuple):
 
 
 class SpansBuffer:
-    def __init__(
-        self,
-        assigned_shards: list[int],
-        span_buffer_timeout_secs: int = 60,
-        span_buffer_root_timeout_secs: int = 10,
-        segment_page_size: int = 100,
-        max_segment_bytes: int = 10 * 1024 * 1024,  # 10 MiB
-        max_segment_spans: int = 1001,
-        redis_ttl: int = 3600,
-    ):
+    def __init__(self, assigned_shards: list[int]):
         self.assigned_shards = list(assigned_shards)
-        self.span_buffer_timeout_secs = span_buffer_timeout_secs
-        self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
-        self.segment_page_size = segment_page_size
-        self.max_segment_bytes = max_segment_bytes
-        self.max_segment_spans = max_segment_spans
-        self.redis_ttl = redis_ttl
         self.add_buffer_sha: str | None = None
+        self.any_shard_at_limit = False
+        self._current_compression_level = None
+        self._zstd_compressor: zstandard.ZstdCompressor | None = None
+        self._zstd_decompressor = zstandard.ZstdDecompressor()
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -164,15 +164,7 @@ class SpansBuffer:
 
     # make it pickleable
     def __reduce__(self):
-        return (
-            SpansBuffer,
-            (
-                self.assigned_shards,
-                self.span_buffer_timeout_secs,
-                self.span_buffer_root_timeout_secs,
-                self.redis_ttl,
-            ),
-        )
+        return (SpansBuffer, (self.assigned_shards,))
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
@@ -183,6 +175,18 @@ class SpansBuffer:
         :param now: The current time to be used for setting expiration/flush
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
+
+        compression_level = options.get("spans.buffer.compression.level")
+        if compression_level != self._current_compression_level:
+            self._current_compression_level = compression_level
+            if compression_level == -1:
+                self._zstd_compressor = None
+            else:
+                self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
+
+        redis_ttl = options.get("spans.buffer.redis-ttl")
+        timeout = options.get("spans.buffer.timeout")
+        root_timeout = options.get("spans.buffer.root-timeout")
 
         result_meta = []
         is_root_span_count = 0
@@ -195,7 +199,10 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = self._get_span_key(project_and_trace, parent_span_id)
-                    p.sadd(set_key, *[span.payload for span in subsegment])
+                    payloads = [span.payload for span in subsegment]
+
+                    compressed = self._compress_span_payloads(payloads)
+                    p.sadd(set_key, *compressed)
 
                 p.execute()
 
@@ -215,7 +222,7 @@ class SpansBuffer:
                         len(subsegment),
                         parent_span_id,
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
-                        self.redis_ttl,
+                        redis_ttl,
                         *[span.span_id for span in subsegment],
                     )
 
@@ -245,9 +252,9 @@ class SpansBuffer:
                 # already had a root span inside, use a different timeout than
                 # usual.
                 if has_root_span:
-                    offset = self.span_buffer_root_timeout_secs
+                    offset = root_timeout
                 else:
-                    offset = self.span_buffer_timeout_secs
+                    offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
                 zadd_items[set_key] = now + offset
@@ -263,7 +270,7 @@ class SpansBuffer:
                 for queue_key, adds in queue_adds.items():
                     if adds:
                         p.zadd(queue_key, adds)
-                        p.expire(queue_key, self.redis_ttl)
+                        p.expire(queue_key, redis_ttl)
 
                 for queue_key, deletes in queue_deletes.items():
                     if deletes:
@@ -318,6 +325,35 @@ class SpansBuffer:
 
         return trees
 
+    def _compress_span_payloads(self, payloads: list[bytes]) -> list[bytes]:
+        combined = b"\x00".join(payloads)
+        original_size = len(combined)
+
+        if self._zstd_compressor is None:
+            return payloads
+
+        with metrics.timer("spans.buffer.compression.cpu_time"):
+            compressed = self._zstd_compressor.compress(combined)
+
+        compressed_size = len(compressed)
+
+        compression_ratio = compressed_size / original_size if original_size > 0 else 0
+        metrics.timing("spans.buffer.compression.original_size", original_size)
+        metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
+        metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
+
+        return [compressed]
+
+    def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
+        # Check for zstd magic header (0xFD2FB528 in little-endian) --
+        # backwards compat with code that did not write compressed payloads.
+        with metrics.timer("spans.buffer.decompression.cpu_time"):
+            if not compressed_data.startswith(b"\x28\xb5\x2f\xfd"):
+                return [compressed_data]
+
+            decompressed_buffer = self._zstd_decompressor.decompress(compressed_data)
+            return decompressed_buffer.split(b"\x00")
+
     def record_stored_segments(self):
         with metrics.timer("spans.buffer.get_stored_segments"):
             with self.client.pipeline(transaction=False) as p:
@@ -339,18 +375,19 @@ class SpansBuffer:
     def get_memory_info(self) -> Generator[ServiceMemory]:
         return iter_cluster_memory_usage(self.client)
 
-    def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentKey, FlushedSegment]:
+    def flush_segments(self, now: int) -> dict[SegmentKey, FlushedSegment]:
         cutoff = now
 
         queue_keys = []
+        shard_factor = max(1, len(self.assigned_shards))
+        max_flush_segments = options.get("spans.buffer.max-flush-segments")
+        max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
                     key = self._get_queue_key(shard)
-                    p.zrangebyscore(
-                        key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
-                    )
+                    p.zrangebyscore(key, 0, cutoff, start=0, num=max_segments_per_shard)
                     queue_keys.append(key)
 
                 result = p.execute()
@@ -365,10 +402,14 @@ class SpansBuffer:
 
         return_segments = {}
         num_has_root_spans = 0
+        any_shard_at_limit = False
 
         for shard, queue_key, segment_key in segment_keys:
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
+
+            if len(segment) >= max_segments_per_shard:
+                any_shard_at_limit = True
 
             output_spans = []
             has_root_span = False
@@ -411,6 +452,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
 
+        self.any_shard_at_limit = any_shard_at_limit
         return return_segments
 
     def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
@@ -422,6 +464,10 @@ class SpansBuffer:
         :return: Dictionary mapping segment keys to lists of span payloads.
         """
 
+        page_size = options.get("spans.buffer.segment-page-size")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_segment_spans = options.get("spans.buffer.max-segment-spans")
+
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
         sizes = {key: 0 for key in segment_keys}
@@ -430,25 +476,30 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 current_keys = []
                 for key, cursor in cursors.items():
-                    p.sscan(key, cursor=cursor, count=self.segment_page_size)
+                    p.sscan(key, cursor=cursor, count=page_size)
                     current_keys.append(key)
 
                 results = p.execute()
 
             for key, (cursor, spans) in zip(current_keys, results):
-                sizes[key] += sum(len(span) for span in spans)
-                if sizes[key] > self.max_segment_bytes:
+                decompressed_spans = []
+
+                for span_data in spans:
+                    decompressed_spans.extend(self._decompress_batch(span_data))
+
+                sizes[key] += sum(len(span) for span in decompressed_spans)
+                if sizes[key] > max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                    logger.error("Skipping too large segment, byte size %s", sizes[key])
+                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
 
                     del payloads[key]
                     del cursors[key]
                     continue
 
-                payloads[key].extend(spans)
-                if len(payloads[key]) > self.max_segment_spans:
+                payloads[key].extend(decompressed_spans)
+                if len(payloads[key]) > max_segment_spans:
                     metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
-                    logger.error("Skipping too large segment, span count %s", len(payloads[key]))
+                    logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
 
                     del payloads[key]
                     del cursors[key]
@@ -465,7 +516,7 @@ class SpansBuffer:
                 # partitioned by trace_id so multiple consumers are writing
                 # over each other. The consequence is duplicated segments,
                 # worst-case.
-                metrics.incr("sentry.spans.buffer.empty_segments")
+                metrics.incr("spans.buffer.empty_segments")
 
         return payloads
 
@@ -474,13 +525,12 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    hrs_key = b"span-buf:hrs:" + segment_key
-                    p.delete(hrs_key)
+                    p.delete(b"span-buf:hrs:" + segment_key)
                     p.unlink(segment_key)
+                    p.zrem(flushed_segment.queue_key, segment_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
-                    p.zrem(flushed_segment.queue_key, segment_key)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
                         p.hdel(

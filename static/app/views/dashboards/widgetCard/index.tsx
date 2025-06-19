@@ -125,6 +125,10 @@ function WidgetCard(props: Props) {
 
     setData(prevData => ({...prevData, ...rest}));
 
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     setIsLoadingTextVisible(false);
   };
 

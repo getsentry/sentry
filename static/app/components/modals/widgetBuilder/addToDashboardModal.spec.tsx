@@ -44,6 +44,7 @@ describe('add to dashboard modal', () => {
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgetDisplay: [DisplayType.AREA],
     widgetPreview: [],
+    projects: [],
   };
   const testDashboard: DashboardDetails = {
     id: '1',
@@ -316,7 +317,7 @@ describe('add to dashboard modal', () => {
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
-      query: mockWidgetAsQueryParams,
+      query: {...mockWidgetAsQueryParams, title: 'Test title'},
     });
   });
 

@@ -518,8 +518,6 @@ const ActionRow = styled('div')`
 `;
 
 export const TourAction = styled(Button)`
-  border: 0;
-  background: ${p => p.theme.white};
   color: ${p => p.theme.tour.next};
 
   &:hover,
@@ -527,12 +525,26 @@ export const TourAction = styled(Button)`
   &:focus {
     color: ${p => p.theme.tour.next};
   }
+
+  ${p =>
+    p.theme.isChonk
+      ? `
+    &::after {
+      background: ${p.theme.white};
+    }
+  `
+      : `
+    border: 0;
+    background: ${p.theme.white};
+  `}
 `;
 
-export const TextTourAction = styled(Button)`
-  border: 0;
+function TransparentButton(props: React.ComponentProps<typeof Button>) {
+  return <Button {...props} priority="transparent" borderless />;
+}
+
+export const TextTourAction = styled(TransparentButton)`
   box-shadow: none;
-  background: transparent;
   color: ${p => p.theme.tour.previous};
   &:hover,
   &:active,

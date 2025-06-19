@@ -1,5 +1,4 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -17,7 +16,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
-  CellExpander,
   CellLink,
   GridEditableContainer,
   LoadingOverlay,
@@ -31,9 +29,9 @@ import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
@@ -63,11 +61,14 @@ export function ToolsTable() {
 
   const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
 
-  const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
       {
         pathname,
-        search: qs.stringify({...transactionQuery, toolsCursor: cursor}),
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
       },
       {replace: true, preventScrollReset: true}
     );
@@ -93,7 +94,7 @@ export function ToolsTable() {
           : undefined,
       keepPreviousData: true,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.TOOLS_TABLE
   );
 
   const tableData = useMemo(() => {
@@ -112,8 +113,11 @@ export function ToolsTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'tool' && <CellExpander />}
+      <HeadSortCell
+        sortKey={column.key}
+        cursorParamName="toolsCursor"
+        forceCellGrow={column.key === 'tool'}
+      >
         {column.name}
       </HeadSortCell>
     );

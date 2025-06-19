@@ -24,10 +24,7 @@ const config: TransformOptions = {
   env: {
     production: {},
     development: {
-      plugins: [
-        '@emotion/babel-plugin',
-        ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
-      ],
+      plugins: ['@emotion/babel-plugin'],
     },
     test: {
       sourceMaps: process.env.CI ? false : true,

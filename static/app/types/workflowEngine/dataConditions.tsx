@@ -52,11 +52,21 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
+export enum DetectorPriorityLevel {
+  OK = 0,
+  LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
+}
+
+/**
+ * See DataConditionSerializer
+ */
 export interface DataCondition {
   comparison: any;
   id: string;
   type: DataConditionType;
-  condition_result?: any;
+  conditionResult?: DetectorPriorityLevel;
 }
 
 export interface DataConditionGroup {

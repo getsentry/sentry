@@ -1,86 +1,49 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Environment} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 
-const model = new FormModel({
-  initialData: {
-    name: t('New Monitor'),
-    project: undefined,
-    environment: 'all',
-    type: 'metric',
-  },
-});
+function getDefaultProject(projects: Project[]) {
+  return projects.find(p => p.isMember) ?? projects[0];
+}
 
 export function DetectorTypeForm() {
-  const {projects} = useProjects();
-  const title = useDocumentTitle();
-
-  useEffect(() => {
-    model.setValue('name', title);
-  }, [title]);
-  useEffect(() => {
-    const firstProject = projects.find(p => p.isMember);
-    model.setInitialData({
-      name: title,
-      project: firstProject?.id,
-      environment: 'all',
-      type: 'metric',
-    });
-    const prevHook = model.options.onFieldChange;
-    model.setFormOptions({
-      onFieldChange(id, value) {
-        if (id === 'project') {
-          model.setValue('environment', 'all');
-        }
-        prevHook?.(id, value);
-      },
-    });
-  }, [projects, title]);
-
   return (
-    <Form hideFooter model={model}>
-      <Flex column>
-        <Group column>
-          <Header column>
-            <h3>{t('Project and Environment')}</h3>
-          </Header>
-          <Flex>
-            <ProjectField />
-            <EnvironmentField />
-          </Flex>
-        </Group>
-        <Group column>
-          <Header column>
-            <h3>{t('Monitor type')}</h3>
-            <p>
-              {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-              <a href="#">{t('Learn more about monitor types.')}</a>
-            </p>
-          </Header>
-          <MonitorTypeField />
-        </Group>
-      </Flex>
-    </Form>
+    <FormContainer>
+      <div>
+        <Header>
+          <h3>{t('Monitor type')}</h3>
+          <p>
+            {t("Monitor type can't be edited once the monitor has been created.")}{' '}
+            <a href="#">{t('Learn more about monitor types.')}</a>
+          </p>
+        </Header>
+        <MonitorTypeField />
+      </div>
+      <div>
+        <Header>
+          <h3>{t('Project and Environment')}</h3>
+        </Header>
+        <Flex>
+          <ProjectField />
+          <EnvironmentField />
+        </Flex>
+      </div>
+    </FormContainer>
   );
 }
 
 function ProjectField() {
-  const {projects} = useProjects();
+  const {projects, fetching} = useProjects();
 
   return (
     <StyledProjectField
@@ -95,24 +58,33 @@ function ProjectField() {
       ]}
       name="project"
       placeholder={t('Project')}
+      aria-label={t('Select Project')}
+      disabled={fetching}
     />
   );
 }
 
 function EnvironmentField() {
-  const project = useFormField('project');
-  const {environments} = useProjectEnvironments({projectSlug: project?.toString()});
+  const {projects} = useProjects();
+  const projectId = useFormField<string>('project');
+  const currentProject = projectId
+    ? projects.find(p => p.id === projectId)
+    : getDefaultProject(projects);
+
+  const environments = currentProject?.environments ?? [];
+
   return (
     <StyledEnvironmentField
       choices={[
-        ['all', t('All Environments')],
-        ...(environments?.map(environment => [environment.id, environment.name]) ?? []),
+        ['', t('All Environments')],
+        ...(environments?.map(environment => [environment, environment]) ?? []),
       ]}
       inline={false}
       flexibleControlStateSize
       stacked
       name="environment"
       placeholder={t('Environment')}
+      aria-label={t('Select Environment')}
     />
   );
 }
@@ -122,7 +94,7 @@ function MonitorTypeField() {
     <StyledRadioField
       inline={false}
       flexibleControlStateSize
-      name="type"
+      name="detectorType"
       choices={[
         [
           'metric',
@@ -154,23 +126,16 @@ function MonitorTypeField() {
           />,
         ],
       ]}
+      required
     />
   );
 }
 
-function useProjectEnvironments({projectSlug}: {projectSlug?: string}) {
-  const organization = useOrganization();
-  const {data: environments = [], isLoading} = useApiQuery<Environment[]>(
-    [
-      `/projects/${organization.slug}/${projectSlug}/environments/`,
-      {query: {visibility: 'visible'}},
-    ],
-    {
-      staleTime: 30_000,
-    }
-  );
-  return {environments, isLoading};
-}
+const FormContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  max-width: ${p => p.theme.breakpoints.xlarge};
+`;
 
 const StyledProjectField = styled(SentryProjectSelectorField)`
   flex-grow: 1;
@@ -230,11 +195,9 @@ const StyledRadioField = styled(RadioField)`
   }
 `;
 
-const Group = styled(Flex)`
-  padding-inline: ${space(4)};
-`;
-
-const Header = styled(Flex)`
+const Header = styled('div')`
+  display: flex;
+  flex-direction: column;
   gap: ${space(0.5)};
   margin-top: ${space(3)};
   margin-bottom: ${space(1)};

@@ -12,7 +12,9 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {
+  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
+  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
@@ -45,7 +47,12 @@ export default function TokenUsageWidget() {
 
   const tokensRequest = useEAPSpans(
     {
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      fields: [
+        AI_MODEL_ID_ATTRIBUTE,
+        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+      ],
       sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -57,16 +64,21 @@ export default function TokenUsageWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
+      fields: [
+        AI_MODEL_ID_ATTRIBUTE,
+        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+      ],
+      yAxis: [AI_INPUT_TOKENS_ATTRIBUTE_SUM],
+      sort: {field: AI_INPUT_TOKENS_ATTRIBUTE_SUM, kind: 'desc'},
       topN: 3,
       enabled: !!tokensRequest.data,
     },
     Referrer.QUERIES_CHART // TODO: add referrer
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = timeSeriesRequest.data;
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;
@@ -77,7 +89,7 @@ export default function TokenUsageWidget() {
 
   const hasData = tokens && tokens.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
   const visualization = (
     <WidgetVisualizationStates
@@ -91,7 +103,7 @@ export default function TokenUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
+              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })
@@ -117,7 +129,10 @@ export default function TokenUsageWidget() {
               <ModelName modelId={modelId} />
             </ModelText>
             <span>
-              {formatAbbreviatedNumber(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)}
+              {formatAbbreviatedNumber(
+                Number(item[AI_INPUT_TOKENS_ATTRIBUTE_SUM] || 0) +
+                  Number(item[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM] || 0)
+              )}
             </span>
           </Fragment>
         );

@@ -50,18 +50,20 @@ jobs:
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
       - name: node_modules cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -71,7 +73,7 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: yarn tsc -p tsconfig.json
+        run: pnpm exec tsc -p tsconfig.json
 
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -84,18 +86,20 @@ jobs:
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
       - name: node_modules cache
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # Setup custom eslint matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -105,7 +109,7 @@ jobs:
 
       - name: eslint
         id: eslint
-        run: yarn run lint:js
+        run: pnpm run lint:js
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -118,18 +122,20 @@ jobs:
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
       - name: node_modules cache
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # Setup custom eslint matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -139,11 +145,11 @@ jobs:
 
       - name: knip
         id: knip
-        run: yarn run knip
+        run: pnpm run knip
 
       - name: knip-prod
         id: knip-prod
-        run: yarn run knip:prod
+        run: pnpm run knip:prod
 
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
@@ -169,18 +175,20 @@ jobs:
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
       - name: node_modules cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: jest
         env:
@@ -200,9 +208,9 @@ jobs:
           DEBUG_PRINT_LIMIT: 0
         run: |
           if [ ${{ github.ref }} = 'refs/heads/master' ]; then
-            yarn test-ci --forceExit --coverage
+            pnpm run test-ci --forceExit --coverage
           else
-            yarn test-ci --forceExit
+            pnpm run test-ci --forceExit
           fi
 
       # We only upload coverage data for FE changes since it conflicts with

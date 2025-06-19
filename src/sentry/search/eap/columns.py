@@ -234,6 +234,21 @@ class ResolvedConditionalAggregate(ResolvedFunction):
         )
 
 
+@dataclass(frozen=True, kw_only=True)
+class ResolvedEquation(ResolvedFunction):
+    operator: Column.BinaryFormula.Op.ValueType
+    lhs: Column | None
+    rhs: Column | None
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        return Column.BinaryFormula(
+            op=self.operator,
+            left=self.lhs,
+            right=self.rhs,
+        )
+
+
 @dataclass(kw_only=True)
 class FunctionDefinition:
     """
@@ -412,8 +427,11 @@ def simple_measurements_field(
     )
 
 
-def datetime_processor(datetime_string: str) -> str:
-    return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
+def datetime_processor(datetime_value: str | float) -> str:
+    if isinstance(datetime_value, float):
+        # assumes that the timestamp is in seconds
+        return datetime.fromtimestamp(datetime_value).replace(tzinfo=tz.tzutc()).isoformat()
+    return datetime.fromisoformat(datetime_value).replace(tzinfo=tz.tzutc()).isoformat()
 
 
 def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:

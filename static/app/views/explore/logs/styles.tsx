@@ -86,13 +86,14 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
-export const DetailsWrapper = styled('div')`
+export const DetailsWrapper = styled('tr')`
   align-items: center;
   background-color: ${p => p.theme.gray100};
   padding: ${space(1)} ${space(1)};
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
+  display: grid;
   border-top: 1px solid ${p => p.theme.border};
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: ${2 /* place above the grid resizing lines */};
@@ -194,7 +195,7 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
 
 export const FilterBarContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
@@ -213,6 +214,8 @@ export const LogsItemContainer = styled('div')`
 
 export const LogsTableActionsContainer = styled(LogsItemContainer)`
   margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
 `;
 
 export const LogsGraphContainer = styled(LogsItemContainer)`
@@ -325,6 +328,7 @@ export const BottomSectionBody = styled('div')`
 `;
 
 export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
+  height: 100%;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};
@@ -361,3 +365,46 @@ export const LogsSidebarCollapseButton = withChonk(
     }
   `
 );
+
+export const FloatingBackToTopContainer = styled('div')<{
+  tableLeft?: number;
+  tableWidth?: number;
+}>`
+  position: fixed;
+  top: 20px;
+  z-index: 1;
+  opacity: 0.9;
+  left: ${p => (p.tableLeft ? `${p.tableLeft}px` : '0')};
+  width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  display: flex;
+  justify-content: center;
+
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+`;
+
+export const HoveringRowLoadingRendererContainer = styled('div')<{
+  headerHeight: number;
+  position: 'top' | 'bottom';
+  rowHeight: number;
+}>`
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  z-index: 1;
+  margin-top: ${p => (p.position === 'top' ? `${p.headerHeight + 1}px` : '0px')};
+  display: flex;
+  background: linear-gradient(
+    to ${p => (p.position === 'top' ? 'bottom' : 'top')},
+    rgb(from ${p => p.theme.backgroundTertiary} r g b / 75%),
+    rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
+  );
+  align-items: center;
+  justify-content: center;
+  height: ${p => p.rowHeight * 3}px;
+  ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
+`;

@@ -599,6 +599,12 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
+register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per hour)
+register(
+    "seer.max_num_scanner_autotriggered_per_hour", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -944,6 +950,12 @@ register(
     "seer.similarity.grouping_killswitch_projects",
     default=[],
     type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity.grouping-ingest-retries",
+    type=Int,
+    default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1394,7 +1406,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
-register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "api.deprecation.brownout-duration-seconds",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1688,6 +1705,11 @@ register(
 )
 register(
     "performance.issues.sql_injection.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.query_injection.problem-creation",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2602,6 +2624,11 @@ register(
     default=0.0,
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
+register(
+    "grouping.experiments.parameterization.traceparent",
+    default=0.0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -2629,72 +2656,110 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Standalone spans
+# SPAN BUFFER
+# Span buffer killswitch
 register(
-    "standalone-spans.process-spans-consumer.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "standalone-spans.process-spans-consumer.project-allowlist",
+    "spans.drop-in-buffer",
     type=Sequence,
     default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables profiling of the process-spans consumer
 register(
-    "standalone-spans.process-spans-consumer.project-rollout",
+    "spans.process-spans.profiling.rate",
     type=Float,
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Timeout for stale segments without a root span to be flushed.
 register(
-    "standalone-spans.buffer-window.seconds",
+    "spans.buffer.timeout",
     type=Int,
-    default=120,  # 2 minutes
+    default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Timeout for completed segments with root span to be flushed.
 register(
-    "standalone-spans.buffer-ttl.seconds",
+    "spans.buffer.root-timeout",
     type=Int,
-    default=300,  # 5 minutes
+    default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Number of spans to fetch at once from the buffer during flush (SCAN count).
 register(
-    "standalone-spans.process-segments-consumer.enable",
+    "spans.buffer.segment-page-size",
+    type=Int,
+    default=100,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum size of a segment in bytes. Larger segments drop the oldest spans.
+register(
+    "spans.buffer.max-segment-bytes",
+    type=Int,
+    default=10 * 1024 * 1024,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of spans in a segment. Larger segments drop the oldest spans.
+register(
+    "spans.buffer.max-segment-spans",
+    type=Int,
+    default=1001,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# TTL for keys in Redis. This is a downside protection in case of bugs.
+register(
+    "spans.buffer.redis-ttl",
+    type=Int,
+    default=3600,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of segments to fetch and flush per cycle.
+register(
+    "spans.buffer.max-flush-segments",
+    type=Int,
+    default=500,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum memory percentage for the span buffer in Redis before rejecting messages.
+register(
+    "spans.buffer.max-memory-percentage",
+    type=Float,
+    default=1.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of seconds the flusher needs to be saturated before we issue backpressure
+register(
+    "spans.buffer.flusher.backpressure-seconds",
+    default=10,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Timeout for flusher checkins before the process is killed and restarted
+register(
+    "spans.buffer.flusher.max-unhealthy-seconds",
+    default=60,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
+register(
+    "spans.buffer.compression.level",
+    type=Int,
+    default=-1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Segments consumer
+register(
+    "spans.process-segments.consumer.enable",
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.send-occurrence-to-platform.enable",
+    "spans.process-segments.detect-performance-problems.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "standalone-spans.detect-performance-problems.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "standalone-spans.profile-process-messages.rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "standalone-spans.deserialize-spans-rapidjson.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "standalone-spans.deserialize-spans-orjson.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "standalone-spans.buffer.flusher.backpressure_seconds",
-    default=10,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 register(
     "indexed-spans.agg-span-waterfall.enable",
     default=False,
@@ -2991,6 +3056,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Configures the list of public IP addresses that are returned from the
+# `tempest-ips` API. This provides a way to configure and retrieve
+# IP addresses for Tempest purposes without code changes.
+register(
+    "tempest.tempest-ips-api-response",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "releases.no_snuba_for_release_creation",
@@ -3112,28 +3186,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Increases event title character limit
 register(
-    "sentry.save-event.title-char-limit-256.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "sentry.demo_mode.sync_artifact_bundles.enable",
+    "sentry.demo_mode.sync_debug_artifacts.enable",
     type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "sentry.demo_mode.sync_artifact_bundles.source_org_id",
+    "sentry.demo_mode.sync_debug_artifacts.source_org_id",
     type=Int,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "sentry.demo_mode.sync_artifact_bundles.lookback_days",
-    default=1,
+    "sentry.demo_mode.sync_debug_artifacts.lookback_days",
+    default=3,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3395,6 +3461,39 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Flags for taskworker scheduler rollout
+register(
+    "taskworker.scheduler.rollout",
+    default=["sync_options_trial"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register(
+    "issues.client_error_sampling.project_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable adding the `Reporting-Endpoints` header, which will in turn enable the sending of Reporting
+# API reports from the browser (as long as it's Chrome).
+register(
+    "issues.browser_reporting.reporting_endpoints_header_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable the collection of Reporting API reports via the `/api/0/reporting-api-experiment/`
+# endpoint. When this is false, the endpoint will just 404.
+register(
+    "issues.browser_reporting.collector_endpoint_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

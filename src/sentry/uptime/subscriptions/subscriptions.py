@@ -282,6 +282,7 @@ def update_project_uptime_subscription(
     trace_sampling: bool | NotSet = NOT_SET,
     status: int = ObjectStatus.ACTIVE,
     mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
+    ensure_assignment: bool = False,
 ):
     """
     Links a project to an uptime subscription so that it can process results.
@@ -344,14 +345,14 @@ def update_project_uptime_subscription(
                 case ObjectStatus.DISABLED:
                     disable_uptime_detector(detector)
                 case ObjectStatus.ACTIVE:
-                    enable_uptime_detector(detector)
+                    enable_uptime_detector(detector, ensure_assignment=ensure_assignment)
 
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector
     uptime_monitor.refresh_from_db()
 
 
-def disable_uptime_detector(detector: Detector):
+def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
     """
     Disables a uptime detector. The associated ProjectUptimeSubscription will also be disabled,
     and if the UptimeSubscription no longer has any active ProjectUptimeSubscriptions, it will
@@ -381,7 +382,8 @@ def disable_uptime_detector(detector: Detector):
         uptime_monitor.update(status=ObjectStatus.DISABLED)
         detector.update(enabled=False)
 
-        quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
+        if not skip_quotas:
+            quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
 
         # Are there any other project subscriptions associated to the subscription
         # that are NOT disabled?
@@ -396,7 +398,9 @@ def disable_uptime_detector(detector: Detector):
             delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
-def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):
+def enable_uptime_detector(
+    detector: Detector, ensure_assignment: bool = False, skip_quotas: bool = False
+):
     """
     Enable a uptime detector. If the uptime subscription was also disabled it
     will be re-activated and the remote subscription will be published.
@@ -417,17 +421,18 @@ def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):
     ):
         return
 
-    seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, uptime_monitor)
-    if not seat_assignment.assignable:
-        disable_uptime_detector(detector)
-        raise UptimeMonitorNoSeatAvailable(seat_assignment)
+    if not skip_quotas:
+        seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, uptime_monitor)
+        if not seat_assignment.assignable:
+            disable_uptime_detector(detector)
+            raise UptimeMonitorNoSeatAvailable(seat_assignment)
 
-    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, uptime_monitor)
-    if outcome != Outcome.ACCEPTED:
-        # Race condition, we were unable to assign the seat even though the
-        # earlier assignment check indicated assignability
-        disable_uptime_detector(detector)
-        raise UptimeMonitorNoSeatAvailable(None)
+        outcome = quotas.backend.assign_seat(DataCategory.UPTIME, uptime_monitor)
+        if outcome != Outcome.ACCEPTED:
+            # Race condition, we were unable to assign the seat even though the
+            # earlier assignment check indicated assignability
+            disable_uptime_detector(detector)
+            raise UptimeMonitorNoSeatAvailable(None)
 
     uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
     uptime_monitor.update(status=ObjectStatus.ACTIVE)

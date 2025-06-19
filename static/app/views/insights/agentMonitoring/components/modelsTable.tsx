@@ -1,6 +1,5 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -19,7 +18,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
-  CellExpander,
   CellLink,
   GridEditableContainer,
   LoadingOverlay,
@@ -36,9 +34,9 @@ import {
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
@@ -71,11 +69,14 @@ export function ModelsTable() {
 
   const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
 
-  const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
+  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
       {
         pathname,
-        search: qs.stringify({...transactionQuery, modelsCursor: cursor}),
+        query: {
+          ...previousQuery,
+          tableCursor: cursor,
+        },
       },
       {replace: true, preventScrollReset: true}
     );
@@ -103,7 +104,7 @@ export function ModelsTable() {
           : undefined,
       keepPreviousData: true,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.MODELS_TABLE
   );
 
   const tableData = useMemo(() => {
@@ -124,8 +125,11 @@ export function ModelsTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'model' && <CellExpander />}
+      <HeadSortCell
+        sortKey={column.key}
+        cursorParamName="modelsCursor"
+        forceCellGrow={column.key === 'model'}
+      >
         {column.name}
       </HeadSortCell>
     );

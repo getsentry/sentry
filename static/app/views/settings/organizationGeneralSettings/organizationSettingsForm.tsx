@@ -148,7 +148,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       />
       <AvatarChooser
         type="organization"
-        allowGravatar={false}
+        supportedTypes={['upload', 'letter_avatar']}
         endpoint={`${endpoint}avatar/`}
         model={initialData}
         uploadDomain={initialData.links.regionUrl}

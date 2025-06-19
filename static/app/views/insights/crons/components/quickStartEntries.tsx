@@ -608,6 +608,7 @@ checkinId := sentry.CaptureCheckIn(
 // 🟢 Notify Sentry your job has completed successfully:
 sentry.CaptureCheckIn(
   &sentry.CheckIn{
+    ID:          *checkinId,
     MonitorSlug: "<monitor-slug>",
     Status:      sentry.CheckInStatusOK,
   },

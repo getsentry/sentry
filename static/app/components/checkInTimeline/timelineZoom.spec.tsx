@@ -21,6 +21,8 @@ function TestComponent({onSelect}: TestProps) {
 }
 
 beforeEach(() => {
+  document.elementsFromPoint = () => [];
+
   jest
     .spyOn(window, 'requestAnimationFrame')
     .mockImplementation((callback: FrameRequestCallback): number => {

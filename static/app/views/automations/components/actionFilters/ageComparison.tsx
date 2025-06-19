@@ -1,13 +1,43 @@
 import AutomationBuilderNumberField from 'sentry/components/workflowEngine/form/automationBuilderNumberField';
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {tct} from 'sentry/locale';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   AGE_COMPARISON_CHOICES,
   type AgeComparison,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
-export default function AgeComparisonNode() {
+enum TimeUnit {
+  MINUTES = 'minutes',
+  HOURS = 'hours',
+  DAYS = 'days',
+}
+
+const TIME_CHOICES = [
+  {value: TimeUnit.MINUTES, label: 'minute(s)'},
+  {value: TimeUnit.HOURS, label: 'hour(s)'},
+  {value: TimeUnit.DAYS, label: 'day(s)'},
+];
+
+interface AgeComparisonDetailsProps {
+  condition: DataCondition;
+}
+
+export function AgeComparisonDetails({condition}: AgeComparisonDetailsProps) {
+  return tct('The issue is [comparisonType] [value] [time]', {
+    comparisonType:
+      AGE_COMPARISON_CHOICES.find(
+        choice => choice.value === condition.comparison.comparison_type
+      )?.label || condition.comparison.comparison_type,
+    value: condition.comparison.value,
+    time:
+      TIME_CHOICES.find(choice => choice.value[0] === condition.comparison.time)?.label ||
+      condition.comparison.time,
+  });
+}
+
+export function AgeComparisonNode() {
   return tct('The issue is [comparisonType] [value] [time]', {
     comparisonType: <ComparisonField />,
     value: <ValueField />,
@@ -54,11 +84,7 @@ function TimeField() {
     <AutomationBuilderSelectField
       name={`${condition_id}.comparison.time`}
       value={condition.comparison.time}
-      options={[
-        {value: 'minutes', label: 'minute(s)'},
-        {value: 'hours', label: 'hour(s)'},
-        {value: 'days', label: 'day(s)'},
-      ]}
+      options={TIME_CHOICES}
       onChange={(value: string) => {
         onUpdate({
           time: value,

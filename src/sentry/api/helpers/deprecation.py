@@ -6,12 +6,10 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Concatenate, ParamSpec, TypeVar
 
-import isodate
 from cronsim import CronSim, CronSimError
 from django.conf import settings
 from django.http.response import HttpResponseBase
 from django.utils import timezone
-from isodate.isoerror import ISO8601Error
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_410_GONE as GONE
@@ -57,13 +55,13 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str) -> b
             brownout_duration = options.get(duration_key)
         except UnknownOption:
             logger.exception("Unrecognized deprecation duration %s", key)
-            brownout_duration = options.get("api.deprecation.brownout-duration")
+            brownout_duration = options.get("api.deprecation.brownout-duration-seconds")
 
         # Validate the formats, allow requests to pass through if validation failed
         try:
-            brownout_duration = isodate.parse_duration(brownout_duration)
-        except ISO8601Error:
-            logger.exception("Invalid ISO8601 format for blackout duration")
+            brownout_duration = timedelta(seconds=brownout_duration)
+        except TypeError:
+            logger.exception("Invalid brownout duration")
             return False
 
         try:

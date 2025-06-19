@@ -10,13 +10,14 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 const DEFAULT_EAP_AGGREGATION = 'count';
 const DEFAULT_EAP_FIELD = 'span.duration';
@@ -47,8 +48,8 @@ function EAPField({aggregate, onChange}: Props) {
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
-  const {tags: storedStringTags} = useSpanTags('string');
-  const {tags: storedNumberTags} = useSpanTags('number');
+  const {tags: storedStringTags} = useTraceItemTags('string');
+  const {tags: storedNumberTags} = useTraceItemTags('number');
   const storedTags =
     aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
   const numberTags: TagCollection = useMemo(() => {
@@ -67,7 +68,10 @@ function EAPField({aggregate, onChange}: Props) {
       return [true, {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}];
     }
 
-    if (aggregation === AggregationKey.EPM || aggregation === AggregationKey.EPS) {
+    if (
+      aggregation &&
+      NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
+    ) {
       return [true, {label: t('spans'), value: ''}];
     }
 
