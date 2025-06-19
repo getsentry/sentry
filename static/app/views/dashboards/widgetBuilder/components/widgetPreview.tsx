@@ -25,7 +25,7 @@ interface WidgetPreviewProps {
   shouldForceDescriptionTooltip?: boolean;
 }
 
-const MIN_TABLE_COLUMN_WIDTH = '125px';
+const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 
 function WidgetPreview({
   dashboard,
@@ -114,7 +114,7 @@ function WidgetPreview({
 
       showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
       // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
-      minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH}
+      minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH_PX}
       disableZoom
       showLoadingText
     />

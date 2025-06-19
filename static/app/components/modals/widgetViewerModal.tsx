@@ -852,7 +852,6 @@ function WidgetViewerModal(props: Props) {
                 location={location}
                 widget={widget}
                 selection={selection}
-                organization={organization}
                 onZoom={(_evt, chart) => {
                   onZoom(_evt, chart);
                   setChartUnmodified(false);
@@ -872,7 +871,6 @@ function WidgetViewerModal(props: Props) {
               <MemoizedWidgetCardChartContainer
                 location={location}
                 api={api}
-                organization={organization}
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table

@@ -14,7 +14,6 @@ import type {
   EChartEventHandler,
   Series,
 } from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,7 +29,6 @@ import {WidgetCardDataLoader} from './widgetCardDataLoader';
 type Props = {
   api: Client;
   location: Location;
-  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -40,7 +38,7 @@ type Props = {
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -66,7 +64,6 @@ type Props = {
 };
 
 export function WidgetCardChartContainer({
-  organization,
   selection,
   widget,
   dashboardFilters,
@@ -161,7 +158,7 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
-                transformedResults={tableResults?.[0]!.data ?? []}
+                tableResults={tableResults}
                 loading={loading}
                 errorMessage={errorOrEmptyMessage}
                 widget={widget}
@@ -186,7 +183,6 @@ export function WidgetCardChartContainer({
               location={location}
               widget={widget}
               selection={selection}
-              organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
               expandNumbers={expandNumbers}

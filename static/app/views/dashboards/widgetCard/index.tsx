@@ -80,7 +80,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -299,7 +299,6 @@ function WidgetCard(props: Props) {
           <WidgetCardChartContainer
             location={location}
             api={api}
-            organization={organization}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
