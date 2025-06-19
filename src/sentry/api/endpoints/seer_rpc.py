@@ -201,7 +201,7 @@ def get_organization_seer_consent_by_org_name(
     *, org_name: str, provider: str = "github"
 ) -> dict[str, bool]:
     org_integrations = integration_service.get_organization_integrations(
-        provider=provider, name=org_name
+        providers=[provider], name=org_name
     )
 
     for org_integration in org_integrations:
