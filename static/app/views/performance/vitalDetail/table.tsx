@@ -153,7 +153,6 @@ class Table extends Component<Props, State> {
       Actions.EXCLUDE,
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
-      Actions.COPY_TO_CLIPBOARD,
     ];
 
     if (field === 'transaction') {
