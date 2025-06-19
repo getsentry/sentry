@@ -264,6 +264,8 @@ const StyledIssuesButton = styled(LinkButton)`
   right: ${space(1)};
 `;
 
+// This style explicitly hides InteractionStateLayer when the Issues button is hovered
+// This is to prevent hover styles displayed on multiple overlapping components simultaneously
 const MeterBarContainer = styled('div')<{clickable?: boolean}>`
   background-color: ${p => p.theme.background};
   flex: 1;
