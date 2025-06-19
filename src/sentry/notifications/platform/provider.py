@@ -23,7 +23,7 @@ class NotificationProvider[RenderableT](Protocol):
     """
 
     key: NotificationProviderKey
-    default_renderer: NotificationRenderer[RenderableT]
+    default_renderer: type[NotificationRenderer[RenderableT]]
     target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
 
@@ -50,7 +50,9 @@ class NotificationProvider[RenderableT](Protocol):
         return
 
     @classmethod
-    def get_renderer(cls, *, category: NotificationCategory) -> NotificationRenderer[RenderableT]:
+    def get_renderer(
+        cls, *, category: NotificationCategory
+    ) -> type[NotificationRenderer[RenderableT]]:
         """
         Returns an instance of a renderer for a given notification, falling back to the default renderer.
         Override this to method to permit different renderers for the provider, though keep in mind

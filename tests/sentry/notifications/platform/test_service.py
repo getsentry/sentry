@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -85,7 +86,7 @@ class NotificationServiceTest(TestCase):
         )
 
     def test_validation_on_notify_prepared_target(self):
-        empty_data_service = NotificationService(data=None)
+        empty_data_service: NotificationService[Any] = NotificationService(data=None)
         with pytest.raises(
             NotificationServiceError,
             match="Notification service must be initialized with data before sending!",
