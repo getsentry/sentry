@@ -113,6 +113,8 @@ export type ReplayEventParameters = {
   'replay.search': {
     search_keys: string;
   };
+  'replay.timeline.zoom-in': Record<string, unknown>;
+  'replay.timeline.zoom-out': Record<string, unknown>;
   'replay.toggle-fullscreen': {
     context: string;
     fullscreen: boolean;
