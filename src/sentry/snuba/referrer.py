@@ -892,6 +892,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
+    REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
