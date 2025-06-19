@@ -1,6 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-import {hasLogAlerts} from 'sentry/views/alerts/rules/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
@@ -88,4 +87,8 @@ export function getAlertTypeFromAggregateDataset({
     return 'eap_metrics';
   }
   return alertType ? alertType : 'custom_transactions';
+}
+
+export function hasLogAlerts(organization: Organization): boolean {
+  return organization.features.includes('ourlogs-alerts');
 }

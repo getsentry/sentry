@@ -23,7 +23,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasLogAlerts} from 'sentry/views/alerts/rules/utils';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {
   deprecateTransactionAlerts,
   hasEAPAlerts,

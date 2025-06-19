@@ -182,10 +182,6 @@ export function isEapAlertType(alertType?: AlertType) {
   ].includes(alertType);
 }
 
-export function hasLogAlerts(organization: Organization): boolean {
-  return organization.features.includes('ourlogs-alerts');
-}
-
 export function getTraceItemTypeForDatasetAndEventType(
   dataset: Dataset,
   eventTypes?: EventTypes[]
