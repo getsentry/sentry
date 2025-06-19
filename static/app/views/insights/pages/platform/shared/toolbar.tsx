@@ -32,8 +32,10 @@ export function Toolbar({
   const {selection} = usePageFilters();
   const project = useAlertsProject();
 
+  const referrer = loaderSource || 'insights.platform.toolbar';
+
   const exploreUrl =
-    exploreParams && getExploreUrl({...exploreParams, organization, selection});
+    exploreParams && getExploreUrl({...exploreParams, organization, selection, referrer});
 
   const yAxes = exploreParams?.visualize?.flatMap(v => v.yAxes) || [];
 
@@ -49,6 +51,7 @@ export function Toolbar({
         pageFilters: selection,
         aggregate: yAxis,
         organization,
+        referrer,
       }),
     };
   });
@@ -59,7 +62,7 @@ export function Toolbar({
         <BaseChartActionDropdown
           exploreUrl={exploreUrl}
           alertMenuOptions={showCreateAlert ? alertsUrls : []}
-          referrer={loaderSource || 'insights.platform.toolbar'}
+          referrer={referrer}
         />
       ) : null}
 

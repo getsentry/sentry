@@ -54,6 +54,7 @@ export function getExploreUrl({
   field,
   id,
   title,
+  referrer,
 }: {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
@@ -63,6 +64,7 @@ export function getExploreUrl({
   interval?: string;
   mode?: Mode;
   query?: string;
+  referrer?: string;
   selection?: PageFilters;
   sort?: string;
   title?: string;
@@ -87,6 +89,7 @@ export function getExploreUrl({
     utc,
     id,
     title,
+    referrer,
   };
 
   return (

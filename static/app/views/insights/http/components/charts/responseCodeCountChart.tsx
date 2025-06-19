@@ -92,6 +92,7 @@ export function ResponseCodeCountChart({
     query: search?.formatString(),
     sort: undefined,
     groupBy,
+    referrer,
   });
 
   const extraActions = [
@@ -109,6 +110,7 @@ export function ResponseCodeCountChart({
           pageFilters: selection,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           query: query.query,
+          referrer,
         }),
       }))}
     />,
