@@ -6,6 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('EAPField', () => {
   const organization = OrganizationFixture();
@@ -21,7 +22,11 @@ describe('EAPField', () => {
   it('renders', () => {
     render(
       <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-        <EAPField aggregate={'count(span.duration)'} onChange={() => {}} />
+        <EAPField
+          aggregate={'count(span.duration)'}
+          onChange={() => {}}
+          traceItemType={TraceItemDataset.SPANS}
+        />
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
@@ -50,7 +55,11 @@ describe('EAPField', () => {
   it('renders epm with argument disabled', () => {
     render(
       <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-        <EAPField aggregate={'epm()'} onChange={() => {}} />
+        <EAPField
+          aggregate={'epm()'}
+          onChange={() => {}}
+          traceItemType={TraceItemDataset.SPANS}
+        />
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
@@ -79,7 +88,11 @@ describe('EAPField', () => {
   it('renders failure_rate with argument disabled', () => {
     render(
       <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-        <EAPField aggregate={'failure_rate()'} onChange={() => {}} />
+        <EAPField
+          aggregate={'failure_rate()'}
+          onChange={() => {}}
+          traceItemType={TraceItemDataset.SPANS}
+        />
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
@@ -109,7 +122,11 @@ describe('EAPField', () => {
     const onChange = jest.fn();
     render(
       <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-        <EAPField aggregate={'count(span.duration)'} onChange={onChange} />
+        <EAPField
+          aggregate={'count(span.duration)'}
+          onChange={onChange}
+          traceItemType={TraceItemDataset.SPANS}
+        />
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
@@ -134,7 +151,11 @@ describe('EAPField', () => {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <EAPField aggregate={aggregate} onChange={setAggregate} />
+          <EAPField
+            aggregate={aggregate}
+            onChange={setAggregate}
+            traceItemType={TraceItemDataset.SPANS}
+          />
         </SpanTagsProvider>
       );
     }
@@ -163,7 +184,11 @@ describe('EAPField', () => {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <EAPField aggregate={aggregate} onChange={setAggregate} />
+          <EAPField
+            aggregate={aggregate}
+            onChange={setAggregate}
+            traceItemType={TraceItemDataset.SPANS}
+          />
         </SpanTagsProvider>
       );
     }

@@ -5,6 +5,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import RuleConditionsForm from 'sentry/views/alerts/rules/metric/ruleConditionsForm';
 import {AlertRuleComparisonType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('RuleConditionsForm', () => {
   const {organization, projects, router} = initializeOrg({
@@ -29,6 +30,7 @@ describe('RuleConditionsForm', () => {
     project: projects[0]!,
     thresholdChart: <div>chart</div>,
     timeWindow: 30,
+    traceItemType: null,
   };
 
   beforeEach(() => {
@@ -81,6 +83,7 @@ describe('RuleConditionsForm', () => {
     render(
       <RuleConditionsForm
         {...props}
+        traceItemType={TraceItemDataset.SPANS}
         organization={organization}
         router={router}
         isLowConfidenceChartData
