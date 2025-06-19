@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {
   Actions,
-  stringifyValue,
+  copyToClipBoard,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -306,7 +306,7 @@ export const LogRowContent = memo(function LogRowContent({
                         });
                         break;
                       case Actions.COPY_TO_CLIPBOARD:
-                        navigator.clipboard.writeText(stringifyValue(cellValue));
+                        copyToClipBoard(cellValue);
                         break;
                       default:
                         break;
