@@ -46,6 +46,15 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
             organization=organization, user_id=request.user.id
         ).select_related("dashboard")
 
+        if favorites.filter(position__isnull=True).exists():
+            # Commit the order of the dashboards of this current response if there are any
+            # that don't have a position assigned
+            DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+                organization=organization,
+                user_id=request.user.id,
+                new_dashboard_positions=[favorite.dashboard.id for favorite in favorites],
+            )
+
         def data_fn(offset, limit):
             return [favorite.dashboard for favorite in favorites[offset : offset + limit]]
 

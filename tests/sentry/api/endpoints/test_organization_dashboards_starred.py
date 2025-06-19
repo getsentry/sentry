@@ -47,6 +47,41 @@ class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
             self.dashboard_1.id,
         ]
 
+    def test_get_request_assigns_positions_if_missing(self):
+        self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, None)
+        self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 2)
+        self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, None)
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert [int(dashboard["id"]) for dashboard in response.data] == [
+            self.dashboard_2.id,
+            self.dashboard_1.id,
+            self.dashboard_3.id,
+        ]
+
+        assert (
+            DashboardFavoriteUser.objects.get(
+                organization=self.organization, user_id=self.user.id, dashboard=self.dashboard_1
+            ).position
+            == 1
+        )
+        assert (
+            DashboardFavoriteUser.objects.get(
+                organization=self.organization, user_id=self.user.id, dashboard=self.dashboard_3
+            ).position
+            == 2
+        )
+
+        # Positioned dashboards are at the top of the list in this operation
+        assert (
+            DashboardFavoriteUser.objects.get(
+                organization=self.organization, user_id=self.user.id, dashboard=self.dashboard_2
+            ).position
+            == 0
+        )
+
 
 class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
     def setUp(self):
