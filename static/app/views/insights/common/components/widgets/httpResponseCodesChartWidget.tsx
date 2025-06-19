@@ -70,6 +70,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
       ...query,
       chartType: ChartType.LINE,
     })),
+    referrer,
   });
 
   const extraActions = [
@@ -87,6 +88,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
           pageFilters: selection,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           query: query.query,
+          referrer,
         }),
       }))}
     />,
