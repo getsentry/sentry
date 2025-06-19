@@ -226,6 +226,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             use_aggregate_conditions=True,
                         ),
                         sampling_mode=snuba_params.sampling_mode,
+                        equations=self.get_equation_list(organization, request),
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,

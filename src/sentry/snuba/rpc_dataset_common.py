@@ -28,6 +28,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
     ResolvedAggregate,
@@ -104,20 +105,22 @@ def categorize_column(
 
 
 def categorize_aggregate(
-    column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+    column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula | ResolvedEquation,
 ) -> Expression:
-    if isinstance(column, ResolvedFormula):
+    if isinstance(column, (ResolvedFormula, ResolvedEquation)):
         # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
         return Expression(
             formula=transform_binary_formula_to_expression(column.proto_definition),
             label=column.public_alias,
         )
-    if isinstance(column, ResolvedAggregate):
+    elif isinstance(column, ResolvedAggregate):
         return Expression(aggregation=column.proto_definition, label=column.public_alias)
-    if isinstance(column, ResolvedConditionalAggregate):
+    elif isinstance(column, ResolvedConditionalAggregate):
         return Expression(
             conditional_aggregation=column.proto_definition, label=column.public_alias
         )
+    else:
+        raise Exception(f"Unknown column type {type(column)}")
 
 
 def update_timestamps(
@@ -189,13 +192,15 @@ def get_timeseries_query(
     extra_conditions: TraceItemFilter | None = None,
 ) -> tuple[
     TimeSeriesRequest,
-    list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
+    list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedEquation],
     list[ResolvedAttribute],
 ]:
     timeseries_filter, params = update_timestamps(params, search_resolver)
     meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     query, _, query_contexts = search_resolver.resolve_query(query_string)
-    (functions, _) = search_resolver.resolve_functions(y_axes)
+    selected_equations, selected_axes = arithmetic.categorize_columns(y_axes)
+    (functions, _) = search_resolver.resolve_functions(selected_axes)
+    equations, _ = search_resolver.resolve_equations(selected_equations)
     groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
 
     # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
@@ -223,7 +228,9 @@ def get_timeseries_query(
         TimeSeriesRequest(
             meta=meta,
             filter=query,
-            expressions=[categorize_aggregate(fn) for fn in functions if fn.is_aggregate],
+            expressions=[
+                categorize_aggregate(fn) for fn in (functions + equations) if fn.is_aggregate
+            ],
             group_by=[
                 groupby.proto_definition
                 for groupby in groupbys
@@ -231,7 +238,7 @@ def get_timeseries_query(
             ],
             granularity_secs=params.timeseries_granularity_secs,
         ),
-        functions,
+        (functions + equations),
         groupbys,
     )
 
@@ -489,6 +496,7 @@ def run_top_events_timeseries_query(
     referrer: str,
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
+    equations: list[str] | None = None,
 ) -> Any:
     """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
     functions that both would call
@@ -508,17 +516,18 @@ def run_top_events_timeseries_query(
     table_search_resolver = get_resolver(table_query_params, config)
 
     # Make a table query first to get what we need to filter by
+    _, non_equation_axes = arithmetic.categorize_columns(y_axes)
     top_events = run_table_query(
         TableQuery(
             query_string=query_string,
-            selected_columns=raw_groupby + y_axes,
+            selected_columns=raw_groupby + non_equation_axes,
             orderby=orderby,
             offset=0,
             limit=limit,
             referrer=referrer,
             sampling_mode=sampling_mode,
             resolver=table_search_resolver,
-            equations=[],
+            equations=equations,
         )
     )
     if len(top_events["data"]) == 0:
