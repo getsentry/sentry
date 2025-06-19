@@ -6,13 +6,16 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
+import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {JetpackComposePiiNotice} from 'sentry/views/replays/jetpackComposePiiNotice';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
@@ -84,8 +87,19 @@ function ReplaysList() {
         ReplayColumn.ACTIVITY,
       ];
 
+  const needsJetpackComposePiiWarning = replays?.find(replay => {
+    return (
+      replay?.sdk.name === 'sentry.java.android' &&
+      semverCompare(
+        replay?.sdk.version ?? '',
+        MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.minVersion
+      ) === -1
+    );
+  });
+
   return (
     <Fragment>
+      {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ReplayTable
         referrerLocation={'replay'}
         fetchError={error}
