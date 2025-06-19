@@ -1,8 +1,11 @@
 import {useCallback, useMemo} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import type {CodecovContextDataParams} from 'sentry/components/codecov/context/codecovContext';
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {Button} from 'sentry/components/core/button';
-import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import Link from 'sentry/components/links/link';
@@ -13,6 +16,9 @@ import {space} from 'sentry/styles/space';
 import {IconRepository} from './iconRepository';
 
 const CODECOV_PLACEHOLDER_REPOS = ['gazebo', 'sentry'];
+
+const VALUES_TO_RESET: Array<Extract<CodecovContextDataParams, 'repository' | 'branch'>> =
+  ['repository', 'branch'];
 
 function SyncRepoButton() {
   return (
@@ -52,23 +58,22 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
   );
 }
 
-export interface RepoSelectorProps {
-  onChange: (data: string) => void;
-  /**
-   * Repository value
-   */
-  repository: string | null;
-  /**
-   * Optional trigger for the assignee selector. If nothing passed in,
-   * the default trigger will be used
-   */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    isOpen: boolean
-  ) => React.ReactNode;
-}
+export function RepoSelector() {
+  const {repository, handleReset} = useCodecovContext();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps) {
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      const currentParams = Object.fromEntries(searchParams.entries());
+      const updatedParams = {
+        ...currentParams,
+        repository: selectedOption.value,
+      };
+      setSearchParams(updatedParams);
+    },
+    [searchParams, setSearchParams]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
     // TODO: When API is ready, replace placeholder w/ api response
     const repoSet = new Set([
@@ -87,11 +92,26 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
     });
   }, [repository]);
 
-  const handleChange = useCallback<NonNullable<SingleSelectProps<string>['onChange']>>(
-    newSelected => {
-      onChange(newSelected.value);
+  const menuHeaderTrailingItems = useCallback(
+    ({closeOverlay}: any) => {
+      if (!repository) {
+        return null;
+      }
+
+      return (
+        <ResetButton
+          onClick={() => {
+            handleReset(VALUES_TO_RESET);
+            closeOverlay();
+          }}
+          size="zero"
+          borderless
+        >
+          {t('Reset')}
+        </ResetButton>
+      );
     },
-    [onChange]
+    [handleReset, repository]
   );
 
   return (
@@ -102,33 +122,31 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
       value={repository ?? ''}
       onChange={handleChange}
       menuWidth={'16rem'}
+      menuHeaderTrailingItems={menuHeaderTrailingItems}
       menuBody={<SyncRepoButton />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
-      trigger={
-        trigger ??
-        ((triggerProps, isOpen) => {
-          const defaultLabel = options.some(item => item.value === repository)
-            ? repository
-            : t('Select Repo');
+      trigger={(triggerProps, isOpen) => {
+        const defaultLabel = options.some(item => item.value === repository)
+          ? repository
+          : t('Select Repo');
 
-          return (
-            <DropdownButton
-              isOpen={isOpen}
-              data-test-id="page-filter-codecov-repository-selector"
-              {...triggerProps}
-            >
-              <TriggerLabelWrap>
-                <FlexContainer>
-                  <IconContainer>
-                    <IconRepository />
-                  </IconContainer>
-                  <TriggerLabel>{defaultLabel}</TriggerLabel>
-                </FlexContainer>
-              </TriggerLabelWrap>
-            </DropdownButton>
-          );
-        })
-      }
+        return (
+          <DropdownButton
+            isOpen={isOpen}
+            data-test-id="page-filter-codecov-repository-selector"
+            {...triggerProps}
+          >
+            <TriggerLabelWrap>
+              <FlexContainer>
+                <IconContainer>
+                  <IconRepository />
+                </IconContainer>
+                <TriggerLabel>{defaultLabel}</TriggerLabel>
+              </FlexContainer>
+            </TriggerLabelWrap>
+          </DropdownButton>
+        );
+      }}
     />
   );
 }
@@ -187,4 +205,15 @@ const FlexContainer = styled('div')`
 const IconContainer = styled('div')`
   flex: 1 0 14px;
   height: 14px;
+`;
+
+const ResetButton = styled(Button)`
+  font-size: inherit;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
 `;

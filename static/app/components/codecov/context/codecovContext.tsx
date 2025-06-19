@@ -5,9 +5,12 @@ import type {CodecovPeriodOptions} from 'sentry/components/codecov/datePicker/da
 export type CodecovContextData = {
   branch: string | null;
   codecovPeriod: CodecovPeriodOptions;
+  handleReset: (valuesToReset: CodecovContextDataParams[]) => void;
   integratedOrg: string | null;
   repository: string | null;
 };
+
+export type CodecovContextDataParams = Exclude<keyof CodecovContextData, 'handleReset'>;
 
 export const CodecovContext = createContext<CodecovContextData | undefined>(undefined);
 
