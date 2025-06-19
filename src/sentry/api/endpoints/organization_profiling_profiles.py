@@ -80,6 +80,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
 
         with handle_query_errors():
             executor = FlamegraphExecutor(
+                request=request,
                 snuba_params=snuba_params,
                 data_source=serialized["dataSource"],
                 query=serialized.get("query", ""),
