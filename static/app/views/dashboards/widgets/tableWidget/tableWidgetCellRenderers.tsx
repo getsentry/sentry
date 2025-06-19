@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
-import type {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -28,7 +28,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
 /**
- * Renderers here are meant to be used for widgets that reside in the dashboard
+ * Renderers here are meant to be used for widgets that render in the dashboard related pages
  */
 
 // Dashboards only supports top 5 for now
@@ -36,7 +36,7 @@ const DEFAULT_NUM_TOP_EVENTS = 5;
 
 interface SharedRenderTableProps {
   widget: Widget;
-  tableData?: TableDataWithTitle;
+  tableData?: TableData;
 }
 
 interface RenderGridBodyProps extends SharedRenderTableProps {
@@ -106,7 +106,7 @@ export const renderGridBodyCell = ({
       case WidgetType.TRANSACTIONS:
       case WidgetType.ERRORS:
       default: {
-        if (!tableData || !tableData.meta) {
+        if (!tableData?.meta) {
           return dataRow[column.key];
         }
         const unit = tableData.meta.units?.[column.key];

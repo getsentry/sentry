@@ -28,71 +28,69 @@ export const SAMPLE_TABLE_COLUMNS: Array<TableColumn<string>> = [
   },
 ];
 
-export const SAMPLE_TABLE_RESULTS: TableDataWithTitle[] = [
-  {
-    data: [
-      {
-        'http.request_method': 'PATCH',
-        'count(span.duration)': 14105,
-        id: '',
-      },
-      {
-        'http.request_method': 'HEAD',
-        'count(span.duration)': 9494,
-        id: '',
-      },
-      {
-        'http.request_method': 'GET',
-        'count(span.duration)': 38583495,
-        id: '',
-      },
-      {
-        'http.request_method': 'DELETE',
-        'count(span.duration)': 123,
-        id: '',
-      },
-      {
-        'http.request_method': 'POST',
-        'count(span.duration)': 21313,
-        id: '',
-      },
-    ],
-    meta: {
+export const SAMPLE_TABLE_DATA: TableDataWithTitle = {
+  data: [
+    {
+      'http.request_method': 'PATCH',
+      'count(span.duration)': 14105,
+      id: '',
+    },
+    {
+      'http.request_method': 'HEAD',
+      'count(span.duration)': 9494,
+      id: '',
+    },
+    {
+      'http.request_method': 'GET',
+      'count(span.duration)': 38583495,
+      id: '',
+    },
+    {
+      'http.request_method': 'DELETE',
+      'count(span.duration)': 123,
+      id: '',
+    },
+    {
+      'http.request_method': 'POST',
+      'count(span.duration)': 21313,
+      id: '',
+    },
+  ],
+  meta: {
+    'http.request_method': 'string',
+    'count(span.duration)': 'integer',
+    units: {
+      'http.request_method': '',
+      'count(span.duration)': '',
+    },
+    isMetricsData: false,
+    isMetricsExtractedData: false,
+    datasetReason: 'unchanged',
+    dataset: 'spans',
+    dataScanned: 'partial',
+    accuracy: {
+      confidence: [
+        {
+          'count(span.duration)': 'high',
+        },
+        {
+          'count(span.duration)': 'low',
+        },
+        {
+          'count(span.duration)': 'high',
+        },
+        {
+          'count(span.duration)': 'high',
+        },
+        {
+          'count(span.duration)': 'high',
+        },
+      ],
+    },
+    fields: {
       'http.request_method': 'string',
       'count(span.duration)': 'integer',
-      units: {
-        'http.request_method': '',
-        'count(span.duration)': '',
-      },
-      isMetricsData: false,
-      isMetricsExtractedData: false,
-      datasetReason: 'unchanged',
-      dataset: 'spans',
-      dataScanned: 'partial',
-      accuracy: {
-        confidence: [
-          {
-            'count(span.duration)': 'high',
-          },
-          {
-            'count(span.duration)': 'low',
-          },
-          {
-            'count(span.duration)': 'high',
-          },
-          {
-            'count(span.duration)': 'high',
-          },
-          {
-            'count(span.duration)': 'high',
-          },
-        ],
-      },
-      fields: {
-        'http.request_method': 'string',
-        'count(span.duration)': 'integer',
-      },
     },
-    title: '',
   },
-];
+  title: '',
+};

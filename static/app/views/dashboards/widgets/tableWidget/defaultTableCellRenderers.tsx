@@ -6,7 +6,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import type {Organization} from 'sentry/types/organization';
-import type {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -16,7 +16,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
  */
 
 interface DefaultCellRenderProps {
-  tableData?: TableDataWithTitle;
+  tableData?: TableData;
 }
 
 interface DefaultBodyCellRenderProps extends DefaultCellRenderProps {
@@ -25,6 +25,7 @@ interface DefaultBodyCellRenderProps extends DefaultCellRenderProps {
   theme: Theme;
 }
 
+// TODO: expand on some basic sorting functionality
 export const renderDefaultHeadCell = ({tableData}: DefaultCellRenderProps) =>
   function (
     column: TableColumn<keyof TableDataRow>,
@@ -58,12 +59,11 @@ export const renderDefaultBodyCell = ({
     columnIndex: number
   ): React.ReactNode {
     const columnKey = String(column.key);
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
 
     const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
-
     const unit = tableData.meta.units?.[columnKey];
 
     return (

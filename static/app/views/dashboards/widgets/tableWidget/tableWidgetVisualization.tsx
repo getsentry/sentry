@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -16,7 +16,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 interface TableWidgetVisualizationProps {
   columns: Array<TableColumn<string>>;
   loading: boolean;
-  tableResults: TableDataWithTitle[];
+  tableData: TableData;
   fitMaxContent?: boolean;
   minTableColumnWidth?: number;
   renderTableBodyCell?: (
@@ -47,7 +47,7 @@ export const DASHBOARD_TABLE_WIDGET_STYLES = {
 
 function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const {
-    tableResults,
+    tableData,
     loading,
     stickyHeader,
     scrollable,
@@ -66,20 +66,20 @@ function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     <Fragment>
       <GridEditable
         isLoading={loading}
-        data={tableResults?.[0]?.data ?? []}
+        data={tableData?.data ?? []}
         columnOrder={columns}
         columnSortBy={[]}
         grid={{
           renderHeadCell: renderTableHeadCell
             ? renderTableHeadCell
-            : (renderDefaultHeadCell({tableData: tableResults?.[0]}) as (
+            : (renderDefaultHeadCell({tableData}) as (
                 column: GridColumnOrder,
                 columnIndex: number
               ) => React.ReactNode),
           renderBodyCell: renderTableBodyCell
             ? renderTableBodyCell
             : renderDefaultBodyCell({
-                tableData: tableResults?.[0],
+                tableData,
                 location,
                 organization,
                 theme,
