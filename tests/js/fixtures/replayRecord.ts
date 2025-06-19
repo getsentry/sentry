@@ -7,15 +7,18 @@ export function ReplayRecordFixture(
 ): ReplayRecord {
   return {
     activity: 0,
+    clicks: [],
     browser: {
       name: 'Other',
       version: '',
     },
     count_dead_clicks: 1,
-    count_rage_clicks: 1,
     count_errors: 1,
+    count_infos: 1,
+    count_rage_clicks: 1,
     count_segments: 14,
     count_urls: 1,
+    count_warnings: 1,
     device: {
       name: '',
       brand: '',
@@ -29,11 +32,18 @@ export function ReplayRecordFixture(
     finished_at: new Date('Sep 22, 2022 5:00:03 PM UTC'),
     has_viewed: false,
     id: '761104e184c64d439ee1014b72b4d83b',
+    info_ids: [],
     is_archived: false,
     os: {
       name: 'Other',
       version: '',
     },
+    ota_updates: {
+      channel: 'stable',
+      runtime_version: '1.0.0',
+      update_id: '1234567890',
+    },
+    replay_type: 'buffer',
     platform: 'javascript',
     project_id: '6273278',
     releases: ['1.0.0', '2.0.0'],
@@ -51,6 +61,7 @@ export function ReplayRecordFixture(
       ip: '127.0.0.1',
       display_name: '127.0.0.1',
     },
+    warning_ids: [],
     ...replayRecord,
     tags: {
       ...replayRecord.tags,
