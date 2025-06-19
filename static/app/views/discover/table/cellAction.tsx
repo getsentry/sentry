@@ -26,6 +26,13 @@ export enum Actions {
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
+  COPY_TO_CLIPBOARD = 'copy_to_clipboard',
+}
+
+export function stringifyValue(value: string | number | string[] | undefined) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.toString();
 }
 
 export function updateQuery(
@@ -83,6 +90,9 @@ export function updateQuery(
     }
     // these actions do not modify the query in any way,
     // instead they have side effects
+    case Actions.COPY_TO_CLIPBOARD:
+      navigator.clipboard.writeText(stringifyValue(value));
+      break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
       break;
@@ -231,6 +241,8 @@ function makeCellActions({
       t('Edit threshold')
     );
   }
+
+  addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
   if (actions.length === 0) {
     return null;
