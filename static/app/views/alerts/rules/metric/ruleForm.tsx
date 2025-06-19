@@ -57,7 +57,10 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
+import {
+  getTraceItemTypeForDatasetAndEventType,
+  isEapAlertType,
+} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {AlertType, MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -85,6 +88,13 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
+import type {
+  EventTypes,
+  MetricActionTemplate,
+  MetricRule,
+  Trigger,
+  UnsavedMetricRule,
+} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -92,12 +102,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
-  EventTypes,
-  type MetricActionTemplate,
-  type MetricRule,
   TimeWindow,
-  type Trigger,
-  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -229,12 +234,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       : (rule.query ?? '');
 
     const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
-    const traceItemType =
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-        ? ruleEventTypes.includes(EventTypes.TRACE_ITEM_LOG)
-          ? TraceItemDataset.LOGS
-          : TraceItemDataset.SPANS
-        : null;
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, ruleEventTypes);
 
     const alertType = getAlertTypeFromAggregateDataset({
       aggregate,

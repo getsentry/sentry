@@ -20,8 +20,9 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
   AlertType as WizardAlertType,
@@ -32,7 +33,6 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 
@@ -60,14 +60,15 @@ function Create(props: Props) {
     query,
     createFromWizard,
   } = location?.query ?? {};
-  const eventTypes = decodeScalar(location?.query?.eventTypes) as EventTypes;
+  const eventTypes = location?.query?.eventTypes
+    ? (decodeScalar(location.query.eventTypes) as EventTypes)
+    : undefined;
+
   const alertType = params.alertType || AlertRuleType.METRIC;
-  const traceItemType: TraceItemDataset | null =
-    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-      ? eventTypes === EventTypes.TRACE_ITEM_LOG
-        ? TraceItemDataset.LOGS
-        : TraceItemDataset.SPANS
-      : null;
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(
+    dataset,
+    eventTypes ? [eventTypes] : undefined
+  );
 
   const sessionId = useRef(uniqueId());
   const navigate = useNavigate();
