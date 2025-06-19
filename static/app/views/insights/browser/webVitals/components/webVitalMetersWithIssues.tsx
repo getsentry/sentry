@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconIssues} from 'sentry/icons';
