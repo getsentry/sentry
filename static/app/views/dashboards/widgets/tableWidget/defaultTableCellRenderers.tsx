@@ -12,6 +12,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 /**
+ * @internal
  * Renderers here are used as a default fallback when no renderer function is supplied
  */
 

@@ -13,6 +13,7 @@ import {
 } from 'sentry/views/dashboards/widgets/tableWidget/defaultTableCellRenderers';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
+/** @internal */
 interface TableWidgetVisualizationProps {
   columns: Array<TableColumn<string>>;
   loading: boolean;
