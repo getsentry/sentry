@@ -1,7 +1,7 @@
 from typing import Protocol
 
 from sentry.notifications.platform.types import (
-    NotificationCategory,
+    NotificationData,
     NotificationProviderKey,
     NotificationRenderer,
     NotificationTarget,
@@ -23,12 +23,12 @@ class NotificationProvider[RenderableT](Protocol):
     """
 
     key: NotificationProviderKey
-    default_renderer: NotificationRenderer[RenderableT]
+    default_renderer: NotificationRenderer[RenderableT, NotificationData]
     target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
 
     @classmethod
-    def validate_target(cls, *, target: "NotificationTarget") -> None:
+    def validate_target(cls, *, target: NotificationTarget) -> None:
         """
         Validates that a given target is permissible for the provider.
         """
@@ -50,13 +50,13 @@ class NotificationProvider[RenderableT](Protocol):
         return
 
     @classmethod
-    def get_renderer(cls, *, category: NotificationCategory) -> NotificationRenderer[RenderableT]:
+    def get_renderer[T: NotificationData](cls, *, data: T) -> NotificationRenderer[RenderableT, T]:
         """
-        Returns the renderer for a given notification type, falling back to the default renderer.
+        Returns an instance of a renderer for a given notification, falling back to the default renderer.
         Override this to method to permit different renderers for the provider, though keep in mind
         that this may produce inconsistencies between notifications.
         """
-        return cls.default_renderer
+        return cls.default_renderer(data=data)
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
@@ -66,7 +66,7 @@ class NotificationProvider[RenderableT](Protocol):
         ...
 
     @classmethod
-    def send(cls, *, target: "NotificationTarget", renderable: RenderableT) -> None:
+    def send(cls, *, target: NotificationTarget, renderable: RenderableT) -> None:
         """
         Using the renderable format for the provider, send a notification to the target.
         """

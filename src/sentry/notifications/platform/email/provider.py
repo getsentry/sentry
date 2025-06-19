@@ -7,6 +7,7 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderer,
+    NotificationTarget,
     NotificationTargetResourceType,
     NotificationTemplate,
 )
@@ -16,14 +17,15 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 type EmailRenderable = Any
 
 
-class EmailRenderer(NotificationRenderer[EmailRenderable]):
+class EmailRenderer[DataT: NotificationData](NotificationRenderer[EmailRenderable, DataT]):
     provider_key = NotificationProviderKey.EMAIL
 
-    @classmethod
-    def render[
-        T: NotificationData
-    ](cls, *, data: T, template: NotificationTemplate[T]) -> EmailRenderable:
+    def render(self, *, template: NotificationTemplate[DataT]) -> EmailRenderable:
         return {}
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: EmailRenderable) -> None:
+        pass
 
 
 @provider_registry.register(NotificationProviderKey.EMAIL)

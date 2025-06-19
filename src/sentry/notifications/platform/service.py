@@ -48,14 +48,13 @@ class NotificationService[T: NotificationData]:
         provider.validate_target(target=target)
 
         # Step 4: Render the template
-        renderer = provider.get_renderer(category=self.data.category)
-        renderable = renderer.render(data=self.data, template=template)
+        renderer = provider.get_renderer(data=self.data)
+        renderable = renderer.render(template=template)
 
         # Step 5: Send the notification
         provider.send(target=target, renderable=renderable)
-
         logger.info(
-            "sent.%s.%s",
+            "notify.%s.%s",
             self.data.category.value,
             target.provider_key.value,
             extra={

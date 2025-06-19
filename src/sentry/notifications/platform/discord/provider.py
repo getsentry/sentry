@@ -7,6 +7,7 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderer,
+    NotificationTarget,
     NotificationTargetResourceType,
     NotificationTemplate,
 )
@@ -16,14 +17,15 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 type DiscordRenderable = Any
 
 
-class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
+class DiscordRenderer[DataT: NotificationData](NotificationRenderer[DiscordRenderable, DataT]):
     provider_key = NotificationProviderKey.DISCORD
 
-    @classmethod
-    def render[
-        T: NotificationData
-    ](cls, *, data: T, template: NotificationTemplate[T]) -> DiscordRenderable:
+    def render(self, *, template: NotificationTemplate[DataT]) -> DiscordRenderable:
         return {}
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
+        pass
 
 
 @provider_registry.register(NotificationProviderKey.DISCORD)
