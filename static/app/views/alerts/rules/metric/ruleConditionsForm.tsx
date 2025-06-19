@@ -71,7 +71,7 @@ import {
   DEPRECATED_TRANSACTION_ALERTS,
   getSupportedAndOmittedTags,
 } from 'sentry/views/alerts/wizard/options';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -775,8 +775,8 @@ function EAPSpanSearchQueryBuilderWithContext({
   onSearch,
   project,
 }: EAPSpanSearchQueryBuilderWithContextProps) {
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
   return (
     <EAPSpanSearchQueryBuilder
       numberTags={numberTags}

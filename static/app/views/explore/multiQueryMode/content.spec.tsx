@@ -10,11 +10,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -99,9 +99,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -118,9 +118,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -187,9 +187,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -208,9 +208,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -279,9 +279,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -348,9 +348,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -369,9 +369,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -458,9 +458,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -512,9 +512,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -554,9 +554,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -602,9 +602,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -650,9 +650,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -701,9 +701,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -761,9 +761,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -828,9 +828,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -938,9 +938,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -1085,9 +1085,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -1144,9 +1144,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <MultiQueryModeContent />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -1226,9 +1226,9 @@ describe('MultiQueryModeContent', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <MultiQueryModeContent />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,

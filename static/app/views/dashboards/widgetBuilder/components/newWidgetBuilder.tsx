@@ -18,7 +18,6 @@ import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -51,7 +50,8 @@ import {
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -164,8 +164,8 @@ function WidgetBuilderV2({
                   organization={organization}
                   selection={selection}
                 >
-                  <SpanTagsProvider
-                    dataset={DiscoverDatasets.SPANS_EAP}
+                  <TraceItemAttributeProvider
+                    traceItemType={TraceItemDataset.SPANS}
                     enabled={organization.features.includes('visibility-explore-view')}
                   >
                     <ContainerWithoutSidebar
@@ -227,7 +227,7 @@ function WidgetBuilderV2({
                         )}
                       </WidgetBuilderContainer>
                     </ContainerWithoutSidebar>
-                  </SpanTagsProvider>
+                  </TraceItemAttributeProvider>
                 </CustomMeasurementsProvider>
               </WidgetBuilderProvider>
             )}

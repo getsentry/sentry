@@ -2,10 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const organization = OrganizationFixture({
   features: [],
@@ -22,9 +22,9 @@ describe('WidgetBuilderGroupBySelector', function () {
   it('renders', async function () {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         organization,
@@ -39,9 +39,9 @@ describe('WidgetBuilderGroupBySelector', function () {
   it('renders the group by field and can function', async function () {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         organization,
