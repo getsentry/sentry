@@ -2,7 +2,10 @@ import type React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import {
+  openAddToDashboardModal,
+  openDashboardWidgetQuerySelectorModal,
+} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -26,8 +29,9 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
+  eventViewFromWidget,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasDatasetSelector,
@@ -36,6 +40,7 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
+import {constructAddQueryToDashboardLink} from 'sentry/views/discover/utils';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -199,6 +204,8 @@ function WidgetCardContextMenu({
     Boolean(isMetricsData),
     widgetLimitReached,
     hasEditAccess,
+    location,
+    router,
     onDelete,
     onDuplicate,
     onEdit
@@ -279,6 +286,8 @@ export function getMenuOptions(
   isMetricsData: boolean,
   widgetLimitReached: boolean,
   hasEditAccess = true,
+  location: Location,
+  router: InjectedRouter,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -368,7 +377,41 @@ export function getMenuOptions(
     });
   }
 
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+
+  const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
+    eventView,
+    organization,
+    yAxis: eventView.yAxis,
+    location,
+    widgetType: widget.widgetType,
+    source: DashboardWidgetSource.DASHBOARDS,
+  });
+
   if (organization.features.includes('dashboards-edit')) {
+    menuOptions.push({
+      key: 'add-to-dashboard',
+      label: t('Add to Dashboard'),
+      onAction: () => {
+        openAddToDashboardModal({
+          organization,
+          location,
+          router,
+          selection,
+          widget: {
+            ...widget,
+            id: undefined,
+            dashboardId: undefined,
+            layout: undefined,
+          },
+          // Previously undetected because the type relied on implicit any.
+          // @ts-expect-error TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
+          widgetAsQueryParams,
+          actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
+          allowCreateNewDashboard: true,
+        });
+      },
+    });
     menuOptions.push({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),

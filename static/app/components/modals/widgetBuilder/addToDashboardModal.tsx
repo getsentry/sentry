@@ -47,6 +47,7 @@ import {
   type DataSet,
   NEW_DASHBOARD_ID,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -187,11 +188,18 @@ function AddToDashboardModal({
     router.push(
       normalizeUrl({
         pathname,
-        query: {
-          ...widgetAsQueryParams,
-          title: newWidgetTitle,
-          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-        },
+        query:
+          page === 'builder'
+            ? {
+                ...convertWidgetToBuilderStateParams(widget),
+                title: newWidgetTitle,
+                ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+              }
+            : {
+                ...widgetAsQueryParams,
+                title: newWidgetTitle,
+                ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+              },
       })
     );
     closeModal();
@@ -206,12 +214,15 @@ function AddToDashboardModal({
     if (!(DisplayType.AREA && widget.queries[0]!.columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
-    const query = widget.queries[0]!;
+    const queries = widget.queries.map(query => ({
+      ...query,
+      orderby,
+    }));
 
     const newWidget = {
       ...widget,
       title: newWidgetTitle,
-      queries: [{...query, orderby}],
+      queries,
     };
 
     const newDashboard = {
@@ -346,7 +357,6 @@ function AddToDashboardModal({
                     }
                     disableFullscreen
                   />
-
                   <IndexedEventsSelectionAlert widget={widget} />
                 </MEPSettingProvider>
               </DashboardsMEPProvider>
