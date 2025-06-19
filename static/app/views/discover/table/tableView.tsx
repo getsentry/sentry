@@ -66,7 +66,7 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
-import CellAction, {Actions, updateQuery} from './cellAction';
+import CellAction, {Actions, copyToClipBoard, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
@@ -622,6 +622,10 @@ function TableView(props: TableViewProps) {
           );
 
           return;
+        }
+        case Actions.COPY_TO_CLIPBOARD: {
+          copyToClipBoard(value);
+          break;
         }
         default: {
           // Some custom perf metrics have units.
