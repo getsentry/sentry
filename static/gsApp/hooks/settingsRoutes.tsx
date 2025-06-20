@@ -18,48 +18,70 @@ const settingsRoutes = () =>
           path="checkout/"
           name="Change"
           component={errorHandler(SubscriptionContext)}
+          deprecatedRouteProps
         >
-          <IndexRoute component={make(() => import('../views/decideCheckout'))} />
+          <IndexRoute
+            component={make(() => import('../views/decideCheckout'))}
+            deprecatedRouteProps
+          />
         </Route>
-        <Route path="cancel/" name="Cancel" component={errorHandler(SubscriptionContext)}>
-          <IndexRoute component={make(() => import('../views/cancelSubscription'))} />
+        <Route
+          path="cancel/"
+          name="Cancel"
+          component={errorHandler(SubscriptionContext)}
+          deprecatedRouteProps
+        >
+          <IndexRoute
+            component={make(() => import('../views/cancelSubscription'))}
+            deprecatedRouteProps
+          />
         </Route>
         <Route
           path="overview/"
           name="Overview"
           component={make(() => import('../views/subscriptionPage/overview'))}
+          deprecatedRouteProps
         />
         <Route
           path="usage/"
           name="Usage History"
           component={make(() => import('../views/subscriptionPage/usageHistory'))}
+          deprecatedRouteProps
         />
         <Route
           path="receipts/"
           name="Receipts"
           component={make(() => import('../views/subscriptionPage/paymentHistory'))}
+          deprecatedRouteProps
         />
         <Route
           path="notifications/"
           name="Notifications"
           component={make(() => import('../views/subscriptionPage/notifications'))}
+          deprecatedRouteProps
         />
         <Route
           path="details/"
           name="Billing Details"
           component={make(() => import('../views/subscriptionPage/billingDetails'))}
+          deprecatedRouteProps
         />
         <Route
           path="usage-log/"
           name="Usage Log"
           component={make(() => import('../views/subscriptionPage/usageLog'))}
+          deprecatedRouteProps
         />
         <Route
           path="receipts/:invoiceGuid/"
           name="Invoice Details"
           component={errorHandler(SubscriptionContext)}
+          deprecatedRouteProps
         >
-          <IndexRoute component={make(() => import('../views/invoiceDetails'))} />
+          <IndexRoute
+            component={make(() => import('../views/invoiceDetails'))}
+            deprecatedRouteProps
+          />
         </Route>
       </Route>
 
@@ -67,29 +89,34 @@ const settingsRoutes = () =>
         path="spike-protection/"
         name="Spike Protection"
         component={make(() => import('../views/spikeProtection'))}
+        deprecatedRouteProps
       />
       <Route
         path="seer/"
         name="Seer Automation"
         component={make(() => import('../views/seerAutomation'))}
+        deprecatedRouteProps
       />
 
       <Route
         path="subscription/spend-allocations/"
         name="Spend Allocations"
         component={make(() => import('../views/spendAllocations'))}
+        deprecatedRouteProps
       />
 
       <Route
         path="subscription/redeem-code/"
         name="Redeem Promotional Code"
         component={make(() => import('../views/redeemPromoCode'))}
+        deprecatedRouteProps
       />
 
       <Route
         path="legal/"
         name="Legal & Compliance"
         component={make(() => import('../views/legalAndCompliance/legalAndCompliance'))}
+        deprecatedRouteProps
       />
 
       <Route

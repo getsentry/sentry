@@ -29,7 +29,7 @@ type CustomProps = {
   withOrgPath?: boolean;
 };
 
-interface SentryRouteProps extends React.PropsWithChildren<RouteProps & CustomProps> {}
+type SentryRouteProps = React.PropsWithChildren<RouteProps & CustomProps>;
 
 export function Route(_props: SentryRouteProps) {
   // XXX: These routes are NEVER rendered

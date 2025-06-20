@@ -51,7 +51,7 @@ type Query = {
   aggregate?: string;
 };
 
-type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
+type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, Query>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
   const location = useLocation<Query>();

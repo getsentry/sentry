@@ -40,21 +40,21 @@ import Users from 'admin/views/users';
 
 function buildRoutes() {
   return (
-    <Route path="/_admin/" component={Layout}>
-      <IndexRoute component={Home} />
+    <Route path="/_admin/" component={Layout} deprecatedRouteProps>
+      <IndexRoute component={Home} deprecatedRouteProps />
 
       <Route path="beacons/">
-        <IndexRoute component={Beacons} />
-        <Route path=":beaconId/" component={BeaconDetails} />
+        <IndexRoute component={Beacons} deprecatedRouteProps />
+        <Route path=":beaconId/" component={BeaconDetails} deprecatedRouteProps />
       </Route>
 
       <Route path="broadcasts/">
-        <IndexRoute component={Broadcasts} />
-        <Route path=":broadcastId/" component={BroadcastDetails} />
+        <IndexRoute component={Broadcasts} deprecatedRouteProps />
+        <Route path=":broadcastId/" component={BroadcastDetails} deprecatedRouteProps />
       </Route>
 
       <Route path="customers/">
-        <IndexRoute component={Customers} />
+        <IndexRoute component={Customers} deprecatedRouteProps />
         <Route path=":orgId/">
           <IndexRoute component={CustomerDetails} />
           <Route path="upgrade-request/" component={CustomerUpgradeRequest} />
@@ -64,15 +64,15 @@ function buildRoutes() {
       </Route>
 
       <Route path="doc-integrations/">
-        <IndexRoute component={DocIntegrations} />
+        <IndexRoute component={DocIntegrations} deprecatedRouteProps />
         <Route path=":docIntegrationSlug/" component={DocIntegrationDetails} />
       </Route>
       <Route path="debugging-tools/">
         <IndexRoute component={DebuggingTools} />
       </Route>
       <Route path="policies/">
-        <IndexRoute component={Policies} />
-        <Route path=":policySlug" component={PolicyDetails} />
+        <IndexRoute component={Policies} deprecatedRouteProps />
+        <Route path=":policySlug" component={PolicyDetails} deprecatedRouteProps />
       </Route>
 
       <Route path="private-apis/">
@@ -80,7 +80,7 @@ function buildRoutes() {
       </Route>
 
       <Route path="relocations/">
-        <IndexRoute component={Relocations} />
+        <IndexRoute component={Relocations} deprecatedRouteProps />
         <Route path="new/" component={RelocationCreate} />
         <Route path=":regionName/:relocationUuid/" component={RelocationDetails} />
         <Route
@@ -90,32 +90,32 @@ function buildRoutes() {
       </Route>
 
       <Route path="employees/">
-        <IndexRoute component={SentryEmployees} />
+        <IndexRoute component={SentryEmployees} deprecatedRouteProps />
       </Route>
 
       <Route path="promocodes/">
-        <IndexRoute component={PromoCodes} />
+        <IndexRoute component={PromoCodes} deprecatedRouteProps />
         <Route path=":codeId/" component={PromoCodeDetails} />
       </Route>
 
       <Route path="sentry-apps/">
-        <IndexRoute component={SentryApps} />
+        <IndexRoute component={SentryApps} deprecatedRouteProps />
         <Route path=":sentryAppSlug/" component={SentryAppDetails} />
       </Route>
 
       <Route path="users/">
-        <IndexRoute component={Users} />
+        <IndexRoute component={Users} deprecatedRouteProps />
         <Route path=":userId/" component={UserDetails} />
       </Route>
 
       <Route path="options/">
-        <IndexRoute component={Options} />
+        <IndexRoute component={Options} deprecatedRouteProps />
       </Route>
-      <Route path="data-requests/" component={DataRequests} />
-      <Route path="billingadmins/" component={BillingAdmins} />
+      <Route path="data-requests/" component={DataRequests} deprecatedRouteProps />
+      <Route path="billingadmins/" component={BillingAdmins} deprecatedRouteProps />
 
       <Route path="invoices/">
-        <IndexRoute component={Invoices} />
+        <IndexRoute component={Invoices} deprecatedRouteProps />
         <Route path=":invoiceId/" component={InvoiceDetails} />
       </Route>
 

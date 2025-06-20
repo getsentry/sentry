@@ -226,7 +226,7 @@ export function generateProfileLink() {
   };
 }
 
-export function generateReplayLink(routes: Array<PlainRoute<any>>) {
+export function generateReplayLink(routes: PlainRoute[]) {
   const referrer = getRouteStringFromRoutes(routes);
 
   return (

@@ -60,6 +60,17 @@ function withReactRouter3Props(Component: React.ComponentType<any>) {
   return WithReactRouter3Props;
 }
 
+function withOurOutlet(Component: React.ComponentType<any>) {
+  function WithOurOutlet() {
+    return (
+      <Component>
+        <Outlet />
+      </Component>
+    );
+  }
+  return WithOurOutlet;
+}
+
 function NoOp({children}: {children: React.JSX.Element}) {
   return children;
 }
@@ -102,12 +113,17 @@ function Redirect({to, ...rest}: RedirectProps) {
 }
 Redirect.displayName = 'Redirect';
 
-function getElement(Component: React.ComponentType<any> | undefined) {
+function getElement(
+  Component: React.ComponentType<any> | undefined,
+  deprecatedRouteProps: boolean | undefined
+) {
   if (!Component) {
     return undefined;
   }
 
-  const WrappedComponent = withReactRouter3Props(Component);
+  const WrappedComponent = deprecatedRouteProps
+    ? withReactRouter3Props(Component)
+    : withOurOutlet(Component);
 
   return <WrappedComponent />;
 }
@@ -150,8 +166,15 @@ export function buildReactRouter6Routes(tree: React.JSX.Element) {
       return;
     }
 
-    const {path, component: Component, children, name, withOrgPath} = routeNode.props;
-    const element = getElement(Component);
+    const {
+      path,
+      component: Component,
+      children,
+      name,
+      withOrgPath,
+      deprecatedRouteProps,
+    } = routeNode.props;
+    const element = getElement(Component, deprecatedRouteProps);
 
     // XXX(epurkhiser)
     //
@@ -181,7 +204,10 @@ export function buildReactRouter6Routes(tree: React.JSX.Element) {
     if (USING_CUSTOMER_DOMAIN) {
       routes.push({
         path,
-        element: getElement(withDomainRequired(Component ?? NoOp) as any),
+        element: getElement(
+          withDomainRequired(Component ?? NoOp) as any,
+          deprecatedRouteProps
+        ),
         children: buildReactRouter6Routes(children),
         handle,
       });
@@ -189,7 +215,7 @@ export function buildReactRouter6Routes(tree: React.JSX.Element) {
 
     routes.push({
       path: `/organizations/:orgId${path}`,
-      element: getElement(withDomainRedirect(Component ?? NoOp)),
+      element: getElement(withDomainRedirect(Component ?? NoOp), deprecatedRouteProps),
       children: buildReactRouter6Routes(children),
       handle,
     });

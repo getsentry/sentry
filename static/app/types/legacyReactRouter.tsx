@@ -3,92 +3,67 @@
  *
  * Once we've fully migrated to react-router 6 we can drop these types
  */
-import type {
-  Href,
-  Location,
-  LocationDescriptor,
-  LocationState,
-  Path,
-  Pathname,
-  Query,
-} from 'history';
-
-type Params = Record<string, string>;
+import type {Href, Location, LocationDescriptor, Path, Query} from 'history';
 
 type RoutePattern = string;
-export type RouteComponent = React.ComponentClass<any> | React.FunctionComponent<any>;
 
-type RouteComponents = Record<string, RouteComponent>;
+type NoRouteProps = {
+  [key: string | number | symbol]: any;
+  children?: never;
+  location?: never;
+  params?: never;
+  route?: never;
+  routeParams?: never;
+  router?: never;
+  routes?: never;
+};
 
-interface RouterState<Q = any> {
-  components: RouteComponent[];
-  location: Location<Q>;
-  params: Params;
-  routes: PlainRoute[];
-}
+export type NoRoutePropsRouteComponent = React.ComponentType<NoRouteProps>;
 
-interface RedirectFunction {
-  (location: LocationDescriptor): void;
-  (state: LocationState, pathname: Pathname | Path, query?: Query): void;
-}
-
-type AnyFunction = (...args: any[]) => any;
-
-type EnterHook = (
-  nextState: RouterState,
-  replace: RedirectFunction,
-  callback?: AnyFunction
-) => any;
-
-type LeaveHook = (prevState: RouterState) => any;
-
-type ChangeHook = (
-  prevState: RouterState,
-  nextState: RouterState,
-  replace: RedirectFunction,
-  callback?: AnyFunction
-) => any;
+// Create a branded type to distinguish legacy route components
+export type LegacyRouteComponent = React.ComponentType<
+  RouteComponentProps<any, any, any>
+> & {
+  __isLegacyRouteComponent?: true;
+};
+export type RouteComponent = LegacyRouteComponent;
 
 type RouteHook = (nextLocation?: Location) => any;
 
-type ComponentCallback = (err: any, component: RouteComponent) => any;
-type ComponentsCallback = (err: any, components: RouteComponents) => any;
+export type IndexRouteProps =
+  | {
+      component?: NoRoutePropsRouteComponent | undefined;
+    }
+  | {
+      component: React.ComponentType<any>;
+      /**
+       * Wrap component in props (router, routes, params, location)
+       * Also injects the props from the outlet context and outlet as a children
+       * See withReactRouter3Props for implementation
+       *
+       * @deprecated
+       */
+      deprecatedRouteProps: true;
+    };
 
-export interface IndexRouteProps<Props = any> {
-  component?: RouteComponent | undefined;
-  components?: RouteComponents | undefined;
-  getComponent?(nextState: RouterState, callback: ComponentCallback): void;
-  getComponents?(nextState: RouterState, callback: ComponentsCallback): void;
-  onChange?: ChangeHook | undefined;
-  onEnter?: EnterHook | undefined;
-  onLeave?: LeaveHook | undefined;
-  props?: Props | undefined;
-}
-
-export interface RouteProps<Props = any> extends IndexRouteProps<Props> {
+export type RouteProps = IndexRouteProps & {
   children?: React.ReactNode;
   path?: RoutePattern | undefined;
-}
+};
 
-type RouteCallback = (err: any, route: PlainRoute) => void;
-type RoutesCallback = (err: any, routesArray: PlainRoute[]) => void;
-
-export interface PlainRoute<Props = any> extends RouteProps<Props> {
+export type PlainRoute = RouteProps & {
   childRoutes?: PlainRoute[] | undefined;
-  getChildRoutes?(partialNextState: LocationState, callback: RoutesCallback): void;
-  getIndexRoute?(partialNextState: LocationState, callback: RouteCallback): void;
   indexRoute?: PlainRoute | undefined;
-}
+};
 
 export interface RouteComponentProps<
   P = Record<string, string | undefined>,
   R = Record<string, string | undefined>,
-  ComponentProps = any,
   Q = any,
 > {
   location: Location<Q>;
   params: P;
-  route: PlainRoute<ComponentProps>;
+  route: PlainRoute;
   routeParams: R;
   router: InjectedRouter;
   routes: PlainRoute[];

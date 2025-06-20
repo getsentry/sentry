@@ -84,7 +84,9 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      >
+        <div />
+      </WrappedComponent>
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -133,7 +135,9 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      >
+        <div />
+      </WrappedComponent>
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -182,7 +186,9 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      >
+        <div />
+      </WrappedComponent>
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
