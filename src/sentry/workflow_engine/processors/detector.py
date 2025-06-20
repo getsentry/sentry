@@ -19,16 +19,36 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     evt = event_data.event
     issue_occurrence = evt.occurrence
 
-    if issue_occurrence is None:
-        # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
-        detector = Detector.objects.get(project_id=evt.project_id, type=evt.group.issue_type.slug)
-    else:
-        detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
+    try:
+        if issue_occurrence is None:
+            # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
+            detector = Detector.objects.get(
+                project_id=evt.project_id, type=evt.group.issue_type.slug
+            )
+        else:
+            detector = Detector.objects.get(
+                id=issue_occurrence.evidence_data.get("detector_id", None)
+            )
+    except Detector.DoesNotExist:
+        metrics.incr("workflow_engine.detectors.error")
+        detector_id = (
+            issue_occurrence.evidence_data.get("detector_id") if issue_occurrence else None
+        )
+
+        logger.exception(
+            "Detector not found for event",
+            extra={
+                "event_id": evt.event_id,
+                "group_id": evt.group_id,
+                "detector_id": detector_id,
+            },
+        )
+        raise Detector.DoesNotExist("Detector not found for event")
 
     return detector
 
 
-def create_issue_platform_payload(result: DetectorEvaluationResult):
+def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
@@ -49,9 +69,11 @@ def create_issue_platform_payload(result: DetectorEvaluationResult):
     )
 
 
-def process_detectors(
-    data_packet: DataPacket, detectors: list[Detector]
-) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+def process_detectors[
+    T
+](data_packet: DataPacket[T], detectors: list[Detector]) -> list[
+    tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
+]:
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:

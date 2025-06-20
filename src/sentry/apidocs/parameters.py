@@ -1059,7 +1059,7 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The branch to search for results by. If not specified, the default branch is returned.
+        description="""The branch to search for results by. If not specified, the default is `main`.
         """,
     )
     TEST_RESULTS_FILTER_BY = OpenApiParameter(
@@ -1081,7 +1081,7 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified, all results are returned. Use `-`
+        description="""The property to sort results by. If not specified, the default is `COMMITS_WHERE_FAIL` in descending order. Use `-`
         for descending order.
 
 Available fields are:
@@ -1106,4 +1106,12 @@ Available fields are:
         required=False,
         type=int,
         description="""The number of results to return from the end of the list.""",
+    )
+    CURSOR = OpenApiParameter(
+        name="cursor",
+        location="query",
+        required=False,
+        type=str,
+        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.
+        """,
     )

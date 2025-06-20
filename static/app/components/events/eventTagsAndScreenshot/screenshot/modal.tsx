@@ -5,12 +5,13 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
-import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,8 +27,7 @@ import ScreenshotPagination from './screenshotPagination';
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;
   /**
-   * The target screenshot attachment to show. If the attachment is not a
-   * screenshot
+   * The target screenshot attachment to show.
    */
   eventAttachment: EventAttachment;
   projectSlug: Project['slug'];
@@ -106,7 +106,8 @@ export default function ScreenshotModal({
     };
   }
 
-  const AttachmentComponent = getInlineAttachmentRenderer(currentEventAttachment)!;
+  const AttachmentComponent =
+    getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer;
 
   return (
     <Fragment>
@@ -114,7 +115,7 @@ export default function ScreenshotModal({
         <h5>{t('Screenshot')}</h5>
       </Header>
       <Body>
-        <Flex column gap={space(1.5)}>
+        <Flex direction="column" gap={space(1.5)}>
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent
@@ -182,17 +183,19 @@ export default function ScreenshotModal({
 }
 
 const AttachmentComponentWrapper = styled('div')`
-  & > * {
-    padding: 0;
-    border: none;
+  & > img,
+  & > video {
+    max-width: 100%;
     max-height: calc(100vh - 300px);
-    box-sizing: border-box;
+    width: auto;
+    height: auto;
+    object-fit: contain;
   }
 `;
 
 export const modalCss = css`
   width: auto;
   height: 100%;
-  max-width: 700px;
+  max-width: min(90vw, 1500px);
   margin-top: 0 !important;
 `;

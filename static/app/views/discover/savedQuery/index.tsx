@@ -11,11 +11,11 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
+import {Flex} from 'sentry/components/core/layout';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -44,6 +44,7 @@ import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,
@@ -107,7 +108,7 @@ function SaveAsDropdown({
             <StyledOverlay arrowProps={arrowProps} animated>
               <FocusScope contain restoreFocus autoFocus>
                 <form onSubmit={modifiedHandleCreateQuery}>
-                  <Flex gap={space(1)} column>
+                  <Flex gap={space(1)} direction="column">
                     <Input
                       type="text"
                       name="query_name"
@@ -411,6 +412,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       location,
       savedQuery?.queryDataset
     );
+
+    if (
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      deprecateTransactionAlerts(organization)
+    ) {
+      return null;
+    }
 
     let alertType: any;
     let buttonEventView = eventView;

@@ -30,7 +30,6 @@ import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/log
 import {
   useLogsAggregate,
   useLogsAggregateFunction,
-  useLogsAggregateParam,
   useLogsFields,
   useLogsGroupBy,
   useLogsSearch,
@@ -90,10 +89,9 @@ export function LogsTabContent({
   const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
     ?.value;
   const aggregateFunction = useLogsAggregateFunction();
-  const aggregateParam = useLogsAggregateParam();
   const aggregate = useLogsAggregate();
   const [sidebarOpen, setSidebarOpen] = useState(
-    !!(aggregateFunction !== 'count' || aggregateParam || groupBy)
+    !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
   );
   const timeseriesResult = useSortedTimeSeries(
     {
@@ -101,7 +99,7 @@ export function LogsTabContent({
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: !!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined,
+      topEvents: groupBy?.length ? 5 : undefined,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS

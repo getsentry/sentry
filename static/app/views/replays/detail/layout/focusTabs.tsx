@@ -4,17 +4,21 @@ import styled from '@emotion/styled';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
   isVideoReplay,
+  organization,
 }: {
   isVideoReplay: boolean;
+  organization: Organization;
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
+    [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? t('AI') : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
@@ -34,7 +38,7 @@ function FocusTabs({isVideoReplay}: Props) {
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
 
-  const tabs = Object.entries(getReplayTabs({isVideoReplay})).filter(
+  const tabs = Object.entries(getReplayTabs({isVideoReplay, organization})).filter(
     ([_, v]) => v !== null
   );
 

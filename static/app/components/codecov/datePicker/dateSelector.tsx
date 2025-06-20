@@ -3,13 +3,17 @@ import styled from '@emotion/styled';
 
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
+export type CodecovPeriodOptions = '24h' | '7d' | '30d';
+type CodecovPeriods = Record<CodecovPeriodOptions, string>;
+
+export const CODECOV_DEFAULT_RELATIVE_PERIODS: CodecovPeriods = {
   '24h': t('Last 24 hours'),
   '7d': t('Last 7 days'),
   '30d': t('Last 30 days'),
@@ -77,10 +81,10 @@ export function DateSelector({relativeDate, onChange, trigger}: DateSelectorProp
               {...triggerProps}
             >
               <TriggerLabelWrap>
-                <FlexContainer>
+                <Flex align="center" gap={space(0.75)}>
                   <IconCalendar />
                   <TriggerLabel>{defaultLabel}</TriggerLabel>
-                </FlexContainer>
+                </Flex>
               </TriggerLabelWrap>
             </DropdownButton>
           );
@@ -104,10 +108,4 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
-`;
-
-const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;

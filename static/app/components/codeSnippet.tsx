@@ -1,13 +1,16 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
+import {darkTheme} from 'sentry/utils/theme';
 
 interface CodeSnippetProps {
   children: string;
@@ -85,6 +88,7 @@ export function CodeSnippet({
   tabs,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
+  const theme = useTheme();
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
@@ -130,7 +134,7 @@ export function CodeSnippet({
   };
 
   const hasTabs = tabs && tabs.length > 0;
-  const hasSolidHeader = !!(filename || hasTabs);
+  const hasFloatingHeader = !(filename || hasTabs);
 
   const tooltipTitle =
     tooltipState === 'copy'
@@ -139,13 +143,13 @@ export function CodeSnippet({
         ? t('Copied')
         : t('Unable to copy');
 
-  return (
+  const snippet = (
     <Wrapper
       isRounded={isRounded}
       className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
       data-render-inline={dataRenderInline}
     >
-      <Header isSolid={hasSolidHeader}>
+      <Header isFloating={hasFloatingHeader}>
         {hasTabs && (
           <Fragment>
             <TabsWrapper>
@@ -160,26 +164,25 @@ export function CodeSnippet({
                 </Tab>
               ))}
             </TabsWrapper>
-            <FlexSpacer />
+            <Flex.Item grow={1} />
           </Fragment>
         )}
         {icon}
         {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <FlexSpacer />}
+        {!hasTabs && <Flex.Item grow={1} />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
             size="xs"
-            translucentBorder
             borderless
             onClick={handleCopy}
             title={tooltipTitle}
-            tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
+            tooltipProps={{position: 'left'}}
             onMouseLeave={() => setTooltipState('copy')}
-            isAlwaysVisible={hasSolidHeader}
-          >
-            <IconCopy size="xs" />
-          </CopyButton>
+            isAlwaysVisible={!hasFloatingHeader || (!!icon && hasFloatingHeader)}
+            aria-label={t('Copy snippet')}
+            icon={<IconCopy />}
+          />
         )}
       </Header>
 
@@ -198,6 +201,10 @@ export function CodeSnippet({
       </pre>
     </Wrapper>
   );
+
+  // Override theme provider when in dark mode to provider dark theme to
+  // components
+  return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
 const Wrapper = styled('div')<{isRounded: boolean}>`
@@ -214,7 +221,7 @@ const Wrapper = styled('div')<{isRounded: boolean}>`
   }
 `;
 
-const Header = styled('div')<{isSolid: boolean}>`
+const Header = styled('div')<{isFloating: boolean}>`
   display: flex;
   align-items: center;
 
@@ -225,12 +232,9 @@ const Header = styled('div')<{isSolid: boolean}>`
   z-index: 2;
 
   ${p =>
-    p.isSolid
+    p.isFloating
       ? css`
-          padding: 0 ${space(0.5)};
-          border-bottom: solid 1px ${p.theme.innerBorder};
-        `
-      : css`
+          gap: ${space(0.25)};
           justify-content: flex-end;
           position: absolute;
           top: 0;
@@ -239,13 +243,16 @@ const Header = styled('div')<{isSolid: boolean}>`
           height: max-content;
           max-height: 100%;
           padding: ${space(0.5)};
+        `
+      : css`
+          gap: ${space(0.75)};
+          padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
+          border-bottom: solid 1px ${p.theme.border};
         `}
 `;
 
 const FileName = styled('span')`
   ${p => p.theme.overflowEllipsis}
-  padding: ${space(0.5)} ${space(0.5)};
-  margin: 0;
   width: auto;
 `;
 
@@ -268,10 +275,6 @@ const Tab = styled('button')<{isSelected: boolean}>`
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}
-`;
-
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
 `;
 
 const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`

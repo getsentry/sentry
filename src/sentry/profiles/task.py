@@ -92,25 +92,24 @@ profile_chunks_producer = SingletonProducer(
 logger = logging.getLogger(__name__)
 
 
-def decode_payload(encoded: str, compressed_profile: bool) -> dict[str, Any]:
-    if compressed_profile:
-        try:
-            res = msgpack.unpackb(
-                zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False
-            )
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
-            return res
-        except Exception as e:
-            logger.exception("Failed to decompress compressed profile", extra={"error": e})
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
-            raise
-
-    # not compressed
-    return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
+def decode_payload(encoded: str) -> dict[str, Any]:
+    try:
+        res = msgpack.unpackb(zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False)
+        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
+        return res
+    except Exception as e:
+        logger.exception("Failed to decompress compressed profile", extra={"error": e})
+        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
+        raise
 
 
 def encode_payload(message: dict[str, Any]) -> str:
-    return b64encode(msgpack.packb(message)).decode("utf-8")
+    return b64encode(
+        zlib.compress(
+            msgpack.packb(message),
+            level=1,
+        )
+    ).decode("utf-8")
 
 
 @instrumented_task(
@@ -137,14 +136,13 @@ def process_profile_task(
     profile: Profile | None = None,
     payload: str | None = None,
     sampled: bool = True,
-    compressed_profile: bool = False,
     **kwargs: Any,
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
     if payload:
-        message_dict = decode_payload(payload, compressed_profile)
+        message_dict = decode_payload(payload)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -1316,11 +1314,12 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                 functions = chunk.extract_functions_metrics(
                     min_depth=1, filter_system_frames=True, max_unique_functions=100
                 )
-                payload = build_chunk_functions_kafka_message(chunk, functions)
-                topic = ArroyoTopic(
-                    get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
-                )
-                profile_functions_producer.produce(topic, payload)
+                if functions is not None and len(functions) > 0:
+                    payload = build_chunk_functions_kafka_message(chunk, functions)
+                    topic = ArroyoTopic(
+                        get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
+                    )
+                    profile_functions_producer.produce(topic, payload)
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)

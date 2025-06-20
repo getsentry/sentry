@@ -31,7 +31,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
-import {getSlot} from 'getsentry/utils/billing';
+import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
@@ -383,19 +383,6 @@ function recordAnalytics(
     uptime: data.reservedUptime,
   };
 
-  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
-  const selectableProductData = {
-    [SelectableProduct.SEER]: {
-      enabled: data.seer ?? false,
-      previously_enabled:
-        subscription.reservedBudgets?.some(
-          budget =>
-            (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
-            budget.reservedBudget > 0
-        ) ?? false,
-    },
-  };
-
   const previousData = {
     plan: subscription.plan,
     errors: subscription.categories.errors?.reserved || undefined,
@@ -406,6 +393,20 @@ function recordAnalytics(
     profileDuration: subscription.categories.profileDuration?.reserved || undefined,
     spans: subscription.categories.spans?.reserved || undefined,
     uptime: subscription.categories.uptime?.reserved || undefined,
+  };
+
+  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
+  const selectableProductData = {
+    [SelectableProduct.SEER]: {
+      enabled: data.seer ?? false,
+      previously_enabled: isTrialPlan(previousData.plan) // don't count trial budgets
+        ? false
+        : (subscription.reservedBudgets?.some(
+            budget =>
+              (budget.apiName as string as SelectableProduct) ===
+                SelectableProduct.SEER && budget.reservedBudget > 0
+          ) ?? false),
+    },
   };
 
   trackGetsentryAnalytics('checkout.upgrade', {
@@ -624,6 +625,15 @@ export async function submitCheckout(
     addSuccessMessage(t('Success'));
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
+    const alreadyHasSeer =
+      !isTrialPlan(subscription.plan) &&
+      subscription.reservedBudgets?.some(
+        budget =>
+          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+          budget.reservedBudget > 0
+      );
+    const justBoughtSeer = data.seer && !alreadyHasSeer;
+
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
     // request doesn't get cancelled
@@ -631,7 +641,9 @@ export async function submitCheckout(
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}`
+        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
+          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
+        }`
       )
     );
   } catch (error) {

@@ -89,10 +89,7 @@ urlpatterns = [
 
 
 @no_silo_test
-@override_settings(
-    ROOT_URLCONF=__name__,
-    SENTRY_SELF_HOSTED=False,
-)
+@override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()

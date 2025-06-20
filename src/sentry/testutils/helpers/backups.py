@@ -110,7 +110,7 @@ from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
-from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 
 __all__ = [
     "export_to_file",
@@ -372,7 +372,7 @@ class ExhaustiveFixtures(Fixtures):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
-        Authenticator.objects.create(user=user, type=1)
+        Authenticator.objects.create(user=user, type=1, config={})
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -669,7 +669,9 @@ class ExhaustiveFixtures(Fixtures):
 
         self.create_alert_rule_detector(detector=detector, alert_rule_id=alert.id)
         self.create_alert_rule_workflow(workflow=workflow, alert_rule_id=alert.id)
-        ActionGroupStatus.objects.create(action=send_notification_action, group=group)
+        WorkflowActionGroupStatus.objects.create(
+            action=send_notification_action, group=group, workflow=workflow
+        )
         DataConditionAlertRuleTrigger.objects.create(
             data_condition=data_condition, alert_rule_trigger_id=trigger.id
         )

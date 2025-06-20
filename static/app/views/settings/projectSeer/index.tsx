@@ -22,6 +22,7 @@ import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {AutofixRepositories} from './autofixRepositories';
 
@@ -69,9 +70,7 @@ export const autofixAutomatingTuningField = {
     },
     {
       value: 'super_low',
-      label: (
-        <SeerSelectLabel>{t('Only Super Highly Actionable Issues')}</SeerSelectLabel>
-      ),
+      label: <SeerSelectLabel>{t('Only the Most Actionable Issues')}</SeerSelectLabel>,
       details: t(
         'Seer will automatically run on issues that it thinks have an actionability of "super high." This targets around 2% of issues, but may vary by project.'
       ),
@@ -222,17 +221,11 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
                           />
                         ),
                         break: <br />,
-                        bulklink: <Link to={`/settings/${organization.slug}/seer`} />,
+                        bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
                       }
                     )}
                   </Alert>
-                  {!canWriteProject && (
-                    <Alert type="warning" system>
-                      {t(
-                        'These settings can only be edited by users with the organization-level owner, manager, or team-level admin role.'
-                      )}
-                    </Alert>
-                  )}
+                  <ProjectPermissionAlert project={project} system />
                   {showWarning && (
                     <Alert type="warning" system showIcon>
                       {t(

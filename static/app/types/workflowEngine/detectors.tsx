@@ -1,4 +1,5 @@
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
+import type {AlertRuleSensitivity} from 'sentry/views/alerts/rules/metric/types';
 
 /**
  * See SnubaQuerySerializer
@@ -58,18 +59,44 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
  */
 type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
-export type DetectorType =
-  | 'crons'
-  | 'error'
-  | 'metric'
-  | 'performance'
-  | 'replay'
-  | 'trace'
-  | 'uptime';
+export type DetectorType = 'error' | 'metric_issue' | 'uptime_domain_failure';
+
+interface BaseDetectorConfig {
+  threshold_period: number;
+}
+
+/**
+ * Configuration for static/threshold-based detection
+ */
+interface StaticDetectorConfig extends BaseDetectorConfig {
+  detection_type: 'static';
+}
+
+/**
+ * Configuration for percentage-based change detection
+ */
+interface PercentDetectorConfig extends BaseDetectorConfig {
+  comparison_delta: number;
+  detection_type: 'percent';
+}
+
+/**
+ * Configuration for dynamic/anomaly detection
+ */
+interface DynamicDetectorConfig extends BaseDetectorConfig {
+  detection_type: 'dynamic';
+  seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
+  sensitivity?: AlertRuleSensitivity;
+}
+
+export type DetectorConfig =
+  | StaticDetectorConfig
+  | PercentDetectorConfig
+  | DynamicDetectorConfig;
 
 interface NewDetector {
   conditionGroup: DataConditionGroup | null;
-  config: Record<string, unknown>;
+  config: DetectorConfig;
   dataSources: DataSource[] | null;
   disabled: boolean;
   name: string;

@@ -42,7 +42,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {INGESTION_DELAY} from 'sentry/views/insights/settings';
+import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
 import type {SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
@@ -93,6 +93,11 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       version,
     })) ?? [];
 
+  const aliases: Record<string, string> = {
+    ...BASE_FIELD_ALIASES,
+    ...props?.aliases,
+  };
+
   const hasChartActionsEnabled =
     organization.features.includes('insights-chart-actions') && useEap && props.queryInfo;
   const yAxes = new Set<string>();
@@ -115,7 +120,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: props.aliases?.[timeSeries.yAxis],
+        alias: aliases?.[timeSeries.yAxis],
       });
     }),
     ...(props.extraPlottables ?? []),
@@ -170,14 +175,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
-    ? ({
-        releases,
-        showReleaseAs: props.showReleaseAs || 'bubble',
-        onZoom: props.onZoom,
-      } as const)
-    : {};
-
   let chartType = ChartType.LINE;
   if (props.visualizationType === 'area') {
     chartType = ChartType.AREA;
@@ -196,7 +193,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             chartRef={props.chartRef}
             id={props.id}
             pageFilters={props.pageFilters}
-            {...enableReleaseBubblesProps}
+            releases={releases}
+            showReleaseAs={props.showReleaseAs || 'bubble'}
+            onZoom={props.onZoom}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
@@ -215,7 +214,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 groupBy={props.queryInfo?.groupBy}
                 title={props.title}
                 search={props.queryInfo?.search}
-                aliases={props.aliases}
+                aliases={aliases}
                 referrer={props.queryInfo?.referrer ?? ''}
               />
             )}
@@ -233,10 +232,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                         <TimeSeriesWidgetVisualization
                           id={props.id}
                           {...visualizationProps}
-                          {...enableReleaseBubblesProps}
                           onZoom={() => {}}
                           legendSelection={props.legendSelection}
                           onLegendSelectionChange={props.onLegendSelectionChange}
+                          showReleaseAs={props.showReleaseAs || 'bubble'}
                           releases={releases ?? []}
                         />
                       </ModalChartContainer>
