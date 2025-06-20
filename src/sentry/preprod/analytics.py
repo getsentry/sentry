@@ -7,7 +7,7 @@ class PreprodArtifactApiAssembleEvent(analytics.Event):
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("user_id"),
+        analytics.Attribute("user_id", required=False),
     )
 
 
