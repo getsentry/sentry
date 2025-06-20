@@ -85,7 +85,9 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         )
 
     parameterizer = Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS, experiments=(UniqueIdExperiment,)
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
+        experiments=(UniqueIdExperiment,),
+        enable_regex_experiments=_should_run_experiment("regex"),
     )
 
     normalized = parameterizer.parameterize_all(trimmed, _should_run_experiment)

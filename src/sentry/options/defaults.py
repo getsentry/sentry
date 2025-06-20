@@ -2624,6 +2624,11 @@ register(
     default=0.0,
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
+register(
+    "grouping.experiments.parameterization.regex",
+    default=0.0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
