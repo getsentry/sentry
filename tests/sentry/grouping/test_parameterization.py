@@ -121,6 +121,11 @@ def parameterizer():
             """traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01""",
             """traceparent: <traceparent>""",
         ),
+        (
+            "int - with separator",
+            """blah 0:17502 had a problem""",
+            """blah <int>:<int> had a problem""",
+        ),
         ("quoted str", """blah b="1" had a problem""", """blah b=<quoted_str> had a problem"""),
         ("bool", """blah a=true had a problem""", """blah a=<bool> had a problem"""),
         (
