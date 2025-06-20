@@ -140,6 +140,7 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.uptime.types import IncidentStatus
@@ -1885,7 +1886,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         """
         with self.feature(features or self.features):
             ret = self.client.get(self.url, data=data, format="json")
-            assert isinstance(ret, Response), ret
+            assert is_drf_response(ret)
             return ret
 
     def _index_metric_strings(self):
