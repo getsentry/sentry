@@ -141,7 +141,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         # Test first page
         response = self.get_success_response(self.organization.slug, self.project.slug, per_page=10)
         assert len(response.data["data"]) == 10
-        assert response.data["data"][0]["id"] == 20
+        assert response.data["data"][0]["query"] == "query 14"
 
         # Test second page
         response = self.get_success_response(
@@ -150,7 +150,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
             cursor=Cursor(10, 1),
         )
         assert len(response.data["data"]) == 5
-        assert response.data["data"][0]["id"] == 10
+        assert response.data["data"][0]["query"] == "query 4"
 
     @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
     def test_post_success(self, mock_task):
