@@ -104,8 +104,8 @@ def evaluate_data_conditions(
     logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionGroup:
     """
-    Evaluate a list of conditions, each condition is a tuple with the value to evalute the condition against.
-    Then we apply the logic_type to get the results of the list of conditions.
+    Evaluate a list of conditions. Each condition is a tuple with the value to evaluate the condition against.
+    Next we apply the logic_type to get the results of the list of conditions.
     """
     condition_results: list[ProcessedDataCondition] = []
 

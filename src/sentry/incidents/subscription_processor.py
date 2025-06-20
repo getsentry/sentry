@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry import features
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -263,7 +264,9 @@ class SubscriptionProcessor:
         aggregation_value: float,
         fired_incident_triggers: list[IncidentTrigger],
     ) -> list[IncidentTrigger]:
-        if has_anomaly and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+        trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+
+        if has_anomaly and not trigger_matches_status:
             metrics.incr(
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
@@ -274,11 +277,7 @@ class SubscriptionProcessor:
         else:
             self.trigger_alert_counts[trigger.id] = 0
 
-        if (
-            not has_anomaly
-            and self.active_incident
-            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-        ):
+        if not has_anomaly and self.active_incident and trigger_matches_status:
             metrics.incr(
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
@@ -416,23 +415,13 @@ class SubscriptionProcessor:
                     aggregation_value=aggregation_value,
                 )
             if potential_anomalies is None:
-                logger.info(
-                    "No potential anomalies found",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "dataset": self.alert_rule.snuba_query.dataset,
-                        "organization_id": self.subscription.project.organization.id,
-                        "project_id": self.subscription.project_id,
-                        "alert_rule_id": self.alert_rule.id,
-                    },
-                )
                 return
 
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             return
 
-        fired_incident_triggers = []
+        fired_incident_triggers: list[IncidentTrigger] = []
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             metrics_incremented = False
@@ -440,14 +429,17 @@ class SubscriptionProcessor:
                 # dual processing of anomaly detection alerts
                 if (
                     has_anomaly_detection
-                    and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
                     and has_metric_alert_processing
+                    and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
                 ):
+                    if not detector:
+                        raise ResourceDoesNotExist("Detector not found, cannot evaluate anomaly")
                     is_anomalous = get_anomaly_evaluation_from_workflow_engine(detector, results)
                     if is_anomalous is None:
                         # we only care about True and False — None indicates no change
                         continue
 
+                    assert isinstance(is_anomalous, bool)
                     fired_incident_triggers = self.handle_trigger_anomalies(
                         is_anomalous, trigger, aggregation_value, fired_incident_triggers
                     )

@@ -48,7 +48,7 @@ def get_anomaly_evaluation_from_workflow_engine(
     data_packet_processing_results: list[
         tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
     ],
-) -> bool | None:
+) -> bool | DetectorEvaluationResult | None:
     evaluation = None
     for result in data_packet_processing_results:
         if result[0] == detector:
