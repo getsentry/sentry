@@ -311,6 +311,14 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
+function getSQLQueryFromEvidence(querySpan: Span) {
+  // Mongo query is sanitized and not helpful to display
+  if (querySpan.description?.toUpperCase().includes('SELECT')) {
+    return getSpanEvidenceValue(querySpan);
+  }
+  return null;
+}
+
 function DBQueryInjectionVulnerabilityEvidence({
   event,
   organization,
@@ -328,18 +336,12 @@ function DBQueryInjectionVulnerabilityEvidence({
     }
   );
 
-  // Mongo query is sanitized and not helpful to display
-  const querySpan = offendingSpans[0]!;
-  const queryRow = querySpan.description?.toUpperCase().includes('SELECT')
-    ? makeRow(t('Query'), getSpanEvidenceValue(querySpan))
-    : null;
-
   return (
     <PresortedKeyValueList
       data={
         [
           makeTransactionNameRow(event, organization, location, projectSlug),
-          queryRow,
+          makeRow(t('Query'), getSQLQueryFromEvidence(offendingSpans[0]!)),
           makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
           makeRow(t('Request URL'), evidenceData.requestUrl),
         ].filter(Boolean) as KeyValueListData
