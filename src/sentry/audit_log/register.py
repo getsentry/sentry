@@ -100,7 +100,7 @@ default_manager.add(
         event_id=36,
         name="PROJECT_ACCEPT_TRANSFER",
         api_name="project.accept-transfer",
-        template="accepted transfer of project {slug}",
+        template="accepted transfer of project {project_slug} from {old_organization_slug} to {new_organization_slug}",
     )
 )
 default_manager.add(events.ProjectEnableAuditLogEvent())
