@@ -119,14 +119,20 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
 
-        for parameter in self.request_parameters:
-            value = parameter[1]
-            key = parameter[0]
-            if re.search(f"\\b{re.escape(key)}\\b", description) and re.search(
-                f"\\b{re.escape(value)}\\b", description
+        if "WHERE" not in description.upper():
+            return
+
+        for key, value in self.request_parameters:
+            regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
+            regex_value = rf'(?<![\w.$])"?{re.escape(value)}"?(?![\w.$"])'
+            where_index = description.upper().find("WHERE")
+            if re.search(regex_key, description[where_index:]) and re.search(
+                regex_value, description[where_index:]
             ):
-                description = description.replace(value, "?")
-                vulnerable_parameters.append(key)
+                description = description[:where_index] + re.sub(
+                    regex_value, "?", description[where_index:]
+                )
+                vulnerable_parameters.append((key, value))
 
         if len(vulnerable_parameters) == 0:
             return
@@ -147,7 +153,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_parameters": list(set(vulnerable_parameters)),
+                "vulnerable_parameters": vulnerable_parameters,
                 "request_url": self.request_url,
             },
             evidence_display=[

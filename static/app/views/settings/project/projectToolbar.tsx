@@ -84,7 +84,7 @@ export default function ProjectToolbarSettings({
         }
       />
       <Feature
-        features="dev-toolbar-ui"
+        features="sentry-toolbar-ui"
         organization={organization}
         renderDisabled={NoAccess}
       >

@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Form from 'sentry/components/forms/form';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -19,25 +18,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
-import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
-function NewDetectorBreadcrumbs() {
-  const title = useFormField<string>('title');
-  const organization = useOrganization();
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-        {label: title ? title : t('New Monitor')},
-      ]}
-    />
-  );
-}
-
-function NewDetectorDocumentTitle() {
-  const title = useFormField<string>('title');
-  return <SentryDocumentTitle title={title ? title : t('New Monitor')} />;
+interface NewDetectorFormData {
+  detectorType: string;
+  environment: string;
+  project: string;
 }
 
 export default function DetectorNew() {
@@ -48,33 +34,41 @@ export default function DetectorNew() {
 
   const defaultProject = projects.find(p => p.isMember) ?? projects[0];
 
+  const newMonitorName = t('New Monitor');
   return (
     <FullHeightForm
-      onSubmit={data => {
+      onSubmit={formData => {
+        // Form doesn't allow type to be defined, cast to the expected shape
+        const data = formData as NewDetectorFormData;
         navigate({
           pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
-          // Filter out empty values
-          query: Object.fromEntries(
-            Object.entries(data).filter(([_, value]) => value !== '')
-          ),
+          query: {
+            detectorType: data.detectorType,
+            project: data.project,
+            environment: data.environment,
+          },
         });
       }}
       hideFooter
-      initialData={{
-        detectorType: 'metric',
-        project: defaultProject?.id,
-        name: '',
-        environment: '',
-      }}
+      initialData={
+        {
+          detectorType: 'metric',
+          project: defaultProject?.id ?? '',
+          environment: '',
+        } satisfies NewDetectorFormData
+      }
     >
-      <NewDetectorDocumentTitle />
+      <SentryDocumentTitle title={newMonitorName} />
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
-            <NewDetectorBreadcrumbs />
-            <Layout.Title>
-              <EditableDetectorName />
-            </Layout.Title>
+            <Breadcrumbs
+              crumbs={[
+                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+                {label: newMonitorName},
+              ]}
+            />
+            <Layout.Title>{newMonitorName}</Layout.Title>
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>
@@ -100,17 +94,4 @@ export default function DetectorNew() {
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
-`;
-
-// Make the form full height
-const FullHeightForm = styled(Form)`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0%;
-
-  & > div:first-child {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
 `;

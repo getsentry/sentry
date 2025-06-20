@@ -178,7 +178,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
   const pageParams: ReadablePageParams = useMemo(() => {
     const aggregateFields = getAggregateFieldsFromLocation(location, organization);
     const dataset = getDatasetFromLocation(location);
-    const fields = getFieldsFromLocation(location);
+    const fields = getFieldsFromLocation(location, organization);
     const mode = getModeFromLocation(location);
     const query = getQueryFromLocation(location);
     const groupBys = aggregateFields.filter(isGroupBy).map(groupBy => groupBy.groupBy);
@@ -324,7 +324,7 @@ function findAllFields(
   const addedFields = new Set<string>();
   const removedFields = new Set<string>();
 
-  function checkField(field: string) {
+  function checkField(_count: number, field: string) {
     const curCount = curFields.get(field) || 0;
     const newCount = newFields.get(field) || 0;
     if (curCount > newCount) {
@@ -334,8 +334,8 @@ function findAllFields(
     }
   }
 
-  curFields.keys().forEach(checkField);
-  newFields.keys().forEach(checkField);
+  curFields.forEach(checkField);
+  newFields.forEach(checkField);
 
   return {addedFields, removedFields};
 }

@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
@@ -23,7 +24,7 @@ import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
-import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -56,7 +57,10 @@ function AgentsMonitoringPage() {
 
   return (
     <React.Fragment>
-      <AgentsPageHeader module={ModuleName.AGENTS} />
+      <AgentsPageHeader
+        module={ModuleName.AGENTS}
+        headerActions={<AiModuleToggleButton />}
+      />
       <ModuleBodyUpsellHook moduleName={ModuleName.AGENTS}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -130,14 +134,14 @@ function AgentsMonitoringPage() {
 
 function PageWithProviders() {
   return (
-    <AgentInsightsFeature>
+    <AIInsightsFeature>
       <ModulePageProviders
         moduleName={ModuleName.AGENTS}
         analyticEventName="insight.page_loads.agents"
       >
         <AgentsMonitoringPage />
       </ModulePageProviders>
-    </AgentInsightsFeature>
+    </AIInsightsFeature>
   );
 }
 

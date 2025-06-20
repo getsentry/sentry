@@ -95,6 +95,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(
+        name="traceparent", raw_pattern=r"""\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b"""
+    ),
+    ParameterizationRegex(
         name="uuid",
         raw_pattern=r"""\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b""",
     ),
@@ -120,7 +123,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
             |
             # Kitchen
-            (\d{1,2}:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
