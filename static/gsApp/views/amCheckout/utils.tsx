@@ -625,7 +625,14 @@ export async function submitCheckout(
     addSuccessMessage(t('Success'));
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
-    const justBoughtSeer = data.seer;
+    const alreadyHasSeer =
+      !isTrialPlan(subscription.plan) &&
+      subscription.reservedBudgets?.some(
+        budget =>
+          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+          budget.reservedBudget > 0
+      );
+    const justBoughtSeer = data.seer && !alreadyHasSeer;
 
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
