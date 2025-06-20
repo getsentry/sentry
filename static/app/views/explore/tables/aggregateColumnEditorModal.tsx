@@ -64,7 +64,7 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(tempColumns);
+    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
@@ -113,7 +113,7 @@ export function AggregateColumnEditorModal({
                     key: 'add-visualize',
                     label: t('Visualize / Function'),
                     details: t('ex. p50(span.duration)'),
-                    onAction: () => insertColumn(new Visualize([DEFAULT_VISUALIZATION])),
+                    onAction: () => insertColumn(new Visualize(DEFAULT_VISUALIZATION)),
                   },
                 ]}
                 trigger={triggerProps => (
@@ -274,7 +274,7 @@ function VisualizeSelector({
   stringTags,
   visualize,
 }: VisualizeSelectorProps) {
-  const yAxis = visualize.yAxes[0]!;
+  const yAxis = visualize.yAxis;
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
@@ -300,7 +300,7 @@ function VisualizeSelector({
         oldAggregate: parsedFunction?.name,
         oldArgument: parsedFunction?.arguments[0]!,
       });
-      onChange(visualize.replace({yAxes: [newYAxis]}));
+      onChange(visualize.replace({yAxis: newYAxis}));
     },
     [parsedFunction, onChange, visualize]
   );
@@ -308,7 +308,7 @@ function VisualizeSelector({
   const handleArgumentChange = useCallback(
     (option: SelectOption<SelectKey>) => {
       const newYAxis = `${parsedFunction?.name}(${option.value})`;
-      onChange(visualize.replace({yAxes: [newYAxis]}));
+      onChange(visualize.replace({yAxis: newYAxis}));
     },
     [parsedFunction, onChange, visualize]
   );

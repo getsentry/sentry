@@ -62,7 +62,7 @@ export function getSortBysFromLocation(
       sortBys.every(
         sortBy =>
           groupBys.includes(sortBy.field) ||
-          visualizes.some(visualize => visualize.yAxes.includes(sortBy.field))
+          visualizes.some(visualize => visualize.yAxis === sortBy.field)
       )
     ) {
       return sortBys;
@@ -72,7 +72,7 @@ export function getSortBysFromLocation(
   return defaultSortBys(
     mode,
     fields,
-    visualizes.flatMap(visualize => visualize.yAxes)
+    visualizes.map(visualize => visualize.yAxis)
   );
 }
 
