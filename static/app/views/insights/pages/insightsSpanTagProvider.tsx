@@ -1,10 +1,10 @@
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function InsightsSpanTagProvider({children}: {children: React.ReactNode}) {
   return (
-    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP_RPC} enabled>
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
       {children}
-    </SpanTagsProvider>
+    </TraceItemAttributeProvider>
   );
 }

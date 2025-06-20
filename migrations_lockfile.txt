@@ -23,7 +23,7 @@ notifications: 0001_move_notifications_models
 
 preprod: 0006_add_analysis_file_id_field
 
-replays: 0001_squashed_0005_drop_replay_index
+replays: 0006_add_bulk_delete_job
 
 sentry: 0930_make_open_period_range_boundary_inclusive
 
