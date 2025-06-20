@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -16,16 +18,18 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {IconInfo} from 'sentry/icons';
+import {IconInfo, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -81,6 +85,26 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
+  const isQueryInjection = group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY;
+  const openForm = useFeedbackForm();
+  const feedbackButton = openForm ? (
+    <Button
+      aria-label={t('Give feedback on the query injection issue')}
+      icon={<IconMegaphone />}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('Please provide feedback on the query injection issue.'),
+          tags: {
+            ['feedback.source']: 'issue_details_query_injection',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  ) : null;
+
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -111,7 +135,7 @@ export default function StreamlinedGroupHeader({
             />
           </Flex>
           <ButtonBar gap={0.5}>
-            {!hasOnlyOneUIOption && (
+            {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
                 external
@@ -127,19 +151,22 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            <NewIssueExperienceButton />
+            {isQueryInjection ? feedbackButton : <NewIssueExperienceButton />}
           </ButtonBar>
         </Flex>
         <HeaderGrid>
-          <Tooltip
-            title={primaryTitle}
-            skipWrapper
-            isHoverable
-            showOnlyOnOverflow
-            delay={1000}
-          >
-            <PrimaryTitle>{primaryTitle}</PrimaryTitle>
-          </Tooltip>
+          <Title>
+            <Tooltip
+              title={primaryTitle}
+              skipWrapper
+              isHoverable
+              showOnlyOnOverflow
+              delay={1000}
+            >
+              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+            </Tooltip>
+            {isQueryInjection && <FeatureBadge type="beta" />}
+          </Title>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
               <StatLink
@@ -354,4 +381,10 @@ const Workflow = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
