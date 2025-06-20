@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:49:58.037297+00:00'
+created: '2025-06-18T22:48:16.307691+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -22,12 +22,18 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "0809098f9f613b63467605dd1739cc9b"
-    contributing component: exception
+    hash: "028157fe357e4592e39eacb32eafa2db"
+    contributing component: chained-exception
     component:
       system*
-        exception*
-          type*
-            "System.AggregateException"
-          value*
-            "One or more errors occurred."
+        chained-exception*
+          exception*
+            type*
+              "InnermostException"
+            value*
+              "Whoops"
+          exception*
+            type*
+              "InnerException"
+            value*
+              "Nope"

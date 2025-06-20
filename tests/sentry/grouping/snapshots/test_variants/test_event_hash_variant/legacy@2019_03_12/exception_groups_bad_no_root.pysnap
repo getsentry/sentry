@@ -1,0 +1,38 @@
+---
+created: '2025-06-18T22:38:18.762659+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
+        exception*
+          type*
+            "InnermostException"
+          value*
+            "Whoops"
+        exception*
+          type*
+            "InnerException"
+          value*
+            "Nope"
+--------------------------------------------------------------------------
+system:
+  hash: "028157fe357e4592e39eacb32eafa2db"
+  contributing component: chained-exception
+  component:
+    system*
+      chained-exception*
+        exception*
+          type*
+            "InnermostException"
+          value*
+            "Whoops"
+        exception*
+          type*
+            "InnerException"
+          value*
+            "Nope"
