@@ -4,7 +4,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -77,6 +77,14 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
+
+        analytics.record(
+            "preprod_artifact.api.assemble",
+            organization_id=project.organization_id,
+            project_id=project.id,
+            user_id=request.user.id,
+        )
+
         if not features.has(
             "organizations:preprod-artifact-assemble", project.organization, actor=request.user
         ):
