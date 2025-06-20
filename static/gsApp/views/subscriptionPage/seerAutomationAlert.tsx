@@ -47,7 +47,7 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
       >
         <AlertContent>
           <AlertHeader>
-            {t('Seer issue scans and fixes are running automatically at low settings')}
+            {t('Seer issue scans and fixes run automatically at low settings by default')}
           </AlertHeader>
           <div>
             {t(
