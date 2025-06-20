@@ -700,10 +700,10 @@ def filter_exceptions_for_exception_groups(
             and mechanism.exception_id is not None
             and mechanism.exception_id != mechanism.parent_id
         ):
-            node = exception_tree.setdefault(
-                mechanism.exception_id, ExceptionTreeNode()
-            ).exception = exception
+            node = exception_tree.setdefault(mechanism.exception_id, ExceptionTreeNode())
             node.exception = exception
+            exception.exception = exception
+
             if mechanism.parent_id is not None:
                 parent_node = exception_tree.setdefault(mechanism.parent_id, ExceptionTreeNode())
                 parent_node.children.append(exception)
