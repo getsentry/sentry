@@ -640,6 +640,7 @@ Retrieve a collection of replay delete jobs.
 | environments | list[string] | The environment to delete replays from. If not specified, applies to all environments                                      |
 | status       | string       | The status of the deletion job. One of `pending`, `in-progress`, and `completed`.                                          |
 | query        | string       | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax |
+| countDeleted | number       | The count of replays deleted by the job.                                                                                   |
 
 - Response 200
 
@@ -654,7 +655,8 @@ Retrieve a collection of replay delete jobs.
         "rangeEnd": "2025-06-04T00:00:00.000000",
         "environments": ["production"],
         "status": "in-progress",
-        "query": "release:2.3.0 AND url:*/billing*"
+        "query": "release:2.3.0 AND url:*/billing*",
+        "countDeleted": 104
       }
     ]
   }
@@ -689,7 +691,8 @@ Delete a collection of replays. Deletes are throttled and will take some time to
       "rangeEnd": "2025-06-04T00:00:00.000000",
       "environments": ["production"],
       "status": "pending",
-      "query": "release:2.3.0 AND url:*/billing*"
+      "query": "release:2.3.0 AND url:*/billing*",
+      "countDeleted": 0
     }
   }
   ```
@@ -712,7 +715,8 @@ Fetch a replay delete job instance.
       "rangeEnd": "2025-06-04T00:00:00.000000",
       "environments": ["production"],
       "status": "pending",
-      "query": "release:2.3.0 AND url:*/billing*"
+      "query": "release:2.3.0 AND url:*/billing*",
+      "countDeleted": 1452667
     }
   }
   ```
