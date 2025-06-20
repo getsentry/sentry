@@ -9,6 +9,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_404_NOT_FOUND, HTTP_422_UNPROCESSABLE_ENTITY
+from sentry_sdk import capture_message
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -90,15 +91,15 @@ class BrowserReportingCollectorEndpoint(Endpoint):
         if not options.get("issues.browser_reporting.collector_endpoint_enabled"):
             return Response(status=HTTP_404_NOT_FOUND)
 
-        logger.info("browser_report_received", extra={"request_body": request.data})
+        logger.info("browser_report.received", extra={"request_body": request.data})
 
         # Browser Reporting API sends an array of reports
         # request.data could be any type, so we need to validate and cast
         raw_data: Any = request.data
 
         if not isinstance(raw_data, list):
-            logger.warning(
-                "browser_report_invalid_format",
+            capture_warning(
+                "browser_report.invalid_format",
                 extra={"data_type": type(raw_data).__name__, "data": raw_data},
             )
             return Response(status=HTTP_422_UNPROCESSABLE_ENTITY)
@@ -108,8 +109,8 @@ class BrowserReportingCollectorEndpoint(Endpoint):
         for report in raw_data:
             serializer = BrowserReportSerializer(data=report)
             if not serializer.is_valid():
-                logger.warning(
-                    "browser_report_validation_failed",
+                capture_warning(
+                    "browser_report.validation_failed",
                     extra={"validation_errors": serializer.errors, "raw_report": report},
                 )
                 return Response(
@@ -122,9 +123,17 @@ class BrowserReportingCollectorEndpoint(Endpoint):
         # Process all validated reports
         for browser_report in validated_reports:
             metrics.incr(
-                "browser_reporting.raw_report_received",
-                tags={"browser_report_type": str(browser_report["type"])},
+                "browser_report.raw_report_received",
+                tags={"browser_report_type": browser_report["type"]},
                 sample_rate=1.0,  # XXX: Remove this once we have a ballpark figure
             )
 
         return Response(status=HTTP_200_OK)
+
+
+def capture_warning(message: str, extra: dict[str, Any]) -> None:
+    # It will show in Sentry's Logs and GCP logs
+    logger.warning(message, extra=extra)
+    # It will report to Sentry without blocking deployments
+    capture_message(message, level="warning", extra=extra)
+    metrics.incr("browser_reporting.warning", tags={"message": message}, sample_rate=1.0)
