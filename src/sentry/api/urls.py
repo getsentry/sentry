@@ -319,6 +319,10 @@ from sentry.replays.endpoints.organization_replay_selector_index import (
 )
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
+from sentry.replays.endpoints.project_replay_jobs_delete import (
+    ProjectReplayDeletionJobDetailEndpoint,
+    ProjectReplayDeletionJobsIndexEndpoint,
+)
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
     ProjectReplayRecordingSegmentDetailsEndpoint,
 )
@@ -2714,6 +2718,16 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/videos/(?P<segment_id>\d+)/$",
         ProjectReplayVideoDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-video-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/jobs/delete/$",
+        ProjectReplayDeletionJobsIndexEndpoint.as_view(),
+        name="sentry-api-0-project-replay-deletion-jobs-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/jobs/delete/(?P<job_id>\d+)/$",
+        ProjectReplayDeletionJobDetailEndpoint.as_view(),
+        name="sentry-api-0-project-replay-deletion-job-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/configuration/$",
