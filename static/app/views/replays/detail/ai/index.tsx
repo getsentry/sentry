@@ -87,6 +87,16 @@ function AiContent({replayRecord}: Props) {
     );
   }
 
+  if (replayRecord?.project_id && !project) {
+    return (
+      <SummaryContainer>
+        <Alert type="error">
+          {t('Project not found. Unable to load AI summary.')}
+        </Alert>
+      </SummaryContainer>
+    );
+  }
+
   if (isPending || isRefetching) {
     return (
       <LoadingContainer>
