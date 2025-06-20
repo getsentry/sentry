@@ -35,6 +35,7 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
         timezone: 'America/Los_Angeles',
         prefersIssueDetailsStreamlinedUI: false,
         prefersNextjsInsightsOverview: false,
+        prefersAgentsInsightsModule: false,
         prefersStackedNavigation: false,
         prefersChonkUI: false,
         quickStartDisplay: {},
