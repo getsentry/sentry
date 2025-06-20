@@ -176,6 +176,7 @@ def _delete_if_exists(filename: str) -> None:
     queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
+    acks_late=True,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=replays_tasks, retry=Retry(times=5), processing_deadline_duration=300
@@ -237,6 +238,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
     queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
+    acks_late=True,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=replays_tasks, retry=Retry(times=5), processing_deadline_duration=120
