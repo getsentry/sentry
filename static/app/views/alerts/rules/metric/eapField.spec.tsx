@@ -64,7 +64,7 @@ describe('EAPField', () => {
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number'}),
+        query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
       })
     );
     expect(screen.getByText('epm')).toBeInTheDocument();
@@ -91,13 +91,13 @@ describe('EAPField', () => {
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number'}),
+        query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string'}),
+        query: expect.objectContaining({attributeType: 'string', itemType: 'spans'}),
       })
     );
     expect(screen.getByText('failure_rate')).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('EAPField', () => {
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string'}),
+        query: expect.objectContaining({attributeType: 'string', itemType: 'spans'}),
       })
     );
     await userEvent.click(screen.getByText('count'));
@@ -207,5 +207,38 @@ describe('EAPField', () => {
     await userEvent.click(await screen.findByText('count_unique'));
     expect(screen.getByText('count_unique')).toBeInTheDocument();
     expect(screen.getByText('span.op')).toBeInTheDocument();
+  });
+
+  it('renders count with argument disabled for logs', () => {
+    render(
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+        <EAPField
+          aggregate={'count(message)'}
+          onChange={() => {}}
+          traceItemType={TraceItemDataset.LOGS}
+        />
+      </TraceItemAttributeProvider>
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string', itemType: 'logs'}),
+      })
+    );
+    expect(screen.getByText('count')).toBeInTheDocument();
+    expect(screen.getByText('logs')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(2);
+    // this corresponds to the `count` input
+    expect(inputs[0]).toBeEnabled();
+    // this corresponds to the `spans` input
+    expect(inputs[1]).toBeDisabled();
   });
 });
