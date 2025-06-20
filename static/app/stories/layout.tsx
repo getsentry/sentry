@@ -32,8 +32,3 @@ export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 
 export const Section = styled('section')`
   padding-top: ${space(2)};
 `;
-
-export const Title = styled('h2')`
-  margin: 0;
-  scroll-margin-top: ${space(2)};
-`;
