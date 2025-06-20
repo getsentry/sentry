@@ -12,7 +12,7 @@ export default function FeedbackSummary() {
 
   const organization = useOrganization();
 
-  if (!organization.features.includes('user-feedback-ai-summaries') || isError) {
+  if (!organization.features.includes('user-feedback-ai-summaries')) {
     return null;
   }
 
@@ -23,13 +23,15 @@ export default function FeedbackSummary() {
         <SummaryHeader>{t('Feedback Summary')}</SummaryHeader>
         {isPending ? (
           <LoadingContainer>
-            <LoadingIndicator style={{margin: 0, marginTop: space(0.5)}} size={24} />
-            <SummaryContent>Summarizing feedback received...</SummaryContent>
+            <StyledLoadingIndicator size={24} />
+            <SummaryContent>{t('Summarizing feedback received...')}</SummaryContent>
           </LoadingContainer>
         ) : tooFewFeedbacks ? (
           <SummaryContent>
             {t('Bummer... Not enough feedback to summarize (yet).')}
           </SummaryContent>
+        ) : isError ? (
+          <SummaryContent>{t('Error summarizing feedback.')}</SummaryContent>
         ) : (
           <SummaryContent>{summary}</SummaryContent>
         )}
@@ -37,6 +39,10 @@ export default function FeedbackSummary() {
     </SummaryIconContainer>
   );
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: ${space(0.5)} 0 0 0;
+`;
 
 const LoadingContainer = styled('div')`
   display: flex;
