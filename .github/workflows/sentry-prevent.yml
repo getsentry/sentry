@@ -1,0 +1,37 @@
+name: Sentry Prevent
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  upload-overwatch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Requirements
+        run: |
+          pip install -r requirements-base.txt
+          pip install -r requirements-dev-frozen.txt
+          pip install -r requirements-frozen.txt
+
+      - name: Install Static Analysis Tools
+        run: |
+          pip install ruff==0.11.1
+
+      - name: Install Overwatch CLI
+        run: |
+          curl -o overwatch-cli https://overwatch.codecov.io/linux/cli
+          chmod +x overwatch-cli
+
+      - name: Run Overwatch CLI
+        run: |
+          ./overwatch-cli \
+            --auth-token ${{ secrets.OVERWATCH_SENTRY_AUTH_TOKEN }} \
+            --organization-slug sentry \
+            python \
+            --workdir src/sentry
