@@ -38,7 +38,7 @@ def generate_summary(
     response = complete_prompt(  # This can throw
         usecase=LLMUseCase.FEEDBACK_SUMMARIES,
         message=make_input_prompt(feedbacks),
-        temperature=0.3,
+        temperature=0.1,
         max_output_tokens=150,
     )
 
