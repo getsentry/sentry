@@ -279,7 +279,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/settings/${organization.slug}/billing/overview/`,
-          query: {referrer: 'billing'},
+          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
         })
       )
     );

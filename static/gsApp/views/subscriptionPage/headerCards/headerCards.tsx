@@ -6,6 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
+import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 import {SubscriptionCard} from './subscriptionCard';
 import {UsageCard} from './usageCard';
@@ -18,6 +19,7 @@ interface HeaderCardsProps {
 export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   return (
     <ErrorBoundary mini>
+      <SeerAutomationAlert organization={organization} />
       <HeaderCardWrapper>
         <SubscriptionCard organization={organization} subscription={subscription} />
         <UsageCard organization={organization} subscription={subscription} />

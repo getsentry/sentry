@@ -625,6 +625,15 @@ export async function submitCheckout(
     addSuccessMessage(t('Success'));
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
+    const alreadyHasSeer =
+      !isTrialPlan(subscription.plan) &&
+      subscription.reservedBudgets?.some(
+        budget =>
+          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+          budget.reservedBudget > 0
+      );
+    const justBoughtSeer = data.seer && !alreadyHasSeer;
+
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
     // request doesn't get cancelled
@@ -632,7 +641,9 @@ export async function submitCheckout(
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}`
+        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
+          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
+        }`
       )
     );
   } catch (error) {
