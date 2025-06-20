@@ -145,6 +145,9 @@ def fetch_rows_matching_pattern(
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
+            # We only match segment rows because those contain the PII we want to delete. This also
+            # means we won't match our is_archived rows putting us in an infinite deletion loop.
+            Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *where,
         ],
         groupby=[Column("replay_id")],
