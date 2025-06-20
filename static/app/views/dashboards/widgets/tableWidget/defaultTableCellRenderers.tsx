@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
+import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import type {Organization} from 'sentry/types/organization';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
@@ -15,30 +14,13 @@ import type {
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-/**
- * Renderers that use any supplied renderer, but fallback to default rendering if none are provided
- */
 interface DefaultHeadCellRenderProps {
   renderTableHeadCell?: (
-    column: GridColumnOrder,
+    column: TabularColumn,
     columnIndex: number
   ) => React.ReactNode | undefined;
 }
 
-interface DefaultBodyCellRenderProps {
-  location: Location;
-  organization: Organization;
-  theme: Theme;
-  renderTableBodyCell?: (
-    column: GridColumnOrder,
-    dataRow: Record<string, any>,
-    rowIndex: number,
-    columnIndex: number
-  ) => React.ReactNode | undefined;
-  tableData?: TabularData;
-}
-
-// TODO: expand on some basic sorting functionality
 export const renderDefaultHeadCell = ({
   renderTableHeadCell,
 }: DefaultHeadCellRenderProps) =>
@@ -46,23 +28,31 @@ export const renderDefaultHeadCell = ({
     column: TabularColumn<keyof TabularRow>,
     _columnIndex: number
   ): React.ReactNode {
-    const cell: React.ReactNode = renderTableHeadCell?.(column, _columnIndex);
+    const cell = renderTableHeadCell?.(column, _columnIndex);
     if (cell) {
       return cell;
     }
     const align = fieldAlignment(column.name, column.type as ColumnValueType);
 
     return (
-      <SortLink
-        align={align}
-        title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
-        direction={undefined}
-        canSort={false}
-        preventScrollReset
-        generateSortLink={() => undefined}
-      />
+      <CellWrapper align={align}>
+        <StyledTooltip title={column.name}>{column.name}</StyledTooltip>
+      </CellWrapper>
     );
   };
+
+interface DefaultBodyCellRenderProps {
+  location: Location;
+  organization: Organization;
+  theme: Theme;
+  renderTableBodyCell?: (
+    column: TabularColumn,
+    dataRow: TabularRow,
+    rowIndex: number,
+    columnIndex: number
+  ) => React.ReactNode | undefined;
+  tableData?: TabularData;
+}
 
 export const renderDefaultBodyCell = ({
   tableData,
@@ -73,16 +63,11 @@ export const renderDefaultBodyCell = ({
 }: DefaultBodyCellRenderProps) =>
   function (
     column: TabularColumn,
-    dataRow: Record<string, any>,
+    dataRow: TabularRow,
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode {
-    const cell: React.ReactNode = renderTableBodyCell?.(
-      column,
-      dataRow,
-      rowIndex,
-      columnIndex
-    );
+    const cell = renderTableBodyCell?.(column, dataRow, rowIndex, columnIndex);
     if (cell) {
       return cell;
     }
@@ -109,4 +94,11 @@ export const renderDefaultBodyCell = ({
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+`;
+
+const CellWrapper = styled('div')<{align: Alignments}>`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;

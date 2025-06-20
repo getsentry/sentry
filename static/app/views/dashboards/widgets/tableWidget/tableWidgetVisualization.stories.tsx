@@ -2,7 +2,12 @@ import {Fragment} from 'react';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import * as Storybook from 'sentry/stories';
-import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleTableData';
+import type {
+  TabularColumn,
+  TabularData,
+  TabularRow,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 export default Storybook.story('TableWidgetVisualization', story => {
@@ -28,6 +33,24 @@ export default Storybook.story('TableWidgetVisualization', story => {
   });
 
   story('Table Data and Optional Table Columns', () => {
+    const tableWithEmptyData: TabularData = {
+      ...sampleHTTPRequestTableData,
+      data: [],
+    };
+    const customColumns: TabularColumn[] = [
+      {
+        key: 'count(span.duration)',
+        name: 'Count of Span Duration',
+        type: 'number',
+        width: -1,
+      },
+      {
+        key: 'http.request_method',
+        name: 'HTTP Request Method',
+        type: 'string',
+        width: -1,
+      },
+    ];
     return (
       <Fragment>
         <p>
@@ -37,37 +60,49 @@ export default Storybook.story('TableWidgetVisualization', story => {
         </p>
         <CodeSnippet language="json">
           {`
-{
-  data: [],
-  meta: {
-    fields: {'http.request_method': 'string', 'count(span.duration)': 'number'},
-    units: {'http.request_method': null, 'count(span.duration)': null},
-  },
-}
+${JSON.stringify(tableWithEmptyData)}
           `}
         </CodeSnippet>
         <p>Then the table renders empty like this:</p>
-        <TableWidgetVisualization
-          tableData={{
-            data: [],
-            meta: {
-              fields: {'http.request_method': 'string', 'count(span.duration)': 'number'},
-              units: {'http.request_method': null, 'count(span.duration)': null},
-            },
-          }}
-        />
+        <TableWidgetVisualization tableData={tableWithEmptyData} />
         <p>
           The table columns use the type <code>TabularColumn[]</code> which is based off
           of <code>GridColumnOrder</code> from <Storybook.JSXNode name="GridEditable" />.
-          Supplying the prop allows for custom ordering of the columns. The prop is
-          optional, as the table will fallback to extract the columns in order from the
-          table data's <code>meta.fields</code>, displaying them as shown above.
+          The prop is optional, as the table will fallback to extract the columns in order
+          from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
+        <p>
+          This prop is useful for reordering and giving custom display names to columns:
+        </p>
+        <CodeSnippet language="json">
+          {`
+${JSON.stringify(customColumns)}
+          `}
+        </CodeSnippet>
+        <p>Resulting table:</p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={customColumns}
+        />
       </Fragment>
     );
   });
 
   story('Using Custom Cell Rendering', () => {
+    function customHeadRenderer(column: TabularColumn, _columnIndex: number) {
+      return <div>{column.name + ' column'}</div>;
+    }
+    function customBodyRenderer(
+      column: TabularColumn,
+      dataRow: TabularRow,
+      _rowIndex: number,
+      _columnIndex: number
+    ) {
+      if (column.key === 'http.request_method') {
+        return undefined;
+      }
+      return <div>{dataRow[column.key]}</div>;
+    }
     return (
       <Fragment>
         <p>By default, the table falls back on predefined default rendering functions.</p>
@@ -75,29 +110,18 @@ export default Storybook.story('TableWidgetVisualization', story => {
           If custom cell rendering is required, pass the functions
           <code>renderTableBodyCell</code> and <code>renderTableHeadCell</code>
           which replace the rendering of table body cells and table headers respectively.
-          These functions should return a <code>React.ReactNode</code>, but are allowed to
-          return an <code>undefined</code> value, in which case the fallback renderer will
-          run allowing for partial custom rendering
+          If the function returns <code>undefined</code>, fallback renderer will run
+          allowing for partial custom rendering
         </p>
-        <p>Ex. (to update...)</p>
-        <TableWidgetVisualization tableData={sampleHTTPRequestTableData} />
-      </Fragment>
-    );
-  });
-
-  story('Widget Frame Styles', () => {
-    return (
-      <Fragment>
         <p>
-          This table can also be used in widget frames (ex. the widgets on a dashboard),
-          which have different styling (no borders on the side and no rounded top
-          corners). Use{' '}
-          <Storybook.JSXProperty name="applyWidgetFrameStyle" value={Boolean} /> to apply
-          these styles to the table
+          In the below example, a custom header renderer is passed which adds the word
+          "column" to each head cell. A custom body renderer is also provided which only
+          affects the second column:
         </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          applyWidgetFrameStyle
+          renderTableHeadCell={customHeadRenderer}
+          renderTableBodyCell={customBodyRenderer}
         />
       </Fragment>
     );

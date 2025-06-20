@@ -1,12 +1,17 @@
+import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
-import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleTableData';
-import {TabularColumnFixture} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/tabularColumn';
+import type {
+  TabularColumn,
+  TabularData,
+  TabularRow,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
-describe('tableWidgetVisualization', function () {
+describe('TableWidgetVisualization', function () {
   it('Basic table renders correctly', async function () {
     render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
 
@@ -14,16 +19,28 @@ describe('tableWidgetVisualization', function () {
     expect(await screen.findByText('count(span.duration)')).toBeInTheDocument();
   });
 
-  it('Table applies columns prop and their custom names over fallback if provided', async function () {
+  it('Table applies custom order and column name if provided', function () {
+    const columns: Array<Partial<TabularColumn>> = [
+      {
+        key: 'count(span.duration)',
+        name: 'Count of Span Duration',
+      },
+      {
+        key: 'http.request_method',
+        name: 'HTTP Request Method',
+      },
+    ];
+
     render(
       <TableWidgetVisualization
         tableData={sampleHTTPRequestTableData}
-        columns={TabularColumnFixture()}
+        columns={TabularColumnsFixture(columns)}
       />
     );
 
-    expect(await screen.findByText('http request_method')).toBeInTheDocument();
-    expect(await screen.findByText('count span.duration')).toBeInTheDocument();
+    const headers = screen.getAllByTestId('grid-head-cell');
+    expect(headers[0]?.children[0]?.textContent).toEqual(columns[0]?.name);
+    expect(headers[1]?.children[0]?.textContent).toEqual(columns[1]?.name);
   });
 
   it('Table renders unique number fields correctly', async function () {
@@ -49,7 +66,7 @@ describe('tableWidgetVisualization', function () {
     expect(await screen.findByText('6.00/min')).toBeInTheDocument();
   });
 
-  it('Table renders dates correctly', async function () {
+  it('Table uses custom renderer over fallback renderer correctly', async function () {
     const tableData: TabularData = {
       data: [{date: '2025-06-20T15:14:52+00:00'}],
       meta: {
@@ -59,9 +76,32 @@ describe('tableWidgetVisualization', function () {
         },
       },
     };
-    render(<TableWidgetVisualization tableData={tableData} />);
 
-    expect(await screen.findByText('date')).toBeInTheDocument();
-    expect(await screen.findByText('Jun 20, 2025 3:14:52 PM UTC')).toBeInTheDocument();
+    function customDateHeadRenderer(
+      column: TabularColumn<keyof TabularRow>,
+      _columnIndex: number
+    ) {
+      return <div>{column.name + ' column'}</div>;
+    }
+
+    function customDateBodyRenderer(
+      column: TabularColumn,
+      dataRow: TabularRow,
+      _rowIndex: number,
+      _columnIndex: number
+    ) {
+      return <div>{dataRow[column.key]}</div>;
+    }
+
+    render(
+      <TableWidgetVisualization
+        tableData={tableData}
+        renderTableHeadCell={customDateHeadRenderer}
+        renderTableBodyCell={customDateBodyRenderer}
+      />
+    );
+
+    expect(await screen.findByText('date column')).toBeInTheDocument();
+    expect(await screen.findByText('2025-06-20T15:14:52+00:00')).toBeInTheDocument();
   });
 });

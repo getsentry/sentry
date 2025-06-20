@@ -7,6 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {
   TabularColumn,
   TabularData,
+  TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {
   renderDefaultBodyCell,
@@ -14,30 +15,55 @@ import {
 } from 'sentry/views/dashboards/widgets/tableWidget/defaultTableCellRenderers';
 
 interface TableWidgetVisualizationProps {
+  /**
+   * The object that contains all the data needed to render the table
+   */
   tableData: TabularData;
   /**
-   * Applies custom styling for tables that appear in a widget cards
+   * If supplied, will override the ordering of columns from `tableData`. Can also be used to
+   * supply custom display names for columns, column widths and column data type
    */
-  applyWidgetFrameStyle?: boolean;
   columns?: TabularColumn[];
-  fitMaxContent?: 'max-content';
-  minTableColumnWidth?: number;
+  /**
+   * If provided, forces the table to overflow scroll horizontally without requiring column resizing
+   * - `max-content`: makes the table expand horizontally to fit the largest content
+   */
+  fit?: 'max-content';
+  /**
+   * If true, removes the borders of the sides and bottom of the table
+   */
+  frameless?: boolean;
+  /**
+   * Custom renderer that overrides default for table body cells
+   * @param column
+   * @param dataRow
+   * @param rowIndex
+   * @param columnIndex
+   * @returns `React.ReactNode | undefined`
+   */
   renderTableBodyCell?: (
-    column: GridColumnOrder,
-    dataRow: Record<string, any>,
+    column: TabularColumn,
+    dataRow: TabularRow,
     rowIndex: number,
     columnIndex: number
   ) => React.ReactNode | undefined;
+  /**
+   * Custom renderer that overrides default for table header cells
+   * @param column
+   * @param columnIndex
+   * @returns `React.ReactNode | undefined`
+   */
   renderTableHeadCell?: (
-    column: GridColumnOrder,
+    column: TabularColumn,
     columnIndex: number
   ) => React.ReactNode | undefined;
+  /**
+   * If true, the table will scroll on overflow. Note that the table headers will also be sticky
+   */
   scrollable?: boolean;
-  stickyHeader?: boolean;
 }
 
-// Used in widget preview and on the dashboard widget frames
-const DASHBOARD_TABLE_WIDGET_STYLES = {
+const FRAMELESS_STYLES = {
   borderTopLeftRadius: 0,
   borderTopRightRadius: 0,
   marginBottom: 0,
@@ -50,13 +76,12 @@ const DASHBOARD_TABLE_WIDGET_STYLES = {
 export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const {
     tableData,
-    stickyHeader,
-    scrollable,
-    minTableColumnWidth,
-    applyWidgetFrameStyle,
+    frameless,
     renderTableBodyCell,
     renderTableHeadCell,
     columns,
+    scrollable,
+    fit,
   } = props;
 
   const theme = useTheme();
@@ -91,13 +116,13 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           renderTableBodyCell,
         }),
       }}
-      stickyHeader={stickyHeader}
+      stickyHeader={scrollable}
       scrollable={scrollable}
-      height="100%"
-      minimumColWidth={minTableColumnWidth}
-      bodyStyle={applyWidgetFrameStyle ? DASHBOARD_TABLE_WIDGET_STYLES : {}}
-      // TODO: add width resizing
+      height={scrollable ? '100%' : undefined}
+      bodyStyle={frameless ? FRAMELESS_STYLES : {}}
+      // Resizing is not implemented yet
       resizable={false}
+      fit={fit}
     />
   );
 }

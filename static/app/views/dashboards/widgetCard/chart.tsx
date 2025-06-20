@@ -138,13 +138,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {
-      location,
-      widget,
-      selection,
-      minTableColumnWidth,
-      organization: org,
-    } = this.props;
+    const {location, widget, selection, minTableColumnWidth, organization} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -155,11 +149,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const getCustomFieldRenderer = (
       field: string,
       meta: MetaType,
-      organization?: Organization
+      org?: Organization
     ) => {
-      return (
-        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-      );
+      return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
     };
 
     return tableResults.map((result, i) => {
@@ -169,7 +161,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
       return (
         <TableWrapper key={`table:${result.title}`}>
-          {org.features.includes('use-table-widget-visualization') ? (
+          {organization.features.includes('use-table-widget-visualization') ? (
             <TableWidgetVisualization
               columns={[]}
               tableData={{
