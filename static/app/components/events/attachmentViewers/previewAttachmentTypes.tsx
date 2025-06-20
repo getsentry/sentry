@@ -1,9 +1,7 @@
-import * as Sentry from '@sentry/react';
-
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
-import type RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
+import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
 import {WebMViewer} from 'sentry/components/events/attachmentViewers/webmViewer';
 import type {IssueAttachment} from 'sentry/types/group';
 
@@ -39,34 +37,38 @@ type AttachmentRenderer =
   | typeof RRWebJsonViewer
   | typeof WebMViewer;
 
-export const getInlineAttachmentRenderer = (
+export const getImageAttachmentRenderer = (
   attachment: IssueAttachment
 ): AttachmentRenderer | undefined => {
   if (imageMimeTypes.includes(attachment.mimetype)) {
     return ImageViewer;
+  }
+  if (webmMimeType === attachment.mimetype) {
+    return WebMViewer;
+  }
+  return undefined;
+};
+
+export const getInlineAttachmentRenderer = (
+  attachment: IssueAttachment
+): AttachmentRenderer | undefined => {
+  const imageAttachmentRenderer = getImageAttachmentRenderer(attachment);
+  if (imageAttachmentRenderer) {
+    return imageAttachmentRenderer;
   }
 
   if (logFileMimeTypes.includes(attachment.mimetype)) {
     return LogFileViewer;
   }
 
-  if (
-    (jsonMimeTypes.includes(attachment.mimetype) && attachment.name === 'rrweb.json') ||
-    attachment.name.startsWith('rrweb-')
-  ) {
+  if (jsonMimeTypes.includes(attachment.mimetype)) {
+    if (attachment.name === 'rrweb.json' || attachment.name.startsWith('rrweb-')) {
+      return RRWebJsonViewer;
+    }
+
     return JsonViewer;
   }
 
-  if (webmMimeType === attachment.mimetype) {
-    return WebMViewer;
-  }
-
-  Sentry.withScope(scope => {
-    scope.setExtra('mimetype', attachment.mimetype);
-    scope.setExtra('attachmentName', attachment.name);
-    scope.setFingerprint(['no-inline-attachment-renderer']);
-    scope.captureException(new Error('No inline attachment renderer found'));
-  });
   return undefined;
 };
 

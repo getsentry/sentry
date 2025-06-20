@@ -10,8 +10,8 @@ import {
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

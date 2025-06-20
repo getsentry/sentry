@@ -12,6 +12,7 @@ from sentry.api.endpoints.organization_auth_token_details import (
 )
 from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokensEndpoint
 from sentry.api.endpoints.organization_dashboards_starred import (
+    OrganizationDashboardsStarredEndpoint,
     OrganizationDashboardsStarredOrderEndpoint,
 )
 from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
@@ -295,9 +296,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
-from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
-    ProjectPreprodArtifactAssembleEndpoint,
-)
+from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
@@ -320,6 +319,10 @@ from sentry.replays.endpoints.organization_replay_selector_index import (
 )
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
+from sentry.replays.endpoints.project_replay_jobs_delete import (
+    ProjectReplayDeletionJobDetailEndpoint,
+    ProjectReplayDeletionJobsIndexEndpoint,
+)
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
     ProjectReplayRecordingSegmentDetailsEndpoint,
 )
@@ -1390,6 +1393,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-widget-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/$",
+        OrganizationDashboardsStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
+        OrganizationDashboardsStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred-order",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/$",
         OrganizationDashboardDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-details",
@@ -1398,11 +1411,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/visit/$",
         OrganizationDashboardVisitEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-visit",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
-        OrganizationDashboardsStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-starred-order",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/favorite/$",
@@ -2524,11 +2532,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-assemble-dif-files",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
-        ProjectPreprodArtifactAssembleEndpoint.as_view(),
-        name="sentry-api-0-assemble-preprod-artifact-files",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/dsyms/unknown/$",
         UnknownDebugFilesEndpoint.as_view(),
         name="sentry-api-0-unknown-dsym-files",
@@ -2715,6 +2718,16 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/videos/(?P<segment_id>\d+)/$",
         ProjectReplayVideoDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-video-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/jobs/delete/$",
+        ProjectReplayDeletionJobsIndexEndpoint.as_view(),
+        name="sentry-api-0-project-replay-deletion-jobs-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/jobs/delete/(?P<job_id>\d+)/$",
+        ProjectReplayDeletionJobDetailEndpoint.as_view(),
+        name="sentry-api-0-project-replay-deletion-job-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/configuration/$",
@@ -2992,6 +3005,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
     ),
+    *preprod_urls.preprod_urlpatterns,
 ]
 
 TEAM_URLS = [

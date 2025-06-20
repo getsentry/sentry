@@ -18,6 +18,7 @@ export function UserFixture(params: Partial<User> = {}): User {
       prefersIssueDetailsStreamlinedUI: true,
       prefersStackedNavigation: false,
       prefersNextjsInsightsOverview: false,
+      prefersAgentsInsightsModule: false,
       prefersChonkUI: false,
       quickStartDisplay: {},
     },
