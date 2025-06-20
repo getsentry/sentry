@@ -6,11 +6,14 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import type {Organization} from 'sentry/types/organization';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
-import type {TableColumn} from 'sentry/views/discover/table/types';
+import type {
+  TabularColumn,
+  TabularData,
+  TabularRow,
+} from 'sentry/views/dashboards/widgets/common/types';
 
 /**
  * Renderers that use any supplied renderer, but fallback to default rendering if none are provided
@@ -40,14 +43,14 @@ export const renderDefaultHeadCell = ({
   renderTableHeadCell,
 }: DefaultHeadCellRenderProps) =>
   function (
-    column: TableColumn<keyof TableDataRow>,
+    column: TabularColumn<keyof TabularRow>,
     _columnIndex: number
   ): React.ReactNode {
     const cell: React.ReactNode = renderTableHeadCell?.(column, _columnIndex);
     if (cell) {
       return cell;
     }
-    const align = fieldAlignment(column.name, column.type);
+    const align = fieldAlignment(column.name, column.type as ColumnValueType);
 
     return (
       <SortLink
@@ -69,7 +72,7 @@ export const renderDefaultBodyCell = ({
   renderTableBodyCell,
 }: DefaultBodyCellRenderProps) =>
   function (
-    column: GridColumnOrder,
+    column: TabularColumn,
     dataRow: Record<string, any>,
     rowIndex: number,
     columnIndex: number

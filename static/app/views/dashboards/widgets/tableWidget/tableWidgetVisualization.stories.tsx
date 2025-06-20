@@ -1,36 +1,9 @@
 import {Fragment} from 'react';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import * as Storybook from 'sentry/stories';
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleTableData';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import type {TableColumn} from 'sentry/views/discover/table/types';
-
-const TABLE_COLUMNS: Array<TableColumn<string>> = [
-  {
-    key: 'http.request_method',
-    name: 'http.request_method',
-    type: 'never',
-    isSortable: false,
-    column: {
-      kind: 'field',
-      field: 'http.request_method',
-      alias: '',
-    },
-    width: -1,
-  },
-  {
-    key: 'count(span.duration)',
-    name: 'count(span.duration)',
-    type: 'number',
-    isSortable: true,
-    column: {
-      kind: 'function',
-      function: ['count', 'span.duration', undefined, undefined],
-      alias: '',
-    },
-    width: -1,
-  },
-];
 
 export default Storybook.story('TableWidgetVisualization', story => {
   story('Getting Started', () => {
@@ -47,24 +20,48 @@ export default Storybook.story('TableWidgetVisualization', story => {
         </p>
         <p>
           Below is the the most basic example of the table which requires
-          <code>columns</code> and <code>tableData</code> populating the table headers and
-          table body respectively.
+          <code>tableData</code> to populate the headers and body of the table
         </p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          columns={TABLE_COLUMNS}
-        />
+        <TableWidgetVisualization tableData={sampleHTTPRequestTableData} />
       </Fragment>
     );
   });
 
-  story('Table Columns and Table Data', () => {
+  story('Table Data and Optional Table Columns', () => {
     return (
       <Fragment>
         <p>
-          Currently, the columns use the type <code>TableColumn[]</code> and are rendered
-          in the order they are supplied. The table data uses the type{' '}
-          <code>TabularData</code>.
+          The table data uses the type
+          <code>TabularData</code>. This is a mandatory prop. If the <code>data</code>{' '}
+          field is empty, such as
+        </p>
+        <CodeSnippet language="json">
+          {`
+{
+  data: [],
+  meta: {
+    fields: {'http.request_method': 'string', 'count(span.duration)': 'number'},
+    units: {'http.request_method': null, 'count(span.duration)': null},
+  },
+}
+          `}
+        </CodeSnippet>
+        <p>Then the table renders empty like this:</p>
+        <TableWidgetVisualization
+          tableData={{
+            data: [],
+            meta: {
+              fields: {'http.request_method': 'string', 'count(span.duration)': 'number'},
+              units: {'http.request_method': null, 'count(span.duration)': null},
+            },
+          }}
+        />
+        <p>
+          The table columns use the type <code>TabularColumn[]</code> which is based off
+          of <code>GridColumnOrder</code> from <Storybook.JSXNode name="GridEditable" />.
+          Supplying the prop allows for custom ordering of the columns. The prop is
+          optional, as the table will fallback to extract the columns in order from the
+          table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
       </Fragment>
     );
@@ -79,19 +76,16 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <code>renderTableBodyCell</code> and <code>renderTableHeadCell</code>
           which replace the rendering of table body cells and table headers respectively.
           These functions should return a <code>React.ReactNode</code>, but are allowed to
-          return an undefined value, in which case the fallback renderer will run allowing
-          for partial custom rendering
+          return an <code>undefined</code> value, in which case the fallback renderer will
+          run allowing for partial custom rendering
         </p>
         <p>Ex. (to update...)</p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          columns={TABLE_COLUMNS}
-        />
+        <TableWidgetVisualization tableData={sampleHTTPRequestTableData} />
       </Fragment>
     );
   });
 
-  story('Widget Frame styles', () => {
+  story('Widget Frame Styles', () => {
     return (
       <Fragment>
         <p>
@@ -103,14 +97,13 @@ export default Storybook.story('TableWidgetVisualization', story => {
         </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          columns={TABLE_COLUMNS}
           applyWidgetFrameStyle
         />
       </Fragment>
     );
   });
 
-  story('Table Loading', () => {
+  story('Table Loading Placeholder', () => {
     return (
       <Fragment>
         <p>

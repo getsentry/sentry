@@ -30,12 +30,12 @@ export const sampleHTTPRequestTableData: TabularData = {
   ],
   meta: {
     fields: {
-      'count(span.duration)': 'integer',
       'http.request_method': 'string',
+      'count(span.duration)': 'integer',
     },
     units: {
-      'count(span.duration)': null,
       'http.request_method': null,
+      'count(span.duration)': null,
     },
   },
 };

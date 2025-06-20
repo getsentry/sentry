@@ -4,12 +4,14 @@ import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  TabularColumn,
+  TabularData,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {
   renderDefaultBodyCell,
   renderDefaultHeadCell,
 } from 'sentry/views/dashboards/widgets/tableWidget/defaultTableCellRenderers';
-import type {TableColumn} from 'sentry/views/discover/table/types';
 
 interface TableWidgetVisualizationProps {
   tableData: TabularData;
@@ -17,7 +19,7 @@ interface TableWidgetVisualizationProps {
    * Applies custom styling for tables that appear in a widget cards
    */
   applyWidgetFrameStyle?: boolean;
-  columns?: Array<TableColumn<string>>;
+  columns?: TabularColumn[];
   fitMaxContent?: 'max-content';
   minTableColumnWidth?: number;
   renderTableBodyCell?: (
@@ -61,10 +63,20 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const location = useLocation();
   const organization = useOrganization();
 
+  // Fallback to extracting fields from the tableData if no columns are provided
+  const columnOrder: TabularColumn[] =
+    columns ??
+    Object.keys(tableData?.meta.fields).map((key: string) => ({
+      key,
+      name: key,
+      width: -1,
+      type: tableData?.meta.fields[key],
+    }));
+
   return (
     <GridEditable
       data={tableData?.data ?? []}
-      columnOrder={columns || []}
+      columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
         renderHeadCell: renderDefaultHeadCell({renderTableHeadCell}) as (
