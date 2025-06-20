@@ -441,8 +441,6 @@ function Chart({
       }
     />
   );
-
-  return <p>chart</p>;
 }
 
 const ChartList = styled('div')`
