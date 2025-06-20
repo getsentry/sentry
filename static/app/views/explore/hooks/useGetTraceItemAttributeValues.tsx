@@ -9,8 +9,10 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
-import type {TraceItemDataset} from 'sentry/views/explore/types';
+import type {
+  TraceItemDataset,
+  UseTraceItemAttributeBaseProps,
+} from 'sentry/views/explore/types';
 
 interface TraceItemAttributeValue {
   first_seen: null;
@@ -20,15 +22,9 @@ interface TraceItemAttributeValue {
   value: string;
 }
 
-interface UseTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
-  /**
-   * The attribute key for which to fetch values
-   */
-  attributeKey: string;
+interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
   datetime?: PageFilters['datetime'];
-  enabled?: boolean;
   projectIds?: PageFilters['projects'];
-  search?: string;
 }
 
 function traceItemAttributeValuesQueryKey({
@@ -79,12 +75,12 @@ function traceItemAttributeValuesQueryKey({
  * Hook to fetch trace item attribute values for the Explore interface.
  * This is designed to be used with the organization_trace_item_attributes endpoint.
  */
-export function useTraceItemAttributeValues({
+export function useGetTraceItemAttributeValues({
   traceItemType,
   projectIds,
   datetime,
   type = 'string',
-}: UseTraceItemAttributeValuesProps) {
+}: UseGetTraceItemAttributeValuesProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();

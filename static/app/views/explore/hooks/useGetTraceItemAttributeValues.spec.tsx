@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useTraceItemAttributeValues} from 'sentry/views/explore/hooks/useTraceItemAttributeValues';
+import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -27,7 +27,7 @@ function createWrapper(organization: Organization) {
   };
 }
 
-describe('useTraceItemAttributeValues', () => {
+describe('useGetTraceItemAttributeValues', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
   const attributeKey = 'test.attribute';
 
@@ -77,9 +77,8 @@ describe('useTraceItemAttributeValues', () => {
 
     const {result} = renderHook(
       () =>
-        useTraceItemAttributeValues({
+        useGetTraceItemAttributeValues({
           traceItemType: TraceItemDataset.LOGS,
-          attributeKey,
           type: 'string',
         }),
       {
@@ -125,9 +124,8 @@ describe('useTraceItemAttributeValues', () => {
 
     const {result} = renderHook(
       () =>
-        useTraceItemAttributeValues({
+        useGetTraceItemAttributeValues({
           traceItemType: TraceItemDataset.LOGS,
-          attributeKey,
           type: 'number',
         }),
       {
