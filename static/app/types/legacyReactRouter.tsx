@@ -18,15 +18,7 @@ type NoRouteProps = {
   routes?: never;
 };
 
-export type NoRoutePropsRouteComponent = React.ComponentType<NoRouteProps>;
-
-// Create a branded type to distinguish legacy route components
-export type LegacyRouteComponent = React.ComponentType<
-  RouteComponentProps<any, any, any>
-> & {
-  __isLegacyRouteComponent?: true;
-};
-export type RouteComponent = LegacyRouteComponent;
+type NoRoutePropsRouteComponent = React.ComponentType<NoRouteProps>;
 
 type RouteHook = (nextLocation?: Location) => any;
 
