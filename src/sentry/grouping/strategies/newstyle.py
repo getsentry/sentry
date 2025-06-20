@@ -739,9 +739,10 @@ def filter_exceptions_for_exception_groups(
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
     top_level_exceptions = []
-    if exception_tree[0].exception:
+    root_node = exception_tree.get(0)
+    if root_node and root_node.exception:
         top_level_exceptions = sorted(
-            get_top_level_exceptions(exception_tree[0].exception),
+            get_top_level_exceptions(root_node.exception),
             key=lambda exception: str(exception.type),
             reverse=True,
         )
