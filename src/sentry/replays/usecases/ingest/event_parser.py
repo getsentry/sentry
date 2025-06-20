@@ -330,14 +330,34 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.UI_FOCUS:
             ...
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
-            request_size, response_size = parse_network_content_lengths(event)
             attributes = {
-                "category": "resource",
+                "category": (
+                    "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
+                ),
             }
-        case EventType.LCP:
-            ...
-        case EventType.FCP:
-            ...
+
+            request_size, response_size = parse_network_content_lengths(event)
+            if request_size:
+                attributes["request_size"] = request_size
+            if response_size:
+                attributes["response_size"] = response_size
+
+            return {
+                "attributes": attributes,
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": event["data"]["payload"]["timestamp"],
+            }
+        case EventType.LCP | EventType.FCP:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "duration": payload["data"]["size"],
+                    "rating": payload["data"]["rating"],
+                    "category": "web-vital.fcp" if event_type == EventType.FCP else "web-vital.lcp",
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": payload["timestamp"],
+            }
         case EventType.HYDRATION_ERROR:
             ...
         case EventType.MUTATIONS:
