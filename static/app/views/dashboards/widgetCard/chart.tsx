@@ -15,7 +15,6 @@ import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
@@ -39,7 +38,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -52,15 +51,17 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import type {TabularValueType} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {renderGridBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/widgetTableCellRenderers';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -90,7 +91,7 @@ type WidgetCardChartProps = Pick<
   isMobile?: boolean;
   isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -138,59 +139,41 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection, minTableColumnWidth, organization} = this.props;
-    if (typeof tableResults === 'undefined') {
+    const {widget, minTableColumnWidth, location, organization, theme} = this.props;
+    if (loading || !tableResults?.[0]) {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
-
-    const datasetConfig = getDatasetConfig(widget.widgetType);
-
-    const getCustomFieldRenderer = (
-      field: string,
-      meta: MetaType,
-      org?: Organization
-    ) => {
-      return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
-    };
-
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
-      const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
-      const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+      const columns = decodeColumnOrder(
+        fields.map(field => ({
+          field,
+        }))
+      ).map(column => ({
+        key: column.key,
+        name: column.name,
+        width: minTableColumnWidth ?? column.width,
+        type: column.type as TabularValueType,
+      }));
+      const tableData = convertTableDataToTabularData(tableResults?.[0]);
 
       return (
         <TableWrapper key={`table:${result.title}`}>
-          {organization.features.includes('use-table-widget-visualization') ? (
-            <TableWidgetVisualization
-              columns={[]}
-              tableData={{
-                data: [],
-                meta: {
-                  fields: {},
-                  units: {},
-                },
-              }}
-            />
-          ) : (
-            <StyledSimpleTableChart
-              eventView={eventView}
-              fieldAliases={fieldAliases}
-              location={location}
-              fields={fields}
-              title={tableResults.length > 1 ? result.title : ''}
-              // Bypass the loading state for span widgets because this renders the loading placeholder
-              // and we want to show the underlying data during preflight instead
-              loading={widget.widgetType === WidgetType.SPANS ? false : loading}
-              loader={<LoadingPlaceholder />}
-              metadata={result.meta}
-              data={result.data}
-              stickyHeaders
-              fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-              getCustomFieldRenderer={getCustomFieldRenderer}
-              minColumnWidth={minTableColumnWidth}
-            />
-          )}
+          <TableWidgetVisualization
+            columns={columns}
+            tableData={tableData}
+            frameless
+            scrollable
+            fit="max-content"
+            renderTableBodyCell={renderGridBodyCell({
+              location,
+              organization,
+              widget,
+              tableData,
+              theme,
+            })}
+          />
         </TableWrapper>
       );
     });
@@ -669,11 +652,6 @@ const TableWrapper = styled('div')`
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledSimpleTableChart = styled(SimpleTableChart)`
-  overflow: auto;
-  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
