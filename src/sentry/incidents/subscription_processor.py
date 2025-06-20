@@ -53,7 +53,7 @@ from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from
 from sentry.seer.anomaly_detection.get_historical_anomalies import (
     get_anomaly_evaluation_from_workflow_engine,
 )
-from sentry.seer.anomaly_detection.utils import anomaly_has_confidence
+from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import delete_snuba_subscription
@@ -256,6 +256,42 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
+    def handle_trigger_anomalies(
+        self,
+        has_anomaly: bool,
+        trigger: AlertRuleTrigger,
+        aggregation_value: float,
+        fired_incident_triggers: list[IncidentTrigger],
+    ) -> list[IncidentTrigger]:
+        if has_anomaly and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+            metrics.incr(
+                "incidents.alert_rules.threshold.alert",
+                tags={"detection_type": self.alert_rule.detection_type},
+            )
+            incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
+            if incident_trigger is not None:
+                fired_incident_triggers.append(incident_trigger)
+        else:
+            self.trigger_alert_counts[trigger.id] = 0
+
+        if (
+            not has_anomaly
+            and self.active_incident
+            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+        ):
+            metrics.incr(
+                "incidents.alert_rules.threshold.resolve",
+                tags={"detection_type": self.alert_rule.detection_type},
+            )
+            incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
+
+            if incident_trigger is not None:
+                fired_incident_triggers.append(incident_trigger)
+        else:
+            self.trigger_resolve_counts[trigger.id] = 0
+
+        return fired_incident_triggers
+
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
@@ -314,12 +350,14 @@ class SubscriptionProcessor:
         has_metric_alert_processing = features.has(
             "organizations:workflow-engine-metric-alert-processing", organization
         )
-        comparison_delta = None
+        has_anomaly_detection = features.has(
+            "organizations:anomaly-detection-alerts", organization
+        ) and features.has("organizations:anomaly-detection-rollout", organization)
 
-        if (
-            has_metric_alert_processing
-            and not self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
-        ):
+        comparison_delta = None
+        detector = None
+
+        if has_metric_alert_processing:
             try:
                 detector = Detector.objects.get(
                     data_sources__source_id=str(self.subscription.id),
@@ -362,24 +400,12 @@ class SubscriptionProcessor:
                         },
                     )
 
-        has_anomaly_detection = features.has(
-            "organizations:anomaly-detection-alerts", organization
-        ) and features.has("organizations:anomaly-detection-rollout", organization)
-
         potential_anomalies = None
         if (
             has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
             and not has_metric_alert_processing
         ):
-            logger.info(
-                "Raw subscription update",
-                extra={
-                    "result": subscription_update,
-                    "aggregation_value": aggregation_value,
-                    "rule_id": self.alert_rule.id,
-                },
-            )
             with metrics.timer(
                 "incidents.subscription_processor.process_update.get_anomaly_data_from_seer_legacy"
             ):
@@ -417,41 +443,14 @@ class SubscriptionProcessor:
                     and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
                     and has_metric_alert_processing
                 ):
-                    has_anomaly = get_anomaly_evaluation_from_workflow_engine(results)
-                    if has_anomaly is None:
-                        # we care about True and False—None indicates no change
+                    is_anomalous = get_anomaly_evaluation_from_workflow_engine(detector, results)
+                    if is_anomalous is None:
+                        # we only care about True and False — None indicates no change
                         continue
 
-                    if has_anomaly and not self.check_trigger_matches_status(
-                        trigger, TriggerStatus.ACTIVE
-                    ):
-                        metrics.incr(
-                            "incidents.alert_rules.threshold.alert",
-                            tags={"detection_type": self.alert_rule.detection_type},
-                        )
-                        incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
-                        if incident_trigger is not None:
-                            fired_incident_triggers.append(incident_trigger)
-                    else:
-                        self.trigger_alert_counts[trigger.id] = 0
-
-                    if (
-                        not has_anomaly
-                        and self.active_incident
-                        and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-                    ):
-                        metrics.incr(
-                            "incidents.alert_rules.threshold.resolve",
-                            tags={"detection_type": self.alert_rule.detection_type},
-                        )
-                        incident_trigger = self.trigger_resolve_threshold(
-                            trigger, aggregation_value
-                        )
-
-                        if incident_trigger is not None:
-                            fired_incident_triggers.append(incident_trigger)
-                    else:
-                        self.trigger_resolve_counts[trigger.id] = 0
+                    fired_incident_triggers = self.handle_trigger_anomalies(
+                        is_anomalous, trigger, aggregation_value, fired_incident_triggers
+                    )
 
                 elif potential_anomalies:
                     # NOTE: There should only be one anomaly in the list
@@ -467,38 +466,10 @@ class SubscriptionProcessor:
                                 # we don't need to check if the alert should fire if the alert can't fire yet
                                 continue
 
-                        if has_anomaly(
-                            potential_anomaly, trigger.label
-                        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
-                            metrics.incr(
-                                "incidents.alert_rules.threshold.alert",
-                                tags={"detection_type": self.alert_rule.detection_type},
-                            )
-                            incident_trigger = self.trigger_alert_threshold(
-                                trigger, aggregation_value
-                            )
-                            if incident_trigger is not None:
-                                fired_incident_triggers.append(incident_trigger)
-                        else:
-                            self.trigger_alert_counts[trigger.id] = 0
-
-                        if (
-                            not has_anomaly(potential_anomaly, trigger.label)
-                            and self.active_incident
-                            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-                        ):
-                            metrics.incr(
-                                "incidents.alert_rules.threshold.resolve",
-                                tags={"detection_type": self.alert_rule.detection_type},
-                            )
-                            incident_trigger = self.trigger_resolve_threshold(
-                                trigger, aggregation_value
-                            )
-
-                            if incident_trigger is not None:
-                                fired_incident_triggers.append(incident_trigger)
-                        else:
-                            self.trigger_resolve_counts[trigger.id] = 0
+                        is_anomalous = has_anomaly(potential_anomaly, trigger.label)
+                        fired_incident_triggers = self.handle_trigger_anomalies(
+                            is_anomalous, trigger, aggregation_value, fired_incident_triggers
+                        )
                 else:
                     # OVER/UNDER value trigger
                     alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
