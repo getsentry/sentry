@@ -1,28 +1,9 @@
-// eslint-disable-next-line boundaries/element-types
-import HookStore from 'sentry/stores/hookStore';
+import {useButtonTracking} from 'sentry/components/core/trackingContext';
 
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
   DO_NOT_USE_LinkButtonProps as LinkButtonProps,
 } from './types';
-
-const defaultCreateButtonTracking = (props: ButtonProps) => {
-  const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
-  return () => {
-    const hasCustomAnalytics =
-      props.analyticsEventName || props.analyticsEventKey || props.analyticsParams;
-    if (hasCustomAnalytics && hasAnalyticsDebug) {
-      // eslint-disable-next-line no-console
-      console.log('buttonAnalyticsEvent', {
-        eventKey: props.analyticsEventKey,
-        eventName: props.analyticsEventName,
-        priority: props.priority,
-        href: 'href' in props ? props.href : undefined,
-        ...props.analyticsParams,
-      });
-    }
-  };
-};
 
 export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
   // Fallbacking aria-label to string children is not necessary as screen
@@ -32,10 +13,7 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
     props['aria-label'] ??
     (typeof props.children === 'string' ? props.children : undefined);
 
-  const createButtonTracking =
-    HookStore.get('react-hook:use-button-tracking')[0] ?? defaultCreateButtonTracking;
-
-  const buttonTracking = createButtonTracking({
+  const buttonTracking = useButtonTracking({
     analyticsEventName: props.analyticsEventName,
     analyticsEventKey: props.analyticsEventKey,
     analyticsParams: {
