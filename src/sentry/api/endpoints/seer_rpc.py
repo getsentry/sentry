@@ -245,7 +245,7 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
-    fields = []
+    fields = {attr_type: [] for attr_type in field_types}
 
     for attr_type in field_types:
         req = TraceItemAttributeNamesRequest(
@@ -269,18 +269,19 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                 attr.name,
                 "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                 SupportedTraceItemType.SPANS,
-            )["key"]
+            )["name"]
             for attr in fields_resp.attributes
             if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
         ]
-        fields.extend(parsed_fields)
+
+        fields[attr_type].extend(parsed_fields)
 
     return {"fields": fields}
 
 
 def get_attribute_values(
     *,
-    fields: list[str],
+    fields: dict[str, list[str]],
     org_id: int,
     project_ids: list[int],
     stats_period: str,
@@ -308,7 +309,9 @@ def get_attribute_values(
         definitions=SPAN_DEFINITIONS,
     )
 
-    for field in fields:
+    # We only query for string fields
+    string_fields = fields[AttributeKey.Type.TYPE_STRING]
+    for field in string_fields:
         resolved_field, _ = resolver.resolve_attribute(field)
         if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
 
@@ -326,8 +329,8 @@ def get_attribute_values(
                 limit=limit,
             )
 
-            values_response = snuba_rpc.attribute_values_rpc(req)
-            values[field] = [value for value in values_response.values]
+        values_response = snuba_rpc.attribute_values_rpc(req)
+        values[field] = [value for value in values_response.values]
 
     return {"values": values}
 
