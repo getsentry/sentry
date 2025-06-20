@@ -21,9 +21,9 @@ export function getMetricDatasetQueryExtras({
   dataset: MetricRule['dataset'];
   newAlertOrQuery: boolean;
   organization: Organization;
-  traceItemType: TraceItemDataset | null;
   location?: Location;
   query?: string;
+  traceItemType?: TraceItemDataset | null;
   useOnDemandMetrics?: boolean;
 }) {
   if (

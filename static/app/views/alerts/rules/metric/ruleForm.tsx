@@ -611,42 +611,38 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(
-        ({dataset: _dataset, aggregate, alertType, eventTypes: _eventTypes}) => {
-          const dataset = this.checkOnDemandMetricsDataset(
-            name === 'dataset' ? (value as Dataset) : _dataset,
-            this.state.query
-          );
+      this.setState(({dataset: _dataset, aggregate, alertType}) => {
+        const dataset = this.checkOnDemandMetricsDataset(
+          name === 'dataset' ? (value as Dataset) : _dataset,
+          this.state.query
+        );
 
-          if (deprecateTransactionAlerts(organization)) {
-            const newAlertType = getAlertTypeFromAggregateDataset({
-              aggregate: name === 'aggregate' ? (value as string) : aggregate,
-              dataset,
-              eventTypes: _eventTypes,
-              organization,
-            });
-
-            return {
-              [name]: value,
-              alertType: newAlertType,
-              dataset,
-            };
-          }
-
+        if (deprecateTransactionAlerts(organization)) {
           const newAlertType = getAlertTypeFromAggregateDataset({
-            aggregate,
+            aggregate: name === 'aggregate' ? (value as string) : aggregate,
             dataset,
-            eventTypes: _eventTypes,
             organization,
           });
 
           return {
             [name]: value,
-            alertType: alertType === newAlertType ? alertType : 'custom_transactions',
+            alertType: newAlertType,
             dataset,
           };
         }
-      );
+
+        const newAlertType = getAlertTypeFromAggregateDataset({
+          aggregate,
+          dataset,
+          organization,
+        });
+
+        return {
+          [name]: value,
+          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
+          dataset,
+        };
+      });
     }
   };
 
@@ -801,7 +797,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             timeWindow,
             aggregate,
             // Remove eventTypes as it is no longer required for crash free
-            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            eventTypes: isCrashFreeAlert(dataset) ? undefined : eventTypes,
             dataset,
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             queryType: DatasetMEPAlertQueryTypes[dataset],
@@ -1250,7 +1246,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       theme: this.props.theme,
       confidence,
       seriesSamplingInfo,
-      traceItemType,
+      traceItemType: traceItemType ?? undefined,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;

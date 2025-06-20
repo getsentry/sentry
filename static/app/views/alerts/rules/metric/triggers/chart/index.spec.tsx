@@ -64,7 +64,6 @@ describe('Incident Rules Create', () => {
         onDataLoaded={() => {}}
         isQueryValid
         showTotalCount
-        traceItemType={null}
       />
     );
 
@@ -122,7 +121,6 @@ describe('Incident Rules Create', () => {
         newAlertOrQuery
         onDataLoaded={() => {}}
         isQueryValid
-        traceItemType={null}
       />
     );
 
@@ -181,7 +179,6 @@ describe('Incident Rules Create', () => {
         onDataLoaded={() => {}}
         isQueryValid
         showTotalCount
-        traceItemType={null}
       />
     );
 

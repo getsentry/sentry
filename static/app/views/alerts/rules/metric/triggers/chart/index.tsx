@@ -85,7 +85,6 @@ type Props = {
   theme: Theme;
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
-  traceItemType: TraceItemDataset | null;
   triggers: Trigger[];
   anomalies?: Anomaly[];
   comparisonDelta?: number;
@@ -98,6 +97,7 @@ type Props = {
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   seriesSamplingInfo?: SeriesSamplingInfo;
   showTotalCount?: boolean;
+  traceItemType?: TraceItemDataset;
 };
 
 type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
