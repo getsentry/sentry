@@ -5,7 +5,19 @@ from datetime import datetime
 from typing import TypedDict
 
 from google.cloud.exceptions import NotFound
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
@@ -114,6 +126,7 @@ def fetch_rows_matching_pattern(
             *where,
         ],
         groupby=[Column("replay_id")],
+        orderby=[OrderBy(Function("min", parameters=[Column("timestamp")]), Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
         offset=Offset(offset),
