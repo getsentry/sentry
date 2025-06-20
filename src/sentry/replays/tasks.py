@@ -178,9 +178,7 @@ def _delete_if_exists(filename: str) -> None:
     max_retries=5,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=replays_tasks,
-        retry=Retry(times=5), 
-        processing_deadline_duration=300
+        namespace=replays_tasks, retry=Retry(times=5), processing_deadline_duration=300
     ),
 )
 def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: int = 100) -> None:
