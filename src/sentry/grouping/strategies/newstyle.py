@@ -860,6 +860,7 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     if (
         exceptions[0].type == "Error"
         and exceptions[0].value in REACT_ERRORS_WITH_CAUSE
+        and exceptions[-1].mechanism
         and exceptions[-1].mechanism.source == "cause"
     ):
         main_exception_id = exceptions[-1].mechanism.exception_id
