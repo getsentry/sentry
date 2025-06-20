@@ -311,6 +311,7 @@ def child_process(
         with (
             track_memory_usage("taskworker.worker.memory_change"),
             sentry_sdk.start_transaction(transaction),
+            sentry_sdk.isolation_scope(),
         ):
             transaction.set_data(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
