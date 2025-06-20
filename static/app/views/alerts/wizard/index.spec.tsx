@@ -240,7 +240,7 @@ describe('AlertWizard', () => {
       }
     );
 
-    expect(screen.getByText('Logs')).toBeInTheDocument();
+    expect(screen.getAllByText('Logs')).toHaveLength(2);
   });
 
   it('shows transaction aggregate alerts according to feature flag', async () => {
