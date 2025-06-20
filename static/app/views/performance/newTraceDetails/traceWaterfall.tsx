@@ -14,6 +14,7 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Flex} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -708,7 +709,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }
 
   return (
-    <FlexBox>
+    <Flex direction="column" flex={1}>
       <TraceTypeWarnings
         tree={props.tree}
         traceSlug={props.traceSlug}
@@ -804,7 +805,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           />
         </TraceLinksNavigationContainer>
       )}
-    </FlexBox>
+    </Flex>
   );
 }
 
@@ -864,11 +865,4 @@ export const TraceGrid = styled('div')<{
   grid-template-rows: 1fr auto;
 
   ${p => `border-radius: ${p.theme.borderRadius};`}
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  height: 100%;
 `;

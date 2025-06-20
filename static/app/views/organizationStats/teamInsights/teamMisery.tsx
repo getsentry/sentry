@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -94,9 +95,9 @@ function TeamMisery({
               </LinkButton>
             }
             headers={[
-              <FlexCenter key="transaction">
+              <Flex align="center" key="transaction">
                 <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
-              </FlexCenter>,
+              </Flex>,
               t('Project'),
               tct('Last [period]', {period}),
               t('Last 7 Days'),
@@ -147,13 +148,13 @@ function TeamMisery({
                       </Link>
                     </TransactionWrapper>
                   </KeyTransactionTitleWrapper>
-                  <FlexCenter>
+                  <Flex align="center">
                     <ProjectBadgeContainer>
                       {project && <ProjectBadge avatarSize={18} project={project} />}
                     </ProjectBadgeContainer>
-                  </FlexCenter>
-                  <FlexCenter>{periodMisery}</FlexCenter>
-                  <FlexCenter>{weekMisery ?? '\u2014'}</FlexCenter>
+                  </Flex>
+                  <Flex align="center">{periodMisery}</Flex>
+                  <Flex align="center">{weekMisery ?? '\u2014'}</Flex>
                   <ScoreWrapper>
                     {trendValue === 0 ? (
                       <SubText>
@@ -292,11 +293,6 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const KeyTransactionTitleWrapper = styled('div')`

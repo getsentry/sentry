@@ -365,10 +365,10 @@ function AuditLogList({
                   <AuditNote entry={entry} orgSlug={organization.slug} />
                 </NameContainer>
               </UserInfo>
-              <FlexCenter>
+              <Flex align="center">
                 <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
-              </FlexCenter>
-              <FlexCenter>
+              </Flex>
+              <Flex align="center">
                 {entry.ipAddress && (
                   <IpAddressOverflow>
                     <Tooltip
@@ -379,7 +379,7 @@ function AuditLogList({
                     </Tooltip>
                   </IpAddressOverflow>
                 )}
-              </FlexCenter>
+              </Flex>
               <TimestampInfo>
                 <DateTime dateOnly date={entry.dateCreated} />
                 <DateTime
@@ -427,11 +427,6 @@ const Note = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
   margin-top: ${space(0.5)};
-`;
-
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const IpAddressOverflow = styled('div')`

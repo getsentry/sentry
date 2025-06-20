@@ -244,7 +244,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <FlexContainer>
+        <Flex.Item grow={1}>
           <Description text={description} />
           <FeatureList
             features={features}
@@ -261,7 +261,7 @@ function InformationCard({
               </Alert>
             </Alert.Container>
           ))}
-        </FlexContainer>
+        </Flex.Item>
         <Metadata>
           {author && (
             <AuthorInfo>
@@ -351,10 +351,6 @@ const DisableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-`;
-
-const FlexContainer = styled('div')`
-  flex: 1;
 `;
 
 const Description = styled(MarkedText)`
