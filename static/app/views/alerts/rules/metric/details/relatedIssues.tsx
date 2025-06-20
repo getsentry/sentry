@@ -19,8 +19,8 @@ import {
 } from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/rules/utils';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
 

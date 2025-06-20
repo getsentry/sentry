@@ -9,10 +9,9 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -180,16 +179,4 @@ export function isEapAlertType(alertType?: AlertType) {
     'trace_item_cls',
     'trace_item_logs',
   ].includes(alertType);
-}
-
-export function getTraceItemTypeForDatasetAndEventType(
-  dataset: Dataset,
-  eventTypes?: EventTypes[]
-) {
-  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-    return eventTypes?.includes(EventTypes.TRACE_ITEM_LOG)
-      ? TraceItemDataset.LOGS
-      : TraceItemDataset.SPANS;
-  }
-  return null;
 }

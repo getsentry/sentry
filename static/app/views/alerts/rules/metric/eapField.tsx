@@ -14,7 +14,7 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/rules/utils';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,

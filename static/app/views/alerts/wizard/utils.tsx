@@ -1,7 +1,9 @@
 import type {Organization} from 'sentry/types/organization';
-import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/rules/utils';
+import {
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'sentry/views/alerts/rules/metric/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
@@ -94,4 +96,16 @@ export function getAlertTypeFromAggregateDataset({
 
 export function hasLogAlerts(organization: Organization): boolean {
   return organization.features.includes('ourlogs-alerts');
+}
+
+export function getTraceItemTypeForDatasetAndEventType(
+  dataset: Dataset,
+  eventTypes?: EventTypes[]
+) {
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return eventTypes?.includes(EventTypes.TRACE_ITEM_LOG)
+      ? TraceItemDataset.LOGS
+      : TraceItemDataset.SPANS;
+  }
+  return null;
 }
