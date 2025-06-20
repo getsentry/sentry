@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
@@ -9,8 +10,6 @@ from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.utils import json
 
@@ -81,6 +80,7 @@ class EventType(Enum):
     FEEDBACK = 14
     CANVAS = 15
     OPTIONS = 16
+    MEMORY = 17
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -158,6 +158,8 @@ def which(event: dict[str, Any]) -> EventType:
                         return EventType.FCP
                     else:
                         return EventType.UNKNOWN
+                elif op == "memory":
+                    return EventType.MEMORY
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "options":
@@ -253,34 +255,85 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 class MessageContext(TypedDict):
     organization_id: int
     project_id: int
-    timestamp: float
+    received: float
     retention_days: int
     trace_id: str | None
     replay_id: str
+    segment_id: int
 
 
-def as_trace_item(
-    context: MessageContext, event_type: EventType, event: dict[str, Any]
-) -> TraceItem:
+class TraceItemContext(TypedDict):
+    attributes: dict[str, str | int | bool | float]
+    event_hash: str
+    timestamp: float
+
+
+def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
     match event_type:
-        case EventType.CLICK:
-            ...
-        case EventType.DEAD_CLICK:
-            ...
-        case EventType.RAGE_CLICK:
-            ...
+        case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK:
+            payload = event["data"]["payload"]
+
+            node = payload["data"]["node"]
+            node_attributes = node.get("attributes", {})
+            attributes = {
+                "node_id": node["id"],
+                "tag": node["tagName"],
+                "text": node["textContent"][:1024],
+                "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
+                "is_rage": event_type == EventType.RAGE_CLICK,
+                "selector": payload["message"],
+                "category": "click",
+            }
+            if "alt" in node_attributes:
+                attributes["alt"] = node_attributes["alt"]
+            if "aria-label" in node_attributes:
+                attributes["aria_label"] = node_attributes["aria-label"]
+            if "class" in node_attributes:
+                attributes["class"] = node_attributes["class"]
+            if "data-sentry-component" in node_attributes:
+                attributes["component_name"] = node_attributes["data-sentry-component"]
+            if "id" in node_attributes:
+                attributes["id"] = node_attributes["id"]
+            if "role" in node_attributes:
+                attributes["role"] = node_attributes["role"]
+            if "title" in node_attributes:
+                attributes["title"] = node_attributes["title"]
+            if _get_testid(node_attributes):
+                attributes["testid"] = _get_testid(node_attributes)
+            if "url" in payload:
+                attributes["url"] = payload["url"]
+
+            return {
+                "attributes": attributes,
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": payload["timestamp"],
+            }
         case EventType.NAVIGATION:
-            ...
+            payload = event["data"]["payload"]
+            payload_data = payload["data"]
+
+            attributes = {"category": "navigation"}
+            if "from" in payload_data:
+                attributes["from"] = payload_data["from"]
+            if "to" in payload_data:
+                attributes["to"] = payload_data["to"]
+
+            return {
+                "attributes": attributes,
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": payload["timestamp"],
+            }
         case EventType.CONSOLE:
             ...
         case EventType.UI_BLUR:
             ...
         case EventType.UI_FOCUS:
             ...
-        case EventType.RESOURCE_FETCH:
-            ...
-        case EventType.RESOURCE_XHR:
-            ...
+        case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
+            request_size, response_size = parse_network_content_lengths(event)
+            attributes = {
+                "category": "resource",
+            }
         case EventType.LCP:
             ...
         case EventType.FCP:
@@ -290,27 +343,26 @@ def as_trace_item(
         case EventType.MUTATIONS:
             ...
         case EventType.UNKNOWN:
-            ...
+            return None
         case EventType.FEEDBACK:
-            ...
+            return None
         case EventType.CANVAS:
-            ...
+            return None
         case EventType.OPTIONS:
-            ...
-
-    return TraceItem(
-        organization_id=None,
-        project_id=None,
-        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
-        timestamp=timestamp,
-        trace_id=trace_id or replay_id,
-        item_id=event_hash,
-        received=payload_timestamp,
-        retention_days=retention_days,
-        attributes=attributes,
-        client_sample_rate=1.0,
-        server_sample_rate=1.0,
-    )
+            return None
+        case EventType.MEMORY:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "memory",
+                    "jsHeapSizeLimit": payload["data"]["jsHeapSizeLimit"],
+                    "totalJSHeapSize": payload["data"]["totalJSHeapSize"],
+                    "usedJSHeapSize": payload["data"]["usedJSHeapSize"],
+                    "endTimestamp": payload["endTimestamp"],
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": payload["startTimestamp"],
+            }
 
 
 class HighlightedEvents(TypedDict, total=False):
