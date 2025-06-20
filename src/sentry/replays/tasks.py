@@ -238,7 +238,9 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
     default_retry_delay=5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=replays_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=replays_tasks, retry=Retry(times=5), processing_deadline_duration=120
+    ),
 )
 def delete_replay(
     retention_days: int,
