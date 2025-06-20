@@ -354,13 +354,12 @@ def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
     workflows_to_envs: Mapping[WorkflowId, int | None],
+    dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
 ) -> dict[UniqueConditionQuery, set[GroupId]]:
     """
     Map unique condition queries to the group IDs that need to checked for that query.
     """
     condition_groups: dict[UniqueConditionQuery, set[GroupId]] = defaultdict(set)
-    dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_to_groups.keys()))
-
     for dcg in data_condition_groups:
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
@@ -412,9 +411,9 @@ def get_groups_to_fire(
     workflows_to_envs: Mapping[WorkflowId, int | None],
     event_data: EventRedisData,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
+    dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
 ) -> dict[GroupId, set[DataConditionGroup]]:
     groups_to_fire: dict[GroupId, set[DataConditionGroup]] = defaultdict(set)
-    dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_ids))
 
     for dcg in data_condition_groups:
         slow_conditions = dcg_to_slow_conditions[dcg.id]
@@ -650,6 +649,18 @@ def process_delayed_workflows(
 
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
         data_condition_groups = fetch_data_condition_groups(list(event_data.dcg_ids))
+        dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_ids))
+
+        no_slow_condition_groups = {
+            dcg_id for dcg_id, slow_conds in dcg_to_slow_conditions.items() if not slow_conds
+        }
+        if no_slow_condition_groups:
+            # If the DCG is being processed here, it's because we thought it had a slow condition.
+            # If any don't seem to have a slow condition now, that's interesting enough to log.
+            logger.info(
+                "delayed_workflow.no_slow_condition_groups",
+                extra={"no_slow_condition_groups": sorted(no_slow_condition_groups)},
+            )
 
     logger.info(
         "delayed_workflow.workflows",
@@ -661,7 +672,7 @@ def process_delayed_workflows(
 
     # Get unique query groups to query Snuba
     condition_groups = get_condition_query_groups(
-        data_condition_groups, event_data, workflows_to_envs
+        data_condition_groups, event_data, workflows_to_envs, dcg_to_slow_conditions
     )
     if not condition_groups:
         return
@@ -688,6 +699,7 @@ def process_delayed_workflows(
         workflows_to_envs,
         event_data,
         condition_group_results,
+        dcg_to_slow_conditions,
     )
     logger.info(
         "delayed_workflow.groups_to_fire",
