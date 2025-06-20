@@ -34,6 +34,7 @@ from sentry.utils.pubsub import KafkaPublisher
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=replays_tasks,
+        processing_deadline_duration=120,
         retry=Retry(
             times=5,
         ),
@@ -56,6 +57,7 @@ def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) ->
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=replays_tasks,
+        processing_deadline_duration=120,
         retry=Retry(
             times=5,
             delay=5,
@@ -74,6 +76,7 @@ def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=replays_tasks,
+        processing_deadline_duration=120,
         retry=Retry(
             times=5,
             delay=5,

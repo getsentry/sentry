@@ -13,7 +13,7 @@ import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -216,8 +216,8 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   sections,
 }: FilterKeyMenuContentProps<T>) {
   const {filterKeys, setDisplaySeerResults} = useSearchQueryBuilder();
-  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey!)?.props
-    ?.value as string | undefined;
+  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey ?? '')
+    ?.props?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;

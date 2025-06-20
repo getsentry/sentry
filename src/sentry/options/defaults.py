@@ -603,7 +603,7 @@ register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIA
 register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per hour)
 register(
-    "seer.max_num_scanner_autotriggered_per_hour", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "seer.max_num_scanner_autotriggered_per_hour", default=2500, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Codecov Integration
@@ -2624,6 +2624,11 @@ register(
     default=0.0,
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
+register(
+    "grouping.experiments.parameterization.traceparent",
+    default=0.0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -2732,6 +2737,14 @@ register(
 register(
     "spans.buffer.flusher.max-unhealthy-seconds",
     default=60,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
+register(
+    "spans.buffer.compression.level",
+    type=Int,
+    default=-1,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3465,6 +3478,15 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable adding the `Reporting-Endpoints` header, which will in turn enable the sending of Reporting
+# API reports from the browser (as long as it's Chrome).
+register(
+    "issues.browser_reporting.reporting_endpoints_header_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Enable the collection of Reporting API reports via the `/api/0/reporting-api-experiment/`

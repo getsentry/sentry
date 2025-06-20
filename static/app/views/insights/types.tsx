@@ -70,12 +70,14 @@ export enum SpanMetricsField {
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
 }
 
-// TODO: This will be the final field type for eap spans
+// TODO: This will be the final field type for EAP spans
 export enum SpanFields {
   TRANSACTION = 'transaction',
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  ID = 'id',
+  TIMESTAMP = 'timestamp',
   SPAN_DURATION = 'span.duration',
   USER = 'user',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
@@ -90,6 +92,9 @@ export enum SpanFields {
   SPAN_DESCRIPTION = 'span.description',
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
+  NAME = 'span.name',
+  KIND = 'span.kind',
+  STATUS = 'span.status',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
   RESPONSE_CODE = 'span.status_code',
@@ -140,7 +145,10 @@ type SpanNumberFields =
 type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
-  | 'id'
+  | SpanFields.ID
+  | SpanFields.NAME
+  | SpanFields.KIND
+  | SpanFields.STATUS
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -349,6 +357,7 @@ export enum SpanIndexedField {
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
@@ -445,9 +454,9 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
-
   [SpanIndexedField.PROFILE_ID]: string;
   [SpanIndexedField.PROFILEID]: string;
+  [SpanIndexedField.PROFILER_ID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;

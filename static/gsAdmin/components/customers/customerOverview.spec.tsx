@@ -367,13 +367,12 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Seer:')).not.toBeInTheDocument();
   });
 
-  it('renders no product trials for non-self-serve account', function () {
+  it('renders product trials for non-self-serve account', function () {
     const organization = OrganizationFixture();
-    const enterprise_subscription = SubscriptionFixture({
+    const enterprise_subscription = InvoicedSubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
       planTier: PlanTier.AM3,
-      canSelfServe: false,
     });
 
     render(
@@ -384,12 +383,12 @@ describe('CustomerOverview', function () {
       />
     );
 
-    expect(screen.queryByText('Product Trials')).not.toBeInTheDocument();
-    expect(screen.queryByText('Replays:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
+    expect(screen.getByText('Product Trials')).toBeInTheDocument();
+    expect(screen.getByText('Spans:')).toBeInTheDocument();
+    expect(screen.getByText('Replays:')).toBeInTheDocument();
+    expect(screen.getByText('Seer:')).toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seer:')).not.toBeInTheDocument();
   });
 
   it('render product trials for am1 account', function () {
