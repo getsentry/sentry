@@ -5,6 +5,7 @@ from django.db.models import Prefetch
 
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataPacket, DataSource, Detector
+from sentry.workflow_engine.models.detector import DetectorStatus
 
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
@@ -23,7 +24,7 @@ def process_data_sources[
         data_sources = DataSource.objects.filter(
             source_id__in=data_packet_ids,
             type=query_type,
-            detectors__enabled=True,
+            detectors__status=DetectorStatus.ACTIVE,
         ).prefetch_related(Prefetch("detectors"))
 
     # Build a lookup dict for source_id to detectors
