@@ -7,13 +7,13 @@ from sentry.grouping.parameterization import (
     Parameterizer,
     UniqueIdExperiment,
 )
-from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS_WITH_TRACEPARENT
+from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture
 def parameterizer():
     return Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS_WITH_TRACEPARENT,
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
         experiments=(UniqueIdExperiment,),
     )
 
@@ -120,6 +120,11 @@ def parameterizer():
             "traceparent",
             """traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01""",
             """traceparent: <traceparent>""",
+        ),
+        (
+            "int - with separator",
+            """blah 0:17502 had a problem""",
+            """blah <int>:<int> had a problem""",
         ),
         ("quoted str", """blah b="1" had a problem""", """blah b=<quoted_str> had a problem"""),
         ("bool", """blah a=true had a problem""", """blah a=<bool> had a problem"""),

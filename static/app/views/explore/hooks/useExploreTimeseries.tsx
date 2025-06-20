@@ -16,6 +16,7 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   type SpansRPCQueryExtras,
@@ -93,9 +94,13 @@ function useExploreTimeseriesImpl({
   }, [sortBys]);
 
   const yAxes = useMemo(() => {
-    const deduped = dedupeArray(visualizes.map(visualize => visualize.yAxis));
-    deduped.sort();
-    return deduped;
+    const allYAxes = visualizes.map(visualize => visualize.yAxis);
+
+    // injects DEFAULT_VISUALIZATION here as it can be used to populate the
+    // confidence footer as a fallback
+    allYAxes.push(DEFAULT_VISUALIZATION);
+
+    return dedupeArray(allYAxes).sort();
   }, [visualizes]);
 
   const options = useMemo(() => {
