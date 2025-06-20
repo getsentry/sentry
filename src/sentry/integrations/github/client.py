@@ -243,7 +243,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
     allow_redirects = True
 
     base_url = "https://api.github.com"
-    integration_name = IntegrationProviderSlug.GITHUB
+    integration_name = IntegrationProviderSlug.GITHUB.value
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
