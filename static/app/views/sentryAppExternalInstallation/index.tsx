@@ -20,6 +20,7 @@ import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -80,7 +81,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
       // redirect to the org if it's different than the org being selected
       if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
         const urlWithQuery = generateOrgSlugUrl(orgSlug) + props.location.search;
-        window.location.assign(urlWithQuery);
+        testableWindowLocation.assign(urlWithQuery);
         return;
       }
       // otherwise proceed as normal
@@ -137,7 +138,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
   const onClose = useCallback(() => {
     // if we came from somewhere, go back there. Otherwise, back to the integrations page
     const newUrl = document.referrer || `/settings/${selectedOrgSlug}/integrations/`;
-    window.location.assign(newUrl);
+    testableWindowLocation.assign(newUrl);
   }, [selectedOrgSlug]);
 
   const disableInstall = useCallback(
@@ -185,7 +186,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
         queryParams.state = state;
       }
       const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
-      return window.location.assign(redirectUrl);
+      return testableWindowLocation.assign(redirectUrl);
     }
     return onClose();
   }, [api, organization, sentryApp, onClose, props.location.query.state]);
