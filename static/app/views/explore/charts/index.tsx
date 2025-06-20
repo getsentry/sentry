@@ -30,6 +30,7 @@ import type {
   BaseVisualize,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   SAMPLING_MODE,
@@ -37,6 +38,7 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -148,17 +150,37 @@ export function ExploreCharts({
     [canUsePreviousResults, timeseriesResult, previousTimeseriesResult]
   );
 
-  const chartInfos: ChartInfo[] = useMemo(() => {
-    const shouldRenderLabel = visualizes.length > 1;
-
-    return visualizes.map((visualize, index) => {
-      const dedupedYAxes = dedupeArray(visualize.yAxes);
+  const getChartInfo = useCallback(
+    (yAxes: readonly string[]) => {
+      const dedupedYAxes = dedupeArray(yAxes);
 
       const formattedYAxes = dedupedYAxes.map(yaxis => {
         const func = parseFunction(yaxis);
         return func ? prettifyParsedFunction(func) : undefined;
       });
 
+      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+
+      const {sampleCount, isSampled, dataScanned} =
+        determineSeriesSampleCountAndIsSampled(data, isTopN);
+
+      return {
+        dedupedYAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        sampleCount,
+        isSampled,
+        dataScanned,
+      };
+    },
+    [getSeries, isTopN]
+  );
+
+  const chartInfos = useMemo(() => {
+    const shouldRenderLabel = visualizes.length > 1;
+    return visualizes.map((visualize, index) => {
       const chartIcon =
         visualize.chartType === ChartType.LINE
           ? 'line'
@@ -166,10 +188,36 @@ export function ExploreCharts({
             ? 'area'
             : 'bar';
 
-      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+      const {
+        dedupedYAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        sampleCount,
+        isSampled,
+        dataScanned,
+      } = getChartInfo(visualize.yAxes);
 
-      const {sampleCount, isSampled, dataScanned} =
-        determineSeriesSampleCountAndIsSampled(data, isTopN);
+      let overrideSampleCount = undefined;
+      let overrideIsSampled = undefined;
+      let overrideDataScanned = undefined;
+      let overrideConfidence = undefined;
+
+      // This implies that the sampling meta data is not available.
+      // When this happens, we override it with the sampling meta
+      // data from the DEFAULT_VISUALIZATION.
+      if (sampleCount === 0 && !defined(isSampled)) {
+        const chartInfo = getChartInfo([DEFAULT_VISUALIZATION]);
+        overrideSampleCount = chartInfo.sampleCount;
+        overrideIsSampled = chartInfo.isSampled;
+        overrideDataScanned = chartInfo.dataScanned;
+
+        const series = dedupedYAxes
+          .flatMap(yAxis => timeseriesResult.data[yAxis])
+          .filter(defined);
+        overrideConfidence = combineConfidenceForSeries(series);
+      }
 
       const chartInfo: ChartInfo = {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -181,15 +229,15 @@ export function ExploreCharts({
         data,
         error,
         loading,
-        confidence: confidences[index],
-        sampleCount,
-        isSampled,
-        dataScanned,
+        confidence: overrideConfidence ?? confidences[index],
+        sampleCount: overrideSampleCount ?? sampleCount,
+        isSampled: overrideIsSampled ?? isSampled,
+        dataScanned: overrideDataScanned ?? dataScanned,
       };
 
       return chartInfo;
     });
-  }, [confidences, getSeries, visualizes, isTopN]);
+  }, [confidences, getChartInfo, visualizes, timeseriesResult]);
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
