@@ -5,7 +5,50 @@ from sentry.models.dashboard import DashboardFavoriteUser
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 
 
-class OrganizationDashboardsStarredOrderTest(OrganizationDashboardWidgetTestCase):
+class StarredDashboardTestCase(OrganizationDashboardWidgetTestCase):
+    def create_dashboard_favorite(self, dashboard, user, organization, position):
+        DashboardFavoriteUser.objects.create(
+            dashboard=dashboard, user_id=user.id, organization=organization, position=position
+        )
+
+    def do_request(self, *args, **kwargs):
+        with self.feature("organizations:dashboards-starred-reordering"):
+            return super().do_request(*args, **kwargs)
+
+
+class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        self.url = reverse(
+            "sentry-api-0-organization-dashboard-starred",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.dashboard_1 = self.create_dashboard(title="Dashboard 1")
+        self.dashboard_2 = self.create_dashboard(title="Dashboard 2")
+        self.dashboard_3 = self.create_dashboard(title="Dashboard 3")
+
+    def test_get_favorite_dashboards(self):
+        self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, 2)
+        self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 0)
+        self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 1)
+
+        # Add a dashboard starred by another user to verify that it is not returned
+        other_user = self.create_user("other@example.com")
+        other_dashboard = self.create_dashboard(title="Other Dashboard")
+        self.create_dashboard_favorite(other_dashboard, other_user, self.organization, 0)
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert [int(dashboard["id"]) for dashboard in response.data] == [
+            self.dashboard_2.id,
+            self.dashboard_3.id,
+            self.dashboard_1.id,
+        ]
+
+
+class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -16,11 +59,6 @@ class OrganizationDashboardsStarredOrderTest(OrganizationDashboardWidgetTestCase
         self.dashboard_1 = self.create_dashboard(title="Dashboard 1")
         self.dashboard_2 = self.create_dashboard(title="Dashboard 2")
         self.dashboard_3 = self.create_dashboard(title="Dashboard 3")
-
-    def create_dashboard_favorite(self, dashboard, user, organization, position):
-        DashboardFavoriteUser.objects.create(
-            dashboard=dashboard, user_id=user.id, organization=organization, position=position
-        )
 
     def test_reorder_dashboards(self):
         self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, 0)
@@ -40,14 +78,11 @@ class OrganizationDashboardsStarredOrderTest(OrganizationDashboardWidgetTestCase
         ]
 
         # Reorder the favorited dashboards
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request(
-                "put",
-                self.url,
-                data={
-                    "dashboard_ids": [self.dashboard_3.id, self.dashboard_1.id, self.dashboard_2.id]
-                },
-            )
+        response = self.do_request(
+            "put",
+            self.url,
+            data={"dashboard_ids": [self.dashboard_3.id, self.dashboard_1.id, self.dashboard_2.id]},
+        )
         assert response.status_code == 204
 
         assert list(
@@ -67,14 +102,11 @@ class OrganizationDashboardsStarredOrderTest(OrganizationDashboardWidgetTestCase
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 2)
 
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request(
-                "put",
-                self.url,
-                data={
-                    "dashboard_ids": [self.dashboard_1.id, self.dashboard_1.id, self.dashboard_2.id]
-                },
-            )
+        response = self.do_request(
+            "put",
+            self.url,
+            data={"dashboard_ids": [self.dashboard_1.id, self.dashboard_1.id, self.dashboard_2.id]},
+        )
         assert response.status_code == 400
         assert response.data == {
             "dashboard_ids": ["Single dashboard cannot take up multiple positions"]
@@ -85,12 +117,11 @@ class OrganizationDashboardsStarredOrderTest(OrganizationDashboardWidgetTestCase
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 2)
 
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request(
-                "put",
-                self.url,
-                data={"dashboard_ids": [self.dashboard_1.id, self.dashboard_2.id]},
-            )
+        response = self.do_request(
+            "put",
+            self.url,
+            data={"dashboard_ids": [self.dashboard_1.id, self.dashboard_2.id]},
+        )
         assert response.status_code == 400
         assert response.data == {
             "detail": ErrorDetail(
@@ -104,14 +135,11 @@ class OrganizationDashboardsStarredOrderTest(OrganizationDashboardWidgetTestCase
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 2)
 
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request(
-                "put",
-                self.url,
-                data={
-                    "dashboard_ids": [self.dashboard_3.id, self.dashboard_1.id, self.dashboard_2.id]
-                },
-            )
+        response = self.do_request(
+            "put",
+            self.url,
+            data={"dashboard_ids": [self.dashboard_3.id, self.dashboard_1.id, self.dashboard_2.id]},
+        )
         assert response.status_code == 204
 
         assert list(
