@@ -266,7 +266,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // fieldOptions filtering and logic used for showing options for
   // chart types.
   let spanColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
-  if (state.dataset === WidgetType.SPANS) {
+  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
     tags = {...numericSpanTags, ...stringSpanTags};
@@ -418,7 +418,8 @@ function Visualize({error, setError}: VisualizeProps) {
                     ? datasetConfig.filterAggregateParams
                     : datasetConfig.filterTableOptions;
                 const columnOptions =
-                  state.dataset === WidgetType.SPANS &&
+                  (state.dataset === WidgetType.SPANS ||
+                    state.dataset === WidgetType.LOGS) &&
                   field.kind !== FieldValueKind.FUNCTION
                     ? spanColumnOptions
                     : getColumnOptions(
