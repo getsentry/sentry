@@ -122,15 +122,15 @@ function AiContent({replayRecord}: Props) {
   const chapterData = summaryData?.data.time_ranges.map(
     ({period_title, period_start, period_end}) => ({
       title: period_title,
-      start: period_start * 1000,
-      end: period_end * 1000,
+      start: period_start,
+      end: period_end,
       breadcrumbs:
         replay
           ?.getChapterFrames()
           .filter(
             breadcrumb =>
-              breadcrumb.timestampMs >= period_start * 1000 &&
-              breadcrumb.timestampMs <= period_end * 1000
+              breadcrumb.timestampMs >= period_start &&
+              breadcrumb.timestampMs <= period_end
           ) ?? [],
     })
   );
