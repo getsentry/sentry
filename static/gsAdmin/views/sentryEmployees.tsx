@@ -124,6 +124,13 @@ function SentryEmployees(props: Props) {
               ['false', 'False'],
             ],
           },
+          isEmployee: {
+            name: 'Employee',
+            options: [
+              ['true', 'True'],
+              ['false', 'False'],
+            ],
+          },
           staff: {
             name: 'Staff',
             options: [

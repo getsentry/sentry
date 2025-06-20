@@ -33,6 +33,7 @@ from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
@@ -68,7 +69,6 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
-from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
@@ -384,8 +384,6 @@ This pull request was deployed and Sentry observed the following issues:
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
-MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
-
 
 class GitHubPRCommentWorkflow(PRCommentWorkflow):
     organization_option_key = "sentry:github_pr_bot"
@@ -405,10 +403,10 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
 
         issue_list = "\n".join(
             [
-                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                self.get_merged_pr_single_issue_template(
                     title=issue.title,
-                    subtitle=self.format_comment_subtitle(issue.culprit or "unknown culprit"),
                     url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
+                    environment=self.get_environment_info(issue),
                 )
                 for issue in issues
             ]

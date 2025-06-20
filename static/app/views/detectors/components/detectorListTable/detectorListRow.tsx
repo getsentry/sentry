@@ -1,19 +1,17 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface DetectorListRowProps {
   detector: Detector;
@@ -22,19 +20,17 @@ interface DetectorListRowProps {
 export function DetectorListRow({
   detector: {workflowIds, owner, id, projectId, name, disabled, type, createdBy},
 }: DetectorListRowProps) {
-  const organization = useOrganization();
-  const link = makeMonitorDetailsPathname(organization.slug, id);
   const issues: Group[] = [];
 
   return (
     <RowWrapper disabled={disabled} data-test-id="detector-list-row">
       <InteractionStateLayer />
       <CellWrapper>
-        <StyledTitleCell
+        <DetectorLink
+          detectorId={id}
           name={name}
           createdBy={createdBy}
           projectId={projectId}
-          link={link}
           disabled={disabled}
         />
       </CellWrapper>
@@ -42,19 +38,13 @@ export function DetectorListRow({
         <DetectorTypeCell type={type} />
       </CellWrapper>
       <CellWrapper className="last-issue">
-        <StyledIssueCell
-          group={issues.length > 0 ? issues[0] : undefined}
-          disabled={disabled}
-        />
+        <StyledIssueCell group={issues.length > 0 ? issues[0] : undefined} />
       </CellWrapper>
       <CellWrapper className="assignee">
         <DetectorAssigneeCell assignee={owner} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
-        <DetectorListConnectedAutomations
-          automationIds={workflowIds}
-          disabled={disabled}
-        />
+        <DetectorListConnectedAutomations automationIds={workflowIds} />
       </CellWrapper>
     </RowWrapper>
   );
@@ -88,11 +78,7 @@ export function DetectorListRowSkeleton() {
 const CellWrapper = styled(Flex)`
   padding: 0 ${space(2)};
   flex: 1;
-`;
-
-const StyledTitleCell = styled(TitleCell)`
-  padding: ${space(2)};
-  margin: -${space(2)};
+  overflow: hidden;
 `;
 
 const StyledIssueCell = styled(IssueCell)`
@@ -102,6 +88,8 @@ const StyledIssueCell = styled(IssueCell)`
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
   display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
   position: relative;
   align-items: center;
   padding: ${space(2)};
@@ -114,46 +102,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
     p.disabled &&
     css`
       ${CellWrapper}, {
-        opacity: 0.6;
+        opacity: 0.8;
       }
     `}
-
-  .type,
-  .owner,
-  .last-issue,
-  .connected-automations {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 3fr 0.8fr;
-
-    .type {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
-
-    .last-issue {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
-
-    .owner {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
-
-    .connected-automations {
-      display: flex;
-    }
-  }
 `;

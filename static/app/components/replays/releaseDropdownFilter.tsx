@@ -8,10 +8,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  makeReleaseDrawerPathname,
-  makeReleasesPathname,
-} from 'sentry/views/releases/utils/pathnames';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
@@ -43,17 +40,12 @@ export default function ReleaseDropdownFilter({version}: {version: string}) {
           label: t('Go to release details'),
           onAction: () =>
             navigate(
-              organization.features.includes('release-bubbles-ui')
-                ? makeReleaseDrawerPathname({
-                    location,
-                    release: version,
-                    projectId: location?.query.project,
-                    source: 'replay-tags',
-                  })
-                : makeReleasesPathname({
-                    organization,
-                    path: `/${encodeURIComponent(version)}/`,
-                  })
+              makeReleaseDrawerPathname({
+                location,
+                release: version,
+                projectId: location?.query.project,
+                source: 'replay-tags',
+              })
             ),
         },
       ]}

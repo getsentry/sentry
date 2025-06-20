@@ -17,12 +17,11 @@ import {
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
-  DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
   updateVisualizeAggregate,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
 import {
@@ -42,7 +41,7 @@ export function ToolbarVisualize() {
     const newVisualizes = [...visualizes, new Visualize([DEFAULT_VISUALIZATION])].map(
       visualize => visualize.toJSON()
     );
-    setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
+    setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
   const deleteOverlay = useCallback(
@@ -121,7 +120,7 @@ interface VisualizeDropdownProps {
   deleteOverlay: (group: number, index: number) => void;
   group: number;
   index: number;
-  setVisualizes: (visualizes: BaseVisualize[], fields?: string[]) => void;
+  setVisualizes: (visualizes: BaseVisualize[]) => void;
   visualizes: Visualize[];
   yAxis: string;
   label?: string;
@@ -137,8 +136,8 @@ function VisualizeDropdown({
   yAxis,
   label,
 }: VisualizeDropdownProps) {
-  const {tags: stringTags} = useSpanTags('string');
-  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
 
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
 
@@ -159,7 +158,7 @@ function VisualizeDropdown({
   });
 
   const setYAxis = useCallback(
-    (newYAxis: string, fields?: string[]) => {
+    (newYAxis: string) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === group) {
           const newYAxes = [...visualize.yAxes];
@@ -168,7 +167,7 @@ function VisualizeDropdown({
         }
         return visualize.toJSON();
       });
-      setVisualizes(newVisualizes, fields);
+      setVisualizes(newVisualizes);
     },
     [group, index, setVisualizes, visualizes]
   );
@@ -187,7 +186,7 @@ function VisualizeDropdown({
 
   const setChartField = useCallback(
     (option: SelectOption<SelectKey>) => {
-      setYAxis(`${parsedFunction?.name}(${option.value})`, [option.value as string]);
+      setYAxis(`${parsedFunction?.name}(${option.value})`);
     },
     [parsedFunction?.name, setYAxis]
   );

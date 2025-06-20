@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic, Value
+from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 
@@ -34,8 +34,10 @@ def test_basic(monkeypatch):
 
     step.submit(
         Message(
-            Value(
-                KafkaPayload(
+            BrokerValue(
+                partition=Partition(topic, 0),
+                offset=1,
+                payload=KafkaPayload(
                     None,
                     rapidjson.dumps(
                         {
@@ -46,8 +48,7 @@ def test_basic(monkeypatch):
                     ).encode("ascii"),
                     [],
                 ),
-                {},
-                datetime.now(),
+                timestamp=datetime.now(),
             )
         )
     )

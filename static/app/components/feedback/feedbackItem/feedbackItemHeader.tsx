@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackActions';
 import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';

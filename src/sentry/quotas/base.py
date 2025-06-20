@@ -748,3 +748,17 @@ class Quota(Service):
         Records a seer run for an organization.
         """
         return
+
+    def has_profile_duration_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has quota available for the given data category.
+
+        Args:
+            org_id: The ID of the organization to check
+            data_category: The data category to check quota for.
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+                  Always False if data category is not a profile duration category.
+        """
+        return True

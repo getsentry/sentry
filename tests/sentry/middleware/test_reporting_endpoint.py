@@ -1,68 +1,49 @@
-from unittest.mock import Mock
+from unittest.mock import patch
 
-from django.http import HttpResponse, HttpResponseBase
+from django.http import HttpResponse
 from django.test import RequestFactory
 
 from sentry.middleware.reporting_endpoint import ReportingEndpointMiddleware
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class ReportingEndpointMiddlewareTestCase(TestCase):
     def setUp(self) -> None:
-        self.middleware = ReportingEndpointMiddleware(lambda request: HttpResponse())
         self.factory = RequestFactory()
 
-    def _no_header_set(self, result: HttpResponseBase) -> None:
-        assert "Reporting-Endpoints" not in result
+    def test_obeys_option_when_enabled(self) -> None:
+        with override_options(
+            {"issues.browser_reporting.reporting_endpoints_header_enabled": True}
+        ):
+            # Create middleware with option enabled
+            middleware = ReportingEndpointMiddleware(lambda request: HttpResponse())
+            request = self.factory.get("/")
+            response = middleware(request)
 
-    def test_adds_header_for_staff_user(self) -> None:
-        """Test that the ReportingEndpoint header is added when user is Sentry staff."""
-        request = self.factory.get("/")
+            assert (
+                response.get("Reporting-Endpoints")
+                == "default=https://sentry.my.sentry.io/api/0/reporting-api-experiment/"
+            )
 
-        # Mock staff object with is_active = True
-        staff_mock = Mock()
-        staff_mock.is_active = True
-        setattr(request, "staff", staff_mock)
+    def test_obeys_option_when_disabled(self) -> None:
+        with override_options(
+            {"issues.browser_reporting.reporting_endpoints_header_enabled": False}
+        ):
+            # Create middleware with option disabled
+            middleware = ReportingEndpointMiddleware(lambda _: HttpResponse())
+            request = self.factory.get("/")
+            response = middleware(request)
 
-        response = HttpResponse()
-        result = self.middleware.process_response(request, response)
+            assert response.get("Reporting-Endpoints") is None
 
-        assert "Reporting-Endpoints" in result
-        assert (
-            result["Reporting-Endpoints"]
-            == "default=https://sentry.my.sentry.io/api/0/reporting-api-experiment/"
-        )
+    def test_handles_option_fetch_failure(self) -> None:
+        with patch("sentry.middleware.reporting_endpoint.options.get") as mock_options_get:
+            mock_options_get.side_effect = Exception("Database error")
 
-    def test_no_header_for_non_staff_user(self) -> None:
-        """Test that the ReportingEndpoint header is not added when user is not Sentry staff."""
-        request = self.factory.get("/")
+            # Should handle the exception gracefully and default to disabled
+            middleware = ReportingEndpointMiddleware(lambda _: HttpResponse())
+            request = self.factory.get("/")
+            response = middleware(request)
 
-        # Mock staff object with is_active = False
-        staff_mock = Mock()
-        staff_mock.is_active = False
-        setattr(request, "staff", staff_mock)
-
-        response = HttpResponse()
-        result = self.middleware.process_response(request, response)
-
-        self._no_header_set(result)
-
-    def test_no_header_when_no_staff_attribute(self) -> None:
-        """Test that the ReportingEndpoint header is not added when request has no staff attribute."""
-        request = self.factory.get("/")
-
-        # No staff attribute on request
-        response = HttpResponse()
-        result = self.middleware.process_response(request, response)
-
-        self._no_header_set(result)
-
-    def test_no_header_when_staff_is_none(self) -> None:
-        """Test that the ReportingEndpoint header is not added when staff is None."""
-        request = self.factory.get("/")
-        setattr(request, "staff", None)
-
-        response = HttpResponse()
-        result = self.middleware.process_response(request, response)
-
-        self._no_header_set(result)
+            assert response.get("Reporting-Endpoints") is None

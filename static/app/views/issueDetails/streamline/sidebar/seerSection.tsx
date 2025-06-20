@@ -2,11 +2,11 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -103,7 +103,7 @@ export default function SeerSection({
   ) : (
     <HeaderContainer>
       {t('Seer')}
-      <SeerIcon />
+      <IconSeer />
     </HeaderContainer>
   );
 
