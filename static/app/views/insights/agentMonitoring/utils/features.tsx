@@ -10,14 +10,6 @@ export function hasAgentInsightsFeature(organization: Organization) {
   return organization.features.includes('agents-insights');
 }
 
-export function AgentInsightsFeature(props: AgentInsightsFeatureProps) {
-  return (
-    <Feature features="agents-insights" renderDisabled={props.renderDisabled ?? NoAccess}>
-      {props.children}
-    </Feature>
-  );
-}
-
 export function usePreferedAiModule() {
   const organization = useOrganization();
   const user = useUser();
