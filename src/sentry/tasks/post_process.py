@@ -1558,11 +1558,20 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.issue_summary import get_issue_summary_cache_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]
     group = event.group
+
+    # Only run on new issues or issues with no existing summary/scan
+    if (
+        not job["group_state"]["is_new"]
+        and group.seer_fixability_score is not None
+        and cache.get(get_issue_summary_cache_key(group.id))
+    ):
+        return
 
     # check currently supported issue categories for Seer
     if group.issue_category not in [
@@ -1591,6 +1600,15 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not seer_enabled:
         return
 
+    from sentry import quotas
+    from sentry.constants import DataCategory
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
+        return
+
     from sentry.autofix.utils import is_seer_scanner_rate_limited
 
     is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
@@ -1602,15 +1620,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             }
         )
         logger.error("Seer scanner auto-trigger rate limit hit")
-        return
-
-    from sentry import quotas
-    from sentry.constants import DataCategory
-
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
         return
 
     start_seer_automation.delay(group.id)

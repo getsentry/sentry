@@ -392,6 +392,10 @@ def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     )
 
 
+def get_issue_summary_cache_key(group_id: int) -> str:
+    return f"ai-group-summary-v2:{group_id}"
+
+
 def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
@@ -418,7 +422,7 @@ def get_issue_summary(
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
-    cache_key = f"ai-group-summary-v2:{group.id}"
+    cache_key = get_issue_summary_cache_key(group.id)
     lock_key = f"ai-group-summary-v2-lock:{group.id}"
     lock_duration = 10  # How long the lock is held if acquired (seconds)
     wait_timeout = 4.5  # How long to wait for the lock (seconds)

@@ -1,8 +1,7 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
@@ -11,7 +10,8 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
-import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -106,18 +106,8 @@ export default function ScreenshotModal({
     };
   }
 
-  const AttachmentComponent = getInlineAttachmentRenderer(currentEventAttachment)!;
-
-  useEffect(() => {
-    if (currentEventAttachment && !AttachmentComponent) {
-      Sentry.withScope(scope => {
-        scope.setExtra('mimetype', currentEventAttachment.mimetype);
-        scope.setExtra('attachmentName', currentEventAttachment.name);
-        scope.setFingerprint(['no-inline-attachment-renderer']);
-        scope.captureException(new Error('No screenshot attachment renderer found'));
-      });
-    }
-  }, [currentEventAttachment, AttachmentComponent]);
+  const AttachmentComponent =
+    getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer;
 
   return (
     <Fragment>
@@ -193,17 +183,19 @@ export default function ScreenshotModal({
 }
 
 const AttachmentComponentWrapper = styled('div')`
-  & > * {
-    padding: 0;
-    border: none;
+  & > img,
+  & > video {
+    max-width: 100%;
     max-height: calc(100vh - 300px);
-    box-sizing: border-box;
+    width: auto;
+    height: auto;
+    object-fit: contain;
   }
 `;
 
 export const modalCss = css`
   width: auto;
   height: 100%;
-  max-width: 700px;
+  max-width: min(90vw, 1500px);
   margin-top: 0 !important;
 `;

@@ -1314,11 +1314,12 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                 functions = chunk.extract_functions_metrics(
                     min_depth=1, filter_system_frames=True, max_unique_functions=100
                 )
-                payload = build_chunk_functions_kafka_message(chunk, functions)
-                topic = ArroyoTopic(
-                    get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
-                )
-                profile_functions_producer.produce(topic, payload)
+                if functions is not None and len(functions) > 0:
+                    payload = build_chunk_functions_kafka_message(chunk, functions)
+                    topic = ArroyoTopic(
+                        get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
+                    )
+                    profile_functions_producer.produce(topic, payload)
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)

@@ -346,8 +346,7 @@ const generateThemeAliases = (colors: Colors) => ({
   disabledBorder: colors.gray200,
 
   /**
-   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
-   * interaction (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   hover: colors.surface500,
@@ -695,8 +694,7 @@ interface Colors {
   translucentSurface200: string;
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: string;
@@ -762,8 +760,7 @@ const lightColors: Colors = {
   translucentSurface200: '#FAF9FBE6',
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: '#F5F3F7',
@@ -828,8 +825,7 @@ const darkColors: Colors = {
   translucentSurface200: '#1A141FB3',
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: '#362E3E',
