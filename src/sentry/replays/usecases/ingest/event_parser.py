@@ -214,6 +214,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             duration = payload["endTimestamp"] - payload["startTimestamp"]
             method = payload["data"]["method"]
 
+            # if status code is successful, ignore it
+            if status_code.startswith("2"):
+                return None
+
             if response_size is None:
                 return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp}'
             else:
