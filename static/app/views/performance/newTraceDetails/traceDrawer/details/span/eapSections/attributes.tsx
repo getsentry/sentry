@@ -31,6 +31,8 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
+const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
+
 export function Attributes({
   node,
   attributes,
@@ -60,8 +62,10 @@ export function Attributes({
       return sorted;
     }
 
-    return sorted.filter(attribute =>
-      attribute.name.toLowerCase().trim().includes(searchQuery.toLowerCase().trim())
+    return sorted.filter(
+      attribute =>
+        !HIDDEN_ATTRIBUTES.includes(attribute.name) &&
+        attribute.name.toLowerCase().trim().includes(searchQuery.toLowerCase().trim())
     );
   }, [attributes, searchQuery]);
 
