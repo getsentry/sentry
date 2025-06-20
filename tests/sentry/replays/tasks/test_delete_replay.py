@@ -12,7 +12,6 @@ class TestDeleteReplay(APITestCase, ReplaysSnubaTestCase):
         self.project = self.create_project(name="test_project")
         self.replay_id = "test-replay-id"
         self.max_segment_id = 5
-        self.platform = "javascript"
         self.retention_days = 30
 
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -23,7 +22,6 @@ class TestDeleteReplay(APITestCase, ReplaysSnubaTestCase):
             project_id=self.project.id,
             replay_id=self.replay_id,
             max_segment_id=self.max_segment_id,
-            platform=self.platform,
         )
 
         mock_delete_matched_rows.assert_called_once_with(
@@ -31,7 +29,6 @@ class TestDeleteReplay(APITestCase, ReplaysSnubaTestCase):
             rows=[
                 {
                     "max_segment_id": self.max_segment_id,
-                    "platform": self.platform,
                     "replay_id": self.replay_id,
                     "retention_days": self.retention_days,
                 }
