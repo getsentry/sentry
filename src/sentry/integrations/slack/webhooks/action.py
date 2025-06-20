@@ -504,15 +504,14 @@ class SlackActionEndpoint(Endpoint):
                 delete_original=False,
                 replace_original=True,
             )
+        except SlackApiError:
             _logger.info(
-                "slack.webhook.update_status.success",
+                "slack.webhook.update_status.response-error",
                 extra={
                     "integration_id": slack_request.integration.id,
                     "blocks": response.get("blocks"),
                 },
             )
-        except SlackApiError:
-            _logger.info("slack.webhook.update_status.response-error")
 
         return self.respond(response)
 
@@ -894,12 +893,13 @@ class _ModalDialog(ABC):
             else:
                 self._update_modal(slack_client, external_id, modal_payload, slack_request)
 
-        except SlackApiError:
+        except SlackApiError as e:
             _logger.info(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
                     "integration_id": slack_request.integration.id,
+                    "exec_summary": repr(e),
                 },
             )
 
