@@ -76,7 +76,7 @@ export default function ReplayLayout({
     ) : (
       <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
         <ErrorBoundary mini>
-          <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
+          <FocusArea isVideoReplay={isVideoReplay} />
         </ErrorBoundary>
       </FluidPanel>
     );

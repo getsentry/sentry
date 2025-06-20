@@ -7,24 +7,17 @@ import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
 import NetworkList from 'sentry/views/replays/detail/network';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import TraceFeature from 'sentry/views/replays/detail/trace/index';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-export default function FocusArea({
-  isVideoReplay,
-  replayRecord,
-}: {
-  replayRecord: HydratedReplayRecord | undefined;
-  isVideoReplay?: boolean;
-}) {
+export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
   const {getActiveTab} = useActiveReplayTab({isVideoReplay});
 
   switch (getActiveTab()) {
     case TabKey.AI:
-      return <Ai replayRecord={replayRecord} />;
+      return <Ai />;
     case TabKey.NETWORK:
       return <NetworkList />;
     case TabKey.TRACE:
-      return <TraceFeature replayRecord={replayRecord} />;
+      return <TraceFeature />;
     case TabKey.ERRORS:
       return <ErrorList />;
     case TabKey.MEMORY:

@@ -133,26 +133,19 @@ export type HydratedReplayRecord = {
   warning_ids: string[];
 };
 type ArchivedReplayRecord = {
-  /**
-   * Number that represents how much user activity happened in a replay.
-   */
   activity: null;
   browser: {
     name: null;
     version: null;
   };
-  /**
-   * The number of errors associated with the replay.
-   */
+  clicks: never[];
+  count_dead_clicks: null;
   count_errors: null;
-  /**
-   * The number of segments that make up the replay.
-   */
+  count_infos: null;
+  count_rage_clicks: null;
   count_segments: null;
-  /**
-   * The number of urls visited in the replay.
-   */
   count_urls: null;
+  count_warnings: null;
   device: {
     brand: null;
     family: null;
@@ -160,44 +153,27 @@ type ArchivedReplayRecord = {
     name: null;
   };
   dist: null;
-  /**
-   * Difference of `finished_at` and `started_at` in seconds.
-   */
   duration: null;
   environment: null;
   error_ids: never[];
-  /**
-   * The **latest** timestamp received as determined by the SDK.
-   */
   finished_at: null;
-  /**
-   * Whether the currently authenticated user has seen this replay or not.
-   */
   has_viewed: null;
-  /**
-   * The ID of the Replay instance
-   */
   id: string;
-  /**
-   * Whether the replay was deleted.
-   * When deleted the rrweb data & attachments are removed from blob storage,
-   * but the record of the replay is not removed.
-   */
+  info_ids: never[];
   is_archived: true;
   os: {
     name: null;
     version: null;
   };
+  ota_updates: Record<string, never>;
   platform: null;
   project_id: null;
   releases: never[];
+  replay_type: null;
   sdk: {
     name: null;
     version: null;
   };
-  /**
-   * The **earliest** timestamp received as determined by the SDK.
-   */
   started_at: null;
   tags: Record<string, string[]>;
   trace_ids: never[];
@@ -210,14 +186,7 @@ type ArchivedReplayRecord = {
     username: null;
     geo?: Geo;
   };
-  /**
-   * The number of dead clicks associated with the replay.
-   */
-  count_dead_clicks?: null;
-  /**
-   * The number of rage clicks associated with the replay.
-   */
-  count_rage_clicks?: null;
+  warning_ids: never[];
 };
 export type ReplayRecord = HydratedReplayRecord | ArchivedReplayRecord;
 
@@ -256,17 +225,41 @@ export const REPLAY_LIST_FIELDS = [
   'browser.version',
   'count_dead_clicks',
   'count_errors',
+  'count_infos',
   'count_rage_clicks',
+  'count_segments',
+  'count_urls',
+  'count_warnings',
+  'device.brand',
+  'device.family',
+  'device.model_id',
+  'device.name',
+  'dist',
   'duration',
+  'environment',
+  'error_ids',
   'finished_at',
   'has_viewed',
   'id',
+  'info_ids',
   'is_archived',
   'os.name',
   'os.version',
+  'ota_updates.channel',
+  'ota_updates.runtime_version',
+  'ota_updates.update_id',
+  'platform',
   'project_id',
+  'releases',
+  'replay_type',
+  'sdk.name',
+  'sdk.version',
   'started_at',
+  'tags',
+  'trace_ids',
+  'urls',
   'user',
+  'warning_ids',
 ];
 
 // Sync with REPLAY_LIST_FIELDS above

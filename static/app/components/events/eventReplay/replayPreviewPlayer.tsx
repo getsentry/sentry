@@ -32,7 +32,7 @@ import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
   errorBeforeReplayStart,
@@ -99,7 +99,7 @@ export default function ReplayPreviewPlayer({
       <HeaderWrapper>
         <StyledReplayCell
           key="session"
-          replay={replayRecord}
+          replay={replayRecord as ReplayListRecord}
           eventView={eventView}
           organization={organization}
           referrer="issue-details-replay-header"
