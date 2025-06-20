@@ -695,7 +695,11 @@ def filter_exceptions_for_exception_groups(
     exception_tree: dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
         mechanism: Mechanism = exception.mechanism
-        if mechanism and mechanism.exception_id is not None:
+        if (
+            mechanism
+            and mechanism.exception_id is not None
+            and mechanism.exception_id != mechanism.parent_id
+        ):
             node = exception_tree.setdefault(
                 mechanism.exception_id, ExceptionTreeNode()
             ).exception = exception
@@ -704,8 +708,9 @@ def filter_exceptions_for_exception_groups(
                 parent_node = exception_tree.setdefault(mechanism.parent_id, ExceptionTreeNode())
                 parent_node.children.append(exception)
         else:
-            # At least one exception is missing mechanism ids, so we can't continue with the filter.
-            # Exit early to not waste perf.
+            # At least one exception's mechanism is either missing an exception id or listing the
+            # exception as its own parent, so we can't continue with the filter. Exit early to not
+            # waste perf.
             return exceptions
 
     # This gets the child exceptions for an exception using the exception_id from the mechanism.
