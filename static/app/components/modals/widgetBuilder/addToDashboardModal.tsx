@@ -31,6 +31,7 @@ import type {
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
+  DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
   DisplayType,
   MAX_WIDGETS,
@@ -82,6 +83,7 @@ export type AddToDashboardModalProps = {
   widgetAsQueryParams: WidgetAsQueryParams;
   actions?: AddToDashboardModalActions[];
   allowCreateNewDashboard?: boolean;
+  source?: DashboardWidgetSource;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -113,6 +115,7 @@ function AddToDashboardModal({
   widgetAsQueryParams,
   actions = DEFAULT_ACTIONS,
   allowCreateNewDashboard = true,
+  source,
 }: Props) {
   const api = useApi();
   const navigate = useNavigate();
@@ -189,7 +192,7 @@ function AddToDashboardModal({
       normalizeUrl({
         pathname,
         query:
-          page === 'builder'
+          source && source === DashboardWidgetSource.DASHBOARDS
             ? {
                 ...convertWidgetToBuilderStateParams(widget),
                 title: newWidgetTitle,
