@@ -230,8 +230,6 @@ This merge request was deployed and Sentry observed the following issues:
 
 {issue_list}"""
 
-MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
-
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
     organization_option_key = "sentry:gitlab_pr_bot"
@@ -253,10 +251,10 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
 
         issue_list = "\n".join(
             [
-                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                self.get_merged_pr_single_issue_template(
                     title=issue.title,
-                    subtitle=self.format_comment_subtitle(issue.culprit),
                     url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
+                    environment=self.get_environment_info(issue),
                 )
                 for issue in issues
             ]
