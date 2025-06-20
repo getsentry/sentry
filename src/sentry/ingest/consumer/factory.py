@@ -1,22 +1,29 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable, Mapping
 from functools import partial
-from typing import NamedTuple, TypeVar
+from typing import Any, NamedTuple, TypeVar
 
-from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
 from arroyo.processing.strategies import (
     CommitOffsets,
     FilterStep,
     ProcessingStrategy,
     ProcessingStrategyFactory,
+    Reduce,
     RunTask,
 )
+from arroyo.processing.strategies.produce import Produce
 from arroyo.types import Commit, FilteredPayload, Message, Partition
+from arroyo.types import Topic as ArroyoTopic
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.arroyo_router import MergeRoutes, Router
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 from .attachment_event import decode_and_process_chunks, process_attachments_and_events
 from .simple_event import process_simple_event_message
@@ -178,6 +185,7 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
         input_block_size: int | None,
         output_block_size: int | None,
         no_celery_mode: bool = False,
+        stale_threshold_sec: int | None = None,
     ):
         self.consumer_type = ConsumerType.Transactions
         self.reprocess_only_stuck_events = reprocess_only_stuck_events
@@ -193,6 +201,13 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
 
         self.health_checker = HealthChecker("ingest-transactions")
         self.no_celery_mode = no_celery_mode
+        # TODO: Temporarily using the transactions DLQ topic
+        self.stale_topic = Topic.INGEST_TRANSACTIONS_DLQ
+        self.stale_threshold_sec = stale_threshold_sec
+
+        self.topic_defn = get_topic_definition(self.stale_topic)
+        producer_config = get_kafka_producer_cluster_options(self.topic_defn["cluster"])
+        self.stale_msg_producer = KafkaProducer(producer_config)
 
     def create_with_partitions(
         self,
@@ -209,6 +224,56 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
             reprocess_only_stuck_events=self.reprocess_only_stuck_events,
             no_celery_mode=self.no_celery_mode,
         )
+
+        # Collapse messages from each route as we only need to commit it afterwards
+        # and can discard the actual message payload
+        def build_reduce(next_step: ProcessingStrategy[Any]) -> ProcessingStrategy[Any]:
+            return Reduce(
+                1000,
+                0.5,
+                lambda _result, _value: None,
+                lambda: None,
+                maybe_multiprocess_step(mp, event_function, next_step, self._pool),
+            )
+
+        def build_process_transaction_route(
+            merge_step: MergeRoutes[Any],
+        ) -> ProcessingStrategy[Any]:
+            return build_reduce(maybe_multiprocess_step(mp, event_function, merge_step, self._pool))
+
+        def build_stale_message_route(
+            merge_step: MergeRoutes[Any],
+        ) -> ProcessingStrategy[Any]:
+            return build_reduce(
+                Produce(
+                    self.stale_msg_producer,
+                    ArroyoTopic(self.topic_defn["real_topic_name"]),
+                    merge_step,
+                )
+            )
+
+        if self.stale_threshold_sec is not None:
+
+            def route_selector(message: Message[Any]) -> str:
+                if (
+                    message.timestamp
+                    and message.timestamp.timestamp() + self.stale_threshold_sec < time.time()
+                ):
+                    return "process"
+                return "reroute"
+
+            next_step = Router(
+                final_step,
+                {
+                    "process": build_process_transaction_route,
+                    "reroute": build_stale_message_route,
+                },
+                route_selector,
+            )
+
+            return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
+
+        # no stale topic
         next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
         return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
