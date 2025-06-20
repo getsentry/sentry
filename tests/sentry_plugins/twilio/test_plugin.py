@@ -1,7 +1,7 @@
-import pytest
 from functools import cached_property
 from urllib.parse import parse_qs
 
+import pytest
 import responses
 
 from sentry.models.rule import Rule
