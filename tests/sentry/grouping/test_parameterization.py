@@ -9,6 +9,7 @@ def parameterizer():
     return Parameterizer(
         regex_pattern_keys=REGEX_PATTERN_KEYS,
         experiments=(UniqueIdExperiment,),
+        enable_regex_experiments=True,
     )
 
 
@@ -108,6 +109,8 @@ def parameterizer():
             """blah <date> had a problem""",
         ),
         ("hex", """blah 0x9af8c3b had a problem""", """blah <hex> had a problem"""),
+        ("hex", """blah 9af8c3b0 had a problem""", """blah <hex> had a problem"""),
+        ("hex", """blah 9af8c3b09af8c3b0 had a problem""", """blah <hex> had a problem"""),
         ("float", """blah 0.23 had a problem""", """blah <float> had a problem"""),
         ("int", """blah 23 had a problem""", """blah <int> had a problem"""),
         (
@@ -146,6 +149,11 @@ def parameterizer():
             "Nothing to replace",
             """A quick brown fox jumped over the lazy dog""",
             """A quick brown fox jumped over the lazy dog""",
+        ),
+        (
+            "Not confidently a hex",
+            """blah aaffccbb had a problem""",
+            """blah aaffccbb had a problem""",
         ),
     ],
 )
