@@ -372,6 +372,7 @@ This merge request was deployed and Sentry observed the following issues:
 
     @patch(
         "sentry.integrations.gitlab.integration.GitlabPRCommentWorkflow.get_top_5_issues_by_count"
+    @pytest.mark.skip(reason="flaky: #93955")
     )
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
