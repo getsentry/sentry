@@ -3,6 +3,7 @@ import Ai from 'sentry/views/replays/detail/ai';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
+import ReplayFlows from 'sentry/views/replays/detail/flows';
 import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
 import NetworkList from 'sentry/views/replays/detail/network';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
@@ -33,6 +34,8 @@ export default function FocusArea({
       return <Console />;
     case TabKey.TAGS:
       return <TagPanel />;
+    case TabKey.FLOWS:
+      return <ReplayFlows replayRecord={replayRecord} />;
     case TabKey.BREADCRUMBS:
     default: {
       return <Breadcrumbs />;

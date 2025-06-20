@@ -26,6 +26,7 @@ function getReplayTabs({
     [TabKey.TRACE]: t('Trace'),
     [TabKey.MEMORY]: isVideoReplay ? null : t('Memory'),
     [TabKey.TAGS]: t('Tags'),
+    [TabKey.FLOWS]: t('Flows'),
   };
 }
 
