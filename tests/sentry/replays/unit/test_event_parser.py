@@ -1,10 +1,10 @@
 import pytest
 
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import as_log_message
 from sentry.replays.usecases.ingest.event_parser import (
     EventType,
     _get_testid,
     _parse_classes,
-    as_log_message,
     parse_highlighted_events,
     which,
 )
