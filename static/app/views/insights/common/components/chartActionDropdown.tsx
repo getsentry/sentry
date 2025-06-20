@@ -68,6 +68,7 @@ export function ChartActionDropdown({
         pageFilters: selection,
         aggregate: yAxis,
         organization,
+        referrer,
       }),
     };
   });
