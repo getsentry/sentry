@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -59,7 +58,7 @@ export function ToolbarSaveAs() {
   const sortBys = useExploreSortBys();
   const mode = useExploreMode();
   const id = useExploreId();
-  const visualizeYAxes = visualizes.flatMap(v => v.yAxes);
+  const visualizeYAxes = visualizes.map(v => v.yAxis);
 
   const [interval] = useChartInterval();
 
@@ -151,7 +150,7 @@ export function ToolbarSaveAs() {
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
   const chartOptions = visualizes.map((chart, index) => {
-    const dedupedYAxes = dedupeArray(chart.yAxes);
+    const dedupedYAxes = [chart.yAxis];
     const formattedYAxes = dedupedYAxes.map(yaxis => {
       const func = parseFunction(yaxis);
       return func ? prettifyParsedFunction(func) : undefined;

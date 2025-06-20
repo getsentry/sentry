@@ -13,7 +13,6 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -283,18 +282,16 @@ export function viewSamplesTarget({
 
   // add all the arguments of the visualizations as columns
   for (const visualize of visualizes) {
-    for (const yAxis of visualize.yAxes) {
-      const parsedFunction = parseFunction(yAxis);
-      if (!parsedFunction?.arguments[0]) {
-        continue;
-      }
-      const field = parsedFunction.arguments[0];
-      if (seenFields.has(field)) {
-        continue;
-      }
-      fields.push(field);
-      seenFields.add(field);
+    const parsedFunction = parseFunction(visualize.yAxis);
+    if (!parsedFunction?.arguments[0]) {
+      continue;
     }
+    const field = parsedFunction.arguments[0];
+    if (seenFields.has(field)) {
+      continue;
+    }
+    fields.push(field);
+    seenFields.add(field);
   }
 
   // fall back, force timestamp to be a column so we
@@ -439,7 +436,7 @@ export function computeVisualizeSampleTotals(
   isTopN: boolean
 ) {
   return visualizes.map(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return sampleCount;

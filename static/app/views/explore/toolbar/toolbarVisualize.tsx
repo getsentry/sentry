@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -38,31 +38,23 @@ export function ToolbarVisualize() {
   const setVisualizes = useSetExploreVisualizes();
 
   const addChart = useCallback(() => {
-    const newVisualizes = [...visualizes, new Visualize([DEFAULT_VISUALIZATION])].map(
+    const newVisualizes = [...visualizes, new Visualize(DEFAULT_VISUALIZATION)].map(
       visualize => visualize.toJSON()
     );
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
   const deleteOverlay = useCallback(
-    (group: number, index: number) => {
+    (group: number) => {
       const newVisualizes = visualizes
-        .map((visualize, orgGroup) => {
-          if (group === orgGroup) {
-            visualize = visualize.replace({
-              yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
-            });
-          }
-          return visualize.toJSON();
-        })
-        .filter(visualize => visualize.yAxes.length > 0);
+        .toSpliced(group, 1)
+        .map(visualize => visualize.toJSON());
       setVisualizes(newVisualizes);
     },
     [setVisualizes, visualizes]
   );
 
-  const canDelete =
-    visualizes.map(visualize => visualize.yAxes.length).reduce((a, b) => a + b, 0) > 1;
+  const canDelete = visualizes.length > 1;
 
   const shouldRenderLabel = visualizes.length > 1;
 
@@ -80,22 +72,16 @@ export function ToolbarVisualize() {
       </ToolbarHeader>
       {visualizes.map((visualize, group) => {
         return (
-          <Fragment key={group}>
-            {visualize.yAxes.map((yAxis, index) => (
-              <Fragment key={index}>
-                <VisualizeDropdown
-                  canDelete={canDelete}
-                  deleteOverlay={deleteOverlay}
-                  group={group}
-                  index={index}
-                  label={shouldRenderLabel ? visualize.label : undefined}
-                  yAxis={yAxis}
-                  visualizes={visualizes}
-                  setVisualizes={setVisualizes}
-                />
-              </Fragment>
-            ))}
-          </Fragment>
+          <VisualizeDropdown
+            key={group}
+            canDelete={canDelete}
+            deleteOverlay={deleteOverlay}
+            group={group}
+            label={shouldRenderLabel ? visualize.label : undefined}
+            yAxis={visualize.yAxis}
+            visualizes={visualizes}
+            setVisualizes={setVisualizes}
+          />
         );
       })}
       <ToolbarFooter>
@@ -117,9 +103,8 @@ export function ToolbarVisualize() {
 
 interface VisualizeDropdownProps {
   canDelete: boolean;
-  deleteOverlay: (group: number, index: number) => void;
+  deleteOverlay: (group: number) => void;
   group: number;
-  index: number;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   visualizes: Visualize[];
   yAxis: string;
@@ -130,7 +115,6 @@ function VisualizeDropdown({
   canDelete,
   deleteOverlay,
   group,
-  index,
   setVisualizes,
   visualizes,
   yAxis,
@@ -159,17 +143,12 @@ function VisualizeDropdown({
 
   const setYAxis = useCallback(
     (newYAxis: string) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          const newYAxes = [...visualize.yAxes];
-          newYAxes[index] = newYAxis;
-          visualize = visualize.replace({yAxes: newYAxes});
-        }
-        return visualize.toJSON();
-      });
+      const newVisualizes = visualizes
+        .toSpliced(group, 1, visualizes[group]!.replace({yAxis: newYAxis}))
+        .map(visualize => visualize.toJSON());
       setVisualizes(newVisualizes);
     },
-    [group, index, setVisualizes, visualizes]
+    [group, setVisualizes, visualizes]
   );
 
   const setChartAggregate = useCallback(
@@ -211,7 +190,7 @@ function VisualizeDropdown({
           borderless
           icon={<IconDelete />}
           size="zero"
-          onClick={() => deleteOverlay(group, index)}
+          onClick={() => deleteOverlay(group)}
           aria-label={t('Remove Overlay')}
         />
       ) : null}

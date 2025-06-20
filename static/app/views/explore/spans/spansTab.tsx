@@ -26,7 +26,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -347,7 +346,7 @@ function SpanTabContentSection({
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
-        const dedupedYAxes = dedupeArray(visualize.yAxes);
+        const dedupedYAxes = [visualize.yAxis];
         const series = dedupedYAxes
           .flatMap(yAxis => timeseriesResult.data[yAxis])
           .filter(defined);
