@@ -46,6 +46,8 @@ export function AiModuleToggleButton() {
       items={[
         {
           key: 'ai-module',
+          leadingItems:
+            preferedAiModule === 'agents-insights' ? null : <IconLab isSolid />,
           label:
             preferedAiModule === 'agents-insights'
               ? 'Switch to LLM Monitoring'
