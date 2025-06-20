@@ -1,3 +1,35 @@
+25.6.1
+------
+
+### Various fixes & improvements
+
+- feat(issues): Add hex parameterization experiment (#93970) by @mrduncan
+- feat(feedback): Split feedback tags into tags+context with collapsable sections (#93397) by @ryan953
+- ref(grouping): Small changes to grouping tests (#93960) by @lobsterkatie
+- ref(replay): adjust timestamps in replay ai summary UI (#93992) by @michellewzhang
+- fix(replay): Add handling for null max_segment_id (#93989) by @cmanallen
+- chore(issues): Remove traceparent experiment (#93942) by @mrduncan
+- ref(trace-items): Pull useGetTraceItemAttributeKeys into hook (#93739) by @Zylphrex
+- ref(explore): Visualize should only have 1 y axis (#93938) by @Zylphrex
+- feat(preprod): Add analytics to the assemble endpoint (#93871) by @trevor-e
+- feat(trace-eap-waterfall): Hiding some attrs (#93964) by @Abdkhan14
+- fix(aci): Fix accidental over-logging (#93971) by @kcons
+- feat(detectors): Add noise config to DB Query Injection Issue Type (#93943) by @roggenkemper
+- ref(dashboards): add a new table widget visualization component (#93902) by @lzhao-sentry
+- ref(issues): Remove redundant Type row from Event Grouping Information table (#93892) by @nora-shap
+- fix(taskworker) Extend deadlines for check_auth (#93961) by @markstory
+- flex: cleanup Flex* custom styling in favor of Flex primitive (#93809) by @JonasBa
+- ✨ feat(scm): add environment infomation to suspect commit prs (#93025) by @iamrajjoshi
+- ref(feedback): better summarization prompt (#93962) by @vishnupsatish
+- ref(replay): include error context in breadcrumb summary (#93669) by @michellewzhang
+- chore(issues): Remove regex parameterization experiment (#93958) by @mrduncan
+- fix(aci): Ensure slow conditions are consistent (#93895) by @kcons
+- feat(feedback): frontend to display summary (#93567) by @vishnupsatish
+- feat(devservices): Add tracing mode (#93759) by @hubertdeng123
+- ref(profiling): Move flamegraphFrameFilter types around for tsgo (#93948) by @scttcper
+
+_Plus 105 more_
+
 25.6.0
 ------
 
