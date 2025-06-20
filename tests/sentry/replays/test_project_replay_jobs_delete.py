@@ -59,6 +59,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert job_data["status"] == "in-progress"
         assert job_data["environments"] == ["staging"]
         assert job_data["query"] == "test query 2"
+        assert job_data["countDeleted"] == 0  # Default offset value
         assert "dateCreated" in job_data
         assert "dateUpdated" in job_data
         assert "rangeStart" in job_data
@@ -68,6 +69,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert job_data["status"] == "pending"
         assert job_data["environments"] == ["prod"]
         assert job_data["query"] == "test query 1"
+        assert job_data["countDeleted"] == 0  # Default offset value
         assert "dateCreated" in job_data
         assert "dateUpdated" in job_data
         assert "rangeStart" in job_data
@@ -101,6 +103,26 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == accessible_job.id
         assert response.data["data"][0]["query"] == "accessible"
+        assert response.data["data"][0]["countDeleted"] == 0  # Default offset value
+
+    def test_get_count_deleted_reflects_offset(self):
+        """Test that countDeleted field correctly reflects the offset value"""
+        # Create job with specific offset value
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=["prod"],
+            status="in-progress",
+            offset=42,  # Set specific offset value
+        )
+
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == job.id
+        assert response.data["data"][0]["countDeleted"] == 42
 
     def test_get_pagination(self):
         """Test GET pagination works correctly"""
@@ -119,7 +141,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         # Test first page
         response = self.get_success_response(self.organization.slug, self.project.slug, per_page=10)
         assert len(response.data["data"]) == 10
-        assert response.data["data"][0]["id"] == 19
+        assert response.data["data"][0]["id"] == 20
 
         # Test second page
         response = self.get_success_response(
@@ -128,7 +150,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
             cursor=Cursor(10, 1),
         )
         assert len(response.data["data"]) == 5
-        assert response.data["data"][0]["id"] == 9
+        assert response.data["data"][0]["id"] == 10
 
     @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
     def test_post_success(self, mock_task):
@@ -150,6 +172,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert job_data["status"] == "pending"
         assert job_data["environments"] == ["production"]
         assert job_data["query"] == "test query"
+        assert job_data["countDeleted"] == 0  # Default offset value
 
         # Verify job was created in database
         job = ReplayDeletionJobModel.objects.get(id=job_data["id"])
@@ -326,10 +349,31 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
         assert job_data["status"] == "in-progress"
         assert job_data["environments"] == ["prod", "staging"]
         assert job_data["query"] == "test query"
+        assert job_data["countDeleted"] == 0  # Default offset value
         assert "dateCreated" in job_data
         assert "dateUpdated" in job_data
         assert "rangeStart" in job_data
         assert "rangeEnd" in job_data
+
+    def test_get_count_deleted_reflects_offset(self):
+        """Test that countDeleted field correctly reflects the offset value"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=["prod"],
+            status="completed",
+            offset=123,  # Set specific offset value
+        )
+
+        response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
+
+        assert "data" in response.data
+        job_data = response.data["data"]
+        assert job_data["id"] == job.id
+        assert job_data["countDeleted"] == 123
 
     def test_get_nonexistent_job(self):
         """Test GET for non-existent job returns 404"""

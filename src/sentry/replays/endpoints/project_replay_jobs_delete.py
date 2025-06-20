@@ -31,6 +31,7 @@ class ReplayDeletionJobSerializer(Serializer):
             "environments": obj.environments,
             "status": obj.status,
             "query": obj.query,
+            "countDeleted": obj.offset,
         }
 
 
