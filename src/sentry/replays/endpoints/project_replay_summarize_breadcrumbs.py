@@ -82,7 +82,16 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         )
 
         error_ids = response[0].get("error_ids", []) if response else []
-        error_events = fetch_error_details(project_id=project.id, error_ids=error_ids)
+
+        # Check if error fetching should be disabled
+        disable_error_fetching = (
+            request.query_params.get("enable_error_context", "true").lower() == "false"
+        )
+
+        if disable_error_fetching:
+            error_events = []
+        else:
+            error_events = fetch_error_details(project_id=project.id, error_ids=error_ids)
 
         return self.paginate(
             request=request,

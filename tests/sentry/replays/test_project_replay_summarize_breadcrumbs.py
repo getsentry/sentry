@@ -213,6 +213,72 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
 
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get_with_error_context_disabled(self, make_seer_request):
+        """Test handling of breadcrumbs with error context disabled"""
+        return_value = json.dumps({"error": "An error happened"}).encode()
+        make_seer_request.return_value = return_value
+
+        now = datetime.now(timezone.utc)
+        event_id = uuid.uuid4().hex
+        error_timestamp = now.timestamp() - 1
+        self.store_event(
+            data={
+                "event_id": event_id,
+                "timestamp": error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                        }
+                    ]
+                },
+                "contexts": {"replay": {"replay_id": self.replay_id}},
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_replays(
+            mock_replay(
+                now,
+                self.project.id,
+                self.replay_id,
+                error_ids=[event_id],
+            )
+        )
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            response = self.client.get(self.url, {"enable_error_context": "false"})
+
+        make_seer_request.assert_called_once()
+        call_args = json.loads(make_seer_request.call_args[0][0])
+        assert "logs" in call_args
+        assert not any("ZeroDivisionError" in log for log in call_args["logs"])
+        assert not any("division by zero" in log for log in call_args["logs"])
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.content == return_value
+
 
 def test_get_request_data():
     def _faker():
