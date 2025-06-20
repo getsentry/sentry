@@ -29,7 +29,6 @@ from sentry.snuba.utils import get_dataset
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -45,13 +44,11 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 
 
 def get_anomaly_evaluation_from_workflow_engine(
-    alert_rule: AlertRule,
+    detector: Detector,
     data_packet_processing_results: list[
         tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
     ],
 ) -> bool | None:
-    # fail loudly?
-    detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
     evaluation = None
     for result in data_packet_processing_results:
         if result[0] == detector:
