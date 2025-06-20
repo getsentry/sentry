@@ -10,12 +10,14 @@ logger = logging.getLogger(__name__)
 def make_input_prompt(
     feedbacks,
 ):
-    feedbacks_string = "\n".join(f"- {msg}" for msg in feedbacks)
+    feedbacks_string = "\n------\n".join(feedbacks)
     return f"""Instructions:
 
-You are an assistant that summarizes customer feedback. Given a list of customer feedback entries, generate a concise summary of 1-2 sentences that reflects the key themes. Begin the summary with "Users...", for example, "Users say...".
+You are an assistant that summarizes customer feedback. Given a list of customer feedback entries, generate a concise summary of 1-2 sentences that reflects the key themes. Begin the summary with "Users...", for example, "Users say...". Don't make overly generic statements like "Users report a variety of issues."
 
-Balance specificity and generalization based on the size of the input based *only* on the themes and topics present in the list of customer feedback entries. Prioritize brevity and clarity and trying to capture what users are saying, over trying to mention random specific topics. Please don't write overly long sentences, you can leave certain things out and the decision to mention specific topics or themes should be proportional to the number of times they appear in the user feedback entries.
+Balance specificity and generalization based on the size of the input and based only on the themes and topics present in the list of customer feedback entries. Your goal is to focus on identifying and summarizing broader themes that are mentioned more frequently across different feedback entries. For example, if there are many feedback entries, it makes more sense to prioritize mentioning broader themes that apply to many feedbacks, versus mentioning one or two specific isolated concerns and leaving out others that are just as prevalent.
+
+The summary must be AT MOST 55 words, that is an absolute upper limit, and you must write AT MOST two sentences. You can leave certain things out, and when deciding what topics/themes to mention, make sure it is proportional to the number of times they appear in different customer feedback entries.
 
 User Feedbacks:
 
