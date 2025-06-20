@@ -30,5 +30,18 @@ export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 
 `;
 
 export const Section = styled('section')`
-  padding-top: ${space(2)};
+  padding-top: ${space(4)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+
+  & > p {
+    margin: ${space(3)} 0;
+  }
+`;
+
+export const Title = styled('h3')`
+  margin: 0;
+  scroll-margin-top: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
