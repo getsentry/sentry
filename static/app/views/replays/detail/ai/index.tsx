@@ -138,14 +138,40 @@ export function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | nul
   if (isSpanFrame(payload)) {
     switch (eventType) {
       case EventType.RESOURCE_FETCH: {
-        const parsedUrl = new URL(payload.description || '');
+        let parsedUrl: URL;
+        try {
+          const urlString = payload.description || '';
+          // Handle relative URLs by adding a base URL
+          if (urlString.startsWith('/')) {
+            parsedUrl = new URL(urlString, 'http://localhost');
+          } else {
+            parsedUrl = new URL(urlString);
+          }
+        } catch (error) {
+          // If URL parsing fails, use the original description as fallback
+          const path = payload.description || 'unknown';
+          const size = (payload.data as any)?.response?.size;
+          const statusCode = (payload.data as any)?.statusCode;
+          const duration = (payload.endTimestampMs || 0) - (payload.timestampMs || 0);
+          const method = (payload.data as any)?.method;
+
+          // return null if response is successful
+          if (statusCode?.toString().startsWith('2')) {
+            return null;
+          }
+          return `Application initiated request: "${method} ${path} HTTP/2.0" ${statusCode} ${size}; took ${duration} milliseconds at ${timestamp}`;
+        }
+
         const path = `${parsedUrl.pathname}?${parsedUrl.search}`;
         const size = (payload.data as any)?.response?.size;
         const statusCode = (payload.data as any)?.statusCode;
         const duration = (payload.endTimestampMs || 0) - (payload.timestampMs || 0);
         const method = (payload.data as any)?.method;
 
-        // todo: return null if response is successful
+        // return null if response is successful
+        if (statusCode?.toString().startsWith('2')) {
+          return null;
+        }
         return `Application initiated request: "${method} ${path} HTTP/2.0" ${statusCode} ${size}; took ${duration} milliseconds at ${timestamp}`;
       }
       case EventType.RESOURCE_XHR:
