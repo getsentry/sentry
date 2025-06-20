@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, DefaultDict, TypedDict
 from unittest import mock
 from uuid import uuid4
 
@@ -18,7 +19,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
-from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, OurLogTestCase, ProfilesSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -1246,7 +1247,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
 
-class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
+class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -3080,6 +3081,112 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
                     "p95_function_duration": "nanosecond",
                     "all_examples": None,
                 }
+
+
+class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTestCase):
+    # This is implemented almost exactly the same as spans, add a simple test case for a sanity check
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+        self.logs = (
+            [
+                self.create_ourlog(
+                    {"body": "zero seconds"},
+                    timestamp=self.day_ago + timedelta(microseconds=i),
+                )
+                for i in range(10)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "five seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=5, microseconds=i),
+                )
+                for i in range(20)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "ten seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=10, microseconds=i),
+                )
+                for i in range(30)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "fifteen seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=15, microseconds=i),
+                )
+                for i in range(40)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "twenty seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=20, microseconds=i),
+                )
+                for i in range(50)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "twenty five seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=25, microseconds=i),
+                )
+                for i in range(60)
+            ]
+        )
+        self.store_ourlogs(self.logs)
+
+        self.enabled_features = {
+            "organizations:discover-basic": True,
+            "organizations:ourlogs-enabled": True,
+        }
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+
+    def test_simple_top_events(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "dataset": "ourlogs",
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message"],
+                    "topEvents": "5",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+
+        expected_message_counts_dict: DefaultDict[str, int] = defaultdict(int)
+        for log in self.logs:
+            attr = log.attributes.get("sentry.body")
+            if attr is not None:
+                body = attr.string_value
+                expected_message_counts_dict[body] += 1
+
+        expected_message_counts: list[tuple[str, int]] = sorted(
+            expected_message_counts_dict.items(), key=lambda x: x[1], reverse=True
+        )
+
+        assert set(data.keys()) == {x[0] for x in expected_message_counts[:5]}.union({"Other"})
+
+        for index, (message, count) in enumerate(expected_message_counts[:5]):
+            assert [{"count": count}] in data[message]["data"][0]
+            assert data[message]["order"] == index
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 10}] in other["data"][0]
 
 
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
