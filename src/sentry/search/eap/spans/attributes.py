@@ -101,12 +101,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="span.name",
-            internal_name="sentry.op",
-            search_type="string",
-            secondary_alias=True,
-        ),
-        ResolvedAttribute(
             public_alias="span.category",
             internal_name="sentry.category",
             search_type="string",
