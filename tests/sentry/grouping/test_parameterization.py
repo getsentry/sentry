@@ -111,6 +111,16 @@ def parameterizer():
         ("hex", """blah 0x9af8c3b had a problem""", """blah <hex> had a problem"""),
         ("hex", """blah 9af8c3b0 had a problem""", """blah <hex> had a problem"""),
         ("hex", """blah 9af8c3b09af8c3b0 had a problem""", """blah <hex> had a problem"""),
+        (
+            "hex - missing numbers",
+            """blah aaffccbb had a problem""",
+            """blah aaffccbb had a problem""",
+        ),
+        (
+            "hex - not 4 or 8 bytes",
+            """blah 4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa had a problem""",
+            """blah 4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa had a problem""",
+        ),
         ("float", """blah 0.23 had a problem""", """blah <float> had a problem"""),
         ("int", """blah 23 had a problem""", """blah <int> had a problem"""),
         (
@@ -149,11 +159,6 @@ def parameterizer():
             "Nothing to replace",
             """A quick brown fox jumped over the lazy dog""",
             """A quick brown fox jumped over the lazy dog""",
-        ),
-        (
-            "Not confidently a hex",
-            """blah aaffccbb had a problem""",
-            """blah aaffccbb had a problem""",
         ),
     ],
 )

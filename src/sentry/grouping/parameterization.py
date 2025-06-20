@@ -194,9 +194,10 @@ EXPERIMENT_PARAMETERIZATION_REGEXES = [
                 # least one number it must contain at least one a-f otherwise it
                 # would have matched "int".
                 #
-                # (?=.*[0-9]):  At least one 0-9 is in the 16 match.
-                # [0-9a-f]{16}: Exactly 16 hex characters (0-9, a-f).
-                (\b(?=.*[0-9])[0-9a-f]{8,16}\b)
+                # (?=.*[0-9]):    At least one 0-9 is in the match.
+                # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
+                (\b(?=.*[0-9])[0-9a-f]{8}\b) |
+                (\b(?=.*[0-9])[0-9a-f]{16}\b)
             """,
         )
         if r.name == "hex"
