@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -17,9 +18,13 @@ function ChartContextMenu({
   visualizeYAxes,
   query,
   interval,
+  visible,
+  setVisible,
 }: {
   interval: string;
   query: string;
+  setVisible: (visible: boolean) => void;
+  visible: boolean;
   visualizeIndex: number;
   visualizeYAxes: readonly string[];
 }) {
@@ -29,69 +34,126 @@ function ChartContextMenu({
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const project =
-    projects.length === 1
-      ? projects[0]
-      : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+  const items: MenuItemProps[] = useMemo(() => {
+    const menuItems = [];
 
-  const alertsUrls = visualizeYAxes.map((yAxis, index) => ({
-    key: `${yAxis}-${index}`,
-    label: yAxis,
-    to: getAlertsUrl({
-      project,
-      query,
-      pageFilters: pageFilters.selection,
-      aggregate: yAxis,
-      organization,
-      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-      interval,
-    }),
-    onAction: () => {
-      trackAnalytics('trace_explorer.save_as', {
-        save_type: 'alert',
-        ui_source: 'chart',
-        organization,
+    const project =
+      projects.length === 1
+        ? projects[0]
+        : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+
+    if (visualizeYAxes.length === 1) {
+      const yAxis = visualizeYAxes[0]!;
+      menuItems.push({
+        key: 'create-alert',
+        textValue: t('Create an Alert'),
+        label: t('Create an Alert'),
+        to: getAlertsUrl({
+          project,
+          query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxis,
+          organization,
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+        }),
+        onAction: () => {
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'alert',
+            ui_source: 'chart',
+            organization,
+          });
+          return undefined;
+        },
       });
-      return undefined;
-    },
-  }));
+    } else {
+      const alertsUrls = visualizeYAxes.map((yAxis, index) => ({
+        key: `${yAxis}-${index}`,
+        label: yAxis,
+        to: getAlertsUrl({
+          project,
+          query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxis,
+          organization,
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+        }),
+        onAction: () => {
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'alert',
+            ui_source: 'chart',
+            organization,
+          });
+          return undefined;
+        },
+      }));
 
-  const items: MenuItemProps[] = [];
-
-  items.push({
-    key: 'create-alert',
-    label: t('Create an alert for'),
-    children: alertsUrls ?? [],
-    disabled: !alertsUrls || alertsUrls.length === 0,
-    isSubmenu: true,
-  });
-
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-  items.push({
-    key: 'add-to-dashboard',
-    textValue: t('Add to Dashboard'),
-    label: (
-      <Feature
-        hookName="feature-disabled:dashboards-edit"
-        features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-      >
-        {t('Add to Dashboard')}
-      </Feature>
-    ),
-    disabled: disableAddToDashboard,
-    onAction: () => {
-      if (disableAddToDashboard) {
-        return undefined;
-      }
-      trackAnalytics('trace_explorer.save_as', {
-        save_type: 'dashboard',
-        ui_source: 'chart',
-        organization,
+      menuItems.push({
+        key: 'create-alert',
+        label: t('Create an alert for'),
+        children: alertsUrls ?? [],
+        disabled: !alertsUrls || alertsUrls.length === 0,
+        isSubmenu: true,
       });
-      return addToDashboard(visualizeIndex);
-    },
-  });
+    }
+
+    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+    menuItems.push({
+      key: 'add-to-dashboard',
+      textValue: t('Add to Dashboard'),
+      label: (
+        <Feature
+          hookName="feature-disabled:dashboards-edit"
+          features="organizations:dashboards-edit"
+          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+        >
+          {t('Add to Dashboard')}
+        </Feature>
+      ),
+      disabled: disableAddToDashboard,
+      onAction: () => {
+        if (disableAddToDashboard) {
+          return undefined;
+        }
+        trackAnalytics('trace_explorer.save_as', {
+          save_type: 'dashboard',
+          ui_source: 'chart',
+          organization,
+        });
+        return addToDashboard(visualizeIndex);
+      },
+    });
+
+    if (visible) {
+      menuItems.push({
+        key: 'hide-chart',
+        textValue: t('Hide Chart'),
+        label: t('Hide Chart'),
+        onAction: () => setVisible(false),
+      });
+    } else {
+      menuItems.push({
+        key: 'show-chart',
+        textValue: t('Show Chart'),
+        label: t('Show Chart'),
+        onAction: () => setVisible(true),
+      });
+    }
+
+    return menuItems;
+  }, [
+    addToDashboard,
+    organization,
+    projects,
+    pageFilters,
+    interval,
+    query,
+    visualizeIndex,
+    visualizeYAxes,
+    visible,
+    setVisible,
+  ]);
 
   if (items.length === 0) {
     return null;

@@ -1,4 +1,5 @@
-import {useCallback, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,6 +12,7 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -73,6 +75,22 @@ type NamedTimeSeries = TimeSeries & {
   seriesName?: string;
 };
 
+interface ChartInfo {
+  chartIcon: ReactNode;
+  chartType: ChartType;
+  data: NamedTimeSeries[];
+  error: QueryError | null;
+  isSampled: boolean | null;
+  loading: boolean;
+  sampleCount: number;
+  yAxes: readonly string[];
+  confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
+  formattedYAxes?: Array<string | undefined>;
+  label?: string;
+  stack?: string;
+}
+
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
@@ -83,7 +101,6 @@ export function ExploreCharts({
   hideContextMenu,
   samplingMode,
 }: ExploreChartsProps) {
-  const theme = useTheme();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
@@ -131,7 +148,9 @@ export function ExploreCharts({
     [canUsePreviousResults, timeseriesResult, previousTimeseriesResult]
   );
 
-  const chartInfos = useMemo(() => {
+  const chartInfos: ChartInfo[] = useMemo(() => {
+    const shouldRenderLabel = visualizes.length > 1;
+
     return visualizes.map((visualize, index) => {
       const dedupedYAxes = dedupeArray(visualize.yAxes);
 
@@ -152,11 +171,11 @@ export function ExploreCharts({
       const {sampleCount, isSampled, dataScanned} =
         determineSeriesSampleCountAndIsSampled(data, isTopN);
 
-      return {
+      const chartInfo: ChartInfo = {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
         stack: visualize.stack,
-        label: visualize.label,
+        label: shouldRenderLabel ? visualize.label : undefined,
         yAxes: visualize.yAxes,
         formattedYAxes,
         data,
@@ -167,6 +186,8 @@ export function ExploreCharts({
         isSampled,
         dataScanned,
       };
+
+      return chartInfo;
     });
   }, [confidences, getSeries, visualizes, isTopN]);
 
@@ -189,165 +210,236 @@ export function ExploreCharts({
     EXPLORE_CHART_GROUP
   );
 
-  const shouldRenderLabel = visualizes.length > 1;
-
   return (
     <ChartList>
       <WidgetSyncContextProvider>
         {chartInfos.map((chartInfo, index) => {
-          const Title = (
-            <ChartTitle>
-              {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
-              <Widget.WidgetTitle
-                title={chartInfo.formattedYAxes.filter(Boolean).join(', ')}
-              />
-            </ChartTitle>
-          );
-
-          if (chartInfo.loading) {
-            const loadingMessage =
-              timeseriesResult.isFetching && samplingMode === SAMPLING_MODE.HIGH_ACCURACY
-                ? t(
-                    "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
-                  )
-                : undefined;
-            return (
-              <Widget
-                key={index}
-                height={CHART_HEIGHT}
-                Title={Title}
-                Visualization={
-                  <TimeSeriesWidgetVisualization.LoadingPlaceholder
-                    loadingMessage={loadingMessage}
-                    expectMessage
-                  />
-                }
-                revealActions="always"
-              />
-            );
-          }
-
-          if (chartInfo.error) {
-            return (
-              <Widget
-                key={index}
-                height={CHART_HEIGHT}
-                Title={Title}
-                Visualization={<Widget.WidgetError error={chartInfo.error} />}
-                revealActions="always"
-              />
-            );
-          }
-
-          if (chartInfo.data.length === 0) {
-            // This happens when the `/events-stats/` endpoint returns a blank
-            // response. This is a rare error condition that happens when
-            // proxying to RPC. Adding explicit handling with a "better" message
-            return (
-              <Widget
-                key={index}
-                height={CHART_HEIGHT}
-                Title={Title}
-                Visualization={<Widget.WidgetError error={t('No data')} />}
-                revealActions="always"
-              />
-            );
-          }
-
-          const DataPlottableConstructor =
-            chartInfo.chartType === ChartType.LINE
-              ? Line
-              : chartInfo.chartType === ChartType.AREA
-                ? Area
-                : Bars;
-
           return (
-            <Widget
+            <Chart
               key={index}
-              height={CHART_HEIGHT}
-              Title={Title}
-              Actions={[
-                <Tooltip
-                  key="visualization"
-                  title={t('Type of chart displayed in this visualization (ex. line)')}
-                >
-                  <CompactSelect
-                    triggerProps={{
-                      icon: chartInfo.chartIcon,
-                      borderless: true,
-                      showChevron: false,
-                      size: 'xs',
-                    }}
-                    value={chartInfo.chartType}
-                    menuTitle="Type"
-                    options={EXPLORE_CHART_TYPE_OPTIONS}
-                    onChange={option => handleChartTypeChange(option.value, index)}
-                  />
-                </Tooltip>,
-                <Tooltip
-                  key="interval"
-                  title={t('Time interval displayed in this visualization (ex. 5m)')}
-                >
-                  <CompactSelect
-                    value={interval}
-                    onChange={({value}) => setInterval(value)}
-                    triggerProps={{
-                      icon: <IconClock />,
-                      borderless: true,
-                      showChevron: false,
-                      size: 'xs',
-                    }}
-                    menuTitle="Interval"
-                    options={intervalOptions}
-                  />
-                </Tooltip>,
-                [
-                  ...(hideContextMenu
-                    ? []
-                    : [
-                        <ChartContextMenu
-                          key="context"
-                          visualizeYAxes={chartInfo.yAxes}
-                          query={query}
-                          interval={interval}
-                          visualizeIndex={index}
-                        />,
-                      ]),
-                ],
-              ]}
-              revealActions="always"
-              Visualization={
-                <TimeSeriesWidgetVisualization
-                  plottables={chartInfo.data.map(timeSeries => {
-                    return new DataPlottableConstructor(
-                      markDelayedData(timeSeries, INGESTION_DELAY),
-                      {
-                        alias: timeSeries.seriesName,
-                        color: isTimeSeriesOther(timeSeries)
-                          ? theme.chartOther
-                          : undefined,
-                        stack: chartInfo.stack,
-                      }
-                    );
-                  })}
-                />
-              }
-              Footer={
-                <ConfidenceFooter
-                  sampleCount={chartInfo.sampleCount}
-                  isSampled={chartInfo.isSampled}
-                  confidence={chartInfo.confidence}
-                  topEvents={
-                    topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
-                  }
-                  dataScanned={chartInfo.dataScanned}
-                />
-              }
+              chartInfo={chartInfo}
+              handleChartTypeChange={handleChartTypeChange}
+              index={index}
+              interval={interval}
+              intervalOptions={intervalOptions}
+              query={query}
+              setInterval={setInterval}
+              timeseriesResult={timeseriesResult}
+              hideContextMenu={hideContextMenu}
+              samplingMode={samplingMode}
+              topEvents={topEvents}
             />
           );
         })}
       </WidgetSyncContextProvider>
     </ChartList>
+  );
+}
+
+interface ChartProps {
+  chartInfo: ChartInfo;
+  handleChartTypeChange: (chartType: ChartType, index: number) => void;
+  index: number;
+  interval: string;
+  intervalOptions: Array<{label: string; value: string}>;
+  query: string;
+  setInterval: (interval: string) => void;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  hideContextMenu?: boolean;
+  samplingMode?: SamplingMode;
+  topEvents?: number;
+}
+
+function Chart({
+  chartInfo,
+  handleChartTypeChange,
+  index,
+  interval,
+  intervalOptions,
+  query,
+  setInterval,
+  timeseriesResult,
+  hideContextMenu,
+  samplingMode,
+  topEvents,
+}: ChartProps) {
+  const theme = useTheme();
+  const [visible, setVisible] = useState(true);
+
+  const chartHeight = visible ? CHART_HEIGHT : 50;
+
+  const Title = (
+    <ChartTitle>
+      {defined(chartInfo.label) ? <ChartLabel>{chartInfo.label}</ChartLabel> : null}
+      <Widget.WidgetTitle title={chartInfo.formattedYAxes?.filter(Boolean).join(', ')} />
+    </ChartTitle>
+  );
+
+  const actions = useMemo(() => {
+    return [
+      <Tooltip
+        key="visualization"
+        title={t('Type of chart displayed in this visualization (ex. line)')}
+      >
+        <CompactSelect
+          triggerProps={{
+            icon: chartInfo.chartIcon,
+            borderless: true,
+            showChevron: false,
+            size: 'xs',
+          }}
+          value={chartInfo.chartType}
+          menuTitle="Type"
+          options={EXPLORE_CHART_TYPE_OPTIONS}
+          onChange={option => handleChartTypeChange(option.value, index)}
+        />
+      </Tooltip>,
+      <Tooltip
+        key="interval"
+        title={t('Time interval displayed in this visualization (ex. 5m)')}
+      >
+        <CompactSelect
+          value={interval}
+          onChange={({value}) => setInterval(value)}
+          triggerProps={{
+            icon: <IconClock />,
+            borderless: true,
+            showChevron: false,
+            size: 'xs',
+          }}
+          menuTitle="Interval"
+          options={intervalOptions}
+        />
+      </Tooltip>,
+      ...(hideContextMenu
+        ? []
+        : [
+            <ChartContextMenu
+              key="context"
+              visualizeYAxes={chartInfo.yAxes}
+              query={query}
+              interval={interval}
+              visualizeIndex={index}
+              visible={visible}
+              setVisible={setVisible}
+            />,
+          ]),
+    ];
+  }, [
+    chartInfo,
+    handleChartTypeChange,
+    interval,
+    setInterval,
+    intervalOptions,
+    query,
+    index,
+    hideContextMenu,
+    visible,
+    setVisible,
+  ]);
+
+  if (!visible) {
+    return (
+      <Widget
+        key={index}
+        height={chartHeight}
+        Title={Title}
+        Actions={actions}
+        revealActions="always"
+        Visualization={null}
+        Footer={null}
+      />
+    );
+  }
+
+  if (chartInfo.loading) {
+    const loadingMessage =
+      timeseriesResult.isFetching && samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+        ? t(
+            "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+          )
+        : undefined;
+    return (
+      <Widget
+        key={index}
+        height={chartHeight}
+        Title={Title}
+        Visualization={
+          <TimeSeriesWidgetVisualization.LoadingPlaceholder
+            loadingMessage={loadingMessage}
+            expectMessage
+          />
+        }
+        revealActions="always"
+      />
+    );
+  }
+
+  if (chartInfo.error) {
+    return (
+      <Widget
+        key={index}
+        height={chartHeight}
+        Title={Title}
+        Visualization={<Widget.WidgetError error={chartInfo.error} />}
+        revealActions="always"
+      />
+    );
+  }
+
+  if (chartInfo.data.length === 0) {
+    // This happens when the `/events-stats/` endpoint returns a blank
+    // response. This is a rare error condition that happens when
+    // proxying to RPC. Adding explicit handling with a "better" message
+    return (
+      <Widget
+        key={index}
+        height={chartHeight}
+        Title={Title}
+        Visualization={<Widget.WidgetError error={t('No data')} />}
+        revealActions="always"
+      />
+    );
+  }
+
+  const DataPlottableConstructor =
+    chartInfo.chartType === ChartType.LINE
+      ? Line
+      : chartInfo.chartType === ChartType.AREA
+        ? Area
+        : Bars;
+
+  return (
+    <Widget
+      key={index}
+      height={chartHeight}
+      Title={Title}
+      Actions={actions}
+      revealActions="always"
+      Visualization={
+        <TimeSeriesWidgetVisualization
+          plottables={chartInfo.data.map(timeSeries => {
+            return new DataPlottableConstructor(
+              markDelayedData(timeSeries, INGESTION_DELAY),
+              {
+                alias: timeSeries.seriesName,
+                color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                stack: chartInfo.stack,
+              }
+            );
+          })}
+        />
+      }
+      Footer={
+        <ConfidenceFooter
+          sampleCount={chartInfo.sampleCount}
+          isSampled={chartInfo.isSampled}
+          confidence={chartInfo.confidence}
+          topEvents={topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined}
+          dataScanned={chartInfo.dataScanned}
+        />
+      }
+    />
   );
 }
 
