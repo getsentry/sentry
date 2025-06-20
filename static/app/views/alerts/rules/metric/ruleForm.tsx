@@ -63,7 +63,7 @@ import {
 } from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
-import type {AlertType, MetricAlertType} from 'sentry/views/alerts/wizard/options';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
@@ -71,7 +71,6 @@ import {
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
@@ -153,7 +152,6 @@ type State = {
   sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
-  traceItemType: TraceItemDataset | null;
   triggerErrors: Map<number, Record<string, string>>;
   triggers: Trigger[];
   chartError?: boolean;
@@ -239,8 +237,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const alertType = getAlertTypeFromAggregateDataset({
       aggregate,
       dataset,
+      eventTypes: ruleEventTypes,
       organization,
-      traceItemType,
     });
 
     return {
@@ -579,7 +577,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
-        traceItemType: this.getTraceItemTypeForAlert(dataset, value as MetricAlertType),
         timeWindow:
           ['span_metrics'].includes(value as string) &&
           timeWindow === TimeWindow.ONE_MINUTE
@@ -612,11 +609,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'environment',
         'comparisonDelta',
         'alertType',
-        'traceItemType',
       ].includes(name)
     ) {
       this.setState(
-        ({dataset: _dataset, aggregate, alertType, traceItemType: _traceItemType}) => {
+        ({dataset: _dataset, aggregate, alertType, eventTypes: _eventTypes}) => {
           const dataset = this.checkOnDemandMetricsDataset(
             name === 'dataset' ? (value as Dataset) : _dataset,
             this.state.query
@@ -626,6 +622,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             const newAlertType = getAlertTypeFromAggregateDataset({
               aggregate: name === 'aggregate' ? (value as string) : aggregate,
               dataset,
+              eventTypes: _eventTypes,
               organization,
             });
 
@@ -639,6 +636,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           const newAlertType = getAlertTypeFromAggregateDataset({
             aggregate,
             dataset,
+            eventTypes: _eventTypes,
             organization,
           });
 
@@ -1160,22 +1158,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return Dataset.GENERIC_METRICS;
   };
 
-  getTraceItemTypeForAlert = (dataset: Dataset, alertType: AlertType) => {
-    if (dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM) {
-      return null;
-    }
-    if (alertType === 'trace_item_logs') {
-      return TraceItemDataset.LOGS;
-    }
-    if (alertType === 'eap_metrics') {
-      return TraceItemDataset.SPANS;
-    }
-    if (this.state.traceItemType) {
-      return this.state.traceItemType;
-    }
-    return TraceItemDataset.SPANS;
-  };
-
   // We are not allowing the creation of new transaction alerts
   determinePerformanceDataset = () => {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
@@ -1219,8 +1201,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartErrorMessage,
       confidence,
       seriesSamplingInfo,
-      traceItemType,
     } = this.state;
+
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
     if (chartError) {
       return (
@@ -1325,7 +1308,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
-      traceItemType,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1476,7 +1458,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     router={router}
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
-                    traceItemType={traceItemType}
+                    eventTypes={eventTypes}
                   />
                   <AlertListItem>{t('Set thresholds')}</AlertListItem>
                   {thresholdTypeForm(formDisabled)}

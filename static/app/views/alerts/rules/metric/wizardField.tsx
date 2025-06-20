@@ -11,7 +11,7 @@ import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -23,7 +23,6 @@ import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
   hasEAPAlerts,
@@ -37,12 +36,12 @@ type GroupedMenuOption = {label: string; options: MenuOption[]};
 type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;
   project: Project;
-  traceItemType: TraceItemDataset | null;
   alertType?: AlertType;
   /**
    * Optionally set a width for each column of selector
    */
   columnWidth?: number;
+  eventTypes?: EventTypes[];
   inFieldLabels?: boolean;
   isEditing?: boolean;
 };
@@ -52,7 +51,7 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
-  traceItemType,
+  eventTypes,
   ...fieldProps
 }: Props) {
   const isDeprecatedTransactionAlertType =
@@ -169,14 +168,6 @@ export default function WizardField({
               },
             ]
           : []),
-        ...(hasLogAlerts(organization)
-          ? [
-              {
-                label: AlertWizardAlertNames.trace_item_logs,
-                value: 'trace_item_logs' as const,
-              },
-            ]
-          : []),
 
         ...(fieldProps.isEditing && isDeprecatedTransactionAlertType
           ? [
@@ -188,6 +179,19 @@ export default function WizardField({
           : []),
       ],
     },
+    ...((hasLogAlerts(organization)
+      ? [
+          {
+            label: t('LOGS'),
+            options: [
+              {
+                label: AlertWizardAlertNames.trace_item_logs,
+                value: 'trace_item_logs' as const,
+              },
+            ],
+          },
+        ]
+      : []) as GroupedMenuOption[]),
     {
       label: t('CUSTOM'),
       options: [
@@ -255,7 +259,7 @@ export default function WizardField({
             {isEapAlertType(alertType) ? (
               <EAPField
                 aggregate={aggregate}
-                traceItemType={traceItemType}
+                eventTypes={eventTypes ?? []}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
                 }}

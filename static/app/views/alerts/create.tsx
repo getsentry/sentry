@@ -22,7 +22,6 @@ import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
-import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
   AlertType as WizardAlertType,
@@ -65,10 +64,6 @@ function Create(props: Props) {
     : undefined;
 
   const alertType = params.alertType || AlertRuleType.METRIC;
-  const traceItemType = getTraceItemTypeForDatasetAndEventType(
-    dataset,
-    eventTypes ? [eventTypes] : undefined
-  );
 
   const sessionId = useRef(uniqueId());
   const navigate = useNavigate();
@@ -132,7 +127,11 @@ function Create(props: Props) {
   let wizardAlertType: undefined | WizardAlertType;
   if (createFromWizard && alertType === AlertRuleType.METRIC) {
     wizardAlertType = wizardTemplate
-      ? getAlertTypeFromAggregateDataset({...wizardTemplate, organization, traceItemType})
+      ? getAlertTypeFromAggregateDataset({
+          ...wizardTemplate,
+          eventTypes: [wizardTemplate.eventTypes],
+          organization,
+        })
       : 'issues';
   }
 

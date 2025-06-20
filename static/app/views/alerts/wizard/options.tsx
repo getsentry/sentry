@@ -168,9 +168,15 @@ export const getAlertWizardCategories = (org: Organization) => {
           : deprecatedTransactionAggregationOptions),
 
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
-        ...(hasLogAlerts(org) ? ['trace_item_logs' as const] : []),
       ],
     });
+
+    if (hasLogAlerts(org)) {
+      result.push({
+        categoryHeading: t('Logs'),
+        options: ['trace_item_logs' as const],
+      });
+    }
 
     if (org.features.includes('uptime')) {
       result.push({

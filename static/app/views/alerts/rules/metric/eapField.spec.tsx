@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -24,7 +25,7 @@ describe('EAPField', () => {
         <EAPField
           aggregate={'count(span.duration)'}
           onChange={() => {}}
-          traceItemType={TraceItemDataset.SPANS}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
       </TraceItemAttributeProvider>
     );
@@ -57,7 +58,7 @@ describe('EAPField', () => {
         <EAPField
           aggregate={'epm()'}
           onChange={() => {}}
-          traceItemType={TraceItemDataset.SPANS}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
       </TraceItemAttributeProvider>
     );
@@ -84,7 +85,7 @@ describe('EAPField', () => {
         <EAPField
           aggregate={'failure_rate()'}
           onChange={() => {}}
-          traceItemType={TraceItemDataset.SPANS}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
       </TraceItemAttributeProvider>
     );
@@ -118,7 +119,7 @@ describe('EAPField', () => {
         <EAPField
           aggregate={'count(span.duration)'}
           onChange={onChange}
-          traceItemType={TraceItemDataset.SPANS}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
       </TraceItemAttributeProvider>
     );
@@ -147,7 +148,7 @@ describe('EAPField', () => {
           <EAPField
             aggregate={aggregate}
             onChange={setAggregate}
-            traceItemType={TraceItemDataset.SPANS}
+            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
           />
         </TraceItemAttributeProvider>
       );
@@ -180,7 +181,7 @@ describe('EAPField', () => {
           <EAPField
             aggregate={aggregate}
             onChange={setAggregate}
-            traceItemType={TraceItemDataset.SPANS}
+            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
           />
         </TraceItemAttributeProvider>
       );
@@ -215,7 +216,7 @@ describe('EAPField', () => {
         <EAPField
           aggregate={'count(message)'}
           onChange={() => {}}
-          traceItemType={TraceItemDataset.LOGS}
+          eventTypes={[EventTypes.TRACE_ITEM_LOG]}
         />
       </TraceItemAttributeProvider>
     );

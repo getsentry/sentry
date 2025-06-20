@@ -13,6 +13,8 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
+import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/rules/utils';
 import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
@@ -27,8 +29,8 @@ const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EA
 
 interface Props {
   aggregate: string;
+  eventTypes: EventTypes[];
   onChange: (value: string, meta: Record<string, any>) => void;
-  traceItemType: TraceItemDataset | null;
 }
 
 // Use the same aggregates/operations available in the explore view
@@ -46,13 +48,15 @@ const LOG_OPERATIONS = [
   },
 ] satisfies Array<{label: string; value: OurLogsAggregate}>;
 
-function EAPFieldWrapper({aggregate, onChange, traceItemType}: Props) {
-  return (
-    <EAPField aggregate={aggregate} onChange={onChange} traceItemType={traceItemType} />
-  );
+function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
+  return <EAPField aggregate={aggregate} onChange={onChange} eventTypes={eventTypes} />;
 }
 
-function EAPField({aggregate, onChange, traceItemType}: Props) {
+function EAPField({aggregate, onChange, eventTypes}: Props) {
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(
+    Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes
+  );
   // We parse out the aggregation and field from the aggregate string.
   // This only works for aggregates with <= 1 argument.
   const {

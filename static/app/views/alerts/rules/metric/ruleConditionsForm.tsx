@@ -54,7 +54,11 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
-import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
+import {
+  getProjectOptions,
+  getTraceItemTypeForDatasetAndEventType,
+  isEapAlertType,
+} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -81,6 +85,7 @@ import {
   DEFAULT_TRANSACTION_AGGREGATE,
   getTimeWindowOptions,
 } from './constants';
+import type {EventTypes} from './types';
 import {AlertRuleComparisonType, Dataset, Datasource} from './types';
 
 type Props = {
@@ -90,6 +95,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  eventTypes: EventTypes[];
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid: any) => void;
@@ -101,7 +107,6 @@ type Props = {
   tags: TagCollection;
   thresholdChart: React.ReactNode;
   timeWindow: number;
-  traceItemType: TraceItemDataset | null;
   // optional props
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
@@ -462,7 +467,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       onTimeWindowChange,
       isEditing,
-      traceItemType,
+      eventTypes,
     } = this.props;
 
     return (
@@ -494,7 +499,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               alertType={alertType}
               required
               isEditing={isEditing}
-              traceItemType={traceItemType}
+              eventTypes={eventTypes}
               disabledReason={
                 this.disableTransactionAlertType
                   ? this.transactionAlertDisabledMessage
@@ -532,7 +537,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       isLowConfidenceChartData,
       isOnDemandLimitReached,
-      traceItemType,
+      eventTypes,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -546,6 +551,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     ];
 
     const confidenceEnabled = hasEAPAlerts(organization);
+
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
     return (
       <Fragment>

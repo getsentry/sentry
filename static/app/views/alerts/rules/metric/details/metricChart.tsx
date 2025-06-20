@@ -295,7 +295,11 @@ export default function MetricChart({
           </StyledInlineContainer>
           {!isSessionAggregate(rule.aggregate) &&
             (isEapAlertType(
-              getAlertTypeFromAggregateDataset({...rule, organization, traceItemType})
+              getAlertTypeFromAggregateDataset({
+                ...rule,
+                eventTypes: rule.eventTypes,
+                organization,
+              })
             ) ? (
               <Feature features="visibility-explore-view">
                 <LinkButton size="sm" {...props}>
@@ -391,7 +395,6 @@ export default function MetricChart({
                     getAlertTypeFromAggregateDataset({
                       ...rule,
                       organization,
-                      traceItemType,
                     })
                   ]
                 }
@@ -466,7 +469,6 @@ export default function MetricChart({
       rule,
       theme,
       timePeriod,
-      traceItemType,
     ]
   );
 
