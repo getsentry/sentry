@@ -320,7 +320,12 @@ function DBQueryInjectionVulnerabilityEvidence({
 }: SpanEvidenceKeyValueListProps) {
   const evidenceData = event?.occurrence?.evidenceData ?? {};
   const formattedVulnerableParameters = evidenceData.vulnerableParameters?.map(
-    (param: string[]) => `${param[0]}: ${JSON.stringify(param[1])}`
+    (param: string[]) => {
+      if (typeof param[1] === 'object') {
+        return `${param[0]}: ${JSON.stringify(param[1])}`;
+      }
+      return `${param[0]}: ${param[1]}`;
+    }
   );
 
   // Mongo query is sanitized and not helpful to display
