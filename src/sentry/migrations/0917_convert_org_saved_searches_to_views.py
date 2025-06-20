@@ -19,6 +19,10 @@ def convert_org_saved_searches_to_views(
     org_saved_searches = SavedSearch.objects.filter(visibility=Visibility.ORGANIZATION)
 
     for saved_search in RangeQuerySetWrapperWithProgressBar(org_saved_searches):
+        # Skip saved searches that don't have an owner_id, as GroupSearchView requires a user_id
+        if saved_search.owner_id is None:
+            continue
+
         GroupSearchView.objects.update_or_create(
             organization=saved_search.organization,
             user_id=saved_search.owner_id,
