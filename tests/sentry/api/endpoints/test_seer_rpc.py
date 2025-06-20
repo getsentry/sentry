@@ -10,6 +10,7 @@ from sentry.api.endpoints.seer_rpc import (
     get_organization_seer_consent_by_org_name,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
@@ -49,27 +50,15 @@ class TestSeerRpcMethods(APITestCase):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
 
-    def _create_options_get_side_effect(self, enabled_orgs=None):
-        """Helper to create a side effect function for options.get mock"""
-
-        def side_effect(key):
-            if key == "github-extension.enabled-orgs":
-                return enabled_orgs or []
-            return []
-
-        return side_effect
-
     def test_get_organization_seer_consent_by_org_name_no_integrations(self):
         """Test when no organization integrations are found"""
         # Test with a non-existent organization name
         result = get_organization_seer_consent_by_org_name(org_name="non-existent-org")
         assert result == {"consent": False}
 
-    @patch("sentry.api.endpoints.seer_rpc.options.get")
+    @override_options({"github-extension.enabled-orgs": []})
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_no_consent(
-        self, mock_get_acknowledgement, mock_options_get
-    ):
+    def test_get_organization_seer_consent_by_org_name_no_consent(self, mock_get_acknowledgement):
         """Test when organization exists but has no consent"""
         self.create_integration(
             organization=self.organization,
@@ -79,18 +68,16 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         mock_get_acknowledgement.return_value = False
-        mock_options_get.return_value = []  # No orgs in github-extension.enabled-orgs
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": False}
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
-    @patch("sentry.api.endpoints.seer_rpc.options.get")
+    @override_options({"github-extension.enabled-orgs": []})
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_seer_acknowledgement(
-        self, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement
     ):
         """Test when organization has seer acknowledgement"""
         self.create_integration(
@@ -101,18 +88,15 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         mock_get_acknowledgement.return_value = True
-        mock_options_get.return_value = []  # No orgs in github-extension.enabled-orgs
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
-    @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_github_extension(
-        self, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement
     ):
         """Test when organization has github extension enabled"""
         self.create_integration(
@@ -123,20 +107,16 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         mock_get_acknowledgement.return_value = False
-        mock_options_get.side_effect = self._create_options_get_side_effect(
-            enabled_orgs=[self.organization.id]
-        )
 
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+        with override_options({"github-extension.enabled-orgs": [self.organization.id]}):
+            result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
-    @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_both_consents(
-        self, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement
     ):
         """Test when organization has both seer acknowledgement and github extension enabled"""
         self.create_integration(
@@ -147,20 +127,17 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         mock_get_acknowledgement.return_value = True
-        mock_options_get.side_effect = self._create_options_get_side_effect(
-            enabled_orgs=[self.organization.id]
-        )
 
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+        with override_options({"github-extension.enabled-orgs": [self.organization.id]}):
+            result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-        mock_options_get.assert_any_call("github-extension.enabled-orgs")
 
-    @patch("sentry.api.endpoints.seer_rpc.options.get")
+    @override_options({"github-extension.enabled-orgs": []})
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(
-        self, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement
     ):
         """Test when multiple organizations exist, one with consent"""
         org_without_consent = self.create_organization(owner=self.user)
@@ -182,7 +159,6 @@ class TestSeerRpcMethods(APITestCase):
 
         # First org has no consent, second org has seer acknowledgement
         mock_get_acknowledgement.side_effect = [False, True]
-        mock_options_get.return_value = []  # No orgs in github-extension.enabled-orgs
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -190,10 +166,9 @@ class TestSeerRpcMethods(APITestCase):
         # Should stop after finding first org with consent
         assert mock_get_acknowledgement.call_count == 2
 
-    @patch("sentry.api.endpoints.seer_rpc.options.get")
     @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_mixed_scenarios(
-        self, mock_get_acknowledgement, mock_options_get
+        self, mock_get_acknowledgement
     ):
         """Test mixed scenario with org without consent and org with consent"""
         org_without_consent = self.create_organization(owner=self.user)
@@ -216,11 +191,9 @@ class TestSeerRpcMethods(APITestCase):
 
         # First org has no consent, second org has github extension enabled
         mock_get_acknowledgement.side_effect = [False, False]
-        mock_options_get.side_effect = self._create_options_get_side_effect(
-            enabled_orgs=[org_with_consent.id]
-        )
 
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+        with override_options({"github-extension.enabled-orgs": [org_with_consent.id]}):
+            result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
         # Should be called twice (checks both existing orgs)
