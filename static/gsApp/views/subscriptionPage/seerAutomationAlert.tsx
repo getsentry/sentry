@@ -16,7 +16,7 @@ interface SeerAutomationAlertProps {
 
 export default function SeerAutomationAlert({organization}: SeerAutomationAlertProps) {
   const location = useLocation();
-  const isCheckoutRedirect = !!location.query.referrer; // only show this alert when redirected to this page, such as from the checkout page
+  const isRedirectedFromCheckout = !!location.query.showSeerAutomationAlert;
 
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${organization.id}:seer-automation-billing-alert`,
@@ -26,7 +26,7 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
     isDismissed ||
     !organization.features.includes('seer-added') ||
     !organization.features.includes('trigger-autofix-on-issue-summary') ||
-    !isCheckoutRedirect
+    !isRedirectedFromCheckout
   ) {
     return null;
   }

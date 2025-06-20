@@ -27,9 +27,9 @@ describe('SeerAutomationAlert', function () {
     }));
 
     mockUseLocation.mockImplementation(() => ({
-      query: {referrer: 'billing'},
+      query: {showSeerAutomationAlert: 'true'},
       pathname: '/settings/test-org/billing/overview/',
-      search: '?referrer=billing',
+      search: '?showSeerAutomationAlert=true',
       hash: '',
       state: null,
       key: 'test',
@@ -103,9 +103,9 @@ describe('SeerAutomationAlert', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not render when there is no referrer query parameter', function () {
+  it('does not render when there is no showSeerAutomationAlert query parameter', function () {
     mockUseLocation.mockImplementation(() => ({
-      query: {}, // No referrer
+      query: {}, // No showSeerAutomationAlert
       pathname: '/settings/test-org/billing/overview/',
       search: '',
       hash: '',
@@ -120,11 +120,11 @@ describe('SeerAutomationAlert', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders when there is any referrer query parameter', function () {
+  it('renders when there is a showSeerAutomationAlert query parameter', function () {
     mockUseLocation.mockImplementation(() => ({
-      query: {referrer: 'checkout'},
+      query: {showSeerAutomationAlert: 'true'},
       pathname: '/settings/test-org/billing/overview/',
-      search: '?referrer=checkout',
+      search: '?showSeerAutomationAlert=true',
       hash: '',
       state: null,
       key: 'test',
