@@ -111,7 +111,7 @@ function BreadcrumbItem({
       onShowSnippet();
       e.preventDefault();
       e.stopPropagation();
-      trackAnalytics('replay.view_html', {
+      trackAnalytics('replay.view-html', {
         organization,
         breadcrumb_type: 'category' in frame ? frame.category : 'unknown',
       });
