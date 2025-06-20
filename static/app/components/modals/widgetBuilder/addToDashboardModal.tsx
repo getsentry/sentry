@@ -31,6 +31,7 @@ import type {
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
+  DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
   DisplayType,
   MAX_WIDGETS,
@@ -47,6 +48,7 @@ import {
   type DataSet,
   NEW_DASHBOARD_ID,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -81,6 +83,7 @@ export type AddToDashboardModalProps = {
   widgetAsQueryParams: WidgetAsQueryParams;
   actions?: AddToDashboardModalActions[];
   allowCreateNewDashboard?: boolean;
+  source?: DashboardWidgetSource;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -112,6 +115,7 @@ function AddToDashboardModal({
   widgetAsQueryParams,
   actions = DEFAULT_ACTIONS,
   allowCreateNewDashboard = true,
+  source,
 }: Props) {
   const api = useApi();
   const navigate = useNavigate();
@@ -187,11 +191,18 @@ function AddToDashboardModal({
     router.push(
       normalizeUrl({
         pathname,
-        query: {
-          ...widgetAsQueryParams,
-          title: newWidgetTitle,
-          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-        },
+        query:
+          source && source === DashboardWidgetSource.DASHBOARDS
+            ? {
+                ...convertWidgetToBuilderStateParams(widget),
+                title: newWidgetTitle,
+                ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+              }
+            : {
+                ...widgetAsQueryParams,
+                title: newWidgetTitle,
+                ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+              },
       })
     );
     closeModal();
@@ -206,12 +217,15 @@ function AddToDashboardModal({
     if (!(DisplayType.AREA && widget.queries[0]!.columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
-    const query = widget.queries[0]!;
+    const queries = widget.queries.map(query => ({
+      ...query,
+      orderby,
+    }));
 
     const newWidget = {
       ...widget,
       title: newWidgetTitle,
-      queries: [{...query, orderby}],
+      queries,
     };
 
     const newDashboard = {
@@ -346,7 +360,6 @@ function AddToDashboardModal({
                     }
                     disableFullscreen
                   />
-
                   <IndexedEventsSelectionAlert widget={widget} />
                 </MEPSettingProvider>
               </DashboardsMEPProvider>

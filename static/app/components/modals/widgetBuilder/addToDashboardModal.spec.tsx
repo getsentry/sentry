@@ -358,6 +358,47 @@ describe('add to dashboard modal', () => {
     });
   });
 
+  it('navigates to the widget builder with saved filters using builder params when source is dashboards', async () => {
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={LocationFixture()}
+        source={DashboardWidgetSource.DASHBOARDS}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    await userEvent.click(screen.getByText('Open in Widget Builder'));
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
+      query: expect.objectContaining({
+        title: 'Test title',
+        description: 'Test description',
+        field: [],
+        query: [''],
+        yAxis: ['count()'],
+        sort: [''],
+        displayType: DisplayType.LINE,
+        dataset: WidgetType.ERRORS,
+        project: [1],
+        statsPeriod: '1h',
+      }),
+    });
+  });
+
   it('updates the selected dashboard with the widget when clicking Add + Stay in Discover', async () => {
     const dashboardDetailGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/1/',

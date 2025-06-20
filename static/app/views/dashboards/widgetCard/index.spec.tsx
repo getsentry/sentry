@@ -532,7 +532,16 @@ describe('Dashboards > WidgetCard', function () {
       interval: '5m',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
-      queries: [],
+      queries: [
+        {
+          conditions: '',
+          fields: [],
+          columns: [],
+          aggregates: [],
+          name: '',
+          orderby: '',
+        },
+      ],
     };
     renderWithProviders(
       <WidgetCard
@@ -560,7 +569,16 @@ describe('Dashboards > WidgetCard', function () {
       interval: '5m',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.DISCOVER,
-      queries: [],
+      queries: [
+        {
+          conditions: '',
+          fields: [],
+          columns: [],
+          aggregates: [],
+          name: '',
+          orderby: '',
+        },
+      ],
     };
     renderWithProviders(
       <WidgetCard
