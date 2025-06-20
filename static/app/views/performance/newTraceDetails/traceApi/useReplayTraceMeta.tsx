@@ -7,13 +7,13 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
 
 // Fetches the meta data for all the traces in a replay and combines the results.
 export function useReplayTraceMeta(
-  replayRecord: ReplayRecord | undefined
+  replayRecord: HydratedReplayRecord | undefined
 ): TraceMetaQueryResults {
   const organization = useOrganization();
 

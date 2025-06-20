@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import invariant from 'invariant';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
@@ -379,6 +380,11 @@ export function ReplayCell({
     );
   }
 
+  invariant(
+    replay.started_at,
+    'For TypeScript: replay.started_at is implied because replay.is_archived is false'
+  );
+
   const subText = (
     <Cols>
       <Row gap={1}>
@@ -539,7 +545,6 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
   if (name === null && version === null) {
     return (
       <Item>
-        {/* <Tag icon={<IconNot />} /> */}
         <IconNot size="xs" color="gray300" />
       </Item>
     );
@@ -567,6 +572,10 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
+  invariant(
+    replay.duration,
+    'For TypeScript: replay.duration is implied because replay.is_archived is false'
+  );
   return (
     <Item>
       <Container>
