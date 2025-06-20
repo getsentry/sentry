@@ -94,7 +94,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 {
                     "retention_days": 90,
                     "replay_id": "b",
-                    "max_segment_id": 0,
+                    "max_segment_id": None,
                     "platform": "javascript",
                 },
             ],
