@@ -92,6 +92,31 @@ export function useCreateDetector() {
   });
 }
 
+export function useUpdateDetector() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<Detector, void, NewMetricDetector & {detectorId: string}>({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/detectors/${data.detectorId}/`, {
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (_, data) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/detectors/`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/detectors/${data.detectorId}/`],
+      });
+    },
+    onError: _ => {
+      AlertStore.addAlert({type: 'error', message: t('Unable to update monitor')});
+    },
+  });
+}
+
 const makeDetectorDetailsQueryKey = ({
   orgSlug,
   detectorId,

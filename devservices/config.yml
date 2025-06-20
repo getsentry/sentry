@@ -13,6 +13,13 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
+    snuba-profiling:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes profiling consumers
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized-profiles
     relay:
       description: Service event forwarding and ingestion service
       remote:
@@ -131,7 +138,47 @@ x-sentry-service-config:
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
-    profiling: [postgres, snuba, vroom, spotlight]
+    crons:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-monitors,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        worker,
+      ]
+    profiling:
+      [
+        postgres,
+        snuba-profiling,
+        relay,
+        vroom,
+        spotlight,
+        ingest-events,
+        ingest-transactions,
+        ingest-profiles,
+        ingest-occurrences,
+        worker,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+      ]
+    ingest:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        worker,
+        ingest-events,
+        ingest-transactions,
+        ingest-attachments,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+      ]
     minimal: [postgres, snuba]
     ingest-all:
       [
@@ -190,6 +237,54 @@ x-sentry-service-config:
         taskworker-scheduler,
         worker,
       ]
+
+x-programs:
+  devserver:
+    command: sentry devserver
+  taskworker:
+    command: sentry run taskworker --autoreload
+  taskworker-scheduler:
+    command: sentry run taskworker-scheduler
+  ingest-events:
+    command: sentry run consumer ingest-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-attachments:
+    command: sentry run consumer ingest-attachments --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-transactions:
+    command: sentry run consumer ingest-transactions --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-monitors:
+    command: sentry run consumer ingest-monitors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-clock-tick:
+    command: sentry run consumer monitors-clock-tick --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-clock-tasks:
+    command: sentry run consumer monitors-clock-tasks --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-incident-occurrences:
+    command: sentry run consumer monitors-incident-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-profiles:
+    command: sentry run consumer ingest-profiles --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-occurrences:
+    command: sentry run consumer ingest-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  process-spans:
+    command: sentry run consumer process-spans --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  process-segments:
+    command: sentry run consumer process-segments --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  uptime-results:
+    command: sentry run consumer uptime-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-metrics:
+    command: sentry run consumer ingest-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-generic-metrics:
+    command: sentry run consumer ingest-generic-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  billing-metrics-consumer:
+    command: sentry run consumer billing-metrics-consumer --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-errors:
+    command: sentry run consumer post-process-forwarder-errors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-transactions:
+    command: sentry run consumer post-process-forwarder-transactions --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-issue-platform:
+    command: sentry run consumer post-process-forwarder-issue-platform --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-feedback-events:
+    command: sentry run consumer ingest-feedback-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  worker:
+    command: sentry run worker -c 1 --autoreload
 
 services:
   postgres:

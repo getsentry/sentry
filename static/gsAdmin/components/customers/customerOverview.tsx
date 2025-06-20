@@ -443,19 +443,15 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   );
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
-  const productTrialCategories = customer.canSelfServe
-    ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
-        categoryInfo =>
-          categoryInfo.canProductTrial &&
-          customer.planDetails.categories.includes(categoryInfo.plural)
-      )
-    : [];
+  const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
+    categoryInfo =>
+      categoryInfo.canProductTrial &&
+      customer.planDetails?.categories.includes(categoryInfo.plural)
+  );
 
-  const productTrialCategoryGroups = customer.canSelfServe
-    ? Object.values(customer.planDetails.availableReservedBudgetTypes).filter(
-        group => group.canProductTrial
-      )
-    : [];
+  const productTrialCategoryGroups = Object.values(
+    customer.planDetails?.availableReservedBudgetTypes || {}
+  ).filter(group => group.canProductTrial);
 
   const categoryHasActiveProductTrial = (category: DataCategory) => {
     return !!getActiveProductTrial(customer.productTrials ?? [], category);

@@ -24,7 +24,7 @@ describe('useTagsFilters', () => {
     const {result} = renderHook(useTagFilters, {
       initialProps: {tags},
     });
-    expect(Object.keys(result.current.items)).toHaveLength(9);
+    expect(Object.keys(result.current.items)).toHaveLength(10);
   });
 
   it('should filter by searchTerm', () => {

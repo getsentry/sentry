@@ -18,7 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
+import {formatQueryToNaturalLanguage, getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface Visualization {
@@ -66,9 +66,14 @@ function SeerSearchSkeleton() {
   );
 }
 
-export function SeerSearch() {
+interface SeerSearchProps {
+  initialQuery?: string;
+}
+
+export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
+  const formattedInitialQuery = formatQueryToNaturalLanguage(initialQuery);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(formattedInitialQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
 
@@ -152,13 +157,18 @@ export function SeerSearch() {
 
       const {query, visualizations, groupBys, sort, statsPeriod} = result;
 
+      const start = pageFilters.selection.datetime.start?.valueOf();
+      const end = pageFilters.selection.datetime.end?.valueOf();
+
       const selection = {
         ...pageFilters.selection,
         datetime: {
-          start: pageFilters.selection.datetime.start,
-          end: pageFilters.selection.datetime.end,
-          period: statsPeriod,
+          start: start
+            ? new Date(start).toISOString()
+            : pageFilters.selection.datetime.start,
+          end: end ? new Date(end).toISOString() : pageFilters.selection.datetime.end,
           utc: pageFilters.selection.datetime.utc,
+          period: statsPeriod || pageFilters.selection.datetime.period,
         },
       };
       const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
