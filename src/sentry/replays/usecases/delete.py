@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import concurrent.futures as cf
+import functools
 from datetime import datetime
 from typing import TypedDict
 
@@ -32,6 +33,22 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.snuba import (
+    QueryExecutionError,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    SnubaError,
+    UnexpectedResponseError,
+)
+
+SNUBA_RETRY_EXCEPTIONS = (
+    RateLimitExceeded,
+    QueryTooManySimultaneous,
+    SnubaError,
+    QueryExecutionError,
+    UnexpectedResponseError,
+)
 
 
 def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
@@ -132,10 +149,20 @@ def fetch_rows_matching_pattern(
         offset=Offset(offset),
     )
 
-    response = execute_query(
-        query,
-        {"tenant_id": Organization.objects.filter(project__id=project_id).get().id},
-        "replays.delete_replays_bulk",
+    # Queries are retried for a max for 5 attempts. Retries are exponentially delayed. This is
+    # because our most likely failure is rate limit related. Blasting Snuba with more queries will
+    # increase the chance of failure not reduce it.
+    policy = ConditionalRetryPolicy(
+        test_function=lambda a, e: a < 5 and e in SNUBA_RETRY_EXCEPTIONS,
+        delay_function=exponential_delay(1.0),
+    )
+    response = policy(
+        functools.partial(
+            execute_query,
+            query,
+            {"tenant_id": Organization.objects.filter(project__id=project_id).get().id},
+            "replays.delete_replays_bulk",
+        )
     )
 
     rows = response.get("data", [])
