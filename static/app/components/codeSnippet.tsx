@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -163,12 +164,12 @@ export function CodeSnippet({
                 </Tab>
               ))}
             </TabsWrapper>
-            <FlexSpacer />
+            <Flex.Item grow={1} />
           </Fragment>
         )}
         {icon}
         {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <FlexSpacer />}
+        {!hasTabs && <Flex.Item grow={1} />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
@@ -274,10 +275,6 @@ const Tab = styled('button')<{isSelected: boolean}>`
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}
-`;
-
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
 `;
 
 const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
