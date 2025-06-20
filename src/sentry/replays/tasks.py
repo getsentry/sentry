@@ -14,7 +14,7 @@ from sentry.replays.lib.storage import (
     storage,
     storage_kv,
 )
-from sentry.replays.models import ReplayDeletionJobModel, ReplayRecordingSegment
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel, ReplayRecordingSegment
 from sentry.replays.usecases.delete import delete_matched_rows, fetch_rows_matching_pattern
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
@@ -191,7 +191,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
 
     # If this is the first run of the task we set the model to in-progress.
     if offset == 0:
-        job.status = "in-progress"
+        job.status = DeletionJobStatus.IN_PROGRESS
         job.save()
 
     # Delete the replays within a limited range. If more replays exist an incremented offset value
@@ -225,7 +225,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         # If we've finished deleting all the replays for the selection. We can move the status to
         # completed and exit the call chain.
         job.offset = next_offset
-        job.status = "completed"
+        job.status = DeletionJobStatus.COMPLETED
         job.save()
         return None
 
