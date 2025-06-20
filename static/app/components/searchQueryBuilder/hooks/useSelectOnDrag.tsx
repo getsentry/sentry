@@ -88,17 +88,18 @@ function getItemIndexAtPosition(
 ) {
   for (const [i, key] of keys.entries()) {
     const coords = coordinates[key];
+    if (!coords) continue;
 
     // If we are above this item, we must be in between this and the
     // previous item on the row above it.
-    if (coords && y < coords.rect.top) {
+    if (y < coords.rect.top) {
       return Math.max(i - 0.5, 0);
     }
 
     // Return the index of this item if we intersect with it.
     // No need to check other coordinates because we iterate from top
     // left to bottom right.
-    if (coords && x < coords.rect.right && y <= coords.rect.bottom) {
+    if (x < coords.rect.right && y <= coords.rect.bottom) {
       return i;
     }
   }
