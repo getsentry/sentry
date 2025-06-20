@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
-    DefaultFieldsModelExisting,
+    DefaultFieldsModel,
     Model,
     region_silo_model,
     sane_repr,
@@ -22,7 +22,7 @@ class DeletionJobStatus(models.TextChoices):
 
 
 @region_silo_model
-class ReplayDeletionJobModel(DefaultFieldsModelExisting):
+class ReplayDeletionJobModel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     range_start = models.DateTimeField()
