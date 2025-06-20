@@ -373,7 +373,7 @@ const appConfig: Configuration = {
      * TODO(epurkhiser): Figure out if we still need these
      */
     new rspack.ProvidePlugin({
-      process: 'process/browser.js',
+      process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
     }),
 
@@ -485,7 +485,7 @@ const appConfig: Configuration = {
       // `pnpm why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
-      'process/browser': import.meta.resolve('process/browser'),
+      'process/browser': require.resolve('process/browser'),
     },
 
     // Prefers local modules over node_modules
