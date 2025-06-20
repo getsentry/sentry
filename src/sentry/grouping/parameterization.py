@@ -11,7 +11,6 @@ __all__ = [
     "ParameterizationCallableExperiment",
     "ParameterizationExperiment",
     "ParameterizationRegex",
-    "ParameterizationRegexExperiment",
     "Parameterizer",
     "UniqueIdExperiment",
 ]
@@ -123,7 +122,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
             |
             # Kitchen
-            (\d{1,2}:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
@@ -206,15 +205,6 @@ class ParameterizationCallableExperiment(ParameterizationCallable):
         return content
 
 
-class ParameterizationRegexExperiment(ParameterizationRegex):
-    def run(
-        self,
-        content: str,
-        callback: Callable[[re.Match[str]], str],
-    ) -> str:
-        return self.compiled_pattern.sub(callback, content)
-
-
 class _UniqueId:
     # just a namespace for the uniq_id logic, no need to instantiate
 
@@ -275,7 +265,7 @@ UniqueIdExperiment = ParameterizationCallableExperiment(
 )
 
 
-ParameterizationExperiment = ParameterizationCallableExperiment | ParameterizationRegexExperiment
+ParameterizationExperiment = ParameterizationCallableExperiment
 
 
 class Parameterizer:
@@ -355,10 +345,8 @@ class Parameterizer:
         for experiment in self._experiments:
             if not should_run(experiment.name):
                 continue
-            if isinstance(experiment, ParameterizationCallableExperiment):
-                content = experiment.run(content, _incr_counter)
-            else:
-                content = experiment.run(content, _handle_regex_match)
+
+            content = experiment.run(content, _incr_counter)
 
         return content
 
