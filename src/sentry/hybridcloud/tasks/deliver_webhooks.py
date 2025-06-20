@@ -82,6 +82,7 @@ class DeliveryFailed(Exception):
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def schedule_webhook_delivery() -> None:
@@ -157,6 +158,7 @@ def schedule_webhook_delivery() -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
+        processing_deadline_duration=300,
     ),
 )
 def drain_mailbox(payload_id: int) -> None:
@@ -234,6 +236,7 @@ def drain_mailbox(payload_id: int) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
+        processing_deadline_duration=120,
     ),
 )
 def drain_mailbox_parallel(payload_id: int) -> None:
