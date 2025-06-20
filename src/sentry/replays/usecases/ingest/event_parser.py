@@ -215,7 +215,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             method = payload["data"]["method"]
 
             # if status code is successful, ignore it
-            if status_code.startswith("2"):
+            if str(status_code).startswith("2"):
                 return None
 
             if response_size is None:

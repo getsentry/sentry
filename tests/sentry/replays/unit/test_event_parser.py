@@ -742,7 +742,7 @@ def test_as_log_message():
                 "startTimestamp": 0.0,
                 "data": {
                     "method": "GET",
-                    "statusCode": 200,
+                    "statusCode": 404,
                     "response": {"size": 0},
                 },
             },
@@ -762,7 +762,7 @@ def test_as_log_message():
                 "startTimestamp": 0.0,
                 "data": {
                     "method": "GET",
-                    "statusCode": 200,
+                    "statusCode": 404,
                     "response": {"wrong": "wrong"},
                 },
             },
@@ -772,6 +772,28 @@ def test_as_log_message():
     result = as_log_message(event)
     assert result is not None
     assert "unknown" not in result
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "description": "https://www.z.com/path?q=true",
+                "endTimestamp": 0.0,
+                "startTimestamp": 0.0,
+                "data": {
+                    "method": "GET",
+                    "statusCode": 200,
+                    "response": {"size": 0},
+                },
+            },
+        },
+    }
+
+    result = as_log_message(event)
+    assert result is None
 
     event = {
         "type": 5,
