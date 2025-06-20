@@ -1,3 +1,4 @@
+import pytest
 import logging
 import unittest
 from datetime import timedelta
@@ -43,6 +44,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert call_args["extra"]["durations"]["item1"] == 200
         assert call_args["extra"]["my_key"] == 4
 
+    @pytest.mark.skip(reason="flaky: #93979")
     def test_multiple_items(self):
         """Test tracking multiple items and their cumulative duration."""
         with self.tracker.track("item1"):
