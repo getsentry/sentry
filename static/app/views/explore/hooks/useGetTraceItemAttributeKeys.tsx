@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
@@ -13,7 +13,6 @@ import type {
 } from 'sentry/views/explore/types';
 
 interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
-  datetime?: PageFilters['datetime'];
   projectIds?: Array<string | number>;
 }
 
@@ -27,82 +26,35 @@ type TraceItemAttributeKeyOptions = Pick<
   substringMatch?: string;
 };
 
-function makeTraceItemAttributeKeysQueryOptions({
+export function makeTraceItemAttributeKeysQueryOptions({
   traceItemType,
   type,
   datetime,
   projectIds,
   search,
 }: {
+  datetime: PageFilters['datetime'];
   traceItemType: TraceItemDataset;
   type: 'string' | 'number';
-  datetime?: PageFilters['datetime'];
   projectIds?: Array<string | number>;
   search?: string;
 }): TraceItemAttributeKeyOptions {
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
+    project: projectIds?.map(String),
+    substringMatch: search,
+    ...normalizeDateTimeParams(datetime),
   };
 
-  if (search) {
-    options.substringMatch = search;
-  }
-
-  if (projectIds?.length) {
-    options.project = projectIds.map(String);
-  }
-
-  if (datetime) {
-    const {end, start, statsPeriod, utc} = normalizeDateTimeParams(datetime);
-    if (end) {
-      options.end = end;
-    }
-    if (start) {
-      options.start = start;
-    }
-    if (statsPeriod) {
-      options.statsPeriod = statsPeriod;
-    }
-    if (utc) {
-      options.utc = utc;
-    }
-  }
-
   // environment left out intentionally as it's not supported
+
   return options;
-}
-
-export function useTraceItemAttributeKeysQueryOptions({
-  traceItemType,
-  type,
-  datetime,
-  projectIds,
-  search,
-}: {
-  traceItemType: TraceItemDataset;
-  type: 'string' | 'number';
-  datetime?: PageFilters['datetime'];
-  projectIds?: Array<string | number>;
-  search?: string;
-}): TraceItemAttributeKeyOptions {
-  const {selection} = usePageFilters();
-
-  return useMemo(() => {
-    return makeTraceItemAttributeKeysQueryOptions({
-      traceItemType,
-      type,
-      datetime: datetime ?? selection.datetime,
-      projectIds: projectIds ?? selection.projects,
-      search,
-    });
-  }, [selection, traceItemType, type, datetime, projectIds, search]);
 }
 
 export function useGetTraceItemAttributeKeys({
   traceItemType,
   projectIds,
-  datetime,
   type,
 }: UseGetTraceItemAttributeKeysProps) {
   const api = useApi();
@@ -110,53 +62,55 @@ export function useGetTraceItemAttributeKeys({
   const {selection} = usePageFilters();
 
   const getTraceItemAttributeKeys = useCallback(
-    async (queryString: string): Promise<TagCollection> => {
+    async (queryString?: string): Promise<TagCollection> => {
       const options = makeTraceItemAttributeKeysQueryOptions({
         traceItemType,
         type,
-        datetime: datetime ?? selection.datetime,
+        datetime: selection.datetime,
         projectIds: projectIds ?? selection.projects,
         search: queryString,
       });
 
+      let result: Tag[];
+
       try {
-        const result = await api.requestPromise(
+        result = await api.requestPromise(
           `/organizations/${organization.slug}/trace-items/attributes/`,
           {
             method: 'GET',
             query: options,
           }
         );
-
-        const attributes: TagCollection = {};
-
-        for (const attribute of result ?? []) {
-          if (isKnownAttribute(attribute)) {
-            continue;
-          }
-
-          // EAP spans contain tags with illegal characters
-          // SnQL forbids `-` but is allowed in RPC. So add it back later
-          if (
-            !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
-            !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
-          ) {
-            continue;
-          }
-
-          attributes[attribute.key] = {
-            key: attribute.key,
-            name: attribute.name,
-            kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
-          };
-        }
-
-        return attributes;
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
+
+      const attributes: TagCollection = {};
+
+      for (const attribute of result ?? []) {
+        if (isKnownAttribute(attribute)) {
+          continue;
+        }
+
+        // EAP spans contain tags with illegal characters
+        // SnQL forbids `-` but is allowed in RPC. So add it back later
+        if (
+          !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
+          !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
+        ) {
+          continue;
+        }
+
+        attributes[attribute.key] = {
+          key: attribute.key,
+          name: attribute.name,
+          kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
+        };
+      }
+
+      return attributes;
     },
-    [api, organization, selection, traceItemType, projectIds, datetime, type]
+    [api, organization, selection, traceItemType, projectIds, type]
   );
 
   return getTraceItemAttributeKeys;

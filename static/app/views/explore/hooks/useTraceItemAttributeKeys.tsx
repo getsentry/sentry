@@ -3,10 +3,11 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
+  makeTraceItemAttributeKeysQueryOptions,
   useGetTraceItemAttributeKeys,
-  useTraceItemAttributeKeysQueryOptions,
 } from 'sentry/views/explore/hooks/useGetTraceItemAttributeKeys';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 
@@ -20,11 +21,20 @@ export function useTraceItemAttributeKeys({
   traceItemType,
   projects,
 }: UseTraceItemAttributeKeysProps) {
-  const queryOptions = useTraceItemAttributeKeysQueryOptions({
-    traceItemType,
-    type,
-    projectIds: defined(projects) ? projects.map(project => project.id) : undefined,
-  });
+  const {selection} = usePageFilters();
+
+  const projectIds = defined(projects)
+    ? projects.map(project => project.id)
+    : selection.projects;
+
+  const queryOptions = useMemo(() => {
+    return makeTraceItemAttributeKeysQueryOptions({
+      traceItemType,
+      type,
+      datetime: selection.datetime,
+      projectIds,
+    });
+  }, [selection, traceItemType, type, projectIds]);
 
   const queryKey = useMemo(
     () => ['use-trace-item-attribute-keys', queryOptions],
@@ -34,19 +44,20 @@ export function useTraceItemAttributeKeys({
   const getTraceItemAttributeKeys = useGetTraceItemAttributeKeys({
     traceItemType,
     type,
-    projectIds: defined(projects) ? projects.map(project => project.id) : undefined,
+    projectIds,
   });
 
-  const {data, isFetching} = useQuery<TagCollection>({
+  const {data, isFetching, error} = useQuery<TagCollection>({
     enabled,
     queryKey,
-    queryFn: () => getTraceItemAttributeKeys(''),
+    queryFn: () => getTraceItemAttributeKeys(),
   });
 
   const previous = usePrevious(data, isFetching);
 
   return {
     attributes: isFetching ? previous : data,
+    error,
     isLoading: isFetching,
   };
 }
