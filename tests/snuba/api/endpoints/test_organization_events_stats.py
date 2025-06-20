@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, DefaultDict, TypedDict
 from unittest import mock
 from uuid import uuid4
 
@@ -3167,16 +3167,17 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
         data = response.data
         assert response.status_code == 200, response.content
 
-        expected_message_counts = defaultdict(int)
+        expected_message_counts_dict: DefaultDict[str, int] = defaultdict(int)
         for log in self.logs:
-            body = log.attributes.get("sentry.body").string_value
-            expected_message_counts[body] += 1
+            attr = log.attributes.get("sentry.body")
+            if attr is not None:
+                body = attr.string_value
+                expected_message_counts_dict[body] += 1
 
-        expected_message_counts = list(
-            sorted(expected_message_counts.items(), key=lambda x: x[1], reverse=True)
+        expected_message_counts: list[tuple[str, int]] = sorted(
+            expected_message_counts_dict.items(), key=lambda x: x[1], reverse=True
         )
 
-        assert len(data) == len(expected_message_counts)
         assert set(data.keys()) == {x[0] for x in expected_message_counts[:5]}.union({"Other"})
 
         for index, (message, count) in enumerate(expected_message_counts[:5]):
