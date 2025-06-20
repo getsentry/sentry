@@ -5,7 +5,7 @@ import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AGENTS_LANDING_SUB_PATH,
@@ -75,7 +75,7 @@ export function InsightsSecondaryNav() {
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
 
-          <AgentInsightsFeature
+          <AIInsightsFeature
             organization={organization}
             renderDisabled={() => (
               <SecondaryNav.Item
@@ -92,7 +92,7 @@ export function InsightsSecondaryNav() {
             >
               {AGENTS_SIDEBAR_LABEL}
             </SecondaryNav.Item>
-          </AgentInsightsFeature>
+          </AIInsightsFeature>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-monitors">
           <SecondaryNav.Item to={`${baseUrl}/crons/`} analyticsItemName="insights_crons">
