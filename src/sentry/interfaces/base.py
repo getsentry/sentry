@@ -115,7 +115,20 @@ class Interface:
         if data is None:
             return None
 
-        return cls(**data)
+        # Handle 'self' key collision by renaming it to avoid conflicts with Python's implicit self parameter
+        processed_data = dict(data)
+
+        if "self" in processed_data:
+            original_self_value = processed_data.pop("self")
+            new_key_base = "payload_self"
+            new_key = new_key_base
+            counter = 0
+            while new_key in processed_data:
+                counter += 1
+                new_key = f"{new_key_base}_{counter}"
+            processed_data[new_key] = original_self_value
+
+        return cls(**processed_data)
 
     def get_raw_data(self):
         """Returns the underlying raw data."""
