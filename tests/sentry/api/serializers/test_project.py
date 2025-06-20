@@ -809,9 +809,9 @@ class DetailedProjectSerializerTest(TestCase):
         assert result["options"]["sentry:toolbar_allowed_origins"].split("\n") == origins
 
     def test_autofix_automation_tuning_flag(self):
-        # Default is "off"
+        # Default is "low"
         result = serialize(self.project, self.user, DetailedProjectSerializer())
-        assert result["autofixAutomationTuning"] == "off"
+        assert result["autofixAutomationTuning"] == "low"
 
         # Update the value
         self.project.update_option("sentry:autofix_automation_tuning", "high")
