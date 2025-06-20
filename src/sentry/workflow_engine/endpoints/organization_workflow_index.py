@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -35,6 +35,7 @@ SORT_COL_MAP = {
     "dateUpdated": "date_updated",
     "connectedDetectors": "connected_detectors",
     "actions": "actions",
+    "lastTriggered": "last_triggered",
 }
 
 
@@ -132,6 +133,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     actions=Count(
                         "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action",
                     )
+                )
+            case "last_triggered":
+                queryset = queryset.annotate(
+                    last_triggered=Max("workflowfirehistory__date_added"),
                 )
 
         queryset = queryset.order_by(*sort_by.db_order_by)

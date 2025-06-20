@@ -376,13 +376,12 @@ class WorkflowSerializer(Serializer):
             )
         }
 
-        last_triggered_map = dict(
+        last_triggered_map: dict[int, datetime] = dict(
             WorkflowFireHistory.objects.filter(
                 workflow__in=item_list,
             )
-            .values_list("workflow_id", "date_added")
-            .group_by("workflow_id")
-            .aggregate(last_triggered=Max("date_added"))
+            .annotate(last_triggered=Max("date_added"))
+            .values_list("workflow_id", "last_triggered")
         )
 
         wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))

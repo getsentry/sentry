@@ -21,6 +21,7 @@ from sentry.workflow_engine.endpoints.serializers import (
 )
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -387,6 +388,7 @@ class TestWorkflowSerializer(TestCase):
             "environment": None,
             "detectorIds": [],
             "enabled": workflow.enabled,
+            "lastTriggered": None,
         }
 
     def test_serialize_full(self):
@@ -438,6 +440,12 @@ class TestWorkflowSerializer(TestCase):
         self.create_detector_workflow(
             detector=detector,
             workflow=workflow,
+        )
+        history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            date_added=workflow.date_added + timedelta(seconds=1),
         )
 
         result = serialize(workflow)
@@ -491,6 +499,7 @@ class TestWorkflowSerializer(TestCase):
             "environment": self.environment.name,
             "detectorIds": [str(detector.id)],
             "enabled": workflow.enabled,
+            "lastTriggered": history.date_added,
         }
 
 
