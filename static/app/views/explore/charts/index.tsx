@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -133,7 +132,7 @@ export function ExploreCharts({
 
   const chartInfos = useMemo(() => {
     return visualizes.map((visualize, index) => {
-      const dedupedYAxes = dedupeArray(visualize.yAxes);
+      const dedupedYAxes = [visualize.yAxis];
 
       const formattedYAxes = dedupedYAxes.map(yaxis => {
         const func = parseFunction(yaxis);
@@ -157,7 +156,7 @@ export function ExploreCharts({
         chartType: visualize.chartType,
         stack: visualize.stack,
         label: visualize.label,
-        yAxes: visualize.yAxes,
+        yAxes: [visualize.yAxis],
         formattedYAxes,
         data,
         error,

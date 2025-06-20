@@ -81,9 +81,7 @@ function useExploreTimeseriesImpl({
       return [];
     }
 
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
+    return [...groupBys, ...visualizes.map(visualize => visualize.yAxis)].filter(Boolean);
   }, [mode, groupBys, visualizes]);
 
   const orderby: string | string[] | undefined = useMemo(() => {
@@ -95,7 +93,7 @@ function useExploreTimeseriesImpl({
   }, [sortBys]);
 
   const yAxes = useMemo(() => {
-    const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
+    const deduped = dedupeArray(visualizes.map(visualize => visualize.yAxis));
     deduped.sort();
     return deduped;
   }, [visualizes]);
@@ -173,7 +171,7 @@ function _checkCanQueryForMoreData(
   isTopN: boolean
 ) {
   return visualizes.some(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return dataScanned === 'partial';
