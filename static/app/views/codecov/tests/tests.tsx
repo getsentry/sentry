@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
-import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
+import {DateSelector} from 'sentry/components/codecov/datePicker/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/codecov/repoSelector/repoSelector';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -29,7 +29,7 @@ export default function TestsPage() {
         <IntegratedOrgSelector />
         <RepoSelector />
         <BranchSelector />
-        <DatePicker />
+        <DateSelector />
       </PageFilterBar>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />
