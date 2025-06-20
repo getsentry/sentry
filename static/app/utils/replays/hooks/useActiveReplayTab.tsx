@@ -10,6 +10,7 @@ export enum TabKey {
   NETWORK = 'network',
   TAGS = 'tags',
   TRACE = 'trace',
+  FLOWS = 'flows',
 }
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
@@ -20,6 +21,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
     TabKey.NETWORK,
     TabKey.CONSOLE,
     TabKey.TRACE,
+    TabKey.FLOWS,
   ];
 
   if (isVideoReplay) {
