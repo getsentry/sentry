@@ -603,7 +603,7 @@ register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIA
 register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per hour)
 register(
-    "seer.max_num_scanner_autotriggered_per_hour", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "seer.max_num_scanner_autotriggered_per_hour", default=2500, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Codecov Integration
