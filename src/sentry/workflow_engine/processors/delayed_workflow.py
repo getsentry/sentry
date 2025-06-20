@@ -580,7 +580,7 @@ def fire_actions_for_groups(
                     extra={
                         "workflow_ids": [workflow.id for workflow in workflows],
                         "actions": [action.id for action in filtered_actions],
-                        "event_data": event_data,
+                        "event_data": workflow_event_data,
                         "event_id": workflow_event_data.event.event_id,
                     },
                 )
