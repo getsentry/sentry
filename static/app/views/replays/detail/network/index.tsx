@@ -46,6 +46,8 @@ const cellMeasurer = {
 export default function NetworkList() {
   const organization = useOrganization();
   const {currentTime, replay} = useReplayContext();
+  // eslint-disable-next-line no-console
+  console.log({replay});
   const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
