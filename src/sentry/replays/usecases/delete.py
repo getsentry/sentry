@@ -30,6 +30,7 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
         delete_replay_recordings(project_id, row)
 
     delete_replays(project_id, [row["replay_id"] for row in rows])
+    return None
 
 
 def delete_replays(project_id: int, replay_ids: list[str]) -> None:
