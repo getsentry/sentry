@@ -377,18 +377,18 @@ export function getMenuOptions(
     });
   }
 
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
-
-  const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
-    eventView,
-    organization,
-    yAxis: eventView.yAxis,
-    location,
-    widgetType: widget.widgetType,
-    source: DashboardWidgetSource.DASHBOARDS,
-  });
-
   if (organization.features.includes('dashboards-edit')) {
+    const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+
+    const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
+      eventView,
+      organization,
+      yAxis: eventView.yAxis,
+      location,
+      widgetType: widget.widgetType,
+      source: DashboardWidgetSource.DASHBOARDS,
+    });
+
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
