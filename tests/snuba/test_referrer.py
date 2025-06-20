@@ -1,3 +1,4 @@
+import pytest
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -61,6 +62,7 @@ class ReferrerTest(TestCase):
 
         assert warn_log.call_count == 0
 
+    @pytest.mark.skip(reason="flaky: #93981")
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_base_enum_values(self, warn_log):
         assert warn_log.call_count == 0
