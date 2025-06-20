@@ -382,7 +382,7 @@ export function ReplayCell({
 
   invariant(
     replay.started_at,
-    'replay.started_at is implied because replay.is_archived is false, '
+    'For TypeScript: replay.started_at is implied because replay.is_archived is false'
   );
 
   const subText = (
@@ -545,7 +545,6 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
   if (name === null && version === null) {
     return (
       <Item>
-        {/* <Tag icon={<IconNot />} /> */}
         <IconNot size="xs" color="gray300" />
       </Item>
     );
@@ -575,7 +574,7 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
   }
   invariant(
     replay.duration,
-    'replay.duration is implied because replay.is_archived is false, '
+    'For TypeScript: replay.duration is implied because replay.is_archived is false'
   );
   return (
     <Item>
