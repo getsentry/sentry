@@ -393,16 +393,15 @@ class GoogleCloudStorage(Storage):
 class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
     """Google cloud storage class with replay upload policy."""
 
-    # "try_del" and "try_get" inherit the default behavior. We don't want to exponentially
-    # wait in those contexts. We're maintaining the status-quo for now but in the future we
-    # can add policies for these methods or use no policy at all and implement retries at a
-    # higher, more contextual level.
+    # "try_get" inherits the default behavior. We don't want to exponentially wait in that
+    # context. We're maintaining the status-quo for now but in the future we can add policies for
+    # these methods or use no policy at all and implement retries at a higher, more contextual
+    # level.
     #
-    # def try_del(self, callable: Callable[[], None]) -> None:
     # def try_get(self, callable: Callable[[], None]) -> None:
 
-    def try_set(self, callable: Callable[[], None]) -> None:
-        """Upload a blob with exponential delay for a maximum of five attempts."""
+    def create_retry_policy(self):
+        """Retry an action with sigmoid delay for a maximum of five attempts."""
 
         def should_retry(attempt: int, e: Exception) -> bool:
             """Retry gateway timeout exceptions up to the limit."""
@@ -410,5 +409,12 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
 
         # Retry cadence: After a brief period of fast retries the function will retry once
         # per second for two minutes.
-        policy = ConditionalRetryPolicy(should_retry, sigmoid_delay())
+        return ConditionalRetryPolicy(should_retry, sigmoid_delay())
+
+    def try_set(self, callable: Callable[[], None]) -> None:
+        policy = self.create_retry_policy()
+        policy(callable)
+
+    def try_del(self, callable: Callable[[], None]) -> None:
+        policy = self.create_retry_policy()
         policy(callable)
