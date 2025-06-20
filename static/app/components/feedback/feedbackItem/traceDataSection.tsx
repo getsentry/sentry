@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -65,13 +65,18 @@ export default function TraceDataSection({
   }
 
   return (
-    <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
+    <FeedbackItemSection
+      collapsible
+      icon={<IconSpan size="xs" />}
+      sectionKey="trace"
+      title={t('Data From The Same Trace')}
+    >
       {isLoading ? (
         <Placeholder height="114px" />
       ) : (
         <IssuesTraceDataSection event={eventData} />
       )}
-    </Section>
+    </FeedbackItemSection>
   );
 }
 
