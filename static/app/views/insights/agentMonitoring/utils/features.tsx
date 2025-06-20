@@ -25,6 +25,7 @@ export function usePreferedAiModule() {
   if (!hasAgentInsightsFeature(organization)) {
     return 'llm-monitoring';
   }
+
   return user.options.prefersAgentsInsightsModule ? 'agents-insights' : 'llm-monitoring';
 }
 
