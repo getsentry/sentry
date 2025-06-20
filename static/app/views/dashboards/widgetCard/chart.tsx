@@ -60,6 +60,7 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -137,7 +138,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection, minTableColumnWidth} = this.props;
+    const {location, widget, selection, minTableColumnWidth, organization} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -148,11 +149,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const getCustomFieldRenderer = (
       field: string,
       meta: MetaType,
-      organization?: Organization
+      org?: Organization
     ) => {
-      return (
-        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-      );
+      return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
     };
 
     return tableResults.map((result, i) => {
@@ -162,23 +161,36 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
       return (
         <TableWrapper key={`table:${result.title}`}>
-          <StyledSimpleTableChart
-            eventView={eventView}
-            fieldAliases={fieldAliases}
-            location={location}
-            fields={fields}
-            title={tableResults.length > 1 ? result.title : ''}
-            // Bypass the loading state for span widgets because this renders the loading placeholder
-            // and we want to show the underlying data during preflight instead
-            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
-            loader={<LoadingPlaceholder />}
-            metadata={result.meta}
-            data={result.data}
-            stickyHeaders
-            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={getCustomFieldRenderer}
-            minColumnWidth={minTableColumnWidth}
-          />
+          {organization.features.includes('use-table-widget-visualization') ? (
+            <TableWidgetVisualization
+              columns={[]}
+              tableData={{
+                data: [],
+                meta: {
+                  fields: {},
+                  units: {},
+                },
+              }}
+            />
+          ) : (
+            <StyledSimpleTableChart
+              eventView={eventView}
+              fieldAliases={fieldAliases}
+              location={location}
+              fields={fields}
+              title={tableResults.length > 1 ? result.title : ''}
+              // Bypass the loading state for span widgets because this renders the loading placeholder
+              // and we want to show the underlying data during preflight instead
+              loading={widget.widgetType === WidgetType.SPANS ? false : loading}
+              loader={<LoadingPlaceholder />}
+              metadata={result.meta}
+              data={result.data}
+              stickyHeaders
+              fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
+              getCustomFieldRenderer={getCustomFieldRenderer}
+              minColumnWidth={minTableColumnWidth}
+            />
+          )}
         </TableWrapper>
       );
     });
