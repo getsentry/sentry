@@ -1,12 +1,6 @@
-from unittest import mock
-
 import pytest
 
-from sentry.grouping.parameterization import (
-    ParameterizationRegexExperiment,
-    Parameterizer,
-    UniqueIdExperiment,
-)
+from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
@@ -225,43 +219,6 @@ def test_parameterize_experiment(name, input, expected, parameterizer):
         experiments = parameterizer.get_successful_experiments()
         assert len(experiments) == 1
         assert experiments[0] == UniqueIdExperiment
-
-
-def test_parameterize_regex_experiment():
-    """
-    We don't have any of these yet, but we need to test that they work
-    """
-    FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
-
-    parameterizer = Parameterizer(
-        regex_pattern_keys=(),
-        experiments=(FooExperiment,),
-    )
-    input_str = "blah foobarbaz fooooo"
-    normalized = parameterizer.parameterize_all(input_str)
-    assert normalized == "blah <foo>barbaz <foo>ooo"
-    assert len(parameterizer.get_successful_experiments()) == 1
-    assert parameterizer.get_successful_experiments()[0] == FooExperiment
-
-
-def test_parameterize_regex_experiment_cached_compiled():
-
-    with mock.patch.object(
-        ParameterizationRegexExperiment,
-        "pattern",
-        new_callable=mock.PropertyMock,
-        return_value=r"(?P<foo>f[oO]{2})",
-    ) as mocked_pattern:
-        FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
-        parameterizer = Parameterizer(
-            regex_pattern_keys=(),
-            experiments=(FooExperiment,),
-        )
-        input_str = "blah foobarbaz fooooo"
-        _ = parameterizer.parameterize_all(input_str)
-        _ = parameterizer.parameterize_all(input_str)
-
-    mocked_pattern.assert_called_once()
 
 
 # These are test cases that we should fix
