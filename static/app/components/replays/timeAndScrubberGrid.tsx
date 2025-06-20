@@ -37,7 +37,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   const handleZoomOut = useCallback(() => {
     const newScale = Math.max(timelineScale - 1, 1);
     setTimelineScale(newScale);
-    trackAnalytics('replay.timeline.zoom_out', {
+    trackAnalytics('replay.timeline.zoom-out', {
       organization,
     });
   }, [timelineScale, setTimelineScale, organization]);
@@ -45,7 +45,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   const handleZoomIn = useCallback(() => {
     const newScale = Math.min(timelineScale + 1, maxScale);
     setTimelineScale(newScale);
-    trackAnalytics('replay.timeline.zoom_in', {
+    trackAnalytics('replay.timeline.zoom-in', {
       organization,
     });
   }, [timelineScale, maxScale, setTimelineScale, organization]);
