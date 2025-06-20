@@ -7,13 +7,13 @@ from sentry.grouping.parameterization import (
     Parameterizer,
     UniqueIdExperiment,
 )
-from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS_WITH_TRACEPARENT
+from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture
 def parameterizer():
     return Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS_WITH_TRACEPARENT,
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
         experiments=(UniqueIdExperiment,),
     )
 
