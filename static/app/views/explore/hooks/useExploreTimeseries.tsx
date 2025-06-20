@@ -102,9 +102,7 @@ function useExploreTimeseriesImpl({
     // confidence footer as a fallback
     allYAxes.push(DEFAULT_VISUALIZATION);
 
-    const deduped = dedupeArray(allYAxes);
-    deduped.sort();
-    return deduped;
+    return dedupeArray(allYAxes).sort();
   }, [visualizes]);
 
   const options = useMemo(() => {

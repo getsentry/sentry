@@ -181,24 +181,24 @@ export function ExploreCharts({
         dataScanned,
       } = getChartInfo(visualize.yAxes);
 
-      let fallbackSampleCount = undefined;
-      let fallbackIsSampled = undefined;
-      let fallbackDataScanned = undefined;
-      let fallbackConfidence = undefined;
+      let overrideSampleCount = undefined;
+      let overrideIsSampled = undefined;
+      let overrideDataScanned = undefined;
+      let overrideConfidence = undefined;
 
       // This implies that the sampling meta data is not available.
-      // When this happens, we fall back to using the sampling meta
+      // When this happens, we override it with the sampling meta
       // data from the DEFAULT_VISUALIZATION.
       if (sampleCount === 0 && !defined(isSampled)) {
         const chartInfo = getChartInfo([DEFAULT_VISUALIZATION]);
-        fallbackSampleCount = chartInfo.sampleCount;
-        fallbackIsSampled = chartInfo.isSampled;
-        fallbackDataScanned = chartInfo.dataScanned;
+        overrideSampleCount = chartInfo.sampleCount;
+        overrideIsSampled = chartInfo.isSampled;
+        overrideDataScanned = chartInfo.dataScanned;
 
         const series = dedupedYAxes
           .flatMap(yAxis => timeseriesResult.data[yAxis])
           .filter(defined);
-        fallbackConfidence = combineConfidenceForSeries(series);
+        overrideConfidence = combineConfidenceForSeries(series);
       }
 
       return {
@@ -211,10 +211,10 @@ export function ExploreCharts({
         data,
         error,
         loading,
-        confidence: fallbackConfidence ?? confidences[index],
-        sampleCount: fallbackSampleCount ?? sampleCount,
-        isSampled: fallbackIsSampled ?? isSampled,
-        dataScanned: fallbackDataScanned ?? dataScanned,
+        confidence: overrideConfidence ?? confidences[index],
+        sampleCount: overrideSampleCount ?? sampleCount,
+        isSampled: overrideIsSampled ?? isSampled,
+        dataScanned: overrideDataScanned ?? dataScanned,
       };
     });
   }, [confidences, getChartInfo, visualizes, timeseriesResult]);
