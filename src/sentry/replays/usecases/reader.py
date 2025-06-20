@@ -285,6 +285,7 @@ def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
     if result is not None:
         video, _ = result
         return video
+    return None
 
 
 def _download_segment(
