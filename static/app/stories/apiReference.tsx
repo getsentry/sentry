@@ -21,8 +21,7 @@ export function APIReference(props: APIReferenceProps) {
 
   return (
     <Storybook.Section>
-      <Storybook.Title>API Reference</Storybook.Title>
-      <p>{props.types?.description}</p>
+      {props.types?.description && <p>{props.types.description}</p>}
       <StoryTypesSearchContainer>
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
