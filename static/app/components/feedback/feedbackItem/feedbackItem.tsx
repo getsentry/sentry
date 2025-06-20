@@ -7,7 +7,7 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
-import {EventTags} from 'sentry/components/events/eventTags';
+import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
@@ -124,7 +124,11 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
               sectionKey="tags"
               title={t('Tags')}
             >
-              <EventTags projectSlug={feedbackItem.project.slug} event={eventData} />
+              <EventTagsTree
+                event={eventData}
+                projectSlug={feedbackItem.project.slug}
+                tags={eventData.tags}
+              />
             </FeedbackItemSection>
           ) : null}
 
