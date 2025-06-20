@@ -363,7 +363,7 @@ function AutofixHighlightPopupContent({
             onChange={e => setComment(e.target.value)}
             maxLength={4096}
             size="sm"
-            autoFocus
+            autoFocus={!isAgentComment}
             maxRows={5}
             autosize
             onKeyDown={e => {
