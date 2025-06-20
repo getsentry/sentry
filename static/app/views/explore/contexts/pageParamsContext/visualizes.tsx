@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -35,6 +35,7 @@ export interface BaseVisualize {
 }
 
 export class Visualize {
+  isEquation: boolean;
   chartType: ChartType;
   label: string;
   yAxis: string;
@@ -45,6 +46,7 @@ export class Visualize {
     this.yAxis = yAxis;
     this.label = options?.label || '';
     this.selectedChartType = options?.chartType;
+    this.isEquation = isEquation(yAxis);
     this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
     this.stack = 'all';
   }
