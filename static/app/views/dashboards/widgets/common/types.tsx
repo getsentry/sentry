@@ -73,6 +73,13 @@ export type TabularData<TFields extends string = string> = {
   meta: TabularMeta<TFields>;
 };
 
+export type TabularColumn<TFields extends string = string> = {
+  key: TFields;
+  name: TFields;
+  type?: AttributeValueType;
+  width?: number;
+};
+
 type ErrorProp = Error | string;
 export interface ErrorPropWithResponseJSON extends Error {
   responseJSON?: {detail: string};
