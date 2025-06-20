@@ -1,0 +1,14 @@
+name: feature.organizations:agents-insights
+owner: agents-team
+created_at: '2025-01-22'
+segments:
+  - name: "enabled-organizations"
+    rollout: 100
+    conditions:
+      - property: organization_slug
+        operator: in
+        value:
+          - "ogis-sentry"
+  - name: "default"
+    rollout: 0
+    conditions: []
