@@ -11,17 +11,17 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
-    AbstractDataConditionValidator,
+    BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
-class MetricIssueComparisonConditionValidator(
-    AbstractDataConditionValidator[float, DetectorPriorityLevel]
-):
-    supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
+class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
+    supported_conditions = frozenset(
+        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+    )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
     )
@@ -37,13 +37,19 @@ class MetricIssueComparisonConditionValidator(
 
         return type
 
-    def validate_comparison(self, value: float | int | str) -> float:
-        try:
-            value = float(value)
-        except ValueError:
-            raise serializers.ValidationError("A valid number is required.")
+    def validate_comparison(self, value: dict | float | int | str) -> float | dict:
+        if isinstance(value, (float, int)):
+            try:
+                value = float(value)
+            except ValueError:
+                raise serializers.ValidationError("A valid number is required.")
+            return value
 
-        return value
+        elif isinstance(value, dict):
+            return super().validate_comparison(value)
+
+        else:
+            raise serializers.ValidationError("A valid number or dict is required.")
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
