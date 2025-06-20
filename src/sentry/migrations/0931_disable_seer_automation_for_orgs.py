@@ -2,6 +2,10 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.new_migrations.migrations import CheckedMigration
 
 # List of organization ids that are already using Seer and should have automation disabled
@@ -190,7 +194,7 @@ def disable_seer_automation_for_orgs(
             continue
 
 
-def _update_org_settings(org, OrganizationOption):
+def _update_org_settings(org: Organization, OrganizationOption: type[OrganizationOption]) -> None:
     """Update organization-level seer automation settings."""
     # Update sentry:default_seer_scanner_automation
     scanner_key = "sentry:default_seer_scanner_automation"
@@ -219,7 +223,7 @@ def _update_org_settings(org, OrganizationOption):
         )
 
 
-def _update_project_settings(project, ProjectOption):
+def _update_project_settings(project: Project, ProjectOption: type[ProjectOption]) -> None:
     """Update project-level seer automation settings."""
     # Update sentry:seer_scanner_automation
     scanner_key = "sentry:seer_scanner_automation"
