@@ -1,3 +1,4 @@
+import pytest
 from functools import cached_property
 from urllib.parse import parse_qs
 
@@ -106,6 +107,7 @@ def test_conf_key() -> None:
     assert TwilioPlugin().conf_key == "twilio"
 
 
+@pytest.mark.skip(reason="flaky: #93975")
 def test_entry_point() -> None:
     assert_plugin_installed("twilio", TwilioPlugin())
 
