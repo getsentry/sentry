@@ -9,6 +9,7 @@ import type {
 import {
   createFilterValueItem,
   createItem,
+  createRawSearchFilterValueItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -127,8 +128,13 @@ export function useSortedFilterKeyItems({
   includeSuggestions: boolean;
   inputValue: string;
 }): SearchKeyItem[] {
-  const {filterKeys, getFieldDefinition, filterKeySections, disallowFreeText} =
-    useSearchQueryBuilder();
+  const {
+    filterKeys,
+    getFieldDefinition,
+    filterKeySections,
+    disallowFreeText,
+    replaceRawSearchKeys,
+  } = useSearchQueryBuilder();
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -197,7 +203,29 @@ export function useSortedFilterKeyItems({
         !disallowFreeText &&
         inputValue &&
         !isQuoted(inputValue) &&
-        (!keyItems.length || inputValue.trim().includes(' '));
+        (!keyItems.length || inputValue.trim().includes(' ')) &&
+        !replaceRawSearchKeys?.length;
+
+      const rawSearchReplacements: KeySectionItem = {
+        key: 'raw-search-filter-values',
+        value: 'raw-search-filter-values',
+        label: '',
+        options:
+          replaceRawSearchKeys?.map(key => {
+            return createRawSearchFilterValueItem(
+              key,
+              inputValue?.includes(' ') ? `"${inputValue}"` : inputValue
+            );
+          }) ?? [],
+        type: 'section',
+      };
+
+      const shouldReplaceRawSearch =
+        !disallowFreeText &&
+        inputValue &&
+        !isQuoted(inputValue) &&
+        (!keyItems.length || inputValue.trim().includes(' ')) &&
+        !!replaceRawSearchKeys?.length;
 
       const keyItemsSection: KeySectionItem = {
         key: 'key-items',
@@ -212,6 +240,7 @@ export function useSortedFilterKeyItems({
 
       return [
         ...(shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
+        ...(shouldReplaceRawSearch ? [rawSearchReplacements] : []),
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
@@ -229,5 +258,6 @@ export function useSortedFilterKeyItems({
     includeSuggestions,
     inputValue,
     search,
+    replaceRawSearchKeys,
   ]);
 }
