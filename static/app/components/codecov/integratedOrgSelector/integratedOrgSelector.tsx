@@ -2,7 +2,9 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import type {CodecovContextDataParams} from 'sentry/components/codecov/context/codecovContext';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -15,6 +17,10 @@ import {space} from 'sentry/styles/space';
 import {IconIntegratedOrg} from './iconIntegratedOrg';
 
 const SAMPLE_ORG_ITEMS = ['codecov', 'getsentry'];
+
+const VALUES_TO_RESET: Array<
+  Extract<CodecovContextDataParams, 'integratedOrg' | 'repository' | 'branch'>
+> = ['integratedOrg', 'repository', 'branch'];
 
 function AddIntegratedOrgButton() {
   return (
@@ -50,7 +56,7 @@ function OrgFooterMessage() {
 }
 
 export function IntegratedOrgSelector() {
-  const {integratedOrg} = useCodecovContext();
+  const {integratedOrg, handleReset} = useCodecovContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const options = useMemo((): Array<SelectOption<string>> => {
@@ -82,11 +88,34 @@ export function IntegratedOrgSelector() {
     [searchParams, setSearchParams]
   );
 
+  const menuHeaderTrailingItems = useCallback(
+    ({closeOverlay}: any) => {
+      if (!integratedOrg) {
+        return null;
+      }
+
+      return (
+        <ResetButton
+          onClick={() => {
+            handleReset(VALUES_TO_RESET);
+            closeOverlay();
+          }}
+          size="zero"
+          borderless
+        >
+          {t('Reset')}
+        </ResetButton>
+      );
+    },
+    [handleReset, integratedOrg]
+  );
+
   return (
     <CompactSelect
       options={options}
       value={integratedOrg ?? ''}
       onChange={handleChange}
+      menuHeaderTrailingItems={menuHeaderTrailingItems}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (
@@ -164,4 +193,15 @@ const MenuFooterDivider = styled('div')`
 const IconContainer = styled('div')`
   flex: 1 0 14px;
   height: 14px;
+`;
+
+const ResetButton = styled(Button)`
+  font-size: inherit;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
 `;
