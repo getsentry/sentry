@@ -1,0 +1,15 @@
+---
+created: '2025-06-20T20:33:22.254536+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "70dd09f56349dcce62a74137b00bb571"
+  contributing component: exception
+  component:
+    app*
+      exception*
+        type*
+          "Error"
+        value*
+          "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root."
