@@ -1126,6 +1126,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         ]
         assert frames[6].post_context == ["        }", "    }", "}", ""]
 
+    @pytest.mark.skip(reason="flaky: #93951")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_source_lookup_with_proguard(self):
