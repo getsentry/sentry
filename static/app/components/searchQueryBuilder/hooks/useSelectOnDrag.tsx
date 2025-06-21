@@ -86,9 +86,9 @@ function getItemIndexAtPosition(
   x: number,
   y: number
 ) {
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]!;
-    const coords = coordinates[key]!;
+  for (const [i, key] of keys.entries()) {
+    const coords = coordinates[key];
+    if (!coords) continue;
 
     // If we are above this item, we must be in between this and the
     // previous item on the row above it.
