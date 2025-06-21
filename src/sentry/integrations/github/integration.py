@@ -212,7 +212,7 @@ def get_document_origin(org) -> str:
 class GitHubIntegration(
     RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
 ):
-    integration_name = "github"
+    integration_name = IntegrationProviderSlug.GITHUB
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -305,7 +305,7 @@ class GitHubIntegration(
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
         existing_repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=["github"]
+            organization_id=self.organization_id, providers=[IntegrationProviderSlug.GITHUB.value]
         )
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
@@ -685,7 +685,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
-            providers=["github", "integrations:github"],
+            providers=[IntegrationProviderSlug.GITHUB.value, "integrations:github"],
             has_integration=False,
         )
 
@@ -801,7 +801,10 @@ class OAuthLoginView(IntegrationPipelineViewT):
                 state = pipeline.signature
 
                 redirect_uri = absolute_uri(
-                    reverse("sentry-extension-setup", kwargs={"provider_id": "github"})
+                    reverse(
+                        "sentry-extension-setup",
+                        kwargs={"provider_id": IntegrationProviderSlug.GITHUB.value},
+                    )
                 )
                 return HttpResponseRedirect(
                     f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}&redirect_uri={redirect_uri}"
