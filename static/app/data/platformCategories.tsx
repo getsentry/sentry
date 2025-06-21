@@ -285,6 +285,7 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
   'nintendo-switch',
+  'playstation',
 ]);
 
 export const profiling: PlatformKey[] = [
