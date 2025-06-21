@@ -218,7 +218,6 @@ class DiscordClient(ApiClient):
             metrics_key,
             sample_rate=1.0,
         )
-        self.logger.info("handled discord error", extra=log_params)
 
     def _handle_success(
         self,
@@ -228,7 +227,6 @@ class DiscordClient(ApiClient):
             self._METRICS_SUCCESS_KEY,
             sample_rate=1.0,
         )
-        self.logger.info("handled discord success", extra=log_params)
 
     def send_message(self, channel_id: str, message: dict[str, object]) -> None:
         """
