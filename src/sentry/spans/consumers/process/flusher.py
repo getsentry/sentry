@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     """
-    A background thread that polls Redis for new segments to flush and to produce to Kafka.
+    A background multiprocessing manager that polls Redis for new segments to flush and to produce to Kafka.
+    Creates one process per shard for parallel processing.
 
     This is a processing step to be embedded into the consumer that writes to
     Redis. It takes and fowards integer messages that represent recently
@@ -42,10 +43,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self,
         buffer: SpansBuffer,
         next_step: ProcessingStrategy[FilteredPayload | int],
+        max_processes: int | None = None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
         self.buffer = buffer
         self.next_step = next_step
+        self.max_processes = max_processes or len(buffer.assigned_shards)
 
         self.mp_context = mp_context = multiprocessing.get_context("spawn")
         self.stopped = mp_context.Value("i", 0)
@@ -53,56 +56,90 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.current_drift = mp_context.Value("i", 0)
         self.backpressure_since = mp_context.Value("i", 0)
         self.healthy_since = mp_context.Value("i", 0)
-        self.process_restarts = 0
+        self.process_restarts = {shard: 0 for shard in buffer.assigned_shards}
         self.produce_to_pipe = produce_to_pipe
 
-        self._create_process()
+        # Determine which shards get their own processes vs shared processes
+        self.active_shards = min(self.max_processes, len(buffer.assigned_shards))
+        self.shard_to_process_map: dict[int, list[int]] = {}
+        for i, shard in enumerate(buffer.assigned_shards):
+            process_index = i % self.active_shards
+            if process_index not in self.shard_to_process_map:
+                self.shard_to_process_map[process_index] = []
+            self.shard_to_process_map[process_index].append(shard)
 
-    def _create_process(self):
+        self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
+        self.shard_healthy_since = {
+            shard: mp_context.Value("i", int(time.time())) for shard in buffer.assigned_shards
+        }
+
+        self._create_processes()
+
+    def _create_processes(self):
+        # Create processes based on shard mapping
+        for process_index, shards in self.shard_to_process_map.items():
+            self._create_process_for_shards(process_index, shards)
+
+    def _create_process_for_shards(self, process_index: int, shards: list[int]):
         # Optimistically reset healthy_since to avoid a race between the
         # starting process and the next flush cycle. Keep back pressure across
         # the restart, however.
-        self.healthy_since.value = int(time.time())
+        for shard in shards:
+            self.shard_healthy_since[shard].value = int(time.time())
+
+        # Create a buffer for these specific shards
+        shard_buffer = SpansBuffer(shards)
 
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
             target = run_with_initialized_sentry(
-                SpanFlusher.main,
+                SpanFlusher.flush_shards_main,
                 # unpickling buffer will import sentry, so it needs to be
                 # pickled separately. at the same time, pickling
                 # synchronization primitives like multiprocessing.Value can
                 # only be done by the Process
-                self.buffer,
+                shard_buffer,
             )
             make_process = self.mp_context.Process
         else:
-            target = partial(SpanFlusher.main, self.buffer)
+            target = partial(SpanFlusher.flush_shards_main, shard_buffer)
             make_process = threading.Thread
 
-        self.process = make_process(
+        process = make_process(
             target=target,
             args=(
+                shards,
                 self.stopped,
                 self.current_drift,
                 self.backpressure_since,
-                self.healthy_since,
+                [self.shard_healthy_since[shard] for shard in shards],
                 self.produce_to_pipe,
             ),
             daemon=True,
         )
 
-        self.process.start()
+        process.start()
+        self.processes[process_index] = process
+
+    def _create_process_for_shard(self, shard: int):
+        # Find which process this shard belongs to and restart that process
+        for process_index, shards in self.shard_to_process_map.items():
+            if shard in shards:
+                self._create_process_for_shards(process_index, shards)
+                break
 
     @staticmethod
-    def main(
+    def flush_shards_main(
         buffer: SpansBuffer,
+        shards: list[int],
         stopped,
         current_drift,
         backpressure_since,
-        healthy_since,
+        healthy_since_list,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
+        sentry_sdk.set_tag("sentry_spans_buffer_shards", ",".join(map(str, shards)))
 
         try:
             producer_futures = []
@@ -134,23 +171,32 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 else:
                     backpressure_since.value = 0
 
-                healthy_since.value = system_now
+                # Update healthy_since for all shards handled by this process
+                for healthy_since in healthy_since_list:
+                    healthy_since.value = system_now
 
                 if not flushed_segments:
                     time.sleep(1)
                     continue
 
-                with metrics.timer("spans.buffer.flusher.produce"):
-                    for _, flushed_segment in flushed_segments.items():
-                        if not flushed_segment.spans:
-                            continue
+                for shard in shards:
+                    with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard}):
+                        for _, flushed_segment in flushed_segments.items():
+                            if not flushed_segment.spans:
+                                continue
 
-                        spans = [span.payload for span in flushed_segment.spans]
-                        kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
-                        metrics.timing("spans.buffer.segment_size_bytes", len(kafka_payload.value))
-                        produce(kafka_payload)
+                            spans = [span.payload for span in flushed_segment.spans]
+                            kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
+                            metrics.timing(
+                                "spans.buffer.segment_size_bytes",
+                                len(kafka_payload.value),
+                                tags={"shard": shard},
+                            )
+                            produce(kafka_payload)
 
-                with metrics.timer("spans.buffer.flusher.wait_produce"):
+                with metrics.timer(
+                    "spans.buffer.flusher.wait_produce", tags={"shards": ",".join(map(str, shards))}
+                ):
                     for future in producer_futures:
                         future.result()
 
@@ -169,27 +215,50 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     def poll(self) -> None:
         self.next_step.poll()
 
-    def _ensure_process_alive(self) -> None:
+    def _ensure_processes_alive(self) -> None:
         max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds")
-        if not self.process.is_alive():
-            exitcode = getattr(self.process, "exitcode", "unknown")
-            cause = f"no_process_{exitcode}"
-        elif int(time.time()) - self.healthy_since.value > max_unhealthy_seconds:
-            cause = "hang"
-        else:
-            return  # healthy
 
-        metrics.incr("spans.buffer.flusher_unhealthy", tags={"cause": cause})
-        if self.process_restarts > MAX_PROCESS_RESTARTS:
-            raise RuntimeError(f"flusher process crashed repeatedly ({cause}), restarting consumer")
+        for process_index, process in self.processes.items():
+            if not process:
+                continue
 
-        try:
-            self.process.kill()
-        except ValueError:
-            pass  # Process already closed, ignore
+            shards = self.shard_to_process_map[process_index]
 
-        self.process_restarts += 1
-        self._create_process()
+            cause = None
+            if not process.is_alive():
+                exitcode = getattr(process, "exitcode", "unknown")
+                cause = f"no_process_{exitcode}"
+            else:
+                # Check if any shard handled by this process is unhealthy
+                for shard in shards:
+                    if (
+                        int(time.time()) - self.shard_healthy_since[shard].value
+                        > max_unhealthy_seconds
+                    ):
+                        cause = "hang"
+                        break
+
+            if cause is None:
+                continue  # healthy
+
+            # Report unhealthy for all shards handled by this process
+            for shard in shards:
+                metrics.incr(
+                    "spans.buffer.flusher_unhealthy", tags={"cause": cause, "shard": shard}
+                )
+                if self.process_restarts[shard] > MAX_PROCESS_RESTARTS:
+                    raise RuntimeError(
+                        f"flusher process for shard {shard} crashed repeatedly ({cause}), restarting consumer"
+                    )
+                self.process_restarts[shard] += 1
+
+            try:
+                if isinstance(process, multiprocessing.Process):
+                    process.kill()
+            except (ValueError, AttributeError):
+                pass  # Process already closed, ignore
+
+            self._create_process_for_shards(process_index, shards)
 
     def submit(self, message: Message[FilteredPayload | int]) -> None:
         # Note that submit is not actually a hot path. Their message payloads
@@ -197,7 +266,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # per second at most. If anything, self.poll() might even be called
         # more often than submit()
 
-        self._ensure_process_alive()
+        self._ensure_processes_alive()
 
         self.buffer.record_stored_segments()
 
@@ -218,6 +287,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         if isinstance(message.payload, int):
             self.current_drift.value = drift = message.payload - int(time.time())
             metrics.timing("spans.buffer.flusher.drift", drift)
+
+            # Update healthy_since to be the minimum across all shards
+            min_healthy_time = min(
+                healthy_since.value for healthy_since in self.shard_healthy_since.values()
+            )
+            self.healthy_since.value = min_healthy_time
 
         # We also pause insertion into Redis if Redis is too full. In this case
         # we cannot allow the flusher to progress either, as it would write
@@ -253,15 +328,22 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.next_step.close()
 
     def join(self, timeout: float | None = None):
-        # set stopped flag first so we can "flush" the background thread while
+        # set stopped flag first so we can "flush" the background threads while
         # next_step is also shutting down. we can do two things at once!
         self.stopped.value = True
         deadline = time.time() + timeout if timeout else None
 
         self.next_step.join(timeout)
 
-        while self.process.is_alive() and (deadline is None or deadline > time.time()):
-            time.sleep(0.1)
+        # Wait for all processes to finish
+        for process_index, process in self.processes.items():
+            if deadline is not None:
+                remaining_time = deadline - time.time()
+                if remaining_time <= 0:
+                    break
 
-        if isinstance(self.process, multiprocessing.Process):
-            self.process.terminate()
+            while process.is_alive() and (deadline is None or deadline > time.time()):
+                time.sleep(0.1)
+
+            if isinstance(process, multiprocessing.Process):
+                process.terminate()
