@@ -52,6 +52,8 @@ class GithubRequestParser(BaseRequestParser):
         except orjson.JSONDecodeError:
             return HttpResponse(status=400)
 
+        self.forward_to_codecov(external_id=self._get_external_id(event=event))
+
         if event.get("installation") and event.get("action") in {"created", "deleted"}:
             return self.get_response_from_control_silo()
 
