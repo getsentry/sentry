@@ -667,6 +667,29 @@ class AMCheckout extends Component<Props, State> {
     });
   }
 
+  renderPartnerAlert() {
+    const {subscription} = this.props;
+    return (
+      <Alert.Container>
+        <Alert type="info" showIcon>
+          <PartnerAlertContent>
+            <PartnerAlertTitle>
+              {tct('Billing handled externally through [partnerName]', {
+                partnerName: subscription.partner?.partnership.displayName,
+              })}
+            </PartnerAlertTitle>
+            {tct(
+              'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
+              {
+                partnerName: subscription.partner?.partnership.displayName,
+              }
+            )}
+          </PartnerAlertContent>
+        </Alert>
+      </Alert.Container>
+    );
+  }
+
   render() {
     const {subscription, organization, isLoading, promotionData, checkoutTier} =
       this.props;
@@ -742,6 +765,9 @@ class AMCheckout extends Component<Props, State> {
           colorSubtitle={subscriptionDiscountInfo}
           data-test-id="change-subscription"
         />
+
+        {subscription.isSelfServePartner && this.renderPartnerAlert()}
+
         <CheckoutContainer>
           <div data-test-id="checkout-steps">{this.renderSteps()}</div>
           <SidePanel>
@@ -841,6 +867,16 @@ const DisclaimerText = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   text-align: center;
+  margin-bottom: ${space(1)};
+`;
+
+const PartnerAlertContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PartnerAlertTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
 `;
 
