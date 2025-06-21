@@ -16,7 +16,7 @@ const CHOICE_OPTIONS: Array<
 > = [
   [
     'oidc',
-    t('Use OpenID Connect(OIDC)'),
+    t('Use OpenID Connect (OIDC)'),
     tct(
       'Recommended option, it does not require repo admin privileges to get started. Learn more about [OIDC].',
       {
