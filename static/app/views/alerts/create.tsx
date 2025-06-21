@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -165,6 +166,13 @@ function Create(props: Props) {
                     })
                   )
                 }
+                onSubmitError={error => {
+                  if (error.status === 500) {
+                    addErrorMessage(
+                      t('An unknown error occurred when creating the cron monitor.')
+                    );
+                  }
+                }}
                 submitLabel={t('Create')}
               />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
