@@ -1,10 +1,7 @@
 import type {Transition} from 'framer-motion';
 
-import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
-
 /**
- * Use with a framer-motion transition to disable the animation in testing
- * environments.
+ * Use with a framer-motion transition (previously disabled animations in testing environments).
  *
  * If your animation has no transition you can simply specify
  *
@@ -13,18 +10,7 @@ import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
  *   transition: testableTransition(),
  * }
  * ```
- *
- * This function simply disables the animation `type`.
  */
-const testableTransition =
-  !IS_ACCEPTANCE_TEST && NODE_ENV !== 'test'
-    ? (t?: Transition) => t
-    : function (): Transition {
-        return {
-          delay: 0,
-          staggerChildren: 0,
-          type: false,
-        };
-      };
+const testableTransition = (t?: Transition) => t;
 
 export default testableTransition;

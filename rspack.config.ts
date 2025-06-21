@@ -18,8 +18,6 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
-import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -34,13 +32,6 @@ const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
 // this should not happen in local
 const IS_CI = !!env.CI;
 
-// We intentionally build in production mode for acceptance tests, so we explicitly use an env var to
-// say that the bundle will be used in acceptance tests. This affects webpack plugins and components
-// with dynamic data that render differently statically in tests.
-//
-// Note, cannot assume it is an acceptance test if `IS_CI` is true, as our image builds has the
-// `CI` env var set.
-const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
@@ -378,7 +369,6 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new rspack.DefinePlugin({
-      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
       'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
       'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
@@ -519,10 +509,6 @@ if (IS_TEST) {
     'fixtures',
     'js-stubs'
   );
-}
-
-if (IS_ACCEPTANCE_TEST) {
-  appConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
 // Dev only! Hot module reloading
