@@ -8,18 +8,15 @@ from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from random import random
 from typing import Any, Literal
 
 import msgpack
 import sentry_sdk
 import zstandard
-from sentry_ophio.enhancers import AssembleResult as RustStacktraceResult
 from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
-from sentry import features, options
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.models.project import Project
 from sentry.stacktraces.functions import set_in_app
@@ -37,11 +34,9 @@ logger = logging.getLogger(__name__)
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
 RUST_CACHE = RustCache(1_000)
 
-# TODO: Move 3 to the end when we're ready for it to be the default
-VERSIONS = [
-    3,  # Enhancements with this version run the split enhancements experiment
-    2,  # The current default version
-]
+# TODO: Version 2 can be removed once all events with that config have expired, 90 days after this
+# comment is merged
+VERSIONS = [2, 3]
 LATEST_VERSION = VERSIONS[-1]
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
@@ -330,135 +325,18 @@ def keep_profiling_rules(config: str) -> str:
     return "\n".join(filtered_rules)
 
 
-def _check_split_enhancements_frame_category_and_in_app(
-    i: int,
-    category: str | None,
-    category_split: str | None,
-    in_app: bool | None,
-    in_app_split: bool | None,
-    split_enhancement_misses: list[Any],
-):
-    """
-    Determine if the given frame's `category` and `in_app` values returned by the split ehnancements
-    are what we expect given what's returned by the current enhancements, and if not, append to our
-    list of misses.
-    """
-    if category_split != category:
-        split_enhancement_misses.append((i, category, category_split))
-    if in_app_split != in_app:
-        split_enhancement_misses.append((i, in_app, in_app_split))
-
-
-def _check_split_enhancements_frame_contributes_and_hint(
-    i: int,
-    rust_frame: RustFrame,
-    contributes_rust_frame: RustFrame,
-    current_hint: str | None,
-    split_in_app_hint: str | None,
-    split_contributes_hint: str | None,
-    split_enhancement_misses: list[Any],
-) -> None:
-    """
-    Determine if the given frame's `contributes` and `hint` values returned by the split
-    ehnancements are what we expect given what's returned by the current enhancements, and if not,
-    append to our list of misses.
-    """
-    if rust_frame.contributes != contributes_rust_frame.contributes:
-        split_enhancement_misses.append(
-            (i, rust_frame.contributes, contributes_rust_frame.contributes)
-        )
-
-    current_hint = current_hint or ""
-    split_in_app_hint = split_in_app_hint or ""
-    split_contributes_hint = split_contributes_hint or ""
-
-    if current_hint == split_in_app_hint or current_hint == split_contributes_hint:
-        return
-
-    # Rules which in their original form have both +/-app and +/-group actions will only include the
-    # +/-app part once they're split into classifier rules, so that's a hint difference we
-    # anticipate and are okay with
-    if (
-        current_hint.replace(" +group", "") == split_in_app_hint
-        or current_hint.replace(" -group", "") == split_in_app_hint
-    ):
-        return
-
-    # Similarly, rules which in their original form have both +/-app and +/-group actions will only
-    # include the +/-group part once they're split into contributes rules, so that's also a hint
-    # difference we anticipate and are okay with
-    if (
-        current_hint.replace(" +app", "") == split_contributes_hint
-        or current_hint.replace(" -app", "") == split_contributes_hint
-    ):
-        return
-
-    # Right now, frames which have both their `in_app` and `contributes` values changed will only
-    # get one of the two applicable hints back from rust. If it's the `contributes` hint clobbering
-    # the `in_app` hint (in which case we'd ignore it, and still have the generic hint), the split
-    # version will have the `in_app` hint which got clobbered.
-    if current_hint == "non app frame" and split_in_app_hint.startswith("marked out of app"):
-        return
-
-    split_enhancement_misses.append((i, current_hint, split_in_app_hint, split_contributes_hint))
-
-
-def _check_split_enhancements_stacktrace_contributes_and_hint(
-    rust_stacktrace_results: RustStacktraceResult,
-    rust_stacktrace_results_split: RustStacktraceResult,
-    split_enhancement_misses: list[Any],
-):
-    """
-    Determine if the overall stacktrace's `contributes` and `hint` values returned by the split
-    ehnancements are what we expect given what's returned by the current enhancements, and if not,
-    append to our list of misses.
-    """
-    if rust_stacktrace_results.contributes != rust_stacktrace_results_split.contributes:
-        split_enhancement_misses.append(
-            (
-                "stacktrace",
-                rust_stacktrace_results.contributes,
-                rust_stacktrace_results_split.contributes,
-            )
-        )
-    if rust_stacktrace_results.hint != rust_stacktrace_results_split.hint:
-        split_enhancement_misses.append(
-            (
-                "stacktrace",
-                rust_stacktrace_results.hint,
-                rust_stacktrace_results_split.hint,
-            )
-        )
-
-
-# This makes it so that for any given deployment, an eligible project either will or won't be opted
-# into the split enhancements (which we'll be able to determine from anywhere we have access to the
-# project), but from deployment to deployment it won't always be the same projects opted in
-SPLIT_ENHANCEMENTS_SAMPLING_SEED = int(1000 * random())
-
-
 def get_enhancements_version(project: Project, grouping_config_id: str = "") -> int:
     """
-    Decide whether the Enhancements should be version 2 (status quo) or version 3 (split enhancements).
+    Decide whether the Enhancements should be from the latest version or the version before. Useful
+    when transitioning between versions.
+
+    See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
+    incorporates sampling.
     """
     if grouping_config_id.startswith("legacy"):
         return 2
 
-    if not features.has("organizations:run-split-enhancements", project.organization):
-        return 2
-
-    sample_rate = options.get("grouping.split_enhancements.sample_rate")
-
-    if sample_rate == 0:
-        return 2
-
-    # Turn 5% into 20 (for ex), so below we can take roughly 1 in every 20 projects and opt it in
-    sample_rate_denominator = round(1 / sample_rate)
-
-    if hash(project.id + SPLIT_ENHANCEMENTS_SAMPLING_SEED) % sample_rate_denominator == 0:
-        return 3
-
-    return 2
+    return LATEST_VERSION
 
 
 class Enhancements:
@@ -482,8 +360,6 @@ class Enhancements:
         self.bases = bases or []
 
         self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
-
-        self.run_split_enhancements = version == 3
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
@@ -835,7 +711,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
                 enhancements = Enhancements.from_rules_text(
-                    f.read(), id=filename, version=3, referrer="default_rules"
+                    f.read(), id=filename, referrer="default_rules"
                 )
                 enhancement_bases[filename] = enhancements
     return enhancement_bases
