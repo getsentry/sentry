@@ -25,7 +25,7 @@ preprod: 0006_add_analysis_file_id_field
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0930_make_open_period_range_boundary_inclusive
+sentry: 0931_add_hit_counter_columns_to_grouptombstone
 
 social_auth: 0001_squashed_0002_default_auto_field
 
