@@ -35,10 +35,6 @@ class TestResultsAggregatesEndpointTest(APITestCase):
                             "testResultsAggregates": {
                                 "totalDuration": 100.0,
                                 "totalDurationPercentChange": 11.11,
-                                "slowestTestsDuration": 100.0,
-                                "slowestTestsDurationPercentChange": 11.11,
-                                "totalSlowTests": 100,
-                                "totalSlowTestsPercentChange": 11.11,
                                 "totalFails": 100,
                                 "totalFailsPercentChange": 10,
                                 "totalSkips": 100,
@@ -71,10 +67,6 @@ class TestResultsAggregatesEndpointTest(APITestCase):
 
         assert response.data["totalDuration"] == 100.0
         assert response.data["totalDurationPercentChange"] == 11.11
-        assert response.data["slowestTestsDuration"] == 100
-        assert response.data["slowestTestsDurationPercentChange"] == 11.11
-        assert response.data["totalSlowTests"] == 100
-        assert response.data["totalSlowTestsPercentChange"] == 11.11
         assert response.data["totalFails"] == 100
         assert response.data["totalFailsPercentChange"] == 10.0
         assert response.data["totalSkips"] == 100
@@ -97,10 +89,6 @@ class TestResultsAggregatesEndpointTest(APITestCase):
                             "testResultsAggregates": {
                                 "totalDuration": 100.0,
                                 "totalDurationPercentChange": 11.11,
-                                "slowestTestsDuration": 100.0,
-                                "slowestTestsDurationPercentChange": 11.11,
-                                "totalSlowTests": 100,
-                                "totalSlowTestsPercentChange": 11.11,
                                 "totalFails": 100,
                                 "totalFailsPercentChange": 10,
                                 "totalSkips": 100,

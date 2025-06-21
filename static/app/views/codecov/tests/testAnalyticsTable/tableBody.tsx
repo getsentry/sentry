@@ -35,6 +35,14 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
     );
   }
 
+  if (key === 'totalDurationMs') {
+    return (
+      <NumberContainer>
+        <PerformanceDuration milliseconds={Number(value)} abbreviation />
+      </NumberContainer>
+    );
+  }
+
   if (key === 'flakeRate') {
     const isBrokenTest = row.isBrokenTest;
     return (

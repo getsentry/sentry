@@ -11,16 +11,12 @@ type TestResultAggregate = {
   flakeCountPercentChange: number | null;
   flakeRate: number;
   flakeRatePercentChange: number | null;
-  slowestTestsDuration: number;
-  slowestTestsDurationPercentChange: number | null;
   totalDuration: number;
   totalDurationPercentChange: number | null;
   totalFails: number;
   totalFailsPercentChange: number | null;
   totalSkips: number;
   totalSkipsPercentChange: number | null;
-  totalSlowTests: number;
-  totalSlowTestsPercentChange: number | null;
 };
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
@@ -53,13 +49,9 @@ export function useTestResultsAggregates() {
 
   const memoizedData = useMemo(() => {
     return {
-      ciEfficiency: {
+      aggregates: {
         totalTestsRunTime: data && data?.totalDuration * 1000,
-        slowestTestsDuration: data && data?.slowestTestsDuration * 1000,
-        slowestTests: data?.totalSlowTests,
         totalTestsRunTimeChange: data?.totalDurationPercentChange,
-      },
-      testPerformance: {
         flakyTests: data?.flakeCount,
         flakyTestsChange: data?.flakeCountPercentChange,
         averageFlakeRate: data?.flakeRate,

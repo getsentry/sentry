@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {
   SummaryEntries,
   SummaryEntry,
@@ -14,7 +15,26 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {formatPercentRate} from 'sentry/utils/formatters';
+import {formatPercentRate, formatTimeDuration} from 'sentry/utils/formatters';
+
+function TotalTestsRunTimeTooltip() {
+  const {codecovPeriod} = useCodecovContext();
+
+  return (
+    <Fragment>
+      <p>
+        <ToolTipTitle>Impact:</ToolTipTitle>
+        {/* TODO: this is a dynamic value based on the selector */}
+        The cumulative CI time spent running tests over the last{' '}
+        <strong>{codecovPeriod}</strong>.
+      </p>
+      <p>
+        <ToolTipTitle>What is it:</ToolTipTitle>
+        The total time it takes to run all your tests.
+      </p>
+    </Fragment>
+  );
+}
 
 function FlakyTestsTooltip() {
   return (
@@ -73,7 +93,7 @@ const ToolTipTitle = styled('strong')`
   display: block;
 `;
 
-interface TestPerformanceBodyProps {
+interface TestAggregatesBodyProps {
   averageFlakeRate?: number;
   averageFlakeRateChange?: number | null;
   cumulativeFailures?: number;
@@ -82,9 +102,13 @@ interface TestPerformanceBodyProps {
   flakyTestsChange?: number | null;
   skippedTests?: number;
   skippedTestsChange?: number | null;
+  totalTestsRunTime?: number;
+  totalTestsRunTimeChange?: number | null;
 }
 
-function TestPerformanceBody({
+function TestAggregatesBody({
+  totalTestsRunTime,
+  totalTestsRunTimeChange,
   averageFlakeRate,
   averageFlakeRateChange,
   cumulativeFailures,
@@ -93,9 +117,22 @@ function TestPerformanceBody({
   flakyTestsChange,
   skippedTests,
   skippedTestsChange,
-}: TestPerformanceBodyProps) {
+}: TestAggregatesBodyProps) {
   return (
-    <SummaryEntries largeColumnSpan={4} smallColumnSpan={1}>
+    <SummaryEntries largeColumnSpan={5} smallColumnSpan={1}>
+      <SummaryEntry>
+        <SummaryEntryLabel showUnderline body={<TotalTestsRunTimeTooltip />}>
+          {t('Total Tests Run Time')}
+        </SummaryEntryLabel>
+        <SummaryEntryValue>
+          {formatTimeDuration(totalTestsRunTime, 2)}
+          {totalTestsRunTimeChange ? (
+            <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(totalTestsRunTimeChange)}
+            </Tag>
+          ) : null}
+        </SummaryEntryValue>
+      </SummaryEntry>
       <SummaryEntry>
         <SummaryEntryLabel showUnderline body={<FlakyTestsTooltip />}>
           {t('Flaky Tests')}
@@ -158,25 +195,25 @@ function TestPerformanceBody({
   );
 }
 
-interface TestPerformanceProps extends TestPerformanceBodyProps {
+interface TestAggregatesProps extends TestAggregatesBodyProps {
   isLoading: boolean;
 }
 
-export function TestPerformance({isLoading, ...bodyProps}: TestPerformanceProps) {
+export function TestAggregates({isLoading, ...bodyProps}: TestAggregatesProps) {
   return (
-    <TestPerformancePanel>
-      <PanelHeader>{t('Test Performance')}</PanelHeader>
+    <TestAggregatesPanel>
+      <PanelHeader>{t('Test Aggregates')}</PanelHeader>
       <PanelBody>
-        {isLoading ? <LoadingIndicator /> : <TestPerformanceBody {...bodyProps} />}
+        {isLoading ? <LoadingIndicator /> : <TestAggregatesBody {...bodyProps} />}
       </PanelBody>
-    </TestPerformancePanel>
+    </TestAggregatesPanel>
   );
 }
 
-const TestPerformancePanel = styled(Panel)`
+const TestAggregatesPanel = styled(Panel)`
   grid-column: span 24;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-column: span 16;
+    grid-column: span 24;
   }
 `;

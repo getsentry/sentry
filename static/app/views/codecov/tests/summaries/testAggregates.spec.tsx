@@ -1,8 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TestPerformance} from 'sentry/views/codecov/tests/summaries/testPerformance';
+import {TestAggregates} from 'sentry/views/codecov/tests/summaries/testAggregates';
 
-const testPerformanceData = {
+const testAggregatesData = {
   flakyTests: 88,
   flakyTestsChange: -0.95,
   averageFlakeRate: 0.1,
@@ -13,9 +13,9 @@ const testPerformanceData = {
   skippedTestsChange: 0.04,
 };
 
-describe('TestPerformance', () => {
+describe('TestAggregates', () => {
   it('renders number of flaky tests with filter link', () => {
-    render(<TestPerformance {...testPerformanceData} isLoading={false} />);
+    render(<TestAggregates {...testAggregatesData} isLoading={false} />);
 
     const flakyTestNumber = screen.getByRole('link', {name: '88'});
     expect(flakyTestNumber).toBeInTheDocument();
@@ -26,14 +26,14 @@ describe('TestPerformance', () => {
   });
 
   it('renders average flake rate', () => {
-    render(<TestPerformance {...testPerformanceData} isLoading={false} />);
+    render(<TestAggregates {...testAggregatesData} isLoading={false} />);
 
     const averageFlakeRate = screen.getByText(/0.10%/);
     expect(averageFlakeRate).toBeInTheDocument();
   });
 
   it('renders cumulative failures with filter link', () => {
-    render(<TestPerformance {...testPerformanceData} isLoading={false} />);
+    render(<TestAggregates {...testAggregatesData} isLoading={false} />);
 
     const cumulativeFailures = screen.getByRole('link', {name: '356'});
     expect(cumulativeFailures).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('TestPerformance', () => {
   });
 
   it('renders skipped tests with filter link', () => {
-    render(<TestPerformance {...testPerformanceData} isLoading={false} />);
+    render(<TestAggregates {...testAggregatesData} isLoading={false} />);
 
     const skippedTests = screen.getByRole('link', {name: '50'});
     expect(skippedTests).toBeInTheDocument();
