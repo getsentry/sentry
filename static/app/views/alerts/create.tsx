@@ -126,7 +126,7 @@ function Create(props: Props) {
       : 'issues';
   }
 
-  const title = t('New Alert Rule');
+  const title = TITLES[alertType] ?? t('New Alert Rule');
 
   return (
     <Fragment>
