@@ -2,7 +2,7 @@ import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -28,9 +28,9 @@ import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReact
  *
  * Whenever https://orgslug.sentry.io/ is accessed in the browser, then both conditions above will be satisfied.
  */
-export default function withDomainRequired<P extends RouteComponentProps>(
-  WrappedComponent: RouteComponent
-) {
+export default function withDomainRequired<
+  P extends Omit<RouteComponentProps<any, any, any>, 'children'> & {children: any},
+>(WrappedComponent: React.ComponentType<P>): React.ComponentType<P> {
   return function withDomainRequiredWrapper(props: P) {
     const {params} = props;
     const {features, customerDomain, links} = ConfigStore.getState();
@@ -52,6 +52,6 @@ export default function withDomainRequired<P extends RouteComponentProps>(
       orgId: customerDomain.subdomain,
     };
 
-    return <WrappedComponent {...props} params={newParams} />;
+    return <WrappedComponent {...(props as any)} params={newParams} />;
   };
 }

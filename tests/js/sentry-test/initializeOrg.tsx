@@ -11,9 +11,9 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-interface RouteWithName extends PlainRoute {
+type RouteWithName = PlainRoute & {
   name?: string;
-}
+};
 
 interface PartialInjectedRouter<P>
   extends Partial<Omit<InjectedRouter<P>, 'location' | 'routes'>> {
@@ -64,7 +64,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
    * initializeOrg({router: {params: {alertId: '123'}}})
    * ```
    */
-  const routerProps: RouteComponentProps<RouterParams> = {
+  const routerProps: Omit<RouteComponentProps<RouterParams>, 'children'> = {
     params: router.params as any,
     routeParams: router.params as any,
     router,

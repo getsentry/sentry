@@ -87,7 +87,9 @@ describe('withDomainRedirect', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      >
+        <div />
+      </WrappedComponent>
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
@@ -118,7 +120,9 @@ describe('withDomainRedirect', function () {
           routes={router.routes}
           routeParams={router.params}
           route={{}}
-        />
+        >
+          <div />
+        </WrappedComponent>
       </OrganizationContext>
     );
 
@@ -152,7 +156,9 @@ describe('withDomainRedirect', function () {
           routes={router.routes}
           routeParams={router.params}
           route={{}}
-        />
+        >
+          <div />
+        </WrappedComponent>
       </OrganizationContext>
     );
 
@@ -191,7 +197,9 @@ describe('withDomainRedirect', function () {
           routes={router.routes}
           routeParams={router.params}
           route={{}}
-        />
+        >
+          <div />
+        </WrappedComponent>
       </OrganizationContext>
     );
 
@@ -234,7 +242,9 @@ describe('withDomainRedirect', function () {
           routes={router.routes}
           routeParams={router.params}
           route={{}}
-        />
+        >
+          <div />
+        </WrappedComponent>
       </OrganizationContext>
     );
 
@@ -274,7 +284,9 @@ describe('withDomainRedirect', function () {
           routes={router.routes}
           routeParams={router.params}
           route={{}}
-        />
+        >
+          <div />
+        </WrappedComponent>
       </OrganizationContext>
     );
 

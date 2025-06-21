@@ -123,8 +123,15 @@ function buildRoutes() {
 
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
-      <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
-      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/auth/login'))}
+        deprecatedRouteProps
+      />
+      <Route
+        path=":orgId/"
+        component={make(() => import('sentry/views/auth/login'))}
+        deprecatedRouteProps
+      />
     </Route>
   ) : null;
 
@@ -132,11 +139,12 @@ function buildRoutes() {
     <Route
       path="trace/:traceSlug/"
       component={make(() => import('sentry/views/performance/traceDetails'))}
+      deprecatedRouteProps
     />
   );
 
   const rootRoutes = (
-    <Route component={errorHandler(AppBodyContent)}>
+    <Route component={errorHandler(AppBodyContent)} deprecatedRouteProps>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
       {hook('routes:root')}
       <Route
@@ -151,7 +159,7 @@ function buildRoutes() {
         path="/accept-transfer/"
         component={make(() => import('sentry/views/acceptProjectTransfer'))}
       />
-      <Route component={errorHandler(OrganizationContainer)}>
+      <Route component={errorHandler(OrganizationContainer)} deprecatedRouteProps>
         <Route
           path="/extensions/external-install/:integrationSlug/:installationId"
           component={make(() => import('sentry/views/integrationOrganizationLink'))}
@@ -164,6 +172,7 @@ function buildRoutes() {
       <Route
         path="/sentry-apps/:sentryAppSlug/external-install/"
         component={make(() => import('sentry/views/sentryAppExternalInstallation'))}
+        deprecatedRouteProps
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
@@ -173,30 +182,36 @@ function buildRoutes() {
       <Route
         path="/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
+        deprecatedRouteProps
       />
       <Route
         path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
+        deprecatedRouteProps
       />
       {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/unsubscribe/project/:id/"
           component={make(() => import('sentry/views/unsubscribe/project'))}
+          deprecatedRouteProps
         />
       )}
       <Route
         path="/unsubscribe/:orgId/project/:id/"
         component={make(() => import('sentry/views/unsubscribe/project'))}
+        deprecatedRouteProps
       />
       {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/unsubscribe/issue/:id/"
           component={make(() => import('sentry/views/unsubscribe/issue'))}
+          deprecatedRouteProps
         />
       )}
       <Route
         path="/unsubscribe/:orgId/issue/:id/"
         component={make(() => import('sentry/views/unsubscribe/issue'))}
+        deprecatedRouteProps
       />
       <Route
         path="/organizations/new/"
@@ -206,23 +221,27 @@ function buildRoutes() {
         path="/data-export/:dataExportId"
         component={make(() => import('sentry/views/dataExport/dataDownload'))}
         withOrgPath
+        deprecatedRouteProps
       />
-      <Route component={errorHandler(OrganizationContainer)}>
+      <Route component={errorHandler(OrganizationContainer)} deprecatedRouteProps>
         <Route
           path="/disabled-member/"
           component={make(() => import('sentry/views/disabledMember'))}
           withOrgPath
+          deprecatedRouteProps
         />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/restore/"
           component={make(() => import('sentry/views/organizationRestore'))}
+          deprecatedRouteProps
         />
       )}
       <Route
         path="/organizations/:orgId/restore/"
         component={make(() => import('sentry/views/organizationRestore'))}
+        deprecatedRouteProps
       />
       {USING_CUSTOMER_DOMAIN && (
         <Route
@@ -231,6 +250,7 @@ function buildRoutes() {
             make(() => import('sentry/views/organizationJoinRequest'))
           )}
           key="orgless-join-request"
+          deprecatedRouteProps
         />
       )}
       <Route
@@ -239,14 +259,20 @@ function buildRoutes() {
           make(() => import('sentry/views/organizationJoinRequest'))
         )}
         key="org-join-request"
+        deprecatedRouteProps
       />
       <Route
         path="/relocation/"
         component={make(() => import('sentry/views/relocation'))}
         key="orgless-relocation"
+        deprecatedRouteProps
       >
         <IndexRedirect to="get-started/" />
-        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
+        <Route
+          path=":step/"
+          component={make(() => import('sentry/views/relocation'))}
+          deprecatedRouteProps
+        />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
         <Fragment>
@@ -255,18 +281,26 @@ function buildRoutes() {
             path="/onboarding/:step/"
             component={errorHandler(withDomainRequired(OrganizationContainer))}
             key="orgless-onboarding"
+            deprecatedRouteProps
           >
-            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+            <IndexRoute
+              component={make(() => import('sentry/views/onboarding'))}
+              deprecatedRouteProps
+            />
           </Route>
         </Fragment>
       )}
       <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
       <Route
         path="/onboarding/:orgId/:step/"
-        component={withDomainRedirect(errorHandler(OrganizationContainer))}
+        component={errorHandler(withDomainRedirect(OrganizationContainer))}
         key="org-onboarding"
+        deprecatedRouteProps
       >
-        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+        <IndexRoute
+          component={make(() => import('sentry/views/onboarding'))}
+          deprecatedRouteProps
+        />
       </Route>
       <Route
         path="/stories/"
@@ -283,6 +317,7 @@ function buildRoutes() {
       component={make(
         () => import('sentry/views/settings/account/accountSettingsLayout')
       )}
+      deprecatedRouteProps
     >
       <IndexRedirect to="details/" />
       <Route
@@ -298,6 +333,7 @@ function buildRoutes() {
                 'sentry/views/settings/account/notifications/notificationSettingsController'
               )
           )}
+          deprecatedRouteProps
         />
         <Route
           path=":fineTuneType/"
@@ -308,6 +344,7 @@ function buildRoutes() {
                 'sentry/views/settings/account/accountNotificationFineTuningController'
               )
           )}
+          deprecatedRouteProps
         />
       </Route>
       <Route
@@ -329,11 +366,13 @@ function buildRoutes() {
                 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper'
               )
           )}
+          deprecatedRouteProps
         >
           <IndexRoute
             component={make(
               () => import('sentry/views/settings/account/accountSecurity')
             )}
+            deprecatedRouteProps
           />
           <Route
             path="session-history/"
@@ -341,6 +380,7 @@ function buildRoutes() {
             component={make(
               () => import('sentry/views/settings/account/accountSecurity/sessionHistory')
             )}
+            deprecatedRouteProps
           />
           <Route
             path="mfa/:authId/"
@@ -351,6 +391,7 @@ function buildRoutes() {
                   'sentry/views/settings/account/accountSecurity/accountSecurityDetails'
                 )
             )}
+            deprecatedRouteProps
           />
         </Route>
         <Route
@@ -362,6 +403,7 @@ function buildRoutes() {
                 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll'
               )
           )}
+          deprecatedRouteProps
         />
       </Route>
       <Route
@@ -393,6 +435,7 @@ function buildRoutes() {
             component={make(
               () => import('sentry/views/settings/account/apiTokenDetails')
             )}
+            deprecatedRouteProps
           />
         </Route>
         <Route path="applications/" name={t('Applications')}>
@@ -400,6 +443,7 @@ function buildRoutes() {
             component={make(
               () => import('sentry/views/settings/account/apiApplications')
             )}
+            deprecatedRouteProps
           />
           <Route
             path=":appId/"
@@ -425,6 +469,7 @@ function buildRoutes() {
       component={make(
         () => import('sentry/views/settings/project/projectSettingsLayout')
       )}
+      deprecatedRouteProps
     >
       <IndexRoute
         name={t('General')}
@@ -435,14 +480,17 @@ function buildRoutes() {
         path="teams/"
         name={t('Teams')}
         component={make(() => import('sentry/views/settings/project/projectTeams'))}
+        deprecatedRouteProps
       />
       <Route
         path="alerts/"
         name={t('Alerts')}
         component={make(() => import('sentry/views/settings/projectAlerts'))}
+        deprecatedRouteProps
       >
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectAlerts/settings'))}
+          deprecatedRouteProps
         />
         <Redirect from="new/" to="/organizations/:orgId/alerts/:projectId/new/" />
         <Redirect from="rules/" to="/organizations/:orgId/alerts/rules/" />
@@ -466,6 +514,7 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/settings/project/projectEnvironments')
         )}
+        deprecatedRouteProps
       >
         <IndexRoute />
         <Route path="hidden/" />
@@ -474,6 +523,7 @@ function buildRoutes() {
         path="tags/"
         name={t('Tags & Context')}
         component={make(() => import('sentry/views/settings/projectTags'))}
+        deprecatedRouteProps
       />
       <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
       <Route
@@ -482,49 +532,58 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/settings/project/projectReleaseTracking')
         )}
+        deprecatedRouteProps
       />
       <Route
         path="ownership/"
         name={t('Ownership Rules')}
         component={make(() => import('sentry/views/settings/project/projectOwnership'))}
+        deprecatedRouteProps
       />
       <Route
         path="data-forwarding/"
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
+        deprecatedRouteProps
       />
       <Route
         path="seer/"
         name={t('Seer')}
         component={make(() => import('sentry/views/settings/projectSeer/index'))}
+        deprecatedRouteProps
       />
       <Route
         path="user-feedback/"
         name={t('User Feedback')}
         component={make(() => import('sentry/views/settings/projectUserFeedback'))}
+        deprecatedRouteProps
       />
       <Route path="security-and-privacy/" name={t('Security & Privacy')}>
         <IndexRoute
           component={make(
             () => import('sentry/views/settings/projectSecurityAndPrivacy')
           )}
+          deprecatedRouteProps
         />
         <Route
           path="advanced-data-scrubbing/:scrubbingId/"
           component={make(
             () => import('sentry/views/settings/projectSecurityAndPrivacy')
           )}
+          deprecatedRouteProps
         />
       </Route>
       <Route
         path="debug-symbols/"
         name={t('Debug Information Files')}
         component={make(() => import('sentry/views/settings/projectDebugFiles'))}
+        deprecatedRouteProps
       />
       <Route
         path="proguard/"
         name={t('ProGuard Mappings')}
         component={make(() => import('sentry/views/settings/projectProguard'))}
+        deprecatedRouteProps
       />
       <Route
         path="performance/"
@@ -536,25 +595,30 @@ function buildRoutes() {
         path="playstation/"
         name={t('PlayStation')}
         component={make(() => import('sentry/views/settings/project/tempest'))}
+        deprecatedRouteProps
       />
       <Route
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
+        deprecatedRouteProps
       />
       <Route
         path="toolbar/"
         name={t('Developer Toolbar')}
         component={make(() => import('sentry/views/settings/project/projectToolbar'))}
+        deprecatedRouteProps
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
+          deprecatedRouteProps
         />
         <Route
           name={t('Source Map Uploads')}
           path=":bundleId/"
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
+          deprecatedRouteProps
         />
         <Redirect from="source-maps/artifact-bundles/" to="source-maps/" />
         <Redirect from="source-maps/release-bundles/" to="source-maps/" />
@@ -563,6 +627,7 @@ function buildRoutes() {
         path="filters/"
         name={t('Inbound Filters')}
         component={make(() => import('sentry/views/settings/project/projectFilters'))}
+        deprecatedRouteProps
       >
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
@@ -572,6 +637,7 @@ function buildRoutes() {
         path="issue-grouping/"
         name={t('Issue Grouping')}
         component={make(() => import('sentry/views/settings/projectIssueGrouping'))}
+        deprecatedRouteProps
       />
       <Route
         path="hooks/"
@@ -586,6 +652,7 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/settings/project/projectCreateServiceHook')
         )}
+        deprecatedRouteProps
       />
       <Route
         path="hooks/:hookId/"
@@ -597,6 +664,7 @@ function buildRoutes() {
       <Route path="keys/" name={t('Client Keys')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/project/projectKeys/list'))}
+          deprecatedRouteProps
         />
         <Route
           path=":keyId/"
@@ -604,12 +672,14 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/settings/project/projectKeys/details')
           )}
+          deprecatedRouteProps
         />
       </Route>
       <Route
         path="loader-script/"
         name={t('Loader Script')}
         component={make(() => import('sentry/views/settings/project/loaderScript'))}
+        deprecatedRouteProps
       />
       <Redirect
         from="csp/"
@@ -644,11 +714,13 @@ function buildRoutes() {
       <Route path="plugins/" name={t('Legacy Integrations')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectPlugins'))}
+          deprecatedRouteProps
         />
         <Route
           path=":pluginId/"
           name={t('Integration Details')}
           component={make(() => import('sentry/views/settings/projectPlugins/details'))}
+          deprecatedRouteProps
         />
       </Route>
     </Route>
@@ -656,28 +728,39 @@ function buildRoutes() {
 
   const statsChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/organizationStats'))}
+        deprecatedRouteProps
+      />
       <Route
         component={make(() => import('sentry/views/organizationStats/teamInsights'))}
+        deprecatedRouteProps
       >
         <Route
           path="issues/"
           component={make(
             () => import('sentry/views/organizationStats/teamInsights/issues')
           )}
+          deprecatedRouteProps
         />
         <Route
           path="health/"
           component={make(
             () => import('sentry/views/organizationStats/teamInsights/health')
           )}
+          deprecatedRouteProps
         />
       </Route>
     </Fragment>
   );
   const statsRoutes = (
     <Fragment>
-      <Route path="/stats/" withOrgPath component={OrganizationStatsWrapper}>
+      <Route
+        path="/stats/"
+        withOrgPath
+        component={OrganizationStatsWrapper}
+        deprecatedRouteProps
+      >
         {statsChildRoutes}
       </Route>
       <Redirect
@@ -692,6 +775,7 @@ function buildRoutes() {
       component={make(
         () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
+      deprecatedRouteProps
     >
       {hook('routes:settings')}
       {!USING_CUSTOMER_DOMAIN && (
@@ -733,6 +817,7 @@ function buildRoutes() {
         path="audit-log/"
         name={t('Audit Log')}
         component={make(() => import('sentry/views/settings/organizationAuditLog'))}
+        deprecatedRouteProps
       />
       <Route
         path="auth/"
@@ -760,6 +845,7 @@ function buildRoutes() {
         path="rate-limits/"
         name={t('Rate Limits')}
         component={make(() => import('sentry/views/settings/organizationRateLimits'))}
+        deprecatedRouteProps
       />
       <Route
         path="relay/"
@@ -793,6 +879,7 @@ function buildRoutes() {
       <Route path="teams/" name={t('Teams')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationTeams'))}
+          deprecatedRouteProps
         />
         <Route
           path=":teamId/"
@@ -800,6 +887,7 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/settings/organizationTeams/teamDetails')
           )}
+          deprecatedRouteProps
         >
           <IndexRedirect to="members/" />
           <Route
@@ -808,6 +896,7 @@ function buildRoutes() {
             component={make(
               () => import('sentry/views/settings/organizationTeams/teamMembers')
             )}
+            deprecatedRouteProps
           />
           <Route
             path="notifications/"
@@ -822,6 +911,7 @@ function buildRoutes() {
             component={make(
               () => import('sentry/views/settings/organizationTeams/teamProjects')
             )}
+            deprecatedRouteProps
           />
           <Route
             path="settings/"
@@ -829,6 +919,7 @@ function buildRoutes() {
             component={make(
               () => import('sentry/views/settings/organizationTeams/teamSettings')
             )}
+            deprecatedRouteProps
           />
         </Route>
       </Route>
@@ -897,6 +988,7 @@ function buildRoutes() {
                 'sentry/views/settings/organizationIntegrations/configureIntegration'
               )
           )}
+          deprecatedRouteProps
         />
       </Route>
       <Route path="developer-settings/" name={t('Custom Integrations')}>
@@ -914,6 +1006,7 @@ function buildRoutes() {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           )}
+          deprecatedRouteProps
         />
         <Route
           path="new-internal/"
@@ -924,6 +1017,7 @@ function buildRoutes() {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           )}
+          deprecatedRouteProps
         />
         <Route
           path=":appSlug/"
@@ -934,6 +1028,7 @@ function buildRoutes() {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           )}
+          deprecatedRouteProps
         />
         <Route
           path=":appSlug/dashboard/"
@@ -963,12 +1058,14 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           )}
+          deprecatedRouteProps
         />
       </Route>
       <Route
         path="early-features/"
         name={t('Early Features')}
         component={make(() => import('sentry/views/settings/earlyFeatures'))}
+        deprecatedRouteProps
       />
       <Route
         path="dynamic-sampling/"
@@ -1017,7 +1114,10 @@ function buildRoutes() {
 
   const settingsRoutes = (
     <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
-      <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/settings/settingsIndex'))}
+        deprecatedRouteProps
+      />
       {accountSettingsRoutes}
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
@@ -1025,6 +1125,7 @@ function buildRoutes() {
             name={t('Organization')}
             component={withDomainRequired(NoOp)}
             key="orgless-settings-route"
+            deprecatedRouteProps
           >
             {orgSettingsRoutes}
             {projectSettingsRoutes}
@@ -1035,6 +1136,7 @@ function buildRoutes() {
           name={t('Organization')}
           component={withDomainRedirect(NoOp)}
           key="org-settings"
+          deprecatedRouteProps
         >
           {orgSettingsRoutes}
           {projectSettingsRoutes}
@@ -1054,14 +1156,17 @@ function buildRoutes() {
       <Route
         path=":projectId/"
         component={make(() => import('sentry/views/projectDetail'))}
+        deprecatedRouteProps
       />
       <Route
         path=":projectId/events/:eventId/"
         component={errorHandler(ProjectEventRedirect)}
+        deprecatedRouteProps
       />
       <Route
         path=":projectId/getting-started/"
         component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
+        deprecatedRouteProps
       />
     </Fragment>
   );
@@ -1070,6 +1175,7 @@ function buildRoutes() {
       path="/projects/"
       component={make(() => import('sentry/views/projects/'))}
       withOrgPath
+      deprecatedRouteProps
     >
       {projectsChildRoutes}
     </Route>
@@ -1083,6 +1189,7 @@ function buildRoutes() {
             path="/dashboards/"
             component={withDomainRequired(make(() => import('sentry/views/dashboards')))}
             key="orgless-dashboards-route"
+            deprecatedRouteProps
           >
             <IndexRoute
               component={make(() => import('sentry/views/dashboards/manage'))}
@@ -1094,6 +1201,7 @@ function buildRoutes() {
           path="/organizations/:orgId/dashboards/"
           component={withDomainRedirect(make(() => import('sentry/views/dashboards')))}
           key="org-dashboards"
+          deprecatedRouteProps
         >
           <IndexRoute component={make(() => import('sentry/views/dashboards/manage'))} />
         </Route>
@@ -1106,25 +1214,30 @@ function buildRoutes() {
               make(() => import('sentry/views/dashboards/create'))
             )}
             key="orgless-dashboards-new-route"
+            deprecatedRouteProps
           >
             {/* New widget builder routes */}
             <Route
               path="widget-builder/widget/:widgetIndex/edit/"
               component={make(() => import('sentry/views/dashboards/view'))}
+              deprecatedRouteProps
             />
             <Route
               path="widget-builder/widget/new/"
               component={make(() => import('sentry/views/dashboards/view'))}
+              deprecatedRouteProps
             />
 
             {/* Old widget builder routes */}
             <Route
               path="widget/:widgetIndex/edit/"
               component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+              deprecatedRouteProps
             />
             <Route
               path="widget/new/"
               component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+              deprecatedRouteProps
             />
           </Route>
         )}
@@ -1134,25 +1247,30 @@ function buildRoutes() {
             make(() => import('sentry/views/dashboards/create'))
           )}
           key="org-dashboards-new"
+          deprecatedRouteProps
         >
           {/* New widget builder routes */}
           <Route
             path="widget-builder/widget/:widgetIndex/edit/"
             component={make(() => import('sentry/views/dashboards/view'))}
+            deprecatedRouteProps
           />
           <Route
             path="widget-builder/widget/new/"
             component={make(() => import('sentry/views/dashboards/view'))}
+            deprecatedRouteProps
           />
 
           {/* Old widget builder routes */}
           <Route
             path="widget/:widgetIndex/edit/"
             component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+            deprecatedRouteProps
           />
           <Route
             path="widget/new/"
             component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+            deprecatedRouteProps
           />
         </Route>
       </Fragment>
@@ -1164,10 +1282,12 @@ function buildRoutes() {
               make(() => import('sentry/views/dashboards/create'))
             )}
             key="orgless-dashboards-new-template-route"
+            deprecatedRouteProps
           >
             <Route
               path="widget/:widgetId/"
               component={make(() => import('sentry/views/dashboards/create'))}
+              deprecatedRouteProps
             />
           </Route>
         )}
@@ -1177,10 +1297,12 @@ function buildRoutes() {
             make(() => import('sentry/views/dashboards/create'))
           )}
           key="org-dashboards-new-template"
+          deprecatedRouteProps
         >
           <Route
             path="widget/:widgetId/"
             component={make(() => import('sentry/views/dashboards/create'))}
+            deprecatedRouteProps
           />
         </Route>
       </Fragment>
@@ -1195,29 +1317,35 @@ function buildRoutes() {
         path="/dashboard/:dashboardId/"
         component={make(() => import('sentry/views/dashboards/view'))}
         withOrgPath
+        deprecatedRouteProps
       >
         {/* New widget builder routes */}
         <Route
           path="widget-builder/widget/:widgetIndex/edit/"
           component={make(() => import('sentry/views/dashboards/view'))}
+          deprecatedRouteProps
         />
         <Route
           path="widget-builder/widget/new/"
           component={make(() => import('sentry/views/dashboards/view'))}
+          deprecatedRouteProps
         />
 
         {/* Old widget builder routes */}
         <Route
           path="widget/:widgetIndex/edit/"
           component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+          deprecatedRouteProps
         />
         <Route
           path="widget/new/"
           component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+          deprecatedRouteProps
         />
         <Route
           path="widget/:widgetId/"
           component={make(() => import('sentry/views/dashboards/view'))}
+          deprecatedRouteProps
         />
       </Route>
     </Route>
@@ -1229,6 +1357,7 @@ function buildRoutes() {
       <Fragment>
         <IndexRoute
           component={make(() => import('sentry/views/alerts/list/incidents'))}
+          deprecatedRouteProps
         />
         <Route path="rules/">
           <IndexRoute
@@ -1239,10 +1368,12 @@ function buildRoutes() {
           <Route
             path="details/:ruleId/"
             component={make(() => import('sentry/views/alerts/rules/metric/details'))}
+            deprecatedRouteProps
           />
           <Route
             path=":projectId/"
             component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+            deprecatedRouteProps
           >
             <IndexRedirect
               to={
@@ -1254,6 +1385,7 @@ function buildRoutes() {
             <Route
               path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
+              deprecatedRouteProps
             />
           </Route>
           <Route path=":projectId/:ruleId/details/">
@@ -1261,15 +1393,18 @@ function buildRoutes() {
               component={make(
                 () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
               )}
+              deprecatedRouteProps
             />
           </Route>
           <Route
             path="uptime/"
             component={make(() => import('sentry/views/alerts/rules/uptime'))}
+            deprecatedRouteProps
           >
             <Route
               path=":projectId/:uptimeRuleId/details/"
               component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
+              deprecatedRouteProps
             />
             <Route
               path="existing-or-create/"
@@ -1281,10 +1416,12 @@ function buildRoutes() {
           <Route
             path="crons/"
             component={make(() => import('sentry/views/alerts/rules/crons'))}
+            deprecatedRouteProps
           >
             <Route
               path=":projectId/:monitorSlug/details/"
               component={make(() => import('sentry/views/alerts/rules/crons/details'))}
+              deprecatedRouteProps
             />
           </Route>
         </Route>
@@ -1297,6 +1434,7 @@ function buildRoutes() {
           <Route
             path=":projectId/"
             component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+            deprecatedRouteProps
           >
             <IndexRedirect
               to={
@@ -1308,6 +1446,7 @@ function buildRoutes() {
             <Route
               path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
+              deprecatedRouteProps
             />
           </Route>
         </Route>
@@ -1315,10 +1454,12 @@ function buildRoutes() {
           <Route
             path=":projectId/"
             component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+            deprecatedRouteProps
           >
             <Route
               path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
+              deprecatedRouteProps
             />
           </Route>
         </Route>
@@ -1326,22 +1467,29 @@ function buildRoutes() {
           <Route
             path=":projectId/"
             component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+            deprecatedRouteProps
           >
             <Route
               path=":monitorSlug/"
               component={make(() => import('sentry/views/alerts/edit'))}
+              deprecatedRouteProps
             />
           </Route>
         </Route>
         <Route
           path="wizard/"
           component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          deprecatedRouteProps
         >
-          <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
+          <IndexRoute
+            component={make(() => import('sentry/views/alerts/wizard'))}
+            deprecatedRouteProps
+          />
         </Route>
         <Route
           path="new/"
           component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          deprecatedRouteProps
         >
           <IndexRedirect
             to={
@@ -1353,23 +1501,28 @@ function buildRoutes() {
           <Route
             path=":alertType/"
             component={make(() => import('sentry/views/alerts/create'))}
+            deprecatedRouteProps
           />
         </Route>
         <Route
           path=":alertId/"
           component={make(() => import('sentry/views/alerts/incidentRedirect'))}
+          deprecatedRouteProps
         />
         <Route
           path=":projectId/"
           component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          deprecatedRouteProps
         >
           <Route
             path="new/"
             component={make(() => import('sentry/views/alerts/create'))}
+            deprecatedRouteProps
           />
           <Route
             path="wizard/"
             component={make(() => import('sentry/views/alerts/wizard'))}
+            deprecatedRouteProps
           />
         </Route>
       </Fragment>
@@ -1383,6 +1536,7 @@ function buildRoutes() {
           path="/alerts/"
           component={withDomainRequired(make(() => import('sentry/views/alerts')))}
           key="orgless-alerts-route"
+          deprecatedRouteProps
         >
           {alertChildRoutes({forCustomerDomain: true})}
         </Route>
@@ -1391,6 +1545,7 @@ function buildRoutes() {
         path="/organizations/:orgId/alerts/"
         component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
         key="org-alerts"
+        deprecatedRouteProps
       >
         {alertChildRoutes({forCustomerDomain: false})}
       </Route>
@@ -1409,6 +1564,7 @@ function buildRoutes() {
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
+        deprecatedRouteProps
       />
     </Fragment>
   );
@@ -1417,6 +1573,7 @@ function buildRoutes() {
       path="/replays/"
       component={make(() => import('sentry/views/replays/index'))}
       withOrgPath
+      deprecatedRouteProps
     >
       {replayChildRoutes}
     </Route>
@@ -1428,6 +1585,7 @@ function buildRoutes() {
       <Route
         path=":release/"
         component={make(() => import('sentry/views/releases/detail'))}
+        deprecatedRouteProps
       >
         <IndexRoute
           component={make(() => import('sentry/views/releases/detail/overview'))}
@@ -1453,6 +1611,7 @@ function buildRoutes() {
         path="/releases/"
         component={make(() => import('sentry/views/releases/index'))}
         withOrgPath
+        deprecatedRouteProps
       >
         {releasesChildRoutes}
       </Route>
@@ -1473,6 +1632,7 @@ function buildRoutes() {
       <Route
         path="homepage/"
         component={make(() => import('sentry/views/discover/homepage'))}
+        deprecatedRouteProps
       />
       {traceViewRoute}
       <Route
@@ -1482,10 +1642,12 @@ function buildRoutes() {
       <Route
         path="results/"
         component={make(() => import('sentry/views/discover/results'))}
+        deprecatedRouteProps
       />
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/discover/eventDetails'))}
+        deprecatedRouteProps
       />
     </Fragment>
   );
@@ -1494,6 +1656,7 @@ function buildRoutes() {
       path="/discover/"
       component={make(() => import('sentry/views/discover'))}
       withOrgPath
+      deprecatedRouteProps
     >
       {discoverChildRoutes}
     </Route>
@@ -1534,6 +1697,7 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/performance/transactionSummary/transactionOverview')
         )}
+        deprecatedRouteProps
       />
       {traceViewRoute}
       <Route
@@ -1547,18 +1711,21 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/performance/transactionSummary/transactionVitals')
         )}
+        deprecatedRouteProps
       />
       <Route
         path="tags/"
         component={make(
           () => import('sentry/views/performance/transactionSummary/transactionTags')
         )}
+        deprecatedRouteProps
       />
       <Route
         path="events/"
         component={make(
           () => import('sentry/views/performance/transactionSummary/transactionEvents')
         )}
+        deprecatedRouteProps
       />
       <Route
         path="profiles/"
@@ -1578,6 +1745,7 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/performance/transactionSummary/transactionSpans')
           )}
+          deprecatedRouteProps
         />
         <Route
           path=":spanSlug/"
@@ -1587,6 +1755,7 @@ function buildRoutes() {
                 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
               )
           )}
+          deprecatedRouteProps
         />
       </Route>
     </Route>
@@ -1695,6 +1864,7 @@ function buildRoutes() {
             () =>
               import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
           )}
+          deprecatedRouteProps
         />
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`}>
@@ -1752,7 +1922,11 @@ function buildRoutes() {
         {traceViewRoute}
         {moduleRoutes}
       </Route>
-      <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
+      <Route
+        path="projects/"
+        component={make(() => import('sentry/views/projects/'))}
+        deprecatedRouteProps
+      >
         {projectsChildRoutes}
       </Route>
       <Redirect from={`${FRONTEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
@@ -1776,12 +1950,17 @@ function buildRoutes() {
       path="/performance/"
       component={make(() => import('sentry/views/performance'))}
       withOrgPath
+      deprecatedRouteProps
     >
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/performance/content'))}
+        deprecatedRouteProps
+      />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
         component={make(() => import('sentry/views/performance/vitalDetail'))}
+        deprecatedRouteProps
       />
       {traceViewRoute}
       {insightsRedirects}
@@ -1800,6 +1979,7 @@ function buildRoutes() {
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
+        deprecatedRouteProps
       />
     </Route>
   );
@@ -1827,6 +2007,7 @@ function buildRoutes() {
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
+      deprecatedRouteProps
     >
       {tracesChildRoutes}
     </Route>
@@ -1834,10 +2015,14 @@ function buildRoutes() {
 
   const profilingChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/profiling/content'))}
+        deprecatedRouteProps
+      />
       <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}
+        deprecatedRouteProps
       />
       <Route
         path="profile/:projectId/differential-flamegraph/"
@@ -1847,6 +2032,7 @@ function buildRoutes() {
       <Route
         path="profile/:projectId/"
         component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
+        deprecatedRouteProps
       >
         <Route
           path="flamegraph/"
@@ -1860,6 +2046,7 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/profiling/transactionProfileProvider')
         )}
+        deprecatedRouteProps
       >
         <Route
           path="flamegraph/"
@@ -1872,21 +2059,38 @@ function buildRoutes() {
   const exploreRoutes = (
     <Route path="/explore/" withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/explore/indexRedirect'))} />
-      <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
+      <Route
+        path="profiling/"
+        component={make(() => import('sentry/views/profiling'))}
+        deprecatedRouteProps
+      >
         {profilingChildRoutes}
       </Route>
-      <Route path="traces/" component={make(() => import('sentry/views/traces'))}>
+      <Route
+        path="traces/"
+        component={make(() => import('sentry/views/traces'))}
+        deprecatedRouteProps
+      >
         {tracesChildRoutes}
       </Route>
-      <Route path="replays/" component={make(() => import('sentry/views/replays/index'))}>
+      <Route
+        path="replays/"
+        component={make(() => import('sentry/views/replays/index'))}
+        deprecatedRouteProps
+      >
         {replayChildRoutes}
       </Route>
-      <Route path="discover/" component={make(() => import('sentry/views/discover'))}>
+      <Route
+        path="discover/"
+        component={make(() => import('sentry/views/discover'))}
+        deprecatedRouteProps
+      >
         {discoverChildRoutes}
       </Route>
       <Route
         path="releases/"
         component={make(() => import('sentry/views/releases/index'))}
+        deprecatedRouteProps
       >
         {releasesChildRoutes}
       </Route>
@@ -2001,6 +2205,7 @@ function buildRoutes() {
       path="/codecov/"
       withOrgPath
       component={make(() => import('sentry/views/codecov/index'))}
+      deprecatedRouteProps
     >
       {codecovChildrenRoutes}
     </Route>
@@ -2019,6 +2224,7 @@ function buildRoutes() {
       path="/feedback/"
       component={make(() => import('sentry/views/feedback/index'))}
       withOrgPath
+      deprecatedRouteProps
     >
       {feedbackV2ChildRoutes}
     </Route>
@@ -2092,18 +2298,21 @@ function buildRoutes() {
 
   const issueRoutes = (
     <Route path="/issues/" withOrgPath>
-      <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <IndexRoute component={errorHandler(OverviewWrapper)} deprecatedRouteProps />
       <Route
         path={`${IssueTaxonomy.ERRORS_AND_OUTAGES}/`}
         component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
+        deprecatedRouteProps
       />
       <Route
         path={`${IssueTaxonomy.BREACHED_METRICS}/`}
         component={make(() => import('sentry/views/issueList/pages/breachedMetrics'))}
+        deprecatedRouteProps
       />
       <Route
         path={`${IssueTaxonomy.WARNINGS}/`}
         component={make(() => import('sentry/views/issueList/pages/warnings'))}
+        deprecatedRouteProps
       />
       <Route
         path="views/"
@@ -2111,8 +2320,16 @@ function buildRoutes() {
           () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
         )}
       />
-      <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
-      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+      <Route
+        path="views/:viewId/"
+        component={errorHandler(OverviewWrapper)}
+        deprecatedRouteProps
+      />
+      <Route
+        path="searches/:searchId/"
+        component={errorHandler(OverviewWrapper)}
+        deprecatedRouteProps
+      />
 
       {/* Redirects for legacy tags route. */}
       <Redirect
@@ -2136,6 +2353,7 @@ function buildRoutes() {
         path=":groupId/"
         component={make(() => import('sentry/views/issueDetails/groupDetails'))}
         key="org-issues-group-id"
+        deprecatedRouteProps
       >
         {issueTabs}
         <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
@@ -2143,10 +2361,15 @@ function buildRoutes() {
       <Route
         path="feedback/"
         component={make(() => import('sentry/views/feedback/index'))}
+        deprecatedRouteProps
       >
         {feedbackV2ChildRoutes}
       </Route>
-      <Route path="alerts/" component={make(() => import('sentry/views/alerts'))}>
+      <Route
+        path="alerts/"
+        component={make(() => import('sentry/views/alerts'))}
+        deprecatedRouteProps
+      >
         {alertChildRoutes({forCustomerDomain: true})}
       </Route>
       {traceViewRoute}
@@ -2161,27 +2384,33 @@ function buildRoutes() {
     <Route
       path="/manage/"
       component={make(() => import('sentry/views/admin/adminLayout'))}
+      deprecatedRouteProps
     >
       <IndexRoute component={make(() => import('sentry/views/admin/adminOverview'))} />
       <Route
         path="buffer/"
         component={make(() => import('sentry/views/admin/adminBuffer'))}
+        deprecatedRouteProps
       />
       <Route
         path="relays/"
         component={make(() => import('sentry/views/admin/adminRelays'))}
+        deprecatedRouteProps
       />
       <Route
         path="organizations/"
         component={make(() => import('sentry/views/admin/adminOrganizations'))}
+        deprecatedRouteProps
       />
       <Route
         path="projects/"
         component={make(() => import('sentry/views/admin/adminProjects'))}
+        deprecatedRouteProps
       />
       <Route
         path="queue/"
         component={make(() => import('sentry/views/admin/adminQueue'))}
+        deprecatedRouteProps
       />
       <Route
         path="quotas/"
@@ -2192,7 +2421,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/admin/adminSettings'))}
       />
       <Route path="users/">
-        <IndexRoute component={make(() => import('sentry/views/admin/adminUsers'))} />
+        <IndexRoute
+          component={make(() => import('sentry/views/admin/adminUsers'))}
+          deprecatedRouteProps
+        />
         <Route
           path=":id"
           component={make(() => import('sentry/views/admin/adminUserEdit'))}
@@ -2281,20 +2513,27 @@ function buildRoutes() {
       path="/profiling/"
       component={make(() => import('sentry/views/profiling'))}
       withOrgPath
+      deprecatedRouteProps
     >
-      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/profiling/content'))}
+        deprecatedRouteProps
+      />
       <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}
+        deprecatedRouteProps
       />
       <Route
         path="profile/:projectId/differential-flamegraph/"
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
+        deprecatedRouteProps
       />
       {traceViewRoute}
       <Route
         path="profile/:projectId/"
         component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
+        deprecatedRouteProps
       >
         <Route
           path="flamegraph/"
@@ -2308,6 +2547,7 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/profiling/transactionProfileProvider')
         )}
+        deprecatedRouteProps
       >
         <Route
           path="flamegraph/"
@@ -2330,6 +2570,7 @@ function buildRoutes() {
             ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="issues/"
@@ -2338,6 +2579,7 @@ function buildRoutes() {
             ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="dashboard/"
@@ -2347,6 +2589,7 @@ function buildRoutes() {
               `/organizations/${orgId}/dashboards/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="user-feedback/"
@@ -2356,6 +2599,7 @@ function buildRoutes() {
               `/organizations/${orgId}/feedback/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="releases/"
@@ -2365,6 +2609,7 @@ function buildRoutes() {
               `/organizations/${orgId}/releases/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="releases/:version/"
@@ -2374,6 +2619,7 @@ function buildRoutes() {
               `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="releases/:version/new-events/"
@@ -2383,6 +2629,7 @@ function buildRoutes() {
               `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="releases/:version/all-events/"
@@ -2392,6 +2639,7 @@ function buildRoutes() {
               `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
       <Route
         path="releases/:version/commits/"
@@ -2401,6 +2649,7 @@ function buildRoutes() {
               `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
           )
         )}
+        deprecatedRouteProps
       />
     </Route>
   );
@@ -2551,19 +2800,20 @@ function buildRoutes() {
       <Route
         path=":projectId/events/:eventId/"
         component={errorHandler(ProjectEventRedirect)}
+        deprecatedRouteProps
       />
     </Route>
   );
 
   const appRoutes = (
     <ProvideAriaRouter>
-      <Route>
+      <Route deprecatedRouteProps>
         {experimentalSpaRoutes}
-        <Route path="/" component={errorHandler(App)}>
+        <Route path="/" component={errorHandler(App)} deprecatedRouteProps>
           {rootRoutes}
           {organizationRoutes}
           {legacyRedirectRoutes}
-          <Route path="*" component={errorHandler(RouteNotFound)} />
+          <Route path="*" component={errorHandler(RouteNotFound)} deprecatedRouteProps />
         </Route>
       </Route>
     </ProvideAriaRouter>

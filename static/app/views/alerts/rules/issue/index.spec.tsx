@@ -49,7 +49,7 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const projectAlertRuleDetailsRoutes: Array<PlainRoute<any>> = [
+const projectAlertRuleDetailsRoutes: PlainRoute[] = [
   {
     path: '/',
   },
