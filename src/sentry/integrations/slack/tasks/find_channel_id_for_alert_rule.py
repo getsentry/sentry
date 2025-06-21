@@ -88,6 +88,9 @@ def find_channel_id_for_alert_rule(
             if action["type"] == "slack":
                 if action["targetIdentifier"] in mapped_ids:
                     action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
+                    # This will conflict within the CamelCaseSerializer below.
+                    if "inputChannelId" in action:
+                        del action["inputChannelId"]
                 else:
                     # We can early exit because we couldn't map this action's slack channel name to a slack id
                     # This is a fail safe, but I think we shouldn't really hit this.
@@ -98,17 +101,23 @@ def find_channel_id_for_alert_rule(
     # this means at this point we won't raise any validation errors associated with permissions
     # however, we should only be calling this task after we tried saving the alert rule first
     # which will catch those kinds of validation errors
-    serializer = AlertRuleSerializer(
-        context={
-            "organization": organization,
-            "access": SystemAccess(),
-            "user": user,
-            "use_async_lookup": True,
-            "validate_channel_id": False,
-        },
-        data=data,
-        instance=alert_rule,
-    )
+    try:
+        serializer = AlertRuleSerializer(
+            context={
+                "organization": organization,
+                "access": SystemAccess(),
+                "user": user,
+                "use_async_lookup": True,
+                "validate_channel_id": False,
+            },
+            data=data,
+            instance=alert_rule,
+        )
+    except Exception:
+        redis_rule_status.set_value("failed")
+        # Ensure the task doesn't stay in a pending state.
+        raise
+
     if serializer.is_valid():
         try:
             alert_rule = cast(AlertRule, serializer.save())

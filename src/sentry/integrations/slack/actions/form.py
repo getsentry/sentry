@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils.channel import strip_channel_name, validate_channel_id
+from sentry.integrations.slack.utils.channel import strip_channel_name, validate_slack_entity_id
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.utils.forms import set_field_choices
@@ -77,10 +77,10 @@ class SlackNotifyServiceForm(forms.Form):
 
         if channel_id:
             try:
-                validate_channel_id(
-                    self.data["channel"],
+                validate_slack_entity_id(
                     integration_id=workspace,
-                    input_channel_id=channel_id,
+                    input_name=self.data["channel"],
+                    input_id=channel_id,
                 )
             except ValidationError as e:
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
