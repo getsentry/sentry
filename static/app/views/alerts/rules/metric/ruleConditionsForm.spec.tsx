@@ -3,7 +3,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import RuleConditionsForm from 'sentry/views/alerts/rules/metric/ruleConditionsForm';
-import {AlertRuleComparisonType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  EventTypes,
+} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 describe('RuleConditionsForm', () => {
@@ -60,7 +64,12 @@ describe('RuleConditionsForm', () => {
 
   it('searches with new searchbar (search-query-builder-alerts)', async () => {
     render(
-      <RuleConditionsForm {...props} organization={organization} router={router} />,
+      <RuleConditionsForm
+        {...props}
+        eventTypes={[]}
+        organization={organization}
+        router={router}
+      />,
       {
         organization: {...organization, features: ['search-query-builder-alerts']},
       }
@@ -81,6 +90,7 @@ describe('RuleConditionsForm', () => {
     render(
       <RuleConditionsForm
         {...props}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         organization={organization}
         router={router}
         isLowConfidenceChartData
