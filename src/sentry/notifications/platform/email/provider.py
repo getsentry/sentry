@@ -9,6 +9,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
     NotificationTemplate,
+    NotificationType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
@@ -34,3 +35,13 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         return True
+
+    @classmethod
+    def _send_notification(
+        cls,
+        *,
+        notification_content: EmailRenderable,
+        notification_type: NotificationType,
+        target: NotificationTarget,
+        thread_id: str | None = None,
+    ) -> None: ...
