@@ -1,15 +1,21 @@
 ---
-created: '2025-06-18T22:40:08.728458+00:00'
+created: '2025-06-20T17:19:55.755505+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "0809098f9f613b63467605dd1739cc9b"
-  contributing component: exception
+  hash: "93b26686d00504b4e5aa1cb0244d8b37"
+  contributing component: chained-exception
   component:
     app*
-      exception*
-        type*
-          "System.AggregateException"
-        value*
-          "One or more errors occurred."
+      chained-exception*
+        exception*
+          type*
+            "InnerException"
+          value*
+            "Nope"
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."
