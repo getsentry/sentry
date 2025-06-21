@@ -692,6 +692,13 @@ class Group(Model):
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
 
+    def get_absolute_api_url(self, params: Mapping[str, str] | None = None):
+        query = None
+        path = f"/issues/{self.id}/"
+        if params:
+            query = urlencode(params)
+        return self.organization.absolute_api_url(path=path, query=query)
+
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
