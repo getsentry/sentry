@@ -2,6 +2,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ToolBox from 'sentry/components/charts/components/toolBox';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
@@ -91,11 +92,15 @@ export function ExploreCharts({
   const isTopN = defined(topEvents) && topEvents > 0;
 
   const chartRef = useRef<ReactEchartsRef>(null);
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
 
   const boxSelectOptions = useChartBoxSelect({
     chartRef,
     visualizes,
+    chartWrapperRef,
   });
+
+  console.log('boxSelectOptions', boxSelectOptions.brushArea);
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
@@ -201,7 +206,7 @@ export function ExploreCharts({
   const shouldRenderLabel = visualizes.length > 1;
 
   return (
-    <ChartList>
+    <ChartList ref={chartWrapperRef}>
       <WidgetSyncContextProvider>
         {chartInfos.map((chartInfo, index) => {
           const Title = (
@@ -328,10 +333,28 @@ export function ExploreCharts({
               Visualization={
                 <TimeSeriesWidgetVisualization
                   ref={chartRef}
-                  brush={boxSelectOptions.brush}
-                  onBrushStart={boxSelectOptions.onBrushStart}
-                  onBrushEnd={boxSelectOptions.onBrushEnd}
-                  toolBox={boxSelectOptions.toolBox}
+                  brush={{
+                    mainType: 'brush',
+                    toolbox: ['rect'],
+                    brushMode: 'single',
+                    throttleType: 'debounce',
+                    throttleDelay: 100,
+                    xAxisIndex: 0,
+                    yAxisIndex: 0,
+                    brushStyle: {},
+                    removeOnClick: false,
+                    transformable: true,
+                  }}
+                  toolBox={ToolBox(
+                    {
+                      show: false,
+                    },
+                    {
+                      brush: {
+                        type: ['rect'],
+                      },
+                    }
+                  )}
                   plottables={chartInfo.data.map(timeSeries => {
                     return new DataPlottableConstructor(
                       markDelayedData(timeSeries, INGESTION_DELAY),

@@ -27,6 +27,7 @@ import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
   EChartBrushStartHandler,
+  EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
@@ -102,6 +103,11 @@ export interface TimeSeriesWidgetVisualizationProps
    * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
    */
   onBrushStart?: EChartBrushStartHandler;
+
+  /**
+   * Callback that is called when the chart is ready.
+   */
+  onChartReady?: EChartChartReadyHandler;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -675,6 +681,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       yAxes={yAxes}
       {...chartZoomProps}
       onDataZoom={props.onZoom ?? onDataZoom}
+      onChartReady={props.onChartReady}
       toolBox={props.toolBox ?? chartZoomProps.toolBox}
       brush={props.brush}
       onBrushStart={props.onBrushStart}
