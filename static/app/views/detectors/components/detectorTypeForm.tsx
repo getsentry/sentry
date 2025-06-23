@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -10,7 +10,6 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
 function getDefaultProject(projects: Project[]) {
@@ -20,32 +19,31 @@ function getDefaultProject(projects: Project[]) {
 export function DetectorTypeForm() {
   return (
     <FormContainer>
-      <Header>
-        <h3>{t('Project and Environment')}</h3>
-      </Header>
-      <Flex>
-        <ProjectField />
-        <EnvironmentField />
-      </Flex>
-      <Header>
-        <h3>{t('Monitor type')}</h3>
-        <p>
-          {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-          <a href="#">{t('Learn more about monitor types.')}</a>
-        </p>
-      </Header>
-      <MonitorTypeField />
+      <div>
+        <Header>
+          <h3>{t('Monitor type')}</h3>
+          <p>
+            {t("Monitor type can't be edited once the monitor has been created.")}{' '}
+            <a href="#">{t('Learn more about monitor types.')}</a>
+          </p>
+        </Header>
+        <MonitorTypeField />
+      </div>
+      <div>
+        <Header>
+          <h3>{t('Project and Environment')}</h3>
+        </Header>
+        <Flex>
+          <ProjectField />
+          <EnvironmentField />
+        </Flex>
+      </div>
     </FormContainer>
   );
 }
 
 function ProjectField() {
-  const location = useLocation();
   const {projects, fetching} = useProjects();
-  const queryProjectId = location.query.project as string | undefined;
-  const currentProject = queryProjectId
-    ? projects.find(p => p.id === queryProjectId)
-    : getDefaultProject(projects);
 
   return (
     <StyledProjectField
@@ -58,7 +56,6 @@ function ProjectField() {
         {key: 'member', label: t('My Projects')},
         {key: 'all', label: t('All Projects')},
       ]}
-      value={currentProject?.id}
       name="project"
       placeholder={t('Project')}
       aria-label={t('Select Project')}
@@ -93,15 +90,11 @@ function EnvironmentField() {
 }
 
 function MonitorTypeField() {
-  const location = useLocation();
-  const queryType = location.query.detectorType as string | undefined;
-
   return (
     <StyledRadioField
       inline={false}
       flexibleControlStateSize
       name="detectorType"
-      value={queryType}
       choices={[
         [
           'metric',

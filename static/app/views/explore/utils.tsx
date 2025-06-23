@@ -13,7 +13,6 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -54,6 +53,7 @@ export function getExploreUrl({
   field,
   id,
   title,
+  referrer,
 }: {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
@@ -63,6 +63,7 @@ export function getExploreUrl({
   interval?: string;
   mode?: Mode;
   query?: string;
+  referrer?: string;
   selection?: PageFilters;
   sort?: string;
   title?: string;
@@ -87,6 +88,7 @@ export function getExploreUrl({
     utc,
     id,
     title,
+    referrer,
   };
 
   return (
@@ -280,18 +282,16 @@ export function viewSamplesTarget({
 
   // add all the arguments of the visualizations as columns
   for (const visualize of visualizes) {
-    for (const yAxis of visualize.yAxes) {
-      const parsedFunction = parseFunction(yAxis);
-      if (!parsedFunction?.arguments[0]) {
-        continue;
-      }
-      const field = parsedFunction.arguments[0];
-      if (seenFields.has(field)) {
-        continue;
-      }
-      fields.push(field);
-      seenFields.add(field);
+    const parsedFunction = parseFunction(visualize.yAxis);
+    if (!parsedFunction?.arguments[0]) {
+      continue;
     }
+    const field = parsedFunction.arguments[0];
+    if (seenFields.has(field)) {
+      continue;
+    }
+    fields.push(field);
+    seenFields.add(field);
   }
 
   // fall back, force timestamp to be a column so we
@@ -436,7 +436,7 @@ export function computeVisualizeSampleTotals(
   isTopN: boolean
 ) {
   return visualizes.map(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return sampleCount;
@@ -601,13 +601,30 @@ function normalizeKey(key: string): string {
 
 export function formatQueryToNaturalLanguage(query: string): string {
   if (!query.trim()) return '';
-  const parts = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  return parts.map(formatQueryPart).join(' ');
+  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  const formattedTokens = tokens.map(formatToken);
+
+  return formattedTokens.reduce((result, token, index) => {
+    if (index === 0) return token;
+
+    const prevToken = formattedTokens[index - 1];
+    if (!prevToken) return `${result}, ${token}`;
+
+    const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
+    const prevIsLogicalOp =
+      prevToken.toUpperCase() === 'AND' || prevToken.toUpperCase() === 'OR';
+
+    if (isLogicalOp || prevIsLogicalOp) {
+      return `${result} ${token}`;
+    }
+
+    return `${result}, ${token}`;
+  }, '');
 }
 
-function formatQueryPart(part: string): string {
-  const isNegated = part.startsWith('!') && part.includes(':');
-  const actualPart = isNegated ? part.slice(1) : part;
+function formatToken(token: string): string {
+  const isNegated = token.startsWith('!') && token.includes(':');
+  const actualToken = isNegated ? token.slice(1) : token;
 
   const operators = [
     [':>=', 'greater than or equal to'],
@@ -625,8 +642,8 @@ function formatQueryPart(part: string): string {
   ] as const;
 
   for (const [op, desc] of operators) {
-    if (actualPart.includes(op)) {
-      const [key, value] = actualPart.split(op);
+    if (actualToken.includes(op)) {
+      const [key, value] = actualToken.split(op);
       const cleanKey = key?.trim() || '';
       const cleanVal = value?.trim() || '';
 
@@ -637,5 +654,5 @@ function formatQueryPart(part: string): string {
     }
   }
 
-  return part;
+  return token;
 }

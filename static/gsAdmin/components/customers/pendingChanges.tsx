@@ -271,11 +271,11 @@ function getRegularChanges(subscription: Subscription) {
   });
 
   if (oldBudgetsChanges.length > 0 || newBudgetsChanges.length > 0) {
-    changes.push(
-      `Reserved budgets — ${
-        oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None'
-      } → ${newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None'}`
-    );
+    const before = oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None';
+    const after = newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None';
+    if (before !== after) {
+      changes.push(`Reserved budgets — ${before} → ${after}`);
+    }
   }
 
   return changes;

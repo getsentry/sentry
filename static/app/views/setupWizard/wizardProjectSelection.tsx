@@ -57,6 +57,15 @@ function getInitialOrgId(organizations: Organization[]) {
   return null;
 }
 
+function errorIsHasNoDsnError(e: unknown): boolean | undefined {
+  try {
+    const response = (e as {responseJSON?: {error?: string}}).responseJSON;
+    return response?.error === 'No DSN found for this project';
+  } catch {
+    return false;
+  }
+}
+
 export function WizardProjectSelection({
   hash,
   organizations = [],
@@ -215,8 +224,14 @@ export function WizardProjectSelection({
           organizationId: selectedOrg.id,
           projectId,
         });
-      } catch {
-        addErrorMessage(t('Something went wrong! Please try again.'));
+      } catch (e) {
+        const errorMessage = errorIsHasNoDsnError(e)
+          ? t(
+              'The selected project has no active DSN. Please add an active DSN to the project.'
+            )
+          : t('Something went wrong! Please try again.');
+
+        addErrorMessage(errorMessage);
       }
     },
     [
