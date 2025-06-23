@@ -15,6 +15,7 @@ from arroyo.types import FilteredPayload, Message
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
@@ -295,8 +296,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # wait until the situation is improved manually.
         max_memory_percentage = options.get("spans.buffer.max-memory-percentage")
         if max_memory_percentage < 1.0:
-            from sentry.processing.backpressure.memory import ServiceMemory
-
             memory_infos: list[ServiceMemory] = []
             for buffer in self.buffers.values():
                 memory_infos.extend(buffer.get_memory_info())
