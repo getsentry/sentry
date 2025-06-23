@@ -13,8 +13,10 @@ class ActionGroupStatus(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    action = FlexibleForeignKey("workflow_engine.Action", on_delete=models.CASCADE)
-    group = FlexibleForeignKey("sentry.Group")
+    action = FlexibleForeignKey(
+        "workflow_engine.Action", on_delete=models.CASCADE, db_constraint=False
+    )
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
 
     class Meta:
         constraints = [
