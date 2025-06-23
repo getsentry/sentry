@@ -19,6 +19,8 @@ export const AI_GENERATION_OPS = [
   'gen_ai.chat',
   'gen_ai.generate_content',
   'gen_ai.generate_text',
+  'gen_ai.generate_object',
+  'get_ai.stream_text',
   'gen_ai.text_completion',
 ];
 export const AI_GENERATION_DESCRIPTIONS = [
