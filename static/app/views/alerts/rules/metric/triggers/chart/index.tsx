@@ -193,9 +193,10 @@ const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
   [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
 };
 const EAP_HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
+  // EAP allows max 2688 buckets
   ...HISTORICAL_TIME_PERIOD_MAP,
-  [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
-  [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
+  [TimePeriod.SEVEN_DAYS]: '28d',
+  [TimePeriod.FOURTEEN_DAYS]: '28d',
 };
 
 const noop: any = () => {};
