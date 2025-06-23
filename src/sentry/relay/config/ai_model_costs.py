@@ -27,7 +27,7 @@ class AIModelCostV2(TypedDict):
 class AIModelCosts(TypedDict, total=False):
     version: Required[int]
     costs: NotRequired[list[AIModelCost]]
-    models: Required[dict[ModelId, AIModelCostV2]]
+    models: NotRequired[dict[ModelId, AIModelCostV2]]
 
 
 _AI_MODEL_COST_DATA = [
@@ -377,7 +377,6 @@ _PRECOMPUTED_AI_MODEL_COSTS: AIModelCosts = {
         }
         for row in _AI_MODEL_COST_DATA
     ],
-    "models": {},  # Empty dict for now, can be populated later
 }
 
 
