@@ -4,11 +4,11 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useBulkEditFeedbacks from 'sentry/components/feedback/list/useBulkEditFeedbacks';
-import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {GroupStatus} from 'sentry/types/group';
+import type useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
 
 interface Props
   extends Pick<

@@ -1,10 +1,25 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
+  /**
+   * The total number of items the query could return
+   */
   hits: number;
+
+  /**
+   * The number of items that are currently loaded into the browser
+   */
   knownIds: string[];
+
+  /**
+   * The query key that fetches the list.
+   *
+   * The selection will be reset when then query key changes. Therefore be
+   * mindful of query params like `cursor` creating a new query key.
+   */
+  queryKey: undefined | ApiQueryKey | InfiniteApiQueryKey;
 }
 
 /**
@@ -51,14 +66,17 @@ interface Return {
   toggleSelected: (id: string) => void;
 }
 
-export default function useListItemCheckboxState({hits, knownIds}: Props): Return {
-  const {listQueryKey} = useFeedbackQueryKeys();
+export default function useListItemCheckboxState({
+  hits,
+  knownIds,
+  queryKey,
+}: Props): Return {
   const [state, setState] = useState<State>({ids: new Set()});
 
   useEffect(() => {
     // Reset the state when the list changes
     setState({ids: new Set()});
-  }, [listQueryKey]);
+  }, [queryKey]);
 
   const selectAll = useCallback(() => {
     // Record that the virtual "all" list is enabled.
