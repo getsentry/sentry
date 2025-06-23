@@ -272,16 +272,21 @@ def evaluate_workflows_action_filters(
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
-    try:
-        environment = event_data.event.get_environment()
-    except Environment.DoesNotExist:
-        metrics_incr("process_workflows.error")
-        logger.exception(
-            "Missing environment for event", extra={"event_id": event_data.event.event_id}
-        )
-        raise Environment.DoesNotExist("Environment does not exist for the event")
+    if isinstance(event_data.event, GroupEvent):
+        try:
+            environment = event_data.event.get_environment()
+        except Environment.DoesNotExist:
+            metrics_incr("process_workflows.error")
+            logger.exception(
+                "Missing environment for event", extra={"event_id": event_data.event.event_id}
+            )
+            raise Environment.DoesNotExist("Environment does not exist for the event")
 
-    return environment
+        return environment
+
+    raise TypeError(
+        "Expected event_data.event to be an instance of GroupEvent, got %s" % type(event_data.event)
+    )
 
 
 def _get_associated_workflows(
