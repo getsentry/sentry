@@ -585,7 +585,7 @@ def test_compression_functionality(compression_level):
         buffer.process_spans(spans, now=0)
 
         segment_key = _segment_id(1, "a" * 32, "b" * 16)
-        stored_data = buffer.client.smembers(segment_key)
+        stored_data = buffer.client.zrange(segment_key, 0, -1, withscores=False)
         assert len(stored_data) > 0
 
         segments = buffer.flush_segments(now=11)
