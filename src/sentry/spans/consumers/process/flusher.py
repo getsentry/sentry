@@ -73,7 +73,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
         }
         self.process_restarts = {process_index: 0 for process_index in range(self.num_processes)}
-        self.buffers = {}
+        self.buffers: dict[int, SpansBuffer] = {}
 
         self._create_processes()
 
@@ -295,7 +295,11 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # wait until the situation is improved manually.
         max_memory_percentage = options.get("spans.buffer.max-memory-percentage")
         if max_memory_percentage < 1.0:
-            memory_infos = list(self.buffer.get_memory_info())
+            from sentry.processing.backpressure.memory import ServiceMemory
+
+            memory_infos: list[ServiceMemory] = []
+            for buffer in self.buffers.values():
+                memory_infos.extend(buffer.get_memory_info())
             used = sum(x.used for x in memory_infos)
             available = sum(x.available for x in memory_infos)
             if available > 0 and used / available > max_memory_percentage:
