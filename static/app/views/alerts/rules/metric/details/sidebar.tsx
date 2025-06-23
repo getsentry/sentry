@@ -20,6 +20,7 @@ import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetric
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -47,6 +48,7 @@ function TriggerDescription({
   rule: MetricRule;
   threshold: number;
 }) {
+  const organization = useOrganization();
   const status =
     label === AlertRuleTriggerType.CRITICAL
       ? t('Critical')
@@ -70,7 +72,7 @@ function TriggerDescription({
       : t('below');
   const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
   const metricName = capitalize(
-    AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]
+    AlertWizardAlertNames[getAlertTypeFromAggregateDataset({...rule, organization})]
   );
 
   const thresholdText = rule.comparisonDelta

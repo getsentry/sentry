@@ -68,7 +68,10 @@ import {
 } from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
@@ -158,6 +161,11 @@ export default function MetricChart({
   const organization = useOrganization();
   const shouldUseSessionsStats = isCrashFreeAlert(rule.dataset);
 
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(
+    rule.dataset,
+    rule.eventTypes
+  );
+
   const handleZoom = useCallback(
     (start: DateString, end: DateString) => {
       navigate({
@@ -233,6 +241,7 @@ export default function MetricChart({
         query,
         dataset,
         openInDiscoverDataset,
+        traceItemType,
       });
 
       const resolvedPercent =
@@ -287,7 +296,13 @@ export default function MetricChart({
             </Fragment>
           </StyledInlineContainer>
           {!isSessionAggregate(rule.aggregate) &&
-            (isEapAlertType(getAlertTypeFromAggregateDataset(rule)) ? (
+            (isEapAlertType(
+              getAlertTypeFromAggregateDataset({
+                ...rule,
+                eventTypes: rule.eventTypes,
+                organization,
+              })
+            ) ? (
               <Feature features="visibility-explore-view">
                 <LinkButton size="sm" {...props}>
                   {buttonText}
@@ -303,7 +318,7 @@ export default function MetricChart({
         </StyledChartControls>
       );
     },
-    [rule, organization, project, timePeriod, query]
+    [query, rule, organization, project, timePeriod, traceItemType]
   );
 
   const renderChart = useCallback(
@@ -377,7 +392,14 @@ export default function MetricChart({
           <StyledPanelBody withPadding>
             <ChartHeader>
               <HeaderTitleLegend>
-                {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
+                {
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      ...rule,
+                      organization,
+                    })
+                  ]
+                }
               </HeaderTitleLegend>
             </ChartHeader>
             <ChartFilters>
