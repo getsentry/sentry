@@ -23,7 +23,6 @@ import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editO
  * When a new billed category is added, all records keying on EventType
  * will error to alert the author that they need to be updated.
  *
- * TODO(data categories): move this to dataCategory.tsx
  */
 export type EventType = {
   [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true

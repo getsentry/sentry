@@ -224,7 +224,7 @@ function Overview({location, subscription, promotionData}: Props) {
               category === DataCategory.SPANS_INDEXED &&
               !subscription.hadCustomDynamicSampling
             ) {
-              return null; // TODO(data categories): DS enterprise trial should have a reserved budget too, but currently just has unlimited
+              return null; // TODO(trial limits): DS enterprise trial should have a reserved budget too, but currently just has unlimited
             }
 
             const categoryTotals: BillingStatTotal =
