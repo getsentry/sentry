@@ -150,7 +150,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
         supportedTypes={['upload', 'letter_avatar']}
         endpoint={`${endpoint}avatar/`}
         model={initialData}
-        uploadDomain={initialData.links.regionUrl}
         onSave={updateOrganization}
         disabled={!access.has('org:write')}
       />

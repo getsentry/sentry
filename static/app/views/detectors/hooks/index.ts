@@ -10,6 +10,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {NewMetricDetector} from 'sentry/views/detectors/components/forms/metricFormData';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 interface UseDetectorsQueryKeyOptions {
@@ -74,7 +75,7 @@ export function useCreateDetector() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Detector, void, Detector>({
+  return useMutation<Detector, void, NewMetricDetector>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/`, {
         method: 'POST',
@@ -87,6 +88,31 @@ export function useCreateDetector() {
     },
     onError: _ => {
       AlertStore.addAlert({type: 'error', message: t('Unable to create monitor')});
+    },
+  });
+}
+
+export function useUpdateDetector() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<Detector, void, NewMetricDetector & {detectorId: string}>({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/detectors/${data.detectorId}/`, {
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (_, data) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/detectors/`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/detectors/${data.detectorId}/`],
+      });
+    },
+    onError: _ => {
+      AlertStore.addAlert({type: 'error', message: t('Unable to update monitor')});
     },
   });
 }

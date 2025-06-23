@@ -50,17 +50,17 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
     {
       yAxes: ['count()'],
       label: '3xx',
-      query: `${stringifiedSearch} ${responseRateField}:>300 ${responseRateField}:<=399`,
+      query: `${stringifiedSearch} ${responseRateField}:>=300 ${responseRateField}:<=399`,
     },
     {
       yAxes: ['count()'],
       label: '4xx',
-      query: `${stringifiedSearch} ${responseRateField}:>400 ${responseRateField}:<=499`,
+      query: `${stringifiedSearch} ${responseRateField}:>=400 ${responseRateField}:<=499`,
     },
     {
       yAxes: ['count()'],
       label: '5xx',
-      query: `${stringifiedSearch} ${responseRateField}:>500 ${responseRateField}:<=599`,
+      query: `${stringifiedSearch} ${responseRateField}:>=500 ${responseRateField}:<=599`,
     },
   ];
 
@@ -72,6 +72,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
       ...query,
       chartType: ChartType.LINE,
     })),
+    referrer,
   });
 
   const extraActions = [
@@ -89,6 +90,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
           pageFilters: selection,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           query: query.query,
+          referrer,
         }),
       }))}
     />,

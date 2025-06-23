@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
@@ -38,6 +38,7 @@ export default function AutomationsList() {
     data: automations,
     isPending,
     isError,
+    isSuccess,
     getResponseHeader,
   } = useAutomationsQuery({
     cursor,
@@ -52,20 +53,23 @@ export default function AutomationsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <AutomationListTable
-              automations={automations ?? []}
-              isPending={isPending}
-              isError={isError}
-            />
-            <Pagination
-              pageLinks={getResponseHeader?.('Link')}
-              onCursor={newCursor => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, cursor: newCursor},
-                });
-              }}
-            />
+            <div>
+              <AutomationListTable
+                automations={automations ?? []}
+                isPending={isPending}
+                isError={isError}
+                isSuccess={isSuccess}
+              />
+              <Pagination
+                pageLinks={getResponseHeader?.('Link')}
+                onCursor={newCursor => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, cursor: newCursor},
+                  });
+                }}
+              />
+            </div>
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>

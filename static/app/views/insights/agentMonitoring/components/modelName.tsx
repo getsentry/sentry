@@ -1,4 +1,4 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {IconClaude} from 'sentry/icons/iconClaude';
 import {IconGemini} from 'sentry/icons/iconGemini';
 import {IconOpenAI} from 'sentry/icons/iconOpenAI';
@@ -17,8 +17,8 @@ export function ModelName({modelId, provider}: ModelNameProps) {
 
   return (
     <Flex gap={space(1)}>
-      <Flex.Item>{ModelIcon && <ModelIcon size="md" color="textColor" />}</Flex.Item>
-      <Flex.Item>{modelId}</Flex.Item>
+      <div>{ModelIcon && <ModelIcon size="md" color="textColor" />}</div>
+      <div>{modelId}</div>
     </Flex>
   );
 }

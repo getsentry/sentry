@@ -5,13 +5,12 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
-import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconRefresh} from 'sentry/icons';
+import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
@@ -107,7 +106,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap={space(1)}>
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <StyledSeerWaitingIcon size="lg" />
+          <IconSeer variant="waiting" color="subText" size="lg" />
         </Flex>
         <Paragraph>
           {t(
@@ -161,7 +160,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap={space(2)} column>
+                  <Flex gap={space(2)} direction="column">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
@@ -319,10 +318,6 @@ const SingleCard = styled('div')`
 const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
-`;
-
-const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
   color: ${p => p.theme.subText};
 `;
 

@@ -408,7 +408,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.sentry_apps",
     "sentry.integrations",
     "sentry.notifications",
-    "sentry.notifications.platform",
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
@@ -1014,6 +1013,7 @@ CELERY_QUEUES_REGION = [
     Queue("demo_mode", routing_key="demo_mode"),
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
+    Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
 ]
 
 from celery.schedules import crontab
@@ -2915,7 +2915,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.5.1"
+SELF_HOSTED_STABLE_VERSION = "25.6.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3425,20 +3425,21 @@ JIRA_USE_EMAIL_SCOPE = False
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "explore",
+    "feedback",
     "flags",
+    "hybridcloud",
+    "insights",
+    "monitors",
     "nodestore",
+    "notifications",
+    "preprod",
     "replays",
     "sentry",
     "social_auth",
-    "feedback",
-    "hybridcloud",
+    "tempest",
     "uptime",
     "workflow_engine",
-    "tempest",
-    "explore",
-    "insights",
-    "monitors",
-    "preprod",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

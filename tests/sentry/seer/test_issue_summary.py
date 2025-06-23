@@ -633,3 +633,49 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                     )
                 else:
                     mock_trigger_autofix_task.assert_not_called()
+
+    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
+    @patch("sentry.seer.issue_summary._run_automation")
+    @patch("sentry.seer.issue_summary._call_seer")
+    @patch("sentry.seer.issue_summary._get_event")
+    @patch("sentry.seer.issue_summary._get_trace_connected_issues")
+    def test_get_issue_summary_continues_when_automation_fails(
+        self,
+        mock_get_connected_issues,
+        mock_get_event,
+        mock_call_seer,
+        mock_run_automation,
+        mock_get_acknowledgement,
+    ):
+        """Test that issue summary is still returned when _run_automation throws an exception."""
+        mock_get_acknowledgement.return_value = True
+
+        # Set up event and seer response
+        event = Mock(event_id="test_event_id", datetime=datetime.datetime.now())
+        serialized_event = {"event_id": "test_event_id", "data": "test_event_data"}
+        mock_get_event.return_value = [serialized_event, event]
+        mock_get_connected_issues.return_value = []
+
+        mock_summary = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
+        )
+        mock_call_seer.return_value = mock_summary
+
+        # Make _run_automation raise an exception
+        mock_run_automation.side_effect = Exception("Automation failed")
+
+        # Call get_issue_summary and verify it still returns successfully
+        summary_data, status_code = get_issue_summary(self.group, self.user)
+
+        assert status_code == 200
+        expected_response = mock_summary.dict()
+        expected_response["event_id"] = event.event_id
+        assert summary_data == convert_dict_key_case(expected_response, snake_to_camel_case)
+
+        # Verify _run_automation was called and failed
+        mock_run_automation.assert_called_once()
+        mock_call_seer.assert_called_once()

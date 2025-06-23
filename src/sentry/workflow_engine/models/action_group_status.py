@@ -7,6 +7,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 @region_silo_model
 class ActionGroupStatus(DefaultFieldsModel):
     """
+    DEPRECATED: Use WorkflowActionGroupStatus instead. This will be removed soon.
     Stores when an action last fired for a Group.
     """
 

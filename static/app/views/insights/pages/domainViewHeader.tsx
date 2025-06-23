@@ -19,7 +19,7 @@ import {
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -59,7 +59,7 @@ export function DomainViewHeader({
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
+  const isNextJsInsightsEnabled = useIsNextJsInsightsAvailable();
 
   const crumbs: Crumb[] = [
     {

@@ -61,18 +61,42 @@ export default function PlayStationSdkAccessModal({
       game_engines: formData.gameEngines,
     });
 
-    // (ab)uses captureFeedback to send an SDK access request notification to the GDX team
-    captureFeedback({
-      message: `PlayStation SDK Access Request by ${user.email}`,
-      source: 'playstation-sdk-access',
-      tags: {
-        feature: 'playstation-sdk-access',
-        githubProfile: formData.githubProfile,
-        gameEngines: formData.gameEngines.join(','),
-        'user.email': user.email,
-        'org.slug': organization.slug,
+    // Format the message body with user details, engines, and org slug
+    const messageBody = [
+      `User: ${user.name || 'No Name'}`,
+      `Email: ${user.email || 'No Email'}`,
+      `Engines: ${formData.gameEngines
+        .map(
+          (engine: string) =>
+            GAME_ENGINE_OPTIONS.find(option => option.value === engine)?.label || engine
+        )
+        .join(', ')}`,
+      `Org Slug: ${organization.slug}`,
+      `GitHub Profile: ${formData.githubProfile}`,
+    ].join('\n');
+
+    // Use captureFeedback with proper user context instead of tags
+    captureFeedback(
+      {
+        message: messageBody,
+        name: user.name,
+        email: user.email,
+        source: 'playstation-sdk-access',
+        tags: {
+          feature: 'playstation-sdk-access',
+        },
       },
-    });
+      {
+        captureContext: {
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            name: user.name,
+          },
+        },
+      }
+    );
 
     addSuccessMessage(t('Your PlayStation SDK access request has been submitted!'));
     setIsSubmitting(false);

@@ -109,27 +109,11 @@ export function getHighlightedSpanAttributes({
     });
   }
 
-  const toolName = getAttribute(attributeObject, 'ai.toolCall.name');
+  const toolName = getAttribute(attributeObject, 'gen_ai.tool.name');
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: toolName,
-    });
-  }
-
-  const toolArgs = getAttribute(attributeObject, 'gen_ai.tool.input');
-  if (toolArgs) {
-    highlightedAttributes.push({
-      name: t('Arguments'),
-      value: toolArgs,
-    });
-  }
-
-  const toolResult = getAttribute(attributeObject, 'gen_ai.tool.output');
-  if (toolResult) {
-    highlightedAttributes.push({
-      name: t('Result'),
-      value: toolResult,
     });
   }
 

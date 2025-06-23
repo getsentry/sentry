@@ -70,9 +70,7 @@ export const autofixAutomatingTuningField = {
     },
     {
       value: 'super_low',
-      label: (
-        <SeerSelectLabel>{t('Only Super Highly Actionable Issues')}</SeerSelectLabel>
-      ),
+      label: <SeerSelectLabel>{t('Only the Most Actionable Issues')}</SeerSelectLabel>,
       details: t(
         'Seer will automatically run on issues that it thinks have an actionability of "super high." This targets around 2% of issues, but may vary by project.'
       ),
@@ -223,11 +221,11 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
                           />
                         ),
                         break: <br />,
-                        bulklink: <Link to={`/settings/${organization.slug}/seer`} />,
+                        bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
                       }
                     )}
                   </Alert>
-                  <ProjectPermissionAlert project={project} />
+                  <ProjectPermissionAlert project={project} system />
                   {showWarning && (
                     <Alert type="warning" system showIcon>
                       {t(

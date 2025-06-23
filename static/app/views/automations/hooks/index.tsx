@@ -1,11 +1,14 @@
+import {t} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const makeAutomationsQueryKey = ({
@@ -41,12 +44,16 @@ interface UseAutomationsQueryOptions {
   query?: string;
   sort?: string;
 }
-export function useAutomationsQuery(options: UseAutomationsQueryOptions = {}) {
+export function useAutomationsQuery(
+  options: UseAutomationsQueryOptions = {},
+  queryOptions: Partial<UseApiQueryOptions<Automation[]>> = {}
+) {
   const {slug: orgSlug} = useOrganization();
 
   return useApiQuery<Automation[]>(makeAutomationsQueryKey({orgSlug, ...options}), {
     staleTime: 0,
     retry: false,
+    ...queryOptions,
   });
 }
 
@@ -80,14 +87,24 @@ export function useAvailableActionsQuery() {
   });
 }
 
-export function useDetectorQueriesByIds(automationIds: string[]) {
+export function useCreateAutomation() {
   const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
-  return useApiQueries<Automation>(
-    automationIds.map(id => makeAutomationQueryKey(org.slug, id)),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  return useMutation<Automation, void, NewAutomation>({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/workflows/`, {
+        method: 'POST',
+        data,
+      }),
+    onSuccess: _ => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/workflows/`],
+      });
+    },
+    onError: _ => {
+      AlertStore.addAlert({type: 'error', message: t('Unable to create automation')});
+    },
+  });
 }

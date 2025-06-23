@@ -10,9 +10,8 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
-from sentry.identity.gitlab import get_oauth_data, get_user_info
-from sentry.identity.gitlab.provider import GitlabIdentityProvider
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -21,6 +20,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
@@ -42,7 +42,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -50,7 +50,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
-from sentry.types.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
@@ -230,8 +229,6 @@ This merge request was deployed and Sentry observed the following issues:
 
 {issue_list}"""
 
-MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
-
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
     organization_option_key = "sentry:gitlab_pr_bot"
@@ -253,10 +250,10 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
 
         issue_list = "\n".join(
             [
-                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                self.get_merged_pr_single_issue_template(
                     title=issue.title,
-                    subtitle=self.format_comment_subtitle(issue.culprit),
                     url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
+                    environment=self.get_environment_info(issue),
                 )
                 for issue in issues
             ]
@@ -656,7 +653,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return NestedPipelineView(
             bind_key="identity",
             provider_key=IntegrationProviderSlug.GITLAB.value,
-            pipeline_cls=IdentityProviderPipeline,
+            pipeline_cls=IdentityPipeline,
             config=identity_pipeline_config,
         )
 
