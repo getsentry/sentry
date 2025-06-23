@@ -17,10 +17,6 @@ from sentry.api.base import all_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
-from sentry.integrations.slack.metrics import (
-    SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC,
-    SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -46,9 +42,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """
 
-    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC
-    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC
-
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackEventRequest
@@ -67,8 +60,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.chat_postMessage(channel=slack_request.channel_id, text=message)
         except SlackApiError:
-            _logger.exception("reply.post-message-error", extra=logger_params)
-            metrics.incr(self._METRIC_FAILURE_KEY + ".reply.post_message", sample_rate=1.0)
+            _logger.info("reply.post-message-error", extra=logger_params)
 
         return self.respond()
 
