@@ -468,7 +468,6 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         self.project.update(flags=F("flags").bitor(Project.flags.has_insights_queues))
         self.project.update(flags=F("flags").bitor(Project.flags.has_insights_llm_monitoring))
         self.project.update(flags=F("flags").bitor(Project.flags.has_insights_agent_monitoring))
-        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_agent_monitoring))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasInsightsHttp"] is True
