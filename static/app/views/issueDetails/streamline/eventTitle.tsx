@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment} from 'react';
+import {type CSSProperties, Fragment, useMemo} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -6,6 +6,8 @@ import Color from 'color';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
@@ -31,6 +33,7 @@ import {
   useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 
 type EventNavigationProps = {
   event: Event;
@@ -90,6 +93,14 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
     isShare: false,
   });
 
+  // Get data for markdown copy functionality
+  const {data: groupSummaryData} = useGroupSummaryData(group);
+  const {data: autofixData} = useAutofixData({groupId: group.id});
+
+  const markdownText = useMemo(() => {
+    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
+  }, [group, event, groupSummaryData, autofixData]);
+
   const grayText = css`
     color: ${theme.subText};
     font-weight: ${theme.fontWeightNormal};
@@ -108,6 +119,21 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
         ...getAnalyticsDataForEvent(event),
         streamline: true,
       }),
+  });
+
+  const {onClick: copyMarkdown} = useCopyToClipboard({
+    text: markdownText,
+    successMessage: t('Copied issue to clipboard as Markdown'),
+    errorMessage: t('Could not copy issue to clipboard'),
+    onCopy: () => {
+      trackAnalytics('issue_details.copy_issue_details_as_markdown', {
+        organization,
+        groupId: group.id,
+        eventId: event?.id,
+        hasAutofix: Boolean(autofixData),
+        hasSummary: Boolean(groupSummaryData),
+      });
+    },
   });
 
   return (
@@ -146,6 +172,10 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             >
               {t('JSON')}
             </JsonLink>
+            <Divider />
+            <MarkdownLink onClick={copyMarkdown}>
+              {t('Markdown')}
+            </MarkdownLink>
           </JsonLinkWrapper>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
@@ -297,6 +327,23 @@ const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+
+  :hover {
+    color: ${p => p.theme.subText};
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.subText};
+  }
+`;
+
+const MarkdownLink = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  font-size: inherit;
+  cursor: pointer;
 
   :hover {
     color: ${p => p.theme.subText};
