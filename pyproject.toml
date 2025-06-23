@@ -422,6 +422,7 @@ module = [
     "sentry.utils.kafka",
     "sentry.utils.kvstore.*",
     "sentry.utils.lazy_service_wrapper",
+    "sentry.utils.linksign",
     "sentry.utils.locking.*",
     "sentry.utils.math",
     "sentry.utils.memory",
