@@ -28,9 +28,11 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   type DatasetConfig,
   handleOrderByReset,
+  type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getTableSortOptions,
@@ -41,11 +43,13 @@ import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
-import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -108,6 +112,37 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
+function LogsSearchBar({
+  widgetQuery,
+  onSearch,
+  portalTarget,
+  onClose,
+}: Pick<
+  WidgetBuilderSearchBarProps,
+  'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
+>) {
+  const {
+    selection: {projects},
+  } = usePageFilters();
+  const {attributes: stringAttributes} = useTraceItemAttributes('string');
+  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+  return (
+    <TraceItemSearchQueryBuilder
+      initialQuery={widgetQuery.conditions}
+      onSearch={onSearch}
+      itemType={TraceItemDataset.LOGS}
+      numberAttributes={numberAttributes}
+      stringAttributes={stringAttributes}
+      searchSource="dashboards"
+      projects={projects}
+      portalTarget={portalTarget}
+      onChange={(query, state) => {
+        onClose?.(query, {validSearch: state.queryIsValid});
+      }}
+    />
+  );
+}
+
 export const LogsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -115,7 +150,7 @@ export const LogsConfig: DatasetConfig<
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
-  SearchBar: EventsSearchBar,
+  SearchBar: LogsSearchBar,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
