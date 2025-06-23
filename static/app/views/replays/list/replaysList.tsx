@@ -6,6 +6,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
+import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
 import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -39,16 +40,17 @@ function ReplaysList() {
     },
   });
 
+  const queryKey = useReplayListQueryKey({
+    options: {query},
+    organization,
+    queryReferrer: 'replayList',
+  });
   const {
     data: replays,
     getResponseHeader,
     isPending,
     error,
-  } = useFetchReplayList({
-    options: {query},
-    organization,
-    queryReferrer: 'replayList',
-  });
+  } = useFetchReplayList({queryKey});
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const {
