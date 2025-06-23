@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -26,6 +26,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
 import type {
   BaseVisualize,
   Visualize,
@@ -107,6 +108,7 @@ export function ExploreCharts({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
@@ -260,7 +262,7 @@ export function ExploreCharts({
   );
 
   return (
-    <ChartList>
+    <ChartList ref={chartWrapperRef}>
       <WidgetSyncContextProvider>
         {chartInfos.map((chartInfo, index) => {
           return (
@@ -277,6 +279,7 @@ export function ExploreCharts({
               hideContextMenu={hideContextMenu}
               samplingMode={samplingMode}
               topEvents={topEvents}
+              chartWrapperRef={chartWrapperRef}
             />
           );
         })}
@@ -287,6 +290,7 @@ export function ExploreCharts({
 
 interface ChartProps {
   chartInfo: ChartInfo;
+  chartWrapperRef: React.RefObject<HTMLDivElement | null>;
   handleChartTypeChange: (chartType: ChartType, index: number) => void;
   index: number;
   interval: string;
@@ -311,6 +315,7 @@ function Chart({
   hideContextMenu,
   samplingMode,
   topEvents,
+  chartWrapperRef,
 }: ChartProps) {
   const theme = useTheme();
   const [visible, setVisible] = useState(true);
@@ -318,13 +323,18 @@ function Chart({
   const chartHeight = visible ? CHART_HEIGHT : 50;
 
   const chartRef = useRef<ReactEchartsRef>(null);
-  const chartWrapperRef = useRef<HTMLDivElement>(null);
+  const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const boxSelectOptions = useChartBoxSelect({
     chartRef,
     chartWrapperRef,
-    chartResults: timeseriesResult,
+    triggerWrapperRef,
   });
+
+  // Re-activate box selection when the series data changes
+  useEffect(() => {
+    boxSelectOptions.reActivateSelection();
+  }, [boxSelectOptions, timeseriesResult]);
 
   const Title = (
     <ChartTitle>
@@ -468,7 +478,7 @@ function Chart({
         : Bars;
 
   return (
-    <ChartWrapper ref={chartWrapperRef}>
+    <ChartWrapper>
       <Widget
         key={index}
         height={chartHeight}
@@ -504,6 +514,10 @@ function Chart({
           />
         }
       />
+      <FloatingTrigger
+        boxSelectOptions={boxSelectOptions}
+        triggerWrapperRef={triggerWrapperRef}
+      />
     </ChartWrapper>
   );
 }
@@ -513,6 +527,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const ChartList = styled('div')`
+  position: relative;
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};

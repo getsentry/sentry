@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {EXPLORE_CHART_BRUSH_OPTION, useChartBoxSelect} from './useChartBoxSelect';
@@ -20,12 +19,9 @@ describe('useChartBoxSelect', () => {
     current: null as HTMLDivElement | null,
   };
 
-  const mockChartResults = {
-    pageLinks: undefined,
-    data: {},
-    meta: {},
-    promise: Promise.resolve({}),
-  } as ReturnType<typeof useSortedTimeSeries>;
+  const mockTriggerWrapperRef = {
+    current: null as HTMLDivElement | null,
+  };
 
   const mockChartInstance = {
     getModel: jest.fn(),
@@ -57,8 +53,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -72,8 +68,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -120,8 +116,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -196,8 +192,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -241,8 +237,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -309,8 +305,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );

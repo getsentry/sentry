@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import type {BrushComponentOption, EChartsOption, ToolboxComponentOption} from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 
@@ -9,19 +9,20 @@ import type {
   EChartBrushStartHandler,
 } from 'sentry/types/echarts';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type Props = {
   chartRef: React.RefObject<EChartsReact | null>;
-  chartResults: ReturnType<typeof useSortedTimeSeries>;
   chartWrapperRef: React.RefObject<HTMLDivElement | null>;
+  triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-type BoxSelectOptions = {
+export type BoxSelectOptions = {
   brush: EChartsOption['brush'];
   brushArea: EchartBrushAreas | null;
   onBrushEnd: EChartBrushEndHandler;
   onBrushStart: EChartBrushStartHandler;
+  pageCoords: {x: number; y: number} | null;
+  reActivateSelection: () => void;
   toolBox: ToolboxComponentOption | undefined;
 };
 
@@ -41,13 +42,19 @@ export const EXPLORE_CHART_BRUSH_OPTION: BrushComponentOption = {
 export function useChartBoxSelect({
   chartRef,
   chartWrapperRef,
-  chartResults,
+  triggerWrapperRef,
 }: Props): BoxSelectOptions {
   const organization = useOrganization();
   const enabledBoxSelect = organization.features.includes(
     'performance-spans-suspect-attributes'
   );
   const [brushArea, setBrushArea] = useState<EchartBrushAreas | null>(null);
+  const [pageCoords, setPageCoords] = useState<{x: number; y: number} | null>(null);
+
+  const [forceReActivateSelection, reActivateSelection] = useReducer(
+    x => (x + 1) % Number.MAX_SAFE_INTEGER,
+    0
+  );
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
     (evt: any, chart: any) => {
@@ -61,17 +68,19 @@ export function useChartBoxSelect({
       const yMin = yAxis.axis.scale.getExtent()[0];
       const yMax = yAxis.axis.scale.getExtent()[1];
 
+      const area = evt.areas[0];
+
       const newBrushArea: EchartBrushAreas = [
         {
-          ...evt.areas[0],
+          ...area,
           coordRange: [
             [
-              Math.max(xMin, evt.areas[0].coordRange[0][0]),
-              Math.min(xMax, evt.areas[0].coordRange[0][1]),
+              Math.max(xMin, area.coordRange[0][0]),
+              Math.min(xMax, area.coordRange[0][1]),
             ],
             [
-              Math.max(yMin, evt.areas[0].coordRange[1][0]),
-              Math.min(yMax, evt.areas[0].coordRange[1][1]),
+              Math.max(yMin, area.coordRange[1][0]),
+              Math.min(yMax, area.coordRange[1][1]),
             ],
           ],
         },
@@ -82,6 +91,21 @@ export function useChartBoxSelect({
     [chartRef]
   );
 
+  useEffect(() => {
+    const handleMouseUp = (e: MouseEvent) => {
+      if (brushArea) {
+        setPageCoords({x: e.clientX, y: e.clientY});
+      } else {
+        setPageCoords(null);
+      }
+    };
+
+    const wrapper = chartWrapperRef.current;
+    if (!wrapper) return;
+
+    wrapper.addEventListener('mouseup', handleMouseUp);
+  }, [brushArea, chartWrapperRef]);
+
   const onBrushStart = useCallback<EChartBrushStartHandler>(_ => {
     // TODO Abdulah Khan: Will be used to listen to mouse up event in the future.
   }, []);
@@ -91,13 +115,16 @@ export function useChartBoxSelect({
       const chartInstance = chartRef.current?.getEchartsInstance();
       if (
         chartWrapperRef.current &&
-        !chartWrapperRef.current.contains(event.target as Node)
+        !chartWrapperRef.current.contains(event.target as Node) &&
+        triggerWrapperRef.current &&
+        !triggerWrapperRef.current.contains(event.target as Node)
       ) {
         chartInstance?.dispatchAction({type: 'brush', areas: []});
         setBrushArea(null);
+        setPageCoords(null);
       }
     },
-    [chartWrapperRef, chartRef]
+    [chartWrapperRef, triggerWrapperRef, chartRef]
   );
 
   const enableBrushMode = useCallback(() => {
@@ -137,7 +164,14 @@ export function useChartBoxSelect({
       cancelAnimationFrame(frame);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brushArea, chartRef.current, enableBrushMode, handleOutsideClick, chartResults]);
+  }, [
+    brushArea,
+    chartRef.current,
+    enableBrushMode,
+    handleOutsideClick,
+    pageCoords,
+    forceReActivateSelection,
+  ]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
     return enabledBoxSelect ? EXPLORE_CHART_BRUSH_OPTION : undefined;
@@ -161,8 +195,24 @@ export function useChartBoxSelect({
   }, [brush]);
 
   const config: BoxSelectOptions = useMemo(() => {
-    return {brush, brushArea, onBrushEnd, onBrushStart, toolBox};
-  }, [brushArea, onBrushEnd, onBrushStart, brush, toolBox]);
+    return {
+      brush,
+      brushArea,
+      onBrushEnd,
+      onBrushStart,
+      toolBox,
+      pageCoords,
+      reActivateSelection,
+    };
+  }, [
+    brushArea,
+    onBrushEnd,
+    onBrushStart,
+    brush,
+    toolBox,
+    pageCoords,
+    reActivateSelection,
+  ]);
 
   return config;
 }
