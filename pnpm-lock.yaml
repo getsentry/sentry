@@ -250,8 +250,8 @@ importers:
         specifier: ^1.14.3
         version: 1.14.3
       '@types/js-cookie':
-        specifier: ^3.0.2
-        version: 3.0.2
+        specifier: 3.0.6
+        version: 3.0.6
       '@types/lodash':
         specifier: ^4.14.182
         version: 4.14.182
@@ -382,8 +382,8 @@ importers:
         specifier: ^1.15.1
         version: 1.15.1
       js-cookie:
-        specifier: 3.0.1
-        version: 3.0.1
+        specifier: 3.0.5
+        version: 3.0.5
       jsonrepair:
         specifier: ^3.8.0
         version: 3.8.0
@@ -3109,8 +3109,8 @@ packages:
   '@types/js-beautify@1.14.3':
     resolution: {integrity: sha512-FMbQHz+qd9DoGvgLHxeqqVPaNRffpIu5ZjozwV8hf9JAGpIOzuAf4wGbRSo8LNITHqGjmmVjaMggTT5P4v4IHg==}
 
-  '@types/js-cookie@3.0.2':
-    resolution: {integrity: sha512-6+0ekgfusHftJNYpihfkMu8BWdeHs9EOJuGcSofErjstGPfPGEu9yTu4t460lTzzAMl2cM5zngQJqPMHbbnvYA==}
+  '@types/js-cookie@3.0.6':
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
 
   '@types/jsdom@20.0.0':
     resolution: {integrity: sha512-YfAchFs0yM1QPDrLm2VHe+WHGtqms3NXnXAMolrgrVP6fgBHHXy1ozAbo/dFtPNtZC/m66bPiCTWYmqp1F14gA==}
@@ -5643,10 +5643,6 @@ packages:
     resolution: {integrity: sha512-ESjNzSlt/sWE8sciZH8kBF8BPlwXPwhR6pWKAw8bw4Bwj+iZcnKW6ONWUutJ7eObuBZQpiIb8S7OYspWrKt7rA==}
     engines: {node: '>=14'}
     hasBin: true
-
-  js-cookie@3.0.1:
-    resolution: {integrity: sha512-+0rgsUXZu4ncpPxRL+lNEptWMOWl9etvPHc/koSRp6MPwpRYAhmk0dUG00J4bxVV3r9uUzfo24wW0knS07SKSw==}
-    engines: {node: '>=12'}
 
   js-cookie@3.0.5:
     resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
@@ -11373,7 +11369,7 @@ snapshots:
 
   '@types/js-beautify@1.14.3': {}
 
-  '@types/js-cookie@3.0.2': {}
+  '@types/js-cookie@3.0.6': {}
 
   '@types/jsdom@20.0.0':
     dependencies:
@@ -14503,8 +14499,6 @@ snapshots:
       glob: 10.4.5
       js-cookie: 3.0.5
       nopt: 7.2.1
-
-  js-cookie@3.0.1: {}
 
   js-cookie@3.0.5: {}
 
