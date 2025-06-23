@@ -335,14 +335,14 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     [setFrameFilter]
   );
 
-  const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
+  const flamegraphFrameFilter = useMemo((): ((frame: Frame) => boolean) => {
     if (frameFilter === 'all') {
       return () => true;
     }
     if (frameFilter === 'application') {
-      return frame => frame.is_application;
+      return (frame: Frame) => frame.is_application;
     }
-    return frame => !frame.is_application;
+    return (frame: Frame) => !frame.is_application;
   }, [frameFilter]);
 
   const onResetFrameFilter = useCallback(() => {

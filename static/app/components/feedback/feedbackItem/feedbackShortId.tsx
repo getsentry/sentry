@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';

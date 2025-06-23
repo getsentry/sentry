@@ -2430,7 +2430,6 @@ def save_attachment(
         size=file.size,
         sha1=file.sha1,
         # storage:
-        file_id=file.file_id,
         blob_path=file.blob_path,
     )
 

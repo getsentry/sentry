@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import {Flex} from 'sentry/components/container/flex';
 import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -244,7 +244,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <FlexContainer>
+        <Flex.Item grow={1}>
           <Description text={description} />
           <FeatureList
             features={features}
@@ -261,7 +261,7 @@ function InformationCard({
               </Alert>
             </Alert.Container>
           ))}
-        </FlexContainer>
+        </Flex.Item>
         <Metadata>
           {author && (
             <AuthorInfo>
@@ -351,10 +351,6 @@ const DisableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-`;
-
-const FlexContainer = styled('div')`
-  flex: 1;
 `;
 
 const Description = styled(MarkedText)`
