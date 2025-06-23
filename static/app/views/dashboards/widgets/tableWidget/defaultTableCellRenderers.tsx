@@ -101,7 +101,7 @@ export const renderDefaultBodyCell = ({
     );
   };
 
-export const StyledTooltip = styled(Tooltip)`
+const StyledTooltip = styled(Tooltip)`
   display: initial;
 `;
 
