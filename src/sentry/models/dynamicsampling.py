@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.db import models, router, transaction
-from django.db.models import F, Q, Subquery
+from django.db.models import F, IntegerField, Max, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -258,8 +259,13 @@ class CustomDynamicSamplingRule(Model):
             .values("rule_id_plus_one")[:1]
         )
 
+        max_rule_id = base_qs.aggregate(Max("rule_id"))["rule_id__max"] or 0
+        fallback_value = Value(max_rule_id + 1, output_field=IntegerField())
+
+        safe_new_rule_id = Coalesce(new_rule_id_subquery, fallback_value)
+
         # Update this instance with the new rule_id
-        CustomDynamicSamplingRule.objects.filter(id=self.id).update(rule_id=new_rule_id_subquery)
+        CustomDynamicSamplingRule.objects.filter(id=self.id).update(rule_id=safe_new_rule_id)
         self.refresh_from_db()
         return self.rule_id
 
