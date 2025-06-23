@@ -42,7 +42,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
