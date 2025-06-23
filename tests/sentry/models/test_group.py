@@ -268,6 +268,19 @@ class GroupTest(TestCase, SnubaTestCase):
         expected = f"http://{org.slug}.testserver/issues/{group.id}/"
         assert expected == group.get_absolute_url()
 
+    def test_get_absolute_api_url(self):
+        project = self.create_project()
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
+        )
+        org = self.organization
+        group = event.group
+
+        assert (
+            group.get_absolute_api_url()
+            == f"http://testserver/api/0/organizations/{org.slug}/issues/{group.id}/"
+        )
+
     def test_get_releases(self):
         now = timezone.now().replace(microsecond=0)
         project = self.create_project()

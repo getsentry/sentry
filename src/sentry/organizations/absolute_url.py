@@ -97,7 +97,7 @@ def api_absolute_url(
     if path.startswith("/"):
         path = path.lstrip("/")
 
-    full_path = f"/api/0/organizations/{slug}/{path}"
+    full_path = f"/api/0/organizations/{slug}/{path}/"
     uri = absolute_uri(full_path)
     parts = construct_url_parts(uri=uri, query=query, fragment=fragment)
     return "".join(parts)
