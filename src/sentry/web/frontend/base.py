@@ -533,6 +533,7 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         self,
         request: HttpRequest,
         organization: RpcOrganization | Organization | None,
+        reason: str = "",
         *args: Any,
         **kwargs: Any,
     ) -> tuple[bool, str]:
