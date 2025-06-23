@@ -197,10 +197,10 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
 
 
 def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
-    field_types = [
-        AttributeKey.Type.TYPE_STRING,
-        AttributeKey.Type.TYPE_DOUBLE,
-    ]
+    type_mapping = {
+        AttributeKey.Type.TYPE_STRING: "string",
+        AttributeKey.Type.TYPE_DOUBLE: "number",
+    }
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -214,9 +214,9 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
-    fields = {attr_type: [] for attr_type in field_types}
+    fields = {type_str: [] for type_str in type_mapping.values()}
 
-    for attr_type in field_types:
+    for attr_type, type_str in type_mapping.items():
         req = TraceItemAttributeNamesRequest(
             meta=RequestMeta(
                 organization_id=org_id,
@@ -236,14 +236,14 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
         parsed_fields = [
             as_attribute_key(
                 attr.name,
-                "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
+                type_str,
                 SupportedTraceItemType.SPANS,
             )["name"]
             for attr in fields_resp.attributes
             if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
         ]
 
-        fields[attr_type].extend(parsed_fields)
+        fields[type_str].extend(parsed_fields)
 
     return {"fields": fields}
 
@@ -278,26 +278,25 @@ def get_attribute_values(
         definitions=SPAN_DEFINITIONS,
     )
 
-    # We only query for string fields
-    string_fields = fields[AttributeKey.Type.TYPE_STRING]
-    for field in string_fields:
+    for field in fields:
         resolved_field, _ = resolver.resolve_attribute(field)
-        req = TraceItemAttributeValuesRequest(
-            meta=RequestMeta(
-                organization_id=org_id,
-                cogs_category="events_analytics_platform",
-                referrer="seer_rpc",
-                project_ids=project_ids,
-                start_timestamp=start_time_proto,
-                end_timestamp=end_time_proto,
-                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-            ),
-            key=resolved_field.proto_definition,
-            limit=limit,
-        )
+        if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
+            req = TraceItemAttributeValuesRequest(
+                meta=RequestMeta(
+                    organization_id=org_id,
+                    cogs_category="events_analytics_platform",
+                    referrer="seer_rpc",
+                    project_ids=project_ids,
+                    start_timestamp=start_time_proto,
+                    end_timestamp=end_time_proto,
+                    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                ),
+                key=resolved_field.proto_definition,
+                limit=limit,
+            )
 
-        values_response = snuba_rpc.attribute_values_rpc(req)
-        values[field] = [value for value in values_response.values]
+            values_response = snuba_rpc.attribute_values_rpc(req)
+            values[field] = [value for value in values_response.values]
 
     return {"values": values}
 
