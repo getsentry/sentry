@@ -82,7 +82,7 @@ import TraceTypeWarnings from './traceTypeWarnings';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {useTraceScrollToPath} from './useTraceScrollToPath';
+import {getScrollToPath, useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -104,6 +104,7 @@ export interface TraceWaterfallProps {
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
+  isVisible?: boolean;
   replayTraces?: ReplayTrace[];
 }
 
@@ -131,7 +132,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath(undefined);
+  const scrollQueueRef = useTraceScrollToPath();
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -525,6 +526,17 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     hasExceededPerformanceUsageLimit,
     source,
   ]);
+
+  // We re-init the view to sync back with URL params
+  // which might have changed while the waterfall was hidden
+  useEffect(() => {
+    if (props.isVisible) {
+      scrollQueueRef.current = getScrollToPath();
+      onTraceLoad();
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.isVisible]);
 
   // Setup the middleware for the trace reducer
   useLayoutEffect(() => {
