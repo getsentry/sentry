@@ -9,15 +9,17 @@ import {
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 enum TimeUnit {
-  MINUTES = 'minutes',
-  HOURS = 'hours',
-  DAYS = 'days',
+  MINUTES = 'minute',
+  HOURS = 'hour',
+  DAYS = 'day',
+  WEEKS = 'week',
 }
 
 const TIME_CHOICES = [
   {value: TimeUnit.MINUTES, label: 'minute(s)'},
   {value: TimeUnit.HOURS, label: 'hour(s)'},
   {value: TimeUnit.DAYS, label: 'day(s)'},
+  {value: TimeUnit.WEEKS, label: 'week(s)'},
 ];
 
 interface AgeComparisonDetailsProps {
@@ -54,7 +56,7 @@ function ComparisonField() {
       options={AGE_COMPARISON_CHOICES}
       onChange={(value: AgeComparison) => {
         onUpdate({
-          type: value,
+          comparison_type: value,
         });
       }}
     />

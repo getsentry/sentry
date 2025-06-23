@@ -95,7 +95,7 @@ function IdentifierField() {
           name={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) =>
-            onUpdate({config: {target_identifier: value.actor.id}})
+            onUpdate({config: {target_identifier: value.actor.id}, data: {}})
           }
           useId
           styles={selectControlStyles}
@@ -111,7 +111,7 @@ function IdentifierField() {
           key={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) =>
-            onUpdate({config: {target_identifier: value.actor.id}})
+            onUpdate({config: {target_identifier: value.actor.id}, data: {}})
           }
           styles={selectControlStyles}
         />

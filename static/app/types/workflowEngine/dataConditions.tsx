@@ -66,7 +66,7 @@ export interface DataCondition {
   comparison: any;
   id: string;
   type: DataConditionType;
-  conditionResult?: DetectorPriorityLevel;
+  conditionResult?: any;
 }
 
 export interface DataConditionGroup {

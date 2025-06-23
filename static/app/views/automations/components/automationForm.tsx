@@ -10,11 +10,11 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
@@ -35,7 +35,6 @@ const FREQUENCY_OPTIONS = [
 ];
 
 export default function AutomationForm({model}: {model: FormModel}) {
-  const location = useLocation();
   const organization = useOrganization();
   const title = useDocumentTitle();
 
@@ -44,20 +43,15 @@ export default function AutomationForm({model}: {model: FormModel}) {
   }, [title, model]);
 
   const {data: monitors = []} = useDetectorsQuery();
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    const connectedIdsQuery = location.query.connectedIds as
-      | string
-      | string[]
-      | undefined;
-    if (!connectedIdsQuery) {
-      return new Set<string>();
-    }
-    const connectedIdsArray = Array.isArray(connectedIdsQuery)
-      ? connectedIdsQuery
-      : [connectedIdsQuery];
-    return new Set(connectedIdsArray);
-  });
+  const initialConnectedIds = useFormField('detectorIds');
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(
+    initialConnectedIds ? new Set(initialConnectedIds) : new Set<string>()
+  );
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
+  const updateConnectedIds = (ids: Set<string>) => {
+    setConnectedIds(ids);
+    model.setValue('detectorIds', Array.from(ids));
+  };
 
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
@@ -68,7 +62,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
           <EditConnectedMonitorsDrawer
             initialIds={connectedIds}
             onSave={ids => {
-              setConnectedIds(ids);
+              updateConnectedIds(ids);
               closeDrawer();
             }}
           />
@@ -87,11 +81,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
     <Flex direction="column" gap={space(1.5)}>
       <Card>
         <Heading>{t('Connect Monitors')}</Heading>
-        <ConnectedMonitorsList
-          monitors={connectedMonitors}
-          connectedIds={connectedIds}
-          setConnectedIds={setConnectedIds}
-        />
+        <ConnectedMonitorsList monitors={connectedMonitors} />
         <ButtonWrapper justify="space-between">
           <LinkButton
             icon={<IconAdd />}
