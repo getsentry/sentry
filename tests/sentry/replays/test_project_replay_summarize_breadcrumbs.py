@@ -12,6 +12,7 @@ from sentry import nodestore
 from sentry.eventstore.models import Event
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
     ErrorEvent,
+    as_log_message,
     get_request_data,
 )
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
@@ -329,3 +330,193 @@ def test_get_request_data():
         "Logged: world at 2.0",
         "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
     ]
+
+
+def test_as_log_message():
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.click", "message": "div"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.slowClickDetected",
+                "message": "div",
+                "data": {
+                    "clickCount": 4,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "node": {"tagName": "button"},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.slowClickDetected",
+                "message": "div",
+                "data": {
+                    "clickCount": 5,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "node": {"tagName": "button"},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "navigation", "data": {"to": "/"}}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "t"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "description": "https://www.z.com/path?q=true",
+                "endTimestamp": 0.0,
+                "startTimestamp": 0.0,
+                "data": {
+                    "method": "GET",
+                    "statusCode": 404,
+                    "response": {"size": 0},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "description": "https://www.z.com/path?q=true",
+                "endTimestamp": 0.0,
+                "startTimestamp": 0.0,
+                "data": {
+                    "method": "GET",
+                    "statusCode": 404,
+                    "response": {"wrong": "wrong"},
+                },
+            },
+        },
+    }
+
+    result = as_log_message(event)
+    assert result is not None
+    assert "unknown" not in result
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "description": "https://www.z.com/path?q=true",
+                "endTimestamp": 0.0,
+                "startTimestamp": 0.0,
+                "data": {
+                    "method": "GET",
+                    "statusCode": 200,
+                    "response": {"size": 0},
+                },
+            },
+        },
+    }
+
+    result = as_log_message(event)
+    assert result is None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
+    }
+    assert as_log_message(event) is None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "web-vital",
+                "description": "largest-contentful-paint",
+                "data": {"size": 0, "rating": "good"},
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "web-vital",
+                "description": "first-contentful-paint",
+                "data": {"size": 0, "rating": "good"},
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
+    }
+    assert as_log_message(event) is not None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
+    }
+    assert as_log_message(event) is None
+    assert as_log_message({}) is None
