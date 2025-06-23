@@ -61,7 +61,9 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   );
   const timeWindow = getDuration(incident.alertRule.timeWindow * 60);
   const alertName = capitalize(
-    AlertWizardAlertNames[getAlertTypeFromAggregateDataset(incident.alertRule)]
+    AlertWizardAlertNames[
+      getAlertTypeFromAggregateDataset({...incident.alertRule, organization})
+    ]
   );
 
   return (

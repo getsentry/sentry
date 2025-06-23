@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -21,7 +22,11 @@ describe('EAPField', () => {
   it('renders', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField aggregate={'count(span.duration)'} onChange={() => {}} />
+        <EAPField
+          aggregate={'count(span.duration)'}
+          onChange={() => {}}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
@@ -50,19 +55,17 @@ describe('EAPField', () => {
   it('renders epm with argument disabled', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField aggregate={'epm()'} onChange={() => {}} />
+        <EAPField
+          aggregate={'epm()'}
+          onChange={() => {}}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number'}),
-      })
-    );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string'}),
+        query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
       })
     );
     expect(screen.getByText('epm')).toBeInTheDocument();
@@ -79,19 +82,23 @@ describe('EAPField', () => {
   it('renders failure_rate with argument disabled', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField aggregate={'failure_rate()'} onChange={() => {}} />
+        <EAPField
+          aggregate={'failure_rate()'}
+          onChange={() => {}}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number'}),
+        query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string'}),
+        query: expect.objectContaining({attributeType: 'string', itemType: 'spans'}),
       })
     );
     expect(screen.getByText('failure_rate')).toBeInTheDocument();
@@ -109,7 +116,11 @@ describe('EAPField', () => {
     const onChange = jest.fn();
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField aggregate={'count(span.duration)'} onChange={onChange} />
+        <EAPField
+          aggregate={'count(span.duration)'}
+          onChange={onChange}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       </TraceItemAttributeProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
@@ -121,7 +132,7 @@ describe('EAPField', () => {
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string'}),
+        query: expect.objectContaining({attributeType: 'string', itemType: 'spans'}),
       })
     );
     await userEvent.click(screen.getByText('count'));
@@ -134,7 +145,11 @@ describe('EAPField', () => {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <EAPField aggregate={aggregate} onChange={setAggregate} />
+          <EAPField
+            aggregate={aggregate}
+            onChange={setAggregate}
+            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+          />
         </TraceItemAttributeProvider>
       );
     }
@@ -163,7 +178,11 @@ describe('EAPField', () => {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <EAPField aggregate={aggregate} onChange={setAggregate} />
+          <EAPField
+            aggregate={aggregate}
+            onChange={setAggregate}
+            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+          />
         </TraceItemAttributeProvider>
       );
     }
@@ -189,5 +208,38 @@ describe('EAPField', () => {
     await userEvent.click(await screen.findByText('count_unique'));
     expect(screen.getByText('count_unique')).toBeInTheDocument();
     expect(screen.getByText('span.op')).toBeInTheDocument();
+  });
+
+  it('renders count with argument disabled for logs', () => {
+    render(
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+        <EAPField
+          aggregate={'count(message)'}
+          onChange={() => {}}
+          eventTypes={[EventTypes.TRACE_ITEM_LOG]}
+        />
+      </TraceItemAttributeProvider>
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string', itemType: 'logs'}),
+      })
+    );
+    expect(screen.getByText('count')).toBeInTheDocument();
+    expect(screen.getByText('logs')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(2);
+    // this corresponds to the `count` input
+    expect(inputs[0]).toBeEnabled();
+    // this corresponds to the `spans` input
+    expect(inputs[1]).toBeDisabled();
   });
 });

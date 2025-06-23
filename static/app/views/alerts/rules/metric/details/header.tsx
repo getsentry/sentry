@@ -66,6 +66,7 @@ function DetailsHeader({
     getAlertTypeFromAggregateDataset({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
+      eventTypes: rule.eventTypes,
     });
 
   return (

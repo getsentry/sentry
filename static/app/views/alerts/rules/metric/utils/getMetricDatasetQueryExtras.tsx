@@ -7,6 +7,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {getDiscoverDataset} from 'sentry/views/alerts/wizard/options';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function getMetricDatasetQueryExtras({
   organization,
@@ -15,14 +16,25 @@ export function getMetricDatasetQueryExtras({
   query,
   newAlertOrQuery,
   useOnDemandMetrics,
+  traceItemType,
 }: {
   dataset: MetricRule['dataset'];
   newAlertOrQuery: boolean;
   organization: Organization;
   location?: Location;
   query?: string;
+  traceItemType?: TraceItemDataset | null;
   useOnDemandMetrics?: boolean;
 }) {
+  if (
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+    traceItemType === TraceItemDataset.LOGS
+  ) {
+    return {
+      dataset: DiscoverDatasets.OURLOGS,
+    };
+  }
+
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return {
       dataset: DiscoverDatasets.SPANS_EAP,
