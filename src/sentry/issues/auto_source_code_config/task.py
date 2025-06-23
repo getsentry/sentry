@@ -151,13 +151,10 @@ def process_error(error: ApiError, extra: dict[str, Any]) -> None:
         logger.warning("Github has blocked this org. We will not continue.", extra=extra)
         return
 
-    # Logging the exception and returning is better than re-raising the error
+    # Logging the warning and returning is better than re-raising the error
     # Otherwise, API errors would not group them since the HTTPError in the stack
     # has unique URLs, thus, separating the errors
-    logger.error(
-        "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
-        extra=extra,
-    )
+    logger.warning("Unhandled ApiError occurred. Multiple issues grouped.", extra=extra)
 
 
 def get_trees_for_org(
