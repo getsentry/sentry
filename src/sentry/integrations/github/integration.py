@@ -65,6 +65,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
@@ -975,7 +976,7 @@ class GithubOrganizationSelection(IntegrationPipelineViewT):
                     serialize_rpc_user(request.user) if isinstance(request.user, User) else None
                 ),
             )
-            return self.render_react_view(
+            return render_react_view(
                 request=request,
                 pipeline_name="githubInstallationSelect",
                 props={

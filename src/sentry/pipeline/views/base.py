@@ -29,14 +29,14 @@ class PipelineView[M: Model, S: PipelineSessionStore](abc.ABC):
         should be used to bind data and traverse the pipeline.
         """
 
-    @staticmethod
-    def render_react_view(
-        request: HttpRequest,
-        pipeline_name: str,
-        props: Mapping[str, Any],
-    ) -> HttpResponseBase:
-        return render_to_response(
-            template="sentry/bases/react_pipeline.html",
-            request=request,
-            context={"pipelineName": pipeline_name, "props": json.dumps(props)},
-        )
+
+def render_react_view(
+    request: HttpRequest,
+    pipeline_name: str,
+    props: Mapping[str, Any],
+) -> HttpResponseBase:
+    return render_to_response(
+        template="sentry/bases/react_pipeline.html",
+        request=request,
+        context={"pipelineName": pipeline_name, "props": json.dumps(props)},
+    )
