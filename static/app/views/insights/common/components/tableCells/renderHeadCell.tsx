@@ -140,25 +140,41 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
     />
   );
 
-  if (hasTooltip) {
+  if (
+    hasTooltip &&
+    [
+      'performance_score(measurements.score.total)',
+      'sum_if(span.duration,is_transaction,true)',
+    ].includes(key)
+  ) {
     const AlignmentContainer = alignment === 'right' ? AlignRight : AlignLeft;
+
+    const title =
+      key === 'performance_score(measurements.score.total)' ? (
+        <span>
+          {t('The overall performance rating of this page.')}
+          <br />
+          <ExternalLink
+            href={`${MODULE_PRODUCT_DOC_LINKS[ModuleName.VITAL]}#performance-score`}
+          >
+            {t('How is this calculated?')}
+          </ExternalLink>
+        </span>
+      ) : (
+        <span>
+          {t('The total time spent on this transaction.')}
+          <br />
+          <ExternalLink
+            href={`${MODULE_PRODUCT_DOC_LINKS[ModuleName.DB]}#what-is-time-spent`}
+          >
+            {t('How is this calculated?')}
+          </ExternalLink>
+        </span>
+      );
 
     return (
       <AlignmentContainer>
-        <StyledTooltip
-          isHoverable
-          title={
-            <span>
-              {t('The overall performance rating of this page.')}
-              <br />
-              <ExternalLink
-                href={`${MODULE_PRODUCT_DOC_LINKS[ModuleName.VITAL]}#performance-score`}
-              >
-                {t('How is this calculated?')}
-              </ExternalLink>
-            </span>
-          }
-        >
+        <StyledTooltip isHoverable title={title}>
           {sortLink}
         </StyledTooltip>
       </AlignmentContainer>
