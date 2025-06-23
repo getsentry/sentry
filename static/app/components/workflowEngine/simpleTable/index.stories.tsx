@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 
@@ -13,21 +14,8 @@ interface Data {
   name: string;
 }
 
-const columns = defineColumns<Data>({
-  name: {Header: () => t('Name')},
-  monitors: {
-    Header: () => t('Monitors'),
-    Cell: ({value}) => `${value.length} monitors`,
-  },
-  action: {Header: () => t('Action')},
-  lastTriggered: {
-    Header: () => t('Last Triggered'),
-    Cell: ({value}) => <TimeAgoCell date={value} />,
-  },
-});
-
 export default Storybook.story('SimpleTable', story => {
-  story('default', () => {
+  story('Default', () => {
     const data: Data[] = [
       {
         name: 'Row A',
@@ -81,45 +69,68 @@ export default Storybook.story('SimpleTable', story => {
         <p>
           An example <Storybook.JSXNode name="SimpleTable" /> looks like this:
         </p>
-        <SimpleTable columns={columns} data={data} />
+        <SimpleTableWithColumns>
+          <SimpleTable.Header>
+            <SimpleTable.HeaderCell name="name" sortKey="name">
+              Name
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell name="monitors" sortKey="monitors">
+              Monitors
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell name="action" sortKey="action">
+              Action
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell name="lastTriggered" sortKey="lastTriggered">
+              Last Triggered
+            </SimpleTable.HeaderCell>
+          </SimpleTable.Header>
+          {data.map(row => (
+            <SimpleTable.Row key={row.name}>
+              <SimpleTable.RowCell name="name">{row.name}</SimpleTable.RowCell>
+              <SimpleTable.RowCell name="monitors">
+                {t('%s monitors', row.monitors.length)}
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell name="action">{row.action}</SimpleTable.RowCell>
+              <SimpleTable.RowCell name="lastTriggered">
+                <TimeAgoCell date={row.lastTriggered} />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
+        </SimpleTableWithColumns>
       </Fragment>
     );
   });
 
-  story('empty', () => {
-    const data: Data[] = [];
-
+  story('Empty states', () => {
     return (
       <Fragment>
         <p>
-          Use the <Storybook.JSXProperty name="fallback" value="message" /> property for
-          empty states
+          Use the <Storybook.JSXNode name="SimpleTable.Empty" /> component for empty
+          states
         </p>
 
-        <SimpleTable
-          columns={columns}
-          data={data}
-          fallback={t('No alerts triggered during given date range')}
-        />
+        <SimpleTableWithColumns>
+          <SimpleTable.Header>
+            <SimpleTable.HeaderCell name="name" sortKey="name">
+              Name
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell name="monitors" sortKey="monitors">
+              Monitors
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell name="action" sortKey="action">
+              Action
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell name="lastTriggered" sortKey="lastTriggered">
+              Last Triggered
+            </SimpleTable.HeaderCell>
+          </SimpleTable.Header>
+          <SimpleTable.Empty>No data</SimpleTable.Empty>
+        </SimpleTableWithColumns>
       </Fragment>
     );
   });
 
-  story('custom widths', () => {
-    const columnsWithWidth = defineColumns<Data>({
-      name: {Header: () => t('Name'), width: '2fr'},
-      monitors: {
-        Header: () => t('Monitors'),
-        Cell: ({value}) => `${value.length} monitors`,
-        width: 'min-content',
-      },
-      action: {Header: () => t('Action')},
-      lastTriggered: {
-        Header: () => t('Last Triggered'),
-        Cell: ({value}) => <TimeAgoCell date={value} />,
-        width: '256px',
-      },
-    });
+  story('Custom widths and hidden columns', () => {
     const data: Data[] = [
       {
         name: 'Row A',
@@ -141,10 +152,67 @@ export default Storybook.story('SimpleTable', story => {
       },
     ];
 
+    const tableContent = (
+      <Fragment>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell name="name" sortKey="name">
+            Name
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell name="monitors" sortKey="monitors">
+            Monitors
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell name="action" sortKey="action">
+            Action
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell name="lastTriggered" sortKey="lastTriggered">
+            Last Triggered
+          </SimpleTable.HeaderCell>
+        </SimpleTable.Header>
+        {data.map(row => (
+          <SimpleTable.Row key={row.name}>
+            <SimpleTable.RowCell name="name">{row.name}</SimpleTable.RowCell>
+            <SimpleTable.RowCell name="monitors">
+              {row.monitors.length} monitors
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell name="action">{row.action}</SimpleTable.RowCell>
+            <SimpleTable.RowCell name="lastTriggered">
+              <TimeAgoCell date={row.lastTriggered} />
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        ))}
+      </Fragment>
+    );
+
     return (
       <Fragment>
-        <SimpleTable columns={columnsWithWidth} data={data} />
+        <p>
+          Set custom widths for columns by styling SimpleTable with{' '}
+          <code>grid-template-columns</code>.
+        </p>
+
+        <SimpleTableWithCustomWidths>{tableContent}</SimpleTableWithCustomWidths>
+        <p>
+          You can also hide columns by targeting the column's class name, which is useful
+          for creating responsive tables.
+        </p>
+        <SimpleTableWithHiddenColumns>{tableContent}</SimpleTableWithHiddenColumns>
       </Fragment>
     );
   });
 });
+
+const SimpleTableWithColumns = styled(SimpleTable)`
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+`;
+
+const SimpleTableWithCustomWidths = styled(SimpleTable)`
+  grid-template-columns: 2fr min-content auto 256px;
+`;
+
+const SimpleTableWithHiddenColumns = styled(SimpleTableWithCustomWidths)`
+  grid-template-columns: 2fr min-content auto;
+
+  .lastTriggered {
+    display: none;
+  }
+`;
