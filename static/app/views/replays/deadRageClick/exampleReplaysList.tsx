@@ -92,7 +92,7 @@ export default function ExampleReplaysList({
               eventView={eventView}
               organization={organization}
               referrer={referrer}
-              referrer_table="selector-widget"
+              referrerTable="selector-widget"
               isWidget
             />
           );
