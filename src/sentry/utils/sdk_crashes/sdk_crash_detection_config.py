@@ -279,7 +279,12 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 ],
                 path_replacer=KeepFieldPathReplacer(fields={"module", "filename", "package"}),
             ),
-            sdk_crash_ignore_matchers=set(),
+            sdk_crash_ignore_matchers={
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.graphql.SentryInstrumentation",
+                    function_pattern="lambda$instrumentExecutionResult$0",
+                ),
+            },
         )
         configs.append(java_config)
 
