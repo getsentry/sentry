@@ -124,6 +124,7 @@ export default function AutomationNewSettings() {
       hideFooter
       initialData={{...initialData, detectorIds: initialConnectedIds}}
       onSubmit={handleSubmit}
+      model={model}
     >
       <AutomationDocumentTitle />
       <Layout.Page>
