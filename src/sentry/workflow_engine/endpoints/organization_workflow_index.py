@@ -1,6 +1,7 @@
 from datetime import datetime
+from functools import partial
 
-from django.db.models import Count, Max, Q
+from django.db.models import Count, Max, Q, QuerySet
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -12,6 +13,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
+from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -22,10 +25,9 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
-from sentry.db.models.query import in_icontains, in_iexact
-from sentry.search.utils import tokenize_query
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
+from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Workflow
@@ -41,6 +43,15 @@ SORT_COL_MAP = {
     "actions": "actions",
     "lastTriggered": "last_triggered",
 }
+
+workflow_search_config = SearchConfig.create_from(
+    default_config,
+    text_operator_keys={"name", "action"},
+    allowed_keys={"name", "action"},
+    allow_boolean=False,
+    free_text_key="query",
+)
+parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
 
 
 class OrganizationWorkflowEndpoint(OrganizationEndpoint):
@@ -87,7 +98,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
-        queryset = Workflow.objects.filter(organization_id=organization.id)
+        queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
 
         if raw_idlist := request.GET.getlist("id"):
             try:
@@ -97,24 +108,23 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(id__in=ids)
 
         if raw_query := request.GET.get("query"):
-            tokenized_query = tokenize_query(raw_query)
-            for key, values in tokenized_query.items():
-                match key:
-                    case "name":
-                        queryset = queryset.filter(in_iexact("name", values))
-                    case "action":
+            for filter in parse_workflow_query(raw_query):
+                assert isinstance(filter, SearchFilter)
+                match filter:
+                    case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
+                        queryset = apply_filter(queryset, filter, "name")
+                    case SearchFilter(key=SearchKey("action"), operator=("=" | "IN" | "!=")):
+                        queryset = apply_filter(
+                            queryset,
+                            filter,
+                            "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
+                            distinct=True,
+                        )
+                    case SearchFilter(key=SearchKey("query"), operator="="):
                         queryset = queryset.filter(
-                            in_iexact(
-                                "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
-                                values,
-                            )
-                        ).distinct()
-                    case "query":
-                        queryset = queryset.filter(
-                            in_icontains("name", values)
-                            | in_icontains(
-                                "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
-                                values,
+                            Q(name__icontains=filter.value.value)
+                            | Q(
+                                workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type__icontains=filter.value.value,
                             )
                         ).distinct()
                     case _:
