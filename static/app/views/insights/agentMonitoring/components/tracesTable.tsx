@@ -23,6 +23,7 @@ import {
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -92,9 +93,9 @@ export function TracesTable() {
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
       ],
       limit: tracesRequest.data?.data.length ?? 0,
-      enabled: tracesRequest.data && tracesRequest.data.data.length > 0,
+      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
     },
-    'test-traces-table'
+    Referrer.TRACES_TABLE
   );
 
   const spanDataMap = useMemo(() => {

@@ -10,6 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
+import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
   TraceViewLogsDataProvider,
@@ -162,6 +163,12 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             ) : null}
             {currentTab === TraceLayoutTabKeys.SUMMARY ? (
               <TraceSummarySection traceSlug={traceSlug} />
+            ) : null}
+            {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
+              <TraceAiSpans
+                traceSlug={traceSlug}
+                viewManager={traceWaterfallModels.viewManager}
+              />
             ) : null}
           </TraceInnerLayout>
         </TraceExternalLayout>
