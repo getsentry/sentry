@@ -710,8 +710,6 @@ class GSBanner extends Component<Props, State> {
             checkResults[`${snakeCase(c.plural)}_warning_alert`]!
           )
         ),
-        // TODO(data categories): We don't need to check every EventType for product trials,
-        // only the ones that are supported for product trials.
         productTrialDismissed: objectFromBilledCategories(c =>
           trialPromptIsDismissed(
             checkResults[`${snakeCase(c.plural)}_product_trial_alert`]!,

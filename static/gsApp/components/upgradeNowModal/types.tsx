@@ -7,4 +7,4 @@ export type Reservations = {
   reservedReplays: number;
   reservedTransactions: number;
   reservedUptime: number | undefined;
-}; // TODO(data categories): check if this is still needed
+}; // TODO(data categories): BIL-956

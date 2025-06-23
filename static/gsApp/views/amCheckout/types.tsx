@@ -36,7 +36,7 @@ export type CheckoutAPIData = Omit<BaseCheckoutData, 'selectedProducts'> & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
-  // TODO(data categories): check if these can be parsed
+  // TODO(data categories): BIL-965
   reservedAttachments?: number;
   reservedErrors?: number;
   reservedMonitorSeats?: number;

@@ -908,7 +908,7 @@ export function CombinedUsageTotals({
 
   function getReservedInfo() {
     if (doesNotHaveProduct) {
-      // TODO(data categories): move this to backend
+      // TODO(reserved budgets): move this to frontend const similar to BILLED_DATA_CATEGORY_INFO
       if (apiName === ReservedBudgetCategoryType.SEER) {
         return t('Detect and fix issues faster with our AI debugging agent.');
       }
