@@ -11,7 +11,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
+import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -98,7 +98,9 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
 
         {feedbackItem.hasSeen ? null : (
           <DotRow style={{gridArea: 'unread'}}>
-            <IconCircleFill size="xs" color="purple400" />
+            <Tooltip title={t('Unread')} skipWrapper>
+              <UnreadIndicator />
+            </Tooltip>
           </DotRow>
         )}
 
@@ -226,6 +228,13 @@ const DotRow = styled(Row)`
   height: 1.1em;
   align-items: flex-start;
   justify-content: center;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 8px;
+  height: 8px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
