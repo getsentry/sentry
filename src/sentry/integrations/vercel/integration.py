@@ -24,7 +24,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline_types import IntegrationPipelineViewT
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.sentry_apps.logic import SentryAppCreator

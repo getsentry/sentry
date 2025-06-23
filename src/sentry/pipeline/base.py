@@ -18,8 +18,8 @@ from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
-from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
+from .provider import PipelineProvider
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
 from .views.nested import NestedPipelineView

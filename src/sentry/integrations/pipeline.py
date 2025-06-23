@@ -20,7 +20,7 @@ from sentry.integrations.pipeline_types import IntegrationPipelineT
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline import PipelineAnalyticsEntry
+from sentry.pipeline.types import PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
