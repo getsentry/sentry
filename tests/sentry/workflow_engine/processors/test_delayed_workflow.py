@@ -1,7 +1,6 @@
-from collections import defaultdict
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import Mock, call, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 
@@ -39,10 +38,14 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors.data_condition_group import (
+    ProcessedDataConditionGroup,
+    get_slow_conditions_for_groups,
+)
 from sentry.workflow_engine.processors.delayed_workflow import (
-    DataConditionGroupEvent,
-    DataConditionGroupGroups,
+    EventInstance,
+    EventKey,
+    EventRedisData,
     UniqueConditionQuery,
     bulk_fetch_events,
     cleanup_redis_buffer,
@@ -52,10 +55,8 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
-    get_dcg_group_workflow_detector_data,
     get_group_to_groupevent,
     get_groups_to_fire,
-    parse_dcg_group_event_data,
 )
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
@@ -67,6 +68,11 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
+
+
+def dcg_ids_to_str(dcgs: list[DataConditionGroup]) -> str:
+    """Convert a list of DCGs to a comma-delimited string of their IDs."""
+    return ",".join(str(dcg.id) for dcg in dcgs)
 
 
 class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
@@ -92,10 +98,10 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
 
         self.workflow_group_dcg_mapping = {
-            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
-            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
-            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
-            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
+            f"{self.workflow1.id}:{self.group1.id}:{dcg_ids_to_str([self.workflow1_dcgs[0]])}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow1.id}:{self.group1.id}:{dcg_ids_to_str([self.workflow1_dcgs[1]])}:{DataConditionHandler.Group.ACTION_FILTER}",
+            f"{self.workflow2.id}:{self.group2.id}:{dcg_ids_to_str([self.workflow2_dcgs[0]])}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow2.id}:{self.group2.id}:{dcg_ids_to_str([self.workflow2_dcgs[1]])}:{DataConditionHandler.Group.ACTION_FILTER}",
         }
 
         self.event3, self.group3 = self.setup_event(self.project2, self.environment2, "group-3")
@@ -108,42 +114,15 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self._make_sessions(60, project=self.project2)
 
         self.workflow_group_dcg_mapping2 = {
-            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
-            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
-            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
-            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
+            f"{self.workflow3.id}:{self.group3.id}:{dcg_ids_to_str([self.workflow3_dcgs[0]])}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow3.id}:{self.group3.id}:{dcg_ids_to_str([self.workflow3_dcgs[1]])}:{DataConditionHandler.Group.ACTION_FILTER}",
+            f"{self.workflow4.id}:{self.group4.id}:{dcg_ids_to_str([self.workflow4_dcgs[0]])}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow4.id}:{self.group4.id}:{dcg_ids_to_str([self.workflow4_dcgs[1]])}:{DataConditionHandler.Group.ACTION_FILTER}",
         }
-
-        self.dcg_to_groups: DataConditionGroupGroups = {
-            dcg.id: {self.group1.id} for dcg in self.workflow1_dcgs
-        } | {dcg.id: {self.group2.id} for dcg in self.workflow2_dcgs}
-        self.trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]] = (
-            defaultdict(dict)
-        )
-
-        self.workflow_dcgs = self.workflow1_dcgs + self.workflow2_dcgs
-        for i, dcg in enumerate(self.workflow_dcgs):
-            handler_type = (
-                DataConditionHandler.Group.WORKFLOW_TRIGGER
-                if i % 2 == 0
-                else DataConditionHandler.Group.ACTION_FILTER
-            )
-            workflow_id = self.workflow1.id if i < len(self.workflow1_dcgs) else self.workflow2.id
-            self.trigger_group_to_dcg_model[handler_type][dcg.id] = workflow_id
 
         self.detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
         self.detector_dcg = self.create_data_condition_group()
         self.detector.update(workflow_condition_group=self.detector_dcg)
-        self.trigger_group_to_dcg_model[DataConditionHandler.Group.DETECTOR_TRIGGER][
-            self.detector_dcg.id
-        ] = self.detector.id
-
-        self.dcg_to_workflow = self.trigger_group_to_dcg_model[
-            DataConditionHandler.Group.WORKFLOW_TRIGGER
-        ].copy()
-        self.dcg_to_workflow.update(
-            self.trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER]
-        )
 
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -269,38 +248,16 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         assert len(buffer_data) == 4
         assert set(buffer_data.keys()) == self.workflow_group_dcg_mapping2
 
-    def test_get_dcg_group_workflow_detector_data(self):
-        self._push_base_events()
-
-        self.push_to_hash(
-            self.project.id,
-            self.detector.id,
-            self.group1.id,
-            [self.detector_dcg.id],
-            self.event1.event_id,
-            dcg_group=DataConditionHandler.Group.DETECTOR_TRIGGER,
-        )
-        self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
-
-        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        dcg_to_groups, trigger_group_to_dcg_model = get_dcg_group_workflow_detector_data(
-            buffer_data
-        )
-
-        assert dcg_to_groups == self.dcg_to_groups
-        assert trigger_group_to_dcg_model == self.trigger_group_to_dcg_model
-
     def test_fetch_workflows_envs(self):
-        workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_envs(
-            list(self.dcg_to_workflow.values())
+        self._push_base_events()
+        event_data = EventRedisData.from_redis_data(
+            fetch_group_to_event_data(self.project.id, Workflow),
+            continue_on_error=False,
         )
+        workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
         assert workflows_to_envs == {
             self.workflow1.id: self.environment.id,
             self.workflow2.id: None,
-        }
-        assert workflow_ids_to_workflows == {
-            self.workflow1.id: self.workflow1,
-            self.workflow2.id: self.workflow2,
         }
 
 
@@ -444,7 +401,15 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         }
         workflows_to_envs: dict[int, int | None] = {self.workflow.id: None}
 
-        result = get_condition_query_groups(dcgs, dcg_to_groups, dcg_to_workflow, workflows_to_envs)
+        # Create mock event data with just the required properties
+        mock_event_data = Mock(spec=EventRedisData)
+        mock_event_data.dcg_to_groups = dcg_to_groups
+        mock_event_data.dcg_to_workflow = dcg_to_workflow
+
+        dcg_to_slow_conditions = get_slow_conditions_for_groups(list(dcg_to_groups.keys()))
+        result = get_condition_query_groups(
+            dcgs, mock_event_data, workflows_to_envs, dcg_to_slow_conditions
+        )
 
         count_query = generate_unique_queries(self.count_dc, None)[0]
         percent_only_query = generate_unique_queries(self.percent_dc, None)[1]
@@ -583,7 +548,6 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         super().setUp()
 
         self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
-        self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
         self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
         self.condition_group_results: dict[UniqueConditionQuery, QueryResult] = {
             UniqueConditionQuery(
@@ -638,13 +602,30 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             condition_result=True,
         )
 
+        # Create event data
+        self.event_data = EventRedisData(
+            events={
+                EventKey.from_redis_key(
+                    f"{self.workflow1.id}:{self.group1.id}:{dcg_ids_to_str(self.workflow1_dcgs)}:workflow_trigger"
+                ): EventInstance(event_id="test-event-1"),
+                EventKey.from_redis_key(
+                    f"{self.workflow2.id}:{self.group2.id}:{dcg_ids_to_str(self.workflow2_dcgs)}:workflow_trigger"
+                ): EventInstance(event_id="test-event-2"),
+                EventKey.from_redis_key(
+                    f"{self.detector.id}:{self.group1.id}:{self.detector_dcg.id}:detector_trigger"
+                ): EventInstance(event_id="test-event-1"),
+            }
+        )
+
+        self.dcg_to_slow_conditions = get_slow_conditions_for_groups(list(self.event_data.dcg_ids))
+
     def test_simple(self):
         result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
-            self.dcg_to_workflow,
-            self.dcg_to_groups,
+            self.event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
 
         assert result == {
@@ -666,9 +647,9 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
-            self.dcg_to_workflow,
-            self.dcg_to_groups,
+            self.event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
 
         assert result == {
@@ -688,9 +669,9 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
-            self.dcg_to_workflow,
-            self.dcg_to_groups,
+            self.event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
 
         assert result == {
@@ -698,20 +679,31 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         }
 
     def test_multiple_dcgs_per_group(self):
-        for dcg in self.workflow1_dcgs:
-            self.dcg_to_groups[dcg.id].add(self.group2.id)
-        for dcg in self.workflow2_dcgs:
-            self.dcg_to_groups[dcg.id].add(self.group1.id)
+        # Create new entries for additional DCGs
+        new_entries = {
+            # Add workflow2 DCGs for group1
+            EventKey.from_redis_key(
+                f"{self.workflow2.id}:{self.group1.id}:{dcg_ids_to_str(self.workflow2_dcgs)}:workflow_trigger"
+            ): EventInstance(event_id="test-event-1"),
+            # Add workflow1 DCGs for group2
+            EventKey.from_redis_key(
+                f"{self.workflow1.id}:{self.group2.id}:{dcg_ids_to_str(self.workflow1_dcgs)}:workflow_trigger"
+            ): EventInstance(event_id="test-event-2"),
+            # Add workflow2 DCGs for group2
+            EventKey.from_redis_key(
+                f"{self.workflow2.id}:{self.group2.id}:{dcg_ids_to_str(self.workflow2_dcgs)}:workflow_trigger"
+            ): EventInstance(event_id="test-event-2"),
+        }
+
+        event_data = EventRedisData(events={**self.event_data.events, **new_entries})
 
         result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
-            self.dcg_to_workflow,
-            self.dcg_to_groups,
+            event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
-
-        # all dcgs except workflow 2 IF, which never passes
         assert result == {
             self.group1.id: set(self.workflow1_dcgs + [self.workflow2_dcgs[0]]),
             self.group2.id: set(
@@ -752,55 +744,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group1.id: set(self.workflow1_dcgs),
             self.group2.id: set(self.workflow2_dcgs),
         }
-        self.dcg_group_to_event_data: DataConditionGroupEvent = {}
-        for i, dcg in enumerate(self.workflow_dcgs):
-            if i < 2:
-                group = self.group1
-                event = self.event1
-            else:
-                group = self.group2
-                event = self.event2
-
-            self.dcg_group_to_event_data[(dcg.id, group.id)] = {
-                "event_id": event.event_id,
-                "occurrence_id": None,
-            }
 
         self.group_to_groupevent = {
             self.group1: self.event1.for_group(self.group1),
             self.group2: self.event2.for_group(self.group2),
         }
-
-    def test_parse_dcg_group_event_data(self):
-        self._push_base_events()
-        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
-            buffer_data, self.groups_to_dcgs
-        )
-
-        assert dcg_group_to_event_data == self.dcg_group_to_event_data
-        assert event_ids == {self.event1.event_id, self.event2.event_id}
-        assert occurrence_ids == set()
-
-    def test_parse_dcg_group_event_data__triggered_groups_only(self):
-        # buffer data represents all the data from the buffer
-        # groups_to_dcgs represents that groups that triggered DCGs --> fire actions
-        # the groups in the buffer may not be fired.
-
-        del self.groups_to_dcgs[self.group1.id]
-
-        self._push_base_events()
-        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
-            buffer_data, self.groups_to_dcgs
-        )
-
-        del self.dcg_group_to_event_data[(self.workflow1_dcgs[0].id, self.group1.id)]
-        del self.dcg_group_to_event_data[(self.workflow1_dcgs[1].id, self.group1.id)]
-
-        assert dcg_group_to_event_data == self.dcg_group_to_event_data
-        assert event_ids == {self.event2.event_id}
-        assert occurrence_ids == set()
 
     def test_bulk_fetch_events(self):
         event_ids = [self.event1.event_id, self.event2.event_id]
@@ -810,11 +758,12 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             assert event.event_id in event_ids
 
     def test_get_group_to_groupevent(self):
+        self._push_base_events()
+        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
         group_to_groupevent = get_group_to_groupevent(
-            self.dcg_group_to_event_data,
-            [self.group1.id, self.group2.id],
-            {self.event1.event_id, self.event2.event_id},
-            set(),
+            event_data,
+            self.groups_to_dcgs,
             self.project.id,
         )
         assert group_to_groupevent == self.group_to_groupevent
@@ -822,10 +771,13 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @patch("sentry.workflow_engine.models.action.Action.trigger")
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
+        self._push_base_events()
+        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
         fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
-            self.trigger_group_to_dcg_model,
+            event_data,
             self.group_to_groupevent,
         )
 
@@ -842,11 +794,13 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @patch("sentry.workflow_engine.processors.workflow.enqueue_workflows")
     def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
         # enqueue the IF DCGs with slow conditions!
-
+        self._push_base_events()
+        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
         fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
-            self.trigger_group_to_dcg_model,
+            event_data,
             self.group_to_groupevent,
         )
 
@@ -887,20 +841,27 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             [],
         )
 
-        self.trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER] = {
-            self.workflow1_dcgs[0].id: self.workflow1.id,
-        }
-        self.trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER] = {
-            self.workflow2_dcgs[1].id: self.workflow2.id,
-        }
+        # Create event data with specific workflow trigger and action filter mappings
+        event_data = EventRedisData(
+            events={
+                EventKey.from_redis_key(
+                    f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[0].id}:workflow_trigger"
+                ): EventInstance(event_id=self.event1.event_id),
+                EventKey.from_redis_key(
+                    f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[1].id}:action_filter"
+                ): EventInstance(event_id=self.event2.event_id),
+            }
+        )
+
         self.groups_to_dcgs = {
             self.group1.id: {self.workflow1_dcgs[0]},
             self.group2.id: {self.workflow2_dcgs[1]},
         }
+
         fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
-            self.trigger_group_to_dcg_model,
+            event_data,
             self.group_to_groupevent,
         )
 
@@ -924,7 +885,8 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
         assert set(data.keys()) == self.workflow_group_dcg_mapping
 
-        cleanup_redis_buffer(self.project.id, data, None)
+        event_data = EventRedisData.from_redis_data(data, continue_on_error=False)
+        cleanup_redis_buffer(self.project.id, event_data.events.keys(), None)
         data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
         assert data == {}
 
@@ -947,7 +909,8 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         first_batch = buffer.backend.get_hash(
             model=Workflow, field={"project_id": self.project.id, "batch_key": batch_one_key}
         )
-        cleanup_redis_buffer(self.project.id, first_batch, batch_one_key)
+        event_data = EventRedisData.from_redis_data(first_batch, continue_on_error=False)
+        cleanup_redis_buffer(self.project.id, event_data.events.keys(), batch_one_key)
 
         # Verify the batch we "executed" is removed
         data = buffer.backend.get_hash(
@@ -962,3 +925,148 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         for key in first_batch.keys():
             all_data.pop(key)
         assert data == all_data
+
+
+class TestEventKeyAndInstance:
+    def test_event_key_from_redis_key(self):
+        key = "123:456:789,101:workflow_trigger"
+        event_key = EventKey.from_redis_key(key)
+        assert event_key.workflow_id == 123
+        assert event_key.group_id == 456
+        assert event_key.dcg_ids == frozenset([789, 101])
+        assert event_key.dcg_type == DataConditionHandler.Group.WORKFLOW_TRIGGER
+        assert event_key.original_key == key
+
+    def test_event_key_from_redis_key_invalid(self):
+        # Test various invalid key formats
+        invalid_cases = [
+            "invalid-key",  # missing colons
+            "1:2:3:4:5:workflow_trigger",  # too many parts
+            "1:2:workflow_trigger",  # too few parts
+            "1:2:3:invalid_type",  # invalid type
+            "1:2:invalid_dcgs:workflow_trigger",  # invalid dcg_ids format
+            "not_a_number:2:3:workflow_trigger",  # non-numeric workflow_id
+            "1:not_a_number:3:workflow_trigger",  # non-numeric group_id
+        ]
+
+        for key in invalid_cases:
+            with pytest.raises(ValueError):
+                EventKey.from_redis_key(key)
+
+    def test_event_key_str_and_hash(self):
+        key = "123:456:789:workflow_trigger"
+        event_key = EventKey.from_redis_key(key)
+        assert str(event_key) == key
+        assert hash(event_key) == hash(key)
+        assert event_key == EventKey.from_redis_key(key)
+        assert event_key != EventKey.from_redis_key("123:456:789:action_filter")
+
+    def test_event_instance_validation(self):
+        # Test valid event instance
+        instance = EventInstance(event_id="test-event")
+        assert instance.event_id == "test-event"
+        assert instance.occurrence_id is None
+
+        # Test with occurrence ID
+        instance = EventInstance(event_id="test-event", occurrence_id="test-occurrence")
+        assert instance.event_id == "test-event"
+        assert instance.occurrence_id == "test-occurrence"
+
+        # Test empty occurrence ID is converted to None
+        instance = EventInstance(event_id="test-event", occurrence_id="")
+        assert instance.event_id == "test-event"
+        assert instance.occurrence_id is None
+
+        # Test whitespace occurrence ID is converted to None
+        instance = EventInstance(event_id="test-event", occurrence_id="   ")
+        assert instance.event_id == "test-event"
+        assert instance.occurrence_id is None
+
+        # Test invalid cases
+        invalid_cases = [
+            ('{"occurrence_id": "test-occurrence"}', "event_id"),  # missing event_id
+            ('{"event_id": ""}', "event_id"),  # empty event_id
+            ('{"event_id": "   "}', "event_id"),  # whitespace event_id
+            ('{"event_id": null}', "event_id"),  # null event_id
+        ]
+
+        for json_data, expected_error in invalid_cases:
+            with pytest.raises(ValueError, match=expected_error):
+                EventInstance.parse_raw(json_data)
+
+        # Test that extra fields are ignored
+        instance = EventInstance.parse_raw('{"event_id": "test", "extra": "field"}')
+        assert instance.event_id == "test"
+        assert instance.occurrence_id is None
+
+        instance = EventInstance.parse_raw(
+            '{"event_id": "test", "occurrence_id": "test", "extra": "field"}'
+        )
+        assert instance.event_id == "test"
+        assert instance.occurrence_id == "test"
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    def test_from_redis_data_continue_on_error(self, mock_logger):
+        # Create a mix of valid and invalid data
+        redis_data = {
+            "1:2:3:workflow_trigger": '{"event_id": "valid-1"}',  # valid
+            "4:5:6:workflow_trigger": '{"occurrence_id": "invalid-1"}',  # missing event_id
+            "7:8:9:workflow_trigger": '{"event_id": "valid-2"}',  # valid
+        }
+
+        # With continue_on_error=True, should return valid entries and log errors
+        result = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+        assert len(result.events) == 2
+        assert (
+            result.events[EventKey.from_redis_key("1:2:3:workflow_trigger")].event_id == "valid-1"
+        )
+        assert (
+            result.events[EventKey.from_redis_key("7:8:9:workflow_trigger")].event_id == "valid-2"
+        )
+
+        # Verify error was logged
+        mock_logger.exception.assert_called_once_with(
+            "Failed to parse workflow event data",
+            extra={
+                "key": "4:5:6:workflow_trigger",
+                "value": '{"occurrence_id": "invalid-1"}',
+                "error": ANY,
+            },
+        )
+
+        # With continue_on_error=False, should raise on first error
+        with pytest.raises(ValueError, match="event_id"):
+            EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    def test_from_redis_data_invalid_keys(self, mock_logger):
+        # Create data with an invalid key structure
+        redis_data = {
+            "1:2:3:workflow_trigger": '{"event_id": "valid-1"}',  # valid
+            "invalid-key": '{"event_id": "valid-2"}',  # invalid key format
+            "1:2:4:workflow_trigger": '{"event_id": "valid-3"}',  # valid
+        }
+
+        # With continue_on_error=True, should return valid entries and log errors
+        result = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+        assert len(result.events) == 2
+        assert (
+            result.events[EventKey.from_redis_key("1:2:3:workflow_trigger")].event_id == "valid-1"
+        )
+        assert (
+            result.events[EventKey.from_redis_key("1:2:4:workflow_trigger")].event_id == "valid-3"
+        )
+
+        # Verify error was logged
+        mock_logger.exception.assert_called_once_with(
+            "Failed to parse workflow event data",
+            extra={
+                "key": "invalid-key",
+                "value": '{"event_id": "valid-2"}',
+                "error": ANY,
+            },
+        )
+
+        # With continue_on_error=False, should raise on first error
+        with pytest.raises(ValueError):
+            EventRedisData.from_redis_data(redis_data, continue_on_error=False)

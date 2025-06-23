@@ -87,7 +87,6 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
-from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -1105,25 +1104,6 @@ class Factories:
         with open(path) as f:
             file.putfile(f)
         return file
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_event_attachment(event, file=None, **kwargs):
-        if file is None:
-            file = Factories.create_file(
-                name="log.txt",
-                size=32,
-                headers={"Content-Type": "text/plain"},
-                checksum="dc1e3f3e411979d336c3057cce64294f3420f93a",
-            )
-
-        return EventAttachment.objects.create(
-            project_id=event.project_id,
-            event_id=event.event_id,
-            file_id=file.id,
-            type=file.type,
-            **kwargs,
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

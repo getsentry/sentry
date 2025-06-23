@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -60,12 +61,12 @@ export function BranchSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <FlexContainer>
+              <Flex align="center" gap={space(0.75)}>
                 <IconContainer>
                   <IconBranch />
                 </IconContainer>
                 <TriggerLabel>{branch || t('Select branch')}</TriggerLabel>
-              </FlexContainer>
+              </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -93,12 +94,6 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
-`;
-
-const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 const IconContainer = styled('div')`

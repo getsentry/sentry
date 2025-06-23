@@ -2,14 +2,15 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
@@ -19,7 +20,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
 import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
-import {FullHeightForm} from 'sentry/views/detectors/components/forms/fullHeightForm';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
@@ -113,7 +113,7 @@ export default function DetectorEdit() {
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <DetectorBreadcrumbs detectorId={params.detectorId} />
-            <Flex gap={space(1)} column>
+            <Flex gap={space(1)} direction="column">
               <Layout.Title>
                 <EditableDetectorName />
               </Layout.Title>

@@ -339,9 +339,13 @@ function FrontendOverviewPageWithProviders() {
   );
 }
 
+const isPageSpanOp = (op?: string): op is PageSpanOps => {
+  return PAGE_SPAN_OPS.includes(op as PageSpanOps);
+};
+
 const getSpanOpFromQuery = (op?: string): PageSpanOps => {
-  if (op && op in PAGE_SPAN_OPS) {
-    return op as PageSpanOps;
+  if (isPageSpanOp(op)) {
+    return op;
   }
   return DEFAULT_SPAN_OP_SELECTION;
 };

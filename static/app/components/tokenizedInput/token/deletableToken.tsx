@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
