@@ -110,15 +110,7 @@ def _assert_and_snapshot_results(
     # Check that we didn't end up with a caught but unexpected error in any of our `newstyle`
     # strategies
     if not config_name.startswith("legacy"):
-        if input_file not in [
-            "exception-groups-bad-inner-self-parenting-duplicate-id.json",
-            "exception-groups-bad-no-root.json",
-            "exception-groups-bad-root-self-parenting.json",
-        ]:
-            # TODO: An upcoming fix will make this pass for the above inputs
-            assert mock_newstyle_exception_logger.call_count == 0
-        else:
-            assert mock_newstyle_exception_logger.call_count > 0
+        assert mock_newstyle_exception_logger.call_count == 0
 
     lines: list[str] = []
 
