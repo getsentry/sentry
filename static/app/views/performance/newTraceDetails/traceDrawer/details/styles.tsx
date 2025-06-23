@@ -61,6 +61,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
   isEAPSpanNode,
+  isEAPTransactionNode,
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -982,8 +983,14 @@ function NodeActions(props: {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
+  const transactionId = isTransactionNode(props.node)
+    ? props.node.value.event_id
+    : isEAPTransactionNode(props.node)
+      ? props.node.value.transaction_id
+      : '';
+
   const {data: transaction} = useTransaction({
-    event_id: props.node.value.event_id,
+    event_id: transactionId,
     project_slug: props.node.value.project_slug,
     organization,
   });
@@ -1033,11 +1040,11 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {isTransactionNode(props.node) ? (
+      {isTransactionNode(props.node) || isEAPTransactionNode(props.node) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${transactionId}/json/`}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
