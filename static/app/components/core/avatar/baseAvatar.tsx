@@ -14,6 +14,11 @@ import {LetterAvatar} from './letterAvatar';
 const DEFAULT_REMOTE_SIZE = 120;
 
 export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
+  /**
+   * The component to render if the selected avatar type cannot be rendered.
+   * For Gravatar this may happen if the gravatar cannot be loaded, for
+   * uploaded avatars this will happen when no uploadUrl is provided.
+   */
   backupAvatar?: React.ReactNode;
   gravatarId?: string;
   /**
@@ -44,7 +49,7 @@ export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Full URL to the uploaded avatar's image.
    */
-  uploadUrl?: string | null | undefined;
+  uploadUrl?: string | null;
 }
 
 export function BaseAvatar({
@@ -73,11 +78,20 @@ export function BaseAvatar({
   const handleError = useCallback(() => setError(true), []);
   const handleLoad = useCallback(() => setError(false), []);
 
+  const showBackup = hasError || (type === 'upload' && !uploadUrl);
+
+  // Don't add remote size query parameter if we have a data url
+  const imgSrc = uploadUrl
+    ? uploadUrl.startsWith('data:')
+      ? uploadUrl
+      : `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}`
+    : undefined;
+
   const imageAvatar =
     type === 'upload' ? (
       <ImageAvatar
         ref={ref as React.Ref<HTMLImageElement>}
-        src={uploadUrl ? `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}` : ''}
+        src={imgSrc}
         round={round}
         suggested={suggested}
         onLoad={handleLoad}
@@ -115,7 +129,7 @@ export function BaseAvatar({
         title={title}
         {...props}
       >
-        {hasError
+        {showBackup
           ? (backupAvatar ?? (
               <LetterAvatar
                 ref={ref as React.Ref<SVGSVGElement>}
