@@ -37,7 +37,7 @@ export default function MultiQueryMode() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
-        <Layout.Header>
+        <Layout.Header unified>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
