@@ -25,7 +25,6 @@ interface BigNumberWidgetVisualizationProps {
   field: string;
   value: number | string;
   maximumValue?: number;
-  minWrapperHeight?: string;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number | string;
   thresholds?: Thresholds;
@@ -42,7 +41,6 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     preferredPolarity,
     type,
     unit,
-    minWrapperHeight,
   } = props;
 
   const theme = useTheme();
@@ -95,7 +93,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   const clampedValue = Math.min(value, maximumValue);
 
   return (
-    <Wrapper minHeight={minWrapperHeight}>
+    <Wrapper>
       <NumberAndDifferenceContainer>
         {defined(props.thresholds?.max_values.max1) &&
           defined(props.thresholds?.max_values.max2) && (
@@ -152,9 +150,9 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   );
 }
 
-function Wrapper({children, minHeight}: any) {
+function Wrapper({children}: any) {
   return (
-    <GrowingWrapper style={{minHeight}}>
+    <GrowingWrapper>
       <AutoResizeParent>
         <AutoSizedText>{children}</AutoSizedText>
       </AutoResizeParent>

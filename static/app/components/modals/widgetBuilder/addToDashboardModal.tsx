@@ -93,6 +93,8 @@ const DEFAULT_ACTIONS: AddToDashboardModalActions[] = [
   'open-in-widget-builder',
 ];
 
+const BIG_NUMBER_WIDGET_HEIGHT = '150px';
+
 function getFallbackWidgetTitle(widget: Widget): string {
   // Metric widgets have their default title derived from the query
   return widget.title === '' && widget.widgetType === WidgetType.METRICS
@@ -326,30 +328,34 @@ function AddToDashboardModal({
                   location={location}
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
-                  <WidgetCard
-                    organization={organization}
-                    isEditingDashboard={false}
-                    showContextMenu={false}
-                    widgetLimitReached={false}
-                    selection={
-                      selectedDashboard
-                        ? getSavedFiltersAsPageFilters(selectedDashboard)
-                        : selection
-                    }
-                    dashboardFilters={
-                      getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
-                    }
-                    widget={{...widget, title: newWidgetTitle}}
-                    shouldResize={false}
-                    widgetLegendState={widgetLegendState}
-                    onLegendSelectChanged={() => {}}
-                    legendOptions={
-                      widgetLegendState.widgetRequiresLegendUnselection(widget)
-                        ? {selected: unselectedReleasesForCharts}
-                        : undefined
-                    }
-                    disableFullscreen
-                  />
+                  <WidgetCardWrapper
+                    needsDefaultHeight={widget.displayType === 'big_number'}
+                  >
+                    <WidgetCard
+                      organization={organization}
+                      isEditingDashboard={false}
+                      showContextMenu={false}
+                      widgetLimitReached={false}
+                      selection={
+                        selectedDashboard
+                          ? getSavedFiltersAsPageFilters(selectedDashboard)
+                          : selection
+                      }
+                      dashboardFilters={
+                        getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
+                      }
+                      widget={{...widget, title: newWidgetTitle}}
+                      shouldResize={false}
+                      widgetLegendState={widgetLegendState}
+                      onLegendSelectChanged={() => {}}
+                      legendOptions={
+                        widgetLegendState.widgetRequiresLegendUnselection(widget)
+                          ? {selected: unselectedReleasesForCharts}
+                          : undefined
+                      }
+                      disableFullscreen
+                    />
+                  </WidgetCardWrapper>
                   <IndexedEventsSelectionAlert widget={widget} />
                 </MEPSettingProvider>
               </DashboardsMEPProvider>
@@ -410,6 +416,14 @@ const StyledButtonBar = styled(ButtonBar)`
       width: 100%;
     }
   }
+`;
+
+const WidgetCardWrapper = styled('div')<{needsDefaultHeight: boolean}>`
+  ${({needsDefaultHeight}) =>
+    needsDefaultHeight &&
+    css`
+      height: ${BIG_NUMBER_WIDGET_HEIGHT};
+    `}
 `;
 
 export const modalCss = css`

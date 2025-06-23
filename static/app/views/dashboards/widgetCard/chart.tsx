@@ -231,9 +231,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           unit={(meta.units?.[field] as DataUnit) ?? null}
           thresholds={widget.thresholds ?? undefined}
           preferredPolarity="-"
-          // no widget id means its a widget in the add to dashboard modal or the widget builder
-          // so we need to set a min height to avoid the widget from collapsing
-          minWrapperHeight={widget.id ? undefined : '100px'}
         />
       );
     });
