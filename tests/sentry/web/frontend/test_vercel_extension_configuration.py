@@ -3,7 +3,7 @@ from urllib.parse import parse_qs, urlparse
 import responses
 from django.db import router
 
-from sentry.identity.vercel import VercelIdentityProvider
+from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
