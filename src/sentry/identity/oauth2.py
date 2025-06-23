@@ -383,7 +383,7 @@ class OAuth2CallbackView(IdentityPipelineViewT):
                     "pipeline_state": pipeline.fetch_state("state"),
                     "code": code,
                 }
-                lifecycle.record_failure(
+                lifecycle.record_halt(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
                 )
                 return pipeline.error(ERR_INVALID_STATE)
