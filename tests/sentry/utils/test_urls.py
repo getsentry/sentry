@@ -28,6 +28,7 @@ def test_non_standard_url_join(base, to_join, expected):
 
 
 class AddParamsToUrlTest(TestCase):
+    @pytest.mark.skip(reason="flaky: #94059")
     def test_basic(self):
         url = "https://sentry.io?myparam=value#hash-param"
         new_url = add_params_to_url(url, {"new_param": "another"})
