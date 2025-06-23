@@ -1,9 +1,9 @@
 type FlowDefinition = {
-  id: string;
   description: string;
-  name: string;
   ending_actions: Array<Assertion<any>>;
   id: string;
+  id: string;
+  name: string;
   name: string;
   // UUID
   prev_id: string | null;
@@ -25,7 +25,6 @@ interface Assertion<T> {
 interface TimeRange {
   // Define time range properties
 }
-
 
 export const getFlowDefinition = (arg1: string): FlowDefinition => {
   return {

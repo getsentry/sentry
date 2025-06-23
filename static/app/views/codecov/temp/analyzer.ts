@@ -1,4 +1,3 @@
-
 export class ReplayAnalyzer {
   private replay: any; // Replace with proper replay type
   private replayRecord: any; // Replace with proper replay record type
@@ -13,7 +12,7 @@ export class ReplayAnalyzer {
       definition: flowDefinition,
       steps: [],
       success: true,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -37,7 +36,7 @@ export class ReplayAnalyzer {
   private analyzeStep(step: FlowStep): FlowStepResult {
     const stepResult: FlowStepResult = {
       step,
-      success: false
+      success: false,
     };
 
     try {
@@ -100,9 +99,9 @@ export class ReplayAnalyzer {
 
     switch (step.assertion.type) {
       case 'text':
-        return this.assertText(step.selector!, step.assertion.expected);
+        return this.assertText(step.selector, step.assertion.expected);
       case 'element':
-        return this.assertElement(step.selector!, step.assertion.expected);
+        return this.assertElement(step.selector, step.assertion.expected);
       case 'url':
         return this.assertUrl(step.assertion.expected);
       default:
