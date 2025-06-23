@@ -6,6 +6,7 @@ from django.db import migrations
 import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.models import SafeDeleteModel
+from sentry.new_migrations.monkey.special import SafeRunSQL
 from sentry.new_migrations.monkey.state import DeletionAction
 
 
@@ -45,6 +46,11 @@ class Migration(CheckedMigration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to="sentry.group"
             ),
+        ),
+        SafeRunSQL(
+            sql="ALTER TABLE workflow_engine_actiongroupstatus DROP CONSTRAINT IF EXISTS workflow_engine_acti_action_id_e5b33d82_fk_workflow_;",
+            reverse_sql=migrations.RunSQL.noop,
+            hints={"tables": ["workflow_engine_actiongroupstatus"]},
         ),
         SafeDeleteModel(name="ActionGroupStatus", deletion_action=DeletionAction.MOVE_TO_PENDING),
     ]
