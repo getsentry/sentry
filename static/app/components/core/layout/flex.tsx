@@ -1,5 +1,4 @@
 import type {CSSProperties} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 interface FlexProps {
@@ -15,7 +14,7 @@ interface FlexProps {
   wrap?: CSSProperties['flexWrap'];
 }
 
-const FlexContainer = styled('div')<FlexProps>`
+export const Flex = styled('div')<FlexProps>`
   display: ${p => (p.inline ? 'inline-flex' : 'flex')};
   flex-direction: ${p => p.direction};
   justify-content: ${p => p.justify};
@@ -24,27 +23,3 @@ const FlexContainer = styled('div')<FlexProps>`
   flex-wrap: ${p => p.wrap};
   flex: ${p => p.flex};
 `;
-
-interface FlexItemProps {
-  basis?: CSSProperties['flexBasis'];
-  flex?: CSSProperties['flex'];
-  grow?: CSSProperties['flexGrow'];
-  shrink?: CSSProperties['flexShrink'];
-}
-
-const FlexItem = styled('div')<FlexItemProps>`
-  ${p =>
-    p.flex
-      ? css`
-          flex: ${p.flex};
-        `
-      : css`
-          flex-grow: ${p.grow ?? 0};
-          flex-shrink: ${p.shrink ?? 1};
-          flex-basis: ${p.basis ?? 'auto'};
-        `}
-`;
-
-export const Flex = Object.assign(FlexContainer, {
-  Item: FlexItem,
-});

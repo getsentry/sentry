@@ -244,7 +244,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <Flex.Item grow={1}>
+        <IntegrationDescription>
           <Description text={description} />
           <FeatureList
             features={features}
@@ -261,7 +261,7 @@ function InformationCard({
               </Alert>
             </Alert.Container>
           ))}
-        </Flex.Item>
+        </IntegrationDescription>
         <Metadata>
           {author && (
             <AuthorInfo>
@@ -308,6 +308,10 @@ const IntegrationLayout = {
 };
 
 export default IntegrationLayout;
+
+const IntegrationDescription = styled('div')`
+  flex-grow: 1;
+`;
 
 const TopSectionWrapper = styled('div')`
   display: flex;
