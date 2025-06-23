@@ -5,7 +5,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {UseApiQueryOptions, UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,7 +57,8 @@ interface TraceResults {
   meta: any;
 }
 
-interface UseTracesOptions {
+interface UseTracesOptions
+  extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
   cursor?: string;
   dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
@@ -81,6 +82,7 @@ export function useTraces({
   query,
   sort,
   keepPreviousData,
+  refetchInterval,
 }: UseTracesOptions): UseTracesResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -109,6 +111,7 @@ export function useTraces({
     retry: false,
     placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     enabled,
+    refetchInterval,
   });
 
   return {
