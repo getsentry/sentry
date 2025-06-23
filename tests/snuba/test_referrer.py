@@ -1,6 +1,7 @@
-import pytest
 from unittest import TestCase
 from unittest.mock import patch
+
+import pytest
 
 from sentry.snuba.referrer import Referrer, validate_referrer
 from sentry.tsdb.base import TSDBModel
