@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
@@ -57,12 +58,12 @@ app.listen(3000);
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct(
-      'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
-      {
-        strong: <strong />,
-      }
-    ),
+          tct(
+        'In this quick guide you\'ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+        {
+          strong: <strong />,
+        }
+      ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -160,6 +161,7 @@ const docs: Docs = {
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getNodeProfilingOnboarding(),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
 };
 
 export default docs;
