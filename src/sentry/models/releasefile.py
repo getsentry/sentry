@@ -288,17 +288,14 @@ class _ArtifactIndexGuard:
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
-    def readable_data(self, use_cache: bool) -> dict | None:
+    def readable_data(self) -> dict | None:
         """Simple read, no synchronization necessary"""
         try:
             releasefile = self._releasefile_qs()[0]
         except IndexError:
             return None
         else:
-            if use_cache:
-                fp = ReleaseFile.cache.getfile(releasefile)
-            else:
-                fp = releasefile.file.getfile()
+            fp = releasefile.file.getfile()
             with fp:
                 return json.load(fp)
 
@@ -384,12 +381,10 @@ class _ArtifactIndexGuard:
 
 
 @sentry_sdk.tracing.trace
-def read_artifact_index(
-    release: Release, dist: Distribution | None, use_cache: bool = False, **filter_args
-) -> dict | None:
+def read_artifact_index(release: Release, dist: Distribution | None, **filter_args) -> dict | None:
     """Get index data"""
     guard = _ArtifactIndexGuard(release, dist, **filter_args)
-    return guard.readable_data(use_cache)
+    return guard.readable_data()
 
 
 def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
