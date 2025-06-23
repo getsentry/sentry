@@ -950,11 +950,11 @@ export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
   id: string;
-  lastSeen: string | null;
   level: Level;
   metadata: EventMetadata;
-  timesSeen: number | null;
   type: EventOrGroupType;
+  lastSeen?: string;
+  timesSeen?: number;
   title?: string;
 }
 export interface GroupTombstoneHelper extends GroupTombstone {
