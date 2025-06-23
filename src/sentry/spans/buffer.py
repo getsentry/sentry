@@ -34,7 +34,7 @@ Now how does that look like in Redis? For each incoming span, we:
 
 1. Try to figure out what the name of the respective span buffer is (`set_key` in `add-buffer.lua`)
   a. We look up any "redirects" from the span buffer's parent_span_id (hashmap at "span-buf:sr:{project_id:trace_id}") to another key.
-  b. Otherwise we use "span-buf:s:{project_id:trace_id}:span_id"
+  b. Otherwise we use "span-buf:z:{project_id:trace_id}:span_id"
 2. Rename any span buffers keyed under the span's own span ID to `set_key`, merging their contents.
 3. Add the ingested span's payload to the set under `set_key`.
 4. To a "global queue", we write the set's key, sorted by timeout.
@@ -55,10 +55,10 @@ than the original topic.
 
 Glossary for types of keys:
 
-    * span-buf:s:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
+    * span-buf:z:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
     * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
     * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
-    * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:s: set.
+    * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:z: set.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
 # directly used as raw redis key. the format is
-# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
+# "span-buf:z:{project_id:trace_id}:span_id", and the type is bytes because our
 # redis client is bytes.
 #
 # The segment ID in the Kafka protocol is only the span ID.
@@ -128,6 +128,7 @@ class Span(NamedTuple):
     parent_span_id: str | None
     project_id: int
     payload: bytes
+    end_timestamp_precise: float
     is_segment_span: bool = False
 
     def effective_parent_id(self):
@@ -167,7 +168,7 @@ class SpansBuffer:
         return (SpansBuffer, (self.assigned_shards,))
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
-        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
+        return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     def process_spans(self, spans: Sequence[Span], now: int):
         """
@@ -187,6 +188,7 @@ class SpansBuffer:
         redis_ttl = options.get("spans.buffer.redis-ttl")
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
+        max_segment_spans = options.get("spans.buffer.max-segment-spans")
 
         result_meta = []
         is_root_span_count = 0
@@ -199,10 +201,8 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = self._get_span_key(project_and_trace, parent_span_id)
-                    payloads = [span.payload for span in subsegment]
-
-                    compressed = self._compress_span_payloads(payloads)
-                    p.sadd(set_key, *compressed)
+                    prepared = self._prepare_payloads(subsegment)
+                    p.zadd(set_key, prepared)
 
                 p.execute()
 
@@ -223,6 +223,7 @@ class SpansBuffer:
                         parent_span_id,
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
                         redis_ttl,
+                        max_segment_spans,
                         *[span.span_id for span in subsegment],
                     )
 
@@ -325,12 +326,12 @@ class SpansBuffer:
 
         return trees
 
-    def _compress_span_payloads(self, payloads: list[bytes]) -> list[bytes]:
-        combined = b"\x00".join(payloads)
-        original_size = len(combined)
-
+    def _prepare_payloads(self, spans: list[Span]) -> dict[str | bytes, float]:
         if self._zstd_compressor is None:
-            return payloads
+            return {span.payload: span.end_timestamp_precise for span in spans}
+
+        combined = b"\x00".join(span.payload for span in spans)
+        original_size = len(combined)
 
         with metrics.timer("spans.buffer.compression.cpu_time"):
             compressed = self._zstd_compressor.compress(combined)
@@ -342,7 +343,8 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        return [compressed]
+        min_timestamp = min(span.end_timestamp_precise for span in spans)
+        return {compressed: min_timestamp}
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
         # Check for zstd magic header (0xFD2FB528 in little-endian) --
@@ -466,7 +468,6 @@ class SpansBuffer:
 
         page_size = options.get("spans.buffer.segment-page-size")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
-        max_segment_spans = options.get("spans.buffer.max-segment-spans")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
@@ -501,14 +502,6 @@ class SpansBuffer:
                     continue
 
                 payloads[key].extend(decompressed_spans)
-                if len(payloads[key]) > max_segment_spans:
-                    metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
-                    logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
-
-                    del payloads[key]
-                    del cursors[key]
-                    continue
-
                 if cursor == 0:
                     del cursors[key]
                 else:
