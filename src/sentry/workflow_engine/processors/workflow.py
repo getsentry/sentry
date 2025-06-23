@@ -128,15 +128,30 @@ def evaluate_workflow_triggers(
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
         if remaining_conditions:
-            queue_items_by_project_id[event_data.event.group.project_id].append(
-                DelayedWorkflowItem(
-                    workflow,
-                    remaining_conditions,
-                    event_data.event,
-                    WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
-                    timestamp=current_time,
+            if isinstance(event_data.event, GroupEvent):
+                queue_items_by_project_id[event_data.event.group.project_id].append(
+                    DelayedWorkflowItem(
+                        workflow,
+                        remaining_conditions,
+                        event_data.event,
+                        WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                        timestamp=current_time,
+                    )
                 )
-            )
+            else:
+                """
+                Tracking when we try to enqueue a slow condition for an activity.
+                Currently, we are assuming those cases are evaluating as True since
+                an activity update is meant to respond to a previous event.
+                """
+                metrics_incr("process_workflows.enqueue_workflow.activity")
+                logger.info(
+                    "workflow_engine.process_workflows.enqueue_workflow.activity",
+                    extra={
+                        "event_id": event_data.event.id,
+                        "workflow_id": workflow.id,
+                    },
+                )
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
@@ -189,6 +204,7 @@ def evaluate_workflows_action_filters(
     workflows_by_id = {workflow.id: workflow for workflow in workflows}
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     current_time = timezone.now()
+
     for action_condition in action_conditions:
         workflow = workflows_by_id[action_condition.workflow_id]
         env = (
@@ -203,16 +219,32 @@ def evaluate_workflows_action_filters(
 
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
-            # then return the list of conditions to enqueue
-            queue_items_by_project_id[event_data.event.group.project_id].append(
-                DelayedWorkflowItem(
-                    workflow,
-                    remaining_conditions,
-                    event_data.event,
-                    WorkflowDataConditionGroupType.ACTION_FILTER,
-                    timestamp=current_time,
+            # then return the list of conditions to enqueue.
+
+            if isinstance(event_data.event, GroupEvent):
+                # `delayed_workflows` only supports group events
+                queue_items_by_project_id[event_data.event.group.project_id].append(
+                    DelayedWorkflowItem(
+                        workflow,
+                        remaining_conditions,
+                        event_data.event,
+                        WorkflowDataConditionGroupType.ACTION_FILTER,
+                        timestamp=current_time,
+                    )
                 )
-            )
+            else:
+                # We should not include activity updates in delayed conditions,
+                # this is because the actions should always be triggered if this condition is met.
+                # The original snuba queries would have to be over threshold to create this event
+                metrics_incr("process_workflows.enqueue_workflow.activity")
+                logger.info(
+                    "workflow_engine.process_workflows.enqueue_workflow.activity",
+                    extra={
+                        "event_id": event_data.event.id,
+                        "action_condition_id": action_condition.id,
+                        "workflow_id": workflow.id,
+                    },
+                )
         else:
             if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
