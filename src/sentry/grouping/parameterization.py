@@ -156,7 +156,24 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
-    ParameterizationRegex(name="hex", raw_pattern=r"""\b0[xX][0-9a-fA-F]+\b"""),
+    ParameterizationRegex(
+        name="hex",
+        raw_pattern=r"""
+            # Hex value with 0x or 0X prefix
+            (\b0[xX][0-9a-fA-F]+\b) |
+
+            # Hex value without 0x or 0X prefix exactly 4 or 8 bytes long.
+            #
+            # We don't need to lookahead for a-f since we if it contains at
+            # least one number it must contain at least one a-f otherwise it
+            # would have matched "int".
+            #
+            # (?=.*[0-9]):    At least one 0-9 is in the match.
+            # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
+            (\b(?=.*[0-9])[0-9a-f]{8}\b) |
+            (\b(?=.*[0-9])[0-9a-f]{16}\b)
+        """,
+    ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
     ParameterizationRegex(
@@ -279,8 +296,7 @@ class Parameterizer:
 
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
-    @staticmethod
-    def _make_regex_from_patterns(pattern_keys: Sequence[str]) -> re.Pattern[str]:
+    def _make_regex_from_patterns(self, pattern_keys: Sequence[str]) -> re.Pattern[str]:
         """
         Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
 

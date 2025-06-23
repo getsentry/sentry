@@ -14,7 +14,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
-const TOOLBAR_AGGREGATES = [
+export const LOG_AGGREGATES = [
   {
     label: t('count'),
     value: AggregationKey.COUNT,
@@ -97,7 +97,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         </SectionHeader>
         <ToolbarSelectRow>
           <Select
-            options={TOOLBAR_AGGREGATES}
+            options={LOG_AGGREGATES}
             onChange={val => {
               if (val.value === 'count') {
                 setLogsPageParams({

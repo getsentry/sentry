@@ -623,8 +623,8 @@ def chained_exception(
             all_exceptions, exception_components_by_exception, event
         )
     except Exception:
-        # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
-        # TODO: Except we do, as it turns out. See https://github.com/getsentry/sentry/issues/73592.
+        # We shouldn't have exceptions here. But if we do, just record it and continue with the
+        # original list.
         logging.exception(
             "Failed to filter exceptions for exception groups. Continuing with original list.",
             extra={
@@ -693,19 +693,28 @@ def filter_exceptions_for_exception_groups(
             self.children = children or []
 
     exception_tree: dict[int, ExceptionTreeNode] = {}
+    ids_seen = set()
     for exception in reversed(exceptions):
         mechanism: Mechanism = exception.mechanism
-        if mechanism and mechanism.exception_id is not None:
-            node = exception_tree.setdefault(
-                mechanism.exception_id, ExceptionTreeNode()
-            ).exception = exception
+        if (
+            mechanism
+            and mechanism.exception_id is not None
+            and mechanism.exception_id != mechanism.parent_id
+            and mechanism.exception_id not in ids_seen
+        ):
+            ids_seen.add(mechanism.exception_id)
+
+            node = exception_tree.setdefault(mechanism.exception_id, ExceptionTreeNode())
             node.exception = exception
+            exception.exception = exception
+
             if mechanism.parent_id is not None:
                 parent_node = exception_tree.setdefault(mechanism.parent_id, ExceptionTreeNode())
                 parent_node.children.append(exception)
         else:
-            # At least one exception is missing mechanism ids, so we can't continue with the filter.
-            # Exit early to not waste perf.
+            # At least one exception's mechanism is either missing an exception id, duplicating an
+            # exception id we've already seen, or listing the exception as its own parent. Since the
+            # tree structure is broken, we can't continue with the filter.
             return exceptions
 
     # This gets the child exceptions for an exception using the exception_id from the mechanism.
@@ -739,9 +748,10 @@ def filter_exceptions_for_exception_groups(
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
     top_level_exceptions = []
-    if exception_tree[0].exception:
+    root_node = exception_tree.get(0)
+    if root_node and root_node.exception:
         top_level_exceptions = sorted(
-            get_top_level_exceptions(exception_tree[0].exception),
+            get_top_level_exceptions(root_node.exception),
             key=lambda exception: str(exception.type),
             reverse=True,
         )

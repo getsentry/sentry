@@ -1,19 +1,6 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {AVATAR_URL_MAP} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {AvatarUser} from 'sentry/types/user';
-
-const ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
-
-// These values must be synced with the avatar endpoint in backend.
-const MIN_DIMENSION = 256;
-const MAX_DIMENSION = 1024;
-
 export function getDiffNW(yDiff: number, xDiff: number) {
   return (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
 }
@@ -30,102 +17,85 @@ export function getDiffSE(yDiff: number, xDiff: number) {
   return (yDiff + xDiff) / 2;
 }
 
-const resizerPositions = {
+const RESIZER_POSITIONS = {
   nw: ['top', 'left'],
   ne: ['top', 'right'],
   se: ['bottom', 'right'],
   sw: ['bottom', 'left'],
 };
 
-type Position = keyof typeof resizerPositions;
+type Position = keyof typeof RESIZER_POSITIONS;
 
-type Model = Pick<AvatarUser, 'avatar'>;
+interface Rect {
+  left: number;
+  size: number;
+  top: number;
+}
 
-type Props = {
-  model: Model;
-  type:
-    | 'user'
-    | 'team'
-    | 'organization'
-    | 'project'
-    | 'sentryAppColor'
-    | 'sentryAppSimple'
-    | 'docIntegration';
-  updateDataUrlState: (opts: {dataUrl?: string}) => void;
-  uploadDomain: string;
-};
+interface Props {
+  maxDimension: number;
+  minDimension: number;
+  updateDataUrlState: (dataUrl: string) => void;
+  dataUrl?: string;
+}
 
-type State = {
-  file: File | null;
+interface State {
   mousePosition: {pageX: number; pageY: number};
   objectURL: string | null;
-  resizeDimensions: {left: number; size: number; top: number};
+  offsets: {left: number; top: number};
+  resizeDimensions: Rect;
   resizeDirection: Position | null;
-};
+}
 
-class AvatarUploader extends Component<Props, State> {
+function makeMaskClipPath({top, left, size}: Rect): string {
+  const x1 = left;
+  const y1 = top;
+  const x2 = left + size;
+  const y2 = top + size;
+
+  return `polygon(0 0, 0 100%, 100% 100%, 100% 0, 0 0,
+                ${x1}px ${y1}px, ${x2}px ${y1}px,
+                ${x2}px ${y2}px, ${x1}px ${y2}px,
+                ${x1}px ${y1}px)`;
+}
+
+class AvatarCropper extends Component<Props, State> {
   state: State = {
-    file: null,
     objectURL: null,
+    offsets: {top: 0, left: 0},
     mousePosition: {pageX: 0, pageY: 0},
     resizeDimensions: {top: 0, left: 0, size: 0},
     resizeDirection: null,
   };
 
-  componentWillUnmount() {
-    this.revokeObjectUrl();
-  }
-
-  file = createRef<HTMLInputElement>();
   canvas = createRef<HTMLCanvasElement>();
   image = createRef<HTMLImageElement>();
   cropContainer = createRef<HTMLDivElement>();
 
-  onSelectFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    const file = ev.target.files?.[0];
-
-    // No file selected (e.g. user clicked "cancel")
-    if (!file) {
-      return;
-    }
-
-    if (!/^image\//.test(file.type)) {
-      addErrorMessage(t('That is not a supported file type.'));
-      return;
-    }
-
-    this.revokeObjectUrl();
-
-    const objectURL = window.URL.createObjectURL(file);
-    this.setState({file, objectURL});
-  };
-
-  revokeObjectUrl = () =>
-    this.state.objectURL && window.URL.revokeObjectURL(this.state.objectURL);
-
   onImageLoad = () => {
-    const error = this.validateImage();
-    if (error) {
-      this.revokeObjectUrl();
-      this.setState({objectURL: null});
-      addErrorMessage(error);
+    const container = this.cropContainer.current;
+    const image = this.image.current;
+    if (!image || !container) {
       return;
     }
 
-    const image = this.image.current;
-    if (!image) {
-      return;
-    }
+    const containerRect = container.getBoundingClientRect();
+    const imageRect = image.getBoundingClientRect();
+    const top = imageRect.y - containerRect.y;
+    const left = imageRect.x - containerRect.x;
 
     const dimension = Math.min(image.clientHeight, image.clientWidth);
-    const state = {resizeDimensions: {size: dimension, top: 0, left: 0}};
+    const state = {
+      resizeDimensions: {size: dimension, top: 0, left: 0},
+      offsets: {left, top},
+    };
 
     this.setState(state, this.drawToCanvas);
   };
 
   updateDimensions = (ev: MouseEvent) => {
-    const cropContainer = this.cropContainer.current;
-    if (!cropContainer) {
+    const image = this.image.current;
+    if (!image) {
       return;
     }
 
@@ -139,16 +109,16 @@ class AvatarUploader extends Component<Props, State> {
     if (top < 0) {
       top = 0;
       pageY = mousePosition.pageY;
-    } else if (top + resizeDimensions.size > cropContainer.clientHeight) {
-      top = cropContainer.clientHeight - resizeDimensions.size;
+    } else if (top + resizeDimensions.size > image.clientHeight) {
+      top = image.clientHeight - resizeDimensions.size;
       pageY = mousePosition.pageY;
     }
 
     if (left < 0) {
       left = 0;
       pageX = mousePosition.pageX;
-    } else if (left + resizeDimensions.size > cropContainer.clientWidth) {
-      left = cropContainer.clientWidth - resizeDimensions.size;
+    } else if (left + resizeDimensions.size > image.clientWidth) {
+      left = image.clientWidth - resizeDimensions.size;
       pageX = mousePosition.pageX;
     }
 
@@ -196,8 +166,8 @@ class AvatarUploader extends Component<Props, State> {
   };
 
   updateSize = (ev: MouseEvent) => {
-    const cropContainer = this.cropContainer.current;
-    if (!cropContainer) {
+    const image = this.image.current;
+    if (!image) {
       return;
     }
 
@@ -207,12 +177,13 @@ class AvatarUploader extends Component<Props, State> {
     const xDiff = ev.pageX - mousePosition.pageX;
 
     this.setState({
-      resizeDimensions: this.getNewDimensions(cropContainer, yDiff, xDiff),
+      resizeDimensions: this.getNewDimensions(image, yDiff, xDiff),
       mousePosition: {pageX: ev.pageX, pageY: ev.pageY},
     });
   };
 
-  getNewDimensions = (container: HTMLDivElement, yDiff: number, xDiff: number) => {
+  getNewDimensions = (image: HTMLImageElement, yDiff: number, xDiff: number) => {
+    const minDimension = this.props.minDimension / this.scaleRatio;
     const {resizeDimensions: oldDimensions, resizeDirection} = this.state;
 
     // Normalize diff across dimensions so that negative diffs are always making
@@ -226,8 +197,8 @@ class AvatarUploader extends Component<Props, State> {
 
     const diff = helpers['getDiff' + resizeDirection!.toUpperCase()]!(yDiff, xDiff);
 
-    let height = container.clientHeight - oldDimensions.top;
-    let width = container.clientWidth - oldDimensions.left;
+    let height = image.clientHeight - oldDimensions.top;
+    let width = image.clientWidth - oldDimensions.left;
 
     // Depending on the direction, we update different dimensions:
     // nw: size, top, left
@@ -245,12 +216,12 @@ class AvatarUploader extends Component<Props, State> {
 
     if (editingTop) {
       newDimensions.top = oldDimensions.top - diff;
-      height = container.clientHeight - newDimensions.top;
+      height = image.clientHeight - newDimensions.top;
     }
 
     if (editingLeft) {
       newDimensions.left = oldDimensions.left - diff;
-      width = container.clientWidth - newDimensions.left;
+      width = image.clientWidth - newDimensions.left;
     }
 
     if (newDimensions.top < 0) {
@@ -278,39 +249,33 @@ class AvatarUploader extends Component<Props, State> {
         newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
       }
       newDimensions.size = maxSize;
-    } else if (newDimensions.size < MIN_DIMENSION) {
+    } else if (newDimensions.size < minDimension) {
       if (editingTop) {
-        newDimensions.top = newDimensions.top + newDimensions.size - MIN_DIMENSION;
+        newDimensions.top = newDimensions.top + newDimensions.size - minDimension;
       }
       if (editingLeft) {
-        newDimensions.left = newDimensions.left + newDimensions.size - MIN_DIMENSION;
+        newDimensions.left = newDimensions.left + newDimensions.size - minDimension;
       }
-      newDimensions.size = MIN_DIMENSION;
+      newDimensions.size = minDimension;
     }
 
     return {...oldDimensions, ...newDimensions};
   };
 
-  validateImage() {
-    const img = this.image.current;
-
-    if (!img) {
-      return null;
+  /**
+   * Determine the ration between the natural image size and the scaled size
+   */
+  get scaleRatio() {
+    const image = this.image.current;
+    if (!image) {
+      return 1;
     }
 
-    if (img.naturalWidth < MIN_DIMENSION || img.naturalHeight < MIN_DIMENSION) {
-      return tct('Please upload an image larger than [size]px by [size]px.', {
-        size: MIN_DIMENSION - 1,
-      });
-    }
-
-    if (img.naturalWidth > MAX_DIMENSION || img.naturalHeight > MAX_DIMENSION) {
-      return tct('Please upload an image smaller than [size]px by [size]px.', {
-        size: MAX_DIMENSION,
-      });
-    }
-
-    return null;
+    return (
+      (image.naturalHeight / image.clientHeight +
+        image.naturalWidth / image.clientWidth) /
+      2
+    );
   }
 
   drawToCanvas() {
@@ -326,43 +291,36 @@ class AvatarUploader extends Component<Props, State> {
 
     const {left, top, size} = this.state.resizeDimensions;
     // Calculate difference between natural dimensions and rendered dimensions
-    const ratio =
-      (image.naturalHeight / image.clientHeight +
-        image.naturalWidth / image.clientWidth) /
-      2;
-    canvas.width = size * ratio;
-    canvas.height = size * ratio;
+    const scaleRatio = this.scaleRatio;
+
+    // Do not let the image scale to a resolution larger than the max
+    // dimension
+    const {maxDimension} = this.props;
+    const drawSize = size * scaleRatio > maxDimension ? maxDimension : size * scaleRatio;
+
+    canvas.width = drawSize;
+    canvas.height = drawSize;
 
     canvas
       .getContext('2d')!
       .drawImage(
         image,
-        left * ratio,
-        top * ratio,
-        size * ratio,
-        size * ratio,
+        left * scaleRatio,
+        top * scaleRatio,
+        size * scaleRatio,
+        size * scaleRatio,
         0,
         0,
-        size * ratio,
-        size * ratio
+        drawSize,
+        drawSize
       );
 
-    this.props.updateDataUrlState({dataUrl: canvas.toDataURL()});
+    this.props.updateDataUrlState(canvas.toDataURL());
   }
 
   get imageSrc() {
-    const {model, type, uploadDomain} = this.props;
-    const uuid = model.avatar?.avatarUuid;
-    const photoUrl =
-      uuid && `${uploadDomain}/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
-
-    return this.state.objectURL || photoUrl;
+    return this.props.dataUrl;
   }
-
-  uploadClick = (ev: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-    ev.preventDefault();
-    this.file.current?.click();
-  };
 
   renderImageCrop() {
     const src = this.imageSrc;
@@ -370,34 +328,39 @@ class AvatarUploader extends Component<Props, State> {
       return null;
     }
 
-    const {resizeDimensions, resizeDirection} = this.state;
+    const {resizeDimensions, resizeDirection, offsets} = this.state;
     const style = {
-      top: resizeDimensions.top,
-      left: resizeDimensions.left,
+      top: resizeDimensions.top + offsets.top,
+      left: resizeDimensions.left + offsets.left,
       width: resizeDimensions.size,
       height: resizeDimensions.size,
     };
 
+    const maskClipPath = makeMaskClipPath({
+      top: style.top,
+      left: style.left,
+      size: resizeDimensions.size,
+    });
+
     return (
-      <ImageCropper resizeDirection={resizeDirection}>
-        <CropContainer ref={this.cropContainer}>
-          <img
-            ref={this.image}
-            src={src}
-            crossOrigin="anonymous"
-            onLoad={this.onImageLoad}
-            onDragStart={e => e.preventDefault()}
-          />
-          <Cropper style={style} onMouseDown={this.onMouseDown}>
-            {Object.keys(resizerPositions).map(pos => (
-              <Resizer
-                key={pos}
-                position={pos as Position}
-                onMouseDown={this.startResize.bind(this, pos)}
-              />
-            ))}
-          </Cropper>
-        </CropContainer>
+      <ImageCropper ref={this.cropContainer} resizeDirection={resizeDirection}>
+        <Image
+          ref={this.image}
+          src={src}
+          crossOrigin="anonymous"
+          onLoad={this.onImageLoad}
+          onDragStart={e => e.preventDefault()}
+        />
+        <Mask style={{clipPath: maskClipPath}} />
+        <Cropper style={style} onMouseDown={this.onMouseDown}>
+          {Object.keys(RESIZER_POSITIONS).map(pos => (
+            <ResizeHandle
+              key={pos}
+              position={pos as Position}
+              onMouseDown={this.startResize.bind(this, pos)}
+            />
+          ))}
+        </Cropper>
       </ImageCropper>
     );
   }
@@ -405,47 +368,26 @@ class AvatarUploader extends Component<Props, State> {
   render() {
     const src = this.imageSrc;
 
-    const upload = <a onClick={this.uploadClick} />;
-    const uploader = (
-      <Well>
-        <p>{tct('[upload:Upload an image] to get started.', {upload})}</p>
-      </Well>
-    );
-
     return (
       <Fragment>
-        {!src && uploader}
         {src && <HiddenCanvas ref={this.canvas} className="sentry-block" />}
         {this.renderImageCrop()}
-        <div className="form-group">
-          {src && (
-            <Button priority="link" onClick={this.uploadClick}>
-              {t('Change Photo')}
-            </Button>
-          )}
-          <UploadInput
-            ref={this.file}
-            type="file"
-            accept={ALLOWED_MIMETYPES}
-            onChange={this.onSelectFile}
-          />
-        </div>
       </Fragment>
     );
   }
 }
 
-export {AvatarUploader};
-
-const UploadInput = styled('input')`
-  position: absolute;
-  opacity: 0;
-`;
+export {AvatarCropper};
 
 const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
-  cursor: ${p => (p.resizeDirection ? `${p.resizeDirection}-resize` : 'default')};
-  text-align: center;
-  margin-bottom: 20px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   background-size: 20px 20px;
   background-position:
     0 0,
@@ -462,38 +404,58 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
     ),
     linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
     linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
+
+  cursor: ${p => (p.resizeDirection ? `${p.resizeDirection}-resize` : 'default')};
 `;
 
-const CropContainer = styled('div')`
-  display: inline-block;
-  position: relative;
+const Image = styled('img')`
   max-width: 100%;
+  max-height: 100%;
+`;
+
+const Mask = styled('div')`
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const Cropper = styled('div')`
   position: absolute;
-  border: 2px dashed ${p => p.theme.gray300};
+  border: 1px dashed ${p => p.theme.gray300};
+  display: grid;
+
+  /* Cropper cross-hair */
+  &::before,
+  &:after {
+    content: '';
+    grid-row: 1;
+    grid-column: 1;
+    height: inherit;
+    width: inherit;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  &::before {
+    height: 1px;
+    align-self: center;
+  }
+  &::after {
+    width: 1px;
+    justify-self: center;
+  }
 `;
 
-const Resizer = styled('div')<{position: Position}>`
-  border-radius: 5px;
+const ResizeHandle = styled('div')<{position: Position}>`
+  border-radius: 2px;
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.gray300};
   cursor: ${p => `${p.position}-resize`};
-  ${p => resizerPositions[p.position].map(pos => `${pos}: -5px;`)}
+  ${p => RESIZER_POSITIONS[p.position].map(pos => `${pos}: -5px;`)}
 `;
 
 const HiddenCanvas = styled('canvas')`
   display: none;
-`;
-
-const Well = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
-  padding: 80px ${space(4)};
-  margin-bottom: 20px;
-  border-radius: 3px;
-  text-align: center;
 `;

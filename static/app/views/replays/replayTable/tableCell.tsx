@@ -306,7 +306,7 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-  referrer_table,
+  referrerTable,
   isWidget,
   className,
 }: Props & {
@@ -315,7 +315,7 @@ export function ReplayCell({
   referrer: string;
   className?: string;
   isWidget?: boolean;
-  referrer_table?: ReferrerTableType;
+  referrerTable?: ReferrerTableType;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -328,31 +328,14 @@ export function ReplayCell({
     organization,
   });
 
-  const replayDetails = {
+  const detailsTab = () => ({
     pathname: replayDetailsPathname,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
+      f_b_type: referrerTable === 'selector-widget' ? 'rageOrDead' : undefined,
     },
-  };
-
-  const replayDetailsDeadRage = {
-    pathname: replayDetailsPathname,
-    query: {
-      referrer,
-      ...eventView.generateQueryStringObject(),
-      f_b_type: 'rageOrDead',
-    },
-  };
-
-  const detailsTab = () => {
-    switch (referrer_table) {
-      case 'selector-widget':
-        return replayDetailsDeadRage;
-      default:
-        return replayDetails;
-    }
-  };
+  });
 
   const trackNavigationEvent = () =>
     trackAnalytics('replay.list-navigate-to-details', {
@@ -360,7 +343,7 @@ export function ReplayCell({
       platform: project?.platform,
       organization,
       referrer,
-      referrer_table,
+      referrer_table: referrerTable,
     });
 
   if (replay.is_archived) {
@@ -379,30 +362,6 @@ export function ReplayCell({
       </Item>
     );
   }
-
-  invariant(
-    replay.started_at,
-    'For TypeScript: replay.started_at is implied because replay.is_archived is false'
-  );
-
-  const subText = (
-    <Cols>
-      <Row gap={1}>
-        <Row gap={0.5}>
-          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
-          {project ? <ProjectAvatar size={12} project={project} /> : null}
-          {project ? project.slug : null}
-          <Link to={detailsTab()} onClick={trackNavigationEvent}>
-            {getShortEventId(replay.id)}
-          </Link>
-          <Row gap={0.5}>
-            <IconCalendar color="gray300" size="xs" />
-            <TimeSince date={replay.started_at} />
-          </Row>
-        </Row>
-      </Row>
-    </Cols>
-  );
 
   return (
     <Item isWidget={isWidget} isReplayCell className={className}>
@@ -430,7 +389,18 @@ export function ReplayCell({
               </DisplayNameLink>
             )}
           </Row>
-          <Row gap={0.5}>{subText}</Row>
+          <Row gap={0.5}>
+            {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
+            {project ? <ProjectAvatar size={12} project={project} /> : null}
+            {project ? project.slug : null}
+            <Link to={detailsTab()} onClick={trackNavigationEvent}>
+              {getShortEventId(replay.id)}
+            </Link>
+            <Row gap={0.5}>
+              <IconCalendar color="gray300" size="xs" />
+              <TimeSince date={replay.started_at} />
+            </Row>
+          </Row>
         </SubText>
       </Row>
     </Item>
@@ -443,13 +413,6 @@ const ArchivedId = styled('div')`
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
-`;
-
-const Cols = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  width: 100%;
 `;
 
 const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
