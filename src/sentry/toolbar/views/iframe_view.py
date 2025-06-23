@@ -39,8 +39,10 @@ class IframeView(ProjectView):
     def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self._respond_with_state("logged-out")
 
-    def handle_permission_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        return self._respond_with_state("missing-project")
+    def handle_permission_required(
+        self, request: HttpRequest, reason: str, *args, **kwargs
+    ) -> HttpResponse:
+        return self._respond_with_state("missing-project", reason)
 
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
@@ -53,13 +55,16 @@ class IframeView(ProjectView):
 
         return self._respond_with_state("invalid-domain")
 
-    def _respond_with_state(self, state: str):
+    def _respond_with_state(self, state: str, reason: str = ""):
+        referrer = _get_referrer(self.request) or ""
+
         response = self.respond(
             TEMPLATE,
             status=200,  # always return 200 so the html will render inside the iframe
             context={
-                "referrer": _get_referrer(self.request) or "",
+                "referrer": referrer,
                 "state": state,
+                "reason": reason,
                 "logging": self.request.GET.get("logging", ""),
                 "organization_slug": self.organization_slug,
                 "project_id_or_slug": self.project_id_or_slug,
@@ -67,8 +72,6 @@ class IframeView(ProjectView):
                 "region_url": generate_region_url(),
             },
         )
-
-        referrer = _get_referrer(self.request) or ""
 
         # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
         response._csp_replace = {"frame-ancestors": [referrer.strip("/") or "'none'"]}
