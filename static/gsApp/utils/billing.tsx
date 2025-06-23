@@ -104,7 +104,6 @@ export const getSlot = (
   return Math.min(s, slots.length - 1);
 };
 
-// TODO(data categories):
 type ReservedSku =
   | Subscription['reservedErrors']
   | Subscription['reservedTransactions']
