@@ -109,8 +109,8 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {selectedModule !== ModuleName.MOBILE_VITALS && (
-              selectedModule === ModuleName.SESSIONS ? (
+            {selectedModule !== ModuleName.MOBILE_VITALS &&
+              (selectedModule === ModuleName.SESSIONS ? (
                 <FeedbackButtonTour />
               ) : (
                 <FeedbackWidgetButton
@@ -127,8 +127,7 @@ export function DomainViewHeader({
                       : undefined
                   }
                 />
-              )
-            )}
+              ))}
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
