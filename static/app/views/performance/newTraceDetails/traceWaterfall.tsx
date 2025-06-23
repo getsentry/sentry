@@ -31,6 +31,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -529,8 +530,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   // We re-init the view to sync back with URL params
   // as they might have changed while the waterfall was hidden
-  useEffect(() => {
-    if (props.isVisible) {
+  const isMountedRef = useIsMountedRef();
+  useLayoutEffect(() => {
+    if (props.isVisible && isMountedRef.current) {
       scrollQueueRef.current = getScrollToPath();
       onTraceLoad();
     }
