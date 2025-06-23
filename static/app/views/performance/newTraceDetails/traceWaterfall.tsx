@@ -31,6 +31,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -82,7 +83,7 @@ import TraceTypeWarnings from './traceTypeWarnings';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {useTraceScrollToPath} from './useTraceScrollToPath';
+import {getScrollToPath, useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -104,6 +105,7 @@ export interface TraceWaterfallProps {
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
+  isVisible?: boolean;
   replayTraces?: ReplayTrace[];
 }
 
@@ -131,7 +133,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath(undefined);
+  const scrollQueueRef = useTraceScrollToPath();
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -525,6 +527,19 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     hasExceededPerformanceUsageLimit,
     source,
   ]);
+
+  // We re-init the view to sync back with URL params
+  // as they might have changed while the waterfall was hidden
+  const isMountedRef = useIsMountedRef();
+  useLayoutEffect(() => {
+    if (props.isVisible && isMountedRef.current) {
+      scrollQueueRef.current = getScrollToPath();
+      onTraceLoad();
+    }
+
+    // Only run if isVisible changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.isVisible]);
 
   // Setup the middleware for the trace reducer
   useLayoutEffect(() => {
