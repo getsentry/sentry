@@ -1,11 +1,14 @@
+import {t} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const makeAutomationsQueryKey = ({
@@ -81,5 +84,27 @@ export function useAvailableActionsQuery() {
   return useApiQuery<ActionHandler[]>([`/organizations/${slug}/available-actions/`], {
     staleTime: Infinity,
     retry: false,
+  });
+}
+
+export function useCreateAutomation() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<Automation, void, NewAutomation>({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/workflows/`, {
+        method: 'POST',
+        data,
+      }),
+    onSuccess: _ => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/workflows/`],
+      });
+    },
+    onError: _ => {
+      AlertStore.addAlert({type: 'error', message: t('Unable to create automation')});
+    },
   });
 }
