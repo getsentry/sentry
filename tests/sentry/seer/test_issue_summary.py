@@ -557,7 +557,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             group_id=self.group.id,
             event_id="test_event_id",
             user_id=mock_user.id,
-            auto_run_source="issue_summary_fixability",
+            auto_run_source="issue_summary_on_post_process_fixability",
         )
 
         self.group.refresh_from_db()
@@ -627,7 +627,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                         group_id=self.group.id,
                         event_id="test_event_id",
                         user_id=mock_user.id,
-                        auto_run_source="issue_summary_fixability",
+                        auto_run_source="issue_summary_on_post_process_fixability",
                     )
                 else:
                     mock_trigger_autofix_task.assert_not_called()
