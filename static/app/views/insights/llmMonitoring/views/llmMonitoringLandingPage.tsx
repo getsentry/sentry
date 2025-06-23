@@ -1,4 +1,5 @@
 import * as Layout from 'sentry/components/layouts/thirds';
+import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -14,7 +15,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 function LLMMonitoringPage() {
   return (
     <Layout.Page>
-      <AiHeader module={ModuleName.AI} />
+      <AiHeader module={ModuleName.AI} headerActions={<AiModuleToggleButton />} />
       <ModuleBodyUpsellHook moduleName={ModuleName.AI}>
         <Layout.Body>
           <Layout.Main fullWidth>

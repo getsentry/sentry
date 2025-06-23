@@ -11,7 +11,6 @@ __all__ = [
     "ParameterizationCallableExperiment",
     "ParameterizationExperiment",
     "ParameterizationRegex",
-    "ParameterizationRegexExperiment",
     "Parameterizer",
     "UniqueIdExperiment",
 ]
@@ -95,6 +94,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(
+        name="traceparent", raw_pattern=r"""\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b"""
+    ),
+    ParameterizationRegex(
         name="uuid",
         raw_pattern=r"""\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b""",
     ),
@@ -120,7 +122,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
             |
             # Kitchen
-            (\d{1,2}:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
@@ -178,8 +180,37 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ),
 ]
 
+EXPERIMENT_PARAMETERIZATION_REGEXES = [
+    (
+        ParameterizationRegex(
+            name="hex",
+            raw_pattern=r"""
+                # Hex value with 0x or 0X prefix
+                (\b0[xX][0-9a-fA-F]+\b) |
+
+                # Hex value without 0x or 0X prefix exactly 4 or 8 bytes long.
+                #
+                # We don't need to lookahead for a-f since we if it contains at
+                # least one number it must contain at least one a-f otherwise it
+                # would have matched "int".
+                #
+                # (?=.*[0-9]):    At least one 0-9 is in the match.
+                # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
+                (\b(?=.*[0-9])[0-9a-f]{8}\b) |
+                (\b(?=.*[0-9])[0-9a-f]{16}\b)
+            """,
+        )
+        if r.name == "hex"
+        else r
+    )
+    for r in DEFAULT_PARAMETERIZATION_REGEXES.copy()
+]
+
 
 DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
+EXPERIMENT_PARAMETERIZATION_REGEXES_MAP = {
+    r.name: r.pattern for r in EXPERIMENT_PARAMETERIZATION_REGEXES
+}
 
 
 @dataclasses.dataclass
@@ -201,15 +232,6 @@ class ParameterizationCallableExperiment(ParameterizationCallable):
         if count:
             callback(self.name, count)
         return content
-
-
-class ParameterizationRegexExperiment(ParameterizationRegex):
-    def run(
-        self,
-        content: str,
-        callback: Callable[[re.Match[str]], str],
-    ) -> str:
-        return self.compiled_pattern.sub(callback, content)
 
 
 class _UniqueId:
@@ -272,7 +294,7 @@ UniqueIdExperiment = ParameterizationCallableExperiment(
 )
 
 
-ParameterizationExperiment = ParameterizationCallableExperiment | ParameterizationRegexExperiment
+ParameterizationExperiment = ParameterizationCallableExperiment
 
 
 class Parameterizer:
@@ -280,14 +302,15 @@ class Parameterizer:
         self,
         regex_pattern_keys: Sequence[str],
         experiments: Sequence[ParameterizationExperiment] = (),
+        enable_regex_experiments: bool = False,
     ):
+        self._enable_regex_experiments = enable_regex_experiments
         self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
         self._experiments = experiments
 
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
-    @staticmethod
-    def _make_regex_from_patterns(pattern_keys: Sequence[str]) -> re.Pattern[str]:
+    def _make_regex_from_patterns(self, pattern_keys: Sequence[str]) -> re.Pattern[str]:
         """
         Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
 
@@ -299,9 +322,14 @@ class Parameterizer:
         so we can use newlines and indentation for better legibility in patterns above.
         """
 
-        return re.compile(
-            rf"(?x){'|'.join(DEFAULT_PARAMETERIZATION_REGEXES_MAP[k] for k in pattern_keys)}"
-        )
+        if self._enable_regex_experiments:
+            return re.compile(
+                rf"(?x){'|'.join(EXPERIMENT_PARAMETERIZATION_REGEXES_MAP[k] for k in pattern_keys)}"
+            )
+        else:
+            return re.compile(
+                rf"(?x){'|'.join(DEFAULT_PARAMETERIZATION_REGEXES_MAP[k] for k in pattern_keys)}"
+            )
 
     def parametrize_w_regex(self, content: str) -> str:
         """
@@ -352,10 +380,8 @@ class Parameterizer:
         for experiment in self._experiments:
             if not should_run(experiment.name):
                 continue
-            if isinstance(experiment, ParameterizationCallableExperiment):
-                content = experiment.run(content, _incr_counter)
-            else:
-                content = experiment.run(content, _handle_regex_match)
+
+            content = experiment.run(content, _incr_counter)
 
         return content
 
