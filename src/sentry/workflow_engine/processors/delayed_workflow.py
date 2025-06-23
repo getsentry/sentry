@@ -392,7 +392,7 @@ def get_condition_query_groups(
     event_data: EventRedisData,
     workflows_to_envs: Mapping[WorkflowId, int | None],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
-) -> dict[UniqueConditionQuery, set[GroupId]]:
+) -> dict[UniqueConditionQuery, GroupQueryParams]:
     """
     Map unique condition queries to the group IDs that need to checked for that query.
     """
