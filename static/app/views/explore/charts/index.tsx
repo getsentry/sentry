@@ -490,7 +490,6 @@ function Chart({
           <TimeSeriesWidgetVisualization
             ref={chartRef}
             brush={boxSelectOptions.brush}
-            onBrushStart={boxSelectOptions.onBrushStart}
             onBrushEnd={boxSelectOptions.onBrushEnd}
             toolBox={boxSelectOptions.toolBox}
             plottables={chartInfo.data.map(timeSeries => {

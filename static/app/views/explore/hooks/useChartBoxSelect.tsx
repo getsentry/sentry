@@ -3,11 +3,7 @@ import type {BrushComponentOption, EChartsOption, ToolboxComponentOption} from '
 import type EChartsReact from 'echarts-for-react';
 
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import type {
-  EchartBrushAreas,
-  EChartBrushEndHandler,
-  EChartBrushStartHandler,
-} from 'sentry/types/echarts';
+import type {EchartBrushAreas, EChartBrushEndHandler} from 'sentry/types/echarts';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -20,7 +16,6 @@ export type BoxSelectOptions = {
   brush: EChartsOption['brush'];
   brushArea: EchartBrushAreas | null;
   onBrushEnd: EChartBrushEndHandler;
-  onBrushStart: EChartBrushStartHandler;
   pageCoords: {x: number; y: number} | null;
   reActivateSelection: () => void;
   toolBox: ToolboxComponentOption | undefined;
@@ -105,10 +100,6 @@ export function useChartBoxSelect({
 
     wrapper.addEventListener('mouseup', handleMouseUp);
   }, [brushArea, chartWrapperRef]);
-
-  const onBrushStart = useCallback<EChartBrushStartHandler>(_ => {
-    // TODO Abdulah Khan: Will be used to listen to mouse up event in the future.
-  }, []);
 
   const handleOutsideClick = useCallback(
     (event: MouseEvent) => {
@@ -199,20 +190,11 @@ export function useChartBoxSelect({
       brush,
       brushArea,
       onBrushEnd,
-      onBrushStart,
       toolBox,
       pageCoords,
       reActivateSelection,
     };
-  }, [
-    brushArea,
-    onBrushEnd,
-    onBrushStart,
-    brush,
-    toolBox,
-    pageCoords,
-    reActivateSelection,
-  ]);
+  }, [brushArea, onBrushEnd, brush, toolBox, pageCoords, reActivateSelection]);
 
   return config;
 }
