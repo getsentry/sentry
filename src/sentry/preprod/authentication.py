@@ -4,7 +4,7 @@ from sentry.silo.base import SiloMode
 LAUNCHPAD_RPC_SHARED_SECRET_SETTING = "LAUNCHPAD_RPC_SHARED_SECRET"
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.REGION)
 class LaunchpadRpcSignatureAuthentication(ServiceRpcSignatureAuthentication):
     """
     Authentication for Launchpad RPC requests.

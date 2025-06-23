@@ -19,7 +19,7 @@ from sentry.preprod.models import PreprodArtifact
 class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
     permission_classes = ()
