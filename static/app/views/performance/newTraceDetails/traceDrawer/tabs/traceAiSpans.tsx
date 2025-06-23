@@ -84,6 +84,7 @@ function TraceAiSpans({
           to={{
             ...location,
             query: {
+              ...location.query,
               tab: TraceLayoutTabKeys.WATERFALL,
             },
           }}
