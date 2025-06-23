@@ -173,7 +173,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               {t('JSON')}
             </JsonLink>
             <Divider />
-            <MarkdownLink onClick={copyMarkdown}>{t('Markdown')}</MarkdownLink>
+            <MarkdownButton onClick={copyMarkdown}>{t('Markdown')}</MarkdownButton>
           </JsonLinkWrapper>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
@@ -333,7 +333,7 @@ const JsonLink = styled(ExternalLink)`
   }
 `;
 
-const MarkdownLink = styled('button')`
+const MarkdownButton = styled('button')`
   background: none;
   border: none;
   padding: 0;
