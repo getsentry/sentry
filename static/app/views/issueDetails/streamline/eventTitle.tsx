@@ -64,6 +64,35 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 export const MIN_NAV_HEIGHT = 44;
 
+function GroupMarkdownButton({group, event}: {group: Group; event: Event}) {
+  const organization = useOrganization();
+
+  // Get data for markdown copy functionality
+  const {data: groupSummaryData} = useGroupSummaryData(group);
+  const {data: autofixData} = useAutofixData({groupId: group.id});
+
+  const markdownText = useMemo(() => {
+    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
+  }, [group, event, groupSummaryData, autofixData]);
+
+  const {onClick: copyMarkdown} = useCopyToClipboard({
+    text: markdownText,
+    successMessage: t('Copied issue to clipboard as Markdown'),
+    errorMessage: t('Could not copy issue to clipboard'),
+    onCopy: () => {
+      trackAnalytics('issue_details.copy_issue_details_as_markdown', {
+        organization,
+        groupId: group.id,
+        eventId: event?.id,
+        hasAutofix: Boolean(autofixData),
+        hasSummary: Boolean(groupSummaryData),
+      });
+    },
+  });
+
+  return <MarkdownButton onClick={copyMarkdown}>{t('Markdown')}</MarkdownButton>;
+}
+
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
   const theme = useTheme();
@@ -93,14 +122,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
     isShare: false,
   });
 
-  // Get data for markdown copy functionality
-  const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
-
-  const markdownText = useMemo(() => {
-    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-  }, [group, event, groupSummaryData, autofixData]);
-
   const grayText = css`
     color: ${theme.subText};
     font-weight: ${theme.fontWeightNormal};
@@ -119,21 +140,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
         ...getAnalyticsDataForEvent(event),
         streamline: true,
       }),
-  });
-
-  const {onClick: copyMarkdown} = useCopyToClipboard({
-    text: markdownText,
-    successMessage: t('Copied issue to clipboard as Markdown'),
-    errorMessage: t('Could not copy issue to clipboard'),
-    onCopy: () => {
-      trackAnalytics('issue_details.copy_issue_details_as_markdown', {
-        organization,
-        groupId: group.id,
-        eventId: event?.id,
-        hasAutofix: Boolean(autofixData),
-        hasSummary: Boolean(groupSummaryData),
-      });
-    },
   });
 
   return (
@@ -173,7 +179,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               {t('JSON')}
             </JsonLink>
             <Divider />
-            <MarkdownButton onClick={copyMarkdown}>{t('Markdown')}</MarkdownButton>
+            <GroupMarkdownButton group={group} event={event} />
           </JsonLinkWrapper>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
