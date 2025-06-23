@@ -15,7 +15,6 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 
 interface DefaultHeadCellRenderProps {
-  aliases?: Record<string, string>;
   renderTableHeadCell?: (
     column: TabularColumn,
     columnIndex: number
@@ -24,7 +23,6 @@ interface DefaultHeadCellRenderProps {
 
 export const renderDefaultHeadCell = ({
   renderTableHeadCell,
-  aliases,
 }: DefaultHeadCellRenderProps) =>
   function (
     column: TabularColumn<keyof TabularRow>,
@@ -36,7 +34,7 @@ export const renderDefaultHeadCell = ({
     }
 
     const align = fieldAlignment(column.name, column.type as ColumnValueType);
-    const header = column.alias || (aliases?.[column.key] ?? column.name);
+    const header = column.alias ?? column.name;
 
     return (
       <CellWrapper align={align}>
