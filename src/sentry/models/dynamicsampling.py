@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.db import models, router, transaction
-from django.db.models import Q
+from django.db.models import F, Q, Subquery
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -244,20 +244,22 @@ class CustomDynamicSamplingRule(Model):
 
         now = timezone.now()
 
-        # Get all existing rule_ids for active, non-expired rules in this organization
-        existing_rule_ids = set(
-            CustomDynamicSamplingRule.objects.filter(
-                organization_id=self.organization.id, end_date__gt=now, is_active=True
-            ).values_list("rule_id", flat=True)
+        base_qs = CustomDynamicSamplingRule.objects.filter(
+            organization_id=self.organization.id, end_date__gt=now, is_active=True
         )
 
-        # Find the first available rule_id starting from 1
-        new_rule_id = 1
-        while new_rule_id in existing_rule_ids:
-            new_rule_id += 1
+        # We want to find the smallest free rule id. We do this by self-joining with rule_id + 1 and excluding the existing rule_ids.
+        # We then order by rule_id_plus_one and take the first value.
+        # This also works for the first rule, as it is pre-initialized with 0, and will thus end up with 1.
+        new_rule_id_subquery = Subquery(
+            base_qs.annotate(rule_id_plus_one=F("rule_id") + 1)
+            .exclude(rule_id_plus_one__in=base_qs.values_list("rule_id", flat=True))
+            .order_by("rule_id_plus_one")
+            .values("rule_id_plus_one")[:1]
+        )
 
         # Update this instance with the new rule_id
-        CustomDynamicSamplingRule.objects.filter(id=self.id).update(rule_id=new_rule_id)
+        CustomDynamicSamplingRule.objects.filter(id=self.id).update(rule_id=new_rule_id_subquery)
         self.refresh_from_db()
         return self.rule_id
 
