@@ -178,8 +178,8 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+    wsgi_path = sampling_context.get("url.path")
+    if wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
 
     # Apply sample_rate from custom_sampling_context
@@ -192,8 +192,7 @@ def traces_sampler(sampling_context):
         return sampling_context["parent_sampled"]
 
     if "celery_job" in sampling_context:
-        task_name = sampling_context["celery_job"].get("task")
-
+        task_name = sampling_context.get("celery.job.task")
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
 
