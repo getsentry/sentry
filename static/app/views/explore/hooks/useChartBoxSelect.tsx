@@ -9,11 +9,12 @@ import type {
   EChartBrushStartHandler,
 } from 'sentry/types/echarts';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type Props = {
   chartRef: React.RefObject<EChartsReact | null>;
-  visualizes: Visualize[];
+  chartResults: ReturnType<typeof useSortedTimeSeries>;
+  chartWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
 type BoxSelectOptions = {
@@ -37,9 +38,15 @@ export const EXPLORE_CHART_BRUSH_OPTION: BrushComponentOption = {
   transformable: true,
 };
 
-export function useChartBoxSelect(props: Props): BoxSelectOptions {
+export function useChartBoxSelect({
+  chartRef,
+  chartWrapperRef,
+  chartResults,
+}: Props): BoxSelectOptions {
   const organization = useOrganization();
-  const {chartRef} = props;
+  const enabledBoxSelect = organization.features.includes(
+    'performance-spans-suspect-attributes'
+  );
   const [brushArea, setBrushArea] = useState<EchartBrushAreas | null>(null);
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
@@ -79,30 +86,58 @@ export function useChartBoxSelect(props: Props): BoxSelectOptions {
     // TODO Abdulah Khan: Will be used to listen to mouse up event in the future.
   }, []);
 
-  // Disable box select if there are multiple y-axes or if there are multiple visualizations
-  const enabledBoxSelect: boolean = useMemo(() => {
-    if (!organization.features.includes('performance-spans-suspect-attributes')) {
-      return false;
+  const handleOutsideClick = useCallback(
+    (event: MouseEvent) => {
+      const chartInstance = chartRef.current?.getEchartsInstance();
+      if (
+        chartWrapperRef.current &&
+        !chartWrapperRef.current.contains(event.target as Node)
+      ) {
+        chartInstance?.dispatchAction({type: 'brush', areas: []});
+        setBrushArea(null);
+      }
+    },
+    [chartWrapperRef, chartRef]
+  );
+
+  const enableBrushMode = useCallback(() => {
+    const chartInstance = chartRef.current?.getEchartsInstance();
+    chartInstance?.dispatchAction({
+      type: 'takeGlobalCursor',
+      key: 'brush',
+      brushOption: EXPLORE_CHART_BRUSH_OPTION,
+    });
+  }, [chartRef]);
+
+  useEffect(() => {
+    if (!enabledBoxSelect) {
+      return;
     }
 
-    return !(
-      props.visualizes.length > 1 ||
-      props.visualizes.some(visualize => {
-        return visualize.yAxes.length > 1;
-      })
-    );
-  }, [props.visualizes, organization]);
+    const chartInstance = chartRef.current?.getEchartsInstance();
 
-  // Redraw the chart when the brush area changes
-  useEffect(() => {
+    // Re-draw the box in the chart when a new brush area is set
     if (brushArea) {
-      const chartInstance = chartRef.current?.getEchartsInstance();
       chartInstance?.dispatchAction({
         type: 'brush',
         areas: brushArea,
       });
     }
-  }, [brushArea, chartRef]);
+
+    // Activate brush mode on load and when we re-draw the box/clear the selection
+    const frame = requestAnimationFrame(() => {
+      enableBrushMode();
+    });
+
+    window.addEventListener('click', handleOutsideClick);
+
+    // eslint-disable-next-line consistent-return
+    return () => {
+      window.removeEventListener('click', handleOutsideClick);
+      cancelAnimationFrame(frame);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brushArea, chartRef.current, enableBrushMode, handleOutsideClick, chartResults]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
     return enabledBoxSelect ? EXPLORE_CHART_BRUSH_OPTION : undefined;
@@ -114,7 +149,9 @@ export function useChartBoxSelect(props: Props): BoxSelectOptions {
     }
 
     return ToolBox(
-      {},
+      {
+        show: false, // Prevent the toolbox from being shown, we enable selection on load
+      },
       {
         brush: {
           type: ['rect'],

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {EXPLORE_CHART_BRUSH_OPTION, useChartBoxSelect} from './useChartBoxSelect';
@@ -15,6 +15,17 @@ describe('useChartBoxSelect', () => {
   const mockChartRef = {
     current: null as EChartsReact | null,
   };
+
+  const mockChartWrapperRef = {
+    current: null as HTMLDivElement | null,
+  };
+
+  const mockChartResults = {
+    pageLinks: undefined,
+    data: {},
+    meta: {},
+    promise: Promise.resolve({}),
+  } as ReturnType<typeof useSortedTimeSeries>;
 
   const mockChartInstance = {
     getModel: jest.fn(),
@@ -42,72 +53,28 @@ describe('useChartBoxSelect', () => {
 
   describe('initial state', () => {
     it('should initialize with null brushArea', () => {
-      const visualizes = [new Visualize(['count()'], {label: 'A'})];
       const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
+        () =>
+          useChartBoxSelect({
+            chartRef: mockChartRef,
+            chartResults: mockChartResults,
+            chartWrapperRef: mockChartWrapperRef,
+          }),
         {wrapper}
       );
       expect(result.current.brushArea).toBeNull();
     });
   });
 
-  describe('box select enablement', () => {
-    it('should enable box select for single visualization with single y-axis', () => {
-      const visualizes = [new Visualize(['count()'], {label: 'A'})];
-      const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
-        {wrapper}
-      );
-
-      expect(result.current.brush).toBeDefined();
-      expect(result.current.toolBox).toBeDefined();
-    });
-
-    it('should disable box select for multiple visualizations', () => {
-      const visualizes = [
-        new Visualize(['count()'], {label: 'A'}),
-        new Visualize(['avg(span.duration)'], {label: 'B'}),
-      ];
-      const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
-        {wrapper}
-      );
-
-      expect(result.current.brush).toBeUndefined();
-      expect(result.current.toolBox).toBeUndefined();
-    });
-
-    it('should disable box select for single visualization with multiple y-axes', () => {
-      const visualizes = [new Visualize(['count()', 'avg(span.duration)'], {label: 'A'})];
-      const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
-        {wrapper}
-      );
-
-      expect(result.current.brush).toBeUndefined();
-      expect(result.current.toolBox).toBeUndefined();
-    });
-
-    it('should disable box select when some visualizations have multiple y-axes', () => {
-      const visualizes = [
-        new Visualize(['count()'], {label: 'A'}),
-        new Visualize(['count()', 'avg(span.duration)'], {label: 'B'}),
-      ];
-      const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
-        {wrapper}
-      );
-
-      expect(result.current.brush).toBeUndefined();
-      expect(result.current.toolBox).toBeUndefined();
-    });
-  });
-
   describe('brush configuration', () => {
     it('should return correct brush configuration when enabled', () => {
-      const visualizes = [new Visualize(['count()'], {label: 'A'})];
       const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
+        () =>
+          useChartBoxSelect({
+            chartRef: mockChartRef,
+            chartResults: mockChartResults,
+            chartWrapperRef: mockChartWrapperRef,
+          }),
         {wrapper}
       );
 
@@ -117,8 +84,6 @@ describe('useChartBoxSelect', () => {
 
   describe('onBrushEnd handler', () => {
     it('should handle brush end event correctly', async () => {
-      const visualizes = [new Visualize(['count()'], {label: 'A'})];
-
       // Mock chart instance and methods
       const mockEchartsInstance = {
         ...mockChartInstance,
@@ -152,7 +117,12 @@ describe('useChartBoxSelect', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
+        () =>
+          useChartBoxSelect({
+            chartRef: mockChartRef,
+            chartResults: mockChartResults,
+            chartWrapperRef: mockChartWrapperRef,
+          }),
         {wrapper}
       );
 
@@ -191,8 +161,6 @@ describe('useChartBoxSelect', () => {
     });
 
     it('should constrain brush area to axis bounds', async () => {
-      const visualizes = [new Visualize(['count()'], {label: 'A'})];
-
       const mockEchartsInstance = {
         ...mockChartInstance,
         getModel: jest.fn().mockReturnValue({
@@ -225,7 +193,12 @@ describe('useChartBoxSelect', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
+        () =>
+          useChartBoxSelect({
+            chartRef: mockChartRef,
+            chartResults: mockChartResults,
+            chartWrapperRef: mockChartWrapperRef,
+          }),
         {wrapper}
       );
 
@@ -264,10 +237,13 @@ describe('useChartBoxSelect', () => {
     });
 
     it('should not set brush area if chartRef is null', () => {
-      const visualizes = [new Visualize(['count()'], {label: 'A'})];
-
       const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
+        () =>
+          useChartBoxSelect({
+            chartRef: mockChartRef,
+            chartResults: mockChartResults,
+            chartWrapperRef: mockChartWrapperRef,
+          }),
         {wrapper}
       );
 
@@ -298,8 +274,6 @@ describe('useChartBoxSelect', () => {
 
   describe('chart redraw effect', () => {
     it('should dispatch brush action when brushArea changes', () => {
-      const visualizes = [new Visualize(['count()'], {label: 'A'})];
-
       const mockEchartsInstance = {
         ...mockChartInstance,
         getModel: jest.fn().mockReturnValue({
@@ -332,7 +306,12 @@ describe('useChartBoxSelect', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(
-        () => useChartBoxSelect({chartRef: mockChartRef, visualizes}),
+        () =>
+          useChartBoxSelect({
+            chartRef: mockChartRef,
+            chartResults: mockChartResults,
+            chartWrapperRef: mockChartWrapperRef,
+          }),
         {wrapper}
       );
 
@@ -369,36 +348,6 @@ describe('useChartBoxSelect', () => {
           },
         ],
       });
-    });
-  });
-
-  describe('configuration changes based on visualizations', () => {
-    it('should update configuration when visualizations change', () => {
-      let visualizes = [new Visualize(['count()'], {label: 'A'})];
-
-      const {result, rerender} = renderHook(
-        ({visualizes: hookVisualizes}) =>
-          useChartBoxSelect({chartRef: mockChartRef, visualizes: hookVisualizes}),
-        {
-          initialProps: {visualizes},
-          wrapper,
-        }
-      );
-
-      // Initially enabled
-      expect(result.current.brush).toBeDefined();
-      expect(result.current.toolBox).toBeDefined();
-
-      // Change to multiple visualizations - should disable
-      visualizes = [
-        new Visualize(['count()'], {label: 'A'}),
-        new Visualize(['avg(span.duration)'], {label: 'B'}),
-      ];
-
-      rerender({visualizes});
-
-      expect(result.current.brush).toBeUndefined();
-      expect(result.current.toolBox).toBeUndefined();
     });
   });
 });

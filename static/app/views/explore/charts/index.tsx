@@ -91,10 +91,12 @@ export function ExploreCharts({
   const isTopN = defined(topEvents) && topEvents > 0;
 
   const chartRef = useRef<ReactEchartsRef>(null);
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
 
   const boxSelectOptions = useChartBoxSelect({
     chartRef,
-    visualizes,
+    chartWrapperRef,
+    chartResults: timeseriesResult,
   });
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
@@ -201,7 +203,7 @@ export function ExploreCharts({
   const shouldRenderLabel = visualizes.length > 1;
 
   return (
-    <ChartList>
+    <ChartList ref={chartWrapperRef}>
       <WidgetSyncContextProvider>
         {chartInfos.map((chartInfo, index) => {
           const Title = (
