@@ -21,6 +21,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -85,10 +86,25 @@ const initialData = {...flattie(initialAutomationBuilderState), frequency: '1440
 
 export default function AutomationNewSettings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
+
+  const initialConnectedIds = useMemo(() => {
+    const connectedIdsQuery = location.query.connectedIds as
+      | string
+      | string[]
+      | undefined;
+    if (!connectedIdsQuery) {
+      return [];
+    }
+    const connectedIds = Array.isArray(connectedIdsQuery)
+      ? connectedIdsQuery
+      : [connectedIdsQuery];
+    return connectedIds;
+  }, [location.query.connectedIds]);
 
   const {mutateAsync: createAutomation} = useCreateAutomation();
 
@@ -104,7 +120,11 @@ export default function AutomationNewSettings() {
   );
 
   return (
-    <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
+    <FullHeightForm
+      hideFooter
+      initialData={{...initialData, detectorIds: initialConnectedIds}}
+      onSubmit={handleSubmit}
+    >
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
