@@ -11,6 +11,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
+import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -35,12 +36,12 @@ function TraceAiSpans({
   });
 
   const selectedNode = useMemo(() => {
-    return nodes.find(node => node.metadata.event_id === selectedNodeKey) || nodes[0];
+    return nodes.find(node => getNodeId(node) === selectedNodeKey) || nodes[0];
   }, [nodes, selectedNodeKey]);
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const eventId = node.metadata.event_id;
+      const eventId = getNodeId(node);
       if (!eventId) {
         return;
       }
@@ -95,7 +96,7 @@ function TraceAiSpans({
         <AISpanList
           nodes={nodes}
           onSelectNode={handleSelectNode}
-          selectedNodeKey={selectedNode?.metadata.event_id ?? null}
+          selectedNodeKey={getNodeId(selectedNode!)}
         />
       </LeftPanel>
       <RightPanel>
