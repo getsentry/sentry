@@ -209,9 +209,9 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         case EventType.CONSOLE:
             return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
         case EventType.UI_BLUR:
-            return f"User looked away from the tab at {timestamp}."
+            return f"User looked away from the tab at {timestamp}"
         case EventType.UI_FOCUS:
-            return f"User returned to tab at {timestamp}."
+            return f"User returned to tab at {timestamp}"
         case EventType.RESOURCE_FETCH:
             payload = event["data"]["payload"]
             parsed_url = urlparse(payload["description"])
@@ -243,19 +243,17 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         case EventType.LCP:
             duration = event["data"]["payload"]["data"]["size"]
             rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application largest contentful paint: {duration} ms and has a {rating} rating"
+            return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
         case EventType.FCP:
             duration = event["data"]["payload"]["data"]["size"]
             rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application first contentful paint: {duration} ms and has a {rating} rating"
+            return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
         case EventType.HYDRATION_ERROR:
-            return f"There was a hydration error on the page at {timestamp}."
+            return f"There was a hydration error on the page at {timestamp}"
         case EventType.MUTATIONS:
             return None
         case EventType.UNKNOWN:
             return None
-        case EventType.FEEDBACK:
-            return "The user filled out a feedback form describing their experience using the application."
         case EventType.CANVAS:
             return None
         case EventType.OPTIONS:
