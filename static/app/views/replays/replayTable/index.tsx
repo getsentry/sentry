@@ -206,7 +206,7 @@ function ReplayTable({
                         eventView={eventView}
                         organization={organization}
                         referrer={referrer}
-                        referrer_table="main"
+                        referrerTable="main"
                       />
                     );
 
