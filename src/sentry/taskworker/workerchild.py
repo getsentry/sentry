@@ -310,7 +310,7 @@ def child_process(
         transaction = sentry_sdk.continue_trace(
             environ_or_headers=headers,
             op="queue.task.taskworker",
-            name=f"{activation.namespace}:{activation.taskname}",
+            name=activation.taskname,
             origin="taskworker",
         )
         with (
@@ -340,19 +340,19 @@ def child_process(
                 )
                 span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
-            # TODO(taskworker) remove this when doing cleanup
-            # The `__start_time` parameter is spliced into task parameters by
-            # sentry.celery.SentryTask._add_metadata and needs to be removed
-            # from kwargs like sentry.tasks.base.instrumented_task does.
-            if "__start_time" in kwargs:
-                kwargs.pop("__start_time")
+                # TODO(taskworker) remove this when doing cleanup
+                # The `__start_time` parameter is spliced into task parameters by
+                # sentry.celery.SentryTask._add_metadata and needs to be removed
+                # from kwargs like sentry.tasks.base.instrumented_task does.
+                if "__start_time" in kwargs:
+                    kwargs.pop("__start_time")
 
-            try:
-                task_func(*args, **kwargs)
-                transaction.set_status(SPANSTATUS.OK)
-            except Exception:
-                transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
-                raise
+                try:
+                    task_func(*args, **kwargs)
+                    transaction.set_status(SPANSTATUS.OK)
+                except Exception:
+                    transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
+                    raise
 
     def record_task_execution(
         activation: TaskActivation,
