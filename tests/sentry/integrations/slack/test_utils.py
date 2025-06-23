@@ -10,6 +10,7 @@ from sentry.integrations.slack.utils.channel import (
     MEMBER_PREFIX,
     SlackChannelIdData,
     get_channel_id,
+    is_input_a_user_id,
 )
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
@@ -235,3 +236,15 @@ class GetChannelIdTest(TestCase):
         assert get_channel_id(self.integration, "@red-john") == SlackChannelIdData(
             prefix="", channel_id=None, timed_out=False
         )
+
+
+class IsInputAUserIdTest(TestCase):
+    def test_behavior_for_known_slack_identifiers(self):
+        # User IDs
+        assert is_input_a_user_id("U12345678")
+        assert is_input_a_user_id("W12345678")
+        # Non-user IDs
+        assert not is_input_a_user_id("C12345678")  # Channel ID
+        assert not is_input_a_user_id("T12345678")  # Team ID
+        assert not is_input_a_user_id("A12345678")  # App ID
+        assert not is_input_a_user_id("F12345678")  # File ID

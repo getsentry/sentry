@@ -88,7 +88,7 @@ def get_channel_id(
 def is_input_a_user_id(input_id: str) -> bool:
     """
     Determines whether a given ID represents a user ID. If not, it's meant for a channel.
-    https://docs.slack.dev/enterprise-grid#what
+    https://docs.slack.dev/enterprise-grid/developing-for-enterprise-grid#user_ids
     """
     return input_id.startswith("U") or input_id.startswith("W")
 
@@ -133,6 +133,9 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
         if unpack_slack_api_error(e) == USER_NOT_FOUND:
             raise ValidationError("User not found. Invalid ID provided.") from e
         elif unpack_slack_api_error(e) == USER_NOT_VISIBLE:
+            # XXX(ecosystem): I wasn't able to find great documentation on what 'not visible' means
+            # for slack, but I'm assuming this could mean the account is deactivated, or the user
+            # ID has been reserved for an account that hasn't accepted an invite yet.
             raise ValidationError(
                 "User not visible, you may need to modify your Slack settings."
             ) from e
