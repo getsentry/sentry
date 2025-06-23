@@ -108,13 +108,11 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             object_name="object",
             project_id=project.id,
         )
-        file_attachment = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             event_id=event.event_id,
             project_id=event.project_id,
-            file_id=file_attachment.id,
-            type=file_attachment.type,
             name="hello.png",
+            type="image/png",
         )
         hook = self.create_service_hook(
             actor=self.user,

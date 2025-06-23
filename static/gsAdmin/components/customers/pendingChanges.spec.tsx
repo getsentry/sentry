@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
@@ -373,6 +374,39 @@ describe('PendingChanges', function () {
     );
     expect(container).toHaveTextContent(
       'Reserved budgets — $100,000.00 for spans budget → $50,000.00 for spans budget'
+    );
+  });
+
+  it('does not render reserved budgets with mocked values', function () {
+    const subscription = SubscriptionFixture({
+      organization: OrganizationFixture(),
+      reservedBudgets: [
+        SeerReservedBudgetFixture({
+          id: '0',
+          reservedBudget: 0,
+        }),
+      ],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business_ent'),
+        plan: 'am3_business_ent',
+        planName: 'Business',
+        reserved: {
+          spans: 0,
+          spansIndexed: 0,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
+        ],
+      }),
+    });
+
+    const {container} = render(<PendingChanges subscription={subscription} />);
+
+    expect(container).not.toHaveTextContent(
+      'Reserved budgets — $0.00 for seer budget → $0.00 for seer budget'
     );
   });
 

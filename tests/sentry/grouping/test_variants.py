@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -30,8 +31,12 @@ from tests.sentry.grouping import (
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
+@patch("sentry.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_legacy_configs(
-    config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
+    mock_newstyle_exception_logger: MagicMock,
+    config_name: str,
+    grouping_input: GroupingInput,
+    insta_snapshot: InstaSnapshotter,
 ) -> None:
     """
     Run the variant snapshot tests using a minimal (and much more performant) save process.
@@ -45,7 +50,9 @@ def test_variants_with_legacy_configs(
     # This ensures we won't try to touch the DB when getting event variants
     event.project = mock.Mock(id=11211231)
 
-    _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
+    _assert_and_snapshot_results(
+        event, config_name, grouping_input.filename, insta_snapshot, mock_newstyle_exception_logger
+    )
 
 
 @django_db_all
@@ -58,7 +65,9 @@ def test_variants_with_legacy_configs(
     {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
+@patch("sentry.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_current_default_config(
+    mock_newstyle_exception_logger: MagicMock,
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -78,19 +87,42 @@ def test_variants_with_current_default_config(
     )
 
     _assert_and_snapshot_results(
-        event, DEFAULT_GROUPING_CONFIG, grouping_input.filename, insta_snapshot
+        event,
+        DEFAULT_GROUPING_CONFIG,
+        grouping_input.filename,
+        insta_snapshot,
+        mock_newstyle_exception_logger,
     )
 
 
 def _assert_and_snapshot_results(
-    event: Event, config_name: str, input_file: str, insta_snapshot: InstaSnapshotter
+    event: Event,
+    config_name: str,
+    input_file: str,
+    insta_snapshot: InstaSnapshotter,
+    mock_newstyle_exception_logger: MagicMock,
 ) -> None:
+    grouping_variants = event.get_grouping_variants()
+
     # Make sure the event was annotated with the grouping config
     assert event.get_grouping_config()["id"] == config_name
 
+    # Check that we didn't end up with a caught but unexpected error in any of our `newstyle`
+    # strategies
+    if not config_name.startswith("legacy"):
+        if input_file not in [
+            "exception-groups-bad-inner-self-parenting-duplicate-id.json",
+            "exception-groups-bad-no-root.json",
+            "exception-groups-bad-root-self-parenting.json",
+        ]:
+            # TODO: An upcoming fix will make this pass for the above inputs
+            assert mock_newstyle_exception_logger.call_count == 0
+        else:
+            assert mock_newstyle_exception_logger.call_count > 0
+
     lines: list[str] = []
 
-    for variant_name, variant in sorted(event.get_grouping_variants().items()):
+    for variant_name, variant in sorted(grouping_variants.items()):
         if lines:
             lines.append("-" * 74)
         lines.append("%s:" % variant_name)

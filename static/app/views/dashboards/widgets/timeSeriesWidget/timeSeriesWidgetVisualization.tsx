@@ -265,10 +265,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // Set up a fallback palette for any plottable without a color
   const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
 
-  const palette =
-    paletteSize > 0
-      ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
-      : [];
+  const palette = paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
 
   // Create a lookup of series names (given to ECharts) to labels (from
   // Plottable). This makes it easier to look up alises when rendering tooltips

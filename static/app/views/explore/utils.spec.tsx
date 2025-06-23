@@ -8,7 +8,7 @@ import {findSuggestedColumns, viewSamplesTarget} from 'sentry/views/explore/util
 describe('viewSamplesTarget', function () {
   const project = ProjectFixture();
   const projects = [project];
-  const visualize = new Visualize(['count(span.duration)']);
+  const visualize = new Visualize('count(span.duration)');
   const sort = {
     field: 'count(span.duration)',
     kind: 'desc' as const,

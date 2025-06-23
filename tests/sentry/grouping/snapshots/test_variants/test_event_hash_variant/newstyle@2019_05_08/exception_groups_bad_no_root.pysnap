@@ -1,0 +1,21 @@
+---
+created: '2025-06-18T22:38:41.063862+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "028157fe357e4592e39eacb32eafa2db"
+  contributing component: chained-exception
+  component:
+    app*
+      chained-exception*
+        exception*
+          type*
+            "InnermostException"
+          value*
+            "Whoops"
+        exception*
+          type*
+            "InnerException"
+          value*
+            "Nope"
