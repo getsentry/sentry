@@ -94,7 +94,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
             target = run_with_initialized_sentry(
-                SpanFlusher.flush_shards_main,
+                SpanFlusher.main,
                 # unpickling buffer will import sentry, so it needs to be
                 # pickled separately. at the same time, pickling
                 # synchronization primitives like multiprocessing.Value can
@@ -103,7 +103,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             )
             make_process = self.mp_context.Process
         else:
-            target = partial(SpanFlusher.flush_shards_main, shard_buffer)
+            target = partial(SpanFlusher.main, shard_buffer)
             make_process = threading.Thread
 
         process = make_process(
@@ -131,7 +131,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 break
 
     @staticmethod
-    def flush_shards_main(
+    def main(
         buffer: SpansBuffer,
         shards: list[int],
         stopped,
