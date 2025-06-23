@@ -1,7 +1,7 @@
 import type {PlatformIntegration} from 'sentry/types/project';
 
-// Note: When adding new platforms, the backend "GETTING_STARTED_DOCS_PLATFORMS" list
-// in 'src/sentry/models/project.py' will need to be updated in a separate backend PR.
+// If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
+// in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
 // Otherwise, creating a project will cause an error in the backend, saying "Invalid platform".
 export const platforms: PlatformIntegration[] = [
   {
