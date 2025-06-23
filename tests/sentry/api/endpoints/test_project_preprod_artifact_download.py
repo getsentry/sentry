@@ -30,7 +30,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_success(self):
-        url = f"/api/0/internal/projects/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.preprod_artifact.id}/"
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.preprod_artifact.id}/"
 
         headers = self._get_authenticated_request_headers(url)
 
@@ -43,7 +43,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_not_found(self):
-        url = f"/api/0/internal/projects/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/999999/"
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/999999/"
 
         headers = self._get_authenticated_request_headers(url)
 
@@ -62,7 +62,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
 
-        url = f"/api/0/internal/projects/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{unprocessed_artifact.id}/"
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{unprocessed_artifact.id}/"
 
         headers = self._get_authenticated_request_headers(url)
 
@@ -81,7 +81,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        url = f"/api/0/internal/projects/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{no_file_artifact.id}/"
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{no_file_artifact.id}/"
 
         headers = self._get_authenticated_request_headers(url)
 
