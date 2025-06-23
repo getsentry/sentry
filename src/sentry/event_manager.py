@@ -294,6 +294,32 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     return query[:max_crashreports].count()
 
 
+def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event) -> None:
+    if tombstone_id is None:
+        return
+    try:
+        from sentry.models.grouptombstone import GroupTombstone
+
+        group_tombstone = GroupTombstone.objects.get(id=tombstone_id)
+        buffer_incr(
+            GroupTombstone,
+            {"times_seen": 1},
+            {"id": tombstone_id},
+            {
+                "last_seen": (
+                    max(event.datetime, group_tombstone.last_seen)
+                    if group_tombstone.last_seen
+                    else event.datetime
+                )
+            },
+        )
+    except GroupTombstone.DoesNotExist:
+        # This can happen due to a race condition with deletion.
+        pass
+    except Exception:
+        logger.exception("Failed to update GroupTombstone count for id: %s", tombstone_id)
+
+
 ProjectsMapping = Mapping[int, Project]
 
 Job = MutableMapping[str, Any]
@@ -510,7 +536,11 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded:
+        except HashDiscarded as e:
+            if features.has("organizations:grouptombstones-hit-counter", project.organization):
+                increment_group_tombstone_hit_counter(
+                    getattr(e, "tombstone_id", None), job["event"]
+                )
             discard_event(job, attachments)
             raise
 

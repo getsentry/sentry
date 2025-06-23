@@ -25,23 +25,6 @@ REGEX_PATTERN_KEYS = (
     "url",
     "hostname",
     "ip",
-    "uuid",
-    "sha1",
-    "md5",
-    "date",
-    "duration",
-    "hex",
-    "float",
-    "int",
-    "quoted_str",
-    "bool",
-)
-
-REGEX_PATTERN_KEYS_WITH_TRACEPARENT = (
-    "email",
-    "url",
-    "hostname",
-    "ip",
     "traceparent",
     "uuid",
     "sha1",
@@ -102,13 +85,10 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         )
 
     parameterizer = Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS, experiments=(UniqueIdExperiment,)
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
+        experiments=(UniqueIdExperiment,),
+        enable_regex_experiments=_should_run_experiment("regex"),
     )
-    if _should_run_experiment("traceparent"):
-        parameterizer = Parameterizer(
-            regex_pattern_keys=REGEX_PATTERN_KEYS_WITH_TRACEPARENT,
-            experiments=(UniqueIdExperiment,),
-        )
 
     normalized = parameterizer.parameterize_all(trimmed, _should_run_experiment)
 

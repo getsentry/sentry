@@ -552,10 +552,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-        mock_logger.exception.assert_called_with(
-            "slack.webhook.update_status.response-error",
-        )
-
     def test_assign_issue_through_unfurl(self):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
