@@ -1530,7 +1530,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             assert resp.data == {
                 "nonFieldErrors": [
                     ErrorDetail(
-                        string=f"Received channel name {otherChannel} does not match inputted channel name {channelName}.",
+                        string="Slack channel name from ID does not match input channel name.",
                         code="invalid",
                     )
                 ]
@@ -1563,7 +1563,33 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             assert resp.data == {
                 "nonFieldErrors": [
                     ErrorDetail(
-                        string=f"Input ID corresponds to @{otherUser['name']}, does not match inputted user name @{inputName}.",
+                        string="Slack username from ID does not match input username.",
+                        code="invalid",
+                    )
+                ]
+            }
+
+    def test_create_slack_alert_with_missing_name_from_sdk(self):
+        """
+        The user specifies the Slack user and user ID but the response doesn't have a name.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        otherUserId = "U12345678"
+        otherUser = {"id": otherUserId}
+        inputName = "Ron Stoppable"
+
+        with self.mock_users_info(user=otherUser):
+            resp = self._organization_alert_rule_api_call(
+                channelName=inputName, channelID=otherUserId
+            )
+            assert resp.status_code == 400
+            assert resp.data == {
+                "nonFieldErrors": [
+                    ErrorDetail(
+                        string="Did not receive user name from API results",
                         code="invalid",
                     )
                 ]
@@ -1676,6 +1702,40 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                         string="User not visible, you may need to modify your Slack settings.",
                         code="invalid",
                     )
+                ]
+            }
+
+    @responses.activate
+    def test_create_slack_alert_with_bad_user_response(self):
+        """
+        Catch-all for less common Slack API errors.
+        """
+        with patch(
+            "slack_sdk.web.client.WebClient.users_info",
+            side_effect=SlackApiError(
+                "error",
+                SlackResponse(
+                    client=None,
+                    http_verb="POST",
+                    api_url="https://slack.com/api/users.info",
+                    req_args={"user": "waldo"},
+                    data={"ok": False, "error": "user_not_found"},
+                    headers={},
+                    status_code=400,
+                ),
+            ),
+        ):
+            self.create_member(
+                user=self.user, organization=self.organization, role="owner", teams=[self.team]
+            )
+            self.login_as(self.user)
+            resp = self._organization_alert_rule_api_call(
+                channelName="waldo", channelID="U12345678"
+            )
+            assert resp.status_code == 400
+            assert resp.data == {
+                "nonFieldErrors": [
+                    ErrorDetail(string="User not found. Invalid ID provided.", code="invalid")
                 ]
             }
 

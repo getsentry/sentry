@@ -148,9 +148,7 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
     if not any(possible_name_matches):
         raise ValidationError("Did not receive user name from API results")
     if stripped_user_name not in possible_name_matches:
-        raise ValidationError(
-            f"Input ID corresponds to @{possible_name_matches[0]}, does not match inputted user name @{stripped_user_name}."
-        )
+        raise ValidationError("Slack username from ID does not match input username.")
 
 
 def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
@@ -197,10 +195,7 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
     if not results_channel_name:
         raise ValidationError("Did not receive channel name from API results")
     if stripped_channel_name != results_channel_name:
-        channel_name = results_channel_name
-        raise ValidationError(
-            f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}."
-        )
+        raise ValidationError("Slack channel name from ID does not match input channel name.")
 
 
 def get_channel_id_with_timeout(
