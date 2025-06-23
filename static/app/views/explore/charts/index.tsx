@@ -334,7 +334,8 @@ function Chart({
   // Re-activate box selection when the series data changes
   useEffect(() => {
     boxSelectOptions.reActivateSelection();
-  }, [boxSelectOptions, timeseriesResult]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeseriesResult]);
 
   const Title = (
     <ChartTitle>
