@@ -363,6 +363,11 @@ export function ReplayCell({
     );
   }
 
+  invariant(
+    replay.started_at,
+    'For TypeScript: replay.started_at is implied because replay.is_archived is false'
+  );
+
   return (
     <Item isWidget={isWidget} isReplayCell className={className}>
       <Row gap={1}>
