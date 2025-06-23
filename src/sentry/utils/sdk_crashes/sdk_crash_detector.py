@@ -89,9 +89,16 @@ class SDKCrashDetector:
         iter_frames = [f for f in reversed(frames) if f is not None]
         for frame in iter_frames:
             function = frame.get("function")
+            module = frame.get("module")
+
             if function:
-                for matcher in self.config.sdk_crash_ignore_functions_matchers:
-                    if glob_match(function, matcher, ignorecase=True):
+                for matcher in self.config.sdk_crash_ignore_matchers:
+                    function_matches = glob_match(
+                        function, matcher.function_pattern, ignorecase=True
+                    )
+                    module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
+
+                    if function_matches and module_matches:
                         return False
 
             if self.is_sdk_frame(frame):
