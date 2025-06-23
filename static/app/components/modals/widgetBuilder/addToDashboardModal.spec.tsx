@@ -12,6 +12,7 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
@@ -358,7 +359,7 @@ describe('add to dashboard modal', () => {
     });
   });
 
-  it('navigates to the widget builder with saved filters using builder params when source is dashboards', async () => {
+  it('navigates to the widget builder with saved filters using builder state params', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -370,9 +371,8 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
+        widgetAsQueryParams={convertWidgetToBuilderStateParams(widget)}
         location={LocationFixture()}
-        source={DashboardWidgetSource.DASHBOARDS}
       />
     );
 
