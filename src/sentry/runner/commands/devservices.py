@@ -29,24 +29,11 @@ USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 DARWIN = sys.platform == "darwin"
 
 USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
-USE_ORBSTACK = (
-    os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
-)
-
-if USE_ORBSTACK:
-    USE_COLIMA = False
-
-if USE_COLIMA:
-    USE_ORBSTACK = False
-
-USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
 
 if DARWIN:
     if USE_COLIMA:
         RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
-    elif USE_ORBSTACK:
-        RAW_SOCKET_PATH = os.path.expanduser("~/.orbstack/run/docker.sock")
-    elif USE_DOCKER_DESKTOP:
+    else:
         # /var/run/docker.sock is now gated behind a docker desktop advanced setting
         RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
 else:
@@ -83,6 +70,13 @@ def get_docker_client() -> Generator[docker.DockerClient]:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
+                    docker_contexts_dir = os.path.expanduser("~/.docker/contexts")
+                    if os.path.exists(docker_contexts_dir):
+                        click.echo("Removing existing docker contexts...")
+                        try:
+                            subprocess.check_call(["rm", "-rf", docker_contexts_dir])
+                        except subprocess.CalledProcessError as e:
+                            click.echo(f"Warning: Could not remove docker contexts: {e}")
                     gitroot = _gitroot()
                     subprocess.check_call(
                         (
@@ -92,15 +86,10 @@ def get_docker_client() -> Generator[docker.DockerClient]:
                             "start",
                         )
                     )
-                elif USE_DOCKER_DESKTOP:
+                else:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
                         ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
-                    )
-                elif USE_ORBSTACK:
-                    click.echo("Attempting to start orbstack...")
-                    subprocess.check_call(
-                        ("open", "-a", "/Applications/OrbStack.app", "--args", "--unattended")
                     )
             else:
                 raise click.ClickException("Make sure docker is running.")
@@ -219,15 +208,12 @@ def devservices() -> None:
         return
 
     if DARWIN:
-        if USE_DOCKER_DESKTOP:
-            click.echo("Using docker desktop.")
-            ensure_docker_cli_context("desktop-linux")
         if USE_COLIMA:
             click.echo("Using colima.")
             ensure_docker_cli_context("colima")
-        if USE_ORBSTACK:
-            click.echo("Using orbstack.")
-            ensure_docker_cli_context("orbstack")
+        else:
+            click.echo("Using docker desktop.")
+            ensure_docker_cli_context("desktop-linux")
 
 
 @devservices.command()
