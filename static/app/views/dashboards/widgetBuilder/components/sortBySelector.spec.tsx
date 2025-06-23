@@ -48,10 +48,30 @@ describe('WidgetBuilderSortBySelector', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders for spans', async function () {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(await screen.findByText('Sort by')).toBeInTheDocument();
+    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
+    expect(await screen.findByText('High to low')).toBeInTheDocument();
+    expect(await screen.findByText('(Required)')).toBeInTheDocument();
+  });
+
+  it('renders for logs', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
           <WidgetBuilderSortBySelector />
         </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
