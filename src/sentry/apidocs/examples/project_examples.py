@@ -341,6 +341,7 @@ PROJECT_SUMMARY = {
     "hasInsightsCaches": True,
     "hasInsightsQueues": True,
     "hasInsightsLlmMonitoring": False,
+    "hasInsightsAgentMonitoring": False,
     "platform": "node-express",
     "platforms": [],
     "latestRelease": None,

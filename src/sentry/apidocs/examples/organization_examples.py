@@ -477,6 +477,7 @@ class OrganizationExamples:
                     "hasInsightsCaches": False,
                     "hasInsightsQueues": False,
                     "hasInsightsLlmMonitoring": False,
+                    "hasInsightsAgentMonitoring": False,
                     "latestRelease": None,
                 }
             ],

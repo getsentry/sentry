@@ -284,6 +284,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsCaches: bool
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
+    hasInsightsAgentMonitoring: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
