@@ -1,11 +1,8 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {space} from 'sentry/styles/space';
+import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
@@ -23,9 +20,11 @@ export function DetectorListRow({
   const issues: Group[] = [];
 
   return (
-    <RowWrapper disabled={disabled} data-test-id="detector-list-row">
-      <InteractionStateLayer />
-      <CellWrapper>
+    <DetectorSimpleTableRow
+      variant={disabled ? 'faded' : 'default'}
+      data-test-id="detector-list-row"
+    >
+      <SimpleTable.RowCell name="name">
         <DetectorLink
           detectorId={id}
           name={name}
@@ -33,76 +32,48 @@ export function DetectorListRow({
           projectId={projectId}
           disabled={disabled}
         />
-      </CellWrapper>
-      <CellWrapper className="type">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="type">
         <DetectorTypeCell type={type} />
-      </CellWrapper>
-      <CellWrapper className="last-issue">
-        <StyledIssueCell group={issues.length > 0 ? issues[0] : undefined} />
-      </CellWrapper>
-      <CellWrapper className="assignee">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="last-issue">
+        <IssueCell group={issues.length > 0 ? issues[0] : undefined} />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="assignee">
         <DetectorAssigneeCell assignee={owner} />
-      </CellWrapper>
-      <CellWrapper className="connected-automations">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="connected-automations">
         <DetectorListConnectedAutomations automationIds={workflowIds} />
-      </CellWrapper>
-    </RowWrapper>
+      </SimpleTable.RowCell>
+    </DetectorSimpleTableRow>
   );
 }
 
 export function DetectorListRowSkeleton() {
   return (
-    <RowWrapper>
-      <CellWrapper>
+    <DetectorSimpleTableRow>
+      <SimpleTable.RowCell name="name">
         <div style={{width: '100%'}}>
           <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
           <Placeholder height="16px" width="20%" />
         </div>
-      </CellWrapper>
-      <CellWrapper className="type">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="type">
         <Placeholder height="20px" />
-      </CellWrapper>
-      <CellWrapper className="last-issue">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="last-issue">
         <Placeholder height="20px" />
-      </CellWrapper>
-      <CellWrapper className="creator">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="assignee">
         <Placeholder height="20px" />
-      </CellWrapper>
-      <CellWrapper className="connected-automations">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell name="connected-automations">
         <Placeholder height="20px" />
-      </CellWrapper>
-    </RowWrapper>
+      </SimpleTable.RowCell>
+    </DetectorSimpleTableRow>
   );
 }
 
-const CellWrapper = styled(Flex)`
-  padding: 0 ${space(2)};
-  flex: 1;
-  overflow: hidden;
-`;
-
-const StyledIssueCell = styled(IssueCell)`
-  padding: ${space(2)};
-  margin: -${space(2)};
-`;
-
-const RowWrapper = styled('div')<{disabled?: boolean}>`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  position: relative;
-  align-items: center;
-  padding: ${space(2)};
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
-
-  ${p =>
-    p.disabled &&
-    css`
-      ${CellWrapper}, {
-        opacity: 0.8;
-      }
-    `}
+const DetectorSimpleTableRow = styled(SimpleTable.Row)`
+  min-height: 76px;
 `;
