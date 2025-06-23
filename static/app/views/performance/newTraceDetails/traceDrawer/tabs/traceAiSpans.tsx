@@ -1,15 +1,23 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
+import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
+import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
 function TraceAiSpans({
   traceSlug,
@@ -18,11 +26,42 @@ function TraceAiSpans({
   viewManager: VirtualizedViewManager;
 }) {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
   const {nodes, isLoading, error} = useAITrace(traceSlug);
-  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(() => {
+    const path = getScrollToPath()?.path;
+    const lastSpan = path?.findLast(item => item.startsWith('span-'));
+    return lastSpan?.replace('span-', '') ?? null;
+  });
+
   const selectedNode = useMemo(() => {
-    return nodes.find(node => node.metadata.event_id === selectedNodeKey) || nodes[0];
+    return nodes.find(node => getNodeId(node) === selectedNodeKey) || nodes[0];
   }, [nodes, selectedNodeKey]);
+
+  const handleSelectNode = useCallback(
+    (node: AITraceSpanNode) => {
+      const eventId = getNodeId(node);
+      if (!eventId) {
+        return;
+      }
+      setSelectedNodeKey(eventId);
+
+      // Update the node path url param to keep the trace waterfal in sync
+      const nodeIdentifier: TraceTree.NodePath = `span-${eventId}`;
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            node: nodeIdentifier,
+          },
+        },
+        {replace: true}
+      );
+    },
+    [location, navigate]
+  );
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -39,13 +78,26 @@ function TraceAiSpans({
   return (
     <Wrapper>
       <HeaderCell>{t('Abbreviated Trace')}</HeaderCell>
-      <HeaderCell>{/* TODO: tabs for spans */}</HeaderCell>
+      <HeaderCell align={'right'}>
+        <LinkButton
+          size="xs"
+          to={{
+            ...location,
+            query: {
+              ...location.query,
+              tab: TraceLayoutTabKeys.WATERFALL,
+            },
+          }}
+        >
+          {t('View in Full Trace')}
+        </LinkButton>
+      </HeaderCell>
       <LeftPanel>
         <SpansHeader>{t('AI Spans')}</SpansHeader>
         <AISpanList
           nodes={nodes}
-          onSelectNode={node => setSelectedNodeKey(node.metadata.event_id as string)}
-          selectedNodeKey={selectedNode?.metadata.event_id ?? null}
+          onSelectNode={handleSelectNode}
+          selectedNodeKey={getNodeId(selectedNode!)}
         />
       </LeftPanel>
       <RightPanel>
@@ -86,13 +138,14 @@ const SpansHeader = styled('h6')`
   margin-left: ${space(1)};
 `;
 
-const HeaderCell = styled('div')`
+const HeaderCell = styled('div')<{align?: 'left' | 'right'}>`
   padding: 0 ${space(2)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
   align-items: center;
+  justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;
 
 const LeftPanel = styled('div')`
