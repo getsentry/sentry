@@ -80,7 +80,3 @@ class IdentityPipeline(IdentityPipelineT):
             # identity management page that supports these new identities (not
             # social-auth ones), redirect to the identities page.
             return HttpResponseRedirect(reverse("sentry-account-settings"))
-
-
-# temporary getsentry compat
-IdentityProviderPipeline = IdentityPipeline
