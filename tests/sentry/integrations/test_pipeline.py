@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from django.db import router
+from django.http.response import HttpResponse
 
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
@@ -94,6 +95,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = data
         resp = self.pipeline.finish_pipeline()
 
+        assert isinstance(resp, HttpResponse)
         self.assertDialogSuccess(resp)
         assert b"document.origin);" in resp.content
 
@@ -116,6 +118,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             self.pipeline.state.data = data
             resp = self.pipeline.finish_pipeline()
 
+            assert isinstance(resp, HttpResponse)
             self.assertDialogSuccess(resp)
             assert (
                 f', "{generate_organization_url(self.organization.slug)}");'.encode()
@@ -186,6 +189,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = {"external_id": self.external_id}
         with override_regions(self.regions):
             response = self.pipeline.finish_pipeline()
+            assert isinstance(response, HttpResponse)
             error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
             assert error_message in response.content.decode()
 
@@ -487,6 +491,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # attempt to finish pipeline with no 'org:integrations' scope
         resp = self.pipeline.finish_pipeline()
+        assert isinstance(resp, HttpResponse)
         assert (
             "You must be an organization owner, manager or admin to install this integration."
             in resp.content.decode()
@@ -591,6 +596,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # attempt to finish pipeline without org membership
         resp = self.pipeline.finish_pipeline()
+        assert isinstance(resp, HttpResponse)
         assert (
             "You must be an organization owner, manager or admin to install this integration."
             in resp.content.decode()
@@ -640,5 +646,6 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
             },
         }
         resp = self.pipeline.finish_pipeline()
+        assert isinstance(resp, HttpResponse)
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
         assert "account is linked to a different Sentry user" in resp.content.decode()
