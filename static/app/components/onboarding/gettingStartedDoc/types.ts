@@ -113,7 +113,6 @@ export interface OnboardingConfig<
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
-  agentMonitoringOnboarding?: OnboardingConfig<PlatformOptions>;
   crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
   featureFlagOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
