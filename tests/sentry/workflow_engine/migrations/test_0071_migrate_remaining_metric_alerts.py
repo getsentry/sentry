@@ -495,6 +495,12 @@ class MigrateMetricAlertsTest(TestMigrations):
             data_condition=detector_trigger, alert_rule_trigger_id=self.dynamic_trigger.id
         ).exists()
 
+        # no explicit resolve detector trigger
+        assert not DataCondition.objects.filter(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        ).exists()
+
         # action filters
         workflow_dcgs = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow=workflow
