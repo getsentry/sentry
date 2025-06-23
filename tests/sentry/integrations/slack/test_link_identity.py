@@ -78,7 +78,8 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert identity[0].status == IdentityStatus.VALID
         assert self.mock_webhook.call_count == 1
 
-    def test_basic_flow_with_webhook_client_error(self):
+    @patch("sentry.integrations.slack.utils.notifications._logger")
+    def test_basic_flow_with_webhook_client_error(self, mock_logger):
         """Do the auth flow and assert that the identity was created."""
         self.mock_webhook.side_effect = SlackApiError("", response={"ok": False})
 
@@ -97,6 +98,8 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         identity = Identity.objects.filter(external_id="new-slack-id", user=self.user)
 
         assert len(identity) == 1
+        assert mock_logger.exception.call_count == 1
+        assert mock_logger.exception.call_args.args == ("slack.link-identity.error",)
 
     def test_basic_flow_with_web_client(self):
         """No response URL is provided, so we use WebClient."""
@@ -135,6 +138,8 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         identity = Identity.objects.filter(external_id="new-slack-id", user=self.user)
 
         assert len(identity) == 1
+        assert mock_logger.exception.call_count == 1
+        assert mock_logger.exception.call_args.args == ("slack.link-identity.error",)
 
     def test_overwrites_existing_identities_with_sdk(self):
         external_id_2 = "slack-id2"

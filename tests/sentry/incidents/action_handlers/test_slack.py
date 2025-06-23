@@ -118,7 +118,8 @@ class SlackActionHandlerTest(FireTest):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_fire_metric_alert_sdk(self, mock_post, mock_api_call, mock_record):
+    @patch("sentry.integrations.slack.utils.notifications.metrics")
+    def test_fire_metric_alert_sdk(self, mock_metrics, mock_post, mock_api_call, mock_record):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -140,7 +141,8 @@ class SlackActionHandlerTest(FireTest):
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert_sdk_error(self, mock_record):
+    @patch("sentry.integrations.slack.utils.notifications.metrics")
+    def test_fire_metric_alert_sdk_error(self, mock_metrics, mock_record):
         self.run_fire_test()
 
         assert NotificationMessage.objects.all().count() == 1

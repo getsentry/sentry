@@ -11,9 +11,14 @@ from slack_sdk.errors import SlackApiError
 from sentry.integrations.messaging.linkage import LinkTeamView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.slack.metrics import (
+    SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC,
+    SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.models.team import Team
+from sentry.utils import metrics
 from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -66,9 +71,10 @@ class SlackLinkTeamView(SlackLinkageView, LinkTeamView):
         try:
             client = SlackSdkClient(integration_id=integration.id)
             client.chat_postMessage(channel=channel_id, text=message)
+            metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
         except SlackApiError:
             # whether or not we send a Slack message, the team was linked successfully
-            pass
+            metrics.incr(SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC, sample_rate=1.0)
 
     def notify_team_already_linked(
         self, request: HttpRequest, channel_id: str, integration: RpcIntegration, team: Team
@@ -77,9 +83,10 @@ class SlackLinkTeamView(SlackLinkageView, LinkTeamView):
         try:
             client = SlackSdkClient(integration_id=integration.id)
             client.chat_postMessage(channel=channel_id, text=message)
+            metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
         except SlackApiError:
             # whether or not we send a Slack message, the team is already linked
-            pass
+            metrics.incr(SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC, sample_rate=1.0)
 
         return render_to_response(
             "sentry/integrations/slack/post-linked-team.html",
