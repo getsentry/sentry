@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -187,7 +186,7 @@ function useTrackAnalytics({
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes,
+      visualizes: visualizes.map(visualize => visualize.toJSON()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
@@ -274,7 +273,7 @@ function useTrackAnalytics({
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes,
+      visualizes: visualizes.map(visualize => visualize.toJSON()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
@@ -377,8 +376,7 @@ export function useCompareAnalytics({
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.map(
-    yAxis =>
-      new Visualize([yAxis], {label: String(index), chartType: queryParts.chartType})
+    yAxis => new Visualize(yAxis, {label: String(index), chartType: queryParts.chartType})
   );
 
   return useTrackAnalytics({
@@ -474,7 +472,7 @@ function computeConfidence(
   data: ReturnType<typeof useSortedTimeSeries>['data']
 ) {
   return visualizes.map(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     return String(combineConfidenceForSeries(series));
   });
@@ -495,7 +493,7 @@ function computeEmptyBuckets(
   data: ReturnType<typeof useSortedTimeSeries>['data']
 ) {
   return visualizes.flatMap(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     return dedupedYAxes
       .flatMap(yAxis => data[yAxis])
       .filter(defined)

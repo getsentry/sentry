@@ -4,6 +4,7 @@ from django.conf import settings
 
 from sentry import analytics
 from sentry.autofix.utils import AutofixState, get_autofix_state_from_pr_id
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 
@@ -43,7 +44,7 @@ def handle_github_pr_webhook_for_autofix(
         analytics.record(
             f"ai.autofix.pr.{analytic_action}",
             organization_id=org.id,
-            integration="github",
+            integration=IntegrationProviderSlug.GITHUB.value,
             **get_webhook_analytics_fields(autofix_state),
         )
         metrics.incr(f"ai.autofix.pr.{analytic_action}")

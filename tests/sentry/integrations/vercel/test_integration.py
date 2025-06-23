@@ -7,7 +7,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-from sentry.identity.vercel import VercelIdentityProvider
+from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
