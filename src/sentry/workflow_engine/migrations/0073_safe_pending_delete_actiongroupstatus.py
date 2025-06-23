@@ -46,5 +46,7 @@ class Migration(CheckedMigration):
                 db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to="sentry.group"
             ),
         ),
-        SafeRemoveField(name="ActionGroupStatus", deletion_action=DeletionAction.MOVE_TO_PENDING),
+        SafeRemoveField(
+            model_name="ActionGroupStatus", deletion_action=DeletionAction.MOVE_TO_PENDING
+        ),
     ]
