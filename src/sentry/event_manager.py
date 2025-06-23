@@ -295,28 +295,29 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
 
 
 def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event) -> None:
-    if tombstone_id:
-        try:
-            from sentry.models.grouptombstone import GroupTombstone
+    if tombstone_id is None:
+        return
+    try:
+        from sentry.models.grouptombstone import GroupTombstone
 
-            group_tombstone = GroupTombstone.objects.get(id=tombstone_id)
-            buffer_incr(
-                GroupTombstone,
-                {"times_seen": 1},
-                {"id": tombstone_id},
-                {
-                    "last_seen": (
-                        max(event.datetime, group_tombstone.last_seen)
-                        if group_tombstone.last_seen
-                        else event.datetime
-                    )
-                },
-            )
-        except GroupTombstone.DoesNotExist:
-            # This can happen due to a race condition with deletion.
-            pass
-        except Exception:
-            logger.exception("Failed to update GroupTombstone count for id: %s", tombstone_id)
+        group_tombstone = GroupTombstone.objects.get(id=tombstone_id)
+        buffer_incr(
+            GroupTombstone,
+            {"times_seen": 1},
+            {"id": tombstone_id},
+            {
+                "last_seen": (
+                    max(event.datetime, group_tombstone.last_seen)
+                    if group_tombstone.last_seen
+                    else event.datetime
+                )
+            },
+        )
+    except GroupTombstone.DoesNotExist:
+        # This can happen due to a race condition with deletion.
+        pass
+    except Exception:
+        logger.exception("Failed to update GroupTombstone count for id: %s", tombstone_id)
 
 
 ProjectsMapping = Mapping[int, Project]
