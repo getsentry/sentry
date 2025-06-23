@@ -9,7 +9,6 @@ def parameterizer():
     return Parameterizer(
         regex_pattern_keys=REGEX_PATTERN_KEYS,
         experiments=(UniqueIdExperiment,),
-        enable_regex_experiments=True,
     )
 
 
