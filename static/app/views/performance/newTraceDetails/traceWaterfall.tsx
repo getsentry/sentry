@@ -528,13 +528,14 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   ]);
 
   // We re-init the view to sync back with URL params
-  // which might have changed while the waterfall was hidden
+  // as they might have changed while the waterfall was hidden
   useEffect(() => {
     if (props.isVisible) {
       scrollQueueRef.current = getScrollToPath();
       onTraceLoad();
     }
 
+    // Only run if isVisible changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.isVisible]);
 
