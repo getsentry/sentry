@@ -11,7 +11,7 @@ from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import http
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -406,7 +406,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         return NestedPipelineView(
             bind_key="identity",
             provider_key="github_enterprise",
-            pipeline_cls=IdentityProviderPipeline,
+            pipeline_cls=IdentityPipeline,
             config=identity_pipeline_config,
         )
 

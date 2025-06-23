@@ -265,7 +265,7 @@ class EventLifecycle:
 class IntegrationPipelineViewType(StrEnum):
     """A specific step in an integration's pipeline that is not a static page."""
 
-    # IdentityProviderPipeline
+    # IdentityPipeline
     IDENTITY_LOGIN = "identity_login"
     IDENTITY_LINK = "identity_link"
     TOKEN_EXCHANGE = "token_exchange"

@@ -36,7 +36,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         return_value=VstsIntegrationProvider.NEW_SCOPES,
     )
     @patch(
-        "sentry.identity.pipeline.IdentityProviderPipeline.get_provider",
+        "sentry.identity.pipeline.IdentityPipeline.get_provider",
         return_value=VSTSNewIdentityProvider(),
     )
     def test_original_installation_still_works(self, mock_get_scopes, mock_get_provider):
