@@ -466,6 +466,7 @@ class SpansBuffer:
 
         page_size = options.get("spans.buffer.segment-page-size")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_segment_spans = options.get("spans.buffer.max-segment-spans")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
@@ -500,6 +501,14 @@ class SpansBuffer:
                     continue
 
                 payloads[key].extend(decompressed_spans)
+                if len(payloads[key]) > max_segment_spans:
+                    metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
+                    logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
+
+                    del payloads[key]
+                    del cursors[key]
+                    continue
+
                 if cursor == 0:
                     del cursors[key]
                 else:
