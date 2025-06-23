@@ -245,7 +245,7 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
-    fields = {type_str: [] for type_str in type_mapping.values()}
+    fields: dict[str, list[str]] = {type_str: [] for type_str in type_mapping.values()}
 
     for attr_type, type_str in type_mapping.items():
         req = TraceItemAttributeNamesRequest(
