@@ -107,29 +107,31 @@ export function DomainViewHeader({
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            {selectedModule === ModuleName.SESSIONS ? (
-              <FeedbackButtonTour />
-            ) : (
-              <FeedbackWidgetButton
-                optionOverrides={
-                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
-                    ? {
-                        tags: {
-                          ['feedback.source']: isLaravelInsightsAvailable
-                            ? 'laravel-insights'
-                            : 'nextjs-insights',
-                          ['feedback.owner']: 'telemetry-experience',
-                        },
-                      }
-                    : undefined
-                }
-              />
-            )}
-            {additonalHeaderActions}
-          </ButtonBar>
-        </Layout.HeaderActions>
+        {selectedModule !== ModuleName.MOBILE_VITALS && (
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {selectedModule === ModuleName.SESSIONS ? (
+                <FeedbackButtonTour />
+              ) : (
+                <FeedbackWidgetButton
+                  optionOverrides={
+                    isLaravelInsightsAvailable || isNextJsInsightsEnabled
+                      ? {
+                          tags: {
+                            ['feedback.source']: isLaravelInsightsAvailable
+                              ? 'laravel-insights'
+                              : 'nextjs-insights',
+                            ['feedback.owner']: 'telemetry-experience',
+                          },
+                        }
+                      : undefined
+                  }
+                />
+              )}
+              {additonalHeaderActions}
+            </ButtonBar>
+          </Layout.HeaderActions>
+        )}
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>

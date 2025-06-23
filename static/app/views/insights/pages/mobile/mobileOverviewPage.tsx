@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -221,7 +223,10 @@ function EAPMobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
+      <MobileHeader
+        headerTitle={MOBILE_LANDING_TITLE}
+        module={undefined}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -242,6 +247,9 @@ function EAPMobileOverviewPage() {
                     query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                   />
                 )}
+                <ButtonBar gap={1}>
+                  <FeedbackWidgetButton />
+                </ButtonBar>
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />

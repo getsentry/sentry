@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -273,11 +275,16 @@ function ScreensLandingPage() {
             <Layout.Body>
               <Layout.Main fullWidth>
                 <Container>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector onChange={handleProjectChange} />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
+                  <FilterContainer>
+                    <PageFilterBar condensed>
+                      <InsightsProjectSelector onChange={handleProjectChange} />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter />
+                    </PageFilterBar>
+                    <ButtonBar gap={1}>
+                      <FeedbackWidgetButton />
+                    </ButtonBar>
+                  </FilterContainer>
                 </Container>
                 <PageAlert />
                 <ErrorBoundary mini>
@@ -326,6 +333,14 @@ function ScreensLandingPage() {
 
 const Container = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const FilterContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(2)};
+  width: 100%;
 `;
 
 const Flex = styled('div')<{gap?: number}>`
