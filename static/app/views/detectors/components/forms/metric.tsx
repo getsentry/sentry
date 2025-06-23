@@ -203,18 +203,14 @@ function useDatasetChoices() {
   const organization = useOrganization();
 
   return useMemo(() => {
-    const datasetChoices: Array<[DetectorDataset, string]> = [];
-
-    datasetChoices.push([DetectorDataset.ERRORS, t('Errors')]);
-    datasetChoices.push([DetectorDataset.TRANSACTIONS, t('Transactions')]);
-
-    if (organization.features.includes('visibility-explore-view')) {
-      datasetChoices.push([DetectorDataset.SPANS, t('Spans')]);
-    }
-
-    datasetChoices.push([DetectorDataset.ISSUES, t('Issues')]);
-    datasetChoices.push([DetectorDataset.RELEASES, t('Releases')]);
-    datasetChoices.push([DetectorDataset.METRICS, t('Metrics')]);
+    const datasetChoices: Array<[DetectorDataset, string]> = [
+      [DetectorDataset.ERRORS, t('Errors')],
+      [DetectorDataset.TRANSACTIONS, t('Transactions')],
+      ...(organization.features.includes('visibility-explore-view')
+        ? ([[DetectorDataset.SPANS, t('Spans')]] as Array<[DetectorDataset, string]>)
+        : []),
+      [DetectorDataset.RELEASES, t('Releases')],
+    ];
 
     return datasetChoices;
   }, [organization]);

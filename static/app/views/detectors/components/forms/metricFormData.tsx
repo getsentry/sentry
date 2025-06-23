@@ -23,9 +23,7 @@ export const enum DetectorDataset {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   SPANS = 'spans',
-  ISSUES = 'issues',
   RELEASES = 'releases',
-  METRICS = 'metrics',
 }
 
 interface PrioritizeLevelFormData {
@@ -226,15 +224,11 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
       case DetectorDataset.ERRORS:
         return 'events';
       case DetectorDataset.TRANSACTIONS:
-        return 'transactions';
+        return 'generic_metrics';
       case DetectorDataset.SPANS:
         return 'events_analytics_platform';
-      case DetectorDataset.ISSUES:
-        return 'search_issues';
       case DetectorDataset.RELEASES:
         return 'events';
-      case DetectorDataset.METRICS:
-        return 'generic_metrics';
       default:
         return 'events';
     }
@@ -243,12 +237,10 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   const getEventTypes = (dataset: DetectorDataset): string[] => {
     switch (dataset) {
       case DetectorDataset.ERRORS:
-      case DetectorDataset.ISSUES:
       case DetectorDataset.RELEASES:
         return ['error'];
       case DetectorDataset.TRANSACTIONS:
       case DetectorDataset.SPANS:
-      case DetectorDataset.METRICS:
         return ['transaction'];
       default:
         return ['error'];
@@ -393,13 +385,10 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
       case 'events':
         return DetectorDataset.ERRORS;
       case 'transactions':
+      case 'generic_metrics':
         return DetectorDataset.TRANSACTIONS;
       case 'events_analytics_platform':
         return DetectorDataset.SPANS;
-      case 'search_issues':
-        return DetectorDataset.ISSUES;
-      case 'generic_metrics':
-        return DetectorDataset.METRICS;
       default:
         return DetectorDataset.ERRORS;
     }

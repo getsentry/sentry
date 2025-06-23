@@ -20,7 +20,6 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
-import {IssuesConfig} from 'sentry/views/dashboards/datasetConfig/issues';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {
@@ -37,8 +36,6 @@ function getDatasetConfig(dataset: DetectorDataset) {
       return ErrorsConfig;
     case DetectorDataset.TRANSACTIONS:
       return TransactionsConfig;
-    case DetectorDataset.ISSUES:
-      return IssuesConfig;
     case DetectorDataset.RELEASES:
       return ReleasesConfig;
     default:
