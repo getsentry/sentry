@@ -1,26 +1,19 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
-import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {
-  FieldKey,
-  ISSUE_FIELD_TO_HEADER_MAP,
-  ISSUE_FIELDS,
-} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import type {
   TabularColumn,
   TabularData,
@@ -33,7 +26,7 @@ import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 // Dashboards only supports top 5 for now
 const DEFAULT_NUM_TOP_EVENTS = 5;
 
-interface RenderGridBodyProps {
+interface RenderWidgetBodyCellProps {
   widget: Widget;
   eventView?: EventView;
   isFirstPage?: boolean;
@@ -44,29 +37,7 @@ interface RenderGridBodyProps {
   theme?: Theme;
 }
 
-export const renderGridHeaderCell = () =>
-  function (column: TabularColumn, _columnIndex: number): React.ReactNode {
-    const align = fieldAlignment(column.name, column.type as ColumnValueType);
-
-    const formattedName =
-      column.name === FieldKey.LIFETIME_EVENTS || column.name === FieldKey.LIFETIME_USERS
-        ? ISSUE_FIELD_TO_HEADER_MAP[column.name]
-        : column.name;
-
-    return (
-      // Sorting will be added later
-      <SortLink
-        align={align}
-        title={<StyledTooltip title={formattedName}>{formattedName}</StyledTooltip>}
-        direction={undefined}
-        canSort={false}
-        preventScrollReset
-        generateSortLink={() => undefined}
-      />
-    );
-  };
-
-export const renderGridBodyCell = ({
+export const renderWidgetBodyCell = ({
   location,
   organization,
   widget,
@@ -75,7 +46,7 @@ export const renderGridBodyCell = ({
   projects,
   eventView,
   theme,
-}: RenderGridBodyProps) =>
+}: RenderWidgetBodyCellProps) =>
   function (
     column: TabularColumn,
     dataRow: TabularRow,
@@ -167,7 +138,3 @@ export const renderGridBodyCell = ({
       </Fragment>
     );
   };
-
-const StyledTooltip = styled(Tooltip)`
-  display: initial;
-`;

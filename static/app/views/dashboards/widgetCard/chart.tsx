@@ -60,7 +60,7 @@ import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigN
 import type {TabularValueType} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
-import {renderGridBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/widgetTableCellRenderers';
+import {renderWidgetBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/widgetTableCellRenderers';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
@@ -166,7 +166,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             frameless
             scrollable
             fit="max-content"
-            renderTableBodyCell={renderGridBodyCell({
+            renderTableBodyCell={renderWidgetBodyCell({
               location,
               organization,
               widget,

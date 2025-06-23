@@ -8,6 +8,10 @@ import type {Organization} from 'sentry/types/organization';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {
+  FieldKey,
+  ISSUE_FIELD_TO_HEADER_MAP,
+} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import type {
   TabularColumn,
   TabularData,
@@ -34,9 +38,14 @@ export const renderDefaultHeadCell = ({
     }
     const align = fieldAlignment(column.name, column.type as ColumnValueType);
 
+    const formattedName: string =
+      column.name === FieldKey.LIFETIME_EVENTS || column.name === FieldKey.LIFETIME_USERS
+        ? ISSUE_FIELD_TO_HEADER_MAP[column.name]
+        : column.name;
+
     return (
       <CellWrapper align={align}>
-        <StyledTooltip title={column.name}>{column.name}</StyledTooltip>
+        <StyledTooltip title={formattedName}>{formattedName}</StyledTooltip>
       </CellWrapper>
     );
   };
@@ -92,7 +101,7 @@ export const renderDefaultBodyCell = ({
     );
   };
 
-const StyledTooltip = styled(Tooltip)`
+export const StyledTooltip = styled(Tooltip)`
   display: initial;
 `;
 

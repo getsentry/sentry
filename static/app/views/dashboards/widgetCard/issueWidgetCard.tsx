@@ -15,10 +15,7 @@ import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import type {TabularValueType} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
-import {
-  renderGridBodyCell,
-  renderGridHeaderCell,
-} from 'sentry/views/dashboards/widgets/tableWidget/widgetTableCellRenderers';
+import {renderWidgetBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/widgetTableCellRenderers';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
 type Props = {
@@ -80,8 +77,7 @@ export function IssueWidgetCard({
         frameless
         scrollable
         fit="max-content"
-        renderTableHeadCell={renderGridHeaderCell()}
-        renderTableBodyCell={renderGridBodyCell({
+        renderTableBodyCell={renderWidgetBodyCell({
           location,
           widget,
           tableData,
