@@ -82,7 +82,7 @@ function formatColumnOptions(
       return {
         value: option.value.meta.name,
         label:
-          dataset === WidgetType.SPANS
+          dataset === WidgetType.SPANS || dataset === WidgetType.LOGS
             ? prettifyTagKey(option.value.meta.name)
             : option.value.meta.name,
 
@@ -265,7 +265,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let spanColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
+  let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
   if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
@@ -275,7 +275,7 @@ function Visualize({error, setError}: VisualizeProps) {
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
         .map(field => field.field) ?? [];
-    spanColumnOptions = [
+    traceItemColumnOptions = [
       // Columns that are not in the tag responses, e.g. old tags
       ...columns
         .filter(
@@ -288,7 +288,6 @@ function Visualize({error, setError}: VisualizeProps) {
           return {
             label: prettifyTagKey(column),
             value: column,
-            textValue: column,
             trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
@@ -296,20 +295,18 @@ function Visualize({error, setError}: VisualizeProps) {
         return {
           label: tag.name,
           value: tag.key,
-          textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.TAG} />,
         };
       }),
       ...Object.values(numericSpanTags).map(tag => {
         return {
-          label: tag.name,
+          label: prettifyTagKey(tag.name),
           value: tag.key,
-          textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
         };
       }),
     ];
-    spanColumnOptions.sort(_sortFn);
+    traceItemColumnOptions.sort(_sortFn);
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -421,7 +418,7 @@ function Visualize({error, setError}: VisualizeProps) {
                   (state.dataset === WidgetType.SPANS ||
                     state.dataset === WidgetType.LOGS) &&
                   field.kind !== FieldValueKind.FUNCTION
-                    ? spanColumnOptions
+                    ? traceItemColumnOptions
                     : getColumnOptions(
                         state.dataset ?? WidgetType.ERRORS,
                         field,
@@ -454,9 +451,12 @@ function Visualize({error, setError}: VisualizeProps) {
                   if (state.dataset === WidgetType.ISSUE) {
                     // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
                     aggregateOptions = baseOptions;
-                  } else if (state.dataset === WidgetType.SPANS) {
+                  } else if (
+                    state.dataset === WidgetType.SPANS ||
+                    state.dataset === WidgetType.LOGS
+                  ) {
                     // Add span column options for Spans dataset
-                    aggregateOptions = [...baseOptions, ...spanColumnOptions];
+                    aggregateOptions = [...baseOptions, ...traceItemColumnOptions];
                   } else if (state.dataset === WidgetType.RELEASE) {
                     aggregateOptions = [
                       ...(canDelete ? baseOptions : aggregateOptions),
