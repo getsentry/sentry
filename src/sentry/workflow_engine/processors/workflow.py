@@ -239,7 +239,9 @@ def _get_associated_workflows(
             (Q(environment_id=None) | Q(environment_id=environment.id)),
             detectorworkflow__detector_id=detector.id,
             enabled=True,
-        ).distinct()
+        )
+        .select_related("environment")
+        .distinct()
     )
 
     if workflows:
