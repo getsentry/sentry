@@ -87,23 +87,22 @@ def organization_absolute_url(
         path = customer_domain_path(path)
         url_base = generate_organization_url(slug)
     uri = absolute_uri(path, url_prefix=url_base)
-    parts = [uri]
-    if query and not query.startswith("?"):
-        query = f"?{query}"
-    if query:
-        parts.append(query)
-    if fragment and not fragment.startswith("#"):
-        fragment = f"#{fragment}"
-    if fragment:
-        parts.append(fragment)
+    parts = construct_url_parts(uri=uri, query=query, fragment=fragment)
     return "".join(parts)
 
 
 def api_absolute_url(
     *, slug: str, path: str, query: str | None = None, fragment: str | None = None
 ) -> str:
+    if path and path[0] != "/":
+        path = f"/{path}"
     path = f"/api/0/organizations/{slug}{path}"
     uri = absolute_uri(path)
+    parts = construct_url_parts(uri=uri, query=query, fragment=fragment)
+    return "".join(parts)
+
+
+def construct_url_parts(*, uri: str, query: str | None, fragment: str | None) -> list[str]:
     parts = [uri]
     if query and not query.startswith("?"):
         query = f"?{query}"
@@ -113,4 +112,4 @@ def api_absolute_url(
         fragment = f"#{fragment}"
     if fragment:
         parts.append(fragment)
-    return "".join(parts)
+    return parts
