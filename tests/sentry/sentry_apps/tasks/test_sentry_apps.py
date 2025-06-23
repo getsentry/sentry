@@ -749,10 +749,22 @@ class TestProcessResourceChange(TestCase):
         assert safe_urlopen.called
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
+        issue_data = data["data"]["issue"]
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == self.install.uuid
-        assert data["data"]["issue"]["id"] == str(event.group.id)
-
+        assert issue_data["id"] == str(event.group.id)
+        assert (
+            issue_data["url"]
+            == f"http://testserver/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/"
+        )
+        assert (
+            issue_data["web_url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/"
+        )
+        assert (
+            issue_data["project_url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/?project={event.project_id}"
+        )
         # SLO assertions
         assert_success_metric(mock_record)
         # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
