@@ -46,6 +46,8 @@ export default function DetectorsList() {
   const {
     data: detectors,
     isPending,
+    isError,
+    isSuccess,
     getResponseHeader,
   } = useDetectorsQuery({
     cursor,
@@ -64,6 +66,8 @@ export default function DetectorsList() {
               <DetectorListTable
                 detectors={detectors ?? []}
                 isPending={isPending}
+                isError={isError}
+                isSuccess={isSuccess}
                 sort={sort}
               />
               <Pagination
