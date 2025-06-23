@@ -8,10 +8,6 @@ import type {Organization} from 'sentry/types/organization';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {
-  FieldKey,
-  ISSUE_FIELD_TO_HEADER_MAP,
-} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import type {
   TabularColumn,
   TabularData,
@@ -19,6 +15,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 
 interface DefaultHeadCellRenderProps {
+  aliases?: Record<string, string>;
   renderTableHeadCell?: (
     column: TabularColumn,
     columnIndex: number
@@ -27,6 +24,7 @@ interface DefaultHeadCellRenderProps {
 
 export const renderDefaultHeadCell = ({
   renderTableHeadCell,
+  aliases,
 }: DefaultHeadCellRenderProps) =>
   function (
     column: TabularColumn<keyof TabularRow>,
@@ -36,16 +34,13 @@ export const renderDefaultHeadCell = ({
     if (cell) {
       return cell;
     }
-    const align = fieldAlignment(column.name, column.type as ColumnValueType);
 
-    const formattedName: string =
-      column.name === FieldKey.LIFETIME_EVENTS || column.name === FieldKey.LIFETIME_USERS
-        ? ISSUE_FIELD_TO_HEADER_MAP[column.name]
-        : column.name;
+    const align = fieldAlignment(column.name, column.type as ColumnValueType);
+    const header = column.alias || (aliases?.[column.key] ?? column.name);
 
     return (
       <CellWrapper align={align}>
-        <StyledTooltip title={formattedName}>{formattedName}</StyledTooltip>
+        <StyledTooltip title={header}>{header}</StyledTooltip>
       </CellWrapper>
     );
   };

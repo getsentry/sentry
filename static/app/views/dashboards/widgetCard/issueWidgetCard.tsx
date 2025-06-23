@@ -16,10 +16,9 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
-import type {TabularValueType} from 'sentry/views/dashboards/widgets/common/types';
+import {renderIssuesBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/eventViewBasedCellRenderers';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
-import {renderWidgetBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/widgetTableCellRenderers';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
 type Props = {
@@ -64,14 +63,13 @@ export function IssueWidgetCard({
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
   const columns = decodeColumnOrder(
-    queryFields.map(field => ({
-      field,
-    }))
+    queryFields.map((field, index) => ({field, alias: fieldAliases[index]}))
   ).map(column => ({
     key: column.key,
     name: column.name,
     width: column.width,
-    type: column.type as TabularValueType,
+    alias: column.column.alias,
+    type: column.type === 'never' ? null : column.type,
   }));
   const tableData = convertTableDataToTabularData(tableResults?.[0]);
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
@@ -88,13 +86,13 @@ export function IssueWidgetCard({
         frameless
         scrollable
         fit="max-content"
-        renderTableBodyCell={renderWidgetBodyCell({
+        renderTableBodyCell={renderIssuesBodyCell({
           location,
-          widget,
           tableData,
           eventView,
           organization,
           theme,
+          getCustomFieldRenderer,
         })}
       />
     </TableContainer>

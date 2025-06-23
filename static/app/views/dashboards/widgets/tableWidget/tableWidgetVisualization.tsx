@@ -20,6 +20,10 @@ interface TableWidgetVisualizationProps {
    */
   tableData: TabularData;
   /**
+   * Optional mapping of column key to a column alias when rendering headers
+   */
+  aliases?: Record<string, string>;
+  /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
    */
@@ -82,6 +86,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     columns,
     scrollable,
     fit,
+    aliases,
   } = props;
 
   const theme = useTheme();
@@ -104,7 +109,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
-        renderHeadCell: renderDefaultHeadCell({renderTableHeadCell}) as (
+        renderHeadCell: renderDefaultHeadCell({renderTableHeadCell, aliases}) as (
           column: GridColumnOrder,
           columnIndex: number
         ) => React.ReactNode,

@@ -60,10 +60,9 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
-import type {TabularValueType} from 'sentry/views/dashboards/widgets/common/types';
+import {renderEventViewBasedBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/eventViewBasedCellRenderers';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
-import {renderWidgetBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/widgetTableCellRenderers';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
@@ -171,7 +170,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         key: column.key,
         name: column.name,
         width: minTableColumnWidth ?? column.width,
-        type: column.type as TabularValueType,
+        type: column.type === 'never' ? null : column.type,
       }));
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
 
@@ -184,12 +183,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               frameless
               scrollable
               fit="max-content"
-              renderTableBodyCell={renderWidgetBodyCell({
+              renderTableBodyCell={renderEventViewBasedBodyCell({
                 location,
                 organization,
-                widget,
+                eventView,
                 tableData,
                 theme,
+                getCustomFieldRenderer,
               })}
             />
           ) : (
