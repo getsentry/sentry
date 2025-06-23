@@ -11,7 +11,7 @@ export function PendingChangesFixture(
     customPriceErrors: null,
     customPricePcss: null,
     customPriceTransactions: null,
-    // TODO:categories remove customPrice{Categories}
+    // TODO(data categories): BIL-964
     customPrices: {},
     effectiveDate: '2021-02-01',
     onDemandBudgets: null,
@@ -23,7 +23,7 @@ export function PendingChangesFixture(
       contractInterval: MONTHLY,
     }),
     planName: 'Team',
-    // TODO:categories remove reserved{Categories}
+    // TODO(data categories): BIL-964
     reserved: {},
     reservedAttachments: null,
     reservedErrors: null,

@@ -27,7 +27,7 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('NewWidgetBuiler', function () {
+describe('NewWidgetBuilder', function () {
   const onCloseMock = jest.fn();
   const onSaveMock = jest.fn();
 

@@ -15,6 +15,7 @@ from sentry.api.bases.group import GroupAiEndpoint
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -37,7 +38,7 @@ def get_autofix_integration_setup_problems(
     If there is an issue, returns the reason.
     """
     organization_integrations = integration_service.get_organization_integrations(
-        organization_id=organization.id, providers=["github"]
+        organization_id=organization.id, providers=[IntegrationProviderSlug.GITHUB.value]
     )
 
     # Iterate through all organization integrations to find one with an active integration
@@ -66,7 +67,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
     for repo in repos:
         # We only support github for now.
         provider = repo.get("provider")
-        if provider != "integrations:github" and provider != "github":
+        if provider != "integrations:github" and provider != IntegrationProviderSlug.GITHUB.value:
             continue
 
         body = orjson.dumps(

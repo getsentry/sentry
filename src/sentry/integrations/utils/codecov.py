@@ -11,6 +11,7 @@ from sentry_sdk import Scope
 
 from sentry import options
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.stacktrace_link import RepositoryLinkOutcome
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -45,7 +46,7 @@ def has_codecov_integration(organization: Organization) -> tuple[bool, str | Non
     Returns a tuple of (has_codecov_integration, error_message)
     """
     integrations = integration_service.get_integrations(
-        organization_id=organization.id, providers=["github"]
+        organization_id=organization.id, providers=[IntegrationProviderSlug.GITHUB.value]
     )
     if not integrations:
         logger.info(
@@ -64,7 +65,9 @@ def has_codecov_integration(organization: Organization) -> tuple[bool, str | Non
             continue
 
         owner_username, _ = repos[0].get("full_name").split("/")
-        url = CODECOV_REPOS_URL.format(service="github", owner_username=owner_username)
+        url = CODECOV_REPOS_URL.format(
+            service=IntegrationProviderSlug.GITHUB.value, owner_username=owner_username
+        )
         response = requests.get(url)
         if response.status_code == 200:
             logger.info(
@@ -91,7 +94,7 @@ def get_codecov_data(repo: str, service: str, path: str) -> tuple[LineCoverage |
         return None, None
 
     owner_username, repo_name = repo.split("/")
-    service = "gh" if service == "github" else service
+    service = "gh" if service == IntegrationProviderSlug.GITHUB.value else service
 
     path = path.lstrip("/")
     url = CODECOV_REPORT_URL.format(

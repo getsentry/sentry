@@ -13,7 +13,6 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {
   useExploreDataset,
@@ -48,14 +47,14 @@ export function useAddToDashboard() {
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {
-      const yAxes = visualizes[visualizeIndex]!.yAxes.slice(0, MAX_NUM_Y_AXES);
+      const yAxis = visualizes[visualizeIndex]!.yAxis;
 
       let fields: any;
       if (mode === Mode.SAMPLES) {
         fields = [];
       } else {
         fields = [
-          ...new Set([...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)]),
+          ...new Set([...groupBys, yAxis, ...sortBys.map(sort => sort.field)]),
         ].filter(Boolean);
       }
 
@@ -68,7 +67,7 @@ export function useAddToDashboard() {
         query: search.formatString(),
         version: 2,
         dataset,
-        yAxis: yAxes,
+        yAxis: [yAxis],
       };
 
       const newEventView = EventView.fromNewQueryWithPageFilters(

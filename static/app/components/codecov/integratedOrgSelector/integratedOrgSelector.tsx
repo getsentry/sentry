@@ -6,6 +6,7 @@ import {useCodecovContext} from 'sentry/components/codecov/context/codecovContex
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,7 +34,7 @@ function OrgFooterMessage() {
     <Fragment>
       <AddIntegratedOrgButton />
       <MenuFooterDivider />
-      <FlexContainer>
+      <Flex justify="flex-start" gap={space(1)}>
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
@@ -43,7 +44,7 @@ function OrgFooterMessage() {
             Ensure you log in to the same <Link to="placeholder">GitHub identity</Link>
           </FooterInfoSubheading>
         </div>
-      </FlexContainer>
+      </Flex>
     </Fragment>
   );
 }
@@ -95,14 +96,14 @@ export function IntegratedOrgSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <TriggerFlexContainer>
+              <Flex justify="flex-start" gap={space(0.75)} align="center">
                 <IconContainer>
                   <IconIntegratedOrg />
                 </IconContainer>
                 <TriggerLabel>
                   {integratedOrg || t('Select integrated organization')}
                 </TriggerLabel>
-              </TriggerFlexContainer>
+              </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -158,21 +159,6 @@ const MenuFooterDivider = styled('div')`
     right: 0;
     background: ${p => p.theme.border};
   }
-`;
-
-const FlexContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: ${space(1)};
-`;
-
-const TriggerFlexContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: ${space(0.75)};
-  align-items: center;
 `;
 
 const IconContainer = styled('div')`

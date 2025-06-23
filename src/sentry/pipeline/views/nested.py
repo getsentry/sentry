@@ -11,7 +11,7 @@ from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.views.base import PipelineView
 
 if TYPE_CHECKING:
-    from sentry.pipeline import Pipeline
+    from sentry.pipeline.base import Pipeline
 
 
 class NestedPipelineView[M: Model, S: PipelineSessionStore, U: Model, V: PipelineSessionStore](

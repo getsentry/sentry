@@ -10,7 +10,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
@@ -151,8 +150,8 @@ export function ExploreCharts({
   );
 
   const getChartInfo = useCallback(
-    (yAxes: readonly string[]) => {
-      const dedupedYAxes = dedupeArray(yAxes);
+    (yAxis: string) => {
+      const dedupedYAxes = [yAxis];
 
       const formattedYAxes = dedupedYAxes.map(yaxis => {
         const func = parseFunction(yaxis);
@@ -197,7 +196,7 @@ export function ExploreCharts({
         sampleCount,
         isSampled,
         dataScanned,
-      } = getChartInfo(visualize.yAxes);
+      } = getChartInfo(visualize.yAxis);
 
       let overrideSampleCount = undefined;
       let overrideIsSampled = undefined;
@@ -208,7 +207,7 @@ export function ExploreCharts({
       // When this happens, we override it with the sampling meta
       // data from the DEFAULT_VISUALIZATION.
       if (sampleCount === 0 && !defined(isSampled)) {
-        const chartInfo = getChartInfo([DEFAULT_VISUALIZATION]);
+        const chartInfo = getChartInfo(DEFAULT_VISUALIZATION);
         overrideSampleCount = chartInfo.sampleCount;
         overrideIsSampled = chartInfo.isSampled;
         overrideDataScanned = chartInfo.dataScanned;
@@ -224,7 +223,7 @@ export function ExploreCharts({
         chartType: visualize.chartType,
         stack: visualize.stack,
         label: shouldRenderLabel ? visualize.label : undefined,
-        yAxes: visualize.yAxes,
+        yAxes: [visualize.yAxis],
         formattedYAxes,
         data,
         error,

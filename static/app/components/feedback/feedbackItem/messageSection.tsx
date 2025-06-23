@@ -7,7 +7,6 @@ import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
-import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
@@ -73,12 +72,6 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
           />
         ) : null}
       </Blockquote>
-      <Flex justify="flex-end">
-        <Flex gap={space(1)} align="center">
-          <SeenBy>{t('Seen by')}</SeenBy>
-          <FeedbackViewers feedbackItem={feedbackItem} />
-        </Flex>
-      </Flex>
     </Fragment>
   );
 }
@@ -88,11 +81,6 @@ const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   align-self: center;
   white-space: nowrap;
-`;
-
-const SeenBy = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
 const Blockquote = styled('blockquote')`

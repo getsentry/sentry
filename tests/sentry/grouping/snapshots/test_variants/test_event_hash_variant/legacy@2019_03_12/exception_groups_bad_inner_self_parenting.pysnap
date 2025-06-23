@@ -1,0 +1,38 @@
+---
+created: '2025-06-18T22:38:18.519658+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
+        exception*
+          type*
+            "InnerException"
+          value*
+            "Nope"
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."
+--------------------------------------------------------------------------
+system:
+  hash: "93b26686d00504b4e5aa1cb0244d8b37"
+  contributing component: chained-exception
+  component:
+    system*
+      chained-exception*
+        exception*
+          type*
+            "InnerException"
+          value*
+            "Nope"
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."

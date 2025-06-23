@@ -160,7 +160,7 @@ export function getPendoAccountFields(
     promoInfo.daysSincePromotionClaimed = getDaysSinceDate(promo.dateClaimed);
   }
 
-  // TODO(data categories): check if this can be parsed
+  // TODO(data categories): BIL-971
   const perfTrial = getProductTrial(
     subscription.productTrials ?? null,
     DataCategory.TRANSACTIONS

@@ -8,6 +8,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
@@ -21,7 +22,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
     name = "GitHub"
-    key = "github"
+    key = IntegrationProviderSlug.GITHUB.value
 
     def get_client_id(self):
         return CLIENT_ID

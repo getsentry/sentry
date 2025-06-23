@@ -92,8 +92,9 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
-# The RPC limits us to 2688 points per timeseries
-MAX_ROLLUP_POINTS = 2688
+# The RPC limits us to 2689 points per timeseries
+# MAX 15 minute granularity over 28 days (2688 buckets) + 1 bucket to allow for partial time buckets on
+MAX_ROLLUP_POINTS = 2689
 # Copied from snuba, a number of total seconds
 VALID_GRANULARITIES = frozenset(
     {

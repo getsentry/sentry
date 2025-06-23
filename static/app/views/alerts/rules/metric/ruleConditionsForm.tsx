@@ -31,7 +31,6 @@ import ListItem from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
@@ -44,12 +43,7 @@ import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  DEVICE_CLASS_TAG_VALUES,
-  FieldKind,
-  isDeviceClass,
-} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
 import {
   getMeasurements,
   type MeasurementCollection,
@@ -71,8 +65,12 @@ import {
   DEPRECATED_TRANSACTION_ALERTS,
   getSupportedAndOmittedTags,
 } from 'sentry/views/alerts/wizard/options';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
@@ -84,6 +82,7 @@ import {
   DEFAULT_TRANSACTION_AGGREGATE,
   getTimeWindowOptions,
 } from './constants';
+import type {EventTypes} from './types';
 import {AlertRuleComparisonType, Dataset, Datasource} from './types';
 
 type Props = {
@@ -93,6 +92,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  eventTypes: EventTypes[];
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid: any) => void;
@@ -464,6 +464,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       onTimeWindowChange,
       isEditing,
+      eventTypes,
     } = this.props;
 
     return (
@@ -495,6 +496,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               alertType={alertType}
               required
               isEditing={isEditing}
+              eventTypes={eventTypes}
               disabledReason={
                 this.disableTransactionAlertType
                   ? this.transactionAlertDisabledMessage
@@ -532,6 +534,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       isLowConfidenceChartData,
       isOnDemandLimitReached,
+      eventTypes,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -545,6 +548,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     ];
 
     const confidenceEnabled = hasEAPAlerts(organization);
+
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
     return (
       <Fragment>
@@ -561,7 +566,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Fragment>
             <TraceItemAttributeProvider
               projects={[project]}
-              traceItemType={TraceItemDataset.SPANS}
+              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
                 isEapAlertType(alertType)
@@ -634,13 +639,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
                     return isEapAlertType(alertType) ? (
-                      <EAPSpanSearchQueryBuilderWithContext
+                      <EAPSearchQueryBuilderWithContext
                         initialQuery={value ?? ''}
                         onSearch={(query, {parsedQuery}) => {
                           onFilterSearch(query, parsedQuery);
                           onChange(query, {});
                         }}
                         project={project}
+                        traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
                     ) : (
                       <SearchContainer>
@@ -764,30 +770,33 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 }
 
-interface EAPSpanSearchQueryBuilderWithContextProps {
+interface EAPSearchQueryBuilderWithContextProps {
   initialQuery: string;
   onSearch: (query: string, isQueryValid: any) => void;
   project: Project;
+  traceItemType: TraceItemDataset;
 }
 
-function EAPSpanSearchQueryBuilderWithContext({
+function EAPSearchQueryBuilderWithContext({
   initialQuery,
   onSearch,
   project,
-}: EAPSpanSearchQueryBuilderWithContextProps) {
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  return (
-    <EAPSpanSearchQueryBuilder
-      numberTags={numberTags}
-      stringTags={stringTags}
-      initialQuery={initialQuery}
-      searchSource="alerts"
-      onSearch={onSearch}
-      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      projects={[parseInt(project.id, 10)]}
-    />
-  );
+  traceItemType,
+}: EAPSearchQueryBuilderWithContextProps) {
+  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+  const {attributes: stringAttributes} = useTraceItemAttributes('string');
+
+  const tracesItemSearchQueryBuilderProps = {
+    initialQuery,
+    searchSource: 'alerts',
+    onSearch,
+    numberAttributes,
+    stringAttributes,
+    itemType: traceItemType,
+    projects: [parseInt(project.id, 10)],
+  };
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
 const StyledListTitle = styled('div')`

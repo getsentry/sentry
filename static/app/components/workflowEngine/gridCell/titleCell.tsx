@@ -6,6 +6,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 
 export type TitleCellProps = {
@@ -37,26 +38,28 @@ export function TitleCell({
         )}
         {disabled && <span>&mdash; Disabled</span>}
       </Name>
-      <DetailsWrapper>
-        {project && (
-          <StyledProjectBadge
-            css={css`
-              && img {
-                box-shadow: none;
-              }
-            `}
-            project={project}
-            avatarSize={16}
-            disableLink
-          />
-        )}
-        {details?.map((detail, index) => (
-          <Fragment key={index}>
-            <Separator />
-            {detail}
-          </Fragment>
-        ))}
-      </DetailsWrapper>
+      {(defined(project) || (details && details.length > 0)) && (
+        <DetailsWrapper>
+          {project && (
+            <StyledProjectBadge
+              css={css`
+                && img {
+                  box-shadow: none;
+                }
+              `}
+              project={project}
+              avatarSize={16}
+              disableLink
+            />
+          )}
+          {details?.map((detail, index) => (
+            <Fragment key={index}>
+              <Separator />
+              {detail}
+            </Fragment>
+          ))}
+        </DetailsWrapper>
+      )}
     </TitleWrapper>
   );
 }

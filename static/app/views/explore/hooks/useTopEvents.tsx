@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import {
   useExploreGroupBys,
   useExploreMode,
-  useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
@@ -13,7 +12,6 @@ export const TOP_EVENTS_LIMIT = 5;
 // This hook always returns 5, which can be misleading, but there's no simple way
 // to get the series count without adding more complexity to this hook.
 export function useTopEvents(): number | undefined {
-  const visualizes = useExploreVisualizes();
   const groupBys = useExploreGroupBys();
   const mode = useExploreMode();
 
@@ -25,16 +23,12 @@ export function useTopEvents(): number | undefined {
       return undefined;
     }
 
-    if (visualizes.some(visualize => visualize.yAxes.length > 1)) {
-      return undefined;
-    }
-
     if (groupBys.every(groupBy => groupBy === '')) {
       return undefined;
     }
 
     return TOP_EVENTS_LIMIT;
-  }, [groupBys, mode, visualizes]);
+  }, [groupBys, mode]);
 
   return topEvents;
 }

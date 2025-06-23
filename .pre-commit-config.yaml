@@ -124,7 +124,7 @@ repos:
         name: prettier
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown]
-        entry: ./node_modules/.bin/prettier --log-level=error --write
+        entry: ./node_modules/.bin/prettier --log-level=error --write --experimental-cli --no-cache
         # https://pre-commit.com/#regular-expressions
         exclude: |
           (?x)^($^

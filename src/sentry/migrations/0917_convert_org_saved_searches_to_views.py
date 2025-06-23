@@ -5,30 +5,15 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
-from sentry.models.savedsearch import Visibility
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def convert_org_saved_searches_to_views(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    SavedSearch = apps.get_model("sentry", "SavedSearch")
-    GroupSearchView = apps.get_model("sentry", "GroupSearchView")
-
-    org_saved_searches = SavedSearch.objects.filter(visibility=Visibility.ORGANIZATION)
-
-    for saved_search in RangeQuerySetWrapperWithProgressBar(org_saved_searches):
-        GroupSearchView.objects.update_or_create(
-            organization=saved_search.organization,
-            user_id=saved_search.owner_id,
-            name=saved_search.name,
-            defaults={
-                "query": saved_search.query,
-                "query_sort": saved_search.sort,
-                "date_added": saved_search.date_added,
-            },
-        )
+    # This migration had an error and was never run.
+    # See 0921_convert_org_saved_searches_to_views_rerevised.py for the correct migration.
+    return
 
 
 class Migration(CheckedMigration):

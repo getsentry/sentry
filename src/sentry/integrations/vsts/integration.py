@@ -15,7 +15,7 @@ from django.utils.translation import gettext as _
 from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
@@ -44,7 +44,7 @@ from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -476,7 +476,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             NestedPipelineView(
                 bind_key="identity",
                 provider_key=self.key,
-                pipeline_cls=IdentityProviderPipeline,
+                pipeline_cls=IdentityPipeline,
                 config=identity_pipeline_config,
             ),
             AccountConfigView(),

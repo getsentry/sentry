@@ -1,0 +1,33 @@
+---
+created: '2025-06-20T20:35:46.587353+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "70dd09f56349dcce62a74137b00bb571"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          type*
+            "Error"
+          value*
+            "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root."

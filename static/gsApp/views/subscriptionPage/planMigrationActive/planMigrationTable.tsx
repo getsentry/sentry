@@ -111,7 +111,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
             )}
             hasCredits={hasErrorCredits}
           />
-          {/* TODO(data categories): check if this can be parsed */}
+          {/* TODO(data categories): BIL-955 */}
           {isAM3Migration
             ? nextPlan.reserved.spans && (
                 <PlanMigrationRow

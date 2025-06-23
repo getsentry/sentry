@@ -34,7 +34,9 @@ const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
   <header {...props}>
     <Breadcrumbs>
       <Heading>{title}</Heading>
-      {breadcrumbs?.map((item, i) => <div key={i}>{item}</div>)}
+      {breadcrumbs?.map((item, i) => (
+        <div key={i}>{item}</div>
+      ))}
     </Breadcrumbs>
     {children}
   </header>

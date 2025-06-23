@@ -97,4 +97,15 @@ describe('getReasonGroupName', function () {
       ClientDiscardReason.QUEUE_OVERFLOW
     );
   });
+
+  it('groups all dynamic sampling reason codes into "dynamic sampling" label', function () {
+    const testCases: Array<[string, string]> = [
+      ['Sampled:1000,1004,1500', 'dynamic sampling'],
+      ['Sampled:1000,1500', 'dynamic sampling'],
+    ];
+
+    testCases.forEach(([input, expected]) => {
+      expect(getReasonGroupName(Outcome.FILTERED, input)).toBe(expected);
+    });
+  });
 });

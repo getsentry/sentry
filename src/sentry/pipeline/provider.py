@@ -8,7 +8,7 @@ from sentry.db.models.base import Model
 from sentry.pipeline.store import PipelineSessionStore
 
 if TYPE_CHECKING:
-    from sentry.pipeline import Pipeline
+    from sentry.pipeline.base import Pipeline
     from sentry.pipeline.views.base import PipelineView
 
 

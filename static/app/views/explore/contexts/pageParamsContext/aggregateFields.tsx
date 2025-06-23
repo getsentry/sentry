@@ -18,7 +18,7 @@ export interface GroupBy {
   groupBy: string;
 }
 
-function isBaseVisualize(value: any): value is BaseVisualize {
+export function isBaseVisualize(value: any): value is BaseVisualize {
   return (
     typeof value === 'object' &&
     Array.isArray(value.yAxes) &&
@@ -32,7 +32,7 @@ export function isGroupBy(value: any): value is GroupBy {
 }
 
 export function isVisualize(value: any): value is Visualize {
-  return typeof value === 'object' && 'yAxes' in value && Array.isArray(value.yAxes);
+  return typeof value === 'object' && 'yAxis' in value && typeof value.yAxis === 'string';
 }
 
 export type BaseAggregateField = GroupBy | BaseVisualize;
@@ -80,7 +80,7 @@ export function getAggregateFieldsFromLocation(
     } else if (isBaseVisualize(groupByOrBaseVisualize)) {
       for (const yAxis of groupByOrBaseVisualize.yAxes) {
         aggregateFields.push(
-          new Visualize([yAxis], {
+          new Visualize(yAxis, {
             label: String.fromCharCode(65 + i), // starts from 'A',
             chartType: groupByOrBaseVisualize.chartType,
           })
@@ -111,11 +111,12 @@ export function updateLocationWithAggregateFields(
   aggregateFields: Array<GroupBy | BaseVisualize> | null | undefined
 ) {
   if (defined(aggregateFields)) {
-    location.query.aggregateField = aggregateFields.map(aggregateField => {
+    location.query.aggregateField = aggregateFields.flatMap(aggregateField => {
       if (isBaseVisualize(aggregateField)) {
-        return JSON.stringify(Visualize.fromJSON(aggregateField).toJSON());
+        const visualizes = Visualize.fromJSON(aggregateField);
+        return visualizes.map(visualize => JSON.stringify(visualize.toJSON()));
       }
-      return JSON.stringify(aggregateField);
+      return [JSON.stringify(aggregateField)];
     });
   } else if (aggregateFields === null) {
     delete location.query.aggregateField;

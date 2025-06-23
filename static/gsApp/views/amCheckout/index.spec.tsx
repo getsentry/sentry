@@ -4,7 +4,6 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   SubscriptionFixture,
   SubscriptionWithSeerFixture,
@@ -1065,18 +1064,11 @@ describe('AM2 Checkout', function () {
 
   it('does not skip step 1 for business plan without seer', async function () {
     const nonSeerOrg = OrganizationFixture({features: ['seer-billing']});
-    const nonSeerSubscription = SubscriptionWithSeerFixture({
+    const nonSeerSubscription = SubscriptionFixture({
       organization: nonSeerOrg,
       planTier: 'am2',
       plan: 'am2_business',
     });
-    // TODO(billing): update plan fixtures to have $0 reserved budgets
-    nonSeerSubscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     SubscriptionStore.set(organization.slug, nonSeerSubscription);
 
@@ -1533,6 +1525,49 @@ describe('AM3 Checkout', function () {
         data: {tier: PlanTier.AM3},
       })
     );
+  });
+
+  it('renders banner for self-serve partners', async function () {
+    const contractPeriodEnd = moment();
+    const sub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        isActive: true,
+        externalId: 'foo',
+        partnership: {
+          id: 'XX',
+          displayName: 'BAR',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    act(() => SubscriptionStore.set(organization.slug, sub));
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+    expect(
+      screen.getByText('Billing handled externally through BAR')
+    ).toBeInTheDocument();
   });
 
   it('renders for VC partners', async function () {

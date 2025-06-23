@@ -1,10 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
-  Am3DsEnterpriseSubscriptionFixture,
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -307,9 +308,16 @@ describe('CustomerOverview', function () {
 
   it('renders reserved budget data', function () {
     const organization = OrganizationFixture();
-    const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
-    subscription.reservedBudgets![0]!.reservedBudget = 99_000_00;
-    subscription.reservedBudgets![0]!.freeBudget = 1000_00;
+    const subscription = SubscriptionWithSeerFixture({organization});
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        totalReservedSpend: 20_00,
+        freeBudget: 15_00,
+        percentUsed: 0.5,
+      }),
+    ];
+    subscription.reservedBudgets[0]!.categories.seerAutofix!.reservedSpend = 18_00;
+    subscription.reservedBudgets[0]!.categories.seerScanner!.reservedSpend = 2_00;
 
     render(
       <CustomerOverview
@@ -319,26 +327,24 @@ describe('CustomerOverview', function () {
       />
     );
 
-    expect(screen.getByText('Spans Budget')).toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
     expect(screen.getByText('Reserved Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$99,000.00')).toBeInTheDocument();
+    expect(screen.getByText('$25.00')).toBeInTheDocument();
     expect(screen.getByText('Gifted Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$1,000.00')).toBeInTheDocument();
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
     expect(screen.getByText('Total Used:')).toBeInTheDocument();
-    expect(screen.getByText('$60,000.00 / $100,000.00 (60.00%)')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Accepted spans:')).toBeInTheDocument();
-    expect(
-      screen.getByText('Reserved Cost-Per-Event Accepted spans:')
-    ).toBeInTheDocument();
-    expect(screen.getByText('$0.01000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Accepted spans:')).toBeInTheDocument();
-    expect(screen.getByText('$40,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Stored spans:')).toBeInTheDocument();
+    expect(screen.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('$1.00000000')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('$18.00')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue scans:')).toBeInTheDocument();
     expect(screen.getAllByText('N/A')).toHaveLength(2);
-    expect(screen.getByText('Reserved Cost-Per-Event Stored spans:')).toBeInTheDocument();
-    expect(screen.getByText('$0.02000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Stored spans:')).toBeInTheDocument();
-    expect(screen.getByText('$20,000.00')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('$0.01000000')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('$2.00')).toBeInTheDocument();
 
     expect(screen.queryByText('Reserved Cost-Per-Event Errors')).not.toBeInTheDocument();
   });

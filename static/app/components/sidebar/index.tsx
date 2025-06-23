@@ -391,6 +391,7 @@ function Sidebar() {
             to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AGENTS_LANDING_SUB_PATH]}/`}
             id="performance-domains-agents"
             icon={<SubitemDot collapsed />}
+            isBeta
           />
         </AIInsightsFeature>
         <SidebarItem

@@ -272,8 +272,11 @@ def _run_automation(
     event: GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
-    if not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+    if (
+        not features.has(
+            "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+        )
+        or source == SeerAutomationSource.ISSUE_DETAILS
     ):
         return
 

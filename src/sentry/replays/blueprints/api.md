@@ -14,7 +14,6 @@ This document is structured by resource with each resource having actions that c
 ## Replays [/organizations/<organization_id_or_slug>/replays/]
 
 - Parameters
-
   - field (optional, string)
   - environment (optional, string)
   - project (optional, string)
@@ -247,7 +246,6 @@ Deletes a replay instance.
 ## Replay Selectors [/organizations/<organization_id_or_slug>/replay-selectors/]
 
 - Parameters
-
   - project (optional, string)
   - sort, sortBy, orderBy (optional, string)
     Default: -count_dead_clicks
@@ -577,7 +575,6 @@ Retrieve a collection of click events associated with a replay.
 A POST request is issued with no body. The URL and authorization context is used to construct a new viewed replay entry.
 
 - Request
-
   - Headers
 
     Cookie: \_ga=GA1.2.17576183...
@@ -618,7 +615,6 @@ A POST request is issued with no body. The URL and authorization context is used
 ## Replay Deletion Jobs [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/jobs/delete/]
 
 - Parameters
-
   - per_page (optional, number)
     Default: 10
   - offset (optional, number)

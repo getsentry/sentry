@@ -75,12 +75,10 @@ function useExploreAggregatesTableImp({
         }
         allFields.push(aggregateField.groupBy);
       } else {
-        for (const yAxis of aggregateField.yAxes) {
-          if (allFields.includes(yAxis)) {
-            continue;
-          }
-          allFields.push(yAxis);
+        if (allFields.includes(aggregateField.yAxis)) {
+          continue;
         }
+        allFields.push(aggregateField.yAxis);
       }
     }
 

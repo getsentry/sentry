@@ -1,0 +1,26 @@
+---
+created: '2025-06-17T01:25:51.705590+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        type*
+          "System.AggregateException"
+        value*
+          "One or more errors occurred."
+--------------------------------------------------------------------------
+system:
+  hash: "0809098f9f613b63467605dd1739cc9b"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        type*
+          "System.AggregateException"
+        value*
+          "One or more errors occurred."

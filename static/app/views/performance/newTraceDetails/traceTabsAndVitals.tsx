@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -17,18 +18,18 @@ type TraceTabsAndVitalsProps = {
 
 function Placeholder() {
   return (
-    <Container>
-      <FlexBox>
+    <Flex justify="space-between" align="center" gap={space(1)}>
+      <Flex align="center" gap={space(1)}>
         <StyledPlaceholder _width={75} _height={28} />
         <StyledPlaceholder _width={75} _height={28} />
         <StyledPlaceholder _width={75} _height={28} />
-      </FlexBox>
-      <FlexBox>
+      </Flex>
+      <Flex>
         <StyledPlaceholder _width={100} _height={28} />
         <StyledPlaceholder _width={100} _height={28} />
         <StyledPlaceholder _width={100} _height={28} />
-      </FlexBox>
-    </Container>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -89,7 +90,7 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Container ref={setRef}>
+    <Flex ref={setRef} justify="space-between">
       <Tabs value={currentTab} onChange={onTabChange}>
         <StyledTabsList hideBorder variant="floating">
           {tabOptions.map(tab => (
@@ -102,22 +103,12 @@ export function TraceTabsAndVitals({
         tree={tree}
         containerWidth={containerWidth}
       />
-    </Container>
+    </Flex>
   );
 }
 
 const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
   background-color: ${p => p.theme.purple100};
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const Container = styled(FlexBox)`
-  justify-content: space-between;
 `;
 
 const StyledTabsList = styled(TabList)`

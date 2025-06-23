@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -21,7 +21,7 @@ export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
 export function defaultVisualizes(): Visualize[] {
-  return [new Visualize([DEFAULT_VISUALIZATION], {label: 'A'})];
+  return [new Visualize(DEFAULT_VISUALIZATION, {label: 'A'})];
 }
 
 type VisualizeOptions = {
@@ -35,30 +35,31 @@ export interface BaseVisualize {
 }
 
 export class Visualize {
+  isEquation: boolean;
   chartType: ChartType;
   label: string;
-  yAxes: readonly string[];
+  yAxis: string;
   stack?: string;
   private selectedChartType?: ChartType;
 
-  constructor(yAxes: readonly string[], options?: VisualizeOptions) {
-    this.yAxes = yAxes;
+  constructor(yAxis: string, options?: VisualizeOptions) {
+    this.yAxis = yAxis;
     this.label = options?.label || '';
     this.selectedChartType = options?.chartType;
-    this.chartType = this.selectedChartType ?? determineDefaultChartType(this.yAxes);
-    this.stack =
-      this.chartType === ChartType.BAR && this.yAxes.length > 1 ? undefined : 'all';
+    this.isEquation = isEquation(yAxis);
+    this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
+    this.stack = 'all';
   }
 
   clone(): Visualize {
-    return new Visualize(this.yAxes, {
+    return new Visualize(this.yAxis, {
       label: this.label,
       chartType: this.selectedChartType,
     });
   }
 
-  replace({chartType, yAxes}: {chartType?: ChartType; yAxes?: string[]}): Visualize {
-    return new Visualize(yAxes ?? this.yAxes, {
+  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+    return new Visualize(yAxis ?? this.yAxis, {
       label: this.label,
       chartType: chartType ?? this.selectedChartType,
     });
@@ -66,7 +67,7 @@ export class Visualize {
 
   toJSON(): BaseVisualize {
     const json: BaseVisualize = {
-      yAxes: this.yAxes,
+      yAxes: [this.yAxis],
     };
 
     if (defined(this.selectedChartType)) {
@@ -76,8 +77,10 @@ export class Visualize {
     return json;
   }
 
-  static fromJSON(json: BaseVisualize): Visualize {
-    return new Visualize(json.yAxes, {label: '', chartType: json.chartType});
+  static fromJSON(json: BaseVisualize): Visualize[] {
+    return json.yAxes.map(
+      yAxis => new Visualize(yAxis, {label: '', chartType: json.chartType})
+    );
   }
 }
 
@@ -97,7 +100,7 @@ export function getVisualizesFromLocation(
   for (const visualize of baseVisualizes) {
     for (const yAxis of visualize.yAxes) {
       visualizes.push(
-        new Visualize([yAxis], {
+        new Visualize(yAxis, {
           label: String.fromCharCode(65 + i), // starts from 'A',
           chartType: visualize.chartType,
         })
