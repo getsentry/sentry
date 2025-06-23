@@ -669,6 +669,11 @@ class AMCheckout extends Component<Props, State> {
 
   renderPartnerAlert() {
     const {subscription} = this.props;
+
+    if (!subscription.isSelfServePartner) {
+      return null;
+    }
+
     return (
       <Alert.Container>
         <Alert type="info" showIcon>
@@ -766,10 +771,11 @@ class AMCheckout extends Component<Props, State> {
           data-test-id="change-subscription"
         />
 
-        {subscription.isSelfServePartner && this.renderPartnerAlert()}
-
         <CheckoutContainer>
-          <div data-test-id="checkout-steps">{this.renderSteps()}</div>
+          <CheckoutMain>
+            {this.renderPartnerAlert()}
+            <div data-test-id="checkout-steps">{this.renderSteps()}</div>
+          </CheckoutMain>
           <SidePanel>
             <OverviewContainer>
               {checkoutTier === PlanTier.AM3 ? (
@@ -884,5 +890,7 @@ const AnnualTerms = styled(TextBlock)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
+
+const CheckoutMain = styled('div')``;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));
