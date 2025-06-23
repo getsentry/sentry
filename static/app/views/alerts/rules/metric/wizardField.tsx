@@ -179,7 +179,7 @@ export default function WizardField({
           : []),
       ],
     },
-    ...((hasLogAlerts(organization)
+    ...(hasLogAlerts(organization)
       ? [
           {
             label: t('LOGS'),
@@ -191,7 +191,7 @@ export default function WizardField({
             ],
           },
         ]
-      : []) as GroupedMenuOption[]),
+      : []),
     {
       label: t('CUSTOM'),
       options: [

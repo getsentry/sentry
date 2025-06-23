@@ -57,7 +57,7 @@ export function makeDefaultCta({
   if (rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     if (traceItemType === TraceItemDataset.LOGS) {
       return {
-        buttonText: t('Open in Explore'),
+        buttonText: t('Open in Logs'),
         to: getAlertRuleLogsUrl({
           rule,
           organization,
