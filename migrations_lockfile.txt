@@ -33,4 +33,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0071_migrate_remaining_metric_alerts
+workflow_engine: 0072_add_detector_to_workflowfirehistory
