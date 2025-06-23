@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 const makeAutomationsQueryKey = ({
   orgSlug,
   query,
-  sort,
+  sortBy,
   ids,
   limit,
   cursor,
@@ -26,10 +26,10 @@ const makeAutomationsQueryKey = ({
   limit?: number;
   projects?: number[];
   query?: string;
-  sort?: string;
+  sortBy?: string;
 }): ApiQueryKey => [
   `/organizations/${orgSlug}/workflows/`,
-  {query: {query, sort, id: ids, per_page: limit, cursor, project: projects}},
+  {query: {query, sortBy, id: ids, per_page: limit, cursor, project: projects}},
 ];
 
 const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
@@ -42,7 +42,7 @@ interface UseAutomationsQueryOptions {
   limit?: number;
   projects?: number[];
   query?: string;
-  sort?: string;
+  sortBy?: string;
 }
 export function useAutomationsQuery(
   options: UseAutomationsQueryOptions = {},

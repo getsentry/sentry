@@ -50,7 +50,7 @@ function HeaderCell({
       sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
     navigate({
       pathname: location.pathname,
-      query: {...location.query, sort: newSort},
+      query: {...location.query, sort: newSort, cursor: undefined},
     });
   };
 
