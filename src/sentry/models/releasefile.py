@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import errno
 import logging
-import os
 import zipfile
 from contextlib import contextmanager
 from hashlib import sha1
@@ -12,10 +10,8 @@ from typing import IO, ClassVar, Self
 from urllib.parse import urlunsplit
 
 import sentry_sdk
-from django.core.files.base import File as FileObj
 from django.db import models, router
 
-from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -28,9 +24,8 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
-from sentry.models.files.utils import clear_cached_files
 from sentry.models.release import Release
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.urls import urlsplit_best_effort
@@ -90,8 +85,6 @@ class ReleaseFile(Model):
     objects: ClassVar[BaseManager[Self]] = BaseManager()  # The default manager.
     public_objects: ClassVar[PublicReleaseFileManager] = PublicReleaseFileManager()
 
-    cache: ClassVar[ReleaseFileCache]
-
     class Meta:
         unique_together = (("release_id", "ident"),)
         indexes = (models.Index(fields=("release_id", "name")),)
@@ -150,48 +143,6 @@ class ReleaseFile(Model):
         if query:
             urls.append("~" + urlunsplit(uri_relative_without_query))
         return urls
-
-
-class ReleaseFileCache:
-    @property
-    def cache_path(self):
-        return options.get("releasefile.cache-path")
-
-    def getfile(self, releasefile):
-        cutoff = options.get("releasefile.cache-limit")
-        file_size = releasefile.file.size
-        if file_size < cutoff:
-            metrics.distribution(
-                "release_file.cache.get.size", file_size, tags={"cutoff": True}, unit="byte"
-            )
-            return releasefile.file.getfile()
-
-        file_id = str(releasefile.file.id)
-        organization_id = str(releasefile.organization_id)
-        file_path = os.path.join(self.cache_path, organization_id, file_id)
-
-        hit = True
-        try:
-            os.stat(file_path)
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise
-            releasefile.file.save_to(file_path)
-            hit = False
-
-        metrics.distribution(
-            "release_file.cache.get.size",
-            file_size,
-            tags={"hit": hit, "cutoff": False},
-            unit="byte",
-        )
-        return FileObj(open(file_path, "rb"))
-
-    def clear_old_entries(self):
-        clear_cached_files(self.cache_path)
-
-
-ReleaseFile.cache = ReleaseFileCache()
 
 
 class ReleaseArchive:
