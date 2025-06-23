@@ -309,7 +309,10 @@ def child_process(
             origin="taskworker",
         )
         with (
-            track_memory_usage("taskworker.worker.memory_change"),
+            track_memory_usage(
+                "taskworker.worker.memory_change",
+                tags={"namespace": activation.namespace, "taskname": activation.taskname},
+            ),
             sentry_sdk.isolation_scope(),
             sentry_sdk.start_transaction(transaction),
         ):
