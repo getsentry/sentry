@@ -44,7 +44,7 @@ from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
