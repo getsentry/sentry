@@ -635,10 +635,6 @@ def chained_exception(
         )
         exceptions = all_exceptions
 
-    main_exception_id = determine_main_exception_id(exceptions)
-    if main_exception_id:
-        event.data["main_exception_id"] = main_exception_id
-
     # Cases 1 and 2: Either this never was a chained exception (this is our entry point for single
     # exceptions, too), or this is a chained exception consisting solely of an exception group and a
     # single inner exception. In the former case, all we have is the single exception component, so
@@ -650,6 +646,12 @@ def chained_exception(
     # Case 3: This is either a chained exception or an exception group containing at least two inner
     # exceptions. Either way, we need to wrap our exception components in a chained exception component.
     exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
+
+    # Check for cases in which we want to switch the `main_exception_id` in order to use a different
+    # exception than normal for the event title
+    main_exception_id = determine_main_exception_id(exceptions)
+    if main_exception_id:
+        event.data["main_exception_id"] = main_exception_id
 
     for exception in exceptions:
         for variant_name, component in exception_components_by_exception[id(exception)].items():
@@ -870,6 +872,7 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     if (
         exceptions[0].type == "Error"
         and exceptions[0].value in REACT_ERRORS_WITH_CAUSE
+        and exceptions[-1].mechanism
         and exceptions[-1].mechanism.source == "cause"
     ):
         main_exception_id = exceptions[-1].mechanism.exception_id
