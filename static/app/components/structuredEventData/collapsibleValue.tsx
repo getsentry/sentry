@@ -103,17 +103,23 @@ const NumItemsButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
+
+  height: 18px;
+  min-height: 18px;
 `;
 
 const ToggleButton = styled(Button)`
   position: absolute;
   left: -${space(3)};
-  top: 2px;
+  top: ${p => (p.theme.isChonk ? '0px' : '2px')};
   border-radius: 2px;
   align-items: center;
   justify-content: center;
   background: none;
   border: none;
+  height: 18px;
+  width: 18px;
+  min-height: 18px;
 
   &[data-base-with-toggle='true'] {
     left: 0;
