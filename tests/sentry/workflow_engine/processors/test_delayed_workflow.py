@@ -47,7 +47,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     EventInstance,
     EventKey,
     EventRedisData,
-    TimeAndGroups,
+    GroupQueryParams,
     UniqueConditionQuery,
     bulk_fetch_events,
     cleanup_redis_buffer,
@@ -486,8 +486,8 @@ class TestGetSnubaResults(BaseWorkflowTest):
 
     def create_condition_groups(
         self, data_conditions: list[DataCondition], timestamp: datetime | None = None
-    ) -> tuple[dict[UniqueConditionQuery, TimeAndGroups], int, list[UniqueConditionQuery]]:
-        condition_groups: dict[UniqueConditionQuery, TimeAndGroups] = {}
+    ) -> tuple[dict[UniqueConditionQuery, GroupQueryParams], int, list[UniqueConditionQuery]]:
+        condition_groups: dict[UniqueConditionQuery, GroupQueryParams] = {}
         all_unique_queries = []
         for data_condition in data_conditions:
             unique_queries = generate_unique_queries(data_condition, self.environment.id)
@@ -501,7 +501,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
             group = event.group
             condition_groups.update(
                 {
-                    query: TimeAndGroups(group_ids={event.group.id}, timestamp=timestamp)
+                    query: GroupQueryParams(group_ids={event.group.id}, timestamp=timestamp)
                     for query in unique_queries
                 }
             )
@@ -600,7 +600,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
         )
 
         condition_groups = {
-            unique_query: TimeAndGroups(group_ids={1}, timestamp=None)
+            unique_query: GroupQueryParams(group_ids={1}, timestamp=None)
         }  # One group ID to query
 
         with pytest.raises(ValueError, match="Escaping exception"):

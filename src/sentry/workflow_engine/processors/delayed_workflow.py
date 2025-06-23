@@ -216,8 +216,8 @@ class EventRedisData:
     @cached_property
     def dcg_to_timestamp(self) -> dict[int, datetime | None]:
         """
-        Uses the latest timestamp each DataConditionGroup was enqueued with
-        All groups enqueued for a DataConditionGroup will have the same query, hence the same max timestamp.
+        A DCG can be recorded with an event for later processing multiple times.
+        We need to pick a time to use when processing them in bulk, so to bias for recency we associate each DCG with the latest timestamp.
         """
         result: dict[int, datetime | None] = defaultdict(lambda: None)
 
@@ -233,9 +233,9 @@ class EventRedisData:
 
 
 @dataclass
-class TimeAndGroups:
+class GroupQueryParams:
     """
-    Represents a collection of group IDs and the timestamp of the latest enqueued event for a group in the set. Used to query Snuba for a UniqueConditionQuery.
+    Parameters to query a UniqueConditionQuery with in Snuba.
     """
 
     group_ids: set[GroupId] = field(default_factory=set)
@@ -246,8 +246,8 @@ class TimeAndGroups:
         Use the latest timestamp for a set of group IDs with the same Snuba query.
         We will query backwards in time from this point.
         """
-        if self.timestamp is None or (timestamp is not None and timestamp > self.timestamp):
-            self.timestamp = timestamp
+        if timestamp is not None:
+            self.timestamp = timestamp if self.timestamp is None else max(timestamp, self.timestamp)
 
 
 @dataclass(frozen=True)
@@ -396,7 +396,7 @@ def get_condition_query_groups(
     """
     Map unique condition queries to the group IDs that need to checked for that query.
     """
-    condition_groups: dict[UniqueConditionQuery, TimeAndGroups] = defaultdict(TimeAndGroups)
+    condition_groups: dict[UniqueConditionQuery, GroupQueryParams] = defaultdict(GroupQueryParams)
 
     for dcg in data_condition_groups:
         slow_conditions = dcg_to_slow_conditions[dcg.id]
@@ -416,7 +416,7 @@ def get_condition_query_groups(
     sample_rate=1.0,
 )
 def get_condition_group_results(
-    queries_to_groups: dict[UniqueConditionQuery, TimeAndGroups],
+    queries_to_groups: dict[UniqueConditionQuery, GroupQueryParams],
 ) -> dict[UniqueConditionQuery, QueryResult]:
     condition_group_results = {}
     current_time = timezone.now()
