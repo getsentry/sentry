@@ -54,7 +54,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.stopped = mp_context.Value("i", 0)
         self.redis_was_full = False
         self.current_drift = mp_context.Value("i", 0)
-        self.healthy_since = mp_context.Value("i", 0)
         self.process_restarts = {shard: 0 for shard in buffer.assigned_shards}
         self.produce_to_pipe = produce_to_pipe
 
@@ -72,7 +71,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             shard: mp_context.Value("i", int(time.time())) for shard in buffer.assigned_shards
         }
         self.process_backpressure_since = {
-            process_index: mp_context.Value("i", 0) for process_index in self.process_to_shards_map
+            process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
         }
 
         self._create_processes()
