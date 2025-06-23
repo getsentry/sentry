@@ -9,7 +9,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_basic(monkeypatch):
     # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
@@ -81,7 +81,7 @@ def test_basic(monkeypatch):
     }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_flusher_processes_limit(monkeypatch):
     """Test that flusher respects the max_processes limit"""
     # Flush very aggressively to make test pass instantly
@@ -114,7 +114,7 @@ def test_flusher_processes_limit(monkeypatch):
     flusher = fac._flusher
     assert len(flusher.processes) == 2
     assert flusher.max_processes == 2
-    assert flusher.active_shards == 2
+    assert flusher.num_processes == 2
 
     # Verify shards are distributed across processes
     total_shards = sum(len(shards) for shards in flusher.shard_to_process_map.values())

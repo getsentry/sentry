@@ -54,23 +54,23 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.stopped = mp_context.Value("i", 0)
         self.redis_was_full = False
         self.current_drift = mp_context.Value("i", 0)
-        self.backpressure_since = mp_context.Value("i", 0)
         self.healthy_since = mp_context.Value("i", 0)
         self.process_restarts = {shard: 0 for shard in buffer.assigned_shards}
         self.produce_to_pipe = produce_to_pipe
 
         # Determine which shards get their own processes vs shared processes
-        self.active_shards = min(self.max_processes, len(buffer.assigned_shards))
-        self.shard_to_process_map: dict[int, list[int]] = {}
+        self.num_processes = min(self.max_processes, len(buffer.assigned_shards))
+        self.shard_to_process_map: dict[int, list[int]] = {i: [] for i in range(self.num_processes)}
         for i, shard in enumerate(buffer.assigned_shards):
-            process_index = i % self.active_shards
-            if process_index not in self.shard_to_process_map:
-                self.shard_to_process_map[process_index] = []
+            process_index = i % self.num_processes
             self.shard_to_process_map[process_index].append(shard)
 
         self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
         self.shard_healthy_since = {
             shard: mp_context.Value("i", int(time.time())) for shard in buffer.assigned_shards
+        }
+        self.process_backpressure_since = {
+            process_index: mp_context.Value("i", 0) for process_index in self.shard_to_process_map
         }
 
         self._create_processes()
@@ -111,7 +111,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 shards,
                 self.stopped,
                 self.current_drift,
-                self.backpressure_since,
+                self.process_backpressure_since[process_index],
                 [self.shard_healthy_since[shard] for shard in shards],
                 self.produce_to_pipe,
             ),
@@ -138,8 +138,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         healthy_since_list,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
-        sentry_sdk.set_tag("sentry_spans_buffer_shards", ",".join(map(str, shards)))
+        sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
 
         try:
             producer_futures = []
@@ -179,24 +180,21 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     time.sleep(1)
                     continue
 
-                for shard in shards:
-                    with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard}):
-                        for _, flushed_segment in flushed_segments.items():
-                            if not flushed_segment.spans:
-                                continue
+                with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
+                    for _, flushed_segment in flushed_segments.items():
+                        if not flushed_segment.spans:
+                            continue
 
-                            spans = [span.payload for span in flushed_segment.spans]
-                            kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
-                            metrics.timing(
-                                "spans.buffer.segment_size_bytes",
-                                len(kafka_payload.value),
-                                tags={"shard": shard},
-                            )
-                            produce(kafka_payload)
+                        spans = [span.payload for span in flushed_segment.spans]
+                        kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
+                        metrics.timing(
+                            "spans.buffer.segment_size_bytes",
+                            len(kafka_payload.value),
+                            tags={"shard": shard_tag},
+                        )
+                        produce(kafka_payload)
 
-                with metrics.timer(
-                    "spans.buffer.flusher.wait_produce", tags={"shards": ",".join(map(str, shards))}
-                ):
+                with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
                     for future in producer_futures:
                         future.result()
 
@@ -275,9 +273,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # efforts, it is still always going to be less durable than Kafka.
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
-        if self.backpressure_since.value > 0:
-            backpressure_secs = options.get("spans.buffer.flusher.backpressure-seconds")
-            if int(time.time()) - self.backpressure_since.value > backpressure_secs:
+        backpressure_secs = options.get("spans.buffer.flusher.backpressure-seconds")
+        for backpressure_since in self.process_backpressure_since.values():
+            if int(time.time()) - backpressure_since.value > backpressure_secs:
                 metrics.incr("spans.buffer.flusher.backpressure")
                 raise MessageRejected()
 
