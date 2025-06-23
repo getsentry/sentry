@@ -76,9 +76,10 @@ class DelayedWorkflowItem:
     delayed_conditions: list[DataCondition]
     event: GroupEvent
     source: WorkflowDataConditionGroupType
-    timestamp: (
-        datetime  # time the item was created for enqueue. used in delayed workflow Snuba query
-    )
+
+    # Used to pick the end of the time window in snuba querying.
+    # Should be close to when fast conditions were evaluated to try to be consistent.
+    timestamp: datetime
 
     def buffer_key(self) -> str:
         condition_group_set = {

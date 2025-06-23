@@ -241,11 +241,13 @@ class GroupQueryParams:
     group_ids: set[GroupId] = field(default_factory=set)
     timestamp: datetime | None = None
 
-    def update_timestamp(self, timestamp: datetime | None) -> None:
+    def update(self, group_id: GroupId, timestamp: datetime | None) -> None:
         """
         Use the latest timestamp for a set of group IDs with the same Snuba query.
         We will query backwards in time from this point.
         """
+        self.group_ids.add(group_id)
+
         if timestamp is not None:
             self.timestamp = timestamp if self.timestamp is None else max(timestamp, self.timestamp)
 
@@ -405,8 +407,9 @@ def get_condition_query_groups(
         timestamp = event_data.dcg_to_timestamp[dcg.id]
         for condition in slow_conditions:
             for condition_query in generate_unique_queries(condition, workflow_env):
-                condition_groups[condition_query].group_ids.update(event_data.dcg_to_groups[dcg.id])
-                condition_groups[condition_query].update_timestamp(timestamp)
+                condition_groups[condition_query].update(
+                    group_id=event_data.dcg_to_groups[dcg.id], timestamp=timestamp
+                )
     return condition_groups
 
 
