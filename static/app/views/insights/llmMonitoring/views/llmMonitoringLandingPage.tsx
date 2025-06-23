@@ -1,5 +1,6 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
+import {useRedirectToPreferedAiModule} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -46,6 +47,8 @@ function LLMMonitoringPage() {
 }
 
 function PageWithProviders() {
+  useRedirectToPreferedAiModule();
+
   return (
     <ModulePageProviders moduleName="ai" analyticEventName="insight.page_loads.ai">
       <LLMMonitoringPage />

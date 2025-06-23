@@ -24,7 +24,10 @@ import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
-import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {
+  AIInsightsFeature,
+  useRedirectToPreferedAiModule,
+} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -133,6 +136,8 @@ function AgentsMonitoringPage() {
 }
 
 function PageWithProviders() {
+  useRedirectToPreferedAiModule();
+
   return (
     <AIInsightsFeature>
       <ModulePageProviders
