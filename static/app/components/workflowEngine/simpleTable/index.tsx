@@ -1,3 +1,4 @@
+import type {HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,6 +11,10 @@ import type {Sort} from 'sentry/utils/discover/fields';
 interface TableProps {
   children: React.ReactNode;
   className?: string;
+}
+
+interface RowProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'faded';
 }
 
 export function SimpleTable({className, children}: TableProps) {
@@ -62,9 +67,9 @@ function HeaderCell({
   );
 }
 
-function Row({children, faded}: {children: React.ReactNode; faded?: boolean}) {
+function Row({children, variant = 'default', ...props}: RowProps) {
   return (
-    <StyledRow faded={faded} role="row">
+    <StyledRow variant={variant} role="row" {...props}>
       <InteractionStateLayer />
       {children}
     </StyledRow>
@@ -106,8 +111,8 @@ const StyledRowCell = styled('div')`
 `;
 
 const StyledRow = styled('div', {
-  shouldForwardProp: prop => prop !== 'faded',
-})<{faded?: boolean}>`
+  shouldForwardProp: prop => prop !== 'variant',
+})<{variant?: 'default' | 'faded'}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
@@ -119,7 +124,7 @@ const StyledRow = styled('div', {
   }
 
   ${p =>
-    p.faded &&
+    p.variant === 'faded' &&
     css`
       ${StyledRowCell}, {
         opacity: 0.8;
