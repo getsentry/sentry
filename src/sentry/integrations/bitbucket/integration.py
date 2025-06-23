@@ -8,7 +8,7 @@ from django.http.response import HttpResponseBase
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
 
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -203,7 +203,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             NestedPipelineView(
                 bind_key="identity",
                 provider_key="bitbucket",
-                pipeline_cls=IdentityProviderPipeline,
+                pipeline_cls=IdentityPipeline,
                 config={"redirect_url": absolute_uri("/extensions/bitbucket/setup/")},
             ),
             VerifyInstallation(),

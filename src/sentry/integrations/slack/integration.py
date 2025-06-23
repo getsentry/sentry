@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -21,17 +21,12 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline_types import IntegrationPipelineViewT
-from sentry.integrations.slack.metrics import (
-    SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC,
-    SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 _logger = logging.getLogger("sentry.integrations.slack")
@@ -95,9 +90,8 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
 
         try:
             client.chat_postMessage(channel=channel_id, text=message)
-            metrics.incr(SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
         except SlackApiError:
-            metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+            pass
 
 
 class SlackIntegrationProvider(IntegrationProvider):
@@ -138,7 +132,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         return NestedPipelineView(
             bind_key="identity",
             provider_key="slack",
-            pipeline_cls=IdentityProviderPipeline,
+            pipeline_cls=IdentityPipeline,
             config={
                 "oauth_scopes": self.identity_oauth_scopes,
                 "user_scopes": self.user_scopes,

@@ -21,7 +21,7 @@ from . import default_manager
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
 
-class IdentityProviderPipeline(IdentityPipelineT):
+class IdentityPipeline(IdentityPipelineT):
     pipeline_name = "identity_provider"
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
@@ -80,3 +80,7 @@ class IdentityProviderPipeline(IdentityPipelineT):
             # identity management page that supports these new identities (not
             # social-auth ones), redirect to the identities page.
             return HttpResponseRedirect(reverse("sentry-account-settings"))
+
+
+# temporary getsentry compat
+IdentityProviderPipeline = IdentityPipeline

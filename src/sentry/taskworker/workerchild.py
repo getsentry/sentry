@@ -313,6 +313,7 @@ def child_process(
                 "taskworker.worker.memory_change",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             ),
+            sentry_sdk.isolation_scope(),
             sentry_sdk.start_transaction(transaction),
         ):
             transaction.set_data(
