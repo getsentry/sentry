@@ -117,7 +117,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[ErrorEven
                 category="error",
                 id=event_id,
                 title=data.get("title", ""),
-                timestamp=data.get("timestamp", 0.0),
+                timestamp=data.get("timestamp", 0.0) * 1000,  # error timestamp is in seconds
                 message=data.get("message", ""),
             )
             for event_id, data in zip(error_ids, events.values())
