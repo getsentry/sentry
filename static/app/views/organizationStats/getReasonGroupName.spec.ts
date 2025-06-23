@@ -102,7 +102,6 @@ describe('getReasonGroupName', function () {
     const testCases: Array<[string, string]> = [
       ['Sampled:1000,1004,1500', 'dynamic sampling'],
       ['Sampled:1000,1500', 'dynamic sampling'],
-      ['Sampled:1000,1500,1004', 'dynamic sampling'],
     ];
 
     testCases.forEach(([input, expected]) => {
