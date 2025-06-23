@@ -53,20 +53,12 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
 
                 if "no issue tracker" in str(e):
                     lifecycle.record_halt(str(SourceCodeSearchEndpointHaltReason.NO_ISSUE_TRACKER))
-                    logger.info(
-                        "bitbucket.issue-search-no-issue-tracker",
-                        extra={"installation_id": installation.model.id, "repo": repo},
-                    )
                     return Response(
                         {"detail": "Bitbucket Repository has no issue tracker."}, status=400
                     )
                 elif "resource not found" in str(e):
                     lifecycle.record_halt(
                         str(SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_OR_NO_ACCESS)
-                    )
-                    logger.info(
-                        "bitbucket.issue-search-resource-not-found",
-                        extra={"installation_id": installation.model.id, "repo": repo},
                     )
                     return Response({"detail": "Bitbucket Repository not found."}, status=400)
                 raise
