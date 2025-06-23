@@ -290,12 +290,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self.current_drift.value = drift = message.payload - int(time.time())
             metrics.timing("spans.buffer.flusher.drift", drift)
 
-            # Update healthy_since to be the minimum across all shards
-            min_healthy_time = min(
-                healthy_since.value for healthy_since in self.shard_healthy_since.values()
-            )
-            self.healthy_since.value = min_healthy_time
-
         # We also pause insertion into Redis if Redis is too full. In this case
         # we cannot allow the flusher to progress either, as it would write
         # partial/fragmented segments to buffered-segments topic. We have to
