@@ -1,0 +1,21 @@
+---
+created: '2025-06-20T20:34:12.428309+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "11e6467c8358a9366c6538f95dcd7bd4"
+  contributing component: chained-exception
+  component:
+    app*
+      chained-exception*
+        exception*
+          type*
+            "Error"
+          value*
+            "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root."
+        exception*
+          type*
+            "TypeError"
+          value*
+            "Load failed"

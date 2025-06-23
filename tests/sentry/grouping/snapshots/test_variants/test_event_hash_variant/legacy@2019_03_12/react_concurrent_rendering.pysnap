@@ -1,0 +1,38 @@
+---
+created: '2025-06-20T20:33:47.832026+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
+        exception*
+          type*
+            "TypeError"
+          value*
+            "Load failed"
+        exception*
+          type*
+            "Error"
+          value*
+            "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root."
+--------------------------------------------------------------------------
+system:
+  hash: "5f209162115f576bedbaf6f0ad30e5aa"
+  contributing component: chained-exception
+  component:
+    system*
+      chained-exception*
+        exception*
+          type*
+            "TypeError"
+          value*
+            "Load failed"
+        exception*
+          type*
+            "Error"
+          value*
+            "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root."
