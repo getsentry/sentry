@@ -210,7 +210,14 @@ def process_profile_task(
                 # update the version so we can skip the update from this event
                 pass
             except (UnknownClientSDKException, UnknownProfileTypeException):
-                pass
+                _track_outcome(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.FILTERED,
+                    categories=[category],
+                    reason="deprecated sdk",
+                )
+                return
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
