@@ -18,6 +18,7 @@ import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
 import ReplaysSearch from 'sentry/views/replays/list/search';
+import ReplayIndexTable from 'sentry/views/replays/table/replayIndexTable';
 
 export default function ListContent() {
   const organization = useOrganization();
@@ -76,7 +77,13 @@ export default function ListContent() {
         </SearchWrapper>
       </FiltersContainer>
       {widgetIsOpen && showDeadRageClickCards ? <DeadRageSelectorCards /> : null}
-      {isLoading ? <LoadingIndicator /> : <ReplaysList />}
+      {isLoading ? (
+        <LoadingIndicator />
+      ) : organization.features.includes('replay-ui-list-select') ? (
+        <ReplayIndexTable />
+      ) : (
+        <ReplaysList />
+      )}
     </Fragment>
   );
 }
