@@ -10,8 +10,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
-from sentry.identity.gitlab import get_oauth_data, get_user_info
-from sentry.identity.gitlab.provider import GitlabIdentityProvider
+from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
