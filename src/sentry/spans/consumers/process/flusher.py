@@ -65,8 +65,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self.process_to_shards_map[process_index].append(shard)
 
         self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
-        self.shard_healthy_since = {
-            shard: mp_context.Value("i", int(time.time())) for shard in buffer.assigned_shards
+        self.process_healthy_since = {
+            process_index: mp_context.Value("i", int(time.time()))
+            for process_index in range(self.num_processes)
         }
         self.process_backpressure_since = {
             process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
@@ -85,8 +86,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # Optimistically reset healthy_since to avoid a race between the
         # starting process and the next flush cycle. Keep back pressure across
         # the restart, however.
-        for shard in shards:
-            self.shard_healthy_since[shard].value = int(time.time())
+        self.process_healthy_since[process_index].value = int(time.time())
 
         # Create a buffer for these specific shards
         shard_buffer = SpansBuffer(shards)
@@ -113,7 +113,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.stopped,
                 self.current_drift,
                 self.process_backpressure_since[process_index],
-                [self.shard_healthy_since[shard] for shard in shards],
+                self.process_healthy_since[process_index],
                 self.produce_to_pipe,
             ),
             daemon=True,
@@ -137,7 +137,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         stopped,
         current_drift,
         backpressure_since,
-        healthy_since_list,
+        healthy_since,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
         shard_tag = ",".join(map(str, shards))
@@ -175,8 +175,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     backpressure_since.value = 0
 
                 # Update healthy_since for all shards handled by this process
-                for healthy_since in healthy_since_list:
-                    healthy_since.value = system_now
+                healthy_since.value = system_now
 
                 if not flushed_segments:
                     time.sleep(1)
@@ -228,15 +227,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if not process.is_alive():
                 exitcode = getattr(process, "exitcode", "unknown")
                 cause = f"no_process_{exitcode}"
-            else:
+            elif (
+                int(time.time()) - self.process_healthy_since[process_index].value
+                > max_unhealthy_seconds
+            ):
                 # Check if any shard handled by this process is unhealthy
-                for shard in shards:
-                    if (
-                        int(time.time()) - self.shard_healthy_since[shard].value
-                        > max_unhealthy_seconds
-                    ):
-                        cause = "hang"
-                        break
+                cause = "hang"
 
             if cause is None:
                 continue  # healthy
