@@ -226,7 +226,7 @@ function DetectSection() {
         title={t('Detect')}
         description={t('Sentry will check the following query:')}
       >
-        <Flex gap={space(2)}>
+        <DatasetRow>
           <DatasetField
             placeholder={t('Dataset')}
             flexibleControlStateSize
@@ -259,7 +259,7 @@ function DetectSection() {
               [24 * 60 * 60, t('1 day')],
             ]}
           />
-        </Flex>
+        </DatasetRow>
         <Visualize />
         <MonitorKind />
         <Flex direction="column">
@@ -412,6 +412,13 @@ const FormStack = styled('div')`
   flex-direction: column;
   gap: ${space(3)};
   max-width: ${p => p.theme.breakpoints.xlarge};
+`;
+
+const DatasetRow = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(1)};
+  max-width: 475px;
 `;
 
 const StyledSelectField = styled(SelectField)`

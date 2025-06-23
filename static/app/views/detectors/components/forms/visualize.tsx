@@ -8,6 +8,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -28,6 +29,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
+import type {FieldValue} from 'sentry/views/discover/table/types';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 function getDatasetConfig(dataset: DetectorDataset) {
@@ -45,7 +47,7 @@ function getDatasetConfig(dataset: DetectorDataset) {
 
 function getAggregateOptions(
   dataset: DetectorDataset,
-  tableFieldOptions: any
+  tableFieldOptions: Record<string, SelectValue<FieldValue>>
 ): Array<[string, string]> {
   // For spans dataset, use the predefined aggregates
   if (dataset === DetectorDataset.SPANS) {
@@ -54,11 +56,8 @@ function getAggregateOptions(
 
   // For other datasets, extract function-type options from tableFieldOptions
   const functionOptions = Object.values(tableFieldOptions)
-    .filter((option: any) => option.value?.kind === 'function')
-    .map(
-      (option: any) =>
-        [option.value.meta.name, option.value.meta.name] as [string, string]
-    );
+    .filter(option => option.value?.kind === 'function')
+    .map((option): [string, string] => [option.value.meta.name, option.value.meta.name]);
 
   // If no function options available, fall back to the predefined aggregates
   if (functionOptions.length === 0) {
@@ -85,10 +84,16 @@ export function Visualize() {
   const fieldOptions = useMemo(() => {
     // For Spans dataset, use span-specific options from the provider
     if (dataset === DetectorDataset.SPANS) {
-      const spanColumnOptions = [
-        ...Object.values(stringSpanTags).map(tag => [tag.key, prettifyTagKey(tag.name)]),
-        ...Object.values(numericSpanTags).map(tag => [tag.key, prettifyTagKey(tag.name)]),
-      ] as Array<[string, string]>;
+      const spanColumnOptions: Array<[string, string]> = [
+        ...Object.values(stringSpanTags).map((tag): [string, string] => [
+          tag.key,
+          prettifyTagKey(tag.name),
+        ]),
+        ...Object.values(numericSpanTags).map((tag): [string, string] => [
+          tag.key,
+          prettifyTagKey(tag.name),
+        ]),
+      ];
       return spanColumnOptions.sort((a, b) => a[1].localeCompare(b[1]));
     }
 
@@ -99,16 +104,16 @@ export function Visualize() {
           option.value.kind !== 'function' && // Exclude functions for field selection
           option.value.kind !== 'equation' // Exclude equations
       )
-      .map(option => [option.value.meta.name, option.value.meta.name] as [string, string])
+      .map((option): [string, string] => [option.value.meta.name, option.value.meta.name])
       .sort((a, b) => a[1].localeCompare(b[1]));
   }, [dataset, stringSpanTags, numericSpanTags, tableFieldOptions]);
 
-  const aggregateOptions: Array<[string, string]> = useMemo(() => {
+  const aggregateOptions = useMemo((): Array<[string, string]> => {
     return getAggregateOptions(dataset, tableFieldOptions);
   }, [dataset, tableFieldOptions]);
 
   return (
-    <FirstRow>
+    <AggregateRow>
       <Flex flex={1} gap={space(1)} align="flex-end">
         <AggregateField
           placeholder={t('aggregate')}
@@ -132,19 +137,24 @@ export function Visualize() {
       <Flex flex={1} gap={space(1)}>
         <FilterField />
       </Flex>
-    </FirstRow>
+    </AggregateRow>
   );
 }
 
-const FirstRow = styled('div')`
+const AggregateRow = styled('div')`
   display: grid;
-  align-items: center;
   grid-template-columns: 1fr 2fr;
+  align-items: start;
   gap: ${space(1)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
 `;
 
 const VisualizeField = styled(SelectField)`
@@ -159,7 +169,7 @@ const VisualizeField = styled(SelectField)`
 `;
 
 const AggregateField = styled(SelectField)`
-  width: 120px;
+  flex: 1;
   padding: 0;
   margin: 0;
   border: none;
