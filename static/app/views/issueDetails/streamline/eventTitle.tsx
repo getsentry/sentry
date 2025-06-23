@@ -64,7 +64,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 export const MIN_NAV_HEIGHT = 44;
 
-function GroupMarkdownButton({group, event}: {group: Group; event: Event}) {
+function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   const organization = useOrganization();
 
   // Get data for markdown copy functionality
