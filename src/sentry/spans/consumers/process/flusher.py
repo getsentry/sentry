@@ -275,7 +275,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # about.
         backpressure_secs = options.get("spans.buffer.flusher.backpressure-seconds")
         for backpressure_since in self.process_backpressure_since.values():
-            if int(time.time()) - backpressure_since.value > backpressure_secs:
+            if (
+                backpressure_since.value > 0
+                and int(time.time()) - backpressure_since.value > backpressure_secs
+            ):
                 metrics.incr("spans.buffer.flusher.backpressure")
                 raise MessageRejected()
 
