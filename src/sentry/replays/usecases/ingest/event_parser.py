@@ -5,7 +5,6 @@ import random
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
-from urllib.parse import urlparse
 
 import sentry_sdk
 
@@ -168,78 +167,6 @@ def which(event: dict[str, Any]) -> EventType:
     except Exception:
         logger.exception("Event type could not be determined.")
         return EventType.UNKNOWN
-
-
-def as_log_message(event: dict[str, Any]) -> str | None:
-    """Return an event as a log message.
-
-    Useful in AI contexts where the event's structure is an impediment to the AI's understanding
-    of the interaction log. Not every event produces a log message. This function is overly coupled
-    to the AI use case. In later iterations, if more or all log messages are desired, this function
-    should be forked.
-    """
-    event_type = which(event)
-    timestamp = event.get("timestamp", 0.0)
-
-    match event_type:
-        case EventType.CLICK:
-            return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
-        case EventType.DEAD_CLICK:
-            return f"User clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
-        case EventType.RAGE_CLICK:
-            return f"User rage clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
-        case EventType.NAVIGATION:
-            return f"User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}"
-        case EventType.CONSOLE:
-            return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
-        case EventType.UI_BLUR:
-            return f"User looked away from the tab at {timestamp}."
-        case EventType.UI_FOCUS:
-            return f"User returned to tab at {timestamp}."
-        case EventType.RESOURCE_FETCH:
-            payload = event["data"]["payload"]
-            parsed_url = urlparse(payload["description"])
-
-            path = f"{parsed_url.path}?{parsed_url.query}"
-
-            # Safely get (request_size, response_size)
-            sizes_tuple = parse_network_content_lengths(event)
-            response_size = None
-
-            # Check if the tuple is valid and response size exists
-            if sizes_tuple and sizes_tuple[1] is not None:
-                response_size = str(sizes_tuple[1])
-
-            status_code = payload["data"]["statusCode"]
-            duration = payload["endTimestamp"] - payload["startTimestamp"]
-            method = payload["data"]["method"]
-
-            if response_size is None:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp}'
-            else:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp}'
-        case EventType.RESOURCE_XHR:
-            return None
-        case EventType.LCP:
-            duration = event["data"]["payload"]["data"]["size"]
-            rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application largest contentful paint: {duration} ms and has a {rating} rating"
-        case EventType.FCP:
-            duration = event["data"]["payload"]["data"]["size"]
-            rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application first contentful paint: {duration} ms and has a {rating} rating"
-        case EventType.HYDRATION_ERROR:
-            return f"There was a hydration error on the page at {timestamp}."
-        case EventType.MUTATIONS:
-            return None
-        case EventType.UNKNOWN:
-            return None
-        case EventType.FEEDBACK:
-            return "The user filled out a feedback form describing their experience using the application."
-        case EventType.CANVAS:
-            return None
-        case EventType.OPTIONS:
-            return None
 
 
 class HighlightedEvents(TypedDict, total=False):
