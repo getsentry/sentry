@@ -9,6 +9,7 @@ from rest_framework import status
 
 from sentry import options
 from sentry.api.exceptions import SentryAPIException
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.utils import jwt
 
 GitProviderId: TypeAlias = str
@@ -23,7 +24,7 @@ class GitProvider(StrEnum):
     for now.
     """
 
-    GitHub = "github"
+    GitHub = IntegrationProviderSlug.GITHUB
 
 
 logger = logging.getLogger(__name__)

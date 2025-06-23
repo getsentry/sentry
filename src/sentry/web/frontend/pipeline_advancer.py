@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.web.frontend.base import BaseView
@@ -35,7 +36,7 @@ class PipelineAdvancerView(BaseView):
         # they will redirect here *without* being in the pipeline. If that happens
         # redirect to the integration install org picker.
         if (
-            provider_id == "github"
+            provider_id == IntegrationProviderSlug.GITHUB.value
             and request.GET.get("setup_action") == "install"
             and pipeline is None
         ):
