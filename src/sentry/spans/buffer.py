@@ -202,7 +202,7 @@ class SpansBuffer:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = self._get_span_key(project_and_trace, parent_span_id)
                     prepared = self._prepare_payloads(subsegment)
-                    p.zadd(set_key, *prepared)
+                    p.zadd(set_key, prepared)
 
                 p.execute()
 
@@ -326,7 +326,7 @@ class SpansBuffer:
 
         return trees
 
-    def _prepare_payloads(self, spans: list[Span]) -> list[bytes]:
+    def _prepare_payloads(self, spans: list[Span]) -> dict[bytes, float]:
         if self._zstd_compressor is None:
             return {span.payload: span.end_timestamp_precise for span in spans}
 
