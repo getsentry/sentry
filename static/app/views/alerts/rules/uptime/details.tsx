@@ -145,7 +145,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               onToggleStatus={status => handleUpdate({status})}
               size="sm"
               disabled={!canEdit}
-              title={canEdit ? undefined : permissionTooltipText}
+              {...(canEdit ? {} : {title: permissionTooltipText})}
             />
             <LinkButton
               size="sm"
