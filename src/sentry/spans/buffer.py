@@ -466,7 +466,6 @@ class SpansBuffer:
 
         page_size = options.get("spans.buffer.segment-page-size")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
-        max_segment_spans = options.get("spans.buffer.max-segment-spans")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
@@ -476,15 +475,19 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 current_keys = []
                 for key, cursor in cursors.items():
-                    p.sscan(key, cursor=cursor, count=page_size)
+                    if key.startswith(b"span-buf:z:"):
+                        p.zscan(key, cursor=cursor, count=page_size)
+                    else:
+                        p.sscan(key, cursor=cursor, count=page_size)
                     current_keys.append(key)
 
                 results = p.execute()
 
-            for key, (cursor, spans) in zip(current_keys, results):
+            for key, (cursor, scan_values) in zip(current_keys, results):
                 decompressed_spans = []
 
-                for span_data in spans:
+                for scan_value in scan_values:
+                    span_data = scan_value[0] if isinstance(scan_value, tuple) else scan_value
                     decompressed_spans.extend(self._decompress_batch(span_data))
 
                 sizes[key] += sum(len(span) for span in decompressed_spans)
@@ -497,14 +500,6 @@ class SpansBuffer:
                     continue
 
                 payloads[key].extend(decompressed_spans)
-                if len(payloads[key]) > max_segment_spans:
-                    metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
-                    logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
-
-                    del payloads[key]
-                    del cursors[key]
-                    continue
-
                 if cursor == 0:
                     del cursors[key]
                 else:
