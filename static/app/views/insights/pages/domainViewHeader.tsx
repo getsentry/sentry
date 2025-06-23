@@ -107,10 +107,10 @@ export function DomainViewHeader({
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
-        {selectedModule !== ModuleName.MOBILE_VITALS && (
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {selectedModule === ModuleName.SESSIONS ? (
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            {selectedModule !== ModuleName.MOBILE_VITALS && (
+              selectedModule === ModuleName.SESSIONS ? (
                 <FeedbackButtonTour />
               ) : (
                 <FeedbackWidgetButton
@@ -127,11 +127,11 @@ export function DomainViewHeader({
                       : undefined
                   }
                 />
-              )}
-              {additonalHeaderActions}
-            </ButtonBar>
-          </Layout.HeaderActions>
-        )}
+              )
+            )}
+            {additonalHeaderActions}
+          </ButtonBar>
+        </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
