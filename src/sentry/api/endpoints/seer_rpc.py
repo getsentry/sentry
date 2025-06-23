@@ -267,7 +267,7 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
         parsed_fields = [
             as_attribute_key(
                 attr.name,
-                type_str,
+                "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                 SupportedTraceItemType.SPANS,
             )["name"]
             for attr in fields_resp.attributes
