@@ -151,9 +151,13 @@ def child_process(
             """
             deadline = -1
             current = current_task()
+            taskname = "unknown"
             if current:
+                taskname = current.taskname
                 deadline = current.processing_deadline_duration
-            raise ProcessingDeadlineExceeded(f"execution deadline of {deadline} seconds exceeded")
+            raise ProcessingDeadlineExceeded(
+                f"execution deadline of {deadline} seconds exceeded by {taskname}"
+            )
 
         while True:
             if max_task_count and processed_task_count >= max_task_count:
@@ -242,6 +246,7 @@ def child_process(
                         inflight.activation.namespace,
                         inflight.activation.taskname,
                     ]
+                    scope.set_transaction_name(inflight.activation.taskname)
                     sentry_sdk.capture_exception(err)
                 metrics.incr(
                     "taskworker.worker.processing_deadline_exceeded",
