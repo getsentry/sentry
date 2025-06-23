@@ -43,7 +43,9 @@ export default function FooterWithButtons({
   // the one collecting the user inputs.
   return (
     <Footer data-test-id="aws-lambda-footer-form" {...formProps}>
-      {formFields?.map(field => <input type="hidden" key={field.name} {...field} />)}
+      {formFields?.map(field => (
+        <input type="hidden" key={field.name} {...field} />
+      ))}
       {button}
     </Footer>
   );
