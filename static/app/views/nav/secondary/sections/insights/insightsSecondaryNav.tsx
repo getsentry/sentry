@@ -2,7 +2,10 @@ import {Fragment, useMemo} from 'react';
 import partition from 'lodash/partition';
 
 import Feature from 'sentry/components/acl/feature';
+import {Badge} from 'sentry/components/core/badge';
+import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
@@ -90,7 +93,10 @@ export function InsightsSecondaryNav() {
               to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
               analyticsItemName="insights_agents"
             >
-              {AGENTS_SIDEBAR_LABEL}
+              <Flex align="center" gap={space(0.5)}>
+                {AGENTS_SIDEBAR_LABEL}
+                <Badge type="beta">beta</Badge>
+              </Flex>
             </SecondaryNav.Item>
           </AIInsightsFeature>
         </SecondaryNav.Section>
