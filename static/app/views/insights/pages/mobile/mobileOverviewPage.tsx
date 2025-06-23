@@ -223,10 +223,7 @@ function EAPMobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader
-        headerTitle={MOBILE_LANDING_TITLE}
-        module={undefined}
-      />
+      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} module={undefined} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
