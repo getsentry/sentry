@@ -156,7 +156,24 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
-    ParameterizationRegex(name="hex", raw_pattern=r"""\b0[xX][0-9a-fA-F]+\b"""),
+    ParameterizationRegex(
+        name="hex",
+        raw_pattern=r"""
+            # Hex value with 0x or 0X prefix
+            (\b0[xX][0-9a-fA-F]+\b) |
+
+            # Hex value without 0x or 0X prefix exactly 4 or 8 bytes long.
+            #
+            # We don't need to lookahead for a-f since we if it contains at
+            # least one number it must contain at least one a-f otherwise it
+            # would have matched "int".
+            #
+            # (?=.*[0-9]):    At least one 0-9 is in the match.
+            # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
+            (\b(?=.*[0-9])[0-9a-f]{8}\b) |
+            (\b(?=.*[0-9])[0-9a-f]{16}\b)
+        """,
+    ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
     ParameterizationRegex(
@@ -180,37 +197,8 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ),
 ]
 
-EXPERIMENT_PARAMETERIZATION_REGEXES = [
-    (
-        ParameterizationRegex(
-            name="hex",
-            raw_pattern=r"""
-                # Hex value with 0x or 0X prefix
-                (\b0[xX][0-9a-fA-F]+\b) |
-
-                # Hex value without 0x or 0X prefix exactly 4 or 8 bytes long.
-                #
-                # We don't need to lookahead for a-f since we if it contains at
-                # least one number it must contain at least one a-f otherwise it
-                # would have matched "int".
-                #
-                # (?=.*[0-9]):    At least one 0-9 is in the match.
-                # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
-                (\b(?=.*[0-9])[0-9a-f]{8}\b) |
-                (\b(?=.*[0-9])[0-9a-f]{16}\b)
-            """,
-        )
-        if r.name == "hex"
-        else r
-    )
-    for r in DEFAULT_PARAMETERIZATION_REGEXES.copy()
-]
-
 
 DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
-EXPERIMENT_PARAMETERIZATION_REGEXES_MAP = {
-    r.name: r.pattern for r in EXPERIMENT_PARAMETERIZATION_REGEXES
-}
 
 
 @dataclasses.dataclass
@@ -302,9 +290,7 @@ class Parameterizer:
         self,
         regex_pattern_keys: Sequence[str],
         experiments: Sequence[ParameterizationExperiment] = (),
-        enable_regex_experiments: bool = False,
     ):
-        self._enable_regex_experiments = enable_regex_experiments
         self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
         self._experiments = experiments
 
@@ -322,14 +308,9 @@ class Parameterizer:
         so we can use newlines and indentation for better legibility in patterns above.
         """
 
-        if self._enable_regex_experiments:
-            return re.compile(
-                rf"(?x){'|'.join(EXPERIMENT_PARAMETERIZATION_REGEXES_MAP[k] for k in pattern_keys)}"
-            )
-        else:
-            return re.compile(
-                rf"(?x){'|'.join(DEFAULT_PARAMETERIZATION_REGEXES_MAP[k] for k in pattern_keys)}"
-            )
+        return re.compile(
+            rf"(?x){'|'.join(DEFAULT_PARAMETERIZATION_REGEXES_MAP[k] for k in pattern_keys)}"
+        )
 
     def parametrize_w_regex(self, content: str) -> str:
         """
