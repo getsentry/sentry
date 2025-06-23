@@ -3993,6 +3993,7 @@ class Migration(CheckedMigration):
                             "has_insights_vitals",
                             "has_insights_caches",
                             "has_insights_queues",
+                            "has_insights_llm_monitoring",
                             "has_flags",
                         ],
                         default=10,
