@@ -476,15 +476,19 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 current_keys = []
                 for key, cursor in cursors.items():
-                    p.sscan(key, cursor=cursor, count=page_size)
+                    if key.startswith(b"span-buf:z:"):
+                        p.zscan(key, cursor=cursor, count=page_size)
+                    else:
+                        p.sscan(key, cursor=cursor, count=page_size)
                     current_keys.append(key)
 
                 results = p.execute()
 
-            for key, (cursor, spans) in zip(current_keys, results):
+            for key, (cursor, scan_values) in zip(current_keys, results):
                 decompressed_spans = []
 
-                for span_data in spans:
+                for scan_value in scan_values:
+                    span_data = scan_value[0] if isinstance(scan_value, tuple) else scan_value
                     decompressed_spans.extend(self._decompress_batch(span_data))
 
                 sizes[key] += sum(len(span) for span in decompressed_spans)
