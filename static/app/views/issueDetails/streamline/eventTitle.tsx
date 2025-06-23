@@ -5,8 +5,8 @@ import Color from 'color';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -173,9 +173,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               {t('JSON')}
             </JsonLink>
             <Divider />
-            <MarkdownButton onClick={copyMarkdown}>
-              {t('Markdown')}
-            </MarkdownButton>
+            <MarkdownLink onClick={copyMarkdown}>{t('Markdown')}</MarkdownLink>
           </JsonLinkWrapper>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
@@ -335,7 +333,7 @@ const JsonLink = styled(ExternalLink)`
   }
 `;
 
-const MarkdownButton = styled('button')`
+const MarkdownLink = styled('button')`
   background: none;
   border: none;
   padding: 0;
