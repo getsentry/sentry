@@ -12,8 +12,6 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
     SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
-    SLACK_UTILS_USER_FAILURE_DATADOG_METRIC,
-    SLACK_UTILS_USER_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils.errors import (
@@ -117,11 +115,6 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
         results = client.users_info(user=input_user_id).data
 
     except SlackApiError as e:
-        metrics.incr(
-            SLACK_UTILS_USER_FAILURE_DATADOG_METRIC,
-            sample_rate=1.0,
-            tags={"type": "users_info"},
-        )
         _logger.exception(
             "rule.slack.user_info_failed",
             extra={
@@ -142,12 +135,6 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
         elif unpack_slack_api_error(e) == RATE_LIMITED:
             raise ValidationError("Rate limited") from e
         raise ValidationError("Could not retrieve Slack user information.") from e
-
-    metrics.incr(
-        SLACK_UTILS_USER_SUCCESS_DATADOG_METRIC,
-        sample_rate=1.0,
-        tags={"type": "users_info"},
-    )
 
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack user list response.")
