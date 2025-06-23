@@ -1354,7 +1354,7 @@ def build_chunk_functions_kafka_message(
     chunk: vroomrs.ProfileChunk, functions: list[vroomrs.CallTreeFunction]
 ) -> KafkaPayload:
     data = {
-        "environment": chunk.get_environment(),
+        "environment": chunk.get_environment() or "",
         "functions": [
             {
                 "fingerprint": f.get_fingerprint(),
@@ -1370,7 +1370,7 @@ def build_chunk_functions_kafka_message(
         "platform": chunk.get_platform(),
         "project_id": chunk.get_project_id(),
         "received": int(chunk.get_received()),
-        "release": chunk.get_release(),
+        "release": chunk.get_release() or "",
         "retention_days": chunk.get_retention_days(),
         "timestamp": int(chunk.start_timestamp()),
         "start_timestamp": chunk.start_timestamp(),
