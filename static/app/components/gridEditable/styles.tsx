@@ -109,7 +109,7 @@ export const Grid = styled('table')<{
         `
       : ''}
 
-  min-width: ${p => p.fit}
+  width: ${p => p.fit}
 `;
 
 /**

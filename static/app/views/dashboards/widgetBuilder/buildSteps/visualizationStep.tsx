@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -176,6 +177,10 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
     p.displayType === DisplayType.TABLE &&
     css`
       overflow: hidden;
+      ${TableCell} {
+        /* 24px ActorContainer height + 16px top and bottom padding + 1px border = 41px */
+        height: 41px;
+      }
       ${WidgetCardPanel} {
         /* total size of a table, if it would display 5 rows of content */
         height: 301px;
