@@ -419,9 +419,12 @@ Sentry.init({
         },
         {
           description: tct(
-            'When using the Vercel AI SDK, provide a [code:functionId] to identify the function that the telemetry data is for and enable the [code:experimental_telemetry] option. (This is required for agent monitoring to work as long as it is in beta)',
+            'To correctly capture spans, pass the [code:experimental_telemetry] object with [code:isEnabled: true] to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
             {
               code: <code />,
+              link: (
+                <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+              ),
             }
           ),
           code: [
@@ -437,7 +440,6 @@ const result = await generateText({
   prompt: "Tell me a joke",
   experimental_telemetry: {
     isEnabled: true,
-    functionId: "my-awesome-function",
   },
 });`,
             },
