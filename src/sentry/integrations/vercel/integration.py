@@ -11,7 +11,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -370,7 +370,7 @@ class VercelIntegrationProvider(IntegrationProvider):
         return NestedPipelineView(
             bind_key="identity",
             provider_key=self.key,
-            pipeline_cls=IdentityProviderPipeline,
+            pipeline_cls=IdentityPipeline,
             config={"redirect_url": absolute_uri(self.oauth_redirect_url)},
         )
 
