@@ -1527,6 +1527,49 @@ describe('AM3 Checkout', function () {
     );
   });
 
+  it('renders banner for self-serve partners', async function () {
+    const contractPeriodEnd = moment();
+    const sub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        isActive: true,
+        externalId: 'foo',
+        partnership: {
+          id: 'XX',
+          displayName: 'BAR',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    act(() => SubscriptionStore.set(organization.slug, sub));
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+    expect(
+      screen.getByText('Billing handled externally through BAR')
+    ).toBeInTheDocument();
+  });
+
   it('renders for VC partners', async function () {
     organization.features.push('vc-marketplace-active-customer');
     const contractPeriodEnd = moment();
