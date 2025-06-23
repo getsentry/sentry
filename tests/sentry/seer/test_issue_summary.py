@@ -549,9 +549,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score is None
 
-        _run_automation(
-            self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
-        )
+        _run_automation(self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS)
 
         mock_generate_fixability_score.assert_called_once_with(self.group)
 
@@ -617,7 +615,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             with self.subTest(option=option_value, score=score, should_trigger=should_trigger):
                 self.group.project.update_option("sentry:autofix_automation_tuning", option_value)
                 _run_automation(
-                    self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
+                    self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS
                 )
 
                 mock_generate_fixability_score.assert_called_once_with(self.group)
