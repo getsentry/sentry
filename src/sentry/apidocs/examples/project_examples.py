@@ -101,6 +101,7 @@ BASE_PROJECT = {
     "hasInsightsCaches": False,
     "hasInsightsQueues": False,
     "hasInsightsLlmMonitoring": False,
+    "hasInsightsAgentMonitoring": False,
     "isInternal": False,
     "isPublic": False,
     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},

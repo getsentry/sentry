@@ -414,6 +414,7 @@ class OrganizationExamples:
                         "hasInsightsCaches": False,
                         "hasInsightsQueues": False,
                         "hasInsightsLlmMonitoring": False,
+                        "hasInsightsAgentMonitoring": False,
                         "platform": "node",
                         "platforms": [],
                         "latestRelease": None,
