@@ -46,7 +46,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         max_processes: int | None = None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
-        self.buffer = buffer
         self.next_step = next_step
         self.max_processes = max_processes or len(buffer.assigned_shards)
 
@@ -54,7 +53,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.stopped = mp_context.Value("i", 0)
         self.redis_was_full = False
         self.current_drift = mp_context.Value("i", 0)
-        self.process_restarts = {shard: 0 for shard in buffer.assigned_shards}
         self.produce_to_pipe = produce_to_pipe
 
         # Determine which shards get their own processes vs shared processes
@@ -73,6 +71,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.process_backpressure_since = {
             process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
         }
+        self.process_restarts = {process_index: 0 for process_index in range(self.num_processes)}
+        self.buffers = {}
 
         self._create_processes()
 
@@ -121,6 +121,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         process.start()
         self.processes[process_index] = process
+        self.buffers[process_index] = shard_buffer
 
     def _create_process_for_shard(self, shard: int):
         # Find which process this shard belongs to and restart that process
@@ -182,7 +183,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     continue
 
                 with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
-                    for _, flushed_segment in flushed_segments.items():
+                    for flushed_segment in flushed_segments.values():
                         if not flushed_segment.spans:
                             continue
 
@@ -245,11 +246,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 metrics.incr(
                     "spans.buffer.flusher_unhealthy", tags={"cause": cause, "shard": shard}
                 )
-                if self.process_restarts[shard] > MAX_PROCESS_RESTARTS:
-                    raise RuntimeError(
-                        f"flusher process for shard {shard} crashed repeatedly ({cause}), restarting consumer"
-                    )
-                self.process_restarts[shard] += 1
+
+            if self.process_restarts[process_index] > MAX_PROCESS_RESTARTS:
+                raise RuntimeError(
+                    f"flusher process for shards {shards} crashed repeatedly ({cause}), restarting consumer"
+                )
+            self.process_restarts[process_index] += 1
 
             try:
                 if isinstance(process, multiprocessing.Process):
@@ -267,7 +269,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self._ensure_processes_alive()
 
-        self.buffer.record_stored_segments()
+        for buffer in self.buffers.values():
+            buffer.record_stored_segments()
 
         # We pause insertion into Redis if the flusher is not making progress
         # fast enough. We could backlog into Redis, but we assume, despite best
