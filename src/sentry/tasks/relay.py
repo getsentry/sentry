@@ -4,13 +4,16 @@ import time
 import sentry_sdk
 from django.db import router, transaction
 
+from sentry.http import safe_urlopen
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
+from sentry.relay.utils import safe_float_conversion
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
@@ -394,3 +397,99 @@ def _schedule_invalidate_project_config(
     projectconfig_debounce_cache.invalidation.debounce(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
+
+
+# OpenRouter API endpoint
+OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
+
+
+@instrumented_task(
+    name="sentry.tasks.relay.fetch_ai_model_costs",
+    queue="relay_config",
+    default_retry_delay=5,
+    max_retries=3,
+    soft_time_limit=30,  # 30 seconds
+    time_limit=35,  # 35 seconds
+    taskworker_config=TaskworkerConfig(
+        namespace=relay_tasks,
+        processing_deadline_duration=35,
+        expires=30,
+    ),
+)
+def fetch_ai_model_costs() -> None:
+    """
+    Fetch AI model costs from OpenRouter API and store them in cache.
+
+    This task fetches model pricing data from OpenRouter and converts it to
+    the AIModelCostV2 format for use by Sentry's LLM cost tracking.
+    """
+    # imported here to avoid circular import
+    from sentry.relay.config.ai_model_costs import (
+        AI_MODEL_COSTS_CACHE_KEY,
+        AI_MODEL_COSTS_CACHE_TTL,
+        AIModelCosts,
+        AIModelCostV2,
+        ModelId,
+    )
+
+    # Fetch data from OpenRouter API
+    response = safe_urlopen(
+        OPENROUTER_MODELS_API_URL,
+    )
+    response.raise_for_status()
+
+    # Parse the response
+    data = response.json()
+
+    if not isinstance(data, dict) or "data" not in data:
+        logger.error(
+            "fetch_ai_model_costs.invalid_response_format",
+            extra={"response_keys": list(data.keys()) if isinstance(data, dict) else "not_dict"},
+        )
+        return
+
+    models_data = data["data"]
+    if not isinstance(models_data, list):
+        logger.error(
+            "fetch_ai_model_costs.invalid_models_data_format",
+            extra={"type": type(models_data).__name__},
+        )
+        return
+
+    # Convert to AIModelCostV2 format
+    models_dict: dict[ModelId, AIModelCostV2] = {}
+
+    for model_data in models_data:
+        if not isinstance(model_data, dict):
+            continue
+
+        model_id = model_data.get("id")
+        if not model_id:
+            continue
+
+        # OpenRouter includes provider name in the model ID, e.g. openai/gpt-4o-mini
+        # We need to extract the model name, since our SDKs only send the model name
+        # (e.g. gpt-4o-mini)
+        if "/" in model_id:
+            model_id = model_id.split("/", maxsplit=1)[1]
+
+        pricing = model_data.get("pricing", {})
+
+        # Convert pricing data to AIModelCostV2 format
+        # OpenRouter provides costs as strings, we need to convert to float
+        try:
+            ai_model_cost = AIModelCostV2(
+                inputPerToken=safe_float_conversion(pricing.get("prompt")),
+                outputPerToken=safe_float_conversion(pricing.get("completion")),
+                outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
+                inputCachedPerToken=safe_float_conversion(pricing.get("input_cache_read")),
+            )
+
+            models_dict[model_id] = ai_model_cost
+
+        except (ValueError, TypeError) as e:
+            sentry_sdk.capture_exception(e)
+            continue
+
+    ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
+    cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)

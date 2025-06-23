@@ -1320,6 +1320,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab(minute="*/5"),
     },
+    "fetch-ai-model-costs": {
+        "task": "sentry.tasks.relay.fetch_ai_model_costs",
+        # Run every 30 minutes
+        "schedule": crontab(minute="*/30"),
+        "options": {"expires": 25 * 60},  # 25 minutes
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1676,6 +1682,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "fetch-ai-model-costs": {
+        "task": "relay:sentry.tasks.relay.fetch_ai_model_costs",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
     "sync_options_trial": {
         "schedule": timedelta(minutes=5),

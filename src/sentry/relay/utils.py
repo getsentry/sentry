@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 
 def get_header_relay_id(request):
@@ -57,3 +58,28 @@ def to_camel_case_name(name):
         name = name.strip("_")
         pieces = name.split("_")
         return first_lower(pieces[0]) + "".join(first_upper(x) for x in pieces[1:])
+
+
+def safe_float_conversion(value: Any) -> float:
+    """
+    Safely convert a value to float, handling string inputs and None values.
+
+    Args:
+        value: The value to convert (could be string, float, int, or None)
+
+    Returns:
+        The float value, or 0.0 if the value is None or cannot be converted
+    """
+    if value is None:
+        return 0.0
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+
+    return 0.0
