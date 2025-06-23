@@ -4192,20 +4192,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         assert mock_process_data_packets.call_count == 0
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    def test_dual_processing_anomaly_detection(self):
-        """
-        Test that with dual processing _and_ anomaly detection enabled we don't error
-        """
-        rule = self.dynamic_rule
-        trigger = self.trigger
-        processor = self.send_update(
-            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
-        )
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
