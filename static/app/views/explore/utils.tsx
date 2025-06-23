@@ -416,7 +416,7 @@ export function getDefaultExploreRoute(organization: Organization) {
   }
 
   if (organization.features.includes('discover-basic')) {
-    return 'discover';
+    return 'discover/homepage';
   }
 
   if (organization.features.includes('performance-profiling')) {
