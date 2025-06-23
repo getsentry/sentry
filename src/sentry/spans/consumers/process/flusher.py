@@ -60,24 +60,26 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         # Determine which shards get their own processes vs shared processes
         self.num_processes = min(self.max_processes, len(buffer.assigned_shards))
-        self.shard_to_process_map: dict[int, list[int]] = {i: [] for i in range(self.num_processes)}
+        self.process_to_shards_map: dict[int, list[int]] = {
+            i: [] for i in range(self.num_processes)
+        }
         for i, shard in enumerate(buffer.assigned_shards):
             process_index = i % self.num_processes
-            self.shard_to_process_map[process_index].append(shard)
+            self.process_to_shards_map[process_index].append(shard)
 
         self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
         self.shard_healthy_since = {
             shard: mp_context.Value("i", int(time.time())) for shard in buffer.assigned_shards
         }
         self.process_backpressure_since = {
-            process_index: mp_context.Value("i", 0) for process_index in self.shard_to_process_map
+            process_index: mp_context.Value("i", 0) for process_index in self.process_to_shards_map
         }
 
         self._create_processes()
 
     def _create_processes(self):
         # Create processes based on shard mapping
-        for process_index, shards in self.shard_to_process_map.items():
+        for process_index, shards in self.process_to_shards_map.items():
             self._create_process_for_shards(process_index, shards)
 
     def _create_process_for_shards(self, process_index: int, shards: list[int]):
@@ -123,7 +125,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
     def _create_process_for_shard(self, shard: int):
         # Find which process this shard belongs to and restart that process
-        for process_index, shards in self.shard_to_process_map.items():
+        for process_index, shards in self.process_to_shards_map.items():
             if shard in shards:
                 self._create_process_for_shards(process_index, shards)
                 break
@@ -220,7 +222,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if not process:
                 continue
 
-            shards = self.shard_to_process_map[process_index]
+            shards = self.process_to_shards_map[process_index]
 
             cause = None
             if not process.is_alive():

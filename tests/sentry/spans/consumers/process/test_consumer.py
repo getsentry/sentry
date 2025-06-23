@@ -117,7 +117,7 @@ def test_flusher_processes_limit(monkeypatch):
     assert flusher.num_processes == 2
 
     # Verify shards are distributed across processes
-    total_shards = sum(len(shards) for shards in flusher.shard_to_process_map.values())
+    total_shards = sum(len(shards) for shards in flusher.process_to_shards_map.values())
     assert total_shards == 4  # All 4 shards should be assigned
 
     step.join()
