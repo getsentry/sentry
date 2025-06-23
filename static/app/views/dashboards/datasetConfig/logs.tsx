@@ -21,11 +21,7 @@ import {
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  AggregationKey,
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  NO_ARGUMENT_SPAN_AGGREGATES,
-} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -49,6 +45,7 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -66,8 +63,10 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
-  (acc, aggregate) => {
+const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
+  (x: {value: AggregationKey}) => x.value
+).reduce(
+  (acc: Record<AggregationKey, Aggregation>, aggregate: AggregationKey) => {
     if (aggregate === AggregationKey.COUNT) {
       acc[AggregationKey.COUNT] = {
         isSortable: true,
@@ -82,16 +81,10 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
           {
             kind: 'column',
             columnTypes: ['string'],
-            defaultValue: 'level',
+            defaultValue: 'message.template',
             required: true,
           },
         ],
-      };
-    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
-      acc[aggregate] = {
-        isSortable: true,
-        outputType: null,
-        parameters: [],
       };
     } else {
       acc[aggregate] = {
@@ -101,7 +94,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
           {
             kind: 'column',
             columnTypes: ['number', 'string'], // Need to keep the string type for unknown values before tags are resolved
-            defaultValue: 'timestamp',
+            defaultValue: 'severity_number',
             required: true,
           },
         ],
