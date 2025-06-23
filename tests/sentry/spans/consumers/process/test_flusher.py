@@ -44,6 +44,7 @@ def test_backpressure(monkeypatch):
                 span_id="a" * 16,
                 parent_span_id="b" * 16,
                 project_id=1,
+                end_timestamp_precise=now,
             ),
             Span(
                 payload=_payload(b"d" * 16),
@@ -51,6 +52,7 @@ def test_backpressure(monkeypatch):
                 span_id="d" * 16,
                 parent_span_id="b" * 16,
                 project_id=1,
+                end_timestamp_precise=now,
             ),
             Span(
                 payload=_payload(b"c" * 16),
@@ -58,6 +60,7 @@ def test_backpressure(monkeypatch):
                 span_id="c" * 16,
                 parent_span_id="b" * 16,
                 project_id=1,
+                end_timestamp_precise=now,
             ),
             Span(
                 payload=_payload(b"b" * 16),
@@ -66,6 +69,7 @@ def test_backpressure(monkeypatch):
                 parent_span_id=None,
                 is_segment_span=True,
                 project_id=1,
+                end_timestamp_precise=now,
             ),
         ]
 
