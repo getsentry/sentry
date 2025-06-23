@@ -877,17 +877,16 @@ urlpatterns += [
     ),
     # Dev toolbar
     re_path(
-        r"^toolbar/",
+        r"^toolbar/(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/",
         include(
             [
-                # Although the pattern looks project-scoped, these are OrganizationViews (auth and perms are org-scoped).
                 re_path(
-                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/iframe/$",
+                    r"^iframe/$",
                     IframeView.as_view(),
                     name="sentry-toolbar-iframe",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login-success/$",
+                    r"^login-success/$",
                     LoginSuccessView.as_view(),
                     name="sentry-toolbar-login-success",
                 ),
