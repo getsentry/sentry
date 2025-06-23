@@ -173,17 +173,18 @@ const AggregateField = styled(SelectField)`
 `;
 
 function FilterField() {
+  const initialQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   return (
     <Flex direction="column" gap={space(0.5)} flex={1}>
       <Tooltip title={t('Filter')} skipWrapper>
         <SectionLabel>{t('Filter')}</SectionLabel>
       </Tooltip>
       <SearchQueryBuilder
-        initialQuery=""
+        initialQuery={initialQuery}
         filterKeySections={FILTER_KEY_SECTIONS}
         filterKeys={FILTER_KEYS}
         getTagValues={getTagValues}
-        searchSource="storybook"
+        searchSource="detectors"
       />
     </Flex>
   );
