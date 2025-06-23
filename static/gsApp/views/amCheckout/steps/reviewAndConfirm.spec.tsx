@@ -307,6 +307,15 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       uptime: 1,
     });
 
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.product_select', {
+      organization,
+      subscription,
+      seer: {
+        enabled: true,
+        previously_enabled: false,
+      },
+    });
+
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
       'checkout.transactions_upgrade',
       {

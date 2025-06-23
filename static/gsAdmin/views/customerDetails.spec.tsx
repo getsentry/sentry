@@ -3498,7 +3498,6 @@ describe('Customer Details', function () {
     it('can open modal and gift budget', async function () {
       const am3Sub = Am3DsEnterpriseSubscriptionFixture({
         organization,
-        hasReservedBudgets: true,
       });
       setUpMocks(organization, am3Sub);
 

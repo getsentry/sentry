@@ -64,7 +64,7 @@ export function SeerReservedBudgetCategoryFixture(props: ReservedBudgetCategoryP
     billingFlag: 'seer-billing',
     canProductTrial: true,
     name: 'seer budget',
-    docLink: '', // TODO(seer): add quota doc link
+    docLink: 'https://docs.sentry.io/pricing/quotas/manage-seer-budget/',
     isFixed: true,
     defaultBudget: 25_00,
     dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],

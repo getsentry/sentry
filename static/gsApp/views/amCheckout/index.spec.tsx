@@ -4,7 +4,6 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   SubscriptionFixture,
   SubscriptionWithSeerFixture,
@@ -1065,18 +1064,11 @@ describe('AM2 Checkout', function () {
 
   it('does not skip step 1 for business plan without seer', async function () {
     const nonSeerOrg = OrganizationFixture({features: ['seer-billing']});
-    const nonSeerSubscription = SubscriptionWithSeerFixture({
+    const nonSeerSubscription = SubscriptionFixture({
       organization: nonSeerOrg,
       planTier: 'am2',
       plan: 'am2_business',
     });
-    // TODO(billing): update plan fixtures to have $0 reserved budgets
-    nonSeerSubscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     SubscriptionStore.set(organization.slug, nonSeerSubscription);
 
