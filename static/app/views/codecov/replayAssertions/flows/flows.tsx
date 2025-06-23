@@ -1,25 +1,17 @@
-interface Flow {
+type Flow = {
   description: string;
-  ending_actions: Array<Assertion<any>>;
   id: string;
   name: string;
-  // UUID
-  prev_id: string | null;
-  starting_action: StartingAction;
-  // Track changes over time
-  // assigned_to: User | Team | null;
-  status: 'Success' | 'Fail';
-  timeout: Assertion<TimeRange>;
-}
+};
 
-interface StartingAction {
-  // Define starting action properties
-}
+export const getFlow = (flowId: string): Flow => {
+  const flowData = require('./data/example1.jsonc');
 
-interface Assertion<T> {
-  // Define assertion properties
-}
+  return {
+    id: flowData.id,
+    name: 'This is a flow for login',
+    description: 'flow1',
+  };
+};
 
-interface TimeRange {
-  // Define time range properties
-}
+const flowIds = ['acd5d72f6ba54385ac80abe9dfadb142', '312bbd1e066e489eb3001615302ace13'];
