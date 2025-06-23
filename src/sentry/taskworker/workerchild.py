@@ -310,7 +310,8 @@ def child_process(
         )
         with (
             track_memory_usage(
-                "taskworker.worker.memory_change", tags={"taskname": activation.taskname}
+                "taskworker.worker.memory_change",
+                tags={"namespace": activation.namespace, "taskname": activation.taskname},
             ),
             sentry_sdk.start_transaction(transaction),
         ):
