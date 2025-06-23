@@ -25,7 +25,7 @@ const DEFAULT_NUM_TOP_EVENTS = 5;
 
 interface EventViewBasedCellProps {
   eventView: EventView;
-  getCustomFieldRenderer?: (
+  getCustomFieldRenderer: (
     field: string,
     meta: MetaType,
     organization?: Organization
@@ -56,13 +56,12 @@ export const renderEventViewBasedBodyCell = ({
   ): React.ReactNode {
     if (!tableData || !location || !organization || !theme) return undefined;
     const tableMeta = tableData?.meta;
-    const fieldRenderer = getCustomFieldRenderer?.(
+    const unit = tableMeta.units?.[column.key] as string | undefined;
+    let cell = getCustomFieldRenderer(
       column.key,
       tableMeta.fields,
       organization
-    );
-    const unit = tableMeta.units?.[column.key] as string | undefined;
-    let cell = fieldRenderer?.(dataRow, {
+    )?.(dataRow, {
       organization,
       location,
       eventView,
@@ -137,7 +136,7 @@ export const renderIssuesBodyCell = ({
     const tableMeta = tableData.meta;
 
     const fieldRenderer =
-      getCustomFieldRenderer?.(column.key, tableMeta.fields, organization) ??
+      getCustomFieldRenderer(column.key, tableMeta.fields, organization) ??
       getFieldRenderer(column.key, ISSUE_FIELDS);
 
     const unit = tableMeta.units?.[column.key] as string | undefined;
