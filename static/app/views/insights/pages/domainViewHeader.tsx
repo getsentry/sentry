@@ -109,25 +109,24 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {selectedModule !== ModuleName.MOBILE_VITALS &&
-              (selectedModule === ModuleName.SESSIONS ? (
-                <FeedbackButtonTour />
-              ) : (
-                <FeedbackWidgetButton
-                  optionOverrides={
-                    isLaravelInsightsAvailable || isNextJsInsightsEnabled
-                      ? {
-                          tags: {
-                            ['feedback.source']: isLaravelInsightsAvailable
-                              ? 'laravel-insights'
-                              : 'nextjs-insights',
-                            ['feedback.owner']: 'telemetry-experience',
-                          },
-                        }
-                      : undefined
-                  }
-                />
-              ))}
+            {selectedModule === ModuleName.SESSIONS ? (
+              <FeedbackButtonTour />
+            ) : (
+              <FeedbackWidgetButton
+                optionOverrides={
+                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
+                    ? {
+                        tags: {
+                          ['feedback.source']: isLaravelInsightsAvailable
+                            ? 'laravel-insights'
+                            : 'nextjs-insights',
+                          ['feedback.owner']: 'telemetry-experience',
+                        },
+                      }
+                    : undefined
+                }
+              />
+            )}
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>

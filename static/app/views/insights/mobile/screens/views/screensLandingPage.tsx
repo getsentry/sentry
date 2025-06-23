@@ -2,9 +2,7 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -268,7 +266,7 @@ function ScreensLandingPage() {
                 />
               </Fragment>
             }
-            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+            headerActions={undefined}
             module={moduleName}
           />
           <ModuleBodyUpsellHook moduleName={moduleName}>
@@ -281,9 +279,7 @@ function ScreensLandingPage() {
                       <EnvironmentPageFilter />
                       <DatePageFilter />
                     </PageFilterBar>
-                    <ButtonBar gap={1}>
-                      <FeedbackWidgetButton />
-                    </ButtonBar>
+                    {isProjectCrossPlatform && <PlatformSelector />}
                   </FilterContainer>
                 </Container>
                 <PageAlert />

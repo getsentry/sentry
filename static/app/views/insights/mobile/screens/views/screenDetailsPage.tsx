@@ -10,6 +10,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -119,7 +121,7 @@ function ScreenDetailsPage() {
               module={moduleName}
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
-              headerActions={isProjectCrossPlatform && <PlatformSelector />}
+              headerActions={undefined}
               headerTitle={transactionName}
               breadcrumbs={[
                 {
@@ -133,6 +135,11 @@ function ScreenDetailsPage() {
             />
             <Layout.Body>
               <Layout.Main fullWidth>
+                <HeaderContainer>
+                  <ToolRibbon>
+                    {isProjectCrossPlatform && <PlatformSelector />}
+                  </ToolRibbon>
+                </HeaderContainer>
                 <PageAlert />
                 {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
               </Layout.Main>
