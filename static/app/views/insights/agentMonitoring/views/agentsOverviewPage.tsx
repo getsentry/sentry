@@ -8,6 +8,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,7 +27,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
 import {
   AIInsightsFeature,
-  useRedirectToPreferedAiModule,
+  usePreferedAiModule,
 } from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -35,10 +36,13 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
@@ -136,7 +140,15 @@ function AgentsMonitoringPage() {
 }
 
 function PageWithProviders() {
-  useRedirectToPreferedAiModule();
+  const preferedAiModule = usePreferedAiModule();
+
+  if (preferedAiModule === 'llm-monitoring') {
+    return (
+      <Redirect
+        to={`/${INSIGHTS_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+      />
+    );
+  }
 
   return (
     <AIInsightsFeature>
