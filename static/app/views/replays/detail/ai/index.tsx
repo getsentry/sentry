@@ -11,8 +11,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -58,10 +56,7 @@ export default function Ai({replayRecord}: Props) {
 function AiContent({replayRecord}: Props) {
   const {replay} = useReplayContext();
   const organization = useOrganization();
-  const {project: project_id} = useLocationQuery({
-    fields: {project: decodeScalar},
-  });
-  const project = useProjectFromId({project_id});
+  const project = useProjectFromId({project_id: replayRecord?.project_id});
 
   const {
     data: summaryData,
@@ -88,6 +83,14 @@ function AiContent({replayRecord}: Props) {
         <Alert type="info">
           {t('Replay AI summary is not available for this organization.')}
         </Alert>
+      </SummaryContainer>
+    );
+  }
+
+  if (replayRecord?.project_id && !project) {
+    return (
+      <SummaryContainer>
+        <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
       </SummaryContainer>
     );
   }
@@ -119,15 +122,15 @@ function AiContent({replayRecord}: Props) {
   const chapterData = summaryData?.data.time_ranges.map(
     ({period_title, period_start, period_end}) => ({
       title: period_title,
-      start: period_start * 1000,
-      end: period_end * 1000,
+      start: period_start,
+      end: period_end,
       breadcrumbs:
         replay
           ?.getChapterFrames()
           .filter(
             breadcrumb =>
-              breadcrumb.timestampMs >= period_start * 1000 &&
-              breadcrumb.timestampMs <= period_end * 1000
+              breadcrumb.timestampMs >= period_start &&
+              breadcrumb.timestampMs <= period_end
           ) ?? [],
     })
   );

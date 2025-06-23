@@ -210,7 +210,14 @@ def process_profile_task(
                 # update the version so we can skip the update from this event
                 pass
             except (UnknownClientSDKException, UnknownProfileTypeException):
-                pass
+                _track_outcome(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.FILTERED,
+                    categories=[category],
+                    reason="deprecated sdk",
+                )
+                return
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
@@ -1354,7 +1361,7 @@ def build_chunk_functions_kafka_message(
     chunk: vroomrs.ProfileChunk, functions: list[vroomrs.CallTreeFunction]
 ) -> KafkaPayload:
     data = {
-        "environment": chunk.get_environment(),
+        "environment": chunk.get_environment() or "",
         "functions": [
             {
                 "fingerprint": f.get_fingerprint(),
@@ -1370,7 +1377,7 @@ def build_chunk_functions_kafka_message(
         "platform": chunk.get_platform(),
         "project_id": chunk.get_project_id(),
         "received": int(chunk.get_received()),
-        "release": chunk.get_release(),
+        "release": chunk.get_release() or "",
         "retention_days": chunk.get_retention_days(),
         "timestamp": int(chunk.start_timestamp()),
         "start_timestamp": chunk.start_timestamp(),

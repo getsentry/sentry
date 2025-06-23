@@ -4,7 +4,7 @@ import logging
 from typing import Any, TypedDict
 
 from django.db import IntegrityError
-from django.http import HttpResponseRedirect
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -104,7 +104,7 @@ class IntegrationPipeline(IntegrationPipelineT):
             "sentry.integrations.installation_attempt", tags={"integration": self.provider.key}
         )
 
-    def finish_pipeline(self):
+    def finish_pipeline(self) -> HttpResponseBase:
         org_context = organization_service.get_organization_by_id(
             id=self.organization.id, user_id=self.request.user.id
         )
@@ -169,7 +169,7 @@ class IntegrationPipeline(IntegrationPipelineT):
 
         return response
 
-    def _finish_pipeline(self, data: IntegrationData):
+    def _finish_pipeline(self, data: IntegrationData) -> HttpResponseBase:
         if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
@@ -283,10 +283,10 @@ class IntegrationPipeline(IntegrationPipelineT):
             return self._get_redirect_response(redirect_url_format=redirect_url_format)
         return self._dialog_success(org_integration)
 
-    def _dialog_success(self, org_integration):
+    def _dialog_success(self, org_integration) -> HttpResponseBase:
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
-    def _dialog_response(self, data, success):
+    def _dialog_response(self, data, success) -> HttpResponseBase:
         document_origin = "document.origin"
         if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'

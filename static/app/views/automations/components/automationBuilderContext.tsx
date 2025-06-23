@@ -135,7 +135,7 @@ export function useAutomationBuilderReducer() {
   return {state, actions};
 }
 
-interface AutomationBuilderState {
+export interface AutomationBuilderState {
   actionFilters: DataConditionGroup[];
   triggers: DataConditionGroup;
 }
@@ -322,7 +322,8 @@ function addWhenCondition(
         {
           id: uuid4(),
           type: action.conditionType,
-          comparison: {},
+          comparison: true,
+          conditionResult: true,
         },
       ],
     },
@@ -419,7 +420,8 @@ function addIfCondition(
           {
             id: uuid4(),
             type: conditionType,
-            comparison: {},
+            comparison: true,
+            conditionResult: true,
           },
         ],
       };
@@ -488,8 +490,10 @@ function updateIfCondition(
   };
 }
 
-function getActionTargetType(actionType: ActionType): ActionTarget {
+function getActionTargetType(actionType: ActionType): ActionTarget | null {
   switch (actionType) {
+    case ActionType.PLUGIN:
+      return null;
     case ActionType.EMAIL:
       return ActionTarget.ISSUE_OWNERS;
     case ActionType.SENTRY_APP:

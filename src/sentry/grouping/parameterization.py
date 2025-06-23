@@ -11,7 +11,6 @@ __all__ = [
     "ParameterizationCallableExperiment",
     "ParameterizationExperiment",
     "ParameterizationRegex",
-    "ParameterizationRegexExperiment",
     "Parameterizer",
     "UniqueIdExperiment",
 ]
@@ -123,7 +122,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
             |
             # Kitchen
-            (\d{1,2}:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
@@ -157,7 +156,24 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
-    ParameterizationRegex(name="hex", raw_pattern=r"""\b0[xX][0-9a-fA-F]+\b"""),
+    ParameterizationRegex(
+        name="hex",
+        raw_pattern=r"""
+            # Hex value with 0x or 0X prefix
+            (\b0[xX][0-9a-fA-F]+\b) |
+
+            # Hex value without 0x or 0X prefix exactly 4 or 8 bytes long.
+            #
+            # We don't need to lookahead for a-f since we if it contains at
+            # least one number it must contain at least one a-f otherwise it
+            # would have matched "int".
+            #
+            # (?=.*[0-9]):    At least one 0-9 is in the match.
+            # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
+            (\b(?=.*[0-9])[0-9a-f]{8}\b) |
+            (\b(?=.*[0-9])[0-9a-f]{16}\b)
+        """,
+    ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
     ParameterizationRegex(
@@ -204,15 +220,6 @@ class ParameterizationCallableExperiment(ParameterizationCallable):
         if count:
             callback(self.name, count)
         return content
-
-
-class ParameterizationRegexExperiment(ParameterizationRegex):
-    def run(
-        self,
-        content: str,
-        callback: Callable[[re.Match[str]], str],
-    ) -> str:
-        return self.compiled_pattern.sub(callback, content)
 
 
 class _UniqueId:
@@ -275,7 +282,7 @@ UniqueIdExperiment = ParameterizationCallableExperiment(
 )
 
 
-ParameterizationExperiment = ParameterizationCallableExperiment | ParameterizationRegexExperiment
+ParameterizationExperiment = ParameterizationCallableExperiment
 
 
 class Parameterizer:
@@ -289,8 +296,7 @@ class Parameterizer:
 
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
-    @staticmethod
-    def _make_regex_from_patterns(pattern_keys: Sequence[str]) -> re.Pattern[str]:
+    def _make_regex_from_patterns(self, pattern_keys: Sequence[str]) -> re.Pattern[str]:
         """
         Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
 
@@ -355,10 +361,8 @@ class Parameterizer:
         for experiment in self._experiments:
             if not should_run(experiment.name):
                 continue
-            if isinstance(experiment, ParameterizationCallableExperiment):
-                content = experiment.run(content, _incr_counter)
-            else:
-                content = experiment.run(content, _handle_regex_match)
+
+            content = experiment.run(content, _incr_counter)
 
         return content
 

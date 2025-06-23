@@ -38,7 +38,10 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors.data_condition_group import (
+    ProcessedDataConditionGroup,
+    get_slow_conditions_for_groups,
+)
 from sentry.workflow_engine.processors.delayed_workflow import (
     EventInstance,
     EventKey,
@@ -403,7 +406,10 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         mock_event_data.dcg_to_groups = dcg_to_groups
         mock_event_data.dcg_to_workflow = dcg_to_workflow
 
-        result = get_condition_query_groups(dcgs, mock_event_data, workflows_to_envs)
+        dcg_to_slow_conditions = get_slow_conditions_for_groups(list(dcg_to_groups.keys()))
+        result = get_condition_query_groups(
+            dcgs, mock_event_data, workflows_to_envs, dcg_to_slow_conditions
+        )
 
         count_query = generate_unique_queries(self.count_dc, None)[0]
         percent_only_query = generate_unique_queries(self.percent_dc, None)[1]
@@ -611,12 +617,15 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             }
         )
 
+        self.dcg_to_slow_conditions = get_slow_conditions_for_groups(list(self.event_data.dcg_ids))
+
     def test_simple(self):
         result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
 
         assert result == {
@@ -640,6 +649,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.workflows_to_envs,
             self.event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
 
         assert result == {
@@ -661,6 +671,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.workflows_to_envs,
             self.event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
 
         assert result == {
@@ -691,6 +702,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.workflows_to_envs,
             event_data,
             self.condition_group_results,
+            self.dcg_to_slow_conditions,
         )
         assert result == {
             self.group1.id: set(self.workflow1_dcgs + [self.workflow2_dcgs[0]]),

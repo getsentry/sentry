@@ -33,5 +33,5 @@ def empty_cocoa_config() -> SDKCrashDetectionConfig:
             path_patterns=set(),
             path_replacer=FixedPathReplacer(path=""),
         ),
-        sdk_crash_ignore_functions_matchers=set(),
+        sdk_crash_ignore_matchers=set(),
     )

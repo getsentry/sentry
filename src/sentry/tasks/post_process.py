@@ -1600,6 +1600,15 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not seer_enabled:
         return
 
+    from sentry import quotas
+    from sentry.constants import DataCategory
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
+        return
+
     from sentry.autofix.utils import is_seer_scanner_rate_limited
 
     is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
@@ -1611,15 +1620,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             }
         )
         logger.error("Seer scanner auto-trigger rate limit hit")
-        return
-
-    from sentry import quotas
-    from sentry.constants import DataCategory
-
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
         return
 
     start_seer_automation.delay(group.id)
