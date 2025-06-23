@@ -427,7 +427,15 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.INGEST_SPANS,
         "dlq_topic": Topic.INGEST_SPANS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            *multiprocessing_options(default_max_batch_size=100),
+            click.Option(
+                ["--flusher-processes", "flusher_processes"],
+                default=1,
+                type=int,
+                help="Maximum number of processes for the span flusher. Defaults to 1.",
+            ),
+        ],
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
