@@ -2117,39 +2117,51 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         GroupHash.objects.filter(group=group).update(group=None, group_tombstone_id=tombstone.id)
 
-        manager = EventManager(
-            make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]),
-            project=self.project,
-        )
-        manager.normalize()
+        from sentry.utils.outcomes import track_outcome
 
         a1 = CachedAttachment(name="a1", data=b"hello")
         a2 = CachedAttachment(name="a2", data=b"world")
 
-        cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
+        for i, event_id in enumerate(["b" * 32, "c" * 32]):
+            manager = EventManager(
+                make_event(message="foo", event_id=event_id, fingerprint=["a" * 32]),
+                project=self.project,
+            )
+            manager.normalize()
+            discarded_event = Event(
+                project_id=self.project.id, event_id=event_id, data=manager.get_data()
+            )
 
-        from sentry.utils.outcomes import track_outcome
+            cache_key = cache_key_for_event(manager.get_data())
+            attachment_cache.set(cache_key, attachments=[a1, a2])
 
-        mock_track_outcome = mock.Mock(wraps=track_outcome)
-        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature("organizations:event-attachments"):
-                with self.tasks():
-                    with pytest.raises(HashDiscarded):
-                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+            mock_track_outcome = mock.Mock(wraps=track_outcome)
+            with (
+                mock.patch("sentry.event_manager.track_outcome", mock_track_outcome),
+                self.feature("organizations:event-attachments"),
+                self.feature("organizations:grouptombstones-hit-counter"),
+                self.tasks(),
+                pytest.raises(HashDiscarded),
+            ):
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
-        assert mock_track_outcome.call_count == 3
+            assert mock_track_outcome.call_count == 3
 
-        for o in mock_track_outcome.mock_calls:
-            assert o.kwargs["outcome"] == Outcome.FILTERED
-            assert o.kwargs["reason"] == FilterStatKeys.DISCARDED_HASH
+            event_outcome = mock_track_outcome.mock_calls[0].kwargs
+            assert event_outcome["outcome"] == Outcome.FILTERED
+            assert event_outcome["reason"] == FilterStatKeys.DISCARDED_HASH
+            assert event_outcome["category"] == DataCategory.ERROR
+            assert event_outcome["event_id"] == event_id
 
-        o = mock_track_outcome.mock_calls[0]
-        assert o.kwargs["category"] == DataCategory.ERROR
+            for call in mock_track_outcome.mock_calls[1:]:
+                attachment_outcome = call.kwargs
+                assert attachment_outcome["category"] == DataCategory.ATTACHMENT
+                assert attachment_outcome["quantity"] == 5
 
-        for o in mock_track_outcome.mock_calls[1:]:
-            assert o.kwargs["category"] == DataCategory.ATTACHMENT
-            assert o.kwargs["quantity"] == 5
+            expected_times_seen = 1 + i
+            tombstone.refresh_from_db()
+            assert tombstone.times_seen == expected_times_seen
+            assert tombstone.last_seen == discarded_event.datetime
 
     def test_honors_crash_report_limit(self) -> None:
         from sentry.utils.outcomes import track_outcome

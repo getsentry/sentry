@@ -38,6 +38,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         input_block_size: int | None,
         output_block_size: int | None,
+        flusher_processes: int | None = None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
         super().__init__()
@@ -48,6 +49,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
+        self.flusher_processes = flusher_processes
         self.produce_to_pipe = produce_to_pipe
 
         if self.num_processes != 1:
@@ -69,6 +71,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         flusher = self._flusher = SpanFlusher(
             buffer,
             next_step=committer,
+            max_processes=self.flusher_processes,
             produce_to_pipe=self.produce_to_pipe,
         )
 
