@@ -426,7 +426,9 @@ def get_grouping_variants_for_event(
     # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
     # versions which include the fingerprint.
     if fingerprint_type == "custom":
-        if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
+        matched_rule = fingerprint_info.get("matched_rule", {})
+
+        if matched_rule and matched_rule.get("is_builtin") is True:
             additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
