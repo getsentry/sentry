@@ -38,6 +38,7 @@ export default function AutomationsList() {
     data: automations,
     isPending,
     isError,
+    isSuccess,
     getResponseHeader,
   } = useAutomationsQuery({
     cursor,
@@ -56,6 +57,7 @@ export default function AutomationsList() {
               automations={automations ?? []}
               isPending={isPending}
               isError={isError}
+              isSuccess={isSuccess}
             />
             <Pagination
               pageLinks={getResponseHeader?.('Link')}
