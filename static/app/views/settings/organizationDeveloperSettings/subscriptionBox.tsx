@@ -85,6 +85,7 @@ export default withOrganization(SubscriptionBox);
 const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   background: ${p => p.theme.backgroundSecondary};
   opacity: ${p => (p.disabled ? 0.6 : 1)};
   border-radius: ${p => p.theme.borderRadius};
