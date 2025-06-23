@@ -326,7 +326,7 @@ class SpansBuffer:
 
         return trees
 
-    def _prepare_payloads(self, spans: list[Span]) -> dict[bytes, float]:
+    def _prepare_payloads(self, spans: list[Span]) -> dict[str | bytes, float]:
         if self._zstd_compressor is None:
             return {span.payload: span.end_timestamp_precise for span in spans}
 
