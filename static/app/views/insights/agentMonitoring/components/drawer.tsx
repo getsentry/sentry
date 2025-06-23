@@ -12,6 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/agentMonitoring/hooks/useNodeDetailsLink';
+import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -22,17 +23,12 @@ interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
 
-function getUniqueKey(node: AITraceSpanNode) {
-  // types are not precise enough here. For AITraceSpanNode, event_id is always defined.
-  return node.metadata.event_id as string;
-}
-
 function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
   const {nodes, isLoading, error} = useAITrace(traceSlug);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
 
   const handleSelectNode = useCallback((node: AITraceSpanNode) => {
-    const uniqueKey = getUniqueKey(node);
+    const uniqueKey = getNodeId(node);
     setSelectedNodeKey(uniqueKey);
   }, []);
 
@@ -43,7 +39,7 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
   }, [handleSelectNode, nodes, selectedNodeKey]);
 
   const selectedNode = selectedNodeKey
-    ? nodes.find(node => getUniqueKey(node) === selectedNodeKey) || nodes[0]
+    ? nodes.find(node => getNodeId(node) === selectedNodeKey) || nodes[0]
     : nodes[0];
 
   const nodeDetailsLink = useNodeDetailsLink({
@@ -136,7 +132,7 @@ function AITraceView({
         <SpansHeader>{t('AI Spans')}</SpansHeader>
         <AISpanList
           nodes={nodes}
-          selectedNodeKey={getUniqueKey(selectedNode!)}
+          selectedNodeKey={getNodeId(selectedNode!)}
           onSelectNode={onSelectNode}
         />
       </LeftPanel>

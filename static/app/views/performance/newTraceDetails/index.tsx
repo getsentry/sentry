@@ -149,6 +149,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
                 hideIfNoData={hideTraceWaterfallIfEmpty}
                 traceWaterfallScrollHandlers={traceWaterfallScroll}
                 traceWaterfallModels={traceWaterfallModels}
+                isVisible={currentTab === TraceLayoutTabKeys.WATERFALL}
               />
             </TabsWaterfallWrapper>
             {currentTab === TraceLayoutTabKeys.TAGS ||

@@ -9,6 +9,7 @@ import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
@@ -80,7 +81,7 @@ export function AISpanList({
           transactionBounds = getTransactionBounds(node);
         }
 
-        const uniqueKey = node.metadata.event_id;
+        const uniqueKey = getNodeId(node);
         return (
           <TraceListItem
             key={uniqueKey}
