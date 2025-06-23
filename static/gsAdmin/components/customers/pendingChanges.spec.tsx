@@ -348,8 +348,14 @@ describe('PendingChanges', function () {
         reservedCpe: {
           spans: 12.345678,
           spansIndexed: 87.654321,
+          seerAutofix: 1_00,
+          seerScanner: 1,
         },
         reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
           {
             reservedBudget: 50_000_00,
             categories: {spans: true, spansIndexed: true},
@@ -373,7 +379,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — $0.02000000 → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for spans budget → $50,000.00 for spans budget'
+      'Reserved budgets — $0.00 for seer budget, $100,000.00 for spans budget → $0.00 for seer budget, $50,000.00 for spans budget'
     );
   });
 
@@ -425,8 +431,14 @@ describe('PendingChanges', function () {
         reservedCpe: {
           spans: 12.345678,
           spansIndexed: 87.654321,
+          seerAutofix: 1_00,
+          seerScanner: 1,
         },
         reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
           {
             reservedBudget: 50_000_00,
             categories: {spans: true, spansIndexed: true},
@@ -454,7 +466,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — None → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — None → $50,000.00 for spans budget'
+      'Reserved budgets — $0.00 for seer budget → $0.00 for seer budget, $50,000.00 for spans budget'
     );
   });
 
@@ -467,6 +479,16 @@ describe('PendingChanges', function () {
         reserved: {
           spans: 10_000_000,
         },
+        reservedCpe: {
+          seerAutofix: 1_00,
+          seerScanner: 1,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
+        ],
       }),
     });
 
@@ -491,7 +513,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for spansIndexed — $0.02000000 → None'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for spans budget → None'
+      'Reserved budgets — $0.00 for seer budget, $100,000.00 for spans budget → $0.00 for seer budget'
     );
   });
 

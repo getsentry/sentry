@@ -203,13 +203,6 @@ function Overview({location, subscription, promotionData}: Props) {
           .map(categoryHistory => {
             const category = categoryHistory.category;
 
-            // XXX: need to hide these categories for developer plans
-            if (
-              category === DataCategory.SEER_AUTOFIX ||
-              category === DataCategory.SEER_SCANNER
-            ) {
-              return null;
-            }
             // The usageData does not include details for seat-based categories.
             // For now we will handle the monitor category specially
             let monitor_usage: number | undefined = 0;
