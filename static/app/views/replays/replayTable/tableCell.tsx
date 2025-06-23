@@ -5,6 +5,8 @@ import type {Location} from 'history';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
@@ -430,6 +432,9 @@ const DisplayNameLink = styled(Link)`
   &[data-has-viewed='true'] {
     font-weight: ${p => p.theme.fontWeightNormal};
   }
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const SubText = styled('div')`
@@ -626,6 +631,37 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
   );
 }
 
+export function SelectCell({
+  replay,
+  isSelected,
+  onSelect,
+}: Props & {
+  isSelected: 'all-selected' | boolean;
+  onSelect: (isSelected: boolean) => void;
+}) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item>
+      <Flex direction="column" gap={space(1)} align="center">
+        <Checkbox
+          disabled={isSelected === 'all-selected'}
+          checked={isSelected !== false}
+          onChange={e => {
+            onSelect(e.target.checked);
+          }}
+        />
+        {replay.has_viewed ? null : (
+          <Tooltip title={t('Unread')} skipWrapper>
+            <UnreadIndicator />
+          </Tooltip>
+        )}
+      </Flex>
+    </Item>
+  );
+}
+
 export function ActivityCell({replay, showDropdownFilters}: Props) {
   const theme = useTheme();
   if (replay.is_archived) {
@@ -678,7 +714,7 @@ export function PlayPauseCell({
   return <Item>{inner}</Item>;
 }
 
-const Item = styled('div')<{
+const Item = styled(Flex)<{
   isArchived?: boolean;
   isReplayCell?: boolean;
   isWidget?: boolean;
@@ -759,4 +795,11 @@ const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
 const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
   right: 0%;
   left: unset;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 8px;
+  height: 8px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
 `;

@@ -170,6 +170,7 @@ function ReplaysContent({
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
+        queryKey={undefined}
         replays={replaysWithTx}
         sort={undefined}
         visibleColumns={[

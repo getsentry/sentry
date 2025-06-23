@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Pagination from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
@@ -21,6 +22,26 @@ import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
 const MIN_REPLAY_CLICK_SDK = '7.44.0';
+
+const VISIBLE_COLUMNS = [
+  ReplayColumn.SELECT,
+  ReplayColumn.REPLAY,
+  ReplayColumn.OS,
+  ReplayColumn.BROWSER,
+  ReplayColumn.DURATION,
+  ReplayColumn.COUNT_DEAD_CLICKS,
+  ReplayColumn.COUNT_RAGE_CLICKS,
+  ReplayColumn.COUNT_ERRORS,
+  ReplayColumn.ACTIVITY,
+];
+const VISIBLE_COLUMNS_MOBILE = [
+  ReplayColumn.SELECT,
+  ReplayColumn.REPLAY,
+  ReplayColumn.OS,
+  ReplayColumn.DURATION,
+  ReplayColumn.COUNT_ERRORS,
+  ReplayColumn.ACTIVITY,
+];
 
 function ReplaysList() {
   const organization = useOrganization();
@@ -58,6 +79,9 @@ function ReplaysList() {
   } = usePageFilters();
 
   const {allMobileProj} = useAllMobileProj({});
+  // browser isn't applicable for mobile projects
+  // rage and dead clicks not available yet
+  const visibleCols = allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS;
 
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
@@ -67,27 +91,6 @@ function ReplaysList() {
 
   const conditions = useMemo(() => new MutableSearch(query.query), [query.query]);
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
-
-  // browser isn't applicable for mobile projects
-  // rage and dead clicks not available yet
-  const visibleCols = allMobileProj
-    ? [
-        ReplayColumn.REPLAY,
-        ReplayColumn.OS,
-        ReplayColumn.DURATION,
-        ReplayColumn.COUNT_ERRORS,
-        ReplayColumn.ACTIVITY,
-      ]
-    : [
-        ReplayColumn.REPLAY,
-        ReplayColumn.OS,
-        ReplayColumn.BROWSER,
-        ReplayColumn.DURATION,
-        ReplayColumn.COUNT_DEAD_CLICKS,
-        ReplayColumn.COUNT_RAGE_CLICKS,
-        ReplayColumn.COUNT_ERRORS,
-        ReplayColumn.ACTIVITY,
-      ];
 
   const needsJetpackComposePiiWarning = replays?.find(replay => {
     return (
@@ -103,12 +106,13 @@ function ReplaysList() {
     <Fragment>
       {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ReplayTable
-        referrerLocation={'replay'}
+        queryKey={queryKey}
+        referrerLocation="replay"
         fetchError={error}
         isFetching={isPending}
         replays={replays}
         sort={decodeSorts(query.sort).at(0)}
-        visibleColumns={visibleCols}
+        visibleColumns={visibleCols.filter(defined)}
         showDropdownFilters
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (

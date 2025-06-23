@@ -1,4 +1,5 @@
 export enum ReplayColumn {
+  SELECT = 'select',
   ACTIVITY = 'activity',
   BROWSER = 'browser',
   COUNT_DEAD_CLICKS = 'countDeadClicks',

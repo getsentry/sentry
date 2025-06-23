@@ -1,16 +1,19 @@
+import {Checkbox} from 'sentry/components/core/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import type useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import SortableHeader from 'sentry/views/replays/replayTable/sortableHeader';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
 type Props = {
+  checkboxState: ReturnType<typeof useListItemCheckboxState>;
   column: ReplayColumn;
   sort?: Sort;
 };
 
-function HeaderCell({column, sort}: Props) {
+function HeaderCell({checkboxState, column, sort}: Props) {
   switch (column) {
     case ReplayColumn.ACTIVITY:
       return (
@@ -91,6 +94,25 @@ function HeaderCell({column, sort}: Props) {
     case ReplayColumn.REPLAY:
       return <SortableHeader sort={sort} fieldName="started_at" label={t('Replay')} />;
 
+    case ReplayColumn.SELECT: {
+      const {isAllSelected, deselectAll, selectAll} = checkboxState;
+      return (
+        <SortableHeader
+          label={
+            <Checkbox
+              checked={isAllSelected}
+              onChange={() => {
+                if (isAllSelected === true) {
+                  deselectAll();
+                } else {
+                  selectAll();
+                }
+              }}
+            />
+          }
+        />
+      );
+    }
     case ReplayColumn.SLOWEST_TRANSACTION:
       return (
         <SortableHeader

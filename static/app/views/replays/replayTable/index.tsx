@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {type ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -8,6 +8,8 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,6 +28,7 @@ import {
   PlayPauseCell,
   RageClickCountCell,
   ReplayCell,
+  SelectCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
@@ -34,6 +37,7 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 type Props = {
   fetchError: null | undefined | RequestError;
   isFetching: boolean;
+  queryKey: undefined | ApiQueryKey;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
@@ -62,7 +66,7 @@ function getErrorMessage(fetchError: RequestError) {
   );
 }
 
-function ReplayTable({
+export default function ReplayTable({
   fetchError,
   isFetching,
   replays,
@@ -73,6 +77,7 @@ function ReplayTable({
   showDropdownFilters,
   onClickPlay,
   referrerLocation,
+  queryKey,
 }: Props) {
   const routes = useRoutes();
   const location = useLocation();
@@ -86,16 +91,39 @@ function ReplayTable({
     10
   );
 
-  const tableHeaders = visibleColumns
-    .filter(Boolean)
-    .map(column => <HeaderCell key={column} column={column} sort={sort} />);
+  const columns = useMemo(
+    () =>
+      organization.features.includes('replay-ui-list-select') || true
+        ? visibleColumns
+        : visibleColumns.filter(column => column !== ReplayColumn.SELECT),
+    [organization.features, visibleColumns]
+  );
+
+  const checkboxState = useListItemCheckboxState({
+    hits: (replays?.length ?? 0) + 1,
+    knownIds: replays?.map(replay => replay.id) ?? [],
+    queryKey,
+  });
+
+  const tableHeaders = useMemo(
+    () =>
+      columns.map(column => (
+        <HeaderCell
+          key={column}
+          column={column}
+          sort={sort}
+          checkboxState={checkboxState}
+        />
+      )),
+    [checkboxState, sort, columns]
+  );
 
   if (fetchError && !isFetching) {
     return (
       <StyledPanelTable
         headers={tableHeaders}
         isLoading={false}
-        visibleColumns={visibleColumns}
+        visibleColumns={columns}
         data-test-id="replay-table"
         gridRows={undefined}
       >
@@ -115,7 +143,7 @@ function ReplayTable({
       headers={tableHeaders}
       isEmpty={replays?.length === 0}
       isLoading={isFetching}
-      visibleColumns={visibleColumns}
+      visibleColumns={columns}
       disablePadding
       data-test-id="replay-table"
       emptyMessage={emptyMessage}
@@ -133,8 +161,20 @@ function ReplayTable({
               showCursor={onClickPlay !== undefined}
               referrerLocation={referrerLocation}
             >
-              {visibleColumns.map(column => {
+              {columns.map(column => {
                 switch (column) {
+                  case ReplayColumn.SELECT: {
+                    return (
+                      <SelectCell
+                        key="select"
+                        replay={replay}
+                        isSelected={checkboxState.isSelected(replay.id)}
+                        onSelect={() => {
+                          checkboxState.toggleSelected(replay.id);
+                        }}
+                      />
+                    );
+                  }
                   case ReplayColumn.ACTIVITY:
                     return (
                       <ActivityCell
@@ -248,7 +288,9 @@ const StyledPanelTable = styled(PanelTable)<{
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .map(column =>
+        column === ReplayColumn.REPLAY ? 'minmax(100px, 1fr)' : 'max-content'
+      )
       .join(' ')};
   ${props =>
     props.gridRows
@@ -287,8 +329,6 @@ const Row = styled('div')<{
   }
   `}
 `;
-
-export default ReplayTable;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 54px auto;

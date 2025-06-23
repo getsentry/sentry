@@ -41,7 +41,13 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Props) {
+export default function FeedbackListItem({
+  feedbackItem,
+  isSelected,
+  onSelect,
+  style,
+  ref,
+}: Props) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -168,8 +174,6 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
     </CardSpacing>
   );
 }
-
-export default FeedbackListItem;
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;

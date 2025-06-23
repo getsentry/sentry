@@ -15,7 +15,7 @@ import type {
 } from 'sentry/views/replays/types';
 
 type NotSortable = {
-  label: string;
+  label: string | ReactNode;
   tooltip?: string | ReactNode;
 };
 

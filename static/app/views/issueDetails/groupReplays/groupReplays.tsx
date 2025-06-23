@@ -112,10 +112,11 @@ export default function GroupReplays({group}: Props) {
         <ReplayTable
           fetchError={fetchError}
           isFetching={isFetching}
+          queryKey={undefined}
           replays={[]}
+          showDropdownFilters={false}
           sort={undefined}
           visibleColumns={visibleColumns(isMobilePlatform)}
-          showDropdownFilters={false}
         />
       </StyledLayoutPage>
     );
@@ -264,16 +265,17 @@ function GroupReplaysTable({
 
   const replayTable = (
     <ReplayTable
+      fetchError={replayListData.fetchError}
+      isFetching={replayListData.isFetching}
+      onClickPlay={setSelectedReplayIndex}
+      queryKey={undefined}
+      replays={replays}
+      showDropdownFilters={false}
       sort={undefined}
       visibleColumns={[
         ...(selectedReplay ? [ReplayColumn.PLAY_PAUSE] : []),
         ...visibleColumns(allMobileProj),
       ]}
-      showDropdownFilters={false}
-      onClickPlay={setSelectedReplayIndex}
-      fetchError={replayListData.fetchError}
-      isFetching={replayListData.isFetching}
-      replays={replays}
     />
   );
 
