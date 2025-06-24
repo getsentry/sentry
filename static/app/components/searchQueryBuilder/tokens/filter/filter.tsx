@@ -67,7 +67,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0]!.value, allContains)}
+            {formatFilterValue({
+              token: items[0]!.value,
+              allContains,
+            })}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -82,8 +85,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
-                {formatFilterValue(item.value, allContains)}
+                {formatFilterValue({
+                  token: item.value!,
+                  allContains,
+                })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -106,7 +111,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value, allContains)}
+          {formatFilterValue({
+            token: token.value,
+            allContains,
+          })}
         </FilterValueSingleTruncatedValue>
       );
     }

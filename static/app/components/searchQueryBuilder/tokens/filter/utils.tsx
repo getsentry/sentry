@@ -128,10 +128,13 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
-export function formatFilterValue(
-  token: TokenResult<Token.FILTER>['value'],
-  allContains = false
-): string {
+export function formatFilterValue({
+  token,
+  allContains = false,
+}: {
+  token: TokenResult<Token.FILTER>['value'];
+  allContains?: boolean;
+}): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
       const content = token.value ? token.value : token.text;
