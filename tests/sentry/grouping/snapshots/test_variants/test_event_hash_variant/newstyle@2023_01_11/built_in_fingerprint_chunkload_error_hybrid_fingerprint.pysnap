@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:48.269776+00:00'
+created: '2025-06-23T19:36:51.183909+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   contributing component: null
   component:
-    app (custom fingerprint takes precedence)
+    app (built-in fingerprint takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
@@ -31,7 +31,7 @@ system:
   hash: null
   contributing component: exception
   component:
-    system (custom fingerprint takes precedence)
+    system (built-in fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
