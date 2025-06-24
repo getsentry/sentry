@@ -12,7 +12,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyType,
 )
 from sentry.snuba.models import QuerySubscription
-from sentry.workflow_engine.models import Condition, DataPacket
+from sentry.workflow_engine.models import Condition
 from sentry.workflow_engine.models.data_condition import DataConditionEvaluationException
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
@@ -32,7 +32,7 @@ SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
 
 
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
-class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
+class AnomalyDetectionHandler(DataConditionHandler[dict[str, Any]]):
     group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {
         "type": "object",
@@ -55,14 +55,15 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
     }
 
     @staticmethod
-    def evaluate_value(update: DataPacket, comparison: Any) -> DetectorPriorityLevel:
+    def evaluate_value(update: dict[str, Any], comparison: Any) -> DetectorPriorityLevel:
         sensitivity = comparison["sensitivity"]
         seasonality = comparison["seasonality"]
         threshold_type = comparison["threshold_type"]
 
-        subscription: QuerySubscription = QuerySubscription.objects.get(
-            id=int(update.get("source_id"))
-        )
+        source_id = update.get("source_id")
+        assert source_id
+
+        subscription: QuerySubscription = QuerySubscription.objects.get(id=int(source_id))
 
         anomaly_data = get_anomaly_data_from_seer(
             sensitivity=sensitivity,
