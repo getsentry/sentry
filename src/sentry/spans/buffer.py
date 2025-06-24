@@ -170,6 +170,7 @@ class SpansBuffer:
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
+    @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
         """
         :param spans: List of to-be-ingested spans.
