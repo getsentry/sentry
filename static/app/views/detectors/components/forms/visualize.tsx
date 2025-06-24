@@ -295,8 +295,6 @@ export function Visualize() {
               }}
             />
           </FieldContainer>
-
-          {/* Render parameters dynamically based on metadata */}
           {aggregateMetadata?.parameters?.map((param, index) => {
             return (
               <FieldContainer key={index}>

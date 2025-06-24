@@ -15,7 +15,7 @@ export function useCustomMeasurements(
   selection?: PageFilters
 ) {
   const query: Query = selection?.datetime
-    ? {...normalizeDateTimeParams(selection.datetime)}
+    ? normalizeDateTimeParams(selection.datetime)
     : {};
 
   if (selection?.projects) {
@@ -30,21 +30,23 @@ export function useCustomMeasurements(
   );
 
   const customMeasurements = useMemo(() => {
-    return data
-      ? Object.keys(data).reduce<CustomMeasurementCollection>(
-          (acc, customMeasurement) => {
-            acc[customMeasurement] = {
-              key: customMeasurement,
-              name: customMeasurement,
-              functions: data[customMeasurement]!.functions,
-              unit: data[customMeasurement]!.unit,
-              fieldType: getFieldTypeFromUnit(data[customMeasurement]!.unit),
-            };
-            return acc;
-          },
-          {}
-        )
-      : {};
+    if (!data) {
+      return {};
+    }
+
+    return Object.entries(data).reduce<CustomMeasurementCollection>(
+      (acc, [customMeasurement, measurementData]) => {
+        acc[customMeasurement] = {
+          key: customMeasurement,
+          name: customMeasurement,
+          functions: measurementData.functions,
+          unit: measurementData.unit,
+          fieldType: getFieldTypeFromUnit(measurementData.unit),
+        };
+        return acc;
+      },
+      {}
+    );
   }, [data]);
 
   return {
