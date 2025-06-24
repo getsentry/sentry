@@ -6,3 +6,8 @@ export const SectionLabel = styled('span')<{disabled?: boolean}>`
   font-weight: 600;
   margin: 0;
 `;
+
+export const SectionLabelSecondary = styled(SectionLabel)`
+  color: ${p => p.theme.subText};
+  font-weight: normal;
+`;

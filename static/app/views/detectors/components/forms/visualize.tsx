@@ -276,11 +276,17 @@ export function Visualize() {
         <Flex gap={space(1)} align="flex-end">
           <FieldContainer>
             <div>
-              <Tooltip title={t('Primary Metric')} showUnderline>
+              <Tooltip
+                title={t(
+                  'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
+                )}
+                showUnderline
+              >
                 <SectionLabel>{t('Visualize')}</SectionLabel>
               </Tooltip>
             </div>
             <StyledAggregateSelect
+              searchable
               triggerLabel={aggregate || t('Select aggregate')}
               options={aggregateOptions}
               value={aggregate}
@@ -304,6 +310,7 @@ export function Visualize() {
 
                 {param.kind === 'column' ? (
                   <StyledVisualizeSelect
+                    searchable
                     triggerLabel={
                       parameters[index] || param.defaultValue || t('Select metric')
                     }
@@ -315,6 +322,7 @@ export function Visualize() {
                   />
                 ) : param.kind === 'dropdown' && param.options ? (
                   <StyledVisualizeSelect
+                    searchable
                     triggerLabel={
                       parameters[index] || param.defaultValue || t('Select value')
                     }

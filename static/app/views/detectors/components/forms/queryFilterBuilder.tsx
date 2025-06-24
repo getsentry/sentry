@@ -12,7 +12,10 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
-import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
+import {
+  SectionLabel,
+  SectionLabelSecondary,
+} from 'sentry/views/detectors/components/forms/sectionLabel';
 
 export function DetectorQueryFilterBuilder() {
   const currentQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
@@ -59,9 +62,15 @@ export function DetectorQueryFilterBuilder() {
   return (
     <Flex direction="column" gap={space(0.5)} flex={1}>
       <div>
-        <Tooltip title={t('Filter down your search here')} showUnderline>
+        <Tooltip
+          title={t(
+            'Filter down your search here. You can add multiple queries to compare data for each overlay.'
+          )}
+          showUnderline
+        >
           <SectionLabel>{t('Filter')}</SectionLabel>
-        </Tooltip>
+        </Tooltip>{' '}
+        <SectionLabelSecondary>({t('optional')})</SectionLabelSecondary>
       </div>
       <QueryFieldRowWrapper>
         <SearchBar
