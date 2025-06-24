@@ -2,6 +2,7 @@ import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
+import useOrganization from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -31,6 +32,10 @@ export function useNeedsJetpackComposePiiNotice({
 }: {
   replays: undefined | ReplayListRecord[];
 }) {
+  const organization = useOrganization();
+  if (organization.slug === 'demo') {
+    return false;
+  }
   const needsJetpackComposePiiWarning = replays?.find(replay => {
     return (
       replay?.sdk.name === 'sentry.java.android' &&

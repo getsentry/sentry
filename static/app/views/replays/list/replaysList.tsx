@@ -90,7 +90,10 @@ function ReplaysList() {
         ReplayColumn.ACTIVITY,
       ];
 
-  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({replays});
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays,
+    organization,
+  });
 
   return (
     <Fragment>
