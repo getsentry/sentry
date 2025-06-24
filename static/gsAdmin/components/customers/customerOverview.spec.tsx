@@ -407,6 +407,13 @@ describe('CustomerOverview', function () {
           endDate: moment().utc().add(20, 'days').format(),
         },
         {
+          category: DataCategory.SPANS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(10, 'days').format(),
+          endDate: moment().utc().subtract(1, 'hours').format(),
+        },
+        {
           category: DataCategory.SEER_AUTOFIX,
           isStarted: true,
           reasonCode: 1001,
@@ -486,14 +493,22 @@ describe('CustomerOverview', function () {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeEnabled();
+          expect(within(definition).getByText('Active')).toBeInTheDocument();
+        } else if (category === DataCategory.SPANS) {
+          expect(allowTrialButton).toBeDisabled();
+          expect(startTrialButton).toBeDisabled();
+          expect(stopTrialButton).toBeDisabled();
+          expect(within(definition).getByText(/Active \(/)).toBeInTheDocument();
         } else if (category === ReservedBudgetCategoryType.SEER) {
           expect(allowTrialButton).toBeEnabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeDisabled();
+          expect(within(definition).getByText('Used')).toBeInTheDocument();
         } else {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeEnabled();
           expect(stopTrialButton).toBeDisabled();
+          expect(within(definition).getByText('Available')).toBeInTheDocument();
         }
       } else {
         expect(

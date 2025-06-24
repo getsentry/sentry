@@ -451,23 +451,19 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     customer.planDetails?.availableReservedBudgetTypes || {}
   ).filter(group => group.canProductTrial);
 
-  const categoryHasActiveProductTrial = (category: DataCategory) => {
-    return !!getActiveProductTrial(customer.productTrials ?? [], category);
-  };
-
   const categoryHasUsedProductTrial = (category: DataCategory) => {
     const trial = getProductTrial(customer.productTrials ?? [], category);
 
     return trial?.isStarted;
   };
 
-  function updateCustomerStatus(action: string) {
+  const updateCustomerStatus = (action: string) => {
     const data = {
       [action]: true,
     };
 
     onAction(data);
-  }
+  };
 
   const getTrialManagementActions = (
     category: DataCategory,
@@ -476,7 +472,15 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   ) => {
     const formattedApiName = upperFirst(apiName);
     const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
-    const hasActiveProductTrial = categoryHasActiveProductTrial(category);
+    const activeProductTrial = getActiveProductTrial(
+      customer.productTrials ?? [],
+      category
+    );
+    const hasActiveProductTrial = !!activeProductTrial;
+    // NOTE: we add 1 day to the end date because the trial end date is inclusive
+    // and diff() can't return a value less than 0
+    const lessThanOneDayLeft =
+      moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
     const hasUsedProductTrial =
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
     return (
@@ -484,11 +488,17 @@ function CustomerOverview({customer, onAction, organization}: Props) {
         <TrialState>
           <StyledTag
             type={
-              hasActiveProductTrial ? 'success' : hasUsedProductTrial ? 'warning' : 'info'
+              lessThanOneDayLeft
+                ? 'promotion'
+                : hasActiveProductTrial
+                  ? 'success'
+                  : hasUsedProductTrial
+                    ? 'warning'
+                    : 'info'
             }
           >
             {hasActiveProductTrial
-              ? 'Active'
+              ? `Active${lessThanOneDayLeft ? ` (${moment(activeProductTrial.endDate).add(1, 'day').fromNow(true)} left)` : ''}`
               : hasUsedProductTrial
                 ? 'Used'
                 : 'Available'}
@@ -525,11 +535,13 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`stopTrial${formattedApiName}`)}
-              disabled={!hasActiveProductTrial}
+              disabled={!hasActiveProductTrial || lessThanOneDayLeft}
               title={
-                hasActiveProductTrial
-                  ? `Stop the current product trial for ${formattedTrialName}`
-                  : `No product trial is active for ${formattedTrialName}`
+                lessThanOneDayLeft
+                  ? `Current product trial will end in less than one day`
+                  : hasActiveProductTrial
+                    ? `Stop the current product trial for ${formattedTrialName}`
+                    : `No product trial is active for ${formattedTrialName}`
               }
             >
               Stop Trial
