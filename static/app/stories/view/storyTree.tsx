@@ -2,22 +2,14 @@ import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Flex} from 'sentry/components/core/layout';
 import Link from 'sentry/components/links/link';
-import {
-  IconChevron,
-  IconCircle,
-  IconCode,
-  IconExpand,
-  IconFile,
-  IconGrid,
-  IconNumber,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useLocation} from 'sentry/utils/useLocation';
 
-class StoryTreeNode {
+export class StoryTreeNode {
   public name: string;
   public path: string;
   public filesystemPath: string;
@@ -65,6 +57,16 @@ class StoryTreeNode {
     }
 
     yield* recurse(this, []);
+  }
+
+  flat() {
+    const flattened: StoryTreeNode[] = [];
+    for (const {node} of this) {
+      if (Object.keys(node.children).length === 0) {
+        flattened.push(node);
+      }
+    }
+    return flattened;
   }
 }
 
@@ -196,7 +198,11 @@ function inferComponentPath(path: string): string {
 
 export function useStoryTree(
   files: string[],
-  options: {query: string; representation: 'filesystem' | 'category'}
+  options: {
+    query: string;
+    representation: 'filesystem' | 'category';
+    type?: 'flat' | 'nested';
+  }
 ) {
   const location = useLocation();
   const initialName = useRef(location.query.name);
@@ -364,8 +370,14 @@ export function useStoryTree(
 
     return Object.values(root.children);
   }, [tree, options.query, options.representation]);
+  const result = useMemo(() => {
+    if (options.type === 'flat') {
+      return nodes.flatMap(node => node.flat(), 1);
+    }
+    return nodes;
+  }, [nodes, options.type]);
 
-  return nodes;
+  return result;
 }
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
@@ -396,6 +408,16 @@ export function StoryTree({nodes, ...htmlProps}: Props) {
 
 function Folder(props: {node: StoryTreeNode}) {
   const [expanded, setExpanded] = useState(props.node.expanded);
+  const location = useLocation();
+  const hasActiveChild = useMemo(() => {
+    const child = props.node.find(n => n.filesystemPath === location.query.name);
+    return !!child;
+  }, [location, props.node]);
+
+  if (hasActiveChild && !props.node.expanded) {
+    props.node.expanded = true;
+    setExpanded(true);
+  }
 
   if (props.node.expanded !== expanded) {
     setExpanded(props.node.expanded);
@@ -418,8 +440,8 @@ function Folder(props: {node: StoryTreeNode}) {
           setExpanded(props.node.expanded);
         }}
       >
+        <Flex flex={1}>{normalizeFilename(props.node.name)}</Flex>
         <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-        {normalizeFilename(props.node.name)}
       </FolderName>
       {expanded && Object.keys(props.node.children).length > 0 && (
         <StoryList>
@@ -442,7 +464,6 @@ function Folder(props: {node: StoryTreeNode}) {
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
   const query = qs.stringify({...location.query, name: props.node.filesystemPath});
-  const category = props.node.path.split('/').at(1) ?? 'default';
 
   return (
     <li>
@@ -450,37 +471,15 @@ function File(props: {node: StoryTreeNode}) {
         to={`/stories/?${query}`}
         active={location.query.name === props.node.filesystemPath}
       >
-        <StoryIcon category={category} />
-        {/* @TODO (JonasBadalic): Do we need to show the file extension? */}
         {normalizeFilename(props.node.name)}
       </FolderLink>
     </li>
   );
 }
 
-function StoryIcon(props: {
-  category: 'components' | 'icons' | 'styles' | 'utils' | 'views' | (string & {});
-}) {
-  const iconProps: SVGIconProps = {size: 'xs'};
-  switch (props.category) {
-    case 'components':
-      return <IconGrid {...iconProps} />;
-    case 'icons':
-      return <IconExpand {...iconProps} />;
-    case 'styles':
-      return <IconCircle {...iconProps} />;
-    case 'utils':
-      return <IconCode {...iconProps} />;
-    case 'views':
-      return <IconNumber {...iconProps} />;
-    default:
-      return <IconFile {...iconProps} />;
-  }
-}
-
 const StoryList = styled('ul')`
   list-style-type: none;
-  padding-left: 10px;
+  padding-left: 16px;
 
   &:first-child {
     padding-left: 0;
@@ -491,20 +490,23 @@ const FolderName = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.5)};
+  padding: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
+  color: ${p => p.theme.tokens.content.muted};
   cursor: pointer;
   position: relative;
 
   &:before {
-    background: ${p => p.theme.surface100};
+    background: ${p => p.theme.gray100};
     content: '';
-    inset: 0px 0px 0px -100%;
+    inset: 0 ${space(0.25)} 0 -${space(0.25)};
     position: absolute;
     z-index: -1;
+    border-radius: ${p => p.theme.borderRadius};
     opacity: 0;
   }
 
   &:hover {
+    color: ${p => p.theme.tokens.content.primary};
     &:before {
       opacity: 1;
     }
@@ -516,25 +518,53 @@ const FolderLink = styled(Link, {
 })<{active: boolean}>`
   display: flex;
   align-items: center;
-  margin-left: ${space(0.5)};
-  gap: ${space(0.75)};
-  color: ${p => p.theme.textColor};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.5)};
+  gap: ${space(0.5)};
+  color: ${p =>
+    p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.muted};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.75)};
   position: relative;
+  transition: none;
 
   &:before {
-    background: ${p => p.theme.surface100};
+    background: ${p =>
+      p.theme.isChonk ? (p.theme as any).colors.blue100 : p.theme.blue100};
     content: '';
-    inset: 0px 0px 0px -100%;
+    inset: 0 ${space(1)} 0 -${space(0.25)};
     position: absolute;
     z-index: -1;
+    border-radius: ${p => p.theme.borderRadius};
     opacity: ${p => (p.active ? 1 : 0)};
+    transition: none;
+  }
+
+  &:after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    height: 20px;
+    background: ${p => p.theme.tokens.graphics.accent};
+    width: 4px;
+    border-radius: ${p => p.theme.borderRadius};
+    opacity: ${p => (p.active ? 1 : 0)};
+    transition: none;
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p =>
+      p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
 
     &:before {
+      background: ${p => (p.active ? p.theme.blue100 : p.theme.gray100)};
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    color: ${p =>
+      p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+
+    &:before {
+      background: ${p => (p.active ? p.theme.blue200 : p.theme.gray200)};
       opacity: 1;
     }
   }
