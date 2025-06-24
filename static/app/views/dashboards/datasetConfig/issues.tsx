@@ -13,10 +13,7 @@ import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onD
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {IssuesSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
-import {
-  ISSUE_FIELD_TO_HEADER_MAP,
-  ISSUE_FIELDS,
-} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {ISSUE_FIELD_TO_HEADER_MAP} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
@@ -169,11 +166,7 @@ export function transformIssuesResponseToTable(
       transformedTableResults.push(transformedTableResult);
     }
   );
-
-  return {
-    data: transformedTableResults,
-    meta: {fields: ISSUE_FIELDS},
-  };
+  return {data: transformedTableResults} as TableData;
 }
 
 function getTableRequest(

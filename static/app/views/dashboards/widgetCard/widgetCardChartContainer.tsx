@@ -161,7 +161,7 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
-                tableResults={tableResults}
+                transformedResults={tableResults?.[0]!.data ?? []}
                 loading={loading}
                 errorMessage={errorOrEmptyMessage}
                 widget={widget}
