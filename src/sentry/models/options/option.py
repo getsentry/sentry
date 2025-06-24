@@ -36,7 +36,7 @@ class BaseOption(OverwritableConfigMixin, Model):
     class Meta:
         abstract = True
 
-    value = PickledObjectField()
+    value = PickledObjectField(null=True)
 
     __repr__ = sane_repr("key", "value")
 
