@@ -173,6 +173,8 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
   const spans = useMemo(() => {
     return nodes.filter(node => isEAPSpanNode(node));
   }, [nodes]);
+  const projectIds = spans.map(span => span.value.project_id);
+
   const spanAttributesRequest = useEAPSpans(
     {
       search: `span_id:[${spans.map(span => span.value.event_id).join(',')}]`,
@@ -181,9 +183,19 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
         keyToTag(AI_MODEL_ID_ATTRIBUTE, 'string'),
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
         keyToTag(AI_TOOL_NAME_ATTRIBUTE, 'string'),
-        keyToTag(AI_AGENT_NAME_ATTRIBUTE, 'string'),
       ] as EAPSpanProperty[],
       limit: 100,
+      // Pass custom values as the page filters are not available in the trace view
+      pageFilters: {
+        projects: projectIds,
+        environments: [],
+        datetime: {
+          period: '90d',
+          start: null,
+          end: null,
+          utc: true,
+        },
+      },
     },
     Referrer.TRACE_DRAWER
   );
