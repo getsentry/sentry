@@ -46,7 +46,11 @@ describe('TokensPage', () => {
           /View the list of tokens created for your repositories in/
         )
       ).toBeInTheDocument();
-      expect(screen.getByText('test-org')).toBeInTheDocument();
+
+      const descriptionElement = screen.getByText(
+        /View the list of tokens created for your repositories in/
+      );
+      expect(descriptionElement).toHaveTextContent('test-org');
       expect(
         screen.getByText(
           /Use them for uploading reports to all Sentry Prevent's features./
@@ -99,6 +103,7 @@ describe('TokensPage', () => {
         name: 'regenerate token',
       });
       await userEvent.click(regenerateButton);
+      // Note: Currently the onClick handler is empty, so this test just ensures the button is clickable
     });
   });
 });
