@@ -4269,7 +4269,7 @@ describe('SearchQueryBuilder', function () {
             render(
               <SearchQueryBuilder
                 {...defaultProps}
-                initialQuery="browser.name:[*firefox*,*chrome*]"
+                initialQuery="browser.name:[*firefox*,*chrome*,*random*value*]"
                 onChange={mockOnChange}
               />,
               {organization: {features: ['search-query-builder-wildcard-operators']}}
@@ -4285,14 +4285,26 @@ describe('SearchQueryBuilder', function () {
 
             expect(
               within(
-                screen.getByRole('row', {name: 'browser.name:[*firefox*,*chrome*]'})
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
               ).getByText('firefox')
             ).toBeInTheDocument();
 
             expect(
               within(
-                screen.getByRole('row', {name: 'browser.name:[*firefox*,*chrome*]'})
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
               ).getByText('chrome')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
+              ).getByText('random*value')
             ).toBeInTheDocument();
           });
         });

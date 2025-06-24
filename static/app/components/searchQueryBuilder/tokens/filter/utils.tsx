@@ -138,7 +138,7 @@ export function formatFilterValue({
   switch (token.type) {
     case Token.VALUE_TEXT: {
       const content = token.value ? token.value : token.text;
-      const cleanedContent = allContains ? content.replace(/\*/g, '') : content;
+      const cleanedContent = allContains ? content.replace(/^\*+|\*+$/g, '') : content;
 
       if (!token.value) {
         return cleanedContent;
