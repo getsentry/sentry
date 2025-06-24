@@ -43,6 +43,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ):
         super().__init__()
 
+        self.rebalancing_count = 0
+
         # config
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
@@ -60,6 +62,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        self.rebalancing_count += 1
+        sentry_sdk.set_tag("sentry_spans_rebalancing_count", str(self.rebalancing_count))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "consumer")
 
         committer = CommitOffsets(commit)
