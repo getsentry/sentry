@@ -33,13 +33,16 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
 
     is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
     if is_rate_limited:
-        sentry_sdk.set_tags(
-            {
+        logger.warning(
+            "Seer scanner auto-trigger rate limit hit",
+            extra={
+                "org_slug": group.organization.slug,
+                "project_slug": project.slug,
+                "group_id": group.id,
                 "scanner_run_count": current,
                 "scanner_run_limit": limit,
-            }
+            },
         )
-        logger.error("Seer scanner auto-trigger rate limit hit")
         return None
 
     from sentry import quotas

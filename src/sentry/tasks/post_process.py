@@ -1619,13 +1619,16 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
     if is_rate_limited:
-        sentry_sdk.set_tags(
-            {
+        logger.warning(
+            "Seer scanner auto-trigger rate limit hit",
+            extra={
+                "org_slug": group.organization.slug,
+                "project_slug": project.slug,
+                "group_id": group.id,
                 "scanner_run_count": current,
                 "scanner_run_limit": limit,
-            }
+            },
         )
-        logger.error("Seer scanner auto-trigger rate limit hit")
         return
 
     start_seer_automation.delay(group.id)
