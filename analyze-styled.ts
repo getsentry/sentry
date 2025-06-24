@@ -3,18 +3,19 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as ts from 'typescript';
 
-const debugEnabled = false;
+let debugEnabled = false;
 let topN = 10;
 
-const debug = (...args: any[]) => debugEnabled && console.log(...args);
 const log = (...args: any[]) => console.log(...args);
+const debug = (...args: any[]) => debugEnabled && log(...args);
 const fatal = (...args: any[]) => console.error(...args);
 
 // Main execution
 const args = process.argv.slice(2);
 let searchDir: string | null = null;
 let targetFile: string | null = null;
-let components: Set<string> | null = new Set();
+let locations = false;
+let components: Set<string> | null = null;
 
 // Parse arguments
 for (let i = 0; i < args.length; i++) {
@@ -32,9 +33,19 @@ for (let i = 0; i < args.length; i++) {
     const componentsArg = args[i + 1].split(',');
     componentsArg.map(c => c.trim()).forEach(c => components!.add(c));
     i++; // Skip the next argument since we consumed it
+  } else if (args[i] === '-l') {
+    locations = true;
+  } else if (args[i] === '-d') {
+    debugEnabled = true;
   } else if (!searchDir) {
     searchDir = args[i];
   }
+}
+
+if (locations && !components) {
+  process.exit(
+    `❌ Error: -l option requires -c to specify components filter, otherwise it will analyze all styled components and produce a lot of output.`
+  );
 }
 
 // Default to './static/app' if no directory specified
@@ -146,6 +157,9 @@ function analyzeStyledComponents(
           const hasExpressions = expressions.length > 0;
 
           const shouldInclude = components === null || components.has(componentName);
+          // increment here because we want to count all styled components
+          totalStyledComponents++;
+
           if (shouldInclude) {
             styledComponents.push({
               file: fileName,
@@ -205,11 +219,14 @@ function findTsxFiles(dir: string): string[] {
   }
 }
 
-const allStyledComponents: StyledComponent[] = [];
+const styledComponents: StyledComponent[] = [];
 let totalIntrinsic = 0;
-let totalComponents = 0;
+let totalStyledComponents = 0;
+let totalReactComponents = 0;
 let unknownComponents = 0;
-let totalWithExpressions = 0;
+
+const dynamicExpressions = 0;
+const staticExpressions = 0;
 
 for (const file of tsxFiles) {
   try {
@@ -221,43 +238,209 @@ for (const file of tsxFiles) {
       true
     );
 
-    const styledComponents = analyzeStyledComponents(sourceFile, file);
-    allStyledComponents.push(...styledComponents);
+    const result = analyzeStyledComponents(sourceFile, file);
+    styledComponents.push(...result);
 
     // Update counters
-    styledComponents.forEach(sc => {
-      if (sc.componentType === 'component') totalComponents++;
+    result.forEach(sc => {
+      if (sc.componentType === 'component') totalReactComponents++;
       else if (sc.componentType === 'intrinsic') totalIntrinsic++;
       else unknownComponents++;
-      if (sc.hasExpressions) totalWithExpressions++;
     });
   } catch (error) {
     fatal(`❌ Error parsing ${file}:`, (error as Error).message);
   }
 }
 
-// Output results
-log(`📊 Found ${allStyledComponents.length} styled components:\n`);
-log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
-log(`   • React components: ${totalComponents}`);
-log(`   • Unknown components: ${unknownComponents}`);
-log(`   • With dynamic expressions: ${totalWithExpressions}\n`);
+const styledInfo: Record<
+  string,
+  Array<{
+    count: number;
+    expression: StyledComponent;
+    location: string;
+    ruleInfo: Record<string, RuleInfo[]>;
+  }>
+> = {};
 
-const byFile: Record<string, StyledComponent[]> = {};
-allStyledComponents.forEach(sc => {
-  if (!byFile[sc.file]) byFile[sc.file] = [];
-  byFile[sc.file].push(sc);
-});
+type RuleInfo = {
+  dynamic: number;
+  value: string;
+  children?: RuleInfo[];
+};
 
-const mostStyledElements: Record<string, number> = {};
-allStyledComponents.forEach(sc => {
-  mostStyledElements[sc.component] = (mostStyledElements[sc.component] || 0) + 1;
-});
+styledComponents.forEach(sc => {
+  const count = (styledInfo[sc.component]?.length ?? 0) + 1;
+  styledInfo[sc.component] = styledInfo[sc.component] || [];
 
-log(`📂 Top 10 files with most styled components:\n`);
-Object.entries(mostStyledElements)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, topN)
-  .forEach(([component, count]) => {
-    log(`   • ${component}: ${count} styled components`);
+  const ruleInfo: Record<string, RuleInfo[]> = {};
+
+  for (const line of sc.cssRules.split('\n')) {
+    if (
+      line.match(/^\s*$/) ||
+      line.trim() === '`' ||
+      line.match(/^\s*}/) ||
+      line.match(/^\s*\/\*.*\*\/\s*$/)
+    ) {
+      continue;
+    }
+
+    if (line.match(/^\s*[>&]/)) {
+      const subSelector = line.match(/^\s*([>&])/)?.[1] || 'unknown sub selector';
+      ruleInfo[subSelector] = ruleInfo[subSelector] || [];
+      ruleInfo[subSelector].push({
+        value: line,
+        dynamic: 0,
+      });
+      continue;
+    }
+
+    if (line.match(/^\s*@media/) || line.match(/^\s*@container/)) {
+      const mediaQuery = '@media';
+      ruleInfo[mediaQuery] = ruleInfo[mediaQuery] || [];
+      ruleInfo[mediaQuery].push({
+        value: line,
+        dynamic: 0,
+      });
+      continue;
+    }
+
+    let [property, value] = line.split(':');
+    property = property?.trim();
+    value = value?.trim();
+
+    if (property && value) {
+      ruleInfo[property] = ruleInfo[property] || [];
+      ruleInfo[property].push({
+        value,
+        dynamic: (value.match(/\$\{[^}]+\}/g) || []).length,
+      });
+    } else {
+      debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
+      ruleInfo['parsing error'] = ruleInfo['parsing error'] || [];
+      ruleInfo['parsing error'].push({
+        value: line,
+        dynamic: 0,
+      });
+    }
+  }
+
+  styledInfo[sc.component].push({
+    count,
+    location: `${sc.file}:${sc.location.line}:${sc.location.column}`,
+    expression: sc,
+    ruleInfo,
   });
+});
+
+log(' ');
+// Output results
+log(`📊 Found ${totalStyledComponents} styled components:\n`);
+log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
+log(`   • React components: ${totalReactComponents}`);
+log(`   • Unknown components: ${unknownComponents}`);
+log(`   • Total files analyzed: ${tsxFiles.length}`);
+
+log(` `);
+log(`📄 Types of expressions:`);
+log(` `);
+log(
+  `   • Dynamic expressions per styled component: ~${(dynamicExpressions / totalStyledComponents).toFixed(2)}`
+);
+log(
+  `   • Static expressions per styled component: ~${(staticExpressions / totalStyledComponents).toFixed(2)}`
+);
+const totalExpressions = (dynamicExpressions || 0) + (staticExpressions || 0);
+const dynamicRatio =
+  totalExpressions > 0 ? (dynamicExpressions || 0) / totalExpressions : 0;
+const staticRatio =
+  totalExpressions > 0 ? (staticExpressions || 0) / totalExpressions : 0;
+
+log(`   • Total expressions: ${totalExpressions}`);
+log(
+  `   • Dynamic/Static ratio: ${(dynamicRatio * 100).toFixed(1)}% / ${(staticRatio * 100).toFixed(1)}%`
+);
+
+log(' ');
+
+log(`📂 Top ${topN} most styled components:\n`);
+console.table(
+  Object.entries(styledInfo)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, topN)
+
+    .map(([component, info]) => {
+      const pct = (info.length / totalStyledComponents) * 100;
+      return {
+        Component: component,
+        'Styled Components': info.length,
+        '% of Total': pct < 1 ? '<1%' : `${pct.toFixed(1)}%`,
+      };
+    })
+);
+
+if (locations) {
+  log('\n📍 Locations of styled components:\n');
+  for (const [component, info] of Object.entries(styledInfo)) {
+    log(` ${component}:\n  • ${info.map(n => n.location).join('\n  • ')}`);
+  }
+}
+
+const commonRules: Record<string, number> = {};
+
+for (const [_, info] of Object.entries(styledInfo)) {
+  for (const rule of info) {
+    for (const [property, value] of Object.entries(rule.ruleInfo)) {
+      commonRules[property] = (commonRules[property] || 0) + value.length;
+    }
+  }
+}
+
+console.table(
+  Object.entries(commonRules)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 40)
+    .map(([property, count]) => ({
+      Property: property,
+      Count: count,
+      '% of Total': ((count / totalStyledComponents) * 100).toFixed(2) + '%',
+    }))
+);
+
+function searchForDivsWithOnlyFlexRules() {
+  const flexRules = new Set([
+    'flex',
+    'flex-direction',
+    'flex-wrap',
+    'justify-content',
+    'align-items',
+    'align-content',
+    'gap',
+  ]);
+
+  for (const key in styledInfo) {
+    if (key === 'div') {
+      const divs = styledInfo[key];
+
+      for (const div of divs) {
+        let hasNonFlexRules = false;
+
+        if (!div.ruleInfo) {
+          continue;
+        }
+
+        for (const rule of Object.keys(div.ruleInfo)) {
+          if (!flexRules.has(rule)) {
+            hasNonFlexRules = true;
+            break;
+          }
+        }
+
+        if (!hasNonFlexRules) {
+          console.log('Found div with only flex rules:', div.location);
+        }
+      }
+    }
+  }
+}
+
+searchForDivsWithOnlyFlexRules();
