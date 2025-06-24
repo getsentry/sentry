@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Protocol
 
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -20,7 +20,9 @@ class NotificationRenderer[RenderableT](Protocol):
     provider_key: NotificationProviderKey
 
     @classmethod
-    def render(self, *, data: NotificationData, template: NotificationTemplate[Any]) -> RenderableT:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> RenderableT:
         """
         Convert template, and data into a renderable object.
         The form of the renderable object is defined by the provider.

@@ -21,9 +21,9 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     provider_key = NotificationProviderKey.MSTEAMS
 
     @classmethod
-    def render(
-        self, *, data: NotificationData, template: NotificationTemplate[NotificationData]
-    ) -> MSTeamsRenderable:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> MSTeamsRenderable:
         return {}
 
 

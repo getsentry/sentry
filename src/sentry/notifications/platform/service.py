@@ -1,5 +1,5 @@
 import logging
-from typing import Final, cast
+from typing import Final
 
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.target import prepare_targets
@@ -49,24 +49,10 @@ class NotificationService[T: NotificationData]:
 
         # Step 4: Render the template
         renderer = provider.get_renderer(category=self.data.category)
-        # TODO(ecosystem): Figure out a way to get rid of this cast.
-        renderable = renderer.render(
-            data=self.data, template=cast(NotificationTemplate[NotificationData], template)
-        )
+        renderable = renderer.render(data=self.data, template=template)
 
         # Step 5: Send the notification
         provider.send(target=target, renderable=renderable)
-        logger.info(
-            "notify.%s.%s",
-            self.data.category.value,
-            target.provider_key.value,
-            extra={
-                "resource_type": target.resource_type.value,
-                "template_cls": template.__class__.__name__,
-                "renderer_cls": renderer.__class__.__name__,
-                "data_cls": self.data.__class__.__name__,
-            },
-        )
 
     def notify(
         self,

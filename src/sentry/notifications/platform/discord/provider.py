@@ -21,9 +21,9 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
     provider_key = NotificationProviderKey.DISCORD
 
     @classmethod
-    def render(
-        self, *, data: NotificationData, template: NotificationTemplate[NotificationData]
-    ) -> DiscordRenderable:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> DiscordRenderable:
         return {}
 
 
