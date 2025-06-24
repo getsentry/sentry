@@ -400,14 +400,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
 export const agentMonitoringOnboarding: OnboardingConfig = {
   introduction: () => (
     <Alert type="info">
-      {tct(
-        'Agent Monitoring is currently in beta with OpenAI Agents support only. Alternatively, you can [link:manually instrument your code].',
-        {
-          link: (
-            <ExternalLink href="https://develop.sentry.dev/sdk/telemetry/traces/span-data-conventions/#ai" />
-          ),
-        }
-      )}
+      {t('Agent Monitoring is currently in beta with OpenAI Agents support only.')}
     </Alert>
   ),
   install: () => [
