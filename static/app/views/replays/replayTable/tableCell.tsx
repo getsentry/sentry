@@ -26,7 +26,6 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -36,6 +35,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
 import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
@@ -306,7 +306,6 @@ function getUserBadgeUser(replay: Props['replay']) {
 
 export function ReplayCell({
   eventView,
-  organization,
   referrer,
   replay,
   referrerTable,
@@ -314,12 +313,12 @@ export function ReplayCell({
   className,
 }: Props & {
   eventView: EventView;
-  organization: Organization;
   referrer: string;
   className?: string;
   isWidget?: boolean;
   referrerTable?: ReferrerTableType;
 }) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
@@ -451,10 +450,8 @@ const SubText = styled('div')`
   gap: ${space(0.25)};
 `;
 
-export function TransactionCell({
-  organization,
-  replay,
-}: Props & {organization: Organization}) {
+export function TransactionCell({replay}: Props) {
+  const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
 

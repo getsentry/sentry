@@ -11,7 +11,6 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
@@ -76,7 +75,6 @@ function ReplayTable({
 }: Props) {
   const routes = useRoutes();
   const location = useLocation();
-  const organization = useOrganization();
 
   const selectedReplayIndex = useSelectedReplayIndex();
 
@@ -206,7 +204,6 @@ function ReplayTable({
                         replay={replay}
                         rowIndex={index}
                         eventView={eventView}
-                        organization={organization}
                         referrer={referrer}
                         referrerTable="main"
                       />
@@ -221,7 +218,6 @@ function ReplayTable({
                         key="slowestTransaction"
                         replay={replay}
                         rowIndex={index}
-                        organization={organization}
                       />
                     );
 
