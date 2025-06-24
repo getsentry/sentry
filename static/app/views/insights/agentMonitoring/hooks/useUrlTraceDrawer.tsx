@@ -53,12 +53,7 @@ export function useUrlTraceDrawer() {
       renderer: Parameters<typeof baseOpenDrawer>[0],
       options?: Parameters<typeof baseOpenDrawer>[1] & {traceSlug?: string}
     ) => {
-      const {
-        traceSlug: optionsTraceSlug,
-        onClose,
-        ariaLabel,
-        ...restOptions
-      } = options || {};
+      const {traceSlug: optionsTraceSlug, onClose, ariaLabel, ...rest} = options || {};
 
       if (optionsTraceSlug) {
         navigate(
@@ -75,7 +70,7 @@ export function useUrlTraceDrawer() {
       }
 
       return baseOpenDrawer(renderer, {
-        ...restOptions,
+        ...rest,
         ariaLabel: ariaLabel || 'Trace Drawer',
         shouldCloseOnLocationChange: nextLocation => {
           return nextLocation.query[TraceDrawerFields.DRAWER_OPEN] !== 'open';
