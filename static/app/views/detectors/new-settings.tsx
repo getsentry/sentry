@@ -34,7 +34,7 @@ import {
   makeMonitorDetailsPathname,
 } from 'sentry/views/detectors/pathnames';
 
-export const friendlyDetectorTypeMap: Record<DetectorType, string> = {
+const friendlyDetectorTypeMap: Record<DetectorType, string> = {
   error: t('Error'),
   metric_issue: t('Metric'),
   uptime_subscription: t('Crons'),
