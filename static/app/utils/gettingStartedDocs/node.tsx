@@ -363,7 +363,9 @@ export const getNodeAgentMonitoringOnboarding = ({
       {tct(
         'Agent Monitoring is currently in beta with Vercel AI SDK support only. Alternatively, you can [link:manually instrument your code].',
         {
-          link: <ExternalLink href="#" />,
+          link: (
+            <ExternalLink href="https://develop.sentry.dev/sdk/telemetry/traces/span-data-conventions/#ai" />
+          ),
         }
       )}
     </Alert>
