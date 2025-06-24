@@ -104,6 +104,7 @@ export const autofixAutomatingTuningField = {
   ],
   saveOnBlur: true,
   saveMessage: t('Automatic Seer settings updated'),
+  visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
 function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
@@ -165,6 +166,9 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
+    visible: ({model}) =>
+      model?.getValue('seerScannerAutomation') === true &&
+      model?.getValue('autofixAutomationTuning') !== 'off',
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -195,49 +199,32 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
       >
-        {({model}) => {
-          const seerScannerAutomation = model.getValue('seerScannerAutomation');
-          const autofixAutomationTuning = model.getValue('autofixAutomationTuning');
-          const showWarning =
-            seerScannerAutomation === false && autofixAutomationTuning !== 'off';
-          return (
-            <JsonForm
-              forms={seerFormGroups}
-              disabled={!canWriteProject}
-              renderHeader={() => (
-                <Fragment>
-                  <Alert type="info" system>
-                    {tct(
-                      "Choose how Seer automates analysis of incoming issues. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.[break][break]You can also [bulklink:configure automation for other projects].",
-                      {
-                        link: (
-                          <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />
-                        ),
-                        spendlink: (
-                          <Link
-                            to={getPricingDocsLinkForEventType(
-                              DataCategoryExact.SEER_AUTOFIX
-                            )}
-                          />
-                        ),
-                        break: <br />,
-                        bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
-                      }
-                    )}
-                  </Alert>
-                  <ProjectPermissionAlert project={project} system />
-                  {showWarning && (
-                    <Alert type="warning" system showIcon>
-                      {t(
-                        'Automatic Issue Scans must be enabled for Issue Fixes to be triggered automatically.'
-                      )}
-                    </Alert>
-                  )}
-                </Fragment>
-              )}
-            />
-          );
-        }}
+        <JsonForm
+          forms={seerFormGroups}
+          disabled={!canWriteProject}
+          renderHeader={() => (
+            <Fragment>
+              <Alert type="info" system>
+                {tct(
+                  "Choose how Seer automates analysis of incoming issues. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.[break][break]You can also [bulklink:configure automation for other projects].",
+                  {
+                    link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+                    spendlink: (
+                      <Link
+                        to={getPricingDocsLinkForEventType(
+                          DataCategoryExact.SEER_AUTOFIX
+                        )}
+                      />
+                    ),
+                    break: <br />,
+                    bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
+                  }
+                )}
+              </Alert>
+              <ProjectPermissionAlert project={project} system />
+            </Fragment>
+          )}
+        />
       </Form>
     </Fragment>
   );

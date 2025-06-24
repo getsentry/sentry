@@ -256,6 +256,7 @@ describe('ProjectSeer', function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium', // Start from medium
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
@@ -344,6 +345,7 @@ describe('ProjectSeer', function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
