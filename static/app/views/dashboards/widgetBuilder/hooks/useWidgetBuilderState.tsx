@@ -624,13 +624,13 @@ export function serializeSorts(sorts: Sort[]): string[] {
 }
 
 function modifiedDecodeSorts(value: QueryValue): Sort[] {
-  const sorts = decodeList(value);
+  const sorts = decodeSorts(value);
 
   return sorts.map((sort): Sort => {
-    if (REVERSED_ORDER_FIELD_SORT_LIST.includes(sort)) {
-      return {field: sort, kind: 'desc'};
+    if (REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)) {
+      return {field: sort.field, kind: 'desc'};
     }
-    return decodeSorts(sort)[0] as Sort;
+    return sort;
   });
 }
 
