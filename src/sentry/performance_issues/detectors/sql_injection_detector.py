@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -18,7 +19,8 @@ from sentry.performance_issues.types import Span
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
 
-SQL_KEYWORDS = [
+# Keywords that are excluded from the detection
+EXCLUDED_KEYWORDS = [
     "SELECT",
     "WHERE",
     "AND",
@@ -44,7 +46,16 @@ SQL_KEYWORDS = [
     "ANY",
     "SOME",
     "EXISTS",
+    "DESC",
+    "ASC",
+    "NULL",
+    "ORDER",
+    "SORT",
+    "EXPAND",
+    "PAGE",
 ]
+
+EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
 
 
 class SQLInjectionDetector(PerformanceDetector):
@@ -93,7 +104,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 continue
             if query_key == query_value:
                 continue
-            if query_value.upper() in SQL_KEYWORDS or query_key.upper() in SQL_KEYWORDS:
+            if query_value.upper() in EXCLUDED_KEYWORDS or query_key.upper() in EXCLUDED_KEYWORDS:
                 continue
             valid_parameters.append(query_pair)
 
@@ -108,12 +119,20 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
 
-        for parameter in self.request_parameters:
-            value = parameter[1]
-            key = parameter[0]
-            if key in description and value in description:
-                description = description.replace(value, "?")
-                vulnerable_parameters.append(key)
+        if "WHERE" not in description.upper():
+            return
+
+        for key, value in self.request_parameters:
+            regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
+            regex_value = rf'(?<![\w.$])"?{re.escape(value)}"?(?![\w.$"])'
+            where_index = description.upper().find("WHERE")
+            if re.search(regex_key, description[where_index:]) and re.search(
+                regex_value, description[where_index:]
+            ):
+                description = description[:where_index] + re.sub(
+                    regex_value, "?", description[where_index:]
+                )
+                vulnerable_parameters.append((key, value))
 
         if len(vulnerable_parameters) == 0:
             return
@@ -134,7 +153,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_parameters": list(set(vulnerable_parameters)),
+                "vulnerable_parameters": vulnerable_parameters,
                 "request_url": self.request_url,
             },
             evidence_display=[
@@ -174,6 +193,17 @@ class SQLInjectionDetector(PerformanceDetector):
         if description[:6].upper() != "SELECT":
             return False
 
+        return True
+
+    @classmethod
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
+        packages = event.get("modules", {})
+        if not packages or not isinstance(packages, dict):
+            return True
+        # Filter out events with packages known to internally escape inputs
+        for package_name in packages.keys():
+            if package_name in EXCLUDED_PACKAGES:
+                return False
         return True
 
     def _fingerprint(self, description: str) -> str:
