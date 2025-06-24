@@ -195,7 +195,7 @@
     "eslint-config-prettier": "^10.1.2",
     "eslint-import-resolver-typescript": "^3.8.3",
     "eslint-plugin-boundaries": "^5.0.1",
-    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jest": "^28.11.0",
     "eslint-plugin-jest-dom": "^5.5.0",
     "eslint-plugin-mdx": "^3.4.2",
