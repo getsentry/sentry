@@ -1,7 +1,9 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,22 +25,21 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
+import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
-import EventWaiter from 'sentry/utils/eventWaiter';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -47,42 +48,69 @@ function useOnboardingProject() {
     pageFilters.selection.projects,
     projects
   );
+  const agentMonitoringProjects = selectedProject.filter(p =>
+    agentMonitoringPlatforms.has(p.platform as PlatformKey)
+  );
+
+  if (agentMonitoringProjects.length > 0) {
+    return agentMonitoringProjects[0];
+  }
   return selectedProject[0];
 }
 
-function WaitingIndicator({
-  project,
-  hasProfile,
-}: {
-  hasProfile: boolean;
-  project: Project;
-}) {
-  const organization = useOrganization();
+function useAiSpanWaiter(project: Project) {
+  const {selection} = usePageFilters();
+  const [refetchKey, setRefetchKey] = useState(0);
 
-  const {data} = useProfileEvents({
-    fields: ['profile.id', 'timestamp'],
-    limit: 1,
-    referrer: 'profiling-onboarding',
-    sort: {
-      key: 'timestamp',
-      order: 'desc',
+  const request = useEAPSpans(
+    {
+      search: 'span.op:"gen_ai.*"',
+      fields: ['id'],
+      limit: 1,
+      enabled: !!project,
+      useQueryOptions: {
+        additonalQueryKey: [`refetch-${refetchKey}`],
+      },
+      pageFilters: {
+        ...selection,
+        projects: [Number(project.id)],
+        datetime: {
+          period: '6h',
+          utc: true,
+          start: null,
+          end: null,
+        },
+      },
     },
-    enabled: hasProfile,
-  });
+    Referrer.ONBOARDING
+  );
 
-  const profileId = data?.data[0]?.['profile.id']?.toString();
+  const hasEvents = Boolean(request.data?.length);
 
-  return profileId ? (
-    <LinkButton
-      priority="primary"
-      to={generateProfileFlamechartRoute({
-        organization,
-        projectSlug: project.slug,
-        profileId,
-      })}
-    >
-      {t('Take me to my profile')}
-    </LinkButton>
+  // Create a custom key that changes every 5 seconds to trigger refetch
+  // TODO(aknaus): remove this and add refetchInterval to useEAPSpans
+  useEffect(() => {
+    if (hasEvents) return () => {};
+
+    const interval = setInterval(() => {
+      setRefetchKey(prev => prev + 1);
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [hasEvents]);
+
+  return request;
+}
+
+function WaitingIndicator({project}: {project: Project}) {
+  const spanRequest = useAiSpanWaiter(project);
+  const {reloadProjects, fetching} = useProjects();
+  const hasEvents = Boolean(spanRequest.data?.length);
+
+  return hasEvents ? (
+    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
+      {t('View Agent Monitoring')}
+    </Button>
   ) : (
     <EventWaitingIndicator />
   );
@@ -90,19 +118,18 @@ function WaitingIndicator({
 
 function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
   const subConfigurations = configuration.configurations ?? [];
+
   return (
     <ConfigurationWrapper>
       {configuration.description && (
         <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
       )}
-      {configuration.code ? (
-        Array.isArray(configuration.code) ? (
-          <TabbedCodeSnippet tabs={configuration.code} />
-        ) : (
-          <OnboardingCodeSnippet language={configuration.language}>
-            {configuration.code}
-          </OnboardingCodeSnippet>
-        )
+      {Array.isArray(configuration.code) && configuration.code.length > 0 ? (
+        <TabbedCodeSnippet tabs={configuration.code} />
+      ) : typeof configuration.code === 'string' ? (
+        <OnboardingCodeSnippet language={configuration.language}>
+          {configuration.code}
+        </OnboardingCodeSnippet>
       ) : null}
       {subConfigurations.map((subConfiguration, index) => (
         <ConfigurationRenderer key={index} configuration={subConfiguration} />
@@ -123,28 +150,16 @@ function StepRenderer({
   project: Project;
   step: StepProps;
 }) {
-  const {type, title} = step;
-  const api = useApi();
-  const organization = useOrganization();
-
   return (
-    <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
+    <GuidedSteps.Step
+      stepKey={step.type || step.title}
+      title={step.title || (step.type && StepTitles[step.type])}
+    >
       <ConfigurationRenderer configuration={step} />
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
-        {isLastStep && (
-          <EventWaiter
-            api={api}
-            organization={organization}
-            project={project}
-            eventType="profile"
-          >
-            {({firstIssue}) => (
-              <WaitingIndicator project={project} hasProfile={!!firstIssue} />
-            )}
-          </EventWaiter>
-        )}
+        {isLastStep && <WaitingIndicator project={project} />}
       </GuidedSteps.ButtonWrapper>
       {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
       {isLastStep && <PulseSpacer />}
@@ -166,26 +181,24 @@ function OnboardingPanel({
           <div>
             <HeaderWrapper>
               <HeaderText>
-                <Title>{t('Find Slow Code')}</Title>
+                <Title>{t('Monitor AI Agents')}</Title>
                 <SubTitle>
                   {t(
-                    'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
+                    'Get comprehensive visibility into your AI agents and LLM applications to understand performance, costs, and user interactions.'
                   )}
                 </SubTitle>
                 <BulletList>
                   <li>
+                    {t('Track token usage, costs, and latency across all your LLM calls')}
+                  </li>
+                  <li>
                     {t(
-                      'Find and optimize resource-intensive code paths that cause excessive infrastructure cost for running your backend services'
+                      'Monitor agent conversations, tool usage, and decision-making processes'
                     )}
                   </li>
                   <li>
                     {t(
-                      'Debug unresponsive interactions and janky scrolling in your mobile and browser apps'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Augment traces & spans with function-level visibility into the code that is causing increased latency'
+                      'Debug failed requests and optimize prompt performance with detailed traces'
                     )}
                   </li>
                 </BulletList>
@@ -198,7 +211,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
                 <Arcade
-                  src="https://app.arcade.software/share/IebjOcBKpUHBuFpfGO4f?embed"
+                  src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
                   loading="lazy"
                   allowFullScreen
                 />
@@ -230,21 +243,11 @@ export function Onboarding() {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const doesSupportProfiling = currentPlatform
-    ? profilingPlatforms.includes(currentPlatform.id)
-    : false;
-
-  const profilingDocs = docs?.profilingOnboarding;
-
   if (!project) {
     return <div>{t('No project found')}</div>;
   }
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (!currentPlatform || !doesSupportProfiling) {
+  if (!agentMonitoringPlatforms.has(project.platform as PlatformKey)) {
     return (
       <OnboardingPanel project={project}>
         <DescriptionWrapper>
@@ -254,32 +257,30 @@ export function Onboarding() {
               {platform: currentPlatform?.name || project.slug}
             )}
           </p>
-          <LinkButton size="sm" href="https://docs.sentry.io/product/profiling/" external>
-            {t('Go to Documentation')}
-          </LinkButton>
         </DescriptionWrapper>
       </OnboardingPanel>
     );
   }
 
-  if (!profilingDocs || !dsn || !projectKeyId) {
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  const agentMonitoringDocs = docs?.agentMonitoringOnboarding;
+
+  if (!agentMonitoringDocs || !dsn || !projectKeyId) {
     return (
       <OnboardingPanel project={project}>
         <DescriptionWrapper>
           <p>
             {tct(
-              'Fiddlesticks. The profiling onboarding checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
+              "The agent monitoring onboarding checklist isn't available for your [project] project yet, but you can still set up the Sentry SDK to start monitoring your AI agents.",
               {project: project.slug}
             )}
           </p>
           <LinkButton
             size="sm"
-            href={
-              // TODO(aknaus): Go does not have profiling docs yet, so we redirect to the general profiling docs. Remove this once Go has docs.
-              currentPlatform.id === 'go'
-                ? 'https://docs.sentry.io/product/profiling/getting-started/'
-                : `${currentPlatform.link}/profiling/`
-            }
+            href="https://docs.sentry.io/product/insights/agent-monitoring/"
             external
           >
             {t('Go to Documentation')}
@@ -299,34 +300,28 @@ export function Onboarding() {
     projectSlug: project.slug,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
-    isProfilingSelected: true,
+    isProfilingSelected: false,
     isReplaySelected: false,
     sourcePackageRegistries: {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     docsLocation: DocsPageLocation.PROFILING_PAGE,
-    profilingOptions: {
-      defaultProfilingMode: organization.features.includes('continuous-profiling')
-        ? 'continuous'
-        : 'transaction',
-    },
     newOrg: false,
     urlPrefix,
     isSelfHosted,
   };
 
-  const introduction = profilingDocs.introduction?.(docParams);
+  const introduction = agentMonitoringDocs.introduction?.(docParams);
 
   const steps = [
-    ...profilingDocs.install(docParams),
-    ...profilingDocs.configure(docParams),
-    // TODO(aknaus): Move into snippets once all have profiling docs
+    ...(agentMonitoringDocs.install?.(docParams) || []),
+    ...(agentMonitoringDocs.configure?.(docParams) || []),
     {
       type: StepType.VERIFY,
       description: t(
-        'Verify that profiling is working correctly by simply using your application.'
+        'Verify that agent monitoring is working correctly by triggering some AI agent interactions in your application.'
       ),
     },
   ];
@@ -354,7 +349,7 @@ export function Onboarding() {
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
-    {t("Waiting for this project's first profile")}
+    {t("Waiting for this project's first agent events")}
     <PulsingIndicator />
   </div>
 ))`
@@ -448,6 +443,14 @@ const Body = styled('div')`
   }
 `;
 
+const Arcade = styled('iframe')`
+  width: 750px;
+  max-width: 100%;
+  margin-top: ${space(3)};
+  height: 522px;
+  border: 0;
+`;
+
 const Image = styled('img')`
   display: block;
   pointer-events: none;
@@ -466,14 +469,6 @@ const Divider = styled('hr')`
   border: none;
   margin-top: 0;
   margin-bottom: 0;
-`;
-
-const Arcade = styled('iframe')`
-  width: 750px;
-  max-width: 100%;
-  margin-top: ${space(3)};
-  height: 522px;
-  border: 0;
 `;
 
 const CONTENT_SPACING = space(1);

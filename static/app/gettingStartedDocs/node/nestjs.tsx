@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -282,6 +283,9 @@ const docs: Docs = {
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
+    basePackage: '@sentry/nestjs',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: '@sentry/nestjs',
   }),
 };

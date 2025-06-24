@@ -1,3 +1,4 @@
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -350,4 +351,99 @@ Sentry.profiler.stopProfiler();
       ),
     },
   ],
+});
+
+export const getNodeAgentMonitoringOnboarding = ({
+  basePackage = '@sentry/node',
+}: {
+  basePackage?: string;
+} = {}): OnboardingConfig => ({
+  introduction: () => (
+    <Alert type="info">
+      {t('Agent Monitoring is currently in beta with Vercel AI SDK support only.')}
+    </Alert>
+  ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:9.30.0].',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage,
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
+        {
+          code: <code />,
+          link: (
+            <ExternalLink href="https://develop.sentry.dev/sdk/telemetry/traces/span-data-conventions/#ai" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'Javascript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the Vercel AI SDK integration
+    Sentry.vercelAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+});`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'To correctly capture spans, pass the [code:experimental_telemetry] object with [code:isEnabled: true] to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+              ),
+            }
+          ),
+          code: [
+            {
+              label: 'Javascript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai("gpt-4o"),
+  prompt: "Tell me a joke",
+  experimental_telemetry: {
+    isEnabled: true,
+  },
+});`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
 });

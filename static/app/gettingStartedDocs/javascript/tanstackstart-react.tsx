@@ -9,6 +9,7 @@ import type {
 import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -453,6 +454,9 @@ const profilingOnboarding = getJavascriptFullStackOnboarding({
 const docs: Docs = {
   onboarding,
   profilingOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: '@sentry/tanstackstart-react',
+  }),
 };
 
 export default docs;

@@ -29,6 +29,7 @@ import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javasc
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -560,6 +561,9 @@ const docs: Docs = {
   crashReportOnboarding,
   featureFlagOnboarding,
   profilingOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: '@sentry/nextjs',
+  }),
 };
 
 export default docs;
