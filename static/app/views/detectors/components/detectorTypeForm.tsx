@@ -10,6 +10,7 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import useProjects from 'sentry/utils/useProjects';
 
 function getDefaultProject(projects: Project[]) {
@@ -95,37 +96,39 @@ function MonitorTypeField() {
       inline={false}
       flexibleControlStateSize
       name="detectorType"
-      choices={[
+      choices={
         [
-          'metric',
-          t('Metric'),
-          <Description
-            key="description"
-            text={t('Monitor error counts, transaction duration, and more!')}
-            visualization={<MetricVisualization />}
-          />,
-        ],
-        [
-          'crons',
-          t('Crons'),
-          <Description
-            key="description"
-            text={t(
-              'Monitor the uptime and performance of any scheduled, recurring jobs.'
-            )}
-            visualization={<CronsVisualization />}
-          />,
-        ],
-        [
-          'uptime',
-          t('Uptime'),
-          <Description
-            key="description"
-            text={t('Monitor the uptime of specific endpoint in your applications.')}
-            visualization={<UptimeVisualization />}
-          />,
-        ],
-      ]}
+          [
+            'metric_issue',
+            t('Metric'),
+            <Description
+              key="description"
+              text={t('Monitor error counts, transaction duration, and more!')}
+              visualization={<MetricVisualization />}
+            />,
+          ],
+          [
+            'uptime_subscription',
+            t('Crons'),
+            <Description
+              key="description"
+              text={t(
+                'Monitor the uptime and performance of any scheduled, recurring jobs.'
+              )}
+              visualization={<CronsVisualization />}
+            />,
+          ],
+          [
+            'uptime_domain_failure',
+            t('Uptime'),
+            <Description
+              key="description"
+              text={t('Monitor the uptime of specific endpoint in your applications.')}
+              visualization={<UptimeVisualization />}
+            />,
+          ],
+        ] satisfies Array<[DetectorType, string, React.ReactNode]>
+      }
       required
     />
   );
