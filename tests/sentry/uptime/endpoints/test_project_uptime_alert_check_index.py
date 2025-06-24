@@ -1,6 +1,7 @@
-import pytest
 import uuid
 from datetime import datetime, timedelta, timezone
+
+import pytest
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
