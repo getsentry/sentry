@@ -57,7 +57,7 @@ function AiContent() {
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const {onClickTimestamp} = useCrumbHandlers();
   const onClickChapterTimestamp = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>, start: number) => {
+    (event: React.MouseEvent<Element>, start: number) => {
       event.stopPropagation();
       setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
     },
