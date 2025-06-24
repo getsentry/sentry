@@ -129,23 +129,23 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   grid-template-rows: 100%;
   gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding-top: ${p => p.theme.space.md};
   grid-row: 2;
   grid-column: 1 / -1;
   justify-items: start;
-  margin-top: -2px;
+  min-height: 28px;
+  padding-block: ${p => p.theme.space['2xs']};
 
   > svg {
     width: 16px;
     height: 16px;
     display: flex;
     align-items: center;
+    align-self: center;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-row: auto;
-    grid-column: auto;
-    align-items: flex-start;
+    grid-area: auto;
+    align-items: start;
   }
 `;
 
