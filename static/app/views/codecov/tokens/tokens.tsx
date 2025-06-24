@@ -37,11 +37,12 @@ export default function TokensPage() {
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${space(1)};
   max-width: 1200px;
 `;
 
 const HeaderValue = styled('div')`
+  margin-top: ${space(4)};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
