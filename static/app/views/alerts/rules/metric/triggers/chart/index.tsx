@@ -192,6 +192,12 @@ const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
   [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
   [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
 };
+const EAP_HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
+  // EAP allows max 2688 buckets
+  ...HISTORICAL_TIME_PERIOD_MAP,
+  [TimePeriod.SEVEN_DAYS]: '28d',
+  [TimePeriod.FOURTEEN_DAYS]: '28d',
+};
 
 const noop: any = () => {};
 
@@ -678,11 +684,14 @@ class TriggersChart extends PureComponent<Props, State> {
             {...baseProps}
             api={this.historicalAPI}
             period={
-              timeWindow === 5
+              dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
                 ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  HISTORICAL_TIME_PERIOD_MAP[period]!
+                  EAP_HISTORICAL_TIME_PERIOD_MAP[period]!
+                : timeWindow === 5
+                  ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    HISTORICAL_TIME_PERIOD_MAP[period]!
             }
             dataLoadedCallback={onHistoricalDataLoaded}
           >
