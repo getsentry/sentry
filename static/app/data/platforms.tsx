@@ -320,6 +320,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
   },
   {
+    id: 'javascript-react-router-framework',
+    name: 'React Router',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/react-router-framework/',
+  },
+  {
     id: 'javascript-remix',
     name: 'Remix',
     type: 'framework',

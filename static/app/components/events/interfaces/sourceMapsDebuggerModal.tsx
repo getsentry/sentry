@@ -178,6 +178,7 @@ export const projectPlatformToDocsMap: Record<string, string> = {
   'javascript-vue': 'vue',
   'javascript-nextjs': 'nextjs',
   'javascript-nuxt': 'nuxt',
+  'javascript-react-router-framework': 'react-router-framework',
   'javascript-remix': 'remix',
   'javascript-solid': 'solid',
   'javascript-solidstart': 'solidstart',

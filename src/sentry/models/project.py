@@ -105,6 +105,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-gatsby",
     "javascript-nextjs",
     "javascript-react",
+    "javascript-react-router-framework",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",

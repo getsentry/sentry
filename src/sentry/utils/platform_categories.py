@@ -14,6 +14,7 @@ FRONTEND = {
     "javascript-vue",
     "javascript-nuxt",
     "javascript-nextjs",
+    "javascript-react-router-framework",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",
