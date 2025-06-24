@@ -192,9 +192,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
 
 
 class OrganizationTraceSpansSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField(
-        ["spans", "spansIndexed"], required=False, default="spansIndexed"
-    )
+    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
 
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
@@ -453,7 +451,9 @@ class TracesExecutor:
             # This is the first span in this trace.
             traces_default_info[span["trace"]] = name
 
-        def get_trace_info(trace: str) -> tuple[str, str, float] | tuple[None, None, None]:
+        def get_trace_info(
+            trace: str,
+        ) -> tuple[str, str, float] | tuple[None, None, None]:
             if trace in traces_primary_info:
                 return traces_primary_info[trace]
 
