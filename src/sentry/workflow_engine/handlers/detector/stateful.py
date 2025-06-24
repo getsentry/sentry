@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Generic, cast
 from uuid import uuid4
@@ -30,6 +31,8 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
 )
+
+logger = logging.getLogger(__name__)
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 
@@ -332,6 +335,19 @@ class StatefulDetectorHandler(
             updated_threshold_counts = self._increment_detector_thresholds(
                 state_data, evaluated_priority, group_key
             )
+
+            # XXX(epurkhiser): Doing some debugging to understand why it
+            # apperas the thresholds are reached immediately for uptime results
+            if self.detector.type == "uptime_domain_failure":
+                logger.info(
+                    "uptime_debug_logging",
+                    extra={
+                        "packet": data_packet,
+                        "state_data": state_data,
+                        "threshold_counts": updated_threshold_counts,
+                        "thresholds": self._thresholds,
+                    },
+                )
 
             new_priority = self._has_breached_threshold(updated_threshold_counts)
             if new_priority is None:
