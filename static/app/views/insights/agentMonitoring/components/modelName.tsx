@@ -17,8 +17,8 @@ export function ModelName({modelId, provider}: ModelNameProps) {
 
   return (
     <Flex gap={space(1)}>
-      <Flex.Item>{ModelIcon && <ModelIcon size="md" color="textColor" />}</Flex.Item>
-      <Flex.Item>{modelId}</Flex.Item>
+      <div>{ModelIcon && <ModelIcon size="md" color="textColor" />}</div>
+      <div>{modelId}</div>
     </Flex>
   );
 }

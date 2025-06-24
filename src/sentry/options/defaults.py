@@ -601,9 +601,9 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per hour)
+# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per minute)
 register(
-    "seer.max_num_scanner_autotriggered_per_hour", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "seer.max_num_scanner_autotriggered_per_minute", default=50, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Codecov Integration
@@ -1191,7 +1191,7 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
-register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("relay.cardinality-limiter.mode", default="disabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Override to set a list of limits into passive mode by organization.
 #
 # In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
@@ -1206,7 +1206,7 @@ register(
 # Rate needs to be between `0.0` and `1.0`.
 # If set to `1.0` all cardinality limiter rejections will be logged as a Sentry error.
 register(
-    "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "relay.cardinality-limiter.error-sample-rate", default=0.00, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 # List of additional cardinality limits and selectors.
 #

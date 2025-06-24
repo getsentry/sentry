@@ -16,6 +16,7 @@ import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node/awslambdaArnSelector'
 import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -222,6 +223,9 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
+    basePackage: '@sentry/aws-serverless',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: '@sentry/aws-serverless',
   }),
   platformOptions,

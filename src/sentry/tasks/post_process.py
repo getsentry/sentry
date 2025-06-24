@@ -1168,21 +1168,18 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     from sentry.models.projectownership import ProjectOwnership
 
     event = job["event"]
-    try:
-        ProjectOwnership.handle_auto_assignment(
-            project_id=event.project_id,
-            organization_id=event.project.organization_id,
-            event=event,
-            logging_extra={
-                "event_id": event.event_id,
-                "group_id": str(event.group_id),
-                "project_id": str(event.project_id),
-                "organization_id": event.project.organization_id,
-                "source": "post_process",
-            },
-        )
-    except Exception:
-        logger.exception("Failed to set auto-assignment")
+    ProjectOwnership.handle_auto_assignment(
+        project_id=event.project_id,
+        organization_id=event.project.organization_id,
+        event=event,
+        logging_extra={
+            "event_id": event.event_id,
+            "group_id": str(event.group_id),
+            "project_id": str(event.project_id),
+            "organization_id": event.project.organization_id,
+            "source": "post_process",
+        },
+    )
 
 
 def process_service_hooks(job: PostProcessJob) -> None:
@@ -1561,11 +1558,26 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.issue_summary import get_issue_summary_cache_key, get_issue_summary_lock_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]
     group = event.group
+
+    # Only run on new issues or issues with no existing summary/scan
+    if (
+        not job["group_state"]["is_new"]
+        and group.seer_fixability_score is not None
+        and cache.get(get_issue_summary_cache_key(group.id))
+    ):
+        return
+
+    # Check if there's already a task in progress for this issue
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
+    lock = locks.get(lock_key, duration=1, name=lock_name)
+    if lock.locked():
+        return
 
     # check currently supported issue categories for Seer
     if group.issue_category not in [
@@ -1594,19 +1606,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not seer_enabled:
         return
 
-    from sentry.autofix.utils import is_seer_scanner_rate_limited
-
-    is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
-    if is_rate_limited:
-        sentry_sdk.set_tags(
-            {
-                "scanner_run_count": current,
-                "scanner_run_limit": limit,
-            }
-        )
-        logger.error("Seer scanner auto-trigger rate limit hit")
-        return
-
     from sentry import quotas
     from sentry.constants import DataCategory
 
@@ -1614,6 +1613,22 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:
+        return
+
+    from sentry.autofix.utils import is_seer_scanner_rate_limited
+
+    is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
+    if is_rate_limited:
+        logger.warning(
+            "Seer scanner auto-trigger rate limit hit",
+            extra={
+                "org_slug": group.organization.slug,
+                "project_slug": project.slug,
+                "group_id": group.id,
+                "scanner_run_count": current,
+                "scanner_run_limit": limit,
+            },
+        )
         return
 
     start_seer_automation.delay(group.id)

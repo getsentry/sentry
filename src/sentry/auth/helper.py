@@ -21,7 +21,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
@@ -49,7 +48,7 @@ from sentry.organizations.services.organization import (
     RpcOrganizationMemberFlags,
     organization_service,
 )
-from sentry.pipeline import Pipeline
+from sentry.pipeline.base import Pipeline
 from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
@@ -216,7 +215,7 @@ class AuthIdentityHandler:
 
     def _handle_membership(
         self,
-        request: Request,
+        request: HttpRequest,
         organization: RpcOrganization,
         auth_identity: AuthIdentity,
     ) -> tuple[User, RpcOrganizationMember]:
@@ -494,6 +493,23 @@ class AuthIdentityHandler:
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
                 is_account_verified = self.has_verified_account(verification_value)
+                if not is_account_verified:
+                    logger.info(
+                        "sso.login-pipeline.verification-mismatch",
+                        extra={
+                            "verification_user_id": verification_value["user_id"],
+                            "user_id": self.user.id,
+                            "request_user_id": self.request.user.id,
+                        },
+                    )
+            else:
+                logger.info(
+                    "sso.login-pipeline.missing-verification",
+                    extra={
+                        "user_id": self.user.id,
+                        "request_user_id": self.request.user.id,
+                    },
+                )
 
         is_new_account = not self.user.is_authenticated  # stateful
         if self._app_user and (self.identity.get("email_verified") or is_account_verified):

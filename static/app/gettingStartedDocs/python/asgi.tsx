@@ -8,6 +8,7 @@ import {
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  agentMonitoringOnboarding,
   AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
@@ -166,6 +167,7 @@ const docs: Docs = {
 
   crashReportOnboarding: crashReportOnboardingPython,
   profilingOnboarding: getPythonProfilingOnboarding(),
+  agentMonitoringOnboarding,
 };
 
 export default docs;

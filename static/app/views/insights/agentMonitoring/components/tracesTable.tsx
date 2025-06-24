@@ -13,7 +13,6 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
@@ -23,13 +22,13 @@ import {
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
 interface TableData {
-  agentFlow: string;
   duration: number;
   errors: number;
   llmCalls: number;
@@ -37,6 +36,7 @@ interface TableData {
   toolCalls: number;
   totalTokens: number;
   traceId: string;
+  transaction: string;
   isSpanDataLoading?: boolean;
 }
 
@@ -44,7 +44,7 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
-  {key: 'agentFlow', name: t('Agent Flow'), width: COL_WIDTH_UNDEFINED},
+  {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
   {key: 'duration', name: t('Duration'), width: 100},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
@@ -68,8 +68,7 @@ export function TracesTable() {
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
   const tracesRequest = useTraces({
-    dataset: DiscoverDatasets.SPANS_EAP,
-    query: `${getAITracesFilter()}`,
+    query: getAITracesFilter(),
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor:
@@ -92,9 +91,9 @@ export function TracesTable() {
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
       ],
       limit: tracesRequest.data?.data.length ?? 0,
-      enabled: tracesRequest.data && tracesRequest.data.data.length > 0,
+      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
     },
-    'test-traces-table'
+    Referrer.TRACES_TABLE
   );
 
   const spanDataMap = useMemo(() => {
@@ -137,7 +136,7 @@ export function TracesTable() {
 
     return tracesRequest.data.data.map(span => ({
       traceId: span.trace,
-      agentFlow: span.name ?? '',
+      transaction: span.name ?? '',
       duration: span.duration,
       errors: span.numErrors,
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
@@ -152,7 +151,7 @@ export function TracesTable() {
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
-        {column.key === 'agentFlow' && <CellExpander />}
+        {column.key === 'transaction' && <CellExpander />}
       </HeadCell>
     );
   }, []);
@@ -205,8 +204,8 @@ const BodyCell = memo(function BodyCell({
           </Button>
         </span>
       );
-    case 'agentFlow':
-      return dataRow.agentFlow;
+    case 'transaction':
+      return dataRow.transaction;
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':

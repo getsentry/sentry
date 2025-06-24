@@ -65,8 +65,14 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  overflow: hidden;
+  margin-bottom: ${space(1)};
   max-width: 100%;
+
+  ${p =>
+    p.unified &&
+    css`
+      margin-bottom: 0;
+    `}
 `;
 
 /**

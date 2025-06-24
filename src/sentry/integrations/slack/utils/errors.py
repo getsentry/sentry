@@ -14,6 +14,8 @@ class SlackSdkErrorCategory:
 
 SLACK_SDK_ERROR_CATEGORIES = (
     ACCOUNT_INACTIVE := SlackSdkErrorCategory("account_inactive"),
+    USER_NOT_FOUND := SlackSdkErrorCategory("user_not_found"),
+    USER_NOT_VISIBLE := SlackSdkErrorCategory("user_not_visible"),
     CHANNEL_NOT_FOUND := SlackSdkErrorCategory("channel_not_found"),
     CHANNEL_ARCHIVED := SlackSdkErrorCategory("is_archived"),
     MODAL_NOT_FOUND := SlackSdkErrorCategory("not_found"),
