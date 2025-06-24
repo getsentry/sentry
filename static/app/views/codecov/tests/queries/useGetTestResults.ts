@@ -65,7 +65,6 @@ export function useInfiniteTestResults() {
 
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
-  const cursor = searchParams.get('cursor') || undefined;
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -81,7 +80,7 @@ export function useInfiniteTestResults() {
   >({
     queryKey: [
       `/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy, cursor}},
+      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy}},
     ],
     queryFn: async ({
       queryKey: [url],
@@ -98,7 +97,6 @@ export function useInfiniteTestResults() {
               sortBy: signedSortBy,
               branch,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
-              cursor,
             },
           },
         ],

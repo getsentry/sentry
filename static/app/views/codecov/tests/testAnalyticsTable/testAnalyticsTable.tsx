@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -70,9 +69,6 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 interface Props {
   response: {
     data: Row[];
-    fetchNextPage: () => void;
-    hasNextPage: boolean;
-    isFetchingNextPage: boolean;
     isLoading: boolean;
     error?: Error | null;
   };
@@ -85,31 +81,28 @@ export default function TestAnalyticsTable({response, sort}: Props) {
   const wrapToggleValue = searchParams.get('wrap') === 'true';
 
   return (
-    <Fragment>
-      <GridEditable
-        aria-label={t('Test Analytics')}
-        isLoading={isLoading}
-        error={response.error}
-        data={data}
-        columnOrder={COLUMNS_ORDER}
-        // TODO: This isn't used as per the docs but is still required. Test if
-        // it affects sorting when backend is ready.
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
-        grid={{
-          renderHeadCell: column =>
-            renderTableHeader({
-              column,
-              sort,
-            }),
-          renderBodyCell: (column, row) =>
-            renderTableBody({column, row, wrapToggleValue}),
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      aria-label={t('Test Analytics')}
+      isLoading={isLoading}
+      error={response.error}
+      data={data}
+      columnOrder={COLUMNS_ORDER}
+      // TODO: This isn't used as per the docs but is still required. Test if
+      // it affects sorting when backend is ready.
+      columnSortBy={[
+        {
+          key: sort.field,
+          order: sort.kind,
+        },
+      ]}
+      grid={{
+        renderHeadCell: column =>
+          renderTableHeader({
+            column,
+            sort,
+          }),
+        renderBodyCell: (column, row) => renderTableBody({column, row, wrapToggleValue}),
+      }}
+    />
   );
 }
