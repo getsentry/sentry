@@ -2,14 +2,17 @@ from unittest import mock
 
 from google.api_core.exceptions import RetryError
 
+from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.tasks import fetch_event, workflow_status_update_handler
+from tests.sentry.issues.test_status_change_consumer import get_test_message_status_change
 
 
 class FetchEventTests(TestCase):
@@ -34,6 +37,41 @@ class FetchEventTests(TestCase):
 
 
 class IssuePlatformIntegrationTests(TestCase):
+    def test_handler_invoked__when_update_status_called(self):
+        """
+        Integration test to ensure the `update_status` method
+        will correctly invoke the `workflow_status_update_handler`
+        and increment the metric.
+        """
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+        )
+
+        # TODO - figure out how this is normally mocked / created
+        GroupHash.objects.create(
+            project=self.project,
+            hash="a11a9b5bb714a92e5e4a08bbf78ec2db",  # TODO - fix this h4x -- md5 of the fingerprint?
+            group=group,
+        )
+
+        message = get_test_message_status_change(
+            project_id=self.project.id,
+            fingerprint=[f"detector:{detector.id}"],
+            detector_id=detector.id,
+        )
+
+        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+            # call the top level _process_message method with the message
+            _process_message(message)
+
+            mock_incr.assert_called_with(
+                "workflow_engine.process_workflow.activity_update",
+                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+            )
+
     def test_handler_invoked__when_resolved(self):
         """
         Integration test to ensure the `update_status` method
