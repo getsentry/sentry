@@ -579,6 +579,12 @@ def compare_service_signature(
             f"Cannot validate {service_name} RPC request signatures without shared secret"
         )
 
+    # Ensure no empty secrets
+    if any(not secret.strip() for secret in shared_secret_setting):
+        raise RpcAuthenticationSetupException(
+            f"Cannot validate {service_name} RPC request signatures with empty shared secret"
+        )
+
     if not signature.startswith("rpc0:"):
         logger.error("%s RPC signature validation failed: invalid signature prefix", service_name)
         return False
