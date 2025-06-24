@@ -9,7 +9,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
+from sentry.integrations.slack.utils.channel import get_channel_id, validate_slack_entity_id
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import (
     ActionService,
@@ -223,10 +223,10 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:
             try:
-                validate_channel_id(
-                    name=channel_name,
+                validate_slack_entity_id(
                     integration_id=self.integration.id,
-                    input_channel_id=channel_id,
+                    input_name=channel_name,
+                    input_id=channel_id,
                 )
             except Exception as e:
                 # validate_channel_id raises user friendly validation errors!

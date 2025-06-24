@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from uuid import uuid4
 
 import orjson
@@ -284,6 +284,47 @@ class SlackTasksTest(TestCase):
         mock_get_channel_id.assert_called_with(
             serialize_integration(self.integration), "my-channel", 180
         )
+
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    @patch(
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
+        return_value=SlackChannelIdData("#", "channel", False),
+    )
+    @patch(
+        "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.AlertRuleSerializer",
+        side_effect=Exception("something broke!"),
+    )
+    def test_task_encounters_serialization_exception(
+        self, mock_serializer, mock_get_channel_id, mock_set_value
+    ):
+
+        data = self.metric_alert_data()
+        # Ensure this field is removed, to avoid known serialization issue
+        data["triggers"][0]["actions"][0]["inputChannelId"] = ""
+
+        # Catch the exception we've side-effected in the serializer
+        with pytest.raises(Exception, match="something broke!"):
+            with self.tasks():
+                with self.feature(["organizations:incidents"]):
+                    find_channel_id_for_alert_rule(
+                        data=data,
+                        uuid=self.uuid,
+                        organization_id=self.organization.id,
+                        user_id=self.user.id,
+                    )
+
+        assert not AlertRule.objects.filter(name="New Rule").exists()
+        mock_get_channel_id.assert_called_with(
+            serialize_integration(self.integration),
+            data["triggers"][0]["actions"][0]["targetIdentifier"],
+            180,
+        )
+        # Ensure the field has been removed
+        assert "inputChannelId" not in data["triggers"][0]["actions"][0]
+        mock_serializer.assert_called_with(context=ANY, data=data, instance=ANY)
+        # If we failed at serialization, don't stay in pending.
+        mock_set_value.assert_called_with("failed")
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
