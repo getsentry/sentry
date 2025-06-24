@@ -182,9 +182,9 @@ def analyze_recording_segments(
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
 
     # Log when the input string is too large. This is potential for timeout.
-    if len(request_data) > 200000:
+    if len(request_data) > 120000:
         logger.info(
-            "Replay AI summary: input length exceeds 200k.",
+            "Replay AI summary: input length exceeds 120k.",
             extra={"request_len": len(request_data)},
         )
 
