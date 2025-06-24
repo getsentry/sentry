@@ -677,28 +677,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["id"] == rule.id
+        assert deserialized_body["context"]["source_id"] == self.sub.id
         assert deserialized_body["context"]["cur_window"]["value"] == 5
 
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": 5,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
+        self.assert_no_active_incident(rule)  # there is no warning for dynamic alerts
 
         # trigger critical
         seer_return_value_2: DetectAnomaliesResponse = {
@@ -727,7 +711,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["id"] == rule.id
+        assert deserialized_body["context"]["source_id"] == self.sub.id
         assert deserialized_body["context"]["cur_window"]["value"] == 10
 
         self.assert_trigger_counts(processor, trigger, 0, 0)
@@ -774,7 +758,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["id"] == rule.id
+        assert deserialized_body["context"]["source_id"] == self.sub.id
         assert deserialized_body["context"]["cur_window"]["value"] == 1
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)

@@ -52,8 +52,9 @@ def get_anomaly_evaluation_from_workflow_engine(
     evaluation = None
     for result in data_packet_processing_results:
         if result[0] == detector:
-            evaluation = result[1][None]
-            return evaluation.priority == DetectorPriorityLevel.HIGH
+            evaluation = result[1].get("values")
+            if evaluation:
+                return evaluation.priority == DetectorPriorityLevel.HIGH
     return evaluation
 
 

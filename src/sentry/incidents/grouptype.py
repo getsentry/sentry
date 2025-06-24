@@ -100,7 +100,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
     def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
-        return data_packet.packet["values"]["value"]
+        return data_packet.packet["values"]
 
     def construct_title(
         self,

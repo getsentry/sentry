@@ -169,7 +169,7 @@ def get_anomaly_data_from_seer(
     subscription_update: QuerySubscriptionUpdate,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
-    aggregation_value = subscription_update["values"].get("value")
+    aggregation_value = subscription_update.get("value")
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
     if aggregation_value is None:
@@ -196,7 +196,7 @@ def get_anomaly_data_from_seer(
         source_id=source_id,
         source_type=source_type,
         cur_window=TimeSeriesPoint(
-            timestamp=subscription_update["timestamp"].timestamp(), value=aggregation_value
+            timestamp=subscription_update.get("timestamp").timestamp(), value=aggregation_value
         ),
     )
     detect_anomalies_request = DetectAnomaliesRequest(

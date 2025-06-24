@@ -380,12 +380,12 @@ class SubscriptionProcessor:
                         entity=subscription_update.get("entity", ""),
                         subscription_id=subscription_update["subscription_id"],
                         values={
-                            {
+                            "values": {
                                 "value": aggregation_value,
                                 "source_id": str(self.subscription.id),
                                 "subscription_id": subscription_update["subscription_id"],
                                 "timestamp": self.last_update,
-                            }
+                            },
                         },
                         timestamp=self.last_update,
                     )
@@ -449,6 +449,7 @@ class SubscriptionProcessor:
                 ):
                     if not detector:
                         raise ResourceDoesNotExist("Detector not found, cannot evaluate anomaly")
+
                     is_anomalous = get_anomaly_evaluation_from_workflow_engine(detector, results)
                     if is_anomalous is None:
                         # we only care about True and False — None indicates no change

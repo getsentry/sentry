@@ -60,16 +60,16 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         seasonality = comparison["seasonality"]
         threshold_type = comparison["threshold_type"]
 
-        subscription: QuerySubscription = QuerySubscription.objects.get(id=int(update.source_id))
-
-        subscription_update = update.packet
+        subscription: QuerySubscription = QuerySubscription.objects.get(
+            id=int(update.get("source_id"))
+        )
 
         anomaly_data = get_anomaly_data_from_seer(
             sensitivity=sensitivity,
             seasonality=seasonality,
             threshold_type=threshold_type,
             subscription=subscription,
-            subscription_update=subscription_update,
+            subscription_update=update,
         )
         # covers both None and []
         if not anomaly_data:
