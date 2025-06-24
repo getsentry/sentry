@@ -345,6 +345,9 @@ class Project(Model):
         # This Project has sent feature flags
         has_flags: bool
 
+        # This Project has sent insight agent monitoring spans
+        has_insights_agent_monitoring: bool
+
         bitfield_default = 10
         bitfield_null = True
 
