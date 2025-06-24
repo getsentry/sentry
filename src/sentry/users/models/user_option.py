@@ -209,7 +209,7 @@ class UserOption(Model):
     project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete="CASCADE")
     organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
     key = models.CharField(max_length=64)
-    value = PickledObjectField()
+    value = PickledObjectField(null=True)
 
     objects: ClassVar[UserOptionManager] = UserOptionManager()
 
