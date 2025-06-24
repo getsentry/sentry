@@ -27,9 +27,10 @@ import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,6 +38,7 @@ import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
 import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
@@ -305,24 +307,25 @@ function getUserBadgeUser(replay: Props['replay']) {
 }
 
 export function ReplayCell({
-  eventView,
-  referrer,
-  replay,
-  referrerTable,
-  isWidget,
   className,
+  isWidget,
+  referrerTable,
+  replay,
 }: Props & {
-  eventView: EventView;
-  referrer: string;
   className?: string;
   isWidget?: boolean;
   referrerTable?: ReferrerTableType;
 }) {
   const organization = useOrganization();
+
+  const routes = useRoutes();
+  const referrer = getRouteStringFromRoutes(routes);
+  const location = useLocation();
+  const eventView = EventView.fromLocation(location);
+
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
-  const location = useLocation();
   const isIssuesReplayList = location.pathname.includes('issues');
 
   const replayDetailsPathname = makeReplaysPathname({

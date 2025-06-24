@@ -61,11 +61,10 @@ export default function ReplayIndexTable() {
     organization,
     queryReferrer: 'replayList',
   });
-  const {data, isPending, error, getResponseHeader} = useApiQuery<ReplayListRecord[]>(
-    queryKey,
-    {staleTime: 0}
-  );
-  const replays = data?.map<ReplayListRecord>(mapResponseToReplayRecord);
+  const {data, isPending, error, getResponseHeader} = useApiQuery<{
+    data: ReplayListRecord[];
+  }>(queryKey, {staleTime: 0});
+  const replays = data?.data.map<ReplayListRecord>(mapResponseToReplayRecord);
 
   const {allMobileProj} = useAllMobileProj({});
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch(query);
@@ -87,10 +86,11 @@ export default function ReplayIndexTable() {
   return (
     <Fragment>
       <ReplayTable
+        columns={allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB}
         error={error}
         isPending={isPending}
-        columns={allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB}
         replays={replays ?? []}
+        showDropdownFilters
       />
       <Paginate pageLinks={getResponseHeader?.('Link') ?? null} />
     </Fragment>

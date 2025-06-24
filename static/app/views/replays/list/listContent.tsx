@@ -63,6 +63,7 @@ export default function ListContent() {
     );
   }
 
+  const hasNewTable = true; // organization.features.includes('replay-ui-list-select');
   return (
     <Fragment>
       <FiltersContainer>
@@ -79,7 +80,7 @@ export default function ListContent() {
       {widgetIsOpen && showDeadRageClickCards ? <DeadRageSelectorCards /> : null}
       {isLoading ? (
         <LoadingIndicator />
-      ) : organization.features.includes('replay-ui-list-select') ? (
+      ) : hasNewTable ? (
         <ReplayIndexTable />
       ) : (
         <ReplaysList />
