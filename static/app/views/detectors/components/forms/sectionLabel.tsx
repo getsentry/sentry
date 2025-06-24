@@ -5,6 +5,4 @@ export const SectionLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.form.md.fontSize};
   font-weight: 600;
   margin: 0;
-  text-decoration: underline dotted
-    ${p => (p.disabled ? p.theme.gray300 : p.theme.gray300)};
 `;

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -9,6 +9,7 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
+import FormContext from 'sentry/components/forms/formContext';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -19,12 +20,17 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
+import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
   DetectorDataset,
@@ -36,6 +42,24 @@ import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/form
 import {Visualize} from 'sentry/views/detectors/components/forms/visualize';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+/**
+ * Get the default aggregate function for a dataset
+ */
+function getDatasetDefaultAggregate(dataset: DetectorDataset): string {
+  switch (dataset) {
+    case DetectorDataset.ERRORS:
+      return generateFieldAsString(ErrorsConfig.defaultField);
+    case DetectorDataset.TRANSACTIONS:
+      return generateFieldAsString(TransactionsConfig.defaultField);
+    case DetectorDataset.SPANS:
+      return generateFieldAsString(SpansConfig.defaultField);
+    case DetectorDataset.RELEASES:
+      return generateFieldAsString(ReleasesConfig.defaultField);
+    default:
+      return 'count()';
+  }
+}
 
 function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
@@ -219,6 +243,7 @@ function useDatasetChoices() {
 function DetectSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const datasetChoices = useDatasetChoices();
+  const formContext = useContext(FormContext);
 
   return (
     <Container>
@@ -238,6 +263,14 @@ function DetectSection() {
             }
             name={METRIC_DETECTOR_FORM_FIELDS.dataset}
             choices={datasetChoices}
+            onChange={newDataset => {
+              // Reset aggregate function to dataset default when dataset changes
+              const defaultAggregate = getDatasetDefaultAggregate(newDataset);
+              formContext.form?.setValue(
+                METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+                defaultAggregate
+              );
+            }}
           />
           <IntervalField
             placeholder={t('Interval')}

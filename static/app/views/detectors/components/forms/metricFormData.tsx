@@ -10,7 +10,6 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -63,12 +62,11 @@ interface MetricDetectorDynamicFormData {
 }
 
 interface SnubaQueryFormData {
-  aggregate: string;
+  aggregateFunction: string;
   dataset: DetectorDataset;
   environment: string;
   interval: number;
   query: string;
-  visualize: string;
 }
 
 export interface MetricDetectorFormData
@@ -97,11 +95,10 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
 
   // Snuba query fields
   dataset: 'dataset',
-  aggregate: 'aggregate',
+  aggregateFunction: 'aggregateFunction',
   interval: 'interval',
   query: 'query',
   name: 'name',
-  visualize: 'visualize',
 
   // Priority level fields
   initialPriorityLevel: 'initialPriorityLevel',
@@ -132,10 +129,8 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   sensitivity: AlertRuleSensitivity.LOW,
   thresholdType: AlertRuleThresholdType.ABOVE,
 
-  // Snuba query fields
   dataset: DetectorDataset.SPANS,
-  visualize: 'transaction.duration',
-  aggregate: 'count',
+  aggregateFunction: 'avg(span.duration)',
   interval: 60 * 60, // One hour in seconds
   query: '',
 
@@ -251,7 +246,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
     queryType: 0,
     dataset: getBackendDataset(data.dataset),
     query: data.query,
-    aggregate: `${data.aggregate}(${data.visualize})`,
+    aggregate: data.aggregateFunction,
     timeWindow: data.interval,
     environment: data.environment ? data.environment : null,
     eventTypes: getEventTypes(data.dataset),
@@ -369,12 +364,8 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
       ? dataSource.queryObj?.snubaQuery
       : undefined;
 
-  // Extract aggregate and visualize from the aggregate string
-  const parsedFunction = snubaQuery?.aggregate
-    ? parseFunction(snubaQuery.aggregate)
-    : null;
-  const aggregate = parsedFunction?.name || 'count';
-  const visualize = parsedFunction?.arguments[0] || 'transaction.duration';
+  // Use the full aggregate string directly
+  const aggregateFunction = snubaQuery?.aggregate || 'count()';
 
   // Process conditions using the extracted function
   const conditionData = processDetectorConditions(detector);
@@ -405,8 +396,7 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
     environment: snubaQuery?.environment || '',
     owner: detector.owner || '',
     query: snubaQuery?.query || '',
-    aggregate,
-    visualize,
+    aggregateFunction,
     dataset,
     interval: 60 * 60, // Default to 1 hour
 

@@ -1,15 +1,19 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Input} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import FormContext from 'sentry/components/forms/formContext';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   FieldKey,
@@ -22,7 +26,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
+import {useCustomMeasurements} from 'sentry/views/detectors/components/forms/customMeasurements';
 import {
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
@@ -30,7 +36,48 @@ import {
 } from 'sentry/views/detectors/components/forms/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+
+/**
+ * Render a tag badge for field types, similar to dashboard widget builder
+ */
+function renderTag(kind: FieldValueKind): React.ReactNode {
+  let text: string | undefined;
+  let tagType: TagProps['type'] | undefined;
+
+  switch (kind) {
+    case FieldValueKind.FUNCTION:
+      text = 'f(x)';
+      tagType = 'warning';
+      break;
+    case FieldValueKind.CUSTOM_MEASUREMENT:
+    case FieldValueKind.MEASUREMENT:
+      text = 'field';
+      tagType = 'highlight';
+      break;
+    case FieldValueKind.BREAKDOWN:
+      text = 'field';
+      tagType = 'highlight';
+      break;
+    case FieldValueKind.TAG:
+      text = 'tag';
+      tagType = 'warning';
+      break;
+    case FieldValueKind.NUMERIC_METRICS:
+      text = 'f(x)';
+      tagType = 'warning';
+      break;
+    case FieldValueKind.FIELD:
+      text = 'field';
+      tagType = 'highlight';
+      break;
+    default:
+      text = kind;
+  }
+
+  return <Tag type={tagType}>{text}</Tag>;
+}
 
 function getDatasetConfig(dataset: DetectorDataset) {
   switch (dataset) {
@@ -40,6 +87,8 @@ function getDatasetConfig(dataset: DetectorDataset) {
       return TransactionsConfig;
     case DetectorDataset.RELEASES:
       return ReleasesConfig;
+    case DetectorDataset.SPANS:
+      return SpansConfig;
     default:
       return ErrorsConfig;
   }
@@ -67,18 +116,96 @@ function getAggregateOptions(
   return functionOptions.sort((a, b) => a[1].localeCompare(b[1]));
 }
 
+/**
+ * Get aggregate metadata from tableFieldOptions
+ */
+function getAggregateOptionMetadata(
+  aggregateName: string,
+  tableFieldOptions: Record<string, SelectValue<FieldValue>>
+) {
+  const optionKey = `function:${aggregateName}`;
+  const option = tableFieldOptions[optionKey];
+
+  if (!option?.value?.meta) {
+    return null;
+  }
+
+  // Type guard to check if meta has parameters
+  const meta = option.value.meta as any;
+
+  // Only return parameters if they exist
+  if (!meta.parameters) {
+    return {
+      name: meta.name,
+      parameters: [],
+    };
+  }
+
+  return {
+    name: meta.name,
+    parameters: meta.parameters,
+  };
+}
+
+/**
+ * Parse aggregateFunction string into UI components
+ */
+function parseAggregateFunction(aggregateFunction: string) {
+  if (!aggregateFunction) {
+    return {
+      aggregate: '',
+      parameters: [],
+    };
+  }
+
+  const parsed = parseFunction(aggregateFunction);
+  if (!parsed) {
+    return {
+      aggregate: aggregateFunction,
+      parameters: [],
+    };
+  }
+
+  return {
+    aggregate: parsed.name,
+    parameters: parsed.arguments || [],
+  };
+}
+
+/**
+ * Combine UI components into aggregateFunction string
+ */
+function buildAggregateFunction(aggregate: string, parameters: string[]): string {
+  if (!aggregate) {
+    return '';
+  }
+
+  const validParameters = parameters.filter(param => param && param.trim() !== '');
+  return `${aggregate}(${validParameters.join(',')})`;
+}
+
 export function Visualize() {
   const organization = useOrganization();
+  const {customMeasurements} = useCustomMeasurements(organization);
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const aggregateFunction = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
   const tags = useTags();
   const {tags: numericSpanTags} = useTraceItemTags('number');
   const {tags: stringSpanTags} = useTraceItemTags('string');
+  const formContext = useContext(FormContext);
+
+  // Parse the aggregateFunction into UI components on each render
+  const {aggregate, parameters} = useMemo(() => {
+    return parseAggregateFunction(aggregateFunction);
+  }, [aggregateFunction]);
 
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
 
   const tableFieldOptions = useMemo(
-    () => datasetConfig.getTableFieldOptions(organization, tags),
-    [organization, tags, datasetConfig]
+    () => datasetConfig.getTableFieldOptions(organization, tags, customMeasurements),
+    [organization, tags, datasetConfig, customMeasurements]
   );
 
   const fieldOptions = useMemo(() => {
@@ -112,40 +239,151 @@ export function Visualize() {
     return getAggregateOptions(dataset, tableFieldOptions);
   }, [dataset, tableFieldOptions]);
 
+  // Get parameter metadata for the selected aggregate
+  const aggregateMetadata = useMemo(() => {
+    return aggregate ? getAggregateOptionMetadata(aggregate, tableFieldOptions) : null;
+  }, [aggregate, tableFieldOptions]);
+
+  // Helper to update the aggregateFunction field in the form model
+  const updateAggregateFunction = (newAggregate: string, newParameters: string[]) => {
+    const newAggregateFunction = buildAggregateFunction(newAggregate, newParameters);
+    formContext.form?.setValue(
+      METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+      newAggregateFunction
+    );
+  };
+
+  // Smart aggregate change handler that manages parameter compatibility
+  const handleAggregateChange = (newAggregate: string) => {
+    const newMetadata = getAggregateOptionMetadata(newAggregate, tableFieldOptions);
+    const newParameters: string[] = [];
+
+    if (newMetadata?.parameters) {
+      newMetadata.parameters.forEach((param: any, index: number) => {
+        if (param.defaultValue) {
+          newParameters[index] = param.defaultValue;
+        } else if (param.kind === 'column' && fieldOptions[0]) {
+          newParameters[index] = fieldOptions[0][0];
+        } else {
+          newParameters[index] = '';
+        }
+      });
+    }
+
+    updateAggregateFunction(newAggregate, newParameters);
+  };
+
+  // Helper to update a specific parameter
+  const handleParameterChange = (paramIndex: number, value: string) => {
+    const newParameters = [...parameters];
+    newParameters[paramIndex] = value;
+    updateAggregateFunction(aggregate, newParameters);
+  };
+
+  const hasVisibleParameters =
+    Boolean(aggregateMetadata?.parameters?.length) && dataset !== DetectorDataset.SPANS;
+
   return (
-    <AggregateRow>
-      <Flex flex={1} gap={space(1)} align="flex-end">
-        <AggregateField
-          placeholder={t('aggregate')}
-          flexibleControlStateSize
-          inline={false}
-          label={
-            <Tooltip title={t('Primary Metric')} skipWrapper>
+    <AggregateContainer hasParameters={hasVisibleParameters}>
+      <Flex gap={space(1)} align="flex-end">
+        <FieldContainer>
+          <div>
+            <Tooltip title={t('Primary Metric')} showUnderline>
               <SectionLabel>{t('Visualize')}</SectionLabel>
             </Tooltip>
-          }
-          name={METRIC_DETECTOR_FORM_FIELDS.aggregate}
-          choices={aggregateOptions}
-        />
-        <VisualizeField
-          placeholder={t('Metric')}
-          flexibleControlStateSize
-          name={METRIC_DETECTOR_FORM_FIELDS.visualize}
-          choices={fieldOptions}
-        />
+          </div>
+          <StyledAggregateSelect
+            triggerLabel={aggregate || t('Select aggregate')}
+            options={aggregateOptions.map(([value, label]) => ({
+              value,
+              label,
+              trailingItems: renderTag(FieldValueKind.FUNCTION),
+            }))}
+            value={aggregate}
+            onChange={option => {
+              handleAggregateChange(String(option.value));
+            }}
+          />
+        </FieldContainer>
+
+        {/* Render parameters dynamically based on metadata */}
+        {aggregateMetadata?.parameters?.map((param: any, index: number) => {
+          return (
+            <FieldContainer key={index}>
+              <SectionLabel>
+                {param.kind === 'column'
+                  ? t('Metric')
+                  : param.kind === 'dropdown'
+                    ? t('Value')
+                    : t('Parameter %s', index + 1)}
+              </SectionLabel>
+
+              {param.kind === 'column' ? (
+                <StyledVisualizeSelect
+                  triggerLabel={
+                    parameters[index] || param.defaultValue || t('Select metric')
+                  }
+                  options={fieldOptions.map(([value, label]) => ({
+                    value,
+                    label,
+                    trailingItems: renderTag(FieldValueKind.FIELD),
+                  }))}
+                  value={parameters[index] || param.defaultValue || ''}
+                  onChange={option => {
+                    handleParameterChange(index, String(option.value));
+                  }}
+                />
+              ) : param.kind === 'dropdown' && param.options ? (
+                <StyledVisualizeSelect
+                  triggerLabel={
+                    parameters[index] || param.defaultValue || t('Select value')
+                  }
+                  options={param.options.map((option: any) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
+                  value={parameters[index] || param.defaultValue || ''}
+                  onChange={option => {
+                    handleParameterChange(index, String(option.value));
+                  }}
+                />
+              ) : (
+                <StyledParameterInput
+                  placeholder={param.defaultValue || t('Enter value')}
+                  value={parameters[index] || ''}
+                  onChange={e => {
+                    handleParameterChange(index, e.target.value);
+                  }}
+                />
+              )}
+            </FieldContainer>
+          );
+        })}
       </Flex>
-      <Flex flex={1} gap={space(1)}>
-        <FilterField />
-      </Flex>
-    </AggregateRow>
+
+      {/* Only show filter inline when no additional parameters */}
+      {!hasVisibleParameters && (
+        <Flex flex={1} gap={space(1)}>
+          <FilterField />
+        </Flex>
+      )}
+
+      {/* Show filter on separate row when parameters are visible */}
+      {hasVisibleParameters && (
+        <Flex flex={1} gap={space(1)}>
+          <FilterField />
+        </Flex>
+      )}
+    </AggregateContainer>
   );
 }
 
-const AggregateRow = styled('div')`
+const AggregateContainer = styled('div')<{hasParameters: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: ${p => (p.hasParameters ? '1fr' : '1fr 2fr')};
+  grid-template-rows: ${p => (p.hasParameters ? 'auto auto' : 'auto')};
   align-items: start;
-  gap: ${space(1)};
+  gap: ${space(2)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(2)};
@@ -157,41 +395,51 @@ const AggregateRow = styled('div')`
   }
 `;
 
-const VisualizeField = styled(SelectField)`
-  flex: 2;
-  padding: 0;
-  margin: 0;
-  border: none;
+const FieldContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  flex: 1;
+`;
 
-  > div {
-    padding-left: 0;
+const StyledAggregateSelect = styled(CompactSelect)`
+  width: 100%;
+  & > button {
+    width: 100%;
   }
 `;
 
-const AggregateField = styled(SelectField)`
-  flex: 1;
-  padding: 0;
-  margin: 0;
-  border: none;
-
-  > div {
-    padding-left: 0;
+const StyledVisualizeSelect = styled(CompactSelect)`
+  width: 100%;
+  & > button {
+    width: 100%;
   }
+`;
+
+const StyledParameterInput = styled(Input)`
+  flex: 1;
 `;
 
 function FilterField() {
   const initialQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
+  const formContext = useContext(FormContext);
+
   return (
     <Flex direction="column" gap={space(0.5)} flex={1}>
-      <Tooltip title={t('Filter')} skipWrapper>
-        <SectionLabel>{t('Filter')}</SectionLabel>
-      </Tooltip>
+      <div>
+        <Tooltip title={t('Filter')} showUnderline>
+          <SectionLabel>{t('Filter')}</SectionLabel>
+        </Tooltip>
+      </div>
       <SearchQueryBuilder
         initialQuery={initialQuery}
         filterKeySections={FILTER_KEY_SECTIONS}
         filterKeys={FILTER_KEYS}
         getTagValues={getTagValues}
         searchSource="detectors"
+        onChange={query => {
+          formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, query);
+        }}
       />
     </Flex>
   );
