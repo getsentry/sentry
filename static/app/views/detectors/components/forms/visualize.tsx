@@ -14,6 +14,7 @@ import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customM
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, prettifyTagKey} from 'sentry/utils/fields';
+import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {useCustomMeasurements} from 'sentry/views/detectors/components/forms/customMeasurements';
@@ -62,8 +63,17 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
       text = 'field';
       tagType = 'highlight';
       break;
+    case FieldValueKind.EQUATION:
+      text = 'equation';
+      tagType = 'warning';
+      break;
+    case FieldValueKind.METRICS:
+      text = 'metrics';
+      tagType = 'warning';
+      break;
     default:
-      text = kind;
+      unreachable(kind);
+      throw new Error(`Invalid field value kind: ${kind}`);
   }
 
   return <Tag type={tagType}>{text}</Tag>;
