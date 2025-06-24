@@ -131,14 +131,14 @@ function analyzeStyledComponents(
             componentName = 'InlineFunction';
             componentType = 'component';
           } else {
-            debug(
-              'Debug: ',
-              component.kind,
-              'Text:',
-              component.getText(),
-              'File:',
-              fileName
-            );
+            // debug(
+            //   'Debug: ',
+            //   component.kind,
+            //   'Text:',
+            //   component.getText(),
+            //   'File:',
+            //   fileName
+            // );
           }
 
           // Extract CSS rules
@@ -315,7 +315,9 @@ styledComponents.forEach(sc => {
         dynamic: (value.match(/\$\{[^}]+\}/g) || []).length,
       });
     } else {
-      debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
+      // debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
+      fs.writeFileSync('analyze-styled-error.txt', `Error parsing line: ${line}\n`);
+      process.exit(1);
       if (debugEnabled) {
         ruleInfo['parsing error'] = ruleInfo['parsing error'] || [];
         ruleInfo['parsing error'].push({
