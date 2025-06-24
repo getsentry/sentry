@@ -7,17 +7,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-enum TraceDrawerFields {
-  DRAWER_OPEN = 'drawerOpen',
-  TRACE_SLUG = 'trace',
-}
-
-const AI_TRACE_DRAWER_FIELD_MAP = {
-  [TraceDrawerFields.DRAWER_OPEN]: decodeScalar,
-  [TraceDrawerFields.TRACE_SLUG]: decodeScalar,
-};
-
-const AI_TRACE_DRAWER_FIELD_KEYS = Object.keys(AI_TRACE_DRAWER_FIELD_MAP);
+const DRAWER_TRACE_SLUG = 'trace';
 
 export function useUrlTraceDrawer() {
   const location = useLocation();
@@ -29,15 +19,17 @@ export function useUrlTraceDrawer() {
     panelRef,
   } = useDrawer();
 
-  const {drawerOpen, trace} = useLocationQuery({
-    fields: AI_TRACE_DRAWER_FIELD_MAP,
+  const {trace} = useLocationQuery({
+    fields: {
+      [DRAWER_TRACE_SLUG]: decodeScalar,
+    },
   });
 
   const removeQueryParams = useCallback(() => {
     navigate(
       {
         pathname: location.pathname,
-        query: omit(location.query, AI_TRACE_DRAWER_FIELD_KEYS),
+        query: omit(location.query, DRAWER_TRACE_SLUG),
       },
       {replace: true}
     );
@@ -61,8 +53,7 @@ export function useUrlTraceDrawer() {
             pathname: location.pathname,
             query: {
               ...location.query,
-              [TraceDrawerFields.DRAWER_OPEN]: 'open',
-              [TraceDrawerFields.TRACE_SLUG]: optionsTraceSlug,
+              [DRAWER_TRACE_SLUG]: optionsTraceSlug,
             },
           },
           {replace: true}
@@ -73,7 +64,7 @@ export function useUrlTraceDrawer() {
         ...rest,
         ariaLabel: ariaLabel || 'Trace Drawer',
         shouldCloseOnLocationChange: nextLocation => {
-          return nextLocation.query[TraceDrawerFields.DRAWER_OPEN] !== 'open';
+          return !nextLocation.query[DRAWER_TRACE_SLUG];
         },
         onClose: () => {
           removeQueryParams();
@@ -89,6 +80,6 @@ export function useUrlTraceDrawer() {
     closeDrawer,
     isDrawerOpen,
     panelRef,
-    drawerUrlState: {drawerOpen, trace},
+    drawerUrlState: {trace},
   };
 }
