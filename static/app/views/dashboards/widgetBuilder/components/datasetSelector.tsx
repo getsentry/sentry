@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -28,6 +29,22 @@ function WidgetBuilderDatasetSelector() {
 
   if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.push([WidgetType.SPANS, t('Spans')]);
+  }
+  if (organization.features.includes('ourlogs-dashboards')) {
+    datasetChoices.push([
+      WidgetType.LOGS,
+      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key={'dataset-choice-logs'}>
+        {t('Logs')}{' '}
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{
+            title: t(
+              'This feature is available for early adopters and the UX may change'
+            ),
+          }}
+        />
+      </FeatureBadgeAlignmentWrapper>,
+    ]);
   }
   datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
@@ -74,6 +91,13 @@ function WidgetBuilderDatasetSelector() {
 }
 
 export default WidgetBuilderDatasetSelector;
+
+const FeatureBadgeAlignmentWrapper = styled('div')`
+  ${FeatureBadge} {
+    position: relative;
+    top: -1px;
+  }
+`;
 
 const DatasetChoices = styled(RadioGroup<WidgetType>)`
   display: flex;

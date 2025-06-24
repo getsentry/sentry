@@ -376,7 +376,7 @@ function IssueListActions({
       />
       {!allResultsVisible && pageSelected && (
         <Alert system type="warning">
-          <Flex justify="center" wrap="wrap">
+          <Flex justify="center" wrap="wrap" gap={space(1)}>
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(
@@ -397,7 +397,8 @@ function IssueListActions({
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <SelectAllLink onClick={() => setAllInQuerySelected(true)}>
+
+                <a onClick={() => setAllInQuerySelected(true)}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -408,7 +409,7 @@ function IssueListActions({
                     : tct('Select all [count] issues that match this search query.', {
                         count: queryCount,
                       })}
-                </SelectAllLink>
+                </a>
               </Fragment>
             )}
           </Flex>
@@ -532,10 +533,6 @@ const NarrowHeaderButtonsWrapper = styled(motion.div)`
   grid-auto-flow: column;
   justify-content: space-between;
   white-space: nowrap;
-`;
-
-const SelectAllLink = styled('a')`
-  margin-left: ${space(1)};
 `;
 
 const AnimatedHeaderItemsContainer = styled(motion.div)`

@@ -15,7 +15,7 @@ from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import PipelineProvider
+from sentry.pipeline.provider import PipelineProvider
 from sentry.plugins.base.response import DeferredResponse
 from sentry.users.models.user import User
 
