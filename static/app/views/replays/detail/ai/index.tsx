@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -55,6 +56,13 @@ function AiContent() {
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const {onClickTimestamp} = useCrumbHandlers();
+  const onClickChapterTimestamp = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>, start: number) => {
+      event.stopPropagation();
+      setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
+    },
+    [replay, setCurrentTime]
+  );
 
   const {
     data: summaryData,
@@ -158,8 +166,7 @@ function AiContent() {
                       startTimestampMs={replay?.getStartTimestampMs() ?? 0}
                       timestampMs={start}
                       onClick={event => {
-                        event.stopPropagation();
-                        setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
+                        onClickChapterTimestamp(event, start);
                       }}
                     />
                   </ReplayTimestamp>
