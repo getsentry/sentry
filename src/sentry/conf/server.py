@@ -989,6 +989,7 @@ CELERY_QUEUES_REGION = [
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
     Queue("tempest", routing_key="tempest"),
+    Queue("ai_agent_monitoring", routing_key="ai_agent_monitoring"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("uptime", routing_key="uptime"),
