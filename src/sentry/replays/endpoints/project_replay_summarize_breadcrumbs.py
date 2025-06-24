@@ -181,6 +181,13 @@ def analyze_recording_segments(
     # Combine breadcrumbs and error details
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
 
+    # Log when the input string is too large. This is potential for timeout.
+    if len(request_data) > 200000:
+        logger.info(
+            "Replay AI summary: input length exceeds 200k.",
+            extra={"request_len": len(request_data)},
+        )
+
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
     # paginate method. This is less than ideal.
     return json.loads(make_seer_request(request_data).decode("utf-8"))
