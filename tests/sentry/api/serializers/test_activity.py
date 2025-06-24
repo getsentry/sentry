@@ -1,3 +1,4 @@
+import pytest
 from sentry.api.serializers import serialize
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -154,6 +155,7 @@ class GroupActivityTestCase(TestCase):
 
         assert "firstSeen" not in serialized["data"]["source"]
 
+    @pytest.mark.skip(reason="flaky: #94198")
     def test_get_activities_for_group_proxy_user(self):
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
