@@ -5,6 +5,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {
   type BreadcrumbFrame,
   isBreadcrumbFrame,
+  isErrorFrame,
   isSpanFrame,
   type SpanFrame,
 } from 'sentry/utils/replays/types';
@@ -180,6 +181,7 @@ enum EventType {
   MUTATIONS = 12,
   UNKNOWN = 13,
   FEEDBACK = 14,
+  ISSUE = 15,
 }
 
 /**
@@ -188,6 +190,9 @@ enum EventType {
  * helpfully reduces the number of operations required by reusing context from previous branches.
  */
 export function which(payload: SpanFrame | BreadcrumbFrame): EventType {
+  if (isErrorFrame(payload)) {
+    return EventType.ISSUE;
+  }
   if (isBreadcrumbFrame(payload)) {
     const category = payload.category;
 
@@ -254,6 +259,9 @@ export function which(payload: SpanFrame | BreadcrumbFrame): EventType {
 export function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
   const eventType = which(payload);
   const timestamp = payload.timestampMs || 0.0;
+  if (isErrorFrame(payload)) {
+    return `User experienced an error: ${payload.message} at ${timestamp}`;
+  }
   if (isBreadcrumbFrame(payload)) {
     switch (eventType) {
       case EventType.CLICK:
