@@ -306,7 +306,7 @@ styledComponents.forEach(sc => {
 
     let [property, value] = line.split(':');
     property = property?.trim();
-    value = value?.trim();
+    value = value?.trim().replace(/;$/, '');
 
     if (property && value) {
       ruleInfo[property] = ruleInfo[property] || [];
@@ -316,11 +316,13 @@ styledComponents.forEach(sc => {
       });
     } else {
       debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
-      ruleInfo['parsing error'] = ruleInfo['parsing error'] || [];
-      ruleInfo['parsing error'].push({
-        value: line,
-        dynamic: 0,
-      });
+      if (debugEnabled) {
+        ruleInfo['parsing error'] = ruleInfo['parsing error'] || [];
+        ruleInfo['parsing error'].push({
+          value: line,
+          dynamic: 0,
+        });
+      }
     }
   }
 
@@ -332,115 +334,120 @@ styledComponents.forEach(sc => {
   });
 });
 
-log(' ');
-// Output results
-log(`📊 Found ${totalStyledComponents} styled components:\n`);
-log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
-log(`   • React components: ${totalReactComponents}`);
-log(`   • Unknown components: ${unknownComponents}`);
-log(`   • Total files analyzed: ${tsxFiles.length}`);
+// log(' ');
+// // Output results
+// log(`📊 Found ${totalStyledComponents} styled components:\n`);
+// log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
+// log(`   • React components: ${totalReactComponents}`);
+// log(`   • Unknown components: ${unknownComponents}`);
+// log(`   • Total files analyzed: ${tsxFiles.length}`);
 
-log(` `);
-log(`📄 Types of expressions:`);
-log(` `);
-log(
-  `   • Dynamic expressions per styled component: ~${(dynamicExpressions / totalStyledComponents).toFixed(2)}`
-);
-log(
-  `   • Static expressions per styled component: ~${(staticExpressions / totalStyledComponents).toFixed(2)}`
-);
-const totalExpressions = (dynamicExpressions || 0) + (staticExpressions || 0);
-const dynamicRatio =
-  totalExpressions > 0 ? (dynamicExpressions || 0) / totalExpressions : 0;
-const staticRatio =
-  totalExpressions > 0 ? (staticExpressions || 0) / totalExpressions : 0;
+// log(` `);
+// log(`📄 Types of expressions:`);
+// log(` `);
+// log(
+//   `   • Dynamic expressions per styled component: ~${(dynamicExpressions / totalStyledComponents).toFixed(2)}`
+// );
+// log(
+//   `   • Static expressions per styled component: ~${(staticExpressions / totalStyledComponents).toFixed(2)}`
+// );
+// const totalExpressions = (dynamicExpressions || 0) + (staticExpressions || 0);
+// const dynamicRatio =
+//   totalExpressions > 0 ? (dynamicExpressions || 0) / totalExpressions : 0;
+// const staticRatio =
+//   totalExpressions > 0 ? (staticExpressions || 0) / totalExpressions : 0;
 
-log(`   • Total expressions: ${totalExpressions}`);
-log(
-  `   • Dynamic/Static ratio: ${(dynamicRatio * 100).toFixed(1)}% / ${(staticRatio * 100).toFixed(1)}%`
-);
+// log(`   • Total expressions: ${totalExpressions}`);
+// log(
+//   `   • Dynamic/Static ratio: ${(dynamicRatio * 100).toFixed(1)}% / ${(staticRatio * 100).toFixed(1)}%`
+// );
 
-log(' ');
+// log(' ');
 
-log(`📂 Top ${topN} most styled components:\n`);
-console.table(
-  Object.entries(styledInfo)
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, topN)
+// log(`📂 Top ${topN} most styled components:\n`);
+// console.table(
+//   Object.entries(styledInfo)
+//     .sort((a, b) => b[1].length - a[1].length)
+//     .slice(0, topN)
 
-    .map(([component, info]) => {
-      const pct = (info.length / totalStyledComponents) * 100;
-      return {
-        Component: component,
-        'Styled Components': info.length,
-        '% of Total': pct < 1 ? '<1%' : `${pct.toFixed(1)}%`,
-      };
-    })
-);
+//     .map(([component, info]) => {
+//       const pct = (info.length / totalStyledComponents) * 100;
+//       return {
+//         Component: component,
+//         'Styled Components': info.length,
+//         '% of Total': pct < 1 ? '<1%' : `${pct.toFixed(1)}%`,
+//       };
+//     })
+// );
 
-if (locations) {
-  log('\n📍 Locations of styled components:\n');
-  for (const [component, info] of Object.entries(styledInfo)) {
-    log(` ${component}:\n  • ${info.map(n => n.location).join('\n  • ')}`);
-  }
-}
+// if (locations) {
+//   log('\n📍 Locations of styled components:\n');
+//   for (const [component, info] of Object.entries(styledInfo)) {
+//     log(` ${component}:\n  • ${info.map(n => n.location).join('\n  • ')}`);
+//   }
+// }
 
-const commonRules: Record<string, number> = {};
+// const commonRules: Record<string, number> = {};
 
-for (const [_, info] of Object.entries(styledInfo)) {
-  for (const rule of info) {
-    for (const [property, value] of Object.entries(rule.ruleInfo)) {
-      commonRules[property] = (commonRules[property] || 0) + value.length;
-    }
-  }
-}
+// for (const [_, info] of Object.entries(styledInfo)) {
+//   for (const rule of info) {
+//     for (const [property, value] of Object.entries(rule.ruleInfo)) {
+//       commonRules[property] = (commonRules[property] || 0) + value.length;
+//     }
+//   }
+// }
 
-console.table(
-  Object.entries(commonRules)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 40)
-    .map(([property, count]) => ({
-      Property: property,
-      Count: count,
-      '% of Total': ((count / totalStyledComponents) * 100).toFixed(2) + '%',
-    }))
-);
+// console.table(
+//   Object.entries(commonRules)
+//     .sort((a, b) => b[1] - a[1])
+//     .slice(0, 40)
+//     .map(([property, count]) => ({
+//       Property: property,
+//       Count: count,
+//       '% of Total': ((count / totalStyledComponents) * 100).toFixed(2) + '%',
+//     }))
+// );
 
-function searchForDivsWithOnlyFlexRules() {
-  const flexRules = new Set([
-    'flex',
-    'flex-direction',
-    'flex-wrap',
-    'justify-content',
-    'align-items',
-    'align-content',
-    'gap',
-  ]);
+// function searchForDivsWithOnlyFlexRules() {
+//   const flexRules = new Set([
+//     'flex',
+//     'flex-direction',
+//     'flex-wrap',
+//     'justify-content',
+//     'align-items',
+//     'align-content',
+//     'gap',
+//   ]);
 
-  for (const key in styledInfo) {
-    if (key === 'div') {
-      const divs = styledInfo[key];
+//   for (const key in styledInfo) {
+//     if (key === 'div') {
+//       const divs = styledInfo[key];
 
-      for (const div of divs) {
-        let hasNonFlexRules = false;
+//       for (const div of divs) {
+//         let hasOnlyFlexRules = true;
+//         let hasDisplayFlexRule = false;
 
-        if (!div.ruleInfo) {
-          continue;
-        }
+//         if (!div.ruleInfo) {
+//           continue;
+//         }
 
-        for (const rule of Object.keys(div.ruleInfo)) {
-          if (!flexRules.has(rule)) {
-            hasNonFlexRules = true;
-            break;
-          }
-        }
+//         for (const rule in div.ruleInfo) {
+//           if (rule === 'display') {
+//             hasDisplayFlexRule = div.ruleInfo[rule].some(value => value.value === 'flex');
+//           }
 
-        if (!hasNonFlexRules) {
-          console.log('Found div with only flex rules:', div.location);
-        }
-      }
-    }
-  }
-}
+//           if (rule !== 'display' && !flexRules.has(rule)) {
+//             hasOnlyFlexRules = false;
+//             break;
+//           }
+//         }
 
-searchForDivsWithOnlyFlexRules();
+//         if (hasDisplayFlexRule && hasOnlyFlexRules) {
+//           console.log('Found div with only flex rules:', div.location);
+//         }
+//       }
+//     }
+//   }
+// }
+
+// searchForDivsWithOnlyFlexRules();
