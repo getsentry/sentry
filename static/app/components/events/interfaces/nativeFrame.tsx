@@ -203,6 +203,11 @@ function NativeFrame({
 
   // this is the status of image that belongs to this frame
   function getStatus() {
+    // Skip showing warning for frames with instruction address 0x0
+    if (frame.instructionAddr === '0x0') {
+      return null;
+    }
+
     // If a matching debug image doesn't exist, fall back to symbolicator_status
     if (!image) {
       switch (frame.symbolicatorStatus) {

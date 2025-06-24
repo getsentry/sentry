@@ -216,4 +216,44 @@ describe('Native StackTrace', function () {
     const collapsed = screen.getAllByRole('button', {name: 'Expand Context'});
     expect(collapsed).toHaveLength(2);
   });
+
+  it('does not display warning icon for frames with instruction address 0x0', function () {
+    const newData = {
+      ...data,
+      frames: [
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
+          function: 'unknown_image_with_zero_addr()',
+          instructionAddr: '0x0',
+        }),
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
+          function: 'unknown_image_with_addr()',
+          instructionAddr: '0x12345',
+        }),
+      ],
+    };
+
+    render(
+      <NativeContent
+        data={newData}
+        platform="cocoa"
+        event={event}
+        includeSystemFrames
+        newestFirst={false}
+      />
+    );
+
+    const frames = screen.getAllByTestId('stack-trace-frame');
+
+    // First frame with 0x0 address should not show warning icon
+    expect(
+      within(frames[0]!).queryByTestId('symbolication-warning-icon')
+    ).not.toBeInTheDocument();
+
+    // Second frame with non-zero address should show warning icon
+    expect(
+      within(frames[1]!).getByTestId('symbolication-warning-icon')
+    ).toBeInTheDocument();
+  });
 });
