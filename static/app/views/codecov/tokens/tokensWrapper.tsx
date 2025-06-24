@@ -5,13 +5,14 @@ import CodecovQueryParamsProvider from 'sentry/components/codecov/container/code
 import * as Layout from 'sentry/components/layouts/thirds';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TOKENS_PAGE_TITLE} from 'sentry/views/codecov/settings';
 
 export default function TokensPageWrapper() {
   const organization = useOrganization();
 
-  const tooltip = 'Manage your upload tokens that are created in Sentry Prevent.';
+  const tooltip = t('Manage your upload tokens that are created in Sentry Prevent.');
 
   return (
     <SentryDocumentTitle title={TOKENS_PAGE_TITLE} orgSlug={organization.slug}>
