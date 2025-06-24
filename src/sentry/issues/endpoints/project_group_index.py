@@ -57,7 +57,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         List a Project's Issues
         ```````````````````````
         **Deprecated**: This endpoint has been replaced with the [Organization
-        Issues](/api/events/list-an-organizations-issues/) endpoint which
+        Issues endpoint](/api/events/list-an-organizations-issues/) which
         supports filtering on project and additional functionality.
 
         Return a list of issues (groups) bound to a project.  All parameters are
