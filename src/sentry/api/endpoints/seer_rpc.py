@@ -2,7 +2,6 @@ import datetime
 import hashlib
 import hmac
 import logging
-import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
 from typing import Any
@@ -322,8 +321,6 @@ def get_attribute_values(
             requests_to_submit.append((field, req))
 
     max_concurrent_requests = min(len(requests_to_submit), 5)
-    logger.info("Submitting %d attribute values requests to snuba", max_concurrent_requests)
-    time_start = time.time()
     with ThreadPoolExecutor(max_workers=max_concurrent_requests) as executor:
         future_to_field = {
             executor.submit(snuba_rpc.attribute_values_rpc, req): field
@@ -348,9 +345,6 @@ def get_attribute_values(
                     str(e),
                 )
                 continue
-
-    time_end = time.time()
-    logger.info("Time taken to get attribute values: %s seconds", time_end - time_start)
 
     return {"values": values}
 
