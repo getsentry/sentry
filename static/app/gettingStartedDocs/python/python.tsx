@@ -396,12 +396,112 @@ export const featureFlagOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+export const agentMonitoringOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      'Sentry provides monitoring for AI agents, helping you understand what's happening with your AI agents. Once set up, you'll have access to the AI Agents Insights dashboard.'
+    ),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: t('Install our Python SDK:'),
+      configurations: getPythonInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Import and initialize the Sentry SDK with the OpenAI Agents integration:"
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        OpenAIAgentsIntegration(),
+    ],
+)`,
+        },
+      ],
+      additionalInfo: t(
+        'The OpenAI Agents integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+      ),
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that the integration works by running an AI agent. The resulting data should show up in your AI Agents Insights dashboard.'
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+import asyncio
+import random
+
+import sentry_sdk
+from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
+
+import agents
+from pydantic import BaseModel  # installed by openai-agents
+
+@agents.function_tool
+def random_number(max: int) -> int:
+    return random.randint(0, max)
+
+class FinalResult(BaseModel):
+    number: int
+
+random_number_agent = agents.Agent(
+    name="Random Number Agent",
+    instructions="Generate a random number.",
+    tools=[random_number],
+    output_type=FinalResult,
+    model="gpt-4o-mini",
+)
+
+async def main() -> None:
+    sentry_sdk.init(
+        dsn="${params.dsn.public}",
+        # Add data like LLM and tool inputs/outputs;
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        send_default_pii=True,
+        integrations=[
+            OpenAIAgentsIntegration(),
+        ],
+    )
+
+    await agents.Runner.run(
+        random_number_agent,
+        input="Generate a random number between 0 and 10.",
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())`,
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   profilingOnboarding: getPythonProfilingOnboarding({traceLifecycle: 'manual'}),
+  agentMonitoringOnboarding,
 };
 
 export default docs;
