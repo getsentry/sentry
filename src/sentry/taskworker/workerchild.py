@@ -325,7 +325,8 @@ def child_process(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
             )
             task_added_time = activation.received_at.ToDatetime().timestamp()
-            latency = time.time() - task_added_time
+            # latency attribute needs to be in milliseconds
+            latency = (time.time() - task_added_time) * 1000
 
             with sentry_sdk.start_span(
                 op=OP.QUEUE_PROCESS,
