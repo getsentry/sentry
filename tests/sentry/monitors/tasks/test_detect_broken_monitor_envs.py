@@ -235,7 +235,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
             },
             {
                 "broken_monitors": [
@@ -252,7 +252,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "broken_monitors": [
@@ -269,7 +269,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
         expected_subjects = [
@@ -374,7 +374,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
@@ -391,7 +391,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
@@ -408,7 +408,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
         expected_subjects = [
@@ -495,7 +495,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
@@ -506,7 +506,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
 

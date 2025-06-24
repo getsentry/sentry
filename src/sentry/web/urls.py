@@ -1107,12 +1107,12 @@ urlpatterns += [
                     name="sentry-organization-replay-rage-clicks",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/]+)/crons/$",
+                    r"^(?P<organization_slug>[^/]+)/insights/crons/$",
                     react_page_view,
                     name="sentry-organization-crons",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/]+)/alerts/rules/crons/(?P<project_slug>[^/]+)/(?P<monitor_slug>[^/]+)/$",
+                    r"^(?P<organization_slug>[^/]+)/issues/alerts/rules/crons/(?P<project_slug>[^/]+)/(?P<monitor_slug>[^/]+)/$",
                     react_page_view,
                     name="sentry-organization-cron-monitor-details",
                 ),
