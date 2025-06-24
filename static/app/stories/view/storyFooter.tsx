@@ -3,9 +3,12 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
+import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
 
 export function StoryFooter() {
+  const {story} = useStory();
+  if (!story.filename.endsWith('.mdx')) return null;
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
       <Card href="#" icon={<IconArrow direction="left" />}>

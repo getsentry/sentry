@@ -24,22 +24,9 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 }
 
 function StoryLayout() {
-  const {story} = useStory();
-  const title = story.exports.frontmatter?.title ?? story.filename;
-  const description = story.exports.frontmatter?.description;
-
   return (
     <Tabs>
-      <StoryHeader>
-        <StoryGrid>
-          <StoryContainer>
-            <h1>{title}</h1>
-            {description && <p>{description}</p>}
-
-            <StoryTabList />
-          </StoryContainer>
-        </StoryGrid>
-      </StoryHeader>
+      <StoryTitlebar />
       <StoryGrid>
         <StoryContainer>
           <StoryContent>
@@ -56,11 +43,32 @@ function StoryLayout() {
   );
 }
 
+function StoryTitlebar() {
+  const {story} = useStory();
+
+  const title = story.exports.frontmatter?.title;
+  const description = story.exports.frontmatter?.description;
+
+  if (!story.filename.endsWith('.mdx')) return null;
+
+  return (
+    <StoryHeader>
+      <StoryGrid>
+        <StoryContainer>
+          <h1>{title}</h1>
+          {description && <p>{description}</p>}
+
+          <StoryTabList />
+        </StoryContainer>
+      </StoryGrid>
+    </StoryHeader>
+  );
+}
+
 function StoryTabList() {
   const {story} = useStory();
-  if (!story.filename.endsWith('.mdx')) {
-    return null;
-  }
+  if (!story.filename.endsWith('.mdx')) return null;
+
   return (
     <TabList>
       <TabList.Item key="usage">{t('Usage')}</TabList.Item>
