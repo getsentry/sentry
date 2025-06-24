@@ -103,7 +103,6 @@ describe('TokensPage', () => {
         name: 'regenerate token',
       });
       await userEvent.click(regenerateButton);
-      // Note: Currently the onClick handler is empty, so this test just ensures the button is clickable
     });
   });
 });
