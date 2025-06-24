@@ -23,7 +23,13 @@ interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
 
-function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
+function TraceViewDrawer({
+  traceSlug,
+  closeDrawer,
+}: {
+  closeDrawer: () => void;
+  traceSlug: string;
+}) {
   const {nodes, isLoading, error} = useAITrace(traceSlug);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
 
@@ -53,7 +59,7 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
       <StyledDrawerHeader>
         <HeaderContent>
           {t('Abbreviated Trace')}
-          <LinkButton size="xs" to={nodeDetailsLink}>
+          <LinkButton size="xs" onMouseDown={closeDrawer} to={nodeDetailsLink}>
             {t('View in Full Trace')}
           </LinkButton>
         </HeaderContent>
@@ -75,20 +81,23 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
 }
 
 export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
-  const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlTraceDrawer();
+  const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
   const openTraceViewDrawer = useCallback(
     (traceSlug: string) =>
-      openDrawer(() => <TraceViewDrawer traceSlug={traceSlug} />, {
-        ariaLabel: t('Abbreviated Trace'),
-        onClose,
-        shouldCloseOnInteractOutside: () => true,
-        drawerWidth: '40%',
-        resizable: true,
-        traceSlug,
-        drawerKey: 'abbreviated-trace-view-drawer',
-      }),
-    [openDrawer, onClose]
+      openDrawer(
+        () => <TraceViewDrawer traceSlug={traceSlug} closeDrawer={closeDrawer} />,
+        {
+          ariaLabel: t('Abbreviated Trace'),
+          onClose,
+          shouldCloseOnInteractOutside: () => true,
+          drawerWidth: '40%',
+          resizable: true,
+          traceSlug,
+          drawerKey: 'abbreviated-trace-view-drawer',
+        }
+      ),
+    [openDrawer, onClose, closeDrawer]
   );
 
   useEffect(() => {
