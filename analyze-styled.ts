@@ -14,6 +14,7 @@ const fatal = (...args: any[]) => console.error(...args);
 const args = process.argv.slice(2);
 let searchDir: string | null = null;
 let targetFile: string | null = null;
+let components: Set<string> | null = new Set();
 
 // Parse arguments
 for (let i = 0; i < args.length; i++) {
@@ -25,6 +26,11 @@ for (let i = 0; i < args.length; i++) {
     if (!isNaN(nValue) && nValue > 0) {
       topN = nValue;
     }
+    i++; // Skip the next argument since we consumed it
+  } else if (args[i] === '-c' && i + 1 < args.length) {
+    components = components || new Set();
+    const componentsArg = args[i + 1].split(',');
+    componentsArg.map(c => c.trim()).forEach(c => components!.add(c));
     i++; // Skip the next argument since we consumed it
   } else if (!searchDir) {
     searchDir = args[i];
@@ -139,18 +145,21 @@ function analyzeStyledComponents(
               : [];
           const hasExpressions = expressions.length > 0;
 
-          styledComponents.push({
-            file: fileName,
-            component: componentName,
-            componentType,
-            cssRules: cssRules.trim(),
-            location: {
-              line: line + 1,
-              column: character + 1,
-            },
-            hasExpressions,
-            expressionCount: expressions.length,
-          });
+          const shouldInclude = components === null || components.has(componentName);
+          if (shouldInclude) {
+            styledComponents.push({
+              file: fileName,
+              component: componentName,
+              componentType,
+              cssRules: cssRules.trim(),
+              location: {
+                line: line + 1,
+                column: character + 1,
+              },
+              hasExpressions,
+              expressionCount: expressions.length,
+            });
+          }
         }
       }
     }
