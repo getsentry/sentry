@@ -52,7 +52,7 @@ class TestSyncStatusOutbound(TestCase):
 
         sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
         mock_sync_status.assert_called_once_with(external_issue, False, self.group.project_id)
-        mock_record_event.assert_any_call(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_any_call(EventLifecycleOutcome.SUCCESS, None, False)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
@@ -69,7 +69,7 @@ class TestSyncStatusOutbound(TestCase):
         assert mock_record_event.call_count == 2
         start, success = mock_record_event.mock_calls
         assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert success.args == (EventLifecycleOutcome.SUCCESS, None)
+        assert success.args == (EventLifecycleOutcome.SUCCESS, None, False)
 
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
     def test_missing_external_issue(self, mock_sync_status):
