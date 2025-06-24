@@ -175,51 +175,8 @@ def process_profile_task(
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
 
-    if sampled:
-        if features.has("organizations:profiling-sdks", organization):
-            try:
-                event_type = determine_profile_type(profile)
-                sdk_name, sdk_version = determine_client_sdk(profile, event_type)
-
-                ProjectSDK.update_with_newest_version_or_create(
-                    project=project,
-                    event_type=event_type,
-                    sdk_name=sdk_name,
-                    sdk_version=sdk_version,
-                )
-
-                # Check to see if the data is coming from an deprecated SDK
-                # and drop it if needed
-                if is_sdk_deprecated(event_type, sdk_name, sdk_version):
-                    if features.has("organizations:profiling-deprecate-sdks", organization):
-                        category = (
-                            DataCategory.PROFILE_CHUNK
-                            if event_type == EventType.PROFILE_CHUNK
-                            else DataCategory.PROFILE
-                        )
-                        _track_outcome(
-                            profile=profile,
-                            project=project,
-                            outcome=Outcome.FILTERED,
-                            categories=[category],
-                            reason="deprecated sdk",
-                        )
-                        return
-            except UnableToAcquireLock:
-                # unable to acquire the lock means another event is trying to
-                # update the version so we can skip the update from this event
-                pass
-            except (UnknownClientSDKException, UnknownProfileTypeException):
-                _track_outcome(
-                    profile=profile,
-                    project=project,
-                    outcome=Outcome.FILTERED,
-                    categories=[category],
-                    reason="deprecated sdk",
-                )
-                return
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+    if sampled and _is_deprecated(profile, project, organization):
+        return
 
     profile_context = {
         "organization_id": profile["organization_id"],
@@ -328,6 +285,62 @@ def process_profile_task(
                 categories=[DataCategory.PROFILE_INDEXED],
                 reason="sampled",
             )
+
+
+def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
+    if not features.has("organizations:profiling-sdks", organization):
+        return False
+
+    try:
+        event_type = determine_profile_type(profile)
+    except UnknownProfileTypeException:
+        # unsure what the profile type is but this should never happen
+        # if it does happen, we should let it through because we're probably
+        # not handling something correctly
+        return False
+
+    category = (
+        DataCategory.PROFILE_CHUNK
+        if event_type == EventType.PROFILE_CHUNK
+        else DataCategory.PROFILE
+    )
+
+    try:
+        sdk_name, sdk_version = determine_client_sdk(profile, event_type)
+    except UnknownClientSDKException:
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="deprecated sdk",
+        )
+        return True
+
+    try:
+        ProjectSDK.update_with_newest_version_or_create(
+            project=project,
+            event_type=event_type,
+            sdk_name=sdk_name,
+            sdk_version=sdk_version,
+        )
+    except UnableToAcquireLock:
+        # unable to acquire the lock means another event is trying to
+        # update the version so we can skip the update from this event
+        return False
+
+    if not is_sdk_deprecated(event_type, sdk_name, sdk_version):
+        return False
+
+    _track_outcome(
+        profile=profile,
+        project=project,
+        outcome=Outcome.FILTERED,
+        categories=[category],
+        reason="deprecated sdk",
+    )
+
+    return features.has("organizations:profiling-deprecate-sdks", organization)
 
 
 JS_PLATFORMS = ["javascript", "node"]
