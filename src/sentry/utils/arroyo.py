@@ -133,6 +133,10 @@ def initialize_arroyo_main() -> None:
 
     from sentry.utils.metrics import backend
 
+    # XXX: we initially called this function only to initialize sentry consumer
+    # metrics, and namespaced arroyo metrics under sentry.consumer. Now we
+    # initialize arroyo metrics in every sentry process, and so even producer
+    # metrics are namespaced under sentry.consumer.
     metrics_wrapper = MetricsWrapper(backend, name="consumer")
     configure_metrics(metrics_wrapper)
 
