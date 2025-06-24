@@ -125,6 +125,7 @@ export default function ToolUsageWidget() {
         organization.features.includes('visibility-explore-view') &&
         hasData && (
           <Toolbar
+            showCreateAlert
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [

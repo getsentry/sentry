@@ -4,6 +4,9 @@ import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   AutomationListRow,
   AutomationListRowSkeleton,
@@ -15,6 +18,7 @@ type AutomationListTableProps = {
   isError: boolean;
   isPending: boolean;
   isSuccess: boolean;
+  sort: Sort | undefined;
 };
 
 function LoadingSkeletons() {
@@ -23,24 +27,70 @@ function LoadingSkeletons() {
   ));
 }
 
+function HeaderCell({
+  children,
+  name,
+  sortKey,
+  sort,
+}: {
+  children: React.ReactNode;
+  name: string;
+  sort: Sort | undefined;
+  divider?: boolean;
+  sortKey?: string;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isSortedByField = sort?.field === sortKey;
+  const handleSort = () => {
+    if (!sortKey) {
+      return;
+    }
+    const newSort =
+      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, sort: newSort, cursor: undefined},
+    });
+  };
+
+  return (
+    <SimpleTable.HeaderCell
+      name={name}
+      sort={sort}
+      sortKey={sortKey}
+      handleSortClick={handleSort}
+    >
+      {children}
+    </SimpleTable.HeaderCell>
+  );
+}
+
 function AutomationListTable({
   automations,
   isPending,
   isError,
   isSuccess,
+  sort,
 }: AutomationListTableProps) {
   return (
     <AutomationsSimpleTable>
       <SimpleTable.Header>
-        <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="last-triggered">
+        <HeaderCell name="name" sort={sort} sortKey="name">
+          {t('Name')}
+        </HeaderCell>
+        <HeaderCell name="last-triggered" sort={sort}>
           {t('Last Triggered')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="action">{t('Actions')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="projects">{t('Projects')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="connected-monitors">
+        </HeaderCell>
+        <HeaderCell name="action" sort={sort} sortKey="actions">
+          {t('Actions')}
+        </HeaderCell>
+        <HeaderCell name="projects" sort={sort}>
+          {t('Projects')}
+        </HeaderCell>
+        <HeaderCell name="connected-monitors" sort={sort} sortKey="connectedDetectors">
           {t('Monitors')}
-        </SimpleTable.HeaderCell>
+        </HeaderCell>
       </SimpleTable.Header>
       {isSuccess && automations.length === 0 && (
         <SimpleTable.Empty>{t('No automations found')}</SimpleTable.Empty>

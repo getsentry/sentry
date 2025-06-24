@@ -282,6 +282,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:preprod-frontend-routes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables Prevent team Replay Assertions (Flows) POC
+    manager.add("organizations:prevent-flows-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enabled for those orgs who participated in the profiling Beta program
@@ -311,6 +313,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable replay AI summaries
     manager.add("organizations:replay-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable replay list selection
+    manager.add("organizations:replay-list-select", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable version 2 of reprocessing (completely distinct from v1)
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable resolve in upcoming release

@@ -10,8 +10,8 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import LlmNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmNumberOfPipelinesChartWidget';
 import LlmPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmPipelineDurationChartWidget';
 import LlmTotalTokensUsedChart from 'sentry/views/insights/common/components/widgets/llmTotalTokensUsedChartWidget';
-import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -53,7 +53,7 @@ function PageWithProviders() {
   const preferedAiModule = usePreferedAiModule();
 
   if (preferedAiModule === 'agents-insights') {
-    return <Redirect to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`} />;
+    return <Redirect to={`/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`} />;
   }
 
   return (
