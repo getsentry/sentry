@@ -36,8 +36,6 @@ const babelConfig: TransformOptions = {
   ],
 };
 
-const __dirname = new URL('.', import.meta.url).pathname;
-
 const {
   CI,
   JEST_TEST_BALANCER,
@@ -50,14 +48,6 @@ const {
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
-
-const BALANCE_RESULTS_PATH = path.resolve(
-  __dirname,
-  'tests',
-  'js',
-  'test-balancer',
-  'jest-balance.json'
-);
 
 const optionalTags: {
   balancer?: boolean;
@@ -221,6 +211,14 @@ if (
 ) {
   let balance: null | Record<string, number> = null;
 
+  const __dirname = new URL('.', import.meta.url).pathname;
+  const BALANCE_RESULTS_PATH = path.resolve(
+    __dirname,
+    'tests',
+    'js',
+    'test-balancer',
+    'jest-balance.json'
+  );
   try {
     balance = require(BALANCE_RESULTS_PATH);
   } catch (err) {
