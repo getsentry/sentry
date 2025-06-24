@@ -14,9 +14,6 @@ class LinkSignTestCase(TestCase):
         base_url = get_local_region().to_url("/")
         assert base_url.startswith("http://")
 
-        url = linksign.generate_signed_link(self.user, "sentry")
-        assert url.startswith(base_url)
-
         url = linksign.generate_signed_link(self.user.id, "sentry")
         assert url.startswith(base_url)
 
@@ -38,7 +35,7 @@ class LinkSignTestCase(TestCase):
         # system.url-prefix only influences monolith behavior.
         # in siloed deployments url templates are used
         with self.options({"system.url-prefix": "https://sentry.io"}):
-            url = linksign.generate_signed_link(self.user, "sentry")
+            url = linksign.generate_signed_link(self.user.id, "sentry")
             assert url.startswith("https://sentry.io")
             req = rf.get("/" + url.split("/", 3)[-1])
             signed_user = linksign.process_signature(req)
@@ -47,7 +44,7 @@ class LinkSignTestCase(TestCase):
 
     def test_process_signature(self):
         rf = RequestFactory()
-        url = linksign.generate_signed_link(self.user, "sentry")
+        url = linksign.generate_signed_link(self.user.id, "sentry")
 
         req = rf.get("/" + url.split("/", 3)[-1])
         signed_user = linksign.process_signature(req)
