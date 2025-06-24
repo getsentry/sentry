@@ -1787,8 +1787,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 register(
-    "performance.issues.sql_injection.query_value_length_threshold",
-    default=1,
+    "performance.issues.db_query_injection.query_value_length_threshold",
+    default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

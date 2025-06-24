@@ -88,7 +88,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 not isinstance(query_value, str)
                 or not isinstance(query_key, str)
                 or not query_value
-                or len(query_value) == 1
+                or len(query_value) < self.settings["query_value_length_threshold"]
             ):
                 continue
             if query_key == query_value:
