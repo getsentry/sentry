@@ -4,8 +4,8 @@ import itertools
 from collections.abc import Sequence
 from unittest import mock
 
+import orjson
 import pytest
-import rapidjson
 from sentry_redis_tools.clients import StrictRedis
 
 from sentry.spans.buffer import FlushedSegment, OutputSpan, SegmentKey, Span, SpansBuffer
@@ -38,8 +38,8 @@ def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
     return f"span-buf:z:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
 
-def _payload(span_id: bytes) -> bytes:
-    return rapidjson.dumps({"span_id": span_id}).encode("ascii")
+def _payload(span_id: str) -> bytes:
+    return orjson.dumps({"span_id": span_id})
 
 
 def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> OutputSpan:
@@ -134,7 +134,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
         itertools.permutations(
             [
                 Span(
-                    payload=_payload(b"a" * 16),
+                    payload=_payload("a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
                     parent_span_id="b" * 16,
@@ -142,7 +142,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"d" * 16),
+                    payload=_payload("d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
@@ -150,7 +150,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"c" * 16),
+                    payload=_payload("c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="b" * 16,
@@ -158,7 +158,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"b" * 16),
+                    payload=_payload("b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
@@ -203,7 +203,7 @@ def test_basic(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
-                    payload=_payload(b"d" * 16),
+                    payload=_payload("d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
@@ -212,7 +212,7 @@ def test_basic(buffer: SpansBuffer, spans):
                 ),
                 _SplitBatch(),
                 Span(
-                    payload=_payload(b"b" * 16),
+                    payload=_payload("b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id="a" * 16,
@@ -220,7 +220,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"a" * 16),
+                    payload=_payload("a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
                     parent_span_id=None,
@@ -229,7 +229,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"c" * 16),
+                    payload=_payload("c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="a" * 16,
@@ -273,7 +273,7 @@ def test_deep(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
-                    payload=_payload(b"e" * 16),
+                    payload=_payload("e" * 16),
                     trace_id="a" * 32,
                     span_id="e" * 16,
                     parent_span_id="d" * 16,
@@ -281,7 +281,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"d" * 16),
+                    payload=_payload("d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
@@ -289,7 +289,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"b" * 16),
+                    payload=_payload("b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id="c" * 16,
@@ -297,7 +297,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"c" * 16),
+                    payload=_payload("c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="a" * 16,
@@ -305,7 +305,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"a" * 16),
+                    payload=_payload("a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
                     parent_span_id=None,
@@ -351,7 +351,7 @@ def test_deep2(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
-                    payload=_payload(b"c" * 16),
+                    payload=_payload("c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="b" * 16,
@@ -359,7 +359,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"d" * 16),
+                    payload=_payload("d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
@@ -367,7 +367,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"e" * 16),
+                    payload=_payload("e" * 16),
                     trace_id="a" * 32,
                     span_id="e" * 16,
                     parent_span_id="b" * 16,
@@ -375,7 +375,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     end_timestamp_precise=1700000000.0,
                 ),
                 Span(
-                    payload=_payload(b"b" * 16),
+                    payload=_payload("b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
@@ -427,7 +427,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
     shallow_permutations(
         [
             Span(
-                payload=_payload(b"c" * 16),
+                payload=_payload("c" * 16),
                 trace_id="a" * 32,
                 span_id="c" * 16,
                 parent_span_id="d" * 16,
@@ -436,7 +436,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 end_timestamp_precise=1700000000.0,
             ),
             Span(
-                payload=_payload(b"d" * 16),
+                payload=_payload("d" * 16),
                 trace_id="a" * 32,
                 span_id="d" * 16,
                 parent_span_id="b" * 16,
@@ -444,7 +444,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 end_timestamp_precise=1700000000.0,
             ),
             Span(
-                payload=_payload(b"e" * 16),
+                payload=_payload("e" * 16),
                 trace_id="a" * 32,
                 span_id="e" * 16,
                 parent_span_id="b" * 16,
@@ -452,7 +452,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 end_timestamp_precise=1700000000.0,
             ),
             Span(
-                payload=_payload(b"b" * 16),
+                payload=_payload("b" * 16),
                 trace_id="a" * 32,
                 span_id="b" * 16,
                 parent_span_id=None,
@@ -507,7 +507,7 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
 def test_flush_rebalance(buffer: SpansBuffer):
     spans = [
         Span(
-            payload=_payload(b"a" * 16),
+            payload=_payload("a" * 16),
             trace_id="a" * 32,
             span_id="a" * 16,
             parent_span_id=None,
@@ -545,14 +545,14 @@ def test_compression_functionality(compression_level):
         buffer = SpansBuffer(assigned_shards=list(range(32)))
 
         def make_payload(span_id: str):
-            return rapidjson.dumps(
+            return orjson.dumps(
                 {
                     "span_id": span_id,
                     "trace_id": "a" * 32,
                     "data": {"message": "x" * 1000},
                     "extra_data": {"field": "y" * 500},
                 }
-            ).encode("ascii")
+            )
 
         spans = [
             Span(
