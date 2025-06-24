@@ -9,8 +9,8 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
 import sentry_sdk
+from django.http.request import HttpRequest
 from rest_framework.exceptions import NotFound
-from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
@@ -278,7 +278,7 @@ class IntegrationProvider(IntegrationPipelineProviderT, abc.ABC):
         self,
         integration: Integration,
         organization: RpcOrganizationSummary,
-        request: Request,
+        request: HttpRequest,
         action: str,
         extra: Any | None = None,
     ) -> None:

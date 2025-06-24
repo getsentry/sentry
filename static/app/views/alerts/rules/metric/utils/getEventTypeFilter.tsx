@@ -15,6 +15,9 @@ export function getEventTypeFilter(
   dataset: Dataset,
   eventTypes: EventTypes[] | undefined
 ): string {
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return '';
+  }
   if (eventTypes) {
     return DATASOURCE_EVENT_TYPE_FILTERS[
       convertDatasetEventTypesToSource(dataset, eventTypes) ?? Datasource.ERROR
