@@ -77,6 +77,12 @@ export interface SearchQueryBuilderProps {
    */
   filterKeySections?: FilterKeySection[];
   /**
+   * A mapping of secondary aliases for filter keys.
+   * These are used to ensure that the filter key does not show them as invalid, however
+   * they will not be shown in the filter key dropdown.
+   */
+  filterKeysSecondaryAliases?: TagCollection;
+  /**
    * A function that returns a warning message for a given filter key
    * will only render a warning if the value is truthy
    */
@@ -88,6 +94,7 @@ export interface SearchQueryBuilderProps {
    * known column.
    */
   getSuggestedFilterKey?: (key: string) => string | null;
+
   /**
    * Allows for customization of the invalid token messages.
    */

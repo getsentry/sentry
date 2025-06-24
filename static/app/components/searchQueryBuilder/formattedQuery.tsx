@@ -26,6 +26,7 @@ export type FormattedQueryProps = {
   className?: string;
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeys?: TagCollection;
+  filterKeysSecondaryAliases?: TagCollection;
 };
 
 type TokenProps = {
@@ -99,10 +100,14 @@ export function FormattedQuery({
   query,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
+  filterKeysSecondaryAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
   const parsedQuery = useMemo(() => {
-    return parseQueryBuilderValue(query, fieldDefinitionGetter, {filterKeys});
-  }, [fieldDefinitionGetter, filterKeys, query]);
+    return parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      filterKeys,
+      filterKeysSecondaryAliases,
+    });
+  }, [fieldDefinitionGetter, filterKeys, query, filterKeysSecondaryAliases]);
 
   if (!parsedQuery) {
     return <QueryWrapper className={className} />;
@@ -131,6 +136,7 @@ export function ProvidedFormattedQuery({
   query,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
+  filterKeysSecondaryAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -145,6 +151,7 @@ export function ProvidedFormattedQuery({
         query={query}
         fieldDefinitionGetter={fieldDefinitionGetter}
         filterKeys={filterKeys}
+        filterKeysSecondaryAliases={filterKeysSecondaryAliases}
       />
     </SearchQueryBuilderProvider>
   );

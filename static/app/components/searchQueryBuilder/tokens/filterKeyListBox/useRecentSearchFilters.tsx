@@ -32,17 +32,17 @@ function getTokensFromQuery({
   query,
   getFieldDefinition,
   filterKeys,
+  filterKeysSecondaryAliases,
 }: {
   filterKeys: TagCollection;
   getFieldDefinition: FieldDefinitionGetter;
   query: string;
+  filterKeysSecondaryAliases?: TagCollection;
 }): Array<TokenResult<Token.FILTER>> {
   const parsed = parseQueryBuilderValue(
     query.slice(0, MAX_QUERY_PARSE_LENGTH),
     getFieldDefinition,
-    {
-      filterKeys,
-    }
+    {filterKeys, filterKeysSecondaryAliases}
   );
 
   return getFiltersFromParsedQuery(parsed);
@@ -61,11 +61,13 @@ function getFiltersFromRecentSearches(
   {
     parsedCurrentQuery,
     filterKeys,
+    filterKeysSecondaryAliases,
     getFieldDefinition,
   }: {
     filterKeys: TagCollection;
     getFieldDefinition: FieldDefinitionGetter;
     parsedCurrentQuery: ParseResult | null;
+    filterKeysSecondaryAliases?: TagCollection;
   }
 ): Array<TokenResult<Token.FILTER>> {
   if (!recentSearchesData?.length) {
@@ -77,7 +79,12 @@ function getFiltersFromRecentSearches(
 
   const filterCounts: FilterCounter = recentSearchesData
     .flatMap(search =>
-      getTokensFromQuery({query: search.query, getFieldDefinition, filterKeys})
+      getTokensFromQuery({
+        query: search.query,
+        getFieldDefinition,
+        filterKeys,
+        filterKeysSecondaryAliases,
+      })
     )
     .filter(token => {
       const filter = getKeyName(token.key);
@@ -110,7 +117,8 @@ function getFiltersFromRecentSearches(
  * Orders by highest count of filter key occurrences.
  */
 export function useRecentSearchFilters() {
-  const {parsedQuery, filterKeys, getFieldDefinition} = useSearchQueryBuilder();
+  const {parsedQuery, filterKeys, getFieldDefinition, filterKeysSecondaryAliases} =
+    useSearchQueryBuilder();
   const {data: recentSearchesData} = useRecentSearches();
 
   const filters = useMemo(
@@ -119,8 +127,15 @@ export function useRecentSearchFilters() {
         parsedCurrentQuery: parsedQuery,
         filterKeys,
         getFieldDefinition,
+        filterKeysSecondaryAliases,
       }),
-    [filterKeys, getFieldDefinition, parsedQuery, recentSearchesData]
+    [
+      filterKeys,
+      getFieldDefinition,
+      parsedQuery,
+      recentSearchesData,
+      filterKeysSecondaryAliases,
+    ]
   );
 
   return filters;

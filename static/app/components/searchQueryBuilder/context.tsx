@@ -48,6 +48,7 @@ interface SearchQueryBuilderContextData {
   setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  filterKeysSecondaryAliases?: TagCollection;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
@@ -92,6 +93,7 @@ export function SearchQueryBuilderProvider({
   getFilterTokenWarning,
   portalTarget,
   replaceRawSearchKeys,
+  filterKeysSecondaryAliases,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -112,6 +114,7 @@ export function SearchQueryBuilderProvider({
         disallowWildcard,
         filterKeys,
         invalidMessages,
+        filterKeysSecondaryAliases,
       }),
     [
       disallowFreeText,
@@ -122,6 +125,7 @@ export function SearchQueryBuilderProvider({
       filterKeys,
       getFilterTokenWarning,
       invalidMessages,
+      filterKeysSecondaryAliases,
     ]
   );
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
@@ -162,12 +166,14 @@ export function SearchQueryBuilderProvider({
       displaySeerResults,
       setDisplaySeerResults,
       replaceRawSearchKeys,
+      filterKeysSecondaryAliases,
     };
   }, [
     state,
     disabled,
     disallowFreeText,
     disallowWildcard,
+    parseQuery,
     parsedQuery,
     filterKeySections,
     filterKeyMenuWidth,
@@ -182,10 +188,10 @@ export function SearchQueryBuilderProvider({
     searchSource,
     size,
     portalTarget,
-    parseQuery,
     displaySeerResults,
     setDisplaySeerResults,
     replaceRawSearchKeys,
+    filterKeysSecondaryAliases,
   ]);
 
   return (
