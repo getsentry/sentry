@@ -202,7 +202,7 @@ register(key="sentry:tempest_fetch_screenshots", default=False)
 register(key="sentry:tempest_fetch_dumps", default=False)
 
 # Should autofix run automatically on new issues
-register(key="sentry:autofix_automation_tuning", default="off")
+register(key="sentry:autofix_automation_tuning", default="low")
 
 # Should seer scanner run automatically on new issues
-register(key="sentry:seer_scanner_automation", default=False)
+register(key="sentry:seer_scanner_automation", default=True)
