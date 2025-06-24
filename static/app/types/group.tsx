@@ -207,6 +207,9 @@ export enum IssueTitle {
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
+
+  // Detectors
+  DB_QUERY_INJECTION_VULNERABILITY = 'Potential Database Query Injection',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -235,6 +238,8 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
+
+  db_query_injection_vulnerability: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -254,13 +259,13 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
   1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
