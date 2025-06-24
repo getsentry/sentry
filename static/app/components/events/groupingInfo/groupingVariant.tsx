@@ -44,13 +44,18 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
     ]);
   }
   if ('values' in variant) {
-    data.push([t('Fingerprint values'), variant.values]);
+    data.push([
+      t('Fingerprint values'),
+      <TextWithQuestionTooltip key="fingerprint-values">
+        {variant.values?.join(', ') || ''}
+      </TextWithQuestionTooltip>,
+    ]);
   }
   if ('client_values' in variant) {
     data.push([
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
-        {variant.client_values}
+        {variant.client_values?.join(', ') || ''}
         {'matched_rule' in variant && ( // Only display override tooltip if overriding actually happened
           <QuestionTooltip
             size="xs"
