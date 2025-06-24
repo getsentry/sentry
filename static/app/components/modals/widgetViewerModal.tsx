@@ -579,6 +579,7 @@ function WidgetViewerModal(props: Props) {
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               location,
+              tableData: tableResults?.[0],
               theme,
               organization,
               selection,
