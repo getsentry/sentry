@@ -211,8 +211,9 @@ function NativeFrame({
         case SymbolicatorStatus.MISSING:
         case SymbolicatorStatus.MALFORMED:
           return 'error';
-        case SymbolicatorStatus.MISSING_SYMBOL:
         case SymbolicatorStatus.UNKNOWN_IMAGE:
+          return frame.instructionAddr === '0x0' ? 'success' : 'error';
+        case SymbolicatorStatus.MISSING_SYMBOL:
         default:
           return undefined;
       }
