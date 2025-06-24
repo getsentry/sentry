@@ -20,9 +20,9 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
         assert response.data[1]["username"] == user2.username
 
     def test_with_orgs(self):
-        user1 = self.create_user(username="powerful mifu", email="mifu@email.com")
-        user2 = self.create_user(username="transcendent mifu", email="mifu@email.com")
-        self.create_user(username="garden variety mifu", email="mifu@email.com")
+        user1 = self.create_user(username="powerful mifu", email="mifu@example.com")
+        user2 = self.create_user(username="transcendent mifu", email="mifu@example.com")
+        self.create_user(username="garden variety mifu", email="mifu@example.com")
 
         org1 = self.create_organization(name="hojicha")
         org2 = self.create_organization(name="matcha")
