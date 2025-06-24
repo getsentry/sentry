@@ -440,7 +440,7 @@ function Folder(props: {node: StoryTreeNode}) {
           setExpanded(props.node.expanded);
         }}
       >
-        <Flex.Item grow={1}>{normalizeFilename(props.node.name)}</Flex.Item>
+        <Flex flex={1}>{normalizeFilename(props.node.name)}</Flex>
         <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
       </FolderName>
       {expanded && Object.keys(props.node.children).length > 0 && (
