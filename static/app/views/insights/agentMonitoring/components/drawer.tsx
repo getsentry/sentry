@@ -12,6 +12,7 @@ import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpa
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/agentMonitoring/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/agentMonitoring/hooks/useUrlTraceDrawer';
+import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -38,15 +39,9 @@ function TraceViewDrawer({
     setSelectedNodeKey(uniqueKey);
   }, []);
 
-  useEffect(() => {
-    if (nodes.length > 0 && !selectedNodeKey && nodes[0]) {
-      handleSelectNode(nodes[0]);
-    }
-  }, [handleSelectNode, nodes, selectedNodeKey]);
-
-  const selectedNode = selectedNodeKey
-    ? nodes.find(node => getNodeId(node) === selectedNodeKey) || nodes[0]
-    : nodes[0];
+  const selectedNode =
+    (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
+    getDefaultSelectedNode(nodes);
 
   const nodeDetailsLink = useNodeDetailsLink({
     node: selectedNode,
