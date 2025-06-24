@@ -7,6 +7,7 @@ interface StoryContextValue {
 }
 
 const StoryContext = createContext<StoryContextValue>({story: undefined});
+export type StoryExports = StoryDescriptor['exports'];
 export function useStory() {
   const context = useContext(StoryContext);
   if (!context.story) {

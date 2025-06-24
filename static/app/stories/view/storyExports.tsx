@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 
 import {StorySourceLinks} from './storySourceLinks';
 import type {StoryDescriptor} from './useStoriesLoader';
+import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
 
 export function StoryExports(props: {story: StoryDescriptor}) {
@@ -79,6 +80,7 @@ function StoryTabPanels() {
     </TabPanels>
   );
 }
+const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>(['frontmatter', 'types']);
 
 function StoryUsage() {
   const {
@@ -94,6 +96,9 @@ function StoryUsage() {
         </Storybook.Section>
       )}
       {Object.entries(namedExports).map(([name, MaybeComponent]) => {
+        if (EXPECTED_EXPORTS.has(name as keyof StoryExportValues)) {
+          return null;
+        }
         if (typeof MaybeComponent === 'function') {
           return (
             <Storybook.Section key={name}>
