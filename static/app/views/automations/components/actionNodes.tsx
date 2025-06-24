@@ -70,12 +70,20 @@ type ActionNode = {
   action: React.ComponentType<any>;
   details?: React.ComponentType<any>;
   label?: string;
+  link?: string;
+  ticketType?: string;
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
   [
     ActionType.AZURE_DEVOPS,
-    {label: t('Azure DevOps'), action: AzureDevOpsNode, details: AzureDevOpsDetails},
+    {
+      label: t('Azure DevOps'),
+      action: AzureDevOpsNode,
+      details: AzureDevOpsDetails,
+      ticketType: t('an Azure DevOps work item'),
+      link: 'https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync',
+    },
   ],
   [
     ActionType.EMAIL,
@@ -89,19 +97,43 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       details: DiscordDetails,
     },
   ],
-  [ActionType.GITHUB, {label: t('Github'), action: GithubNode, details: GithubDetails}],
+  [
+    ActionType.GITHUB,
+    {
+      label: t('Github'),
+      action: GithubNode,
+      details: GithubDetails,
+      ticketType: t('a GitHub issue'),
+    },
+  ],
   [
     ActionType.GITHUB_ENTERPRISE,
     {
       label: t('Github Enterprise'),
       action: GithubEnterpriseNode,
       details: GithubEnterpriseDetails,
+      ticketType: t('a GitHub Enterprise issue'),
     },
   ],
-  [ActionType.JIRA, {label: t('Jira'), action: JiraNode, details: JiraDetails}],
+  [
+    ActionType.JIRA,
+    {
+      label: t('Jira'),
+      action: JiraNode,
+      details: JiraDetails,
+      ticketType: t('a Jira issue'),
+      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
+    },
+  ],
   [
     ActionType.JIRA_SERVER,
-    {label: t('Jira Server'), action: JiraServerNode, details: JiraServerDetails},
+    {
+      label: t('Jira Server'),
+      action: JiraServerNode,
+      details: JiraServerDetails,
+      ticketType: t('a Jira Server issue'),
+      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
+    },
   ],
   [
     ActionType.MSTEAMS,
