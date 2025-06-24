@@ -16,11 +16,13 @@ const Header = styled('h3')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray300};
   margin-bottom: 0;
+  line-height: 31px;
 `;
 
-const Content = styled('div')`
-  /* flex-grow: 1; */
-`;
+// currently no styles are added but this is here for organization and future use
+function Content(props: any) {
+  return <div {...props} />;
+}
 
 export const OnboardingStep = {
   Container,
