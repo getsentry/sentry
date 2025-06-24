@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
+import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, prettifyTagKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -96,7 +97,7 @@ function getAggregateOptions(
 function getAggregateOptionMetadata(
   aggregateName: string,
   tableFieldOptions: Record<string, SelectValue<FieldValue>>
-) {
+): {name: string; parameters: AggregateParameter[]} | null {
   const optionKey = `function:${aggregateName}`;
   const option = tableFieldOptions[optionKey];
 
@@ -105,19 +106,17 @@ function getAggregateOptionMetadata(
   }
 
   // Type guard to check if meta has parameters
-  const meta = option.value.meta as any;
-
-  // Only return parameters if they exist
-  if (!meta.parameters) {
+  const meta = option.value.meta;
+  if ('parameters' in meta) {
     return {
       name: meta.name,
-      parameters: [],
+      parameters: meta.parameters,
     };
   }
 
   return {
     name: meta.name,
-    parameters: meta.parameters,
+    parameters: [],
   };
 }
 
@@ -209,8 +208,20 @@ export function Visualize() {
       .sort((a, b) => a[1].localeCompare(b[1]));
   }, [dataset, stringSpanTags, numericSpanTags, tableFieldOptions]);
 
-  const aggregateOptions = useMemo((): Array<[string, string]> => {
-    return getAggregateOptions(dataset, tableFieldOptions);
+  const fieldOptionsDropdown = useMemo(() => {
+    return fieldOptions.map(([value, label]) => ({
+      value,
+      label,
+      trailingItems: renderTag(FieldValueKind.FIELD),
+    }));
+  }, [fieldOptions]);
+
+  const aggregateOptions = useMemo((): Array<SelectValue<string>> => {
+    return getAggregateOptions(dataset, tableFieldOptions).map(([value, label]) => ({
+      value,
+      label,
+      trailingItems: renderTag(FieldValueKind.FUNCTION),
+    }));
   }, [dataset, tableFieldOptions]);
 
   // Get parameter metadata for the selected aggregate
@@ -227,13 +238,15 @@ export function Visualize() {
     );
   };
 
-  // Smart aggregate change handler that manages parameter compatibility
+  /**
+   * Manages parameter compatibility
+   */
   const handleAggregateChange = (newAggregate: string) => {
     const newMetadata = getAggregateOptionMetadata(newAggregate, tableFieldOptions);
     const newParameters: string[] = [];
 
     if (newMetadata?.parameters) {
-      newMetadata.parameters.forEach((param: any, index: number) => {
+      newMetadata.parameters.forEach((param, index) => {
         if (param.defaultValue) {
           newParameters[index] = param.defaultValue;
         } else if (param.kind === 'column' && fieldOptions[0]) {
@@ -269,11 +282,7 @@ export function Visualize() {
             </div>
             <StyledAggregateSelect
               triggerLabel={aggregate || t('Select aggregate')}
-              options={aggregateOptions.map(([value, label]) => ({
-                value,
-                label,
-                trailingItems: renderTag(FieldValueKind.FUNCTION),
-              }))}
+              options={aggregateOptions}
               value={aggregate}
               onChange={option => {
                 handleAggregateChange(String(option.value));
@@ -282,7 +291,7 @@ export function Visualize() {
           </FieldContainer>
 
           {/* Render parameters dynamically based on metadata */}
-          {aggregateMetadata?.parameters?.map((param: any, index: number) => {
+          {aggregateMetadata?.parameters?.map((param, index) => {
             return (
               <FieldContainer key={index}>
                 <SectionLabel>
@@ -298,11 +307,7 @@ export function Visualize() {
                     triggerLabel={
                       parameters[index] || param.defaultValue || t('Select metric')
                     }
-                    options={fieldOptions.map(([value, label]) => ({
-                      value,
-                      label,
-                      trailingItems: renderTag(FieldValueKind.FIELD),
-                    }))}
+                    options={fieldOptionsDropdown}
                     value={parameters[index] || param.defaultValue || ''}
                     onChange={option => {
                       handleParameterChange(index, String(option.value));
@@ -313,7 +318,7 @@ export function Visualize() {
                     triggerLabel={
                       parameters[index] || param.defaultValue || t('Select value')
                     }
-                    options={param.options.map((option: any) => ({
+                    options={param.options.map(option => ({
                       value: option.value,
                       label: option.label,
                     }))}

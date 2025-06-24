@@ -165,7 +165,7 @@ function AutomateSection() {
           priority="primary"
           icon={<IconAdd />}
         >
-          Connect Automations
+          {t('Connect Automations')}
         </Button>
       </Section>
     </Container>
@@ -236,7 +236,10 @@ function DetectSection() {
             flexibleControlStateSize
             inline={false}
             label={
-              <Tooltip title={t('Dataset')} showUnderline>
+              <Tooltip
+                title={t('This reflects the type of information you want to use.')}
+                showUnderline
+              >
                 <SectionLabel>{t('Dataset')}</SectionLabel>
               </Tooltip>
             }
@@ -257,12 +260,17 @@ function DetectSection() {
             flexibleControlStateSize
             inline={false}
             label={
-              <Tooltip title={t('Interval')} showUnderline>
+              <Tooltip
+                title={t('The time period over which to evaluate your metric.')}
+                showUnderline
+              >
                 <SectionLabel>{t('Interval')}</SectionLabel>
               </Tooltip>
             }
             name={METRIC_DETECTOR_FORM_FIELDS.interval}
             choices={[
+              // TODO: We will probably need to change these options based on dataset
+              // Similar to metric alerts see static/app/views/alerts/rules/metric/constants.tsx
               [60, t('1 minute')],
               [5 * 60, t('5 minutes')],
               [15 * 60, t('15 minutes')],
