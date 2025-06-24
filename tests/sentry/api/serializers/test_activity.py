@@ -187,7 +187,7 @@ class GroupActivityTestCase(TestCase):
                 user=proxy_user,
             )
         )
-        assert data["user"]["name"] == proxy_user.username
+        assert data["user"]["name"] == proxy_user.email
         assert data["sentry_app"]["name"] == sentry_app.name
         assert {
             "avatarType": "default",
