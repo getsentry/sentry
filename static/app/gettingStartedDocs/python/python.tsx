@@ -425,8 +425,12 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-          code: `
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
 import sentry_sdk
 from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
@@ -439,6 +443,8 @@ sentry_sdk.init(
         OpenAIAgentsIntegration(),
     ],
 )`,
+            },
+          ],
         },
       ],
       additionalInfo: t(

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -47,6 +48,13 @@ function useOnboardingProject() {
     pageFilters.selection.projects,
     projects
   );
+  const agentMonitoringProjects = selectedProject.filter(p =>
+    agentMonitoringPlatforms.has(p.platform as PlatformKey)
+  );
+
+  if (agentMonitoringProjects.length > 0) {
+    return agentMonitoringProjects[0];
+  }
   return selectedProject[0];
 }
 
@@ -88,19 +96,19 @@ function useAgentEventWaiter(project: Project) {
 }
 
 function WaitingIndicator({project}: {project: Project}) {
-  const organization = useOrganization();
   const {hasEvents} = useAgentEventWaiter(project);
+  const {reloadProjects, fetching} = useProjects();
 
   return hasEvents ? (
-    <LinkButton
+    <Button
       priority="primary"
-      to={{
-        pathname: `/organizations/${organization.slug}/insights/agents/`,
-        query: {project: project.id},
+      busy={fetching}
+      onClick={() => {
+        reloadProjects();
       }}
     >
       {t('View Agent Monitoring')}
-    </LinkButton>
+    </Button>
   ) : (
     <EventWaitingIndicator />
   );
