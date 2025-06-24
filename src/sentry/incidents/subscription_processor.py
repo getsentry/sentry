@@ -375,15 +375,19 @@ class SubscriptionProcessor:
 
         if aggregation_value is not None:
             if has_metric_alert_processing:
-                packet = QuerySubscriptionUpdate(
-                    entity=subscription_update.get("entity", ""),
-                    subscription_id=subscription_update["subscription_id"],
-                    values={"value": aggregation_value},
-                    timestamp=self.last_update,
-                )
-                data_packet = DataPacket[QuerySubscriptionUpdate](
-                    source_id=str(self.subscription.id), packet=packet
-                )
+                if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                    # TODO: this
+                    pass
+                else:
+                    packet = QuerySubscriptionUpdate(
+                        entity=subscription_update.get("entity", ""),
+                        subscription_id=subscription_update["subscription_id"],
+                        values={"value": aggregation_value},
+                        timestamp=self.last_update,
+                    )
+                    data_packet = DataPacket[QuerySubscriptionUpdate](
+                        source_id=str(self.subscription.id), packet=packet
+                    )
                 results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
                 if features.has(
                     "organizations:workflow-engine-metric-alert-dual-processing-logs",
