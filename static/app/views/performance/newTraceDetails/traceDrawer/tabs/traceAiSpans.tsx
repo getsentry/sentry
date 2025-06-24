@@ -11,6 +11,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
+import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -36,7 +37,10 @@ function TraceAiSpans({
   });
 
   const selectedNode = useMemo(() => {
-    return nodes.find(node => getNodeId(node) === selectedNodeKey) || nodes[0];
+    return (
+      nodes.find(node => getNodeId(node) === selectedNodeKey) ||
+      getDefaultSelectedNode(nodes)
+    );
   }, [nodes, selectedNodeKey]);
 
   const handleSelectNode = useCallback(
