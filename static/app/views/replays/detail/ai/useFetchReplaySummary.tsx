@@ -223,6 +223,9 @@ export function which(payload: SpanFrame | BreadcrumbFrame): EventType {
   if (isSpanFrame(payload)) {
     const op = payload.op;
 
+    if (op.startsWith('navigation')) {
+      return EventType.NAVIGATION;
+    }
     if (op === 'resource.fetch') {
       return EventType.RESOURCE_FETCH;
     }
@@ -259,8 +262,6 @@ export function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | nul
         return `User clicked on ${payload.message} but the triggered action was slow to complete at ${timestamp}`;
       case EventType.RAGE_CLICK:
         return `User rage clicked on ${payload.message} but the triggered action was slow to complete at ${timestamp}`;
-      case EventType.NAVIGATION:
-        return `User navigated to: ${payload.data?.to} at ${timestamp}`;
       case EventType.CONSOLE:
         return `Logged: ${payload.message} at ${timestamp}`;
       case EventType.UI_BLUR:
@@ -274,6 +275,8 @@ export function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | nul
 
   if (isSpanFrame(payload)) {
     switch (eventType) {
+      case EventType.NAVIGATION:
+        return `User navigated to: ${payload.description} at ${timestamp}`;
       case EventType.RESOURCE_FETCH: {
         const parsedUrl = new URL(payload.description || '');
         const path = `${parsedUrl.pathname}?${parsedUrl.search}`;
