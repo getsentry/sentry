@@ -18,6 +18,7 @@ import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/tra
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 
 interface UseTraceViewDrawerProps {
   onClose?: () => void;
@@ -178,6 +179,7 @@ const LeftPanel = styled('div')`
 `;
 
 const RightPanel = styled('div')`
+  ${traceGridCssVariables}
   min-width: 400px;
   flex: 1;
   min-height: 0;

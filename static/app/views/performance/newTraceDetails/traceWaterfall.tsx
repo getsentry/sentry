@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import {flushSync} from 'react-dom';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -839,19 +840,23 @@ const TraceLinksNavigationContainer = styled('div')`
   }
 `;
 
+export const traceGridCssVariables = ({theme}: {theme: Theme}) => `
+  --info: ${theme.purple400};
+  --warning: ${theme.yellow300};
+  --debug: ${theme.blue300};
+  --error: ${theme.error};
+  --fatal: ${theme.error};
+  --default: ${theme.gray300};
+  --unknown: ${theme.gray300};
+  --profile: ${theme.purple300};
+  --autogrouped: ${theme.blue300};
+  --occurence: ${theme.blue300};
+`;
+
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
-  --info: ${p => p.theme.purple400};
-  --warning: ${p => p.theme.yellow300};
-  --debug: ${p => p.theme.blue300};
-  --error: ${p => p.theme.error};
-  --fatal: ${p => p.theme.error};
-  --default: ${p => p.theme.gray300};
-  --unknown: ${p => p.theme.gray300};
-  --profile: ${p => p.theme.purple300};
-  --autogrouped: ${p => p.theme.blue300};
-  --occurence: ${p => p.theme.blue300};
+  ${traceGridCssVariables}
 
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
