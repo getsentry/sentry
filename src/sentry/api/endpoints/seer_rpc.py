@@ -23,6 +23,11 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
@@ -51,6 +56,7 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.silo.base import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
@@ -391,6 +397,104 @@ def get_attribute_values_with_substring(
     return {"values": values}
 
 
+def get_attribute_names_stats(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    stats_period: str,
+    max_buckets: int = 15,
+    max_attributes: int = 1000,
+    substring: str | None = None,
+) -> dict:
+    """
+    Get attribute distributions stats for trace items.
+    Returns frequency distributions of values for all attributes.
+    """
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    # Note: For basic attribute distributions, we don't need the resolver
+    # In the future, if query filtering is needed, uncomment and use the resolver:
+    # resolver = SearchResolver(
+    #     params=SnubaParams(
+    #         start=start,
+    #         end=end,
+    #         project_ids=project_ids,
+    #         organization_id=org_id,
+    #     ),
+    #     config=SearchResolverConfig(),
+    #     definitions=SPAN_DEFINITIONS,
+    # )
+
+    # Create the request meta
+    meta = RequestMeta(
+        organization_id=org_id,
+        cogs_category="events_analytics_platform",
+        referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
+        project_ids=project_ids,
+        start_timestamp=start_time_proto,
+        end_timestamp=end_time_proto,
+        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    )
+
+    # For now, use an empty filter (no query filtering)
+    # In the future, you could add a query parameter to filter results
+    from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+
+    filter = TraceItemFilter()
+
+    # Configure the stats type for attribute distributions
+    stats_type = StatsType(
+        attribute_distributions=AttributeDistributionsRequest(
+            max_buckets=max_buckets,
+            max_attributes=max_attributes,
+        )
+    )
+
+    # Create and execute the RPC request
+    rpc_request = TraceItemStatsRequest(
+        filter=filter,
+        meta=meta,
+        stats_types=[stats_type],
+    )
+
+    rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
+
+    # Process the response to extract attribute distributions
+    results = []
+    if rpc_response.results:
+        for result in rpc_response.results:
+            if result.HasField("attribute_distributions"):
+                attr_dist_data = {
+                    "attribute_distributions": [
+                        {
+                            "attribute_name": attr.attribute_name,
+                            "buckets": buckets,
+                        }
+                        for attr in result.attribute_distributions.attributes
+                        if (
+                            buckets := [
+                                {"label": bucket.label, "value": bucket.value}
+                                for bucket in attr.buckets
+                                if not substring or (substring in str(bucket.label))
+                            ]
+                        )
+                    ]
+                }
+                results.append(attr_dist_data)
+
+    return {"results": results}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -403,6 +507,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_names": get_attribute_names,
     "get_attribute_values": get_attribute_values,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
+    "get_attribute_names_stats": get_attribute_names_stats,
 }
 
 
@@ -418,5 +523,19 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
 
     signature_input = body
     secret = settings.SEER_RPC_SHARED_SECRET[0]
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"
+    secret = settings.SEER_RPC_SHARED_SECRET[0]
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"
+    secret = settings.SEER_RPC_SHARED_SECRET[0]
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"
+    return f"rpc0:{signature}"
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"
+    return f"rpc0:{signature}"
     signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
     return f"rpc0:{signature}"
