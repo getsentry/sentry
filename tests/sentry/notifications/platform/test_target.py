@@ -5,6 +5,7 @@ from sentry.notifications.platform.target import (
 )
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
+    NotificationTarget,
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
@@ -30,7 +31,7 @@ class NotificationTargetTest(TestCase):
             organization_id=self.organization.id,
         )
 
-        targets = [generic_target, integration_target]
+        targets: list[NotificationTarget] = [generic_target, integration_target]
 
         for target in targets:
             assert not target.is_prepared
