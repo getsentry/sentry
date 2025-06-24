@@ -164,7 +164,7 @@ const BodyCell = memo(function BodyCell({
 
   const exploreUrl = getExploreUrl({
     organization,
-    mode: Mode.AGGREGATE,
+    mode: Mode.SAMPLES,
     visualize: [
       {
         chartType: ChartType.BAR,
@@ -172,7 +172,6 @@ const BodyCell = memo(function BodyCell({
       },
     ],
     query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,
-    sort: `-count(span.duration)`,
   });
 
   switch (column.key) {
