@@ -74,53 +74,59 @@ function DetectorListTable({
   sort,
 }: DetectorListTableProps) {
   return (
-    <DetectorListSimpleTable>
-      <SimpleTable.Header>
-        <HeaderCell name="name" sortKey="name" sort={sort}>
-          {t('Name')}
-        </HeaderCell>
-        <HeaderCell name="type" divider sortKey="type" sort={sort}>
-          {t('Type')}
-        </HeaderCell>
-        <HeaderCell name="issue" divider sort={sort}>
-          {t('Last Issue')}
-        </HeaderCell>
-        <HeaderCell name="assignee" divider sort={sort}>
-          {t('Assignee')}
-        </HeaderCell>
-        <HeaderCell
-          name="connected-automations"
-          divider
-          sortKey="connectedWorkflows"
-          sort={sort}
-        >
-          {t('Automations')}
-        </HeaderCell>
-      </SimpleTable.Header>
-      {isError && <LoadingError message={t('Error loading monitors')} />}
-      {isPending && <LoadingSkeletons />}
-      {isSuccess && detectors.length > 0 ? (
-        detectors.map(detector => (
-          <DetectorListRow key={detector.id} detector={detector} />
-        ))
-      ) : (
-        <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
-      )}
-    </DetectorListSimpleTable>
+    <Container>
+      <DetectorListSimpleTable>
+        <SimpleTable.Header>
+          <HeaderCell name="name" sortKey="name" sort={sort}>
+            {t('Name')}
+          </HeaderCell>
+          <HeaderCell name="type" divider sortKey="type" sort={sort}>
+            {t('Type')}
+          </HeaderCell>
+          <HeaderCell name="last-issue" divider sort={sort}>
+            {t('Last Issue')}
+          </HeaderCell>
+          <HeaderCell name="assignee" divider sort={sort}>
+            {t('Assignee')}
+          </HeaderCell>
+          <HeaderCell
+            name="connected-automations"
+            divider
+            sortKey="connectedWorkflows"
+            sort={sort}
+          >
+            {t('Automations')}
+          </HeaderCell>
+        </SimpleTable.Header>
+        {isError && <LoadingError message={t('Error loading monitors')} />}
+        {isPending && <LoadingSkeletons />}
+        {isSuccess && detectors.length > 0 ? (
+          detectors.map(detector => (
+            <DetectorListRow key={detector.id} detector={detector} />
+          ))
+        ) : (
+          <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
+        )}
+      </DetectorListSimpleTable>
+    </Container>
   );
 }
+
+const Container = styled('div')`
+  container-type: inline-size;
+`;
 
 const DetectorListSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
   .type,
-  .creator,
   .last-issue,
+  .assignee,
   .connected-automations {
     display: none;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: 3fr 0.8fr;
 
     .type {
@@ -128,7 +134,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @container (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
@@ -136,15 +142,15 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @container (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .creator {
+    .assignee {
       display: flex;
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @container (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
 
     .connected-automations {
