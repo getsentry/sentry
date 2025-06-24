@@ -49,6 +49,8 @@ export const AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name' as EAPSpanProperty;
 export const AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name' as EAPSpanProperty;
 export const AI_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens' as EAPSpanProperty;
 
+export const AI_HANDOFF_OPS = ['gen_ai.handoff'];
+
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM =
   `sum(tags[gen_ai.usage.total_tokens,number])` as EAPSpanProperty;
 export const AI_INPUT_TOKENS_ATTRIBUTE_SUM =
