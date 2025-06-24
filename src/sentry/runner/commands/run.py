@@ -623,15 +623,12 @@ def basic_consumer(
     """
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
-    from sentry.utils.arroyo import initialize_arroyo_main
 
     log_level = options.pop("log_level", None)
     if log_level is not None:
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
-    initialize_arroyo_main()
-
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
 
     # for backwards compat: should eventually be removed
@@ -654,9 +651,6 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
     """
 
     from sentry.consumers import get_stream_processor
-    from sentry.utils.arroyo import initialize_arroyo_main
-
-    initialize_arroyo_main()
 
     processors = [
         get_stream_processor(
