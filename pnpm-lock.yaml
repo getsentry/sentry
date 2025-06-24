@@ -421,8 +421,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       platformicons:
-        specifier: ^8.0.4
-        version: 8.0.4(react@19.1.0)
+        specifier: ^8.0.6
+        version: 8.0.6(react@19.1.0)
       po-catalog-loader:
         specifier: 2.1.0
         version: 2.1.0(gettext-parser@7.0.1)
@@ -6487,8 +6487,8 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  platformicons@8.0.4:
-    resolution: {integrity: sha512-hvIWouaTtmnHv/JD42LwOg4MOd020q8Vf1Xs8uzqiA5+cqsiYqhR22WNV+Vzx6+T1K8ZLO9LV8+FvpFargKdlw==}
+  platformicons@8.0.6:
+    resolution: {integrity: sha512-XSUVuRWvMdunIq33GvWQKo5Bjw04uNnXtbSqaTC4/aZTi08BQMGS2l7uqlDYmw71A072OIaHf8rpDzOhLx+1pg==}
     peerDependencies:
       react: '*'
 
@@ -15519,7 +15519,7 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  platformicons@8.0.4(react@19.1.0):
+  platformicons@8.0.6(react@19.1.0):
     dependencies:
       '@types/node': 22.15.21
       '@types/react': 19.1.0
