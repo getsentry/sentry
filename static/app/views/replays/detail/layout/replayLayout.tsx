@@ -70,15 +70,16 @@ export default function ReplayLayout({
     );
   }
 
-  const focusArea = isLoading ? (
-    <Placeholder width="100%" height="100%" />
-  ) : (
-    <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
-      <ErrorBoundary mini>
-        <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
-      </ErrorBoundary>
-    </FluidPanel>
-  );
+  const focusArea =
+    isLoading || replayRecord?.is_archived ? (
+      <Placeholder width="100%" height="100%" />
+    ) : (
+      <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
+        <ErrorBoundary mini>
+          <FocusArea isVideoReplay={isVideoReplay} />
+        </ErrorBoundary>
+      </FluidPanel>
+    );
 
   const hasSize = width + height > 0;
 

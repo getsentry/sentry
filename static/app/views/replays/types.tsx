@@ -11,7 +11,7 @@ type Geo = Record<string, string>;
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
-export type ReplayRecord = {
+export type HydratedReplayRecord = {
   /**
    * Number that represents how much user activity happened in a replay.
    */
@@ -97,7 +97,7 @@ export type ReplayRecord = {
    * When deleted the rrweb data & attachments are removed from blob storage,
    * but the record of the replay is not removed.
    */
-  is_archived: boolean;
+  is_archived: false;
   os: {
     name: null | string;
     version: null | string;
@@ -132,6 +132,63 @@ export type ReplayRecord = {
   };
   warning_ids: string[];
 };
+type ArchivedReplayRecord = {
+  activity: null;
+  browser: {
+    name: null;
+    version: null;
+  };
+  clicks: never[];
+  count_dead_clicks: null;
+  count_errors: null;
+  count_infos: null;
+  count_rage_clicks: null;
+  count_segments: null;
+  count_urls: null;
+  count_warnings: null;
+  device: {
+    brand: null;
+    family: null;
+    model_id: null;
+    name: null;
+  };
+  dist: null;
+  duration: null;
+  environment: null;
+  error_ids: never[];
+  finished_at: null;
+  has_viewed: null;
+  id: string;
+  info_ids: never[];
+  is_archived: true;
+  os: {
+    name: null;
+    version: null;
+  };
+  ota_updates: Record<string, never>;
+  platform: null;
+  project_id: null;
+  releases: never[];
+  replay_type: null;
+  sdk: {
+    name: null;
+    version: null;
+  };
+  started_at: null;
+  tags: Record<string, string[]>;
+  trace_ids: never[];
+  urls: never[];
+  user: {
+    display_name: 'Archived User';
+    email: null;
+    id: 'Archived User';
+    ip: null;
+    username: null;
+    geo?: Geo;
+  };
+  warning_ids: never[];
+};
+export type ReplayRecord = HydratedReplayRecord | ArchivedReplayRecord;
 
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
 export type ReplayRecordNestedFieldName =
@@ -168,20 +225,45 @@ export const REPLAY_LIST_FIELDS = [
   'browser.version',
   'count_dead_clicks',
   'count_errors',
+  'count_infos',
   'count_rage_clicks',
+  'count_segments',
+  'count_urls',
+  'count_warnings',
+  'device.brand',
+  'device.family',
+  'device.model_id',
+  'device.name',
+  'dist',
   'duration',
+  'environment',
+  'error_ids',
   'finished_at',
   'has_viewed',
   'id',
+  'info_ids',
   'is_archived',
   'os.name',
   'os.version',
+  'ota_updates.channel',
+  'ota_updates.runtime_version',
+  'ota_updates.update_id',
+  'platform',
   'project_id',
+  'releases',
+  'replay_type',
+  'sdk.name',
+  'sdk.version',
   'started_at',
+  'tags',
+  'trace_ids',
+  'urls',
   'user',
+  'warning_ids',
 ];
 
 // Sync with REPLAY_LIST_FIELDS above
+// TODO: Account for is_archived
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
