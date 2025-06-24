@@ -6,32 +6,13 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
-import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
-import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
 import {
-  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
-
-// TODO: consolidate this with the other one
-function getDatasetConfig(dataset: DetectorDataset) {
-  switch (dataset) {
-    case DetectorDataset.ERRORS:
-      return ErrorsConfig;
-    case DetectorDataset.TRANSACTIONS:
-      return TransactionsConfig;
-    case DetectorDataset.RELEASES:
-      return ReleasesConfig;
-    case DetectorDataset.SPANS:
-      return SpansConfig;
-    default:
-      return ErrorsConfig;
-  }
-}
 
 export function DetectorQueryFilterBuilder() {
   const currentQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
@@ -64,14 +45,11 @@ export function DetectorQueryFilterBuilder() {
 
   // Create a mock widget query for the SearchBar
   const widgetQuery = useMemo(
-    () => ({
+    (): WidgetQuery => ({
+      conditions: currentQuery || '',
       aggregates: [],
       columns: [],
-      conditions: currentQuery || '',
-      fields: [],
       fieldAliases: [],
-      groupBy: [],
-      id: '',
       name: '',
       orderby: '',
     }),

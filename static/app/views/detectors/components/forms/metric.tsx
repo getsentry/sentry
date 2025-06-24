@@ -27,10 +27,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
-import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
-import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
-import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
   DetectorDataset,
@@ -42,24 +39,6 @@ import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/form
 import {Visualize} from 'sentry/views/detectors/components/forms/visualize';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-/**
- * Get the default aggregate function for a dataset
- */
-function getDatasetDefaultAggregate(dataset: DetectorDataset): string {
-  switch (dataset) {
-    case DetectorDataset.ERRORS:
-      return generateFieldAsString(ErrorsConfig.defaultField);
-    case DetectorDataset.TRANSACTIONS:
-      return generateFieldAsString(TransactionsConfig.defaultField);
-    case DetectorDataset.SPANS:
-      return generateFieldAsString(SpansConfig.defaultField);
-    case DetectorDataset.RELEASES:
-      return generateFieldAsString(ReleasesConfig.defaultField);
-    default:
-      return 'count()';
-  }
-}
 
 function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
@@ -257,7 +236,7 @@ function DetectSection() {
             flexibleControlStateSize
             inline={false}
             label={
-              <Tooltip title={t('Dataset')} skipWrapper>
+              <Tooltip title={t('Dataset')} showUnderline>
                 <SectionLabel>{t('Dataset')}</SectionLabel>
               </Tooltip>
             }
@@ -265,7 +244,8 @@ function DetectSection() {
             choices={datasetChoices}
             onChange={newDataset => {
               // Reset aggregate function to dataset default when dataset changes
-              const defaultAggregate = getDatasetDefaultAggregate(newDataset);
+              const datasetConfig = getDatasetConfig(newDataset);
+              const defaultAggregate = generateFieldAsString(datasetConfig.defaultField);
               formContext.form?.setValue(
                 METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
                 defaultAggregate
@@ -277,7 +257,7 @@ function DetectSection() {
             flexibleControlStateSize
             inline={false}
             label={
-              <Tooltip title={t('Interval')} skipWrapper>
+              <Tooltip title={t('Interval')} showUnderline>
                 <SectionLabel>{t('Interval')}</SectionLabel>
               </Tooltip>
             }

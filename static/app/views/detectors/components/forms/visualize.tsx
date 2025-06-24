@@ -10,15 +10,13 @@ import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, prettifyTagKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
-import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
-import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
-import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {useCustomMeasurements} from 'sentry/views/detectors/components/forms/customMeasurements';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
 import {
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
@@ -68,21 +66,6 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
   }
 
   return <Tag type={tagType}>{text}</Tag>;
-}
-
-function getDatasetConfig(dataset: DetectorDataset) {
-  switch (dataset) {
-    case DetectorDataset.ERRORS:
-      return ErrorsConfig;
-    case DetectorDataset.TRANSACTIONS:
-      return TransactionsConfig;
-    case DetectorDataset.RELEASES:
-      return ReleasesConfig;
-    case DetectorDataset.SPANS:
-      return SpansConfig;
-    default:
-      return ErrorsConfig;
-  }
 }
 
 function getAggregateOptions(
@@ -275,97 +258,99 @@ export function Visualize() {
     Boolean(aggregateMetadata?.parameters?.length) && dataset !== DetectorDataset.SPANS;
 
   return (
-    <AggregateContainer hasParameters={hasVisibleParameters}>
-      <Flex gap={space(1)} align="flex-end">
-        <FieldContainer>
-          <div>
-            <Tooltip title={t('Primary Metric')} showUnderline>
-              <SectionLabel>{t('Visualize')}</SectionLabel>
-            </Tooltip>
-          </div>
-          <StyledAggregateSelect
-            triggerLabel={aggregate || t('Select aggregate')}
-            options={aggregateOptions.map(([value, label]) => ({
-              value,
-              label,
-              trailingItems: renderTag(FieldValueKind.FUNCTION),
-            }))}
-            value={aggregate}
-            onChange={option => {
-              handleAggregateChange(String(option.value));
-            }}
-          />
-        </FieldContainer>
+    <CustomMeasurementsContext value={{customMeasurements}}>
+      <AggregateContainer hasParameters={hasVisibleParameters}>
+        <Flex gap={space(1)} align="flex-end">
+          <FieldContainer>
+            <div>
+              <Tooltip title={t('Primary Metric')} showUnderline>
+                <SectionLabel>{t('Visualize')}</SectionLabel>
+              </Tooltip>
+            </div>
+            <StyledAggregateSelect
+              triggerLabel={aggregate || t('Select aggregate')}
+              options={aggregateOptions.map(([value, label]) => ({
+                value,
+                label,
+                trailingItems: renderTag(FieldValueKind.FUNCTION),
+              }))}
+              value={aggregate}
+              onChange={option => {
+                handleAggregateChange(String(option.value));
+              }}
+            />
+          </FieldContainer>
 
-        {/* Render parameters dynamically based on metadata */}
-        {aggregateMetadata?.parameters?.map((param: any, index: number) => {
-          return (
-            <FieldContainer key={index}>
-              <SectionLabel>
-                {param.kind === 'column'
-                  ? t('Metric')
-                  : param.kind === 'dropdown'
-                    ? t('Value')
-                    : t('Parameter %s', index + 1)}
-              </SectionLabel>
+          {/* Render parameters dynamically based on metadata */}
+          {aggregateMetadata?.parameters?.map((param: any, index: number) => {
+            return (
+              <FieldContainer key={index}>
+                <SectionLabel>
+                  {param.kind === 'column'
+                    ? t('Metric')
+                    : param.kind === 'dropdown'
+                      ? t('Value')
+                      : t('Parameter %s', index + 1)}
+                </SectionLabel>
 
-              {param.kind === 'column' ? (
-                <StyledVisualizeSelect
-                  triggerLabel={
-                    parameters[index] || param.defaultValue || t('Select metric')
-                  }
-                  options={fieldOptions.map(([value, label]) => ({
-                    value,
-                    label,
-                    trailingItems: renderTag(FieldValueKind.FIELD),
-                  }))}
-                  value={parameters[index] || param.defaultValue || ''}
-                  onChange={option => {
-                    handleParameterChange(index, String(option.value));
-                  }}
-                />
-              ) : param.kind === 'dropdown' && param.options ? (
-                <StyledVisualizeSelect
-                  triggerLabel={
-                    parameters[index] || param.defaultValue || t('Select value')
-                  }
-                  options={param.options.map((option: any) => ({
-                    value: option.value,
-                    label: option.label,
-                  }))}
-                  value={parameters[index] || param.defaultValue || ''}
-                  onChange={option => {
-                    handleParameterChange(index, String(option.value));
-                  }}
-                />
-              ) : (
-                <StyledParameterInput
-                  placeholder={param.defaultValue || t('Enter value')}
-                  value={parameters[index] || ''}
-                  onChange={e => {
-                    handleParameterChange(index, e.target.value);
-                  }}
-                />
-              )}
-            </FieldContainer>
-          );
-        })}
-      </Flex>
-
-      {/* Only show filter inline when no additional parameters */}
-      {!hasVisibleParameters && (
-        <Flex flex={1} gap={space(1)}>
-          <DetectorQueryFilterBuilder />
+                {param.kind === 'column' ? (
+                  <StyledVisualizeSelect
+                    triggerLabel={
+                      parameters[index] || param.defaultValue || t('Select metric')
+                    }
+                    options={fieldOptions.map(([value, label]) => ({
+                      value,
+                      label,
+                      trailingItems: renderTag(FieldValueKind.FIELD),
+                    }))}
+                    value={parameters[index] || param.defaultValue || ''}
+                    onChange={option => {
+                      handleParameterChange(index, String(option.value));
+                    }}
+                  />
+                ) : param.kind === 'dropdown' && param.options ? (
+                  <StyledVisualizeSelect
+                    triggerLabel={
+                      parameters[index] || param.defaultValue || t('Select value')
+                    }
+                    options={param.options.map((option: any) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    value={parameters[index] || param.defaultValue || ''}
+                    onChange={option => {
+                      handleParameterChange(index, String(option.value));
+                    }}
+                  />
+                ) : (
+                  <StyledParameterInput
+                    placeholder={param.defaultValue || t('Enter value')}
+                    value={parameters[index] || ''}
+                    onChange={e => {
+                      handleParameterChange(index, e.target.value);
+                    }}
+                  />
+                )}
+              </FieldContainer>
+            );
+          })}
         </Flex>
-      )}
 
-      {/* Show filter on separate row when parameters are visible */}
-      {hasVisibleParameters && (
-        <Flex flex={1} gap={space(1)}>
-          <DetectorQueryFilterBuilder />
-        </Flex>
-      )}
-    </AggregateContainer>
+        {/* Only show filter inline when no additional parameters */}
+        {!hasVisibleParameters && (
+          <Flex flex={1} gap={space(1)}>
+            <DetectorQueryFilterBuilder />
+          </Flex>
+        )}
+
+        {/* Show filter on separate row when parameters are visible */}
+        {hasVisibleParameters && (
+          <Flex flex={1} gap={space(1)}>
+            <DetectorQueryFilterBuilder />
+          </Flex>
+        )}
+      </AggregateContainer>
+    </CustomMeasurementsContext>
   );
 }
 

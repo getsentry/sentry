@@ -13,6 +13,7 @@ import {defined} from 'sentry/utils';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 
 /**
@@ -210,25 +211,44 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
 }
 
 /**
+ * Convert backend dataset to our form dataset
+ */
+const getDetectorDataset = (backendDataset: string): DetectorDataset => {
+  switch (backendDataset) {
+    case Dataset.ERRORS:
+      return DetectorDataset.ERRORS;
+    case Dataset.TRANSACTIONS:
+    case Dataset.GENERIC_METRICS:
+      return DetectorDataset.TRANSACTIONS;
+    case Dataset.EVENTS_ANALYTICS_PLATFORM:
+      return DetectorDataset.SPANS;
+    default:
+      return DetectorDataset.ERRORS;
+  }
+};
+
+/**
+ * Convert our form dataset to the backend dataset
+ */
+const getBackendDataset = (dataset: DetectorDataset): string => {
+  switch (dataset) {
+    case DetectorDataset.ERRORS:
+      return Dataset.ERRORS;
+    case DetectorDataset.TRANSACTIONS:
+      return Dataset.GENERIC_METRICS;
+    case DetectorDataset.SPANS:
+      return Dataset.EVENTS_ANALYTICS_PLATFORM;
+    case DetectorDataset.RELEASES:
+      return Dataset.ERRORS;
+    default:
+      return Dataset.ERRORS;
+  }
+};
+
+/**
  * Creates the data source configuration for the detector
  */
 function createDataSource(data: MetricDetectorFormData): NewDataSource {
-  // Map detector dataset to backend values
-  const getBackendDataset = (dataset: DetectorDataset): string => {
-    switch (dataset) {
-      case DetectorDataset.ERRORS:
-        return 'events';
-      case DetectorDataset.TRANSACTIONS:
-        return 'generic_metrics';
-      case DetectorDataset.SPANS:
-        return 'events_analytics_platform';
-      case DetectorDataset.RELEASES:
-        return 'events';
-      default:
-        return 'events';
-    }
-  };
-
   const getEventTypes = (dataset: DetectorDataset): string[] => {
     switch (dataset) {
       case DetectorDataset.ERRORS:
@@ -369,21 +389,6 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
 
   // Process conditions using the extracted function
   const conditionData = processDetectorConditions(detector);
-
-  // Convert backend dataset to our detector dataset
-  const getDetectorDataset = (backendDataset: string): DetectorDataset => {
-    switch (backendDataset) {
-      case 'events':
-        return DetectorDataset.ERRORS;
-      case 'transactions':
-      case 'generic_metrics':
-        return DetectorDataset.TRANSACTIONS;
-      case 'events_analytics_platform':
-        return DetectorDataset.SPANS;
-      default:
-        return DetectorDataset.ERRORS;
-    }
-  };
 
   const dataset = snubaQuery?.dataset
     ? getDetectorDataset(snubaQuery.dataset)
