@@ -1,23 +1,16 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Badge} from 'sentry/components/core/badge';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {space} from 'sentry/styles/space';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
-import {StoryTableOfContents} from './storyTableOfContents';
 import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
 
 export default function Stories() {
@@ -97,20 +90,6 @@ const HeaderContainer = styled('header')`
   right: 0;
   z-index: ${p => p.theme.zIndex.header};
   background: ${p => p.theme.tokens.background.primary};
-`;
-
-const SidebarContainer = styled('div')`
-  grid-area: aside;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  min-height: 0;
-  position: relative;
-  z-index: 10;
-`;
-
-const StoryIndexContainer = styled('div')`
-  grid-area: index;
 `;
 
 const VerticalScroll = styled('main')`

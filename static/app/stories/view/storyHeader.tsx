@@ -5,8 +5,9 @@ import {Flex} from 'sentry/components/core/layout';
 import Link from 'sentry/components/links/link';
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import {StorySearch} from 'sentry/stories/view';
 import {space} from 'sentry/styles/space';
+
+import {StorySearch} from './storySearch';
 
 function SentryUiLogo() {
   return (
