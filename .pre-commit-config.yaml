@@ -48,6 +48,7 @@ repos:
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
+        require_serial: true
       - id: mypy
         name: mypy
         entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
