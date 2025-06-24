@@ -8,4 +8,4 @@ export const DATA_TYPE_PLURAL = t('Agents');
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/ai/';
 
-export const MODULE_FEATURES = ['insights-addon-modules', 'agents-insights'];
+export const MODULE_FEATURES = ['agents-insights'];
