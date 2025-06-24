@@ -689,6 +689,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 # Preprod build artifact analysis
 /src/sentry/preprod                                   @getsentry/emerge-tools
+/static/app/views/preprod                             @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)
