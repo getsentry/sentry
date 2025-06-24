@@ -26,6 +26,16 @@ export const enum DetectorDataset {
   RELEASES = 'releases',
 }
 
+/**
+ * Snuba query types that correspond to the backend SnubaQuery.Type enum.
+ * These values are defined in src/sentry/snuba/models.py:
+ */
+const enum SnubaQueryType {
+  ERROR = 0,
+  PERFORMANCE = 1,
+  CRASH_RATE = 2,
+}
+
 interface PrioritizeLevelFormData {
   /**
    * Issue is created at this priority level
@@ -222,6 +232,8 @@ const getDetectorDataset = (backendDataset: string): DetectorDataset => {
       return DetectorDataset.TRANSACTIONS;
     case Dataset.EVENTS_ANALYTICS_PLATFORM:
       return DetectorDataset.SPANS;
+    case Dataset.METRICS:
+      return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
     default:
       return DetectorDataset.ERRORS;
   }
@@ -239,7 +251,7 @@ const getBackendDataset = (dataset: DetectorDataset): string => {
     case DetectorDataset.SPANS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.RELEASES:
-      return Dataset.ERRORS;
+      return Dataset.METRICS; // Maps to metrics dataset for crash rate queries
     default:
       return Dataset.ERRORS;
   }
@@ -252,18 +264,37 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   const getEventTypes = (dataset: DetectorDataset): string[] => {
     switch (dataset) {
       case DetectorDataset.ERRORS:
-      case DetectorDataset.RELEASES:
         return ['error'];
       case DetectorDataset.TRANSACTIONS:
-      case DetectorDataset.SPANS:
         return ['transaction'];
+      case DetectorDataset.SPANS:
+        return ['trace_item_span'];
+      case DetectorDataset.RELEASES:
+        return []; // Crash rate queries don't have event types
       default:
         return ['error'];
     }
   };
 
+  /**
+   * This maps to the backend query_datasets_to_type mapping.
+   */
+  const getQueryType = (dataset: DetectorDataset): number => {
+    switch (dataset) {
+      case DetectorDataset.ERRORS:
+        return SnubaQueryType.ERROR;
+      case DetectorDataset.TRANSACTIONS:
+      case DetectorDataset.SPANS:
+        return SnubaQueryType.PERFORMANCE;
+      case DetectorDataset.RELEASES:
+        return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset
+      default:
+        return SnubaQueryType.ERROR;
+    }
+  };
+
   return {
-    queryType: 0,
+    queryType: getQueryType(data.dataset),
     dataset: getBackendDataset(data.dataset),
     query: data.query,
     aggregate: data.aggregateFunction,
