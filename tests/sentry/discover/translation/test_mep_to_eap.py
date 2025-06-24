@@ -46,6 +46,10 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "title:tasks.spike_protection.run_spike_projection",
             "(transaction:tasks.spike_protection.run_spike_projection) AND is_transaction:1",
         ),
+        pytest.param(
+            "geo.country_code:US AND geo.city:San Francisco",
+            "(user.geo.country_code:US AND user.geo.city:San Francisco) AND is_transaction:1",
+        ),
     ],
 )
 def test_mep_to_eap_simple_query(input: str, expected: str):
@@ -66,6 +70,16 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
         pytest.param(
             ["transaction.duration"],
             ["span.duration"],
+        ),
+        pytest.param(
+            ["geo.country_code", "geo.city", "geo.region", "geo.subdivision", "geo.subregion"],
+            [
+                "user.geo.country_code",
+                "user.geo.city",
+                "user.geo.region",
+                "user.geo.subdivision",
+                "user.geo.subregion",
+            ],
         ),
         pytest.param(
             ["count()", "avg(transaction.duration)"],
