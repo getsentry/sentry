@@ -48,10 +48,12 @@ export function useLocalAiSummary() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
   // const {data: summaryData, isPending, isRefetching, refetch, isError} = useAiSummary(replayRecord);
-  const logs = [...replay?.getChapterFrames()].map(asLogMessage).filter(Boolean) ?? [];
-  // const logs = [JSON.stringify(replay?.getChapterFrames?.())];
-  //
-  // const attachmentData = replay?._attachments
+  const replayData =
+    [...replay?.getChapterFrames(), ...replay?.getErrorFrames()]
+      .sort((a, b) => a.timestampMs - b.timestampMs)
+      .map(asLogMessage)
+      .filter(Boolean) ?? [];
+  // const replayData = replay?._attachments
   // ?.filter(({type}) => type === 5)
   // .filter(
   //     ({data}) =>
@@ -90,8 +92,7 @@ export function useLocalAiSummary() {
   //       ...ev.data.payload,
   //     };
   // });
-  // const logs = [JSON.stringify(attachmentData)];
-  //
+  const logs = [JSON.stringify(replayData)];
   const {data} = useReplayPrompt(replayRecord, logs);
   console.log({logs});
 
