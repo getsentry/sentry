@@ -7,21 +7,11 @@ import {Input} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  FieldKey,
-  FieldKind,
-  MobileVital,
-  prettifyTagKey,
-  WebVital,
-} from 'sentry/utils/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, prettifyTagKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
@@ -34,6 +24,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
+import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/queryFilterBuilder';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -364,14 +355,14 @@ export function Visualize() {
       {/* Only show filter inline when no additional parameters */}
       {!hasVisibleParameters && (
         <Flex flex={1} gap={space(1)}>
-          <FilterField />
+          <DetectorQueryFilterBuilder />
         </Flex>
       )}
 
       {/* Show filter on separate row when parameters are visible */}
       {hasVisibleParameters && (
         <Flex flex={1} gap={space(1)}>
-          <FilterField />
+          <DetectorQueryFilterBuilder />
         </Flex>
       )}
     </AggregateContainer>
@@ -419,115 +410,3 @@ const StyledVisualizeSelect = styled(CompactSelect)`
 const StyledParameterInput = styled(Input)`
   flex: 1;
 `;
-
-function FilterField() {
-  const initialQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
-  const formContext = useContext(FormContext);
-
-  return (
-    <Flex direction="column" gap={space(0.5)} flex={1}>
-      <div>
-        <Tooltip title={t('Filter')} showUnderline>
-          <SectionLabel>{t('Filter')}</SectionLabel>
-        </Tooltip>
-      </div>
-      <SearchQueryBuilder
-        initialQuery={initialQuery}
-        filterKeySections={FILTER_KEY_SECTIONS}
-        filterKeys={FILTER_KEYS}
-        getTagValues={getTagValues}
-        searchSource="detectors"
-        onChange={query => {
-          formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, query);
-        }}
-      />
-    </Flex>
-  );
-}
-
-const getTagValues = (): Promise<string[]> => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(['foo', 'bar', 'baz']);
-    }, 500);
-  });
-};
-
-// TODO: replace hardcoded tags with data from API
-const FILTER_KEYS: TagCollection = {
-  [FieldKey.ASSIGNED]: {
-    key: FieldKey.ASSIGNED,
-    name: 'Assigned To',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: [
-      {
-        title: 'Suggested',
-        type: 'header',
-        icon: null,
-        children: [{value: 'me'}, {value: 'unassigned'}],
-      },
-      {
-        title: 'All',
-        type: 'header',
-        icon: null,
-        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
-      },
-    ],
-  },
-  [FieldKey.BROWSER_NAME]: {
-    key: FieldKey.BROWSER_NAME,
-    name: 'Browser Name',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Internet Explorer', 'Opera 1,2'],
-  },
-  [FieldKey.IS]: {
-    key: FieldKey.IS,
-    name: 'is',
-    predefined: true,
-    values: ['resolved', 'unresolved', 'ignored'],
-  },
-  [FieldKey.LAST_SEEN]: {
-    key: FieldKey.LAST_SEEN,
-    name: 'lastSeen',
-    kind: FieldKind.FIELD,
-  },
-  [FieldKey.TIMES_SEEN]: {
-    key: FieldKey.TIMES_SEEN,
-    name: 'timesSeen',
-    kind: FieldKind.FIELD,
-  },
-  [WebVital.LCP]: {
-    key: WebVital.LCP,
-    name: 'lcp',
-    kind: FieldKind.FIELD,
-  },
-  [MobileVital.FRAMES_SLOW_RATE]: {
-    key: MobileVital.FRAMES_SLOW_RATE,
-    name: 'framesSlowRate',
-    kind: FieldKind.FIELD,
-  },
-  custom_tag_name: {
-    key: 'custom_tag_name',
-    name: 'Custom_Tag_Name',
-  },
-};
-
-const FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  {
-    value: 'cat_1',
-    label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.IS],
-  },
-  {
-    value: 'cat_2',
-    label: 'Category 2',
-    children: [WebVital.LCP, MobileVital.FRAMES_SLOW_RATE],
-  },
-  {
-    value: 'cat_3',
-    label: 'Category 3',
-    children: [FieldKey.TIMES_SEEN],
-  },
-];
