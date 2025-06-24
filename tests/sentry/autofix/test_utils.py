@@ -207,14 +207,14 @@ class TestAutomationRateLimiting(TestCase):
         project = self.create_project()
         organization = project.organization
 
-        mock_is_limited.return_value = (True, 950, None)
+        mock_is_limited.return_value = (True, 45, None)
 
-        with self.options({"seer.max_num_scanner_autotriggered_per_hour": 1000}):
+        with self.options({"seer.max_num_scanner_autotriggered_per_minute": 50}):
             is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, organization)
 
         assert is_rate_limited is True
-        assert current == 950
-        assert limit == 1000
+        assert current == 45
+        assert limit == 50
 
     @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
     def test_autofix_rate_limited_with_unlimited_flag(self):
