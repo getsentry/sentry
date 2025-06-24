@@ -69,7 +69,7 @@ import math
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
-import rapidjson
+import orjson
 import zstandard
 from django.conf import settings
 from django.utils.functional import cached_property
@@ -418,7 +418,7 @@ class SpansBuffer:
             has_root_span = False
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
-                val = rapidjson.loads(payload)
+                val = orjson.loads(payload)
                 old_segment_id = val.get("segment_id")
                 outcome = "same" if old_segment_id == segment_span_id else "different"
 

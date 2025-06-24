@@ -1,8 +1,8 @@
 import time
 from datetime import datetime
 
+import orjson
 import pytest
-import rapidjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
@@ -40,14 +40,14 @@ def test_basic(monkeypatch):
                 offset=1,
                 payload=KafkaPayload(
                     None,
-                    rapidjson.dumps(
+                    orjson.dumps(
                         {
                             "project_id": 12,
                             "span_id": "a" * 16,
                             "trace_id": "b" * 32,
                             "end_timestamp_precise": 1700000000.0,
                         }
-                    ).encode("ascii"),
+                    ),
                     [],
                 ),
                 timestamp=datetime.now(),
@@ -66,7 +66,7 @@ def test_basic(monkeypatch):
 
     (msg,) = messages
 
-    assert rapidjson.loads(msg.value) == {
+    assert orjson.loads(msg.value) == {
         "spans": [
             {
                 "data": {
