@@ -24,7 +24,7 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -253,14 +253,7 @@ const onboarding: OnboardingConfig = {
   introduction: params => (
     <Fragment>
       <MaybeBrowserProfilingBetaWarning {...params} />
-      <p>
-        {tct(
-          'React Router v7 is a framework for building full-stack web apps and websites. This SDK is considered [strong:experimental and in an alpha state]. It may experience breaking changes.',
-          {
-            strong: <strong />,
-          }
-        )}
-      </p>
+      <p>{t("In this guide you'll set up the Sentry React Router SDK")}</p>
       <p>
         {tct(
           'If you are using React Router in library mode, you can follow the instructions in the [reactLibraryLink:React guide].',
@@ -335,10 +328,7 @@ const onboarding: OnboardingConfig = {
     },
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Update your [code:entry.server.tsx] file:',
-        {code: <code />}
-      ),
+      description: tct('Update your [code:entry.server.tsx] file:', {code: <code />}),
       configurations: [
         {
           language: 'tsx',
@@ -377,34 +367,10 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'react-router-features',
-      name: t('React Router Features'),
-      description: t('Learn about the React Router specific features of Sentry.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to see what transactions are slow.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/session-replay/',
-    },
-  ],
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => onboarding.install(),
+  install: (params: Params) => onboarding.install(params),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -424,7 +390,7 @@ const replayOnboarding: OnboardingConfig = {
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => onboarding.install(),
+  install: (params: Params) => onboarding.install(params),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -473,7 +439,7 @@ const performanceOnboarding: OnboardingConfig = {
       configurations: [
         {
           description: t(
-            'Configuration should happen as early as possible in your application\'s lifecycle.'
+            "Configuration should happen as early as possible in your application's lifecycle."
           ),
           language: 'tsx',
           code: getClientSetupSnippet(params),
@@ -498,15 +464,21 @@ const performanceOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/react-router',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/node-profiling/',
+});
+
 const docs: Docs = {
   onboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   crashReportOnboarding,
   performanceOnboarding,
-  profilingOnboarding: getJavascriptProfilingOnboarding({
-    packageName: '@sentry/react-router',
-  }),
+  profilingOnboarding,
 };
 
 export default docs;
