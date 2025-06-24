@@ -76,6 +76,10 @@ export default function AutomationForm({model}: {model: FormModel}) {
   };
 
   const [environment, setEnvironment] = useState<string>('');
+  const updateEnvironment = (env: string) => {
+    setEnvironment(env);
+    model.setValue('environment', env || null);
+  };
 
   return (
     <Flex direction="column" gap={space(1.5)}>
@@ -103,7 +107,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             )}
           </Description>
         </Flex>
-        <EnvironmentSelector value={environment} onChange={setEnvironment} />
+        <EnvironmentSelector value={environment} onChange={updateEnvironment} />
       </Card>
       <Card>
         <Heading>{t('Automation Builder')}</Heading>
