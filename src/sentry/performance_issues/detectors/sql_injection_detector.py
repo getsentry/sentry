@@ -8,13 +8,13 @@ from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils.performance_issues.base import (
+from sentry.performance_issues.base import (
     DetectorType,
     PerformanceDetector,
     get_notification_attachment_body,
 )
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.utils.performance_issues.types import Span
+from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
 
