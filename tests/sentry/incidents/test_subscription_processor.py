@@ -4075,6 +4075,68 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @with_feature("organizations:metric-issue-poc")
     @with_feature("projects:metric-issue-creation")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
+    def test_dynamic_alert_creates_metric_issue(
+        self, mock_produce_occurrence_to_kafka: MagicMock, mock_seer_request: MagicMock
+    ):
+        rule = self.dynamic_rule
+        trigger = self.trigger
+
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, trigger.alert_threshold + 1)
+
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        assert incident.date_started == (
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+        )
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        latest_activity = self.latest_activity(incident)
+        uuid = str(latest_activity.notification_uuid)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [self.action],
+            [
+                {
+                    "action": self.action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": trigger.alert_threshold + 1,
+                    "notification_uuid": uuid,
+                }
+            ],
+        )
+
+        # Verify that a metric issue is created when an alert fires
+        mock_produce_occurrence_to_kafka.assert_called_once()
+        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+        assert occurrence.type == MetricIssuePOC
+        assert occurrence.issue_title == incident.title
+        assert occurrence.priority == PriorityLevel.HIGH
+        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
+
+    @with_feature("organizations:metric-issue-poc")
+    @with_feature("projects:metric-issue-creation")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_resolved_alert_updates_metric_issue(self, mock_produce_occurrence_to_kafka):
         from sentry.models.group import GroupStatus
