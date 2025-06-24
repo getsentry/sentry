@@ -133,6 +133,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   grid-column: 1 / -1;
   justify-items: start;
   min-height: 28px;
+  padding-block: ${p => p.theme.space['2xs']};
 
   > svg {
     width: 16px;
