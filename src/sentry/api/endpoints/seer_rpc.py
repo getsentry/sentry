@@ -2,7 +2,9 @@ import datetime
 import hashlib
 import hmac
 import logging
+import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import sentry_sdk
@@ -391,6 +393,144 @@ def get_attribute_values_with_substring(
     return {"values": values}
 
 
+def get_attribute_names_with_substring_and_counts(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    substring: str,
+    stats_period: str = "48h",
+    limit: int = 100,
+) -> dict:
+    """
+    Inverse index search: Find attributes whose values contain a substring and return their counts.
+    """
+    start_time = time.time()
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    req = TraceItemAttributeNamesRequest(
+        meta=RequestMeta(
+            organization_id=org_id,
+            cogs_category="events_analytics_platform",
+            referrer="seer-rpc",
+            project_ids=project_ids,
+            start_timestamp=start_time_proto,
+            end_timestamp=end_time_proto,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        ),
+        type=AttributeKey.Type.TYPE_STRING,
+        limit=1000,
+    )
+
+    names_resp = snuba_rpc.attribute_names_rpc(req)
+
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
+    requests_to_submit = []
+
+    processed_attrs = 0
+    for attr in names_resp.attributes:
+        if processed_attrs >= limit:
+            break
+
+        if not attr.name or not can_expose_attribute(attr.name, SupportedTraceItemType.SPANS):
+            continue
+
+        try:
+            attr_key = as_attribute_key(
+                attr.name,
+                "string",
+                SupportedTraceItemType.SPANS,
+            )
+
+            resolved_attr, _ = resolver.resolve_attribute(attr_key["key"])
+
+            values_req = TraceItemAttributeValuesRequest(
+                meta=RequestMeta(
+                    organization_id=org_id,
+                    cogs_category="events_analytics_platform",
+                    referrer="seer_rpc",
+                    project_ids=project_ids,
+                    start_timestamp=start_time_proto,
+                    end_timestamp=end_time_proto,
+                    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                ),
+                key=resolved_attr.proto_definition,
+                limit=1000,
+                value_substring_match=substring,
+            )
+
+            requests_to_submit.append((attr_key["key"], substring, values_req))
+            processed_attrs += 1
+
+        except Exception:
+            # XXX: Skipping for now
+            logger.exception("Error resolving attribute %s", attr_key["key"])
+            continue
+
+    results = {}
+    max_concurrent_requests = min(len(requests_to_submit), 20)
+
+    with ThreadPoolExecutor(max_workers=max_concurrent_requests) as executor:
+        future_to_attr = {
+            executor.submit(snuba_rpc.attribute_values_rpc, req): (attr_key, substring)
+            for attr_key, substring, req in requests_to_submit
+        }
+
+        for future in as_completed(future_to_attr, timeout=len(requests_to_submit) + 1):
+            attr_key, substring = future_to_attr[future]
+            try:
+                values_response = future.result(timeout=1.0)
+
+                matching_values = [
+                    value
+                    for value in values_response.values
+                    if value and substring.lower() in value.lower()
+                ]
+
+                if matching_values:
+                    results[attr_key] = len(matching_values)
+
+            except TimeoutError:
+                logger.warning(
+                    "RPC request timed out after 1 second for attribute %s with substring %s",
+                    attr_key,
+                    substring,
+                )
+                continue
+            except Exception as e:
+                logger.warning(
+                    "RPC request failed for attribute %s with substring %s: %s",
+                    attr_key,
+                    substring,
+                    str(e),
+                )
+                continue
+
+    end_time = time.time()
+    logger.info(
+        "get_attribute_names_with_substring_and_counts took %s seconds", end_time - start_time
+    )
+
+    return {"values": results}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -403,6 +543,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_names": get_attribute_names,
     "get_attribute_values": get_attribute_values,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
+    "get_attribute_names_with_substring_and_counts": get_attribute_names_with_substring_and_counts,
 }
 
 
