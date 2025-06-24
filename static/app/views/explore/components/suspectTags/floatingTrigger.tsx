@@ -35,11 +35,11 @@ export function FloatingTrigger({boxSelectOptions, triggerWrapperRef}: Props) {
     newQuery.start = new Date(startTimestamp).toISOString();
     newQuery.end = new Date(endTimestamp).toISOString();
 
-    boxSelectOptions.clearSelection();
     navigate({
       pathname: location.pathname,
       query: newQuery,
     });
+    boxSelectOptions.clearSelection();
   }, [boxSelectOptions, location.pathname, location.query, navigate]);
 
   const handleFindSuspectAttributes = useCallback(() => {
