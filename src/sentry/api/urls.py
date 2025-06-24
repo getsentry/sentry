@@ -3276,6 +3276,7 @@ INTERNAL_URLS = [
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
     ),
+    *preprod_urls.preprod_internal_urlpatterns,
 ]
 
 PREVENT_URLS = [
