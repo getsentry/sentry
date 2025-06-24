@@ -144,7 +144,7 @@
     "moment-timezone": "0.5.44",
     "papaparse": "^5.3.2",
     "peggy": "^4.1.1",
-    "platformicons": "^8.0.4",
+    "platformicons": "^8.0.6",
     "po-catalog-loader": "2.1.0",
     "prettier": "3.6.0",
     "prismjs": "^1.30.0",
