@@ -65,6 +65,7 @@ class Condition(StrEnum):
     LESS = "lt"
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
     ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
+    ANOMALY_DETECTION = "anomaly_detection"
 
 
 class AlertRuleActivityType(Enum):
@@ -504,12 +505,24 @@ def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, workflow: Any) -> 
         else Condition.LESS
     )
     # create detector trigger
-    detector_trigger = DataCondition.objects.create(
-        comparison=trigger.alert_threshold,
-        condition_result=condition_result,
-        type=threshold_type,
-        condition_group=detector.workflow_condition_group,
-    )
+    if alert_rule.detection_type == "dynamic":
+        detector_trigger = DataCondition.objects.create(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": alert_rule.sensitivity,
+                "seasonality": alert_rule.seasonality,
+                "threshold_type": alert_rule.threshold_type,
+            },
+            condition_result=condition_result,
+            condition_group=detector.workflow_condition_group,
+        )
+    else:
+        detector_trigger = DataCondition.objects.create(
+            comparison=trigger.alert_threshold,
+            condition_result=condition_result,
+            type=threshold_type,
+            condition_group=detector.workflow_condition_group,
+        )
     DataConditionAlertRuleTrigger.objects.create(
         data_condition=detector_trigger,
         alert_rule_trigger_id=trigger.id,
@@ -779,7 +792,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
         AlertRule.objects_with_snapshots.filter(
             status__in=[
                 AlertRuleStatus.PENDING.value,
-                AlertRuleStatus.DISABLED.value,  # we don't need to worry about NOT_ENOUGH_DATA here, because all anomaly detection alerts have been migrated
+                AlertRuleStatus.DISABLED.value,
+                AlertRuleStatus.NOT_ENOUGH_DATA.value,
             ]
         )
         .filter(~Exists(AlertRuleDetector.objects.filter(alert_rule_id=OuterRef("id"))))
@@ -858,7 +872,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     _migrate_trigger(apps, trigger, detector, workflow)
 
                 # migrate resolve threshold
-                _migrate_resolve_threshold(apps, alert_rule, detector)
+                if alert_rule.detection_type != "dynamic":
+                    _migrate_resolve_threshold(apps, alert_rule, detector)
 
                 logger.info(
                     "Successfully migrated alert rule",
