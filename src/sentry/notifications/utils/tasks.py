@@ -106,7 +106,7 @@ def async_send_notification(
     silo_mode=SiloMode.REGION,
     queue="notifications",
     taskworker_config=TaskworkerConfig(
-        namespace=notifications_tasks, processing_deadline_duration=20
+        namespace=notifications_tasks, processing_deadline_duration=30
     ),
 )
 def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[str, Any]]) -> None:
