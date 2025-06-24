@@ -321,7 +321,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'javascript-react-router',
-    name: 'React Router',
+    name: 'React Router Framework',
     type: 'framework',
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/',
