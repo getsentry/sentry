@@ -209,7 +209,7 @@ function OnboardingPanel({
             <Body>
               <Setup>{children}</Setup>
               <Preview>
-                <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
+                <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                 <Arcade
                   src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
                   loading="lazy"
