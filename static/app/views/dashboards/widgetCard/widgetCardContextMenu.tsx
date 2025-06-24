@@ -29,7 +29,7 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -38,7 +38,6 @@ import {
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
@@ -392,9 +391,9 @@ export function getMenuOptions(
             dashboardId: undefined,
             layout: undefined,
           },
-          widgetAsQueryParams: convertWidgetToBuilderStateParams(widget),
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
           allowCreateNewDashboard: true,
+          source: DashboardWidgetSource.DASHBOARDS,
         });
       },
     });

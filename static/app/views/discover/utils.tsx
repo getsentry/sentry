@@ -720,8 +720,8 @@ export function handleAddQueryToDashboard({
       limit: widgetAsQueryParams?.limit,
       widgetType,
     },
+    source,
     router,
-    widgetAsQueryParams,
     location,
   });
   return;

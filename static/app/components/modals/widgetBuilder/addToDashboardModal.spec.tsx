@@ -20,20 +20,6 @@ jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
-const mockWidgetAsQueryParams = {
-  defaultTableColumns: ['field1', 'field2'],
-  defaultTitle: 'Default title',
-  defaultWidgetQuery: '',
-  displayType: DisplayType.LINE,
-  end: undefined,
-  environment: [],
-  project: [1],
-  source: DashboardWidgetSource.DISCOVERV2,
-  start: undefined,
-  statsPeriod: '1h',
-  utc: undefined,
-};
-
 describe('add to dashboard modal', () => {
   let eventsStatsMock!: jest.Mock;
   let initialData!: ReturnType<typeof initializeOrg>;
@@ -127,7 +113,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -159,7 +144,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -189,7 +173,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -215,7 +198,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -269,7 +251,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -305,7 +286,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
+        source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
     );
@@ -318,7 +299,17 @@ describe('add to dashboard modal', () => {
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
-      query: {...mockWidgetAsQueryParams, title: 'Test title'},
+      query: {
+        ...convertWidgetToBuilderStateParams(widget),
+        environment: [],
+        end: undefined,
+        start: undefined,
+        utc: undefined,
+        project: [1],
+        source: DashboardWidgetSource.DISCOVERV2,
+        statsPeriod: '1h',
+        title: 'Test title',
+      },
     });
   });
 
@@ -334,44 +325,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={LocationFixture()}
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Select Dashboard')).toBeEnabled();
-    });
-    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
-
-    await userEvent.click(screen.getByText('Open in Widget Builder'));
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
-      query: expect.objectContaining({
-        defaultTableColumns: ['field1', 'field2'],
-        defaultTitle: 'Default title',
-        defaultWidgetQuery: '',
-        displayType: DisplayType.LINE,
-        project: [1],
-        source: DashboardWidgetSource.DISCOVERV2,
-        statsPeriod: '1h',
-      }),
-    });
-  });
-
-  it('navigates to the widget builder with saved filters using builder state params', async () => {
-    render(
-      <AddToDashboardModal
-        Header={stubEl}
-        Footer={stubEl as ModalRenderProps['Footer']}
-        Body={stubEl as ModalRenderProps['Body']}
-        CloseButton={stubEl}
-        closeModal={() => undefined}
-        organization={initialData.organization}
-        widget={widget}
-        selection={defaultSelection}
-        router={initialData.router}
-        widgetAsQueryParams={convertWidgetToBuilderStateParams(widget)}
+        source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
     );
@@ -395,6 +349,7 @@ describe('add to dashboard modal', () => {
         dataset: WidgetType.ERRORS,
         project: [1],
         statsPeriod: '1h',
+        source: DashboardWidgetSource.DISCOVERV2,
       }),
     });
   });
@@ -420,7 +375,6 @@ describe('add to dashboard modal', () => {
         widget={{...widget, widgetType: WidgetType.ERRORS}}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -482,7 +436,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -563,7 +516,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -621,7 +573,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
