@@ -18,6 +18,7 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
+from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
@@ -122,6 +123,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.__pool.close()
 
 
+@metrics.wraps("spans.buffer.process_batch")
 def process_batch(
     buffer: SpansBuffer,
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
@@ -136,9 +138,8 @@ def process_batch(
             if min_timestamp is None or timestamp < min_timestamp:
                 min_timestamp = timestamp
 
-            val = cast(SpanEvent, rapidjson.loads(payload.value))
-
-            partition_id = value.partition.index
+            with metrics.timer("spans.buffer.process_batch.decode"):
+                val = cast(SpanEvent, rapidjson.loads(payload.value))
 
             if killswitches.killswitch_matches_context(
                 "spans.drop-in-buffer",
@@ -146,7 +147,7 @@ def process_batch(
                     "org_id": val.get("organization_id"),
                     "project_id": val.get("project_id"),
                     "trace_id": val.get("trace_id"),
-                    "partition_id": partition_id,
+                    "partition_id": value.partition.index,
                 },
             ):
                 continue
