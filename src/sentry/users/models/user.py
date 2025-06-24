@@ -54,6 +54,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
+logger = logging.getLogger(__name__)
 
 MAX_USERNAME_LENGTH = 128
 RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
@@ -229,14 +230,21 @@ class User(Model, AbstractBaseUser):
             return super().update(*args, **kwds)
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
-            if not self.username:
-                self.username = self.email
-            self.email_unique = self.email
-            result = super().save(*args, **kwargs)
-            for outbox in self.outboxes_for_update():
-                outbox.save()
-            return result
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+                if not self.username:
+                    self.username = self.email
+                self.email_unique = self.email
+                result = super().save(*args, **kwargs)
+                for outbox in self.outboxes_for_update():
+                    outbox.save()
+                return result
+        except IntegrityError:
+            logger.info(
+                "Attempted to save user with non-unique primary email address",
+                extra={"email": self.email},
+            )
+            raise
 
     def has_2fa(self) -> bool:
         return Authenticator.objects.filter(
