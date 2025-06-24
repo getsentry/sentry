@@ -128,13 +128,13 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             "name": "Test Detector",
             "type": MetricIssue.slug,
             "dataSource": {
-                "query_type": SnubaQuery.Type.ERROR.value,
+                "queryType": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
                 "query": "test query",
                 "aggregate": "count()",
-                "time_window": 3600,
+                "timeWindow": 3600,
                 "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
             "conditionGroup": {
                 "id": self.data_condition_group.id,
@@ -150,8 +150,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "threshold_period": 1,
-                "detection_type": AlertRuleDetectionType.STATIC.value,
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
 
