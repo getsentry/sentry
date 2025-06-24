@@ -24,8 +24,8 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 
 function StoryLayout() {
   const {story} = useStory();
-  const title = story.filename;
-  const description = story.exports.default;
+  const title = story.exports.frontmatter?.title ?? story.filename;
+  const description = story.exports.frontmatter?.description;
 
   return (
     <Tabs>
@@ -56,6 +56,10 @@ function StoryLayout() {
 }
 
 function StoryTabList() {
+  const {story} = useStory();
+  if (!story.filename.endsWith('.mdx')) {
+    return null;
+  }
   return (
     <TabList>
       <TabList.Item key="usage">{t('Usage')}</TabList.Item>
@@ -66,6 +70,10 @@ function StoryTabList() {
 }
 
 function StoryTabPanels() {
+  const {story} = useStory();
+  if (!story.filename.endsWith('.mdx')) {
+    return <StoryUsage />;
+  }
   return (
     <TabPanels>
       <TabPanels.Item key="usage">
@@ -106,9 +114,11 @@ function StoryUsage() {
             </Storybook.Section>
           );
         }
-        throw new Error(
+        // eslint-disable-next-line no-console
+        console.error(
           `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
         );
+        return null;
       })}
     </Fragment>
   );
