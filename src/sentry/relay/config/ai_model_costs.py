@@ -13,8 +13,8 @@ class AIModelCost(TypedDict):
 
 # Cache key for storing AI model costs
 AI_MODEL_COSTS_CACHE_KEY = "ai-model-costs:v2"
-# Cache timeout: 1 week (we re-fetch every 30 minutes, so this provides more than enough overlap)
-AI_MODEL_COSTS_CACHE_TTL = 7 * 24 * 60 * 60
+# Cache timeout: 30 days (we re-fetch every 30 minutes, so this provides more than enough overlap)
+AI_MODEL_COSTS_CACHE_TTL = 30 * 24 * 60 * 60
 
 
 class AIModelCostV2(TypedDict):
