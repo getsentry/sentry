@@ -218,6 +218,24 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
+const space = {
+  none: '0px',
+  '2xs': '2px',
+  xs: '4px',
+  sm: '6px',
+  md: '8px',
+  lg: '12px',
+  xl: '16px',
+  '2xl': '24px',
+  '3xl': '32px',
+  '4xl': '48px',
+  '5xl': '64px',
+  '6xl': '80px',
+  '7xl': '96px',
+  '8xl': '112px',
+  '9xl': '128px',
+} as const;
+
 const generateTokens = (colors: Colors) => ({
   content: {
     primary: colors.gray400, // theme.textColor
@@ -1140,6 +1158,8 @@ const commonTheme = {
 
   ...lightColors,
   ...lightShadows,
+
+  space,
 
   // Icons
   iconSizes,
