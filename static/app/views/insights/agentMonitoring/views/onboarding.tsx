@@ -58,10 +58,10 @@ function useOnboardingProject() {
   return selectedProject[0];
 }
 
-function useAgentEventWaiter(project: Project) {
+function useAiSpanWaiter(project: Project) {
   const [refetchKey, setRefetchKey] = useState(0);
 
-  const {data, isPending} = useEAPSpans(
+  const request = useEAPSpans(
     {
       search: 'span.op:"gen_ai.*"',
       fields: ['id'],
@@ -74,39 +74,30 @@ function useAgentEventWaiter(project: Project) {
     Referrer.ONBOARDING
   );
 
-  const hasEvents = Boolean(data?.length);
+  const hasEvents = Boolean(request.data?.length);
 
   // Create a custom key that changes every 5 seconds to trigger refetch
   // TODO(aknaus): remove this and add refetchInterval to useEAPSpans
   useEffect(() => {
-    if (!hasEvents) {
-      const interval = setInterval(() => {
-        setRefetchKey(prev => prev + 1);
-      }, 5000); // Poll every 5 seconds
+    if (hasEvents) return () => {};
 
-      return () => clearInterval(interval);
-    }
-    return () => {};
+    const interval = setInterval(() => {
+      setRefetchKey(prev => prev + 1);
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
   }, [hasEvents]);
 
-  return {
-    hasEvents: Boolean(data?.length),
-    isPending,
-  };
+  return request;
 }
 
 function WaitingIndicator({project}: {project: Project}) {
-  const {hasEvents} = useAgentEventWaiter(project);
+  const spanRequest = useAiSpanWaiter(project);
   const {reloadProjects, fetching} = useProjects();
+  const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button
-      priority="primary"
-      busy={fetching}
-      onClick={() => {
-        reloadProjects();
-      }}
-    >
+    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
       {t('View Agent Monitoring')}
     </Button>
   ) : (
@@ -116,19 +107,18 @@ function WaitingIndicator({project}: {project: Project}) {
 
 function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
   const subConfigurations = configuration.configurations ?? [];
+
   return (
     <ConfigurationWrapper>
       {configuration.description && (
         <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
       )}
-      {configuration.code ? (
-        Array.isArray(configuration.code) ? (
-          <TabbedCodeSnippet tabs={configuration.code} />
-        ) : (
-          <OnboardingCodeSnippet language={configuration.language}>
-            {configuration.code}
-          </OnboardingCodeSnippet>
-        )
+      {Array.isArray(configuration.code) && configuration.code.length > 0 ? (
+        <TabbedCodeSnippet tabs={configuration.code} />
+      ) : typeof configuration.code === 'string' ? (
+        <OnboardingCodeSnippet language={configuration.language}>
+          {configuration.code}
+        </OnboardingCodeSnippet>
       ) : null}
       {subConfigurations.map((subConfiguration, index) => (
         <ConfigurationRenderer key={index} configuration={subConfiguration} />
@@ -149,10 +139,11 @@ function StepRenderer({
   project: Project;
   step: StepProps;
 }) {
-  const {type, title} = step;
-
   return (
-    <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
+    <GuidedSteps.Step
+      stepKey={step.type || step.title}
+      title={step.title || (step.type && StepTitles[step.type])}
+    >
       <ConfigurationRenderer configuration={step} />
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
