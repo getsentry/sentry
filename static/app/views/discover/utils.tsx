@@ -720,10 +720,8 @@ export function handleAddQueryToDashboard({
       limit: widgetAsQueryParams?.limit,
       widgetType,
     },
+    source,
     router,
-    // Previously undetected because the type relied on implicit any.
-    // @ts-expect-error TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
-    widgetAsQueryParams,
     location,
   });
   return;
