@@ -25,7 +25,7 @@ preprod: 0006_add_analysis_file_id_field
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0932_update_grouptombstone_with_auto_now_add
+sentry: 0933_add_has_agents_insights_flag
 
 social_auth: 0001_squashed_0002_default_auto_field
 
