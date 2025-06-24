@@ -187,7 +187,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Alternatively, add the [code:SentryGlobalFilter] (or [code:SentryGlobalGraphQLFilter] if you are using GraphQL) before any other exception filters to the providers of your main module.',
+            'Alternatively, add the [code:SentryGlobalFilter] before any other exception filters to the providers of your main module.',
             {
               code: <code />,
             }
