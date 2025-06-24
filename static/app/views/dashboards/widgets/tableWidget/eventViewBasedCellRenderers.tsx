@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 
@@ -11,10 +10,6 @@ import type {
   TabularData,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
-
-// Dashboards only supports top 5 for now
-const DEFAULT_NUM_TOP_EVENTS = 5;
 
 interface EventViewBasedCellProps {
   eventView: EventView;
@@ -37,13 +32,12 @@ export const renderEventViewBasedBodyCell = ({
   theme,
   getCustomFieldRenderer,
   location,
-  topResultsIndicators,
 }: EventViewBasedCellProps) => {
   return function (
     column: TabularColumn,
     dataRow: TabularRow,
-    rowIndex: number,
-    columnIndex: number
+    _rowIndex: number,
+    _columnIndex: number
   ): React.ReactNode {
     if (!tableData?.meta || !location || !organization || !theme) {
       return undefined;
@@ -63,15 +57,6 @@ export const renderEventViewBasedBodyCell = ({
     });
     if (!cell) return undefined;
 
-    return (
-      <Fragment key={`${rowIndex}-${columnIndex}:${column.name}`}>
-        {topResultsIndicators &&
-          columnIndex === 0 &&
-          topResultsIndicators <= DEFAULT_NUM_TOP_EVENTS && (
-            <TopResultsIndicator count={topResultsIndicators} index={rowIndex} />
-          )}
-        {cell}
-      </Fragment>
-    );
+    return cell;
   };
 };
