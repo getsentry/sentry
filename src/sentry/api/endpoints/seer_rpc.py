@@ -2,7 +2,9 @@ import datetime
 import hashlib
 import hmac
 import logging
+import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
 from typing import Any
 
 import sentry_sdk
@@ -300,10 +302,10 @@ def get_attribute_values(
         definitions=SPAN_DEFINITIONS,
     )
 
+    requests_to_submit = []
     for field in fields:
         resolved_field, _ = resolver.resolve_attribute(field)
         if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
-
             req = TraceItemAttributeValuesRequest(
                 meta=RequestMeta(
                     organization_id=org_id,
@@ -317,9 +319,38 @@ def get_attribute_values(
                 key=resolved_field.proto_definition,
                 limit=limit,
             )
+            requests_to_submit.append((field, req))
 
-            values_response = snuba_rpc.attribute_values_rpc(req)
-            values[field] = [value for value in values_response.values]
+    max_concurrent_requests = min(len(requests_to_submit), 5)
+    logger.info("Submitting %d attribute values requests to snuba", max_concurrent_requests)
+    time_start = time.time()
+    with ThreadPoolExecutor(max_workers=max_concurrent_requests) as executor:
+        future_to_field = {
+            executor.submit(snuba_rpc.attribute_values_rpc, req): field
+            for field, req in requests_to_submit
+        }
+
+        for future in as_completed(future_to_field, timeout=len(requests_to_submit) + 1):
+            field = future_to_field[future]
+            try:
+                values_response = future.result(timeout=1.0)
+                values[field] = [value for value in values_response.values]
+            except TimeoutError:
+                logger.warning(
+                    "RPC request timed out after 1 second for field %s",
+                    field,
+                )
+                continue
+            except Exception as e:
+                logger.warning(
+                    "RPC request failed for field %s: %s",
+                    field,
+                    str(e),
+                )
+                continue
+
+    time_end = time.time()
+    logger.info("Time taken to get attribute values: %s seconds", time_end - time_start)
 
     return {"values": values}
 
@@ -361,6 +392,7 @@ def get_attribute_values_with_substring(
         definitions=SPAN_DEFINITIONS,
     )
 
+    requests_to_submit = []
     for field_with_substring in fields_with_substrings:
         field = field_with_substring["field"]
         substring = field_with_substring["substring"]
@@ -381,12 +413,38 @@ def get_attribute_values_with_substring(
                 limit=limit,
                 value_substring_match=substring,
             )
+            requests_to_submit.append((field, substring, req))
 
-            values_response = snuba_rpc.attribute_values_rpc(req)
-            if field in values:
-                values[field].update({value for value in values_response.values if value})
-            else:
-                values[field] = {value for value in values_response.values if value}
+    max_concurrent_requests = min(len(requests_to_submit), 20)
+    with ThreadPoolExecutor(max_workers=max_concurrent_requests) as executor:
+        future_to_field = {
+            executor.submit(snuba_rpc.attribute_values_rpc, req): (field, substring)
+            for field, substring, req in requests_to_submit
+        }
+
+        for future in as_completed(future_to_field, timeout=len(requests_to_submit) + 1):
+            field, substring = future_to_field[future]
+            try:
+                values_response = future.result(timeout=1.0)
+                if field in values:
+                    values[field].update({value for value in values_response.values if value})
+                else:
+                    values[field] = {value for value in values_response.values if value}
+            except TimeoutError:
+                logger.warning(
+                    "RPC request timed out after 1 second for field %s with substring %s",
+                    field,
+                    substring,
+                )
+                continue
+            except Exception as e:
+                logger.warning(
+                    "RPC request failed for field %s with substring %s: %s",
+                    field,
+                    substring,
+                    str(e),
+                )
+                continue
 
     return {"values": values}
 
