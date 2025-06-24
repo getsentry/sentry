@@ -74,6 +74,7 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
@@ -91,6 +92,7 @@ const BodyContainer = styled('div')`
 `;
 
 const DetailContainer = styled('div')`
+  ${traceGridCssVariables}
   height: 100%;
   overflow: hidden;
   padding: ${space(1)} ${space(2)};

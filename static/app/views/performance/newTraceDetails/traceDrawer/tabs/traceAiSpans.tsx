@@ -16,7 +16,6 @@ import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
@@ -161,7 +160,6 @@ const LeftPanel = styled('div')`
 `;
 
 const RightPanel = styled('div')`
-  ${traceGridCssVariables}
   min-width: 400px;
   padding-top: ${space(1)};
   flex: 1;
