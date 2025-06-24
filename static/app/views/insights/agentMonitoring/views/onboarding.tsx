@@ -253,7 +253,7 @@ export function Onboarding() {
         <DescriptionWrapper>
           <p>
             {tct(
-              'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+              'Fiddlesticks. Agent Insights are not available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
               {platform: currentPlatform?.name || project.slug}
             )}
           </p>
