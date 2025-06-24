@@ -81,6 +81,7 @@ export default function BaseLatencyWidget({
         organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
+            showCreateAlert
             exploreParams={{
               mode: Mode.SAMPLES,
               visualize: [
