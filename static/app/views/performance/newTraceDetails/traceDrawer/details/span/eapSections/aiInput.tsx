@@ -24,7 +24,7 @@ function renderTextMessages(content: any) {
   }
   return content
     .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text)
+    .map((part: any) => part.text.trim())
     .join('\n');
 }
 
