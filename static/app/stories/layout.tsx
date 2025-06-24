@@ -34,10 +34,6 @@ export const Section = styled('section')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-
-  & > p {
-    margin: ${space(3)} 0;
-  }
 `;
 
 export const Title = styled('h3')`

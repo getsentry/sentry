@@ -25,6 +25,7 @@ const Card = styled(LinkButton)`
   flex-direction: column;
   flex: 1;
   height: 80px;
+  margin-bottom: ${space(4)};
   span:last-child {
     width: 100%;
     display: grid;
