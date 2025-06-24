@@ -11,6 +11,7 @@ from requests.exceptions import RequestException
 
 from sentry import analytics, features, nodestore
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.eventstore.models import BaseEvent, Event, GroupEvent
@@ -122,6 +123,25 @@ def _webhook_event_data(
     )
     event_context["issue_id"] = str(group_id)
     return event_context
+
+
+class WebhookGroupResponse(BaseGroupSerializerResponse):
+    web_url: str
+    project_url: str
+    url: str
+
+
+def _webhook_issue_data(
+    group: Group, serialized_group: BaseGroupSerializerResponse
+) -> WebhookGroupResponse:
+
+    webhook_payload = WebhookGroupResponse(
+        url=group.get_absolute_api_url(),
+        web_url=group.get_absolute_url(),
+        project_url=group.project.get_absolute_url(),
+        **serialized_group,
+    )
+    return webhook_payload
 
 
 @instrumented_task(
@@ -326,12 +346,13 @@ def _process_resource_change(
                 )
                 if event in installation.sentry_app.events
             ]
-            data = {}
+            data: dict[str, Any] = {}
             if isinstance(instance, (Event, GroupEvent)):
                 assert instance.group_id, "group id is required to create webhook event data"
                 data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
-            else:
-                data[name] = serialize(instance)
+            elif isinstance(instance, Group):
+                serialized_group = serialize(instance)
+                data[name] = _webhook_issue_data(group=instance, serialized_group=serialized_group)
 
             # Datetimes need to be string cast for task payloads.
             for date_key in ("datetime", "firstSeen", "lastSeen"):

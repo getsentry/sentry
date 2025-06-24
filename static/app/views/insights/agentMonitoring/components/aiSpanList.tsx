@@ -3,16 +3,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
-import {IconCode, IconSort} from 'sentry/icons';
+import {IconChevron, IconCode} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
+  AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
   AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
@@ -80,7 +82,7 @@ export function AISpanList({
           transactionBounds = getTransactionBounds(node);
         }
 
-        const uniqueKey = node.metadata.event_id;
+        const uniqueKey = getNodeId(node);
         return (
           <TraceListItem
             key={uniqueKey}
@@ -252,7 +254,7 @@ function getNodeInfo(
     icon: <IconCode size="md" />,
     title: 'Unknown',
     subtitle: '',
-    color: colors[0],
+    color: colors[1],
   };
 
   if (isTransactionNode(node)) {
@@ -287,7 +289,7 @@ function getNodeInfo(
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.title = op;
     nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
-    nodeInfo.color = colors[1];
+    nodeInfo.color = colors[0];
   } else if (
     AI_GENERATION_OPS.includes(op) ||
     AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
@@ -304,10 +306,11 @@ function getNodeInfo(
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.title = op || 'gen_ai.toolCall';
     nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
-    nodeInfo.color = colors[3];
-  } else if (op === 'http.client') {
-    nodeInfo.icon = <IconSort size="md" />;
-    nodeInfo.title = node.value.description || 'HTTP';
+    nodeInfo.color = colors[5];
+  } else if (AI_HANDOFF_OPS.includes(op)) {
+    nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
+    nodeInfo.title = op;
+    nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
   } else {
     nodeInfo.title = op || 'Span';

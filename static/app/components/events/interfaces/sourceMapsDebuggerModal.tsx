@@ -274,7 +274,7 @@ function SentryWizardCallout({
     <Fragment>
       <WizardInstructionParagraph>
         {t(
-          "Firstly, have you already run the Sentry Wizard with `sourcemaps` in your project's terminal? It's the easiest way to get source maps set up:"
+          "Have you already run the Sentry Wizard with `sourcemaps` in your project's terminal? It's the easiest way to get source maps set up:"
         )}
       </WizardInstructionParagraph>
       <InstructionCodeSnippet
@@ -320,7 +320,7 @@ function MetaFrameworkConfigInfo({
       <Fragment>
         <p>
           {tct(
-            'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            'Ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
             {
               docLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional" />
@@ -353,7 +353,7 @@ function MetaFrameworkConfigInfo({
       <Fragment>
         <p>
           {tct(
-            'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            'Ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
             {
               docLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload" />
@@ -390,7 +390,7 @@ function MetaFrameworkConfigInfo({
       <Fragment>
         <p>
           {tct(
-            'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            'If you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
             {
               vitePluginLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
@@ -432,7 +432,7 @@ function MetaFrameworkConfigInfo({
     <Fragment>
       <p>
         {tct(
-          'Firstly, make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
+          'Make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
           {
             docLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload" />
@@ -584,6 +584,13 @@ export function SourceMapsDebuggerModal({
           </div>
         </DebuggerSection>
         <DebuggerSection title={t('Troubleshooting Your Source Maps')}>
+          <h6>{t('Latest Sentry Tools')}</h6>
+          <p>
+            {t(
+              'Keep your Sentry tools up to date to avoid issues with source map uploads and ensure full compatibility.'
+            )}
+          </p>
+          <h6>{t('Source Maps Setup')}</h6>
           {isReactNativeSDK({
             sdkName: sourceResolutionResults.sdkName,
           }) ? (
@@ -610,17 +617,12 @@ export function SourceMapsDebuggerModal({
               projectSlug={project?.slug}
             />
           )}
+          <h6>{t('Troubleshooting Checklist')}</h6>
           {!hideAllTabs && (
             <p>
-              {isReactNativeSDK({
-                sdkName: sourceResolutionResults.sdkName,
-              })
-                ? t(
-                    "After confirming your setup is correct, let's go through a quick checklist to help you troubleshoot your source maps further. There are a few ways to configure them:"
-                  )
-                : t(
-                    "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
-                  )}
+              {t(
+                "Now, let's go through a quick checklist to help you troubleshoot your source maps further. There are a few ways to configure them:"
+              )}
             </p>
           )}
           <Tabs<'debug-ids' | 'release' | 'fetching'>
@@ -701,7 +703,7 @@ export function SourceMapsDebuggerModal({
                           }
                         )
                       : tct(
-                          "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
+                          "We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
                           {
                             link: sourceMapsDocLinks.debugIds ? (
                               <ExternalLink href={sourceMapsDocLinks.debugIds} />
@@ -770,7 +772,7 @@ export function SourceMapsDebuggerModal({
                           }
                         )
                       : t(
-                          "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
+                          "Now, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
                           {
                             link: (
                               <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
@@ -2090,6 +2092,9 @@ const DebuggerSectionContainer = styled('div')`
   h5 {
     margin-bottom: 0;
     font-size: ${p => p.theme.fontSizeExtraLarge};
+  }
+  h6 {
+    font-size: 1rem;
   }
   && {
     > * {

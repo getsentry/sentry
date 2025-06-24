@@ -151,9 +151,13 @@ def child_process(
             """
             deadline = -1
             current = current_task()
+            taskname = "unknown"
             if current:
+                taskname = current.taskname
                 deadline = current.processing_deadline_duration
-            raise ProcessingDeadlineExceeded(f"execution deadline of {deadline} seconds exceeded")
+            raise ProcessingDeadlineExceeded(
+                f"execution deadline of {deadline} seconds exceeded by {taskname}"
+            )
 
         while True:
             if max_task_count and processed_task_count >= max_task_count:
@@ -242,6 +246,7 @@ def child_process(
                         inflight.activation.namespace,
                         inflight.activation.taskname,
                     ]
+                    scope.set_transaction_name(inflight.activation.taskname)
                     sentry_sdk.capture_exception(err)
                 metrics.incr(
                     "taskworker.worker.processing_deadline_exceeded",
@@ -305,11 +310,14 @@ def child_process(
         transaction = sentry_sdk.continue_trace(
             environ_or_headers=headers,
             op="queue.task.taskworker",
-            name=f"{activation.namespace}:{activation.taskname}",
+            name=activation.taskname,
             origin="taskworker",
         )
         with (
-            track_memory_usage("taskworker.worker.memory_change"),
+            track_memory_usage(
+                "taskworker.worker.memory_change",
+                tags={"namespace": activation.namespace, "taskname": activation.taskname},
+            ),
             sentry_sdk.isolation_scope(),
             sentry_sdk.start_transaction(transaction),
         ):
@@ -332,19 +340,19 @@ def child_process(
                 )
                 span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
-            # TODO(taskworker) remove this when doing cleanup
-            # The `__start_time` parameter is spliced into task parameters by
-            # sentry.celery.SentryTask._add_metadata and needs to be removed
-            # from kwargs like sentry.tasks.base.instrumented_task does.
-            if "__start_time" in kwargs:
-                kwargs.pop("__start_time")
+                # TODO(taskworker) remove this when doing cleanup
+                # The `__start_time` parameter is spliced into task parameters by
+                # sentry.celery.SentryTask._add_metadata and needs to be removed
+                # from kwargs like sentry.tasks.base.instrumented_task does.
+                if "__start_time" in kwargs:
+                    kwargs.pop("__start_time")
 
-            try:
-                task_func(*args, **kwargs)
-                transaction.set_status(SPANSTATUS.OK)
-            except Exception:
-                transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
-                raise
+                try:
+                    task_func(*args, **kwargs)
+                    transaction.set_status(SPANSTATUS.OK)
+                except Exception:
+                    transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
+                    raise
 
     def record_task_execution(
         activation: TaskActivation,

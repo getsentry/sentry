@@ -169,7 +169,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     colorGraphicsToken: 'warning',
     description: frame.data.limit
       ? tct(
-          'Significant mutations detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
+          'Significant mutations detected: [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
           {
             count: frame.data.count,
             link: (
@@ -180,7 +180,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
           }
         )
       : tct(
-          'Significant mutations detected [count]. This can slow down the Replay SDK, impacting your customers. [link]',
+          'Significant mutations detected: [count]. This can slow down the Replay SDK, impacting your customers. [link]',
           {
             count: frame.data.count,
             link: (

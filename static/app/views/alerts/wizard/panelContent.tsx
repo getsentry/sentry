@@ -241,4 +241,9 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
     illustration: diagramCLS,
   },
+  trace_item_logs: {
+    description: t('Alert on logs.'),
+    examples: [t('When the number of logs exceeds 100.')],
+    illustration: diagramThroughput,
+  },
 };

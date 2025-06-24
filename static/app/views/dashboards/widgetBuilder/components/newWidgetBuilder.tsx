@@ -30,6 +30,7 @@ import {
   type DashboardFilters,
   DisplayType,
   type Widget,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
@@ -70,6 +71,30 @@ type WidgetBuilderV2Props = {
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
+
+function TraceItemAttributeProviderFromDataset({children}: {children: React.ReactNode}) {
+  const {state} = useWidgetBuilderContext();
+  const organization = useOrganization();
+
+  let enabled = false;
+  let traceItemType = TraceItemDataset.SPANS;
+
+  if (state.dataset === WidgetType.SPANS) {
+    enabled = organization.features.includes('visibility-explore-view');
+    traceItemType = TraceItemDataset.SPANS;
+  }
+
+  if (state.dataset === WidgetType.LOGS) {
+    enabled = organization.features.includes('ourlogs-dashboards');
+    traceItemType = TraceItemDataset.LOGS;
+  }
+
+  return (
+    <TraceItemAttributeProvider traceItemType={traceItemType} enabled={enabled}>
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
 
 function WidgetBuilderV2({
   isOpen,
@@ -164,10 +189,7 @@ function WidgetBuilderV2({
                   organization={organization}
                   selection={selection}
                 >
-                  <TraceItemAttributeProvider
-                    traceItemType={TraceItemDataset.SPANS}
-                    enabled={organization.features.includes('visibility-explore-view')}
-                  >
+                  <TraceItemAttributeProviderFromDataset>
                     <ContainerWithoutSidebar
                       sidebarCollapsed={sidebarCollapsed}
                       style={
@@ -227,7 +249,7 @@ function WidgetBuilderV2({
                         )}
                       </WidgetBuilderContainer>
                     </ContainerWithoutSidebar>
-                  </TraceItemAttributeProvider>
+                  </TraceItemAttributeProviderFromDataset>
                 </CustomMeasurementsProvider>
               </WidgetBuilderProvider>
             )}
