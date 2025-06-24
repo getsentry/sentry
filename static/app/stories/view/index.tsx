@@ -8,6 +8,7 @@ import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
+import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -19,16 +20,7 @@ import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextPro
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
 import {StoryTableOfContents} from './storyTableOfContents';
-import {StoryTree, useStoryTree} from './storyTree';
 import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
-
-function isCoreFile(file: string) {
-  return (
-    file.includes('components/core') ||
-    file.includes('app/styles') ||
-    file.includes('app/icons')
-  );
-}
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
@@ -51,31 +43,6 @@ export default function Stories() {
   const [storyRepresentation, setStoryRepresentation] = useLocalStorageState<
     'category' | 'filesystem'
   >('story-representation', 'category');
-
-  const query = location.query.query ?? '';
-  const filesByOwner = useMemo(() => {
-    const map: Record<'core' | 'shared', string[]> = {
-      core: [],
-      shared: [],
-    };
-    for (const file of files) {
-      if (isCoreFile(file)) {
-        map.core.push(file);
-      } else {
-        map.shared.push(file);
-      }
-    }
-    return map;
-  }, [files]);
-
-  const coreTree = useStoryTree(filesByOwner.core, {
-    query,
-    representation: storyRepresentation,
-  });
-  const sharedTree = useStoryTree(filesByOwner.shared, {
-    query,
-    representation: storyRepresentation,
-  });
 
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
@@ -122,12 +89,7 @@ export default function Stories() {
               </InputGroup.TrailingItems>
               {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
             </InputGroup>
-            <StoryTreeContainer>
-              <StoryTreeTitle>Design System</StoryTreeTitle>
-              <StoryTree nodes={coreTree} />
-              <StoryTreeTitle>Shared</StoryTreeTitle>
-              <StoryTree nodes={sharedTree} />
-            </StoryTreeContainer>
+            <StorySidebar />
           </SidebarContainer>
 
           {story.isLoading ? (
@@ -214,15 +176,6 @@ const SidebarContainer = styled('div')`
   min-height: 0;
   position: relative;
   z-index: 10;
-`;
-
-const StoryTreeContainer = styled('div')`
-  overflow-y: scroll;
-  flex-grow: 1;
-`;
-
-const StoryTreeTitle = styled('p')`
-  margin-bottom: ${space(1)};
 `;
 
 const StoryIndexContainer = styled('div')`
