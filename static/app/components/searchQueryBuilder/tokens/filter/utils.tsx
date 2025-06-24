@@ -130,15 +130,15 @@ export function unescapeTagValue(value: string): string {
 
 export function formatFilterValue({
   token,
-  allContains = false,
+  stripWildcards = false,
 }: {
   token: TokenResult<Token.FILTER>['value'];
-  allContains?: boolean;
+  stripWildcards?: boolean;
 }): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
       const content = token.value ? token.value : token.text;
-      const cleanedContent = allContains ? content.replace(/^\*+|\*+$/g, '') : content;
+      const cleanedContent = stripWildcards ? content.replace(/^\*+|\*+$/g, '') : content;
 
       if (!token.value) {
         return cleanedContent;

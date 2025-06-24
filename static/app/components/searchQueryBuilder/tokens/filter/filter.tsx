@@ -69,7 +69,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           <FilterValueSingleTruncatedValue>
             {formatFilterValue({
               token: items[0]!.value,
-              allContains,
+              stripWildcards: allContains,
             })}
           </FilterValueSingleTruncatedValue>
         );
@@ -87,7 +87,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
               <FilterMultiValueTruncated>
                 {formatFilterValue({
                   token: item.value!,
-                  allContains,
+                  stripWildcards: allContains,
                 })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -113,7 +113,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <FilterValueSingleTruncatedValue>
           {formatFilterValue({
             token: token.value,
-            allContains,
+            stripWildcards: allContains,
           })}
         </FilterValueSingleTruncatedValue>
       );
