@@ -87,7 +87,7 @@ enum DetectorConfigAdmin {
   HTTP_OVERHEAD_ENABLED = 'http_overhead_detection_enabled',
   TRANSACTION_DURATION_REGRESSION_ENABLED = 'transaction_duration_regression_detection_enabled',
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
-  DATABASE_QUERY_INJECTION_ENABLED = 'database_query_injection_detection_enabled',
+  DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -510,7 +510,7 @@ function ProjectPerformance() {
       },
     },
     [IssueTitle.DB_QUERY_INJECTION_VULNERABILITY]: {
-      name: DetectorConfigAdmin.DATABASE_QUERY_INJECTION_ENABLED,
+      name: DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED,
       type: 'boolean',
       label: t('Potential Database Query Injection Enabled'),
       defaultValue: true,
@@ -520,7 +520,7 @@ function ProjectPerformance() {
           getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
           data => ({
             ...data!,
-            database_query_injection_detection_enabled: value,
+            db_query_injection_detection_enabled: value,
           })
         );
       },
