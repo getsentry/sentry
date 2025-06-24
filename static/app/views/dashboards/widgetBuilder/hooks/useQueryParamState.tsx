@@ -56,8 +56,6 @@ export function useQueryParamState<T = string>({
   const [localState, setLocalState] = useState<T | undefined>(() => {
     const decodedValue = parsedQueryParams[fieldName];
 
-    // console.log(decodedValue);
-
     if (!defined(decodedValue)) {
       return undefined;
     }
