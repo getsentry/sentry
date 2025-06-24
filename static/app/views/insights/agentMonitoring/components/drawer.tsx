@@ -1,9 +1,8 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -12,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/agentMonitoring/hooks/useNodeDetailsLink';
+import {useUrlTraceDrawer} from 'sentry/views/insights/agentMonitoring/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
@@ -24,7 +24,13 @@ interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
 
-function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
+function TraceViewDrawer({
+  traceSlug,
+  closeDrawer,
+}: {
+  closeDrawer: () => void;
+  traceSlug: string;
+}) {
   const {nodes, isLoading, error} = useAITrace(traceSlug);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
 
@@ -48,7 +54,7 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
       <StyledDrawerHeader>
         <HeaderContent>
           {t('Abbreviated Trace')}
-          <LinkButton size="xs" to={nodeDetailsLink}>
+          <LinkButton size="xs" onMouseDown={closeDrawer} to={nodeDetailsLink}>
             {t('View in Full Trace')}
           </LinkButton>
         </HeaderContent>
@@ -70,18 +76,30 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
 }
 
 export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
-  const {openDrawer, isDrawerOpen} = useDrawer();
+  const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
-  const openTraceViewDrawer = (traceSlug: string) =>
-    openDrawer(() => <TraceViewDrawer traceSlug={traceSlug} />, {
-      ariaLabel: t('Abbreviated Trace'),
-      onClose,
-      shouldCloseOnInteractOutside: () => true,
-      drawerWidth: '40%',
-      resizable: true,
+  const openTraceViewDrawer = useCallback(
+    (traceSlug: string) =>
+      openDrawer(
+        () => <TraceViewDrawer traceSlug={traceSlug} closeDrawer={closeDrawer} />,
+        {
+          ariaLabel: t('Abbreviated Trace'),
+          onClose,
+          shouldCloseOnInteractOutside: () => true,
+          drawerWidth: '40%',
+          resizable: true,
+          traceSlug,
+          drawerKey: 'abbreviated-trace-view-drawer',
+        }
+      ),
+    [openDrawer, onClose, closeDrawer]
+  );
 
-      drawerKey: 'abbreviated-trace-view-drawer',
-    });
+  useEffect(() => {
+    if (drawerUrlState.trace && !isDrawerOpen) {
+      openTraceViewDrawer(drawerUrlState.trace);
+    }
+  }, [drawerUrlState.trace, isDrawerOpen, openTraceViewDrawer]);
 
   return {
     openTraceViewDrawer,
