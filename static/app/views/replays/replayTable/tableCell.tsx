@@ -37,12 +37,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
+import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
+  rowIndex: number;
   showDropdownFilters?: boolean;
 };
 
@@ -663,27 +666,24 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function PlayPauseCell({
-  isSelected,
-  handleClick,
-}: {
-  handleClick: () => void;
-  isSelected: boolean;
-}) {
-  const inner = isSelected ? (
-    <ReplayPlayPauseButton size="sm" priority="default" borderless />
-  ) : (
-    <Button
-      title={t('Play')}
-      aria-label={t('Play')}
-      icon={<IconPlay size="sm" />}
-      onClick={handleClick}
-      data-test-id="replay-table-play-button"
-      borderless
-      size="sm"
-      priority="default"
-    />
-  );
+export function PlayPauseCell({rowIndex}: Props) {
+  const selectedReplayIndex = useSelectedReplayIndex();
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const inner =
+    rowIndex === selectedReplayIndex ? (
+      <ReplayPlayPauseButton size="sm" priority="default" borderless />
+    ) : (
+      <Button
+        title={t('Play')}
+        aria-label={t('Play')}
+        icon={<IconPlay size="sm" />}
+        onClick={() => setSelectedReplayIndex(rowIndex)}
+        data-test-id="replay-table-play-button"
+        borderless
+        size="sm"
+        priority="default"
+      />
+    );
   return <Item>{inner}</Item>;
 }
 

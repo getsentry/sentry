@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -20,10 +20,14 @@ import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader'
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
+import {
+  SelectedReplayIndexProvider,
+  useSelectedReplayIndex,
+} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
+import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -121,7 +125,13 @@ export default function GroupReplays({group}: Props) {
     );
   }
   return (
-    <GroupReplaysTable eventView={eventView} organization={organization} group={group} />
+    <SelectedReplayIndexProvider>
+      <GroupReplaysTable
+        eventView={eventView}
+        organization={organization}
+        group={group}
+      />
+    </SelectedReplayIndexProvider>
   );
 }
 
@@ -130,8 +140,6 @@ function GroupReplaysTableInner({
   organization,
   group,
   replaySlug,
-  setSelectedReplayIndex,
-  selectedReplayIndex,
   overlayContent,
   replays,
 }: {
@@ -140,8 +148,6 @@ function GroupReplaysTableInner({
   organization: Organization;
   replaySlug: string;
   replays: ReplayListRecord[] | undefined;
-  selectedReplayIndex: number;
-  setSelectedReplayIndex: (index: number) => void;
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
@@ -151,6 +157,9 @@ function GroupReplaysTableInner({
     group,
   });
   const {status, replay} = readerResult;
+
+  const selectedReplayIndex = useSelectedReplayIndex();
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
 
   return (
     <ReplayContextProvider
@@ -194,8 +203,6 @@ function GroupReplaysTable({
   group: Group;
   organization: Organization;
 }) {
-  const location = useLocation();
-  const navigate = useNavigate();
   const params = useParams<{groupId: string}>();
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
@@ -211,11 +218,7 @@ function GroupReplaysTable({
   const {replays} = replayListData;
   const {allMobileProj} = useAllMobileProj({});
 
-  const rawReplayIndex = location.query.selected_replay_index;
-  const selectedReplayIndex = parseInt(
-    typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
-    10
-  );
+  const selectedReplayIndex = useSelectedReplayIndex();
 
   useCleanQueryParamsOnRouteLeave({
     fieldsToClean: ['selected_replay_index'],
@@ -223,18 +226,7 @@ function GroupReplaysTable({
       newLocation.pathname.includes(`/issues/${params.groupId}/`),
   });
 
-  const setSelectedReplayIndex = useCallback(
-    (index: number) => {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {...location.query, selected_replay_index: index},
-        },
-        {replace: true, preventScrollReset: true}
-      );
-    },
-    [location, navigate]
-  );
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
 
   const selectedReplay = replays?.[selectedReplayIndex];
 
@@ -270,7 +262,7 @@ function GroupReplaysTable({
         ...visibleColumns(allMobileProj),
       ]}
       showDropdownFilters={false}
-      onClickPlay={setSelectedReplayIndex}
+      onClickRow={setSelectedReplayIndex}
       fetchError={replayListData.fetchError}
       isFetching={replayListData.isFetching}
       replays={replays}
@@ -281,8 +273,6 @@ function GroupReplaysTable({
     <GroupReplaysTableInner
       // Use key to force unmount/remount of component to reset the context and replay iframe
       key={selectedReplay.id}
-      setSelectedReplayIndex={setSelectedReplayIndex}
-      selectedReplayIndex={selectedReplayIndex}
       overlayContent={overlayContent}
       organization={organization}
       group={group}
