@@ -159,9 +159,6 @@ class EventLifecycle:
                     outcome_reason,
                 )
 
-                # Reset the level
-                sentry_sdk.leve
-
                 log_params["extra"]["slo_event_id"] = event_id
 
             # Add exception summary but don't include full stack trace in logs
