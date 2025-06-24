@@ -311,13 +311,16 @@ def _run_automation(
         group.project, group.organization
     )
     if is_rate_limited:
-        sentry_sdk.set_tags(
-            {
+        logger.warning(
+            "Autofix auto-trigger rate limit hit",
+            extra={
+                "group_id": group.id,
                 "auto_run_count": current,
                 "auto_run_limit": limit,
-            }
+                "org_slug": group.organization.slug,
+                "project_slug": group.project.slug,
+            },
         )
-        logger.error("Autofix auto-trigger rate limit hit", extra={"group_id": group.id})
         return
 
     has_budget: bool = quotas.backend.has_available_reserved_budget(
