@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
 import {Select} from 'sentry/components/core/select';
+import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';
@@ -84,9 +85,16 @@ class ThresholdControl extends Component<Props, State> {
     const inputValue = currentValue ?? threshold ?? '';
 
     return (
-      <Wrapper>
-        <Container comparisonType={comparisonType}>
-          <SelectContainer>
+      <Flex align="center" gap={space(1)}>
+        <Flex
+          flex={2}
+          align="center"
+          direction={
+            comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'
+          }
+          gap={space(1)}
+        >
+          <Flex flex={1}>
             <Select
               isDisabled={disabled || disableThresholdType}
               name={`${type}ThresholdType`}
@@ -129,10 +137,10 @@ class ThresholdControl extends Component<Props, State> {
               }
               onChange={this.handleTypeChange}
             />
-          </SelectContainer>
+          </Flex>
           {!hideControl && (
-            <ThresholdContainer comparisonType={comparisonType}>
-              <ThresholdInput>
+            <Flex flex={1} direction="row" align="center">
+              <Flex direction="row" align="center">
                 <NumberDragInput
                   min={0}
                   step={1}
@@ -150,50 +158,19 @@ class ThresholdControl extends Component<Props, State> {
                   // Disable lastpass autocomplete
                   data-lpignore="true"
                 />
-              </ThresholdInput>
+              </Flex>
               {comparisonType === AlertRuleComparisonType.CHANGE && (
                 <PercentWrapper>%</PercentWrapper>
               )}
-            </ThresholdContainer>
+            </Flex>
           )}
-        </Container>
-      </Wrapper>
+        </Flex>
+      </Flex>
     );
   }
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
-const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
-  flex: 2;
-  display: flex;
-  align-items: center;
-  flex-direction: ${p =>
-    p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
-  gap: ${space(1)};
-`;
-
-const SelectContainer = styled('div')`
-  flex: 1;
-`;
-
-const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonType}>`
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-const ThresholdInput = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
 
 const PercentWrapper = styled('div')`
   margin-left: ${space(1)};

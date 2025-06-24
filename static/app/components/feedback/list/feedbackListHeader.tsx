@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
@@ -70,7 +71,7 @@ export default function FeedbackListHeader({
         )}
       </HeaderPanelItem>
       {hasNewItems ? (
-        <RefreshContainer>
+        <Flex align="center" justify="center" flex="1" style={{padding: space(0.5)}}>
           <Button
             priority="primary"
             size="xs"
@@ -85,7 +86,7 @@ export default function FeedbackListHeader({
           >
             {t('Load new feedback')}
           </Button>
-        </RefreshContainer>
+        </Flex>
       ) : null}
     </HeaderPanel>
   );
@@ -101,12 +102,4 @@ const HeaderPanelItem = styled('div')`
   gap: ${space(1)};
   align-items: center;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-`;
-
-const RefreshContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  padding: ${space(0.5)};
 `;

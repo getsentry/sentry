@@ -8,6 +8,7 @@ import partition from 'lodash/partition';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -355,9 +356,9 @@ function FunctionTrendsEntry({
         </Tooltip>
       </AccordionItem>
       {isExpanded && (
-        <FunctionTrendsChartContainer>
+        <Flex flex="1 1 auto">
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
-        </FunctionTrendsChartContainer>
+        </Flex>
       )}
     </Fragment>
   );
@@ -544,9 +545,7 @@ const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
 
-const FunctionTrendsChartContainer = styled('div')`
-  flex: 1 1 auto;
-`;
+
 
 const DurationChange = styled('span')`
   color: ${p => p.theme.subText};

@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import SearchBar from 'sentry/components/searchBar';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,7 +32,7 @@ export function SavedQueriesLandingContent() {
   return (
     <div>
       <FilterContainer>
-        <SearchBarContainer>
+        <Flex flex={1}>
           <SearchBar
             onSearch={newQuery => {
               navigate({
@@ -42,7 +43,7 @@ export function SavedQueriesLandingContent() {
             defaultQuery={searchQuery}
             placeholder={t('Search for a query')}
           />
-        </SearchBarContainer>
+        </Flex>
         <CompactSelect
           triggerProps={{
             icon: <IconSort />,
@@ -78,8 +79,4 @@ const FilterContainer = styled('div')`
   display: flex;
   margin-bottom: ${space(2)};
   gap: ${space(2)};
-`;
-
-const SearchBarContainer = styled('div')`
-  flex: 1;
 `;

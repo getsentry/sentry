@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -68,11 +69,11 @@ function NewSecretHandler({
       </StyledPanelItem>
 
       <StyledPanelItem>
-        <ButtonWrapper>
+        <Flex direction="column" align="flex-end" gap={space(1)} style={{marginLeft: 'auto', fontSize: 'var(--font-size-sm)'}}>
           <Button onClick={onGoBack} priority="primary">
             {t('Done')}
           </Button>
-        </ButtonWrapper>
+        </Flex>
       </StyledPanelItem>
     </div>
   );
@@ -86,14 +87,7 @@ const StyledFieldGroup = styled(FieldGroup)`
   padding: ${space(1)};
 `;
 
-const ButtonWrapper = styled('div')`
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: ${p => p.theme.fontSizeSmall};
-  gap: ${space(1)};
-`;
+
 
 const StyledPanelItem = styled(PanelItem)`
   padding: ${space(1.5)};

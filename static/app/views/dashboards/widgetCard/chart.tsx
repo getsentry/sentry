@@ -24,6 +24,8 @@ import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+
+import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
@@ -551,7 +553,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
                     >
-                      <RenderedChartContainer>
+                      <Flex flex={1}>
                         {getDynamicText({
                           value: this.chartComponent({
                             ...zoomRenderProps,
@@ -571,7 +573,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                           }),
                           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
-                      </RenderedChartContainer>
+                      </Flex>
 
                       {showConfidenceWarning && confidence && (
                         <ConfidenceFooter
@@ -678,8 +680,4 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
 
 const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
-`;
-
-const RenderedChartContainer = styled('div')`
-  flex: 1;
 `;

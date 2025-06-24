@@ -211,17 +211,17 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
           </LabelColumn>
           {mappedKeys.map((fieldKey, i) => (
-            <Heading key={fieldKey}>
+            <Flex key={fieldKey} flex="1 0 0" align="center" justify="space-between" style={{marginLeft: space(1)}}>
               <HeadingItem>{columnLabels[fieldKey]}</HeadingItem>
               {i === mappedKeys.length - 1 && dropdown}
-            </Heading>
+            </Flex>
           ))}
         </Header>
         {Object.keys(value).map(itemKey => (
           <Row key={itemKey}>
             <LabelColumn>{valueMap[itemKey]}</LabelColumn>
             {mappedKeys.map((fieldKey, i) => (
-              <Column key={fieldKey}>
+              <Flex key={fieldKey} flex="1 0 0" align="center" style={{marginLeft: space(1)}}>
                 <Control>
                   <Select
                     {...(perItemMapping
@@ -244,7 +244,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
                     />
                   </Actions>
                 )}
-              </Column>
+              </Flex>
             ))}
           </Row>
         ))}
@@ -269,25 +269,10 @@ const Header = styled('div')`
   align-items: center;
 `;
 
-const Heading = styled('div')`
-  display: flex;
-  margin-left: ${space(1)};
-  flex: 1 0 0;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const Row = styled('div')`
   display: flex;
   margin-top: ${space(1)};
   align-items: center;
-`;
-
-const Column = styled('div')`
-  display: flex;
-  margin-left: ${space(1)};
-  align-items: center;
-  flex: 1 0 0;
 `;
 
 const Control = styled('div')`

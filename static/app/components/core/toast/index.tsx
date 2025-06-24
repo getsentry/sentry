@@ -6,6 +6,7 @@ import {motion} from 'framer-motion';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
@@ -18,7 +19,6 @@ import {
   ChonkToastContainer,
   ChonkToastIconContainer,
   ChonkToastLoadingIndicator,
-  ChonkToastMessage,
   ChonkToastUndoButton,
   ChonkToastUndoButtonContainer,
 } from './index.chonk';
@@ -43,9 +43,9 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
       {...props}
     >
       <ToastIcon type={indicator.type} />
-      <ToastMessage>
+      <Flex flex={1}>
         <TextOverflow>{indicator.message}</TextOverflow>
-      </ToastMessage>
+      </Flex>
       {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
         <ToastUndoButtonContainer type={indicator.type}>
           <ToastUndoButton
@@ -138,12 +138,7 @@ const ToastIconContainer = withChonk(
   ChonkToastIconContainer
 );
 
-const ToastMessage = withChonk(
-  styled('div')`
-    flex: 1;
-  `,
-  ChonkToastMessage
-);
+
 
 const ToastUndoButton = withChonk(
   styled(Button)`

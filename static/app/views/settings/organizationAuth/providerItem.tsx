@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
+import {Flex} from 'sentry/components/core/layout';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -114,11 +115,11 @@ function ProviderItem({provider, active, onConfigure}: Props) {
             </div>
           </ProviderInfo>
 
-          <FeatureBadge>
+          <Flex flex={1}>
             {!hasFeature &&
               // renderDisabled is overridden by renderDisabled above
               (renderDisabled as typeof renderDisabledLock)({provider, features})}
-          </FeatureBadge>
+          </Flex>
 
           <div>
             {active ? (
@@ -163,9 +164,7 @@ const ProviderDescription = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const FeatureBadge = styled('div')`
-  flex: 1;
-`;
+
 
 const ActiveIndicator = styled('div')`
   background: ${p => p.theme.green300};

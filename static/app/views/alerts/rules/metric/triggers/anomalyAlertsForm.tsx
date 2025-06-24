@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
+import {Flex} from 'sentry/components/core/layout';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {
   AlertRuleSensitivity,
@@ -46,7 +47,7 @@ function SensitivityFormItem({
       }
       required
     >
-      <SelectContainer>
+      <Flex flex={1}>
         <Select
           name="sensitivity"
           inputId={'sensitivity'}
@@ -69,7 +70,7 @@ function SensitivityFormItem({
             onSensitivityChange(value);
           }}
         />
-      </SelectContainer>
+      </Flex>
     </StyledField>
   );
 }
@@ -86,7 +87,7 @@ function DirectionFormItem({
       }
       required
     >
-      <SelectContainer>
+      <Flex flex={1}>
         <Select
           name="sensitivity"
           value={thresholdType}
@@ -108,7 +109,7 @@ function DirectionFormItem({
             onThresholdTypeChange(value);
           }}
         />
-      </SelectContainer>
+      </Flex>
     </StyledField>
   );
 }
@@ -140,7 +141,5 @@ const StyledField = styled(FieldGroup)`
   }
 `;
 
-const SelectContainer = styled('div')`
-  flex: 1;
-`;
+
 export default AnomalyDetectionFormField;

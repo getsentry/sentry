@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
+const Container = styled(Flex)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(3)};
@@ -23,7 +21,7 @@ const Content = styled('div')`
 `;
 
 export const OnboardingStep = {
-  Container,
+  Container: (props: any) => <Container direction="column" gap={space(1)} {...props} />,
   Header,
   Content,
 };

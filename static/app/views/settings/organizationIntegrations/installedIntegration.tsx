@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import {Flex} from 'sentry/components/core/layout';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -121,9 +122,9 @@ export default class InstalledIntegration extends Component<Props> {
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
             <Fragment>
-              <IntegrationItemBox>
+              <Flex flex={1}>
                 <IntegrationItem integration={integration} />
-              </IntegrationItemBox>
+              </Flex>
               <div>
                 <Tooltip
                   disabled={allowMemberConfiguration || hasAccess}
@@ -205,9 +206,7 @@ const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
 `;
 
-const IntegrationItemBox = styled('div')`
-  flex: 1;
-`;
+
 
 function IntegrationStatus(
   props: React.HTMLAttributes<HTMLDivElement> & {

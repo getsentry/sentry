@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -59,9 +60,9 @@ export function IntegrationServerlessFunctions({
       </Alert.Container>
       <Panel>
         <StyledPanelHeader disablePadding hasButtons>
-          <NameHeader>{t('Name')}</NameHeader>
-          <LayerStatusWrapper>{t('Layer Status')}</LayerStatusWrapper>
-          <EnableHeader>{t('Enabled')}</EnableHeader>
+          <Flex flex={1} style={{gridArea: 'function-name'}}>{t('Name')}</Flex>
+          <Flex flex={1} style={{gridArea: 'layer-status'}}>{t('Layer Status')}</Flex>
+          <Flex flex={1} style={{gridArea: 'enable-switch'}}>{t('Enabled')}</Flex>
         </StyledPanelHeader>
         <StyledPanelBody>
           {serverlessFunctions.map((serverlessFn, i) => (
@@ -104,20 +105,4 @@ const StyledPanelHeader = styled(PanelHeader)`
   grid-template-areas: 'function-name layer-status enable-switch';
 `;
 
-const HeaderText = styled('div')`
-  flex: 1;
-`;
-
 const StyledPanelBody = styled(PanelBody)``;
-
-const NameHeader = styled(HeaderText)`
-  grid-area: function-name;
-`;
-
-const LayerStatusWrapper = styled(HeaderText)`
-  grid-area: layer-status;
-`;
-
-const EnableHeader = styled(HeaderText)`
-  grid-area: enable-switch;
-`;

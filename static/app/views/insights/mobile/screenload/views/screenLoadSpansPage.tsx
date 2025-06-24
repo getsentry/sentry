@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -131,7 +132,7 @@ export function ScreenLoadSpansContent() {
           chartHeight={120}
         />
         <SampleContainer>
-          <SampleContainerItem>
+          <Flex flex={1}>
             {primaryRelease && (
               <ScreenLoadEventSamples
                 release={primaryRelease}
@@ -141,8 +142,8 @@ export function ScreenLoadSpansContent() {
                 showDeviceClassSelector
               />
             )}
-          </SampleContainerItem>
-          <SampleContainerItem>
+          </Flex>
+          <Flex flex={1}>
             {secondaryRelease && (
               <ScreenLoadEventSamples
                 release={secondaryRelease}
@@ -151,7 +152,7 @@ export function ScreenLoadSpansContent() {
                 transaction={transactionName}
               />
             )}
-          </SampleContainerItem>
+          </Flex>
         </SampleContainer>
         <ScreenLoadSpansTable
           transaction={transactionName}
@@ -175,8 +176,4 @@ const SampleContainer = styled('div')`
   flex-direction: row;
   flex-wrap: wrap;
   gap: ${space(2)};
-`;
-
-const SampleContainerItem = styled('div')`
-  flex: 1;
 `;

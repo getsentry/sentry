@@ -1,6 +1,7 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
@@ -101,7 +102,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
         </MinimapContainer>
         <ZoomViewContainer>
           <ProfileLabel>{t('Differential Flamegraph')}</ProfileLabel>
-          <ZoomViewInnerContainer>{props.flamegraph}</ZoomViewInnerContainer>
+          <Flex flex={1}>{props.flamegraph}</Flex>
         </ZoomViewContainer>
         <DifferentialFlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {
@@ -196,9 +197,7 @@ const ZoomViewContainer = styled('div')`
   grid-area: flamegraph;
   position: relative;
 `;
-const ZoomViewInnerContainer = styled('div')`
-  flex: 1;
-`;
+
 
 const DifferentialFlamegraphDrawerContainer = styled('div')<{
   layout: FlamegraphPreferences['layout'];

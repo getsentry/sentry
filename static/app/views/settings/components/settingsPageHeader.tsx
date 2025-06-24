@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 
@@ -49,7 +50,7 @@ function UnstyledSettingsPageHeader({
   return (
     <div {...props}>
       <TitleAndActions isNarrow={isNarrow}>
-        <TitleWrapper>
+        <Flex flex={1}>
           {icon && <Icon>{icon}</Icon>}
           {title && (
             <Title tabs={tabs} styled={noTitleStyles}>
@@ -57,7 +58,7 @@ function UnstyledSettingsPageHeader({
               {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
             </Title>
           )}
-        </TitleWrapper>
+        </Flex>
         {action && <Action isNarrow={isNarrow}>{action}</Action>}
       </TitleAndActions>
 
@@ -76,9 +77,7 @@ const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
   align-items: ${p => (p.isNarrow ? 'center' : 'flex-start')};
 `;
-const TitleWrapper = styled('div')`
-  flex: 1;
-`;
+
 
 const Title = styled('div')<TitleProps>`
   ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeightBold};`};

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
@@ -16,12 +17,12 @@ function SessionRow({
 }: Omit<InternetProtocol, 'id'>) {
   return (
     <SessionPanelItem>
-      <IpAndLocation>
+      <Flex flex={1}>
         <IpAddress>{ipAddress}</IpAddress>
         {countryCode && regionCode && (
           <CountryCode>{`${countryCode} (${regionCode})`}</CountryCode>
         )}
-      </IpAndLocation>
+      </Flex>
       <div>
         <StyledTimeSince date={firstSeen} />
       </div>
@@ -46,9 +47,7 @@ const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
-const IpAndLocation = styled('div')`
-  flex: 1;
-`;
+
 
 const SessionPanelItem = styled(PanelItem)`
   ${tableLayout};

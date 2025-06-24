@@ -3,6 +3,8 @@ import {Component, Suspense} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Flex} from 'sentry/components/core/layout';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -42,9 +44,9 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
       <Suspense
         fallback={
           loadingFallback ?? (
-            <LoadingContainer>
+            <Flex flex={1} align="center">
               <LoadingIndicator />
-            </LoadingContainer>
+            </Flex>
           )
         }
       >
@@ -122,26 +124,18 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
   render() {
     if (this.state.hasError) {
       return (
-        <LoadingErrorContainer>
+        <Flex flex={1}>
           <LoadingError
             onRetry={this.handleRetry}
             message={t('There was an error loading a component.')}
           />
-        </LoadingErrorContainer>
+        </Flex>
       );
     }
     return this.props.children;
   }
 }
 
-const LoadingContainer = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-`;
 
-const LoadingErrorContainer = styled('div')`
-  flex: 1;
-`;
 
 export default LazyLoad;

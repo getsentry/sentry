@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Flex as FlexLayout} from 'sentry/components/core/layout';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tabs} from 'sentry/components/core/tabs';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
@@ -195,11 +196,11 @@ function PageOverview() {
                   <ModulePageFilterBar moduleName={ModuleName.VITAL} />
                   <BrowserTypeSelector />
                 </TopMenuContainer>
-                <Flex>
-                  <ChartContainer>
-                    <PerformanceScoreBreakdownChartWidget />
-                  </ChartContainer>
-                </Flex>
+                                  <Flex>
+                    <FlexLayout flex="1 1 0%">
+                      <PerformanceScoreBreakdownChartWidget />
+                    </FlexLayout>
+                  </Flex>
                 <WebVitalMetersContainer>
                   {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
                   <WebVitalMeters
@@ -265,9 +266,7 @@ const Flex = styled('div')`
   gap: ${space(1)};
 `;
 
-const ChartContainer = styled('div')`
-  flex: 1 1 0%;
-`;
+
 
 const PageSamplePerformanceTableContainer = styled('div')`
   margin-top: ${space(1)};

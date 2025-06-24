@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Flex} from 'sentry/components/core/layout';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -99,7 +100,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
         </HeaderContainer>
         <PageAlert />
         <ChartsContainer>
-          <ChartsContainerItem key="release1">
+          <Flex flex={1} key="release1">
             <SpanSamplesContainer
               groupId={groupId}
               moduleName={moduleName}
@@ -111,8 +112,8 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
-          </ChartsContainerItem>
-          <ChartsContainerItem key="release2">
+          </Flex>
+          <Flex flex={1} key="release2">
             <SpanSamplesContainer
               groupId={groupId}
               moduleName={moduleName}
@@ -124,7 +125,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
-          </ChartsContainerItem>
+          </Flex>
         </ChartsContainer>
       </SampleDrawerBody>
     </PageAlertProvider>
@@ -174,8 +175,4 @@ const ChartsContainer = styled('div')`
   flex-direction: row;
   gap: ${space(2)};
   align-items: top;
-`;
-
-const ChartsContainerItem = styled('div')`
-  flex: 1;
 `;
