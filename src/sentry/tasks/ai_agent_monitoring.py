@@ -13,7 +13,7 @@ from sentry.relay.config.ai_model_costs import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import demomode_tasks
+from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -25,13 +25,13 @@ OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
 
 @instrumented_task(
     name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-    queue="demo_mode",  # xxx (vgrozdanic): temporal queue until new one is set up
+    queue="ai_agent_monitoring",
     default_retry_delay=5,
     max_retries=3,
     soft_time_limit=30,  # 30 seconds
     time_limit=35,  # 35 seconds
     taskworker_config=TaskworkerConfig(
-        namespace=demomode_tasks,  # xxx (vgrozdanic): temporal namespace until new one is set up
+        namespace=ai_agent_monitoring_tasks,
         processing_deadline_duration=35,
         expires=30,
     ),
