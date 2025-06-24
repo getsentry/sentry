@@ -1,6 +1,13 @@
+from unittest.mock import patch
+
+import orjson
 import responses
+from urllib3.response import HTTPResponse
 
 from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -12,6 +19,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestMigrations
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
@@ -39,6 +47,23 @@ class MigrateMetricAlertsTest(TestMigrations):
     migrate_from = "0070_migrate_remaining_anomaly_detection_alerts"
     migrate_to = "0071_migrate_remaining_metric_alerts"
     app = "workflow_engine"
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def create_dynamic_alert(self, mock_seer_request):
+        seer_return_value = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        dynamic_rule = self.create_alert_rule(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+            time_window=60,
+        )
+        return dynamic_rule
 
     @responses.activate
     def setup_initial_state(self):
@@ -161,6 +186,12 @@ class MigrateMetricAlertsTest(TestMigrations):
         self.disabled_rule = self.create_alert_rule()
         self.disabled_rule.update(status=AlertRuleStatus.DISABLED.value)
         self.create_alert_rule_trigger(alert_rule=self.disabled_rule)
+
+        # dynamic rule
+        self.dynamic_rule = self.create_dynamic_alert()
+        self.dynamic_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.dynamic_rule, label="critical", alert_threshold=0
+        )
 
     def test_simple_rule(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
@@ -434,3 +465,56 @@ class MigrateMetricAlertsTest(TestMigrations):
         action = aarta.action
 
         assert action.type == Action.Type.DISCORD
+
+    def test_dynamic_rule(self):
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.dynamic_rule.id)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.dynamic_rule.id)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+
+        assert detector.config == {
+            "threshold_period": self.dynamic_rule.threshold_period,
+            "sensitivity": AlertRuleSensitivity.HIGH,
+            "seasonality": AlertRuleSeasonality.AUTO,
+            "comparison_delta": None,
+            "detection_type": "dynamic",
+        }
+
+        # detector trigger
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        assert detector_trigger.comparison == {
+            "sensitivity": self.dynamic_rule.sensitivity,
+            "seasonality": self.dynamic_rule.seasonality,
+            "threshold_type": self.dynamic_rule.threshold_type,
+        }
+        assert detector_trigger.type == Condition.ANOMALY_DETECTION
+        assert DataConditionAlertRuleTrigger.objects.filter(
+            data_condition=detector_trigger, alert_rule_trigger_id=self.dynamic_trigger.id
+        ).exists()
+
+        # no explicit resolve detector trigger
+        assert not DataCondition.objects.filter(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        ).exists()
+
+        # action filters
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+        fire_action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.HIGH,
+            type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
+        )
+        assert fire_action_filter.condition_result is True
+
+        resolve_action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.HIGH,
+            type=Condition.ISSUE_PRIORITY_DEESCALATING,
+        )
+        assert resolve_action_filter.condition_result is True
