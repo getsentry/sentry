@@ -556,7 +556,7 @@ class TestCompareServiceSignature(TestCase):
         service_name = "TestService"
 
         with pytest.raises(RpcAuthenticationSetupException):
-            compare_service_signature(url, body, "rpc0:signature", None, service_name)
+            compare_service_signature(url, body, "rpc0:signature", [], service_name)
 
     def test_empty_shared_secrets(self):
         url = "/test/endpoint"
@@ -644,7 +644,7 @@ class TestGenerateServiceRequestSignature(TestCase):
         service_name = "TestService"
 
         with pytest.raises(RpcAuthenticationSetupException):
-            generate_service_request_signature(url, body, None, service_name)
+            generate_service_request_signature(url, body, [], service_name)
 
     def test_consistent_signatures(self):
         url = "/test/endpoint"
