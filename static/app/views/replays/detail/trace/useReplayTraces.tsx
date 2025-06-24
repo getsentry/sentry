@@ -9,7 +9,7 @@ import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 export type ReplayTrace = {
   timestamp: number | undefined;
@@ -27,7 +27,7 @@ type ReplayTraceDataResults = {
 export function useReplayTraces({
   replayRecord,
 }: {
-  replayRecord: ReplayRecord | undefined;
+  replayRecord: HydratedReplayRecord | undefined;
 }) {
   const api = useApi();
   const organization = useOrganization();

@@ -18,11 +18,11 @@ import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmit
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
   children: ReactNode;
-  replayRecord: undefined | ReplayRecord;
+  replayRecord: undefined | HydratedReplayRecord;
 };
 
 type InternalState = {
@@ -69,7 +69,7 @@ const TxnContext = createContext<TxnContextProps>({
   state: {didInit: false, errors: [], isFetching: false, traces: []},
 });
 
-function ReplayTransactionContext({children, replayRecord}: Options) {
+export default function ReplayTransactionContext({children, replayRecord}: Options) {
   const api = useApi();
   const organization = useOrganization();
   useEmitTimestampChanges();
@@ -282,5 +282,3 @@ function internalToExternalState({
     orphanErrors,
   };
 }
-
-export default ReplayTransactionContext;

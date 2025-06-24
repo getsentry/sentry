@@ -7,14 +7,14 @@ import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
 import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
   meta: TraceMetaQueryResults;
-  replay: ReplayRecord | null;
+  replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
 };

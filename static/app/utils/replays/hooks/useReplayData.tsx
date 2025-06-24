@@ -151,7 +151,7 @@ function useReplayData({
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.DISCOVER,
-            start: replayRecord?.started_at.toISOString(),
+            start: replayRecord?.started_at?.toISOString() ?? '',
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
             query: `replayId:[${replayRecord?.id}]`,
@@ -179,7 +179,7 @@ function useReplayData({
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.ISSUE_PLATFORM,
-            start: replayRecord?.started_at.toISOString(),
+            start: replayRecord?.started_at?.toISOString() ?? '',
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
             query: `replayId:[${replayRecord?.id}]`,

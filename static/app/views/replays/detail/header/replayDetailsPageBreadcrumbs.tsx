@@ -22,7 +22,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
-  const project = useProjectFromId({project_id: replayRecord?.project_id});
+  const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
 
   const listPageCrumb = {
     to: {
