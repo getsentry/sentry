@@ -111,6 +111,23 @@ export function DataSetStep({
     );
   }
 
+  if (organization.features.includes('ourlogs-dashboards')) {
+    datasetChoices.set(
+      DataSet.LOGS,
+      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>
+        {t('Logs')}{' '}
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{
+            title: t(
+              'This feature is available for early adopters and the UX may change'
+            ),
+          }}
+        />
+      </FeatureBadgeAlignmentWrapper>
+    );
+  }
+
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
 
   datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));

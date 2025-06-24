@@ -106,6 +106,10 @@ describe('SeerNotices', function () {
 
   it('shows fixability view step if automation is allowed and view not starred', () => {
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
       body: {

@@ -7,8 +7,8 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry.integrations.base import IntegrationData
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
-from sentry.pipeline import Pipeline, PipelineView
 from sentry.utils.http import absolute_uri
 
 
@@ -20,7 +20,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
     # want it to actually appear of the Integrations page.
     visible = False
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[IntegrationPipelineViewT]:
         views = super().get_pipeline_views()
         views = [view for view in views if not isinstance(view, AccountConfigView)]
         views.append(VstsExtensionFinishedView())
@@ -38,8 +38,8 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
         )
 
 
-class VstsExtensionFinishedView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class VstsExtensionFinishedView(IntegrationPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         response = pipeline.finish_pipeline()
 
         integration = getattr(pipeline, "integration", None)

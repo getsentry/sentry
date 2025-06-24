@@ -6,7 +6,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 export enum TraceLayoutTabKeys {
@@ -16,6 +15,7 @@ export enum TraceLayoutTabKeys {
   PROFILES = 'profiles',
   LOGS = 'logs',
   SUMMARY = 'summary',
+  AI_SPANS = 'ai-spans',
 }
 
 interface Tab {
@@ -45,13 +45,15 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
   },
   [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.SUMMARY]: {slug: TraceLayoutTabKeys.SUMMARY, label: t('Summary')},
+  [TraceLayoutTabKeys.AI_SPANS]: {
+    slug: TraceLayoutTabKeys.AI_SPANS,
+    label: t('AI Spans'),
+  },
 };
 
 function getTabOptions({
   sections,
-  hasTraceTabsUi,
 }: {
-  hasTraceTabsUi: boolean;
   sections: ReturnType<typeof useTraceContextSections>;
 }): Tab[] {
   const tabOptions: Tab[] = [];
@@ -61,11 +63,7 @@ function getTabOptions({
   }
 
   if (sections.hasTags) {
-    tabOptions.push(
-      hasTraceTabsUi
-        ? TAB_DEFINITIONS[TraceLayoutTabKeys.ATTRIBUTES]
-        : TAB_DEFINITIONS[TraceLayoutTabKeys.TAGS]
-    );
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.ATTRIBUTES]);
   }
 
   if (sections.hasProfiles) {
@@ -78,6 +76,10 @@ function getTabOptions({
 
   if (sections.hasSummary) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.SUMMARY]);
+  }
+
+  if (sections.hasAiSpans) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.AI_SPANS]);
   }
 
   return tabOptions;
@@ -100,9 +102,7 @@ export function useTraceLayoutTabs({
     rootEventResults,
     logs,
   });
-  const hasTraceTabsUi = useHasTraceTabsUI();
-
-  const tabOptions = getTabOptions({sections: {...sections}, hasTraceTabsUi});
+  const tabOptions = getTabOptions({sections: {...sections}});
 
   const queryParams = qs.parse(window.location.search);
   const tabSlugFromUrl = queryParams.tab;

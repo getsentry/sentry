@@ -28,6 +28,7 @@ export type Project = {
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasFlags: boolean;
+  hasInsightsAgentMonitoring: boolean;
   hasInsightsAppStart: boolean;
   hasInsightsAssets: boolean;
   hasInsightsCaches: boolean;
@@ -110,6 +111,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    playstation: string;
     public: string;
     secret: string;
     security: string;

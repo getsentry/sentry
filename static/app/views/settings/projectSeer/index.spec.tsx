@@ -142,6 +142,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
+            automated_run_stopping_point: 'solution',
             repositories: [
               {
                 branch_name: '',
@@ -197,6 +198,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
+            automated_run_stopping_point: 'solution',
             repositories: [
               {
                 external_id: '101',
@@ -241,6 +243,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
+            automated_run_stopping_point: 'solution',
             repositories: [],
           },
         })
@@ -253,6 +256,7 @@ describe('ProjectSeer', function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium', // Start from medium
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
@@ -333,6 +337,70 @@ describe('ProjectSeer', function () {
       expect(projectPutRequest).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({data: {seerScannerAutomation: true}})
+      );
+    });
+  });
+
+  it('can update the automation stopping point setting', async function () {
+    const initialProject: Project = {
+      ...project,
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: initialProject,
+    });
+
+    const projectPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+      method: 'POST',
+    });
+
+    render(<ProjectSeer project={initialProject} />, {organization});
+
+    // Find the select menu for Stopping Point for Automatic Fixes
+    const select = await screen.findByRole('textbox', {
+      name: /Stopping Point for Automatic Fixes/i,
+    });
+
+    act(() => {
+      select.focus();
+    });
+
+    // Open the menu and select a new value (e.g., 'Code Changes')
+    await userEvent.click(select);
+    const option = await screen.findByText('Code Changes');
+    await userEvent.click(option);
+
+    // Form has saveOnBlur=true, so wait for the PUT request
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {automated_run_stopping_point: 'code_changes'}})
+      );
+    });
+
+    // Also check that the seer preferences POST was called with the new stopping point
+    await waitFor(() => {
+      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            automated_run_stopping_point: 'code_changes',
+          }),
+        })
       );
     });
   });

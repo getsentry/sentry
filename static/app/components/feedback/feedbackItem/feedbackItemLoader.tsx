@@ -16,7 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function FeedbackItemLoader() {
   const organization = useOrganization();
   const feedbackId = useCurrentFeedbackId();
-  const {issueResult, issueData, tags, eventData} = useFetchFeedbackData({feedbackId});
+  const {issueResult, issueData, eventData} = useFetchFeedbackData({feedbackId});
 
   const projectSlug = useCurrentFeedbackProject();
   useSentryAppComponentsData({projectId: projectSlug});
@@ -50,7 +50,7 @@ export default function FeedbackItemLoader() {
         <FeedbackErrorDetails error={t('Unable to load feedback')} />
       )}
     >
-      <FeedbackItem eventData={eventData} feedbackItem={issueData} tags={tags} />
+      <FeedbackItem eventData={eventData} feedbackItem={issueData} />
     </ErrorBoundary>
   ) : (
     <FeedbackEmptyDetails />

@@ -1,8 +1,8 @@
-import type {ReactNode} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
 import {Component, createRef, Fragment} from 'react';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -98,23 +98,24 @@ type GridEditableProps<DataRow, ColumnKey> = {
   bodyStyle?: React.CSSProperties;
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
+
+  fit?: 'max-content';
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
+  height?: CSSProperties['height'];
 
-  height?: string | number;
   highlightedRowKey?: number;
 
   isLoading?: boolean;
 
   minimumColWidth?: number;
-
   onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
-  onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
 
+  onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   /**
    * Whether columns in the grid can be resized.
    *
@@ -123,6 +124,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
   resizable?: boolean;
   scrollable?: boolean;
   stickyHeader?: boolean;
+
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
    * parent component to tell it how/what to render and will mutate the view
@@ -321,15 +323,7 @@ class GridEditable<
   }
 
   renderGridHead() {
-    const {
-      error,
-      isLoading,
-      columnOrder,
-      grid,
-      data,
-      stickyHeader,
-      resizable = true,
-    } = this.props;
+    const {error, isLoading, columnOrder, grid, data, resizable = true} = this.props;
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
@@ -354,7 +348,6 @@ class GridEditable<
               data-test-id="grid-head-cell"
               key={`${i}.${column.key}`}
               isFirst={i === 0}
-              sticky={stickyHeader}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
               {i !== numColumn - 1 && resizable && (
@@ -465,6 +458,8 @@ class GridEditable<
       height,
       'aria-label': ariaLabel,
       bodyStyle,
+      stickyHeader,
+      fit,
     } = this.props;
     const showHeader = title || headerButtons;
     return (
@@ -478,15 +473,16 @@ class GridEditable<
               )}
             </Header>
           )}
-          <Body style={bodyStyle}>
+          <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
             <Grid
               aria-label={ariaLabel}
               data-test-id="grid-editable"
               scrollable={scrollable}
               height={height}
               ref={this.refGrid}
+              fit={fit}
             >
-              <GridHead>{this.renderGridHead()}</GridHead>
+              <GridHead sticky={stickyHeader}>{this.renderGridHead()}</GridHead>
               <GridBody>{this.renderGridBody()}</GridBody>
             </Grid>
           </Body>

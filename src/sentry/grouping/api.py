@@ -143,7 +143,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
-            validate=lambda x: x in CONFIGURATIONS,
+            validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
         )
 
 
@@ -426,17 +426,24 @@ def get_grouping_variants_for_event(
     # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
     # versions which include the fingerprint.
     if fingerprint_type == "custom":
-        for variant in strategy_component_variants.values():
-            variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
+        matched_rule = fingerprint_info.get("matched_rule", {})
 
-        if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
+        if matched_rule and matched_rule.get("is_builtin") is True:
             additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "built-in"
         else:
             additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "custom server" if matched_rule else "custom client"
+
+        hint = f"{fingerprint_source} fingerprint takes precedence"
+
+        for variant in strategy_component_variants.values():
+            variant.component.update(contributes=False, hint=hint)
+
     elif fingerprint_type == "hybrid":
         for variant_name, variant in strategy_component_variants.items():
             # Since we're reusing the variant names, when all of the variants are combined, these

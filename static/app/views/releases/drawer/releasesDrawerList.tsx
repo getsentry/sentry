@@ -14,6 +14,7 @@ import {
   Header,
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
@@ -24,16 +25,19 @@ import type {
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
+import {ReleasesDrawerFeatureFlagsTable} from 'sentry/views/releases/drawer/releasesDrawerFeatureFlagsTable';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
-import {ReleaseDrawerTable} from './releasesDrawerTable';
+import {ReleasesDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
   pageFilters: PageFilters;
   chart?: ChartId;
+  eventId?: string | undefined;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
@@ -89,13 +93,40 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Renders the a chart + releases table for use in the Global Drawer.
  * Allows users to view releases of a specific timebucket.
  */
-export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps) {
+export function ReleasesDrawerList({
+  chart,
+  pageFilters,
+  eventId,
+}: ReleasesDrawerListProps) {
   const navigate = useNavigate();
+  const {groupId} = useParams();
   const {releases} = useReleaseStats(pageFilters);
   const location = useLocation();
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? '160px' : '220px';
 
+  const handleMouseOverFlag = useCallback((flag: RawFlag) => {
+    if (!chartRef.current) {
+      return;
+    }
+
+    highlightMarkLines(
+      chartRef.current.getEchartsInstance(),
+      'flag-lines',
+      (d: SeriesDataUnit) => d.name === flag.flag
+    );
+  }, []);
+  const handleMouseOutFlag = useCallback((flag: RawFlag) => {
+    if (!chartRef.current) {
+      return;
+    }
+
+    unhighlightMarkLines(
+      chartRef.current.getEchartsInstance(),
+      'flag-lines',
+      (d: SeriesDataUnit) => d.name === flag.flag
+    );
+  }, []);
   const handleMouseOverRelease = useCallback((release: string) => {
     if (!chartRef.current) {
       return;
@@ -121,6 +152,7 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
   }, []);
 
   const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
+
   const crumbs = [
     {
       label: t('Releases'),
@@ -178,11 +210,21 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
           </div>
         ) : null}
 
-        <ReleaseDrawerTable
+        <ReleasesDrawerTable
           {...pageFilters}
           onMouseOverRelease={handleMouseOverRelease}
           onMouseOutRelease={handleMouseOutRelease}
         />
+
+        {eventId && groupId && (
+          <ReleasesDrawerFeatureFlagsTable
+            pageFilters={pageFilters}
+            eventId={eventId}
+            groupId={groupId}
+            onRowMouseOver={handleMouseOverFlag}
+            onRowMouseOut={handleMouseOutFlag}
+          />
+        )}
       </EventDrawerBody>
     </EventDrawerContainer>
   );

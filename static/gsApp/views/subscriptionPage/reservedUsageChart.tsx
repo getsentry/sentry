@@ -1,4 +1,3 @@
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -99,15 +98,6 @@ interface ReservedUsageChartProps {
   usagePeriodEnd: string;
   usagePeriodStart: string;
   usageStats: CustomerUsage['stats'];
-}
-
-function getCategoryColors(theme: Theme) {
-  return [
-    theme.outcome.accepted,
-    theme.outcome.filtered,
-    theme.outcome.dropped,
-    theme.chartOther, // Projected
-  ];
 }
 
 function selectedCategory(location: Location, categoryOptions: CategoryOption[]) {
@@ -463,7 +453,10 @@ function ReservedUsageChart({
   const categoryStats = usageStats[category];
   const isReservedBudgetCategory =
     subscription.reservedBudgetCategories?.includes(category) ?? false;
-  if (isReservedBudgetCategory) {
+
+  // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
+  // since they don't have access to the usage/cost toggle
+  if (isReservedBudgetCategory && !subscription.canSelfServe) {
     displayMode = 'cost';
   }
 
@@ -487,7 +480,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory) {
+      if (isReservedBudgetCategory && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
@@ -683,7 +676,6 @@ function ReservedUsageChart({
       usageStats={chartData}
       usageDateShowUtc={false}
       categoryOptions={categoryOptions}
-      categoryColors={getCategoryColors(theme)}
       chartSeries={[
         ...(displayMode === 'cost' && chartData.reserved
           ? [

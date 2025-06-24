@@ -25,6 +25,7 @@ from sentry.taskworker.retry import Retry
             times=1,
             delay=60 * 5,
         ),
+        processing_deadline_duration=60,
     ),
 )
 @retry(on=(Commit.DoesNotExist,))

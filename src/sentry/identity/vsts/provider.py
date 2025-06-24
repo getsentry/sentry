@@ -10,9 +10,8 @@ from django.http.request import HttpRequest
 from sentry import http, options
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider, record_event
+from sentry.identity.pipeline_types import IdentityPipelineT, IdentityPipelineViewT
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
-from sentry.pipeline.base import Pipeline
-from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
@@ -63,7 +62,7 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
         return [
             OAuth2LoginView(
                 authorize_url=self.oauth_authorize_url,
@@ -125,7 +124,9 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(self, request: HttpRequest, pipeline: Pipeline, code: str) -> dict[str, str]:
+    def exchange_token(
+        self, request: HttpRequest, pipeline: IdentityPipelineT, code: str
+    ) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture():
@@ -244,7 +245,9 @@ class VSTSOAuth2LoginView(OAuth2LoginView):
 
 
 class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(self, request: HttpRequest, pipeline: Pipeline, code: str) -> dict[str, str]:
+    def exchange_token(
+        self, request: HttpRequest, pipeline: IdentityPipelineT, code: str
+    ) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture():

@@ -4,7 +4,6 @@ import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconDelete} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';
 
 export default Storybook.story('Button', (story, APIReference) => {
