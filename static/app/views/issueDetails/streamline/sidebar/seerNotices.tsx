@@ -88,7 +88,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   // Onboarding conditions
   const needsGithubIntegration = !hasGithubIntegration;
   const needsRepoSelection =
-    hasGithubIntegration &&
     repos.length === 0 &&
     !preference?.repositories?.length &&
     !codeMappingRepos?.length &&
