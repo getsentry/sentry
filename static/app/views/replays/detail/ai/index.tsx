@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -11,6 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -50,9 +52,17 @@ export default function Ai() {
 
 function AiContent() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const {replay, setCurrentTime} = useReplayContext();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
+  const {onClickTimestamp} = useCrumbHandlers();
+  const onClickChapterTimestamp = useCallback(
+    (event: React.MouseEvent<Element>, start: number) => {
+      event.stopPropagation();
+      setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
+    },
+    [replay, setCurrentTime]
+  );
 
   const {
     data: summaryData,
@@ -155,6 +165,9 @@ function AiContent() {
                     <TimestampButton
                       startTimestampMs={replay?.getStartTimestampMs() ?? 0}
                       timestampMs={start}
+                      onClick={event => {
+                        onClickChapterTimestamp(event, start);
+                      }}
                     />
                   </ReplayTimestamp>
                 </SummaryTitle>
@@ -167,7 +180,7 @@ function AiContent() {
                   <BreadcrumbRow
                     frame={breadcrumb}
                     index={j}
-                    onClick={() => {}}
+                    onClick={onClickTimestamp}
                     onInspectorExpanded={() => {}}
                     onShowSnippet={() => {}}
                     showSnippet={false}
