@@ -297,7 +297,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       {warnAboutGithubIntegration && (
         <Alert type="warning">
           {t(
-            'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and understand issues.'
+            'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
           )}
         </Alert>
       )}
