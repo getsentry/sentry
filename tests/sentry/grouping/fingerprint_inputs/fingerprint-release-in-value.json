@@ -1,0 +1,12 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [["message", "*dogs*"]],
+      "fingerprint": ["dogs-are-great", "{{ release }}"]
+    }
+  ],
+  "logentry": {
+    "formatted": "Yay, dogs!"
+  },
+  "release": "2.1"
+}
