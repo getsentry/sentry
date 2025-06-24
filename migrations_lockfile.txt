@@ -25,7 +25,7 @@ preprod: 0006_add_analysis_file_id_field
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0930_make_open_period_range_boundary_inclusive
+sentry: 0933_add_has_agents_insights_flag
 
 social_auth: 0001_squashed_0002_default_auto_field
 
@@ -33,4 +33,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0071_migrate_remaining_metric_alerts
+workflow_engine: 0072_add_detector_to_workflowfirehistory

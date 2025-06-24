@@ -149,8 +149,8 @@ describe('Native StackTrace', function () {
           function: 'missing()',
         }),
         EventStacktraceFrameFixture({
-          symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
-          function: 'unknown_image()',
+          symbolicatorStatus: SymbolicatorStatus.MISSING_SYMBOL,
+          function: 'missing_symbol()',
         }),
         EventStacktraceFrameFixture({
           symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,

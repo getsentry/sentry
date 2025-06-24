@@ -17,11 +17,6 @@ import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-interface Props {
-  replayRecord: ReplayRecord | undefined;
-}
 
 interface SummaryResponse {
   data: {
@@ -41,21 +36,22 @@ function createAISummaryQueryKey(
   ];
 }
 
-export default function Ai({replayRecord}: Props) {
+export default function Ai() {
   return (
     <PaddedFluidHeight>
       <TabItemContainer data-test-id="replay-details-ai-summary-tab">
         <ErrorBoundary mini>
-          <AiContent replayRecord={replayRecord} />
+          <AiContent />
         </ErrorBoundary>
       </TabItemContainer>
     </PaddedFluidHeight>
   );
 }
 
-function AiContent({replayRecord}: Props) {
-  const {replay} = useReplayContext();
+function AiContent() {
   const organization = useOrganization();
+  const {replay} = useReplayContext();
+  const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
   const {
@@ -119,8 +115,8 @@ function AiContent({replayRecord}: Props) {
     );
   }
 
-  const chapterData = summaryData?.data.time_ranges.map(
-    ({period_title, period_start, period_end}) => ({
+  const chapterData = summaryData?.data.time_ranges
+    .map(({period_title, period_start, period_end}) => ({
       title: period_title,
       start: period_start,
       end: period_end,
@@ -132,8 +128,8 @@ function AiContent({replayRecord}: Props) {
               breadcrumb.timestampMs >= period_start &&
               breadcrumb.timestampMs <= period_end
           ) ?? [],
-    })
-  );
+    }))
+    .sort((a, b) => a.start - b.start);
 
   return (
     <ErrorBoundary mini>
@@ -176,7 +172,7 @@ function AiContent({replayRecord}: Props) {
                     onShowSnippet={() => {}}
                     showSnippet={false}
                     allowShowSnippet={false}
-                    startTimestampMs={breadcrumb.timestampMs}
+                    startTimestampMs={replay?.getStartTimestampMs() ?? 0}
                     key={`breadcrumb-${j}`}
                     style={{}}
                   />

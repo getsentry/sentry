@@ -10,12 +10,11 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {renderIssuesBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/eventViewBasedCellRenderers';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
@@ -28,7 +27,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   errorMessage?: string;
-  tableResults?: TableDataWithTitle[];
+  tableResults?: TableData[];
   theme?: Theme;
 };
 
@@ -104,8 +103,8 @@ export function IssueWidgetCard({
       fields={queryFields}
       fieldAliases={fieldAliases}
       loading={loading}
-      metadata={ISSUE_FIELDS}
-      data={tableResults[0]!.data ?? []}
+      metadata={tableResults?.[0]?.meta}
+      data={tableResults?.[0]?.data}
       getCustomFieldRenderer={getCustomFieldRenderer}
       fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
       stickyHeaders

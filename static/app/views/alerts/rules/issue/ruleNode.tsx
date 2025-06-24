@@ -18,6 +18,7 @@ import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
   IssueAlertRuleCondition,
+  TicketActionData,
 } from 'sentry/types/alerts';
 import {
   AssigneeTargetType,
@@ -423,7 +424,7 @@ function RuleNode({
                 {...deps}
                 link={node.link}
                 ticketType={node.ticketType}
-                instance={data}
+                instance={data as unknown as TicketActionData}
                 onSubmitAction={updateParentFromTicketRule}
               />
             ))

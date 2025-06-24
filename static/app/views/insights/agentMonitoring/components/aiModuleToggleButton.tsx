@@ -5,7 +5,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   hasAgentInsightsFeature,
@@ -15,7 +14,6 @@ import {
 export function AiModuleToggleButton() {
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const preferedAiModule = usePreferedAiModule();
-  const navigate = useNavigate();
   const organization = useOrganization();
 
   const togglePreferedModule = () => {
@@ -30,12 +28,7 @@ export function AiModuleToggleButton() {
 
   const handleExperimentDropdownAction = (key: Key) => {
     if (key === 'ai-module') {
-      const prefersAgentsInsightsModule = togglePreferedModule();
-      if (prefersAgentsInsightsModule) {
-        navigate('/insights/agents');
-      } else {
-        navigate('/insights/ai/llm-monitoring');
-      }
+      togglePreferedModule();
     }
   };
 
@@ -59,8 +52,8 @@ export function AiModuleToggleButton() {
             preferedAiModule === 'agents-insights' ? null : <IconLab isSolid />,
           label:
             preferedAiModule === 'agents-insights'
-              ? 'Switch to LLM Monitoring'
-              : 'Switch to Agents Insights',
+              ? 'Switch to Old Experience'
+              : 'Switch to New Experience',
         },
       ]}
       position="bottom-end"
