@@ -197,6 +197,14 @@ export default function ErrorPage() {
   return <div>This page will throw an error!</div>;
 }`;
 
+const getPackageJsonScriptsSnippet = () => `
+{
+    "scripts": {
+      "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router dev",
+      "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js"
+    }
+}`;
+
 const getInstallConfig = () => [
   {
     language: 'bash',
@@ -284,15 +292,19 @@ const onboarding: OnboardingConfig = {
       description: t(
         'First, expose the hooks in your app folder by running the reveal command:'
       ),
-      language: 'bash',
-      code: 'npx react-router reveal',
+      configurations: [
+        {
+          language: 'bash',
+          code: 'npx react-router reveal',
+        },
+      ],
     },
     {
-      type: StepType.CONFIGURE,
       description: tct(
         'Initialize the Sentry React SDK in your [code:entry.client.tsx] file:',
         {code: <code />}
       ),
+      title: t('Client Setup'),
       configurations: [
         {
           language: 'tsx',
@@ -301,11 +313,11 @@ const onboarding: OnboardingConfig = {
       ],
     },
     {
-      type: StepType.CONFIGURE,
       description: tct(
         'Update your [code:app/root.tsx] file to report any unhandled errors from your error boundary:',
         {code: <code />}
       ),
+      title: t('Error Boundary'),
       configurations: [
         {
           language: 'tsx',
@@ -314,7 +326,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     {
-      type: StepType.CONFIGURE,
+      title: t('Server Setup'),
       description: tct(
         'Create an [code:instrument.server.mjs] file in the root of your app:',
         {code: <code />}
@@ -327,7 +339,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     {
-      type: StepType.CONFIGURE,
+      title: '',
       description: tct('Update your [code:entry.server.tsx] file:', {code: <code />}),
       configurations: [
         {
@@ -337,17 +349,16 @@ const onboarding: OnboardingConfig = {
       ],
     },
     {
-      type: StepType.CONFIGURE,
+      title: t('Update Scripts'),
       description: t(
         'Update your package.json scripts to include the server instrumentation:'
       ),
-      language: 'json',
-      code: `{
-  "scripts": {
-    "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router dev",
-    "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js"
-  }
-}`,
+      configurations: [
+        {
+          language: 'json',
+          code: getPackageJsonScriptsSnippet(),
+        },
+      ],
     },
     ...(params.isProfilingSelected
       ? [getProfilingDocumentHeaderConfigurationStep()]
