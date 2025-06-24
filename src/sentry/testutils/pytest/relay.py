@@ -4,6 +4,7 @@
 import datetime
 import logging
 import shutil
+import socket
 import time
 from os import environ, path
 from urllib.parse import urlparse
@@ -65,8 +66,9 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
-    relay_port = 33331
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    relay_port = sock.getsockname()[1]
 
     redis_db = TEST_REDIS_DB
     use_old_devservices = environ.get("USE_OLD_DEVSERVICES", "0") == "1"
