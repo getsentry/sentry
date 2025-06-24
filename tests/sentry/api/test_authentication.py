@@ -491,6 +491,24 @@ class TestServiceRpcSignatureAuthentication(TestCase):
             with pytest.raises(RpcAuthenticationSetupException):
                 self.auth.authenticate(request)
 
+    def test_authenticate_empty_shared_secret(self):
+        request = drf_request_from_request(
+            RequestFactory().post(
+                "/test", data=b'{"test": "data"}', content_type="application/json"
+            )
+        )
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature test_signature"
+
+        # Test with empty string secret
+        with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=[""]):
+            with pytest.raises(RpcAuthenticationSetupException):
+                self.auth.authenticate(request)
+
+        # Test with whitespace-only secret
+        with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=[" "]):
+            with pytest.raises(RpcAuthenticationSetupException):
+                self.auth.authenticate(request)
+
 
 class TestCompareServiceSignature(TestCase):
     def test_valid_signature(self):
@@ -539,6 +557,25 @@ class TestCompareServiceSignature(TestCase):
 
         with pytest.raises(RpcAuthenticationSetupException):
             compare_service_signature(url, body, "rpc0:signature", None, service_name)
+
+    def test_empty_shared_secrets(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        service_name = "TestService"
+
+        # Test list with empty string
+        with pytest.raises(RpcAuthenticationSetupException):
+            compare_service_signature(url, body, "rpc0:signature", [""], service_name)
+
+        # Test list with whitespace-only string
+        with pytest.raises(RpcAuthenticationSetupException):
+            compare_service_signature(url, body, "rpc0:signature", [" "], service_name)
+
+        # Test list with empty string mixed with valid secret
+        with pytest.raises(RpcAuthenticationSetupException):
+            compare_service_signature(
+                url, body, "rpc0:signature", ["valid-secret", ""], service_name
+            )
 
     def test_invalid_signature_prefix(self):
         url = "/test/endpoint"
