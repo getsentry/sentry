@@ -3,11 +3,17 @@ import styled from '@emotion/styled';
 
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
+import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
-export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
+export type CodecovPeriodOptions = '24h' | '7d' | '30d';
+type CodecovPeriods = Record<CodecovPeriodOptions, string>;
+
+export const CODECOV_DEFAULT_RELATIVE_PERIODS: CodecovPeriods = {
   '24h': t('Last 24 hours'),
   '7d': t('Last 7 days'),
   '30d': t('Last 30 days'),
@@ -75,7 +81,10 @@ export function DateSelector({relativeDate, onChange, trigger}: DateSelectorProp
               {...triggerProps}
             >
               <TriggerLabelWrap>
-                <TriggerLabel>{defaultLabel}</TriggerLabel>
+                <Flex align="center" gap={space(0.75)}>
+                  <IconCalendar />
+                  <TriggerLabel>{defaultLabel}</TriggerLabel>
+                </Flex>
               </TriggerLabelWrap>
             </DropdownButton>
           );

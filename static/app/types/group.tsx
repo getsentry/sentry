@@ -8,6 +8,7 @@ import type {FieldKind} from 'sentry/utils/fields';
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {
+  AvatarSentryApp,
   Commit,
   ExternalIssue,
   PlatformExternalIssue,
@@ -212,7 +213,7 @@ export enum IssueTitle {
   DB_QUERY_INJECTION_VULNERABILITY = 'Potential Database Query Injection',
 }
 
-const ISSUE_TYPE_TO_ISSUE_TITLE = {
+export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -477,6 +478,7 @@ interface GroupActivityBase {
   id: string;
   assignee?: string;
   issue?: Group;
+  sentry_app?: AvatarSentryApp;
   user?: null | User;
 }
 
@@ -956,6 +958,8 @@ export interface GroupTombstone {
   level: Level;
   metadata: EventMetadata;
   type: EventOrGroupType;
+  lastSeen?: string;
+  timesSeen?: number;
   title?: string;
 }
 export interface GroupTombstoneHelper extends GroupTombstone {

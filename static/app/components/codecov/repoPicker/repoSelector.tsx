@@ -4,13 +4,16 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import Link from 'sentry/components/links/link';
 import {IconInfo, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-const CODECOV_PLACEHOLDER_REPOS = ['test repo 1', 'test-repo-2', 'Sample-two'];
+import {IconRepository} from './iconRepository';
+
+const CODECOV_PLACEHOLDER_REPOS = ['gazebo', 'sentry'];
 
 function SyncRepoButton() {
   return (
@@ -39,7 +42,7 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
       <IconInfo size="xs" />
       <span>
         {tct(
-          'Sentry only displays the repos that have given information to. Manage [repoAccessLink] in GitHub.',
+          "Sentry only displays repos you've authorized. Manage [repoAccessLink] in your GitHub settings.",
           {
             // TODO: adjust link when backend gives specific GH installation
             repoAccessLink: <Link to={repoAccessLink}>repo access</Link>,
@@ -106,7 +109,7 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
         trigger ??
         ((triggerProps, isOpen) => {
           const defaultLabel = options.some(item => item.value === repository)
-            ? repository?.toUpperCase()
+            ? repository
             : t('Select Repo');
 
           return (
@@ -116,7 +119,12 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
               {...triggerProps}
             >
               <TriggerLabelWrap>
-                <TriggerLabel>{defaultLabel}</TriggerLabel>
+                <Flex align="center" gap={space(0.75)}>
+                  <IconContainer>
+                    <IconRepository />
+                  </IconContainer>
+                  <TriggerLabel>{defaultLabel}</TriggerLabel>
+                </Flex>
               </TriggerLabelWrap>
             </DropdownButton>
           );
@@ -157,6 +165,7 @@ const FooterTip = styled('p')`
 const TriggerLabelWrap = styled('span')`
   position: relative;
   min-width: 0;
+  max-width: 200px;
 `;
 
 const TriggerLabel = styled('span')`
@@ -168,4 +177,9 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
+`;
+
+const IconContainer = styled('div')`
+  flex: 1 0 14px;
+  height: 14px;
 `;

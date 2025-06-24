@@ -10,6 +10,8 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
+from sentry.rules.history.base import TimeSeriesValue
+from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -50,6 +52,7 @@ class SentryAppContext(TypedDict):
     id: str
     name: str
     installationId: str
+    installationUuid: str
     status: int
     settings: NotRequired[dict[str, Any]]
     title: NotRequired[str]
@@ -110,12 +113,20 @@ class ActionHandlerSerializer(Serializer):
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
+                "installationUuid": str(installation.uuid),
                 "status": installation.sentry_app.status,
             }
             if component:
-                sentry_app["settings"] = component.app_schema.get("settings", {})
-                if component.app_schema.get("title"):
-                    sentry_app["title"] = component.app_schema.get("title")
+                prepared_component = prepare_ui_component(
+                    installation=installation,
+                    component=component,
+                    project_slug=None,
+                    values=None,
+                )
+                if prepared_component:
+                    sentry_app["settings"] = prepared_component.app_schema.get("settings", {})
+                    if prepared_component.app_schema.get("title"):
+                        sentry_app["title"] = prepared_component.app_schema.get("title")
             result["sentryApp"] = sentry_app
 
         services = kwargs.get("services")
@@ -336,6 +347,7 @@ class DetectorSerializer(Serializer):
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
             "config": attrs.get("config"),
+            "enabled": obj.enabled,
         }
 
 
@@ -396,6 +408,7 @@ class WorkflowSerializer(Serializer):
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
             "detectorIds": attrs.get("detectorIds"),
+            "enabled": obj.enabled,
         }
 
 
@@ -433,6 +446,21 @@ class WorkflowGroupHistorySerializer(Serializer):
             "count": obj.count,
             "lastTriggered": obj.last_triggered,
             "eventId": obj.event_id,
+        }
+
+
+class TimeSeriesValueResponse(TypedDict):
+    date: datetime
+    count: int
+
+
+class TimeSeriesValueSerializer(Serializer):
+    def serialize(
+        self, obj: TimeSeriesValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> TimeSeriesValueResponse:
+        return {
+            "date": obj.bucket,
+            "count": obj.count,
         }
 
 

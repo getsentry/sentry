@@ -11,13 +11,15 @@ const {CACHE_MISS_RATE, COUNT} = SpanFunction;
 
 export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps) {
   const search = MutableSearch.fromQueryObject(BASE_FILTERS);
+  const referrer = Referrer.LANDING_CACHE_HIT_MISS_CHART;
+
   const {isPending, data, error} = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search,
       transformAliasToInputFormat: true,
     },
-    Referrer.LANDING_CACHE_HIT_MISS_CHART,
+    referrer,
     props.pageFilters
   );
 
@@ -26,6 +28,7 @@ export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps
     yAxis: [`${COUNT}(span.duration)`],
     search,
     groupBy: [SpanFields.CACHE_HIT],
+    referrer,
   };
 
   return (

@@ -99,6 +99,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -1002,12 +1003,29 @@ def update_alert_rule(
     return alert_rule
 
 
+def update_dual_written_detector(alert_rule: AlertRule, enabled: bool) -> None:
+    if features.has(
+        "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+    ):
+        try:
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        except Detector.DoesNotExist:
+            return None
+
+        if detector:
+            status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+            detector.update(status=status)
+            detector.update(enabled=enabled)
+
+
 def enable_alert_rule(alert_rule: AlertRule) -> None:
     if alert_rule.status != AlertRuleStatus.DISABLED.value:
         return
     with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.PENDING.value)
         bulk_enable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
+
+    update_dual_written_detector(alert_rule=alert_rule, enabled=True)
 
 
 def disable_alert_rule(alert_rule: AlertRule) -> None:
@@ -1016,6 +1034,24 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
     with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.DISABLED.value)
         bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
+
+    update_dual_written_detector(alert_rule=alert_rule, enabled=False)
+
+
+def update_detector(detector: Detector, enabled: bool) -> None:
+    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+
+    with transaction.atomic(router.db_for_write(Detector)):
+        detector.update(status=updated_detector_status)
+        detector.update(enabled=enabled)
+        query_subscriptions = QuerySubscription.objects.filter(
+            id__in=[data_source.source_id for data_source in detector.data_sources.all()]
+        )
+        if query_subscriptions:
+            if enabled:
+                bulk_enable_snuba_subscriptions(query_subscriptions)
+            else:
+                bulk_disable_snuba_subscriptions(query_subscriptions)
 
 
 def delete_alert_rule(
@@ -1769,6 +1805,9 @@ EAP_FUNCTIONS = [
     "max",
     "min",
     "sum",
+    "epm",
+    "failure_rate",
+    "eps",
 ]
 
 

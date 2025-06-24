@@ -25,6 +25,8 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
   const {selection} = usePageFilters();
 
   const search = MutableSearch.fromQueryObject(chartFilters);
+  const referrer = Referrer.LANDING_RESPONSE_CODE_CHART;
+
   const {
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
@@ -35,27 +37,28 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
       transformAliasToInputFormat: true,
     },
-    Referrer.LANDING_RESPONSE_CODE_CHART,
+    referrer,
     props.pageFilters
   );
 
   const responseRateField = 'tags[http.response.status_code,number]';
+  const stringifiedSearch = search.formatString();
 
   const queries = [
     {
       yAxes: ['count()'],
       label: '3xx',
-      query: `${responseRateField}:>300 ${responseRateField}:<=399`,
+      query: `${stringifiedSearch} ${responseRateField}:>=300 ${responseRateField}:<=399`,
     },
     {
       yAxes: ['count()'],
       label: '4xx',
-      query: `${responseRateField}:>400 ${responseRateField}:<=499`,
+      query: `${stringifiedSearch} ${responseRateField}:>=400 ${responseRateField}:<=499`,
     },
     {
       yAxes: ['count()'],
       label: '5xx',
-      query: `${responseRateField}:>500 ${responseRateField}:<=599`,
+      query: `${stringifiedSearch} ${responseRateField}:>=500 ${responseRateField}:<=599`,
     },
   ];
 
@@ -67,12 +70,14 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
       ...query,
       chartType: ChartType.LINE,
     })),
+    referrer,
   });
 
   const extraActions = [
     <BaseChartActionDropdown
       key="http response chart widget"
       exploreUrl={exploreUrl}
+      referrer={referrer}
       alertMenuOptions={queries.map(query => ({
         key: query.label,
         label: query.label,
@@ -83,6 +88,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
           pageFilters: selection,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           query: query.query,
+          referrer,
         }),
       }))}
     />,

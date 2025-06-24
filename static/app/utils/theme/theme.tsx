@@ -11,8 +11,6 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {Outcome} from 'sentry/types/core';
-
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
   ['#444674'],
@@ -199,18 +197,6 @@ type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
 
 type ValidLengthArgument = TupleOf<ColorLength>[number];
 
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
-  infer _First,
-  ...infer Rest,
-]
-  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    Record<A['length'], Rest extends [] ? never : Rest[0]> &
-      NextTuple<Rest, [...A, unknown]>
-  : Record<number, unknown>;
-
-type NextMap = NextTuple<TupleOf<ColorLength>>;
-type Next<R extends ValidLengthArgument> = NextMap[R];
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -221,16 +207,14 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): <Length extends ValidLengthArgument>(
-  length: Length | number
-) => Exclude<ChartColorPalette[Next<Length>], undefined> {
+): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
   return function getChartColorPalette<Length extends ValidLengthArgument>(
     length: Length | number
-  ): Exclude<ChartColorPalette[Next<Length>], undefined> {
+  ): T[Length] {
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
-    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
-    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as T[Length];
   };
 }
 
@@ -362,8 +346,7 @@ const generateThemeAliases = (colors: Colors) => ({
   disabledBorder: colors.gray200,
 
   /**
-   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
-   * interaction (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   hover: colors.surface500,
@@ -711,8 +694,7 @@ interface Colors {
   translucentSurface200: string;
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: string;
@@ -778,8 +760,7 @@ const lightColors: Colors = {
   translucentSurface200: '#FAF9FBE6',
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: '#F5F3F7',
@@ -844,8 +825,7 @@ const darkColors: Colors = {
   translucentSurface200: '#1A141FB3',
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: '#362E3E',
@@ -1153,25 +1133,6 @@ const iconSizes: Sizes = {
 } as const;
 
 /**
- * Default colors for data usage outcomes.
- * Note: "Abuse" and "Cardinality Limited" are merged into "Rate Limited,"
- * which is why they don't have their own defined colors.
- */
-type OutcomeColors = Record<
-  Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
-  string
->;
-
-const outcome: OutcomeColors = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
-  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
-  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
-  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
-  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
-  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
-};
-
-/**
  * Values shared between light and dark theme
  */
 const commonTheme = {
@@ -1285,9 +1246,6 @@ const commonTheme = {
 
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-
-  // @TODO(jonasbadalic) Do these need to be here?
-  outcome,
 };
 
 const lightTokens = generateTokens(lightColors);

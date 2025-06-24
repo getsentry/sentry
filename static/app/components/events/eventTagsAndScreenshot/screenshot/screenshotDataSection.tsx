@@ -24,15 +24,6 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-const SCREENSHOT_NAMES = [
-  'screenshot.jpg',
-  'screenshot.png',
-  'screenshot-1.jpg',
-  'screenshot-1.png',
-  'screenshot-2.jpg',
-  'screenshot-2.png',
-];
-
 interface ScreenshotDataSectionProps {
   event: Event;
   projectSlug: Project['slug'];
@@ -56,13 +47,17 @@ export function ScreenshotDataSection({
     },
     {enabled: !isShare}
   );
-  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const screenshots =
-    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
-
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots = attachments?.filter(attachment =>
+    attachment.name.includes('screenshot')
+  );
 
-  const showScreenshot = !isShare && !!screenshots.length;
+  const showScreenshot = !isShare && !!screenshots?.length;
+  if (!showScreenshot) {
+    return null;
+  }
+
   const screenshot = screenshots[screenshotInFocus]!;
 
   const handleDeleteScreenshot = (attachmentId: string) => {

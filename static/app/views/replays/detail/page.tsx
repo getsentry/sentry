@@ -1,11 +1,11 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import ReplaysLayout from 'sentry/views/replays/detail/layout';
+import ReplayLayout from 'sentry/views/replays/detail/layout/replayLayout';
 import ReplayDetailsError from 'sentry/views/replays/detail/replayDetailsError';
 
 type Props = {
@@ -32,7 +32,7 @@ export default function ReplayDetailsPage({readerResult}: Props) {
         </Layout.Page>
       )}
       renderLoading={({replayRecord}) => (
-        <ReplaysLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
+        <ReplayLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
       )}
       renderMissing={() => (
         <Layout.Page withPadding>
@@ -41,14 +41,14 @@ export default function ReplayDetailsPage({readerResult}: Props) {
       )}
       renderProcessingError={({replay}) => (
         <Layout.Page withPadding>
-          <Flex column>
+          <Flex direction="column">
             <ReplayProcessingError processingErrors={replay!.processingErrors()} />
           </Flex>
         </Layout.Page>
       )}
     >
       {({replay}) => (
-        <ReplaysLayout
+        <ReplayLayout
           isVideoReplay={replay.isVideoReplay()}
           replayRecord={replay.getReplay()}
           isLoading={false}

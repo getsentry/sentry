@@ -263,7 +263,7 @@ const PlanContainer = styled('div')`
 
 const PriceContainer = styled('div')<{hasFeatures?: boolean}>`
   display: grid;
-  gap: ${space(0.5)};
+  gap: 0px;
   grid-template-rows: repeat(2, auto);
   justify-items: end;
 
@@ -374,4 +374,5 @@ const EventPriceTag = styled(Tag)`
   display: flex;
   align-items: center;
   line-height: normal;
+  margin-top: ${space(0.5)};
 `;

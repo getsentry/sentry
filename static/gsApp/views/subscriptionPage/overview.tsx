@@ -202,6 +202,7 @@ function Overview({location, subscription, promotionData}: Props) {
           )
           .map(categoryHistory => {
             const category = categoryHistory.category;
+
             // The usageData does not include details for seat-based categories.
             // For now we will handle the monitor category specially
             let monitor_usage: number | undefined = 0;
@@ -216,7 +217,7 @@ function Overview({location, subscription, promotionData}: Props) {
               category === DataCategory.SPANS_INDEXED &&
               !subscription.hadCustomDynamicSampling
             ) {
-              return null; // TODO(data categories): DS enterprise trial should have a reserved budget too, but currently just has unlimited
+              return null; // TODO(trial limits): DS enterprise trial should have a reserved budget too, but currently just has unlimited
             }
 
             const categoryTotals: BillingStatTotal =

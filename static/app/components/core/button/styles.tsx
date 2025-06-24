@@ -1,7 +1,9 @@
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
+// eslint-disable-next-line boundaries/element-types
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
+// eslint-disable-next-line boundaries/element-types
 import {space} from 'sentry/styles/space';
 
 import type {
@@ -155,7 +157,7 @@ export function DO_NOT_USE_getButtonStyles(
     border-radius: ${p.theme.borderRadius};
     text-transform: none;
     font-weight: ${p.theme.fontWeightBold};
-    cursor: ${p.disabled ? 'not-allowed' : 'pointer'};
+    cursor: ${p.disabled ? 'not-allowed' : p.busy ? 'wait' : 'pointer'};
     opacity: ${(p.busy || p.disabled) && '0.65'};
 
     ${getColors(p)}

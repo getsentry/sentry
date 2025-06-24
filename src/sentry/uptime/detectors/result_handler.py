@@ -91,6 +91,7 @@ def handle_onboarding_result(
                 project_subscription,
                 interval_seconds=int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
                 mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+                ensure_assignment=True,
             )
             create_system_audit_entry(
                 organization=detector.project.organization,

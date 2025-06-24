@@ -65,6 +65,7 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -96,6 +97,7 @@ type Props = {
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   seriesSamplingInfo?: SeriesSamplingInfo;
   showTotalCount?: boolean;
+  traceItemType?: TraceItemDataset;
 };
 
 type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
@@ -311,6 +313,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
+      traceItemType,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -320,6 +323,7 @@ class TriggersChart extends PureComponent<Props, State> {
       location,
       dataset,
       newAlertOrQuery,
+      traceItemType,
     });
 
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
@@ -383,6 +387,7 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       confidence,
       seriesSamplingInfo,
+      traceItemType,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -439,7 +444,8 @@ class TriggersChart extends PureComponent<Props, State> {
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
+              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+              traceItemType === TraceItemDataset.SPANS ? (
                 <ConfidenceFooter
                   sampleCount={seriesSamplingInfo?.sampleCount}
                   isSampled={seriesSamplingInfo?.isSampled}
@@ -501,6 +507,7 @@ class TriggersChart extends PureComponent<Props, State> {
       thresholdType,
       isQueryValid,
       isOnDemandMetricAlert,
+      traceItemType,
     } = this.props;
 
     const period = this.getStatsPeriod()!;
@@ -514,6 +521,7 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       query,
       newAlertOrQuery,
+      traceItemType,
     });
 
     if (isOnDemandMetricAlert) {
@@ -686,7 +694,8 @@ class TriggersChart extends PureComponent<Props, State> {
           period={period}
           dataLoadedCallback={onDataLoaded}
           sampling={
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+            this.props.traceItemType === TraceItemDataset.SPANS
               ? SAMPLING_MODE.NORMAL
               : undefined
           }

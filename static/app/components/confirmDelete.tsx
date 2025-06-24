@@ -22,7 +22,8 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
       {...props}
       bypass={false}
       disableConfirmButton
-      renderMessage={({disableConfirmButton}) => (
+      priority="danger"
+      renderMessage={({disableConfirmButton, confirm: triggerConfirm}) => (
         <Fragment>
           <Alert.Container>
             <Alert type="error">{message}</Alert>
@@ -40,9 +41,15 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
             <Input
               type="text"
               id={id}
-              aria-labelledby="confirm-delte"
+              name="confirm-text"
               placeholder={confirmInput}
               onChange={e => disableConfirmButton(e.target.value !== confirmInput)}
+              onKeyDown={({target, key}) =>
+                target instanceof HTMLInputElement &&
+                target.value === confirmInput &&
+                key === 'Enter' &&
+                triggerConfirm()
+              }
             />
           </FieldGroup>
         </Fragment>

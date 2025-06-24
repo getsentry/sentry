@@ -65,11 +65,15 @@ import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -83,6 +87,13 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
+import type {
+  EventTypes,
+  MetricActionTemplate,
+  MetricRule,
+  Trigger,
+  UnsavedMetricRule,
+} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -90,12 +101,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
-  type EventTypes,
-  type MetricActionTemplate,
-  type MetricRule,
   TimeWindow,
-  type Trigger,
-  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -200,7 +206,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location} = this.props;
+    const {rule, location, organization} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -224,6 +230,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
       : (rule.query ?? '');
+
+    const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, ruleEventTypes);
+
+    const alertType = getAlertTypeFromAggregateDataset({
+      aggregate,
+      dataset,
+      eventTypes: ruleEventTypes,
+      organization,
+    });
 
     return {
       ...super.getDefaultState(),
@@ -255,7 +271,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
-      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
+      alertType,
+      traceItemType,
     };
   }
 
@@ -547,7 +564,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    const {projects} = this.props;
+    const {projects, organization} = this.props;
     const {timeWindow, chartError} = this.state;
     if (chartError) {
       this.setState({chartError: false, chartErrorMessage: undefined});
@@ -600,9 +617,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           this.state.query
         );
 
+        if (deprecateTransactionAlerts(organization)) {
+          const newAlertType = getAlertTypeFromAggregateDataset({
+            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            dataset,
+            organization,
+          });
+
+          return {
+            [name]: value,
+            alertType: newAlertType,
+            dataset,
+          };
+        }
+
         const newAlertType = getAlertTypeFromAggregateDataset({
           aggregate,
           dataset,
+          organization,
         });
 
         return {
@@ -765,7 +797,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             timeWindow,
             aggregate,
             // Remove eventTypes as it is no longer required for crash free
-            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            eventTypes: isCrashFreeAlert(dataset) ? undefined : eventTypes,
             dataset,
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             queryType: DatasetMEPAlertQueryTypes[dataset],
@@ -1167,6 +1199,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       seriesSamplingInfo,
     } = this.state;
 
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
     if (chartError) {
       return (
         <ErrorChart
@@ -1212,6 +1246,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       theme: this.props.theme,
       confidence,
       seriesSamplingInfo,
+      traceItemType: traceItemType ?? undefined,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1419,6 +1454,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     router={router}
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
+                    eventTypes={eventTypes}
                   />
                   <AlertListItem>{t('Set thresholds')}</AlertListItem>
                   {thresholdTypeForm(formDisabled)}

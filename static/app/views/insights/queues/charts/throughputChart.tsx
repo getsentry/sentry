@@ -87,6 +87,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    referrer,
   });
 
   const extraActions = [
@@ -103,6 +104,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
             pageFilters: selection,
             aggregate: yAxis,
             organization,
+            referrer,
           }),
         },
         {
@@ -115,10 +117,12 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
             pageFilters: selection,
             aggregate: yAxis,
             organization,
+            referrer,
           }),
         },
       ]}
       exploreUrl={exploreUrl}
+      referrer={referrer}
     />,
   ];
 

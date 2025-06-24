@@ -17,7 +17,7 @@ describe('ProductSelect', function () {
   const params = {};
 
   beforeEach(function () {
-    organization.features = ['seer-billing'];
+    MockApiClient.clearMockResponses();
     subscription.reservedBudgets = [];
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -69,18 +69,23 @@ describe('ProductSelect', function () {
 
     expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
     expect(screen.getByTestId('product-option-seer')).toBeInTheDocument();
-    expect(screen.getAllByTestId(/product-option/)).toHaveLength(1);
-    expect(screen.getByText('Add for $20/mo')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Includes $25/mo of credits for Seer services. Additional usage is drawn from your PAYG budget.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(2);
+    expect(screen.getAllByTestId(/product-option/)).toHaveLength(3);
+    expect(screen.getByText('Add to plan')).toBeInTheDocument();
     expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
   it('does not render products if flags are missing', async function () {
-    organization.features = [];
+    const mockBillingConfig = structuredClone(BillingConfigFixture(PlanTier.AM3));
+    mockBillingConfig.planList.forEach(plan => {
+      plan.features = plan.features.filter(feature => feature !== 'seer-billing');
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: mockBillingConfig,
+    });
+
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -111,7 +116,7 @@ describe('ProductSelect', function () {
     expect(await screen.findByTestId('product-option-seer')).toHaveTextContent('$20/mo');
     expect(
       screen.getByText(
-        'Includes $25/mo of credits for Seer services. Additional usage is drawn from your PAYG budget.'
+        'Detect and fix issues faster with $25/mo in credits towards our AI agent'
       )
     ).toBeInTheDocument();
   });
@@ -137,7 +142,7 @@ describe('ProductSelect', function () {
     expect(await screen.findByTestId('product-option-seer')).toHaveTextContent('$216/yr');
     expect(
       screen.getByText(
-        'Includes $25/mo of credits for Seer services. Additional usage is drawn from your PAYG budget.'
+        'Detect and fix issues faster with $25/mo in credits towards our AI agent'
       )
     ).toBeInTheDocument();
   });
@@ -179,7 +184,7 @@ describe('ProductSelect', function () {
     );
 
     expect(await screen.findByTestId('product-option-seer')).toHaveTextContent(
-      'Add for $20/mo'
+      'Add to plan'
     );
   });
 
@@ -197,7 +202,7 @@ describe('ProductSelect', function () {
 
     const seerProduct = await screen.findByTestId('product-option-seer');
     const seerButton = within(seerProduct).getByRole('button');
-    expect(seerButton).toHaveTextContent('$20/mo');
+    expect(seerButton).toHaveTextContent('Add to plan');
     await userEvent.click(seerButton);
     expect(seerButton).toHaveTextContent('Added to plan');
   });

@@ -204,11 +204,7 @@ class DataCondition(DefaultFieldsModel):
         should_be_fast = not is_slow_condition(self)
         start_time = time.time()
         try:
-            with metrics.timer(
-                "workflow_engine.data_condition.evaluation_duration",
-                tags={"type": self.type, "speed_category": "fast" if should_be_fast else "slow"},
-            ):
-                result = handler.evaluate_value(value, self.comparison)
+            result = handler.evaluate_value(value, self.comparison)
         except DataConditionEvaluationException as e:
             metrics.incr("workflow_engine.data_condition.evaluation_error")
             logger.info(
