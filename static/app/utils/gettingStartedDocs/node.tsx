@@ -389,7 +389,9 @@ export const getNodeAgentMonitoringOnboarding = ({
         'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
         {
           code: <code />,
-          link: <ExternalLink href="https://sdk.vercel.ai/docs" />,
+          link: (
+            <ExternalLink href="https://develop.sentry.dev/sdk/telemetry/traces/span-data-conventions/#ai" />
+          ),
         }
       ),
       configurations: [
