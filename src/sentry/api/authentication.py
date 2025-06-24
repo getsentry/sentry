@@ -557,7 +557,7 @@ def compare_service_signature(
     url: str,
     body: bytes,
     signature: str,
-    shared_secret_setting: list[str] | None,
+    shared_secret_setting: list[str],
     service_name: str,
 ) -> bool:
     """
@@ -632,6 +632,11 @@ class ServiceRpcSignatureAuthentication(StandardAuthentication):
 
     def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
         shared_secret_setting = getattr(settings, self.shared_secret_setting_name, None)
+
+        if shared_secret_setting is None:
+            raise RpcAuthenticationSetupException(
+                f"Cannot validate {self.service_name} RPC request signatures without shared secret"
+            )
 
         if not compare_service_signature(
             request.path_info, request.body, token, shared_secret_setting, self.service_name
