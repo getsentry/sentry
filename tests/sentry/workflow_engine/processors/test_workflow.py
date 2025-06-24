@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from sentry import buffer
 from sentry.eventstream.base import GroupState
@@ -650,6 +651,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                         [self.condition],
                         self.group_event,
                         WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                        timestamp=timezone.now(),
                     )
                 ]
             }
@@ -665,6 +667,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash_bulk, mock_push_to_sorted_set
     ):
+        current_time = timezone.now()
         condition2 = self.create_data_condition(condition_group=self.create_data_condition_group())
         condition3 = self.create_data_condition(condition_group=self.create_data_condition_group())
         enqueue_workflows(
@@ -675,6 +678,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                         [self.condition, condition2, condition3],
                         self.group_event,
                         WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                        timestamp=current_time,
                     )
                 ]
             }
@@ -692,6 +696,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                     {
                         "event_id": self.event.event_id,
                         "occurrence_id": self.group_event.occurrence_id,
+                        "timestamp": current_time,
                     }
                 )
             },

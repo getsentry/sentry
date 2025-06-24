@@ -1,11 +1,13 @@
 from collections.abc import Collection, Mapping
 from dataclasses import asdict, dataclass, replace
+from datetime import datetime
 from enum import StrEnum
 from typing import DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
 from django.db.models import F, Q
+from django.utils import timezone
 
 from sentry import buffer, features
 from sentry.eventstore.models import GroupEvent
@@ -75,6 +77,10 @@ class DelayedWorkflowItem:
     event: GroupEvent
     source: WorkflowDataConditionGroupType
 
+    # Used to pick the end of the time window in snuba querying.
+    # Should be close to when fast conditions were evaluated to try to be consistent.
+    timestamp: datetime
+
     def buffer_key(self) -> str:
         condition_group_set = {
             condition.condition_group_id for condition in self.delayed_conditions
@@ -86,7 +92,11 @@ class DelayedWorkflowItem:
 
     def buffer_value(self) -> str:
         return json.dumps(
-            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+            {
+                "event_id": self.event.event_id,
+                "occurrence_id": self.event.occurrence_id,
+                "timestamp": self.timestamp,
+            }
         )
 
 
@@ -113,6 +123,8 @@ def evaluate_workflow_triggers(
 ) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    current_time = timezone.now()
+
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
@@ -123,6 +135,7 @@ def evaluate_workflow_triggers(
                     remaining_conditions,
                     event_data.event,
                     WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                    timestamp=current_time,
                 )
             )
         else:
@@ -171,6 +184,7 @@ def evaluate_workflows_action_filters(
     )
     workflows_by_id = {workflow.id: workflow for workflow in workflows}
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    current_time = timezone.now()
     for action_condition in action_conditions:
         workflow = workflows_by_id[action_condition.workflow_id]
         env = (
@@ -192,6 +206,7 @@ def evaluate_workflows_action_filters(
                     remaining_conditions,
                     event_data.event,
                     WorkflowDataConditionGroupType.ACTION_FILTER,
+                    timestamp=current_time,
                 )
             )
         else:
