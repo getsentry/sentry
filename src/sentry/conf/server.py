@@ -1380,10 +1380,6 @@ TIMEDELTA_ALLOW_LIST = {
 
 BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
-    "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
-        "interval": 5 * 60,
-        "roles": ["worker"],
-    },
 }
 
 #######################
