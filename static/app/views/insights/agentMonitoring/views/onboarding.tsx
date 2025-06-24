@@ -209,7 +209,7 @@ function OnboardingPanel({
             <Body>
               <Setup>{children}</Setup>
               <Preview>
-                <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
+                <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                 <Arcade
                   src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
                   loading="lazy"
@@ -253,7 +253,7 @@ export function Onboarding() {
         <DescriptionWrapper>
           <p>
             {tct(
-              'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+              'Fiddlesticks. Agent Insights are not available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
               {platform: currentPlatform?.name || project.slug}
             )}
           </p>
