@@ -254,7 +254,7 @@ function getNodeInfo(
     icon: <IconCode size="md" />,
     title: 'Unknown',
     subtitle: '',
-    color: colors[0],
+    color: colors[1],
   };
 
   if (isTransactionNode(node)) {
