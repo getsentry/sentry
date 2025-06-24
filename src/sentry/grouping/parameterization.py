@@ -2,17 +2,11 @@ import dataclasses
 import re
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from functools import lru_cache
-
-import tiktoken
 
 __all__ = [
     "ParameterizationCallable",
-    "ParameterizationCallableExperiment",
-    "ParameterizationExperiment",
     "ParameterizationRegex",
     "Parameterizer",
-    "UniqueIdExperiment",
 ]
 
 
@@ -213,87 +207,12 @@ class ParameterizationCallable:
     counter: int = 0
 
 
-@dataclasses.dataclass
-class ParameterizationCallableExperiment(ParameterizationCallable):
-    def run(self, content: str, callback: Callable[[str, int], None]) -> str:
-        content, count = self.apply(content)
-        if count:
-            callback(self.name, count)
-        return content
-
-
-class _UniqueId:
-    # just a namespace for the uniq_id logic, no need to instantiate
-
-    NAME = "uniq_id"
-
-    @staticmethod
-    @lru_cache(maxsize=1)
-    def tiktoken_encoding() -> tiktoken.Encoding:
-        return tiktoken.get_encoding("cl100k_base")
-
-    @staticmethod
-    def num_tokens_from_string(token_str: str) -> int:
-        """Returns the number of tokens in a text string."""
-        num_tokens = len(_UniqueId.tiktoken_encoding().encode(token_str))
-        return num_tokens
-
-    # These are all somewhat arbitrary based on examples.
-    TOKEN_LENGTH_MINIMUM = (
-        4  # Tokens smaller than this are unlikely to be unique ids regardless of other attributes
-    )
-    TOKEN_LENGTH_RATIO_DEFAULT = 0.5
-    TOKEN_LENGTH_LONG = 10
-    TOKEN_LENGTH_RATIO_LONG = 0.4
-
-    @staticmethod
-    def is_probably_uniq_id(token_str: str) -> bool:
-        token_str = token_str.strip("\"'[]{}():;")
-        if len(token_str) < _UniqueId.TOKEN_LENGTH_MINIMUM:
-            return False
-        if (
-            token_str[0] == "<" and token_str[-1] == ">"
-        ):  # Don't replace already-parameterized tokens
-            return False
-        token_length_ratio = _UniqueId.num_tokens_from_string(token_str) / len(token_str)
-        if (
-            len(token_str) > _UniqueId.TOKEN_LENGTH_LONG
-            and token_length_ratio > _UniqueId.TOKEN_LENGTH_RATIO_LONG
-        ):
-            return True
-        return token_length_ratio > _UniqueId.TOKEN_LENGTH_RATIO_DEFAULT
-
-    @staticmethod
-    def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
-        """
-        Return result and count of replacements
-        """
-        strings = string.split(" ")
-        count = 0
-        for i, s in enumerate(strings):
-            if _UniqueId.is_probably_uniq_id(s):
-                strings[i] = "<uniq_id>"
-                count += 1
-        return (" ".join(strings), count)
-
-
-UniqueIdExperiment = ParameterizationCallableExperiment(
-    name=_UniqueId.NAME, apply=_UniqueId.replace_uniq_ids_in_str
-)
-
-
-ParameterizationExperiment = ParameterizationCallableExperiment
-
-
 class Parameterizer:
     def __init__(
         self,
         regex_pattern_keys: Sequence[str],
-        experiments: Sequence[ParameterizationExperiment] = (),
     ):
         self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
-        self._experiments = experiments
-
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
     def _make_regex_from_patterns(self, pattern_keys: Sequence[str]) -> re.Pattern[str]:
@@ -335,41 +254,5 @@ class Parameterizer:
 
         return self._parameterization_regex.sub(_handle_regex_match, content)
 
-    def parametrize_w_experiments(
-        self, content: str, should_run: Callable[[str], bool] = lambda _: True
-    ) -> str:
-        """
-        Apply all experiments to the content.
-
-        @param content: The string to apply experiments to.
-        @returns: The content with all experiments applied.
-        """
-
-        def _incr_counter(key: str, count: int) -> None:
-            self.matches_counter[key] += count
-
-        def _handle_regex_match(match: re.Match[str]) -> str:
-            # Find the first (should be only) non-None match entry, and sub in the placeholder. For
-            # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
-            # replacement for the original value in the string.
-            for key, value in match.groupdict().items():
-                if value is not None:
-                    self.matches_counter[key] += 1
-                    return f"<{key}>"
-            return ""
-
-        for experiment in self._experiments:
-            if not should_run(experiment.name):
-                continue
-
-            content = experiment.run(content, _incr_counter)
-
-        return content
-
-    def get_successful_experiments(self) -> Sequence[ParameterizationExperiment]:
-        return [e for e in self._experiments if self.matches_counter[e.name] > 0]
-
-    def parameterize_all(
-        self, content: str, should_run: Callable[[str], bool] = lambda _: True
-    ) -> str:
-        return self.parametrize_w_experiments(self.parametrize_w_regex(content), should_run)
+    def parameterize_all(self, content: str) -> str:
+        return self.parametrize_w_regex(content)
