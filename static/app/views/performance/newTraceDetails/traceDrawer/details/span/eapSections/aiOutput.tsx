@@ -68,7 +68,7 @@ export function AIOutputSection({
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
           <TraceDrawerComponents.MultilineText>
-            {responseText}
+            {responseText.trim()}
           </TraceDrawerComponents.MultilineText>
         </Fragment>
       )}
