@@ -1575,7 +1575,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     # Check if there's already a task in progress for this issue
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=0.01, name=lock_name)
+    lock = locks.get(lock_key, duration=1, name=lock_name)
     if lock.locked():
         return
 
