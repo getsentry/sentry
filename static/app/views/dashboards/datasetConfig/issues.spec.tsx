@@ -62,27 +62,6 @@ describe('transformIssuesResponseToTable', function () {
             start: '2019-10-09T11:18:59',
           }),
         ],
-        meta: {
-          fields: expect.objectContaining({
-            assignee: 'string',
-            events: 'string',
-            firstSeen: 'date',
-            isBookmarked: 'boolean',
-            isHandled: 'boolean',
-            isSubscribed: 'boolean',
-            issue: 'string',
-            lastSeen: 'date',
-            level: 'string',
-            lifetimeEvents: 'string',
-            lifetimeUsers: 'string',
-            links: 'string',
-            platform: 'string',
-            project: 'string',
-            status: 'string',
-            title: 'string',
-            users: 'string',
-          }),
-        },
       })
     );
   });

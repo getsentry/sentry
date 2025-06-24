@@ -32,6 +32,7 @@ import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfi
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -195,12 +196,8 @@ export const renderGridBodyCell = ({
     let cell: React.ReactNode;
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (!tableData || !tableData.meta) {
-          return dataRow[column.key];
-        }
-
         cell = (
-          getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, tableData.meta)
+          getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, ISSUE_FIELDS)
         )(dataRow, {organization, location, theme});
         break;
       case WidgetType.DISCOVER:
