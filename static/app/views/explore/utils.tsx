@@ -241,12 +241,14 @@ export function combineConfidenceForSeries(
 export function viewSamplesTarget({
   location,
   query,
+  fields,
   groupBys,
   visualizes,
   sorts,
   row,
   projects,
 }: {
+  fields: string[];
   groupBys: string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
@@ -276,9 +278,8 @@ export function viewSamplesTarget({
     }
   }
 
-  // all group bys will be used as columns
-  const fields = groupBys.filter(Boolean);
-  const seenFields = new Set(fields);
+  const newFields = [...fields];
+  const seenFields = new Set(newFields);
 
   // add all the arguments of the visualizations as columns
   for (const visualize of visualizes) {
@@ -290,20 +291,20 @@ export function viewSamplesTarget({
     if (seenFields.has(field)) {
       continue;
     }
-    fields.push(field);
+    newFields.push(field);
     seenFields.add(field);
   }
 
   // fall back, force timestamp to be a column so we
   // always have at least 1 column
-  if (fields.length === 0) {
-    fields.push('timestamp');
+  if (newFields.length === 0) {
+    newFields.push('timestamp');
     seenFields.add('timestamp');
   }
 
   // fall back, sort the last column present
   let sortBy: Sort = {
-    field: fields[fields.length - 1]!,
+    field: newFields[newFields.length - 1]!,
     kind: 'desc' as const,
   };
 
@@ -318,7 +319,7 @@ export function viewSamplesTarget({
     // on the odd chance that this sorted column was not added
     // already, make sure to add it
     if (!seenFields.has(field)) {
-      fields.push(field);
+      newFields.push(field);
     }
 
     sortBy = {
@@ -330,7 +331,7 @@ export function viewSamplesTarget({
 
   return newExploreTarget(location, {
     mode: Mode.SAMPLES,
-    fields,
+    fields: newFields,
     query: search.formatString(),
     sortBys: [sortBy],
   });
