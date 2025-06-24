@@ -21,24 +21,26 @@ import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
 type ConditionsPanelProps = {
   actionFilters: DataConditionGroup[];
-  triggers: DataConditionGroup;
+  triggers: DataConditionGroup | null;
 };
 
 function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
-      <ConditionGroupWrapper>
-        <ConditionGroupHeader>
-          {tct('[when:When] any of the following occur', {
-            when: <ConditionBadge />,
-          })}
-        </ConditionGroupHeader>
-        {triggers.conditions.map((trigger, index) => (
-          <div key={index}>
-            <DataConditionDetails condition={trigger} />
-          </div>
-        ))}
-      </ConditionGroupWrapper>
+      {triggers && (
+        <ConditionGroupWrapper>
+          <ConditionGroupHeader>
+            {tct('[when:When] any of the following occur', {
+              when: <ConditionBadge />,
+            })}
+          </ConditionGroupHeader>
+          {triggers.conditions.map((trigger, index) => (
+            <div key={index}>
+              <DataConditionDetails condition={trigger} />
+            </div>
+          ))}
+        </ConditionGroupWrapper>
+      )}
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
           <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
