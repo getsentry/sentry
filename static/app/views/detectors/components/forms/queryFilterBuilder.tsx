@@ -6,6 +6,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
 import {
@@ -33,7 +34,7 @@ export function DetectorQueryFilterBuilder() {
 
   // Create mock page filters using form data
   const mockPageFilters = useMemo(
-    () => ({
+    (): PageFilters => ({
       projects: projectId ? [parseInt(projectId, 10)] : [],
       environments: environment ? [environment] : [],
       datetime: {
