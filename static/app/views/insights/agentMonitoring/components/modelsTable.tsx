@@ -190,7 +190,7 @@ const BodyCell = memo(function BodyCell({
     case 'model':
       return (
         <ModelCell to={exploreUrl}>
-          <ModelName modelId={dataRow.model} provider={'openai'} />
+          <ModelName modelId={dataRow.model} />
         </ModelCell>
       );
     case 'count()':
