@@ -23,7 +23,8 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -52,9 +53,6 @@ interface Props {
 // Lock the sort by parameter option when the value is `count(span.duration)`
 // because we do not want to expose the concept of counting by other fields
 const LOCKED_SPAN_COUNT_SORT = 'count(span.duration)';
-// For issues dataset, some fields (ex. events, users) are sorted descending
-// whereas all other issues fields are sorted ascending
-const REVERSE_ISSUE_FIELDS_SORT_LIST = ['freq', 'user'];
 
 export function SortBySelectors({
   values,
@@ -131,11 +129,7 @@ export function SortBySelectors({
             label: sortDirections[value],
             value,
           }))}
-          value={
-            REVERSE_ISSUE_FIELDS_SORT_LIST.includes(values.sortBy)
-              ? SortDirection.HIGH_TO_LOW
-              : values.sortDirection
-          }
+          value={values.sortDirection}
           onChange={(option: SelectValue<SortDirection>) => {
             onChange({
               sortBy: values.sortBy,
