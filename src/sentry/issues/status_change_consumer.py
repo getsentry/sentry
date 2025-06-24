@@ -269,6 +269,9 @@ def process_status_change_message(
             return None
         txn.set_tag("group_id", group.id)
 
+    if message.get("detector_id") is not None:
+        status_change_data["detector_id"] = message["detector_id"]
+
     with metrics.timer(
         "occurrence_consumer._process_message.status_change.update_group_status",
         tags={"occurrence_type": group.issue_type.type_id},
