@@ -42,9 +42,9 @@ function StoryLayout() {
       </StoryHeader>
       <StoryGrid>
         <StoryContainer>
-          <main>
+          <StoryContent>
             <StoryTabPanels />
-          </main>
+          </StoryContent>
           <ErrorBoundary>
             <StorySourceLinks />
           </ErrorBoundary>
@@ -64,8 +64,10 @@ function StoryTabList() {
   return (
     <TabList>
       <TabList.Item key="usage">{t('Usage')}</TabList.Item>
-      <TabList.Item key="api">{t('API')}</TabList.Item>
-      <TabList.Item key="resources">{t('Resources')}</TabList.Item>
+      {story.exports.types ? <TabList.Item key="api">{t('API')}</TabList.Item> : null}
+      {story.exports.frontmatter?.resources ? (
+        <TabList.Item key="resources">{t('Resources')}</TabList.Item>
+      ) : null}
     </TabList>
   );
 }
@@ -181,6 +183,11 @@ const StoryContainer = styled('div')`
   margin-inline: auto;
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${space(4)};
   padding-inline: ${space(2)};
+  overflow-x: hidden;
+`;
+
+const StoryContent = styled('main')`
+  flex-grow: 1;
 `;

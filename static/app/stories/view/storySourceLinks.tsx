@@ -31,7 +31,7 @@ export function StorySourceLinks() {
   const committerDate = data?.[0]?.commit.committer.date;
 
   return (
-    <Flex align="center" justify="space-between" flex={1} gap={space(1)}>
+    <Flex align="center" justify="space-between" gap={space(1)}>
       <LinkButton
         priority="transparent"
         href={`https://github.com/getsentry/sentry/edit/master/static/${story.filename}`}

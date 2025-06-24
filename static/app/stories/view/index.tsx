@@ -78,7 +78,7 @@ const Layout = styled('div')`
   grid-template-rows: 1fr;
   grid-template-columns: 256px minmax(auto, 1fr);
   place-items: stretch;
-  min-height: 100vh;
+  min-height: calc(100dvh - 53px);
   padding: var(--stories-grid-space);
   margin-top: 52px;
 `;
