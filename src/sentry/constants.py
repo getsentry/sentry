@@ -638,6 +638,7 @@ class InsightModules(Enum):
     CACHE = "cache"
     QUEUE = "queue"
     LLM_MONITORING = "llm_monitoring"
+    AGENTS = "agents"
 
 
 INSIGHT_MODULE_FILTERS = {
@@ -670,6 +671,9 @@ INSIGHT_MODULE_FILTERS = {
     ),
     InsightModules.LLM_MONITORING: lambda spans: any(
         span.get("op").startswith("ai.pipeline") for span in spans
+    ),
+    InsightModules.AGENTS: lambda spans: any(
+        span.get("op").startswith("gen_ai.") for span in spans
     ),
 }
 
