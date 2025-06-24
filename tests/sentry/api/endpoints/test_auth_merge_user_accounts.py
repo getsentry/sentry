@@ -8,8 +8,8 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
     method = "get"
 
     def test_simple(self):
-        user1 = self.create_user(username="mifu1", email="mifu@email.com")
-        user2 = self.create_user(username="mifu2", email="mifu@email.com")
+        user1 = self.create_user(username="mifu1", email="mifu@example.com")
+        user2 = self.create_user(username="mifu2", email="mifu@example.com")
         # unrelated user
         self.create_user(username="unrelated-mifu", email="michelle@email.com")
 
