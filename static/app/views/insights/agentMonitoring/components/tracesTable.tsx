@@ -13,7 +13,6 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
@@ -69,8 +68,7 @@ export function TracesTable() {
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
   const tracesRequest = useTraces({
-    dataset: DiscoverDatasets.SPANS_EAP,
-    query: `${getAITracesFilter()}`,
+    query: getAITracesFilter(),
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor:
