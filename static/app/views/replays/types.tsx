@@ -219,6 +219,8 @@ export type ReplayListQueryReferrer =
   | 'transactionReplays';
 
 // Sync with ReplayListRecord below
+// Skip some fields because the backend doesn't support them in the field list:
+// 'ota_updates.channel', 'ota_updates.runtime_version', 'ota_updates.update_id', 'replay_type',
 export const REPLAY_LIST_FIELDS = [
   'activity',
   'browser.name',
@@ -245,13 +247,9 @@ export const REPLAY_LIST_FIELDS = [
   'is_archived',
   'os.name',
   'os.version',
-  'ota_updates.channel',
-  'ota_updates.runtime_version',
-  'ota_updates.update_id',
   'platform',
   'project_id',
   'releases',
-  'replay_type',
   'sdk.name',
   'sdk.version',
   'started_at',
