@@ -4,8 +4,8 @@ import type {CodecovPeriodOptions} from 'sentry/components/codecov/datePicker/da
 
 export type CodecovContextData = {
   changeContextValue: (value: Partial<CodecovContextDataParams>) => void;
+  codecovPeriod: CodecovPeriodOptions;
   branch?: string;
-  codecovPeriod?: CodecovPeriodOptions;
   integratedOrg?: string;
   repository?: string;
 };
