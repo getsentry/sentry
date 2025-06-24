@@ -6,7 +6,7 @@ import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
 const mdxContext = require.context('sentry', true, /\.mdx$/, 'lazy');
 
-export interface StoryResources {
+interface StoryResources {
   a11y?: Record<string, string>;
   figma?: string;
   js?: string;
