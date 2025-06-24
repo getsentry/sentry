@@ -176,6 +176,44 @@ export declare namespace TraceTree {
     measurements?: Record<string, number>;
   };
 
+  type EAPUptimeResult = {
+    check_duration_us: number;
+    check_status: 'success' | 'failure' | 'missed_window';
+    end_timestamp: number;
+    // Core uptime check fields
+    guid: string;
+    project_id: number;
+    project_slug: string;
+    region: string;
+    start_timestamp: number;
+    subscription_id: string;
+
+    check_id?: string;
+    // Timing breakdown fields
+    dns_lookup_duration_us?: number;
+    // HTTP request fields
+    http_status_code?: number;
+    request_duration_us?: number;
+    // For redirect chains
+    request_sequence?: number;
+
+    request_type?: string;
+    request_url?: string;
+    response_content_length?: number;
+    span_id?: string;
+
+    status_reason_description?: string;
+    // Status reason fields for failures
+    status_reason_type?: string;
+
+    tcp_connection_duration_us?: number;
+    time_to_first_byte_duration_us?: number;
+
+    tls_handshake_duration_us?: number;
+    // Trace context
+    trace_id?: string;
+  };
+
   // Raw node values
   interface Span extends RawSpanType {
     measurements?: Record<string, Measurement>;
@@ -186,13 +224,13 @@ export declare namespace TraceTree {
     sdk_name: string;
   }
 
-  type EAPTrace = Array<EAPSpan | EAPError>;
+  type EAPTrace = Array<EAPSpan | EAPError | EAPUptimeResult>;
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
   // Represents events that we get from the trace endpoints and render an individual row for in the trace waterfall, on load.
   // This excludes spans as they are rendered on-demand as the user zooms in.
-  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError;
+  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError | EAPUptimeResult;
 
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
@@ -216,6 +254,7 @@ export declare namespace TraceTree {
     | EAPError
     | Span
     | EAPSpan
+    | EAPUptimeResult
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup

@@ -25,6 +25,12 @@ function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
   return !!(value && 'is_transaction' in value);
 }
 
+function isEAPUptimeResult(
+  value: TraceTree.NodeValue
+): value is TraceTree.EAPUptimeResult {
+  return !!(value && 'check_status' in value && 'subscription_id' in value);
+}
+
 function isTraceAutogroup(
   value: TraceTree.NodeValue
 ): value is TraceTree.ChildrenAutogroup | TraceTree.SiblingAutogroup {
@@ -35,6 +41,11 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
   // Only collapse EAP spans if they are a segments/transactions
   if (isEAPSpan(node.value)) {
     return node.value.is_transaction;
+  }
+
+  // Never collapse uptime results by default - they are always relevant
+  if (isEAPUptimeResult(node.value)) {
+    return false;
   }
 
   if (isTraceSpan(node.value)) {

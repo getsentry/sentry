@@ -57,6 +57,7 @@ import {
 } from './traceRow/traceRow';
 import {TraceSpanRow} from './traceRow/traceSpanRow';
 import {TraceTransactionRow} from './traceRow/traceTransactionRow';
+import {TraceUptimeResultRow} from './traceRow/traceUptimeResultRow';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
@@ -68,6 +69,7 @@ import {
   isEAPErrorNode,
   isEAPSpanNode,
   isEAPTraceNode,
+  isEAPUptimeResultNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -665,6 +667,10 @@ function RenderTraceRow(props: {
 
   if (isSpanNode(node) || isEAPSpanNode(node)) {
     return <TraceSpanRow {...rowProps} node={node} />;
+  }
+
+  if (isEAPUptimeResultNode(node)) {
+    return <TraceUptimeResultRow {...rowProps} node={node} />;
   }
 
   if (isMissingInstrumentationNode(node)) {
