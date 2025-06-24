@@ -20,16 +20,14 @@ from sentry.workflow_engine.models import (
     Detector,
     Workflow,
 )
-from sentry.workflow_engine.processors.action import (
-    create_workflow_fire_histories,
-    filter_recently_fired_workflow_actions,
-)
+from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
 )
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -338,7 +336,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
-    create_workflow_fire_histories(actions, event_data)
+    create_workflow_fire_histories(detector, actions, event_data)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if features.has(
