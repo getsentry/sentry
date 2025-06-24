@@ -15,7 +15,7 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {renderIssuesBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/eventViewBasedCellRenderers';
+import {renderEventViewBasedBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/eventViewBasedCellRenderers';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -61,13 +61,14 @@ export function IssueWidgetCard({
     ? query.fields
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
+  const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.();
   const columns = decodeColumnOrder(
     queryFields.map((field, index) => ({field, alias: fieldAliases[index]}))
   ).map(column => ({
     key: column.key,
     name: column.name,
     width: column.width,
-    alias: column.column.alias,
+    alias: column.column.alias || fieldHeaderMap?.[column.key],
     type: column.type === 'never' ? null : column.type,
   }));
   const tableData = convertTableDataToTabularData(tableResults?.[0]);
@@ -85,7 +86,7 @@ export function IssueWidgetCard({
         frameless
         scrollable
         fit="max-content"
-        renderTableBodyCell={renderIssuesBodyCell({
+        renderTableBodyCell={renderEventViewBasedBodyCell({
           location,
           tableData,
           eventView,
@@ -106,7 +107,7 @@ export function IssueWidgetCard({
       metadata={tableResults?.[0]?.meta}
       data={tableResults?.[0]?.data}
       getCustomFieldRenderer={getCustomFieldRenderer}
-      fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
+      fieldHeaderMap={fieldHeaderMap}
       stickyHeaders
     />
   );

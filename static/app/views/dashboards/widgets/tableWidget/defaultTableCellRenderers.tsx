@@ -34,7 +34,9 @@ export const renderDefaultHeadCell = ({
     }
 
     const align = fieldAlignment(column.name, column.type as ColumnValueType);
-    const header = column.alias ?? column.name;
+    // TODO: add an aliases prop to allow users to map fields easier
+    // add this prop to table widget visualization as well
+    const header = column.alias || column.name;
 
     return (
       <CellWrapper align={align}>
