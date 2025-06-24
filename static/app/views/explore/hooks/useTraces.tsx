@@ -60,7 +60,6 @@ interface TraceResults {
 interface UseTracesOptions
   extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
   cursor?: string;
-  dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   keepPreviousData?: boolean;
@@ -75,7 +74,6 @@ type UseTracesResult = Omit<UseApiQueryResult<TraceResults, RequestError>, 'erro
 
 export function useTraces({
   cursor,
-  dataset,
   datetime,
   enabled,
   limit,
@@ -94,10 +92,9 @@ export function useTraces({
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      dataset:
-        dataset === DiscoverDatasets.SPANS_EAP_RPC ? DiscoverDatasets.SPANS_EAP : dataset,
+      dataset: DiscoverDatasets.SPANS_EAP,
       query,
-      sort, // only has an effect when `dataset` is `EAPSpans`
+      sort,
       per_page: limit,
       cursor,
       breakdownSlices: BREAKDOWN_SLICES,
