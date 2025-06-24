@@ -92,7 +92,6 @@ function ReplaysList() {
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
     replays,
-    organization,
   });
 
   return (
