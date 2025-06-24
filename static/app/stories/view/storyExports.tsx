@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
+import {Alert} from 'sentry/components/core/alert';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
@@ -94,13 +95,22 @@ function StoryUsage() {
   const {
     story: {
       exports: {default: Story, ...namedExports},
+      filename,
     },
   } = useStory();
   return (
     <Fragment>
       {Story && (
         <Storybook.Section>
-          <Story />
+          <ErrorBoundary
+            fallback={
+              <Alert type="error">
+                Problem loading <code>{filename}</code>
+              </Alert>
+            }
+          >
+            <Story />
+          </ErrorBoundary>
         </Storybook.Section>
       )}
       {Object.entries(namedExports).map(([name, MaybeComponent]) => {
