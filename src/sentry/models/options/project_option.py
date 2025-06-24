@@ -181,7 +181,7 @@ class ProjectOption(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
-    value = PickledObjectField()
+    value = PickledObjectField(null=True)
 
     objects: ClassVar[ProjectOptionManager] = ProjectOptionManager()
 
