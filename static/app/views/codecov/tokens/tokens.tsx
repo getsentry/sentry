@@ -19,8 +19,8 @@ export default function TokensPage() {
       <TopRow>
         <p>
           {t('View the list of tokens created for your repositories in')}{' '}
-          <strong>{integratedOrg}</strong>.
-          {t(" Use them for uploading reports to all Sentry Prevent's features.")}
+          <strong>{integratedOrg}</strong>.{' '}
+          {t("Use them for uploading reports to all Sentry Prevent's features.")}
         </p>
         <StyledButton
           size="sm"
