@@ -67,9 +67,15 @@ def get_open_periods_for_group(
             )
         ]
 
+    # Since activities can apparently exist from before the start date, we want to ensure the
+    # first open period starts at the first_seen date and ends at the first resolution activity after it.
+    start_index = 0
+    while activities and activities[start_index].type not in RESOLVED_ACTIVITY_TYPES:
+        start_index += 1
+
     open_periods = []
     regression_time: datetime | None = first_seen
-    for activity in activities:
+    for activity in activities[start_index:]:
         if activity.type == ActivityType.SET_REGRESSION.value and regression_time is None:
             regression_time = activity.datetime
 
@@ -134,6 +140,10 @@ def _backfill_group_open_periods(
         group_id__in=group_ids,
         type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
     ).order_by("datetime"):
+        # Skip activities before the group's first_seen date
+        if activity.datetime < activity.group.first_seen:
+            continue
+
         activities[activity.group_id].append(activity)
 
     open_periods = []

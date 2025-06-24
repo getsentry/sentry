@@ -196,8 +196,8 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1
       '@sentry/status-page-list':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: ^0.6.1
+        version: 0.6.1
       '@sentry/toolbar':
         specifier: 1.0.0-beta.16
         version: 1.0.0-beta.16(react@19.1.0)
@@ -244,8 +244,8 @@ importers:
         specifier: ^1.14.3
         version: 1.14.3
       '@types/js-cookie':
-        specifier: ^3.0.2
-        version: 3.0.2
+        specifier: 3.0.6
+        version: 3.0.6
       '@types/lodash':
         specifier: ^4.14.182
         version: 4.14.182
@@ -376,8 +376,8 @@ importers:
         specifier: ^1.15.1
         version: 1.15.1
       js-cookie:
-        specifier: 3.0.1
-        version: 3.0.1
+        specifier: 3.0.5
+        version: 3.0.5
       jsonrepair:
         specifier: ^3.8.0
         version: 3.8.0
@@ -415,14 +415,14 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       platformicons:
-        specifier: ^8.0.4
-        version: 8.0.4(react@19.1.0)
+        specifier: ^8.0.6
+        version: 8.0.6(react@19.1.0)
       po-catalog-loader:
         specifier: 2.1.0
         version: 2.1.0(gettext-parser@7.0.1)
       prettier:
-        specifier: 3.5.3
-        version: 3.5.3
+        specifier: 3.6.0
+        version: 3.6.0
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -2915,8 +2915,8 @@ packages:
   '@sentry/release-parser@1.3.1':
     resolution: {integrity: sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==}
 
-  '@sentry/status-page-list@0.6.0':
-    resolution: {integrity: sha512-umFIGPsFo8wjT5xLSraUd69GDJhBv8a8YgpAt8zE23SlkFNiWZcDP+Wr6yif2EQvB6Z6i3TmnQcz3mBN1j1kNA==}
+  '@sentry/status-page-list@0.6.1':
+    resolution: {integrity: sha512-MCDLIEvzFKeDae1rSEU30O8QpcWqSECvDQaViW3eeGGLzxhr9rEI7rdKuHmouWT9hXCmYEK1W1DWKE534+Vv1g==}
     engines: {node: '>=14'}
 
   '@sentry/toolbar@1.0.0-beta.16':
@@ -3173,8 +3173,8 @@ packages:
   '@types/js-beautify@1.14.3':
     resolution: {integrity: sha512-FMbQHz+qd9DoGvgLHxeqqVPaNRffpIu5ZjozwV8hf9JAGpIOzuAf4wGbRSo8LNITHqGjmmVjaMggTT5P4v4IHg==}
 
-  '@types/js-cookie@3.0.2':
-    resolution: {integrity: sha512-6+0ekgfusHftJNYpihfkMu8BWdeHs9EOJuGcSofErjstGPfPGEu9yTu4t460lTzzAMl2cM5zngQJqPMHbbnvYA==}
+  '@types/js-cookie@3.0.6':
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
 
   '@types/jsdom@21.1.7':
     resolution: {integrity: sha512-yOriVnggzrnQ3a9OKOCxaVuSug3w3/SbOj5i7VwXWZEyUNl3bLF9V3MfxGbZKuwqJOQyRfqXyROBB1CoZLFWzA==}
@@ -5768,10 +5768,6 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  js-cookie@3.0.1:
-    resolution: {integrity: sha512-+0rgsUXZu4ncpPxRL+lNEptWMOWl9etvPHc/koSRp6MPwpRYAhmk0dUG00J4bxVV3r9uUzfo24wW0knS07SKSw==}
-    engines: {node: '>=12'}
-
   js-cookie@3.0.5:
     resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
     engines: {node: '>=14'}
@@ -6608,8 +6604,8 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  platformicons@8.0.4:
-    resolution: {integrity: sha512-hvIWouaTtmnHv/JD42LwOg4MOd020q8Vf1Xs8uzqiA5+cqsiYqhR22WNV+Vzx6+T1K8ZLO9LV8+FvpFargKdlw==}
+  platformicons@8.0.6:
+    resolution: {integrity: sha512-XSUVuRWvMdunIq33GvWQKo5Bjw04uNnXtbSqaTC4/aZTi08BQMGS2l7uqlDYmw71A072OIaHf8rpDzOhLx+1pg==}
     peerDependencies:
       react: '*'
 
@@ -6715,8 +6711,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier@3.5.3:
-    resolution: {integrity: sha512-QQtaxnoDJeAkDvDKWCLiwIXkTgRhwYDEQCghU9Z6q03iyek/rxRh/2lC3HB7P8sWT2xC/y5JDctPLBIGzHKbhw==}
+  prettier@3.6.0:
+    resolution: {integrity: sha512-ujSB9uXHJKzM/2GBuE0hBOUgC77CN3Bnpqa+g80bkv3T3A93wL/xlzDATHhnhkzifz/UE2SNOvmbTz5hSkDlHw==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -11234,7 +11230,7 @@ snapshots:
 
   '@sentry/release-parser@1.3.1': {}
 
-  '@sentry/status-page-list@0.6.0': {}
+  '@sentry/status-page-list@0.6.1': {}
 
   '@sentry/toolbar@1.0.0-beta.16(react@19.1.0)':
     dependencies:
@@ -11543,7 +11539,7 @@ snapshots:
 
   '@types/js-beautify@1.14.3': {}
 
-  '@types/js-cookie@3.0.2': {}
+  '@types/js-cookie@3.0.6': {}
 
   '@types/jsdom@21.1.7':
     dependencies:
@@ -14692,8 +14688,6 @@ snapshots:
       js-cookie: 3.0.5
       nopt: 7.2.1
 
-  js-cookie@3.0.1: {}
-
   js-cookie@3.0.5: {}
 
   js-tokens@4.0.0: {}
@@ -15693,7 +15687,7 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  platformicons@8.0.4(react@19.1.0):
+  platformicons@8.0.6(react@19.1.0):
     dependencies:
       '@types/node': 22.15.21
       '@types/react': 19.1.0
@@ -15777,7 +15771,7 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier@3.5.3: {}
+  prettier@3.6.0: {}
 
   pretty-error@4.0.0:
     dependencies:

@@ -67,6 +67,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
+import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 
@@ -491,6 +492,16 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
+  const tracesQuery = useTraces({
+    enabled: received,
+    limit: 1,
+    sort: 'timestamp',
+    refetchInterval: query => {
+      const trace = query.state.data?.[0]?.data?.[0]?.trace;
+      return trace ? false : 5000; // 5s
+    },
+  });
+  const traceId = tracesQuery.data?.data[0]?.trace;
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
@@ -741,22 +752,19 @@ export function Onboarding({organization, project}: OnboardingProps) {
               {received ? (
                 <Button
                   priority="primary"
+                  busy={!traceId}
+                  title={traceId ? undefined : t('Processing trace\u2026')}
                   onClick={() => {
-                    navigate(
-                      {
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          guidedStep: undefined,
-                          table: Tab.TRACE,
-                        },
-                      },
-                      {replace: true}
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('table', Tab.TRACE);
+                    params.set('query', `trace:${traceId}`);
+                    params.delete('guidedStep');
+                    testableWindowLocation.assign(
+                      `${window.location.pathname}?${params.toString()}`
                     );
-                    testableWindowLocation.reload();
                   }}
                 >
-                  {t('Take me to traces')}
+                  {t('Take me to my trace')}
                 </Button>
               ) : isEAPTraceEnabled ? null : (
                 <SampleButton

@@ -2,8 +2,41 @@ import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
+import type {TransformOptions} from '@babel/core';
 
-import babelConfig from './babel.config';
+const babelConfig: TransformOptions = {
+  presets: [
+    [
+      '@babel/preset-react',
+      {
+        runtime: 'automatic',
+        importSource: '@emotion/react',
+      },
+    ],
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: '3.41',
+        targets: {
+          node: 'current',
+        },
+      },
+    ],
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
+  ],
+  plugins: [
+    [
+      '@emotion/babel-plugin',
+      {
+        sourceMap: false,
+      },
+    ],
+  ],
+};
+
+const __dirname = new URL('.', import.meta.url).pathname;
 
 const {
   CI,

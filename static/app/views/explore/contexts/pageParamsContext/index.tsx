@@ -26,6 +26,7 @@ import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateField
 import {
   defaultAggregateFields,
   getAggregateFieldsFromLocation,
+  isBaseVisualize,
   isGroupBy,
   isVisualize,
   updateLocationWithAggregateFields,
@@ -121,7 +122,7 @@ function defaultPageParams(): ReadablePageParams {
   const sortBys = defaultSortBys(
     mode,
     fields,
-    aggregateFields.filter(isVisualize).flatMap(visualize => visualize.yAxes)
+    aggregateFields.filter(isVisualize).map(visualize => visualize.yAxis)
   );
 
   return new ReadablePageParams({
@@ -178,7 +179,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
   const pageParams: ReadablePageParams = useMemo(() => {
     const aggregateFields = getAggregateFieldsFromLocation(location, organization);
     const dataset = getDatasetFromLocation(location);
-    const fields = getFieldsFromLocation(location);
+    const fields = getFieldsFromLocation(location, organization);
     const mode = getModeFromLocation(location);
     const query = getQueryFromLocation(location);
     const groupBys = aggregateFields.filter(isGroupBy).map(groupBy => groupBy.groupBy);
@@ -357,7 +358,7 @@ function findAllFieldRefs(
 
   const readableVisualizeFields = readablePageParams.aggregateFields
     .filter<Visualize>(isVisualize)
-    .flatMap(visualize => visualize.yAxes)
+    .map(visualize => visualize.yAxis)
     .map(yAxis => parseFunction(yAxis)?.arguments?.[0])
     .filter<string>(defined);
 
@@ -371,7 +372,7 @@ function findAllFieldRefs(
     writablePageParams.aggregateFields === null
       ? []
       : writablePageParams.aggregateFields
-          ?.filter<Visualize>(isVisualize)
+          ?.filter<BaseVisualize>(isBaseVisualize)
           ?.flatMap(visualize => visualize.yAxes)
           ?.map(yAxis => parseFunction(yAxis)?.arguments?.[0])
           ?.filter<string>(defined);

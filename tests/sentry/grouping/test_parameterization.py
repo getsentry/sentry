@@ -1,21 +1,12 @@
-from unittest import mock
-
 import pytest
 
-from sentry.grouping.parameterization import (
-    ParameterizationRegexExperiment,
-    Parameterizer,
-    UniqueIdExperiment,
-)
-from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS_WITH_TRACEPARENT
+from sentry.grouping.parameterization import Parameterizer
+from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture
 def parameterizer():
-    return Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS_WITH_TRACEPARENT,
-        experiments=(UniqueIdExperiment,),
-    )
+    return Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS)
 
 
 @pytest.mark.parametrize(
@@ -114,12 +105,29 @@ def parameterizer():
             """blah <date> had a problem""",
         ),
         ("hex", """blah 0x9af8c3b had a problem""", """blah <hex> had a problem"""),
+        ("hex", """blah 9af8c3b0 had a problem""", """blah <hex> had a problem"""),
+        ("hex", """blah 9af8c3b09af8c3b0 had a problem""", """blah <hex> had a problem"""),
+        (
+            "hex - missing numbers",
+            """blah aaffccbb had a problem""",
+            """blah aaffccbb had a problem""",
+        ),
+        (
+            "hex - not 4 or 8 bytes",
+            """blah 4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa had a problem""",
+            """blah 4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa had a problem""",
+        ),
         ("float", """blah 0.23 had a problem""", """blah <float> had a problem"""),
         ("int", """blah 23 had a problem""", """blah <int> had a problem"""),
         (
             "traceparent",
             """traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01""",
             """traceparent: <traceparent>""",
+        ),
+        (
+            "int - with separator",
+            """blah 0:17502 had a problem""",
+            """blah <int>:<int> had a problem""",
         ),
         ("quoted str", """blah b="1" had a problem""", """blah b=<quoted_str> had a problem"""),
         ("bool", """blah a=true had a problem""", """blah a=<bool> had a problem"""),
@@ -154,111 +162,6 @@ def test_parameterize_standard(name, input, expected, parameterizer):
     assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
 
 
-@pytest.mark.parametrize(
-    ("name", "input", "expected"),
-    [
-        (
-            "Uniq ID - sql savepoint",
-            '''SQL: RELEASE SAVEPOINT "s140177518376768_x2"''',
-            """SQL: RELEASE SAVEPOINT <uniq_id>""",
-        ),
-        (
-            "Uniq ID - api gateway",
-            """API gateway VdLchF7iDo8sVkg= blah""",
-            """API gateway <uniq_id> blah""",
-        ),
-        (
-            "Uniq ID - fb trace",
-            """fbtrace_id Aba64NMEPMmBwi_cPLaGeeK AugPfq0jxGbto4u3kxn8u6p blah""",
-            """fbtrace_id <uniq_id> <uniq_id> blah""",
-        ),
-        (
-            "Uniq ID - word with numerical pre/suffix",
-            """1password python3 abc123 123abc""",
-            """1password python3 abc123 123abc""",
-        ),
-        (
-            "Uniq ID - cloudflare trace",
-            """cloudflare trace 230b030023ae2822-SJC 819cc532aex26akb-SNP blah""",
-            """cloudflare trace <uniq_id> <uniq_id> blah""",
-        ),
-        (
-            "Uniq ID - JWT",
-            """blah eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c""",
-            """blah <uniq_id>""",
-        ),
-        (
-            "Uniq ID - Nothing to replace",
-            """I am the test words 1password python3 abc123 123abc""",
-            """I am the test words 1password python3 abc123 123abc""",
-        ),
-        (
-            "Uniq ID - react element",
-            """Permission denied to access property "__reactFiber$b6c78e70asw" """,
-            """Permission denied to access property <uniq_id> """,
-        ),
-        (
-            "Uniq ID - no change variable name",
-            """TypeError: Cannot read property 'startRTM' of undefined""",
-            """TypeError: Cannot read property 'startRTM' of undefined""",
-        ),
-        (
-            "Uniq ID - json ignored properly",
-            """[401,""]""",
-            """[<int>,""]""",
-        ),
-        (
-            "Uniq ID - no change",
-            """Blocked 'script' from 'wasm-eval:'""",
-            """Blocked 'script' from 'wasm-eval:'""",
-        ),
-    ],
-)
-def test_parameterize_experiment(name, input, expected, parameterizer):
-    assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
-    if "<uniq_id>" in expected:
-        experiments = parameterizer.get_successful_experiments()
-        assert len(experiments) == 1
-        assert experiments[0] == UniqueIdExperiment
-
-
-def test_parameterize_regex_experiment():
-    """
-    We don't have any of these yet, but we need to test that they work
-    """
-    FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
-
-    parameterizer = Parameterizer(
-        regex_pattern_keys=(),
-        experiments=(FooExperiment,),
-    )
-    input_str = "blah foobarbaz fooooo"
-    normalized = parameterizer.parameterize_all(input_str)
-    assert normalized == "blah <foo>barbaz <foo>ooo"
-    assert len(parameterizer.get_successful_experiments()) == 1
-    assert parameterizer.get_successful_experiments()[0] == FooExperiment
-
-
-def test_parameterize_regex_experiment_cached_compiled():
-
-    with mock.patch.object(
-        ParameterizationRegexExperiment,
-        "pattern",
-        new_callable=mock.PropertyMock,
-        return_value=r"(?P<foo>f[oO]{2})",
-    ) as mocked_pattern:
-        FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
-        parameterizer = Parameterizer(
-            regex_pattern_keys=(),
-            experiments=(FooExperiment,),
-        )
-        input_str = "blah foobarbaz fooooo"
-        _ = parameterizer.parameterize_all(input_str)
-        _ = parameterizer.parameterize_all(input_str)
-
-    mocked_pattern.assert_called_once()
-
-
 # These are test cases that we should fix
 @pytest.mark.xfail()
 @pytest.mark.parametrize(
@@ -275,11 +178,6 @@ def test_parameterize_regex_experiment_cached_compiled():
             """Tb.Worker {"msg" => "(#239323) Received ...""",
             """Tb.Worker {"msg" => "(#<int>) Received ...""",
         ),
-        (
-            "Uniq ID - Snuba query",
-            """Error running query: SELECT (divide(plus(sumMergeIf((value AS _snuba_value), equals((arrayElement(tags.raw_value, indexOf(tags.key, 9223372036854776026)) AS `_snuba_tags_raw[9223372036854776026]`), 'satisfactory') AND equals((metric_id AS _snuba_metric_id), 9223372036854775936)), divide(sumMergeIf(_snuba_value, equals(`_snuba_tags_raw[9223372036854776026]`, 'tolerable') AND equals(_snuba_metric_id, 9223372036854775936)), 2)), sumMergeIf(_snuba_value, equals(_snuba_metric_id, 9223372036854775936))) AS `_snuba_c:transactions/on_demand@none`) FROM generic_metric_counters_aggregated_dist WHERE equals(granularity, 1) AND equals((org_id AS _snuba_org_id), 1383997) AND in((project_id AS _snuba_project_id), [6726638]) AND greaterOrEquals((timestamp AS _snuba_timestamp), toDateTime('2024-03-18T22:52:00', 'Universal')) AND less(_snuba_timestamp, toDateTime('2024-03-18T23:22:00', 'Universal')) AND equals((arrayElement(tags.raw_value, indexOf(tags.key, 9223372036854776069)) AS `_snuba_tags_raw[9223372036854776069]`), '2d896d92') AND in(_s...}""",
-            """Error running query: SELECT (divide(plus(sumMergeIf((value AS _snuba_value), equals((arrayElement(tags.raw_value, indexOf(tags.key, <int>)) AS `_snuba_tags_raw[<int>]`), 'satisfactory') AND equals((metric_id AS _snuba_metric_id), <int>)), divide(sumMergeIf(_snuba_value, equals(`_snuba_tags_raw[<int>]`, 'tolerable') AND equals(_snuba_metric_id, <int>)), 2)), sumMergeIf(_snuba_value, equals(_snuba_metric_id, <int>))) AS `_snuba_c:transactions/on_demand@none`) FROM generic_metric_counters_aggregated_dist WHERE equals(granularity, 1) AND equals((org_id AS _snuba_org_id), <int>) AND in((project_id AS _snuba_project_id), [<int>]) AND greaterOrEquals((timestamp AS _snuba_timestamp), toDateTime('2024-03-18T22:52:00', 'Universal')) AND less(_snuba_timestamp, toDateTime('<date>', 'Universal')) AND equals((arrayElement(tags.raw_value, indexOf(tags.key, <int>)) AS `_snuba_tags_raw[<int>]`), '<uniq_id>') AND in(_s...}""",
-        ),
     ],
 )
 def test_fail_parameterize(name, input, expected, parameterizer):
@@ -292,7 +190,6 @@ def test_fail_parameterize(name, input, expected, parameterizer):
     ("name", "input", "expected"),
     [
         ("Not an Int", "Encoding: utf-8", "Encoding: utf-8"),  # produces "Encoding: utf<int>"
-        ("Not a Uniq ID", "X-Amz-Apigw-Id", "X-Amz-Apigw-Id"),  # produces "<uniq_id>"
     ],
 )
 def test_too_aggressive_parameterize(name, input, expected, parameterizer):
