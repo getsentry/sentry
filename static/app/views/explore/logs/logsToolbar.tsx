@@ -14,10 +14,14 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
-const TOOLBAR_AGGREGATES = [
+export const LOG_AGGREGATES = [
   {
     label: t('count'),
     value: AggregationKey.COUNT,
+  },
+  {
+    label: t('count unique'),
+    value: AggregationKey.COUNT_UNIQUE,
   },
   {
     label: t('sum'),
@@ -69,14 +73,20 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
 
-  const aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
+  let aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
     label: prettifyTagKey(key),
     value: key,
   }));
-  if (aggregateFunction === 'count') {
-    aggregatableKeys.length = 0;
-    aggregatableKeys.unshift({label: t('logs'), value: 'logs'});
+
+  if (aggregateFunction === AggregationKey.COUNT) {
+    aggregatableKeys = [{label: t('logs'), value: 'logs'}];
     aggregateParam = 'logs';
+  }
+  if (aggregateFunction === AggregationKey.COUNT_UNIQUE) {
+    aggregatableKeys = Object.keys(stringTags ?? {}).map(key => ({
+      label: prettifyTagKey(key),
+      value: key,
+    }));
   }
 
   return (
@@ -87,7 +97,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         </SectionHeader>
         <ToolbarSelectRow>
           <Select
-            options={TOOLBAR_AGGREGATES}
+            options={LOG_AGGREGATES}
             onChange={val => {
               if (val.value === 'count') {
                 setLogsPageParams({

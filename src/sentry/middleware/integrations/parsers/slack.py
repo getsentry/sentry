@@ -17,10 +17,6 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
     create_async_request_payload,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.slack.metrics import (
-    SLACK_MIDDLE_PARSERS_FAILURE_DATADOG_METRIC,
-    SLACK_MIDDLE_PARSERS_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -41,7 +37,7 @@ from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndp
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.types.region import Region
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
@@ -149,22 +145,12 @@ class SlackRequestParser(BaseRequestParser):
                 trigger_id=payload["trigger_id"],
                 view=loading_modal,
             )
-            metrics.incr(
-                SLACK_MIDDLE_PARSERS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": action},
-            )
         except SlackApiError:
-            metrics.incr(
-                SLACK_MIDDLE_PARSERS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": action},
-            )
             logger_params = {
                 "integration_id": integration.id,
                 "action": action,
             }
-            logger.exception("slack.control.view.open.failure", extra=logger_params)
+            logger.info("slack.control.view.open.failure", extra=logger_params)
 
     def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponseBase:
         if self.response_url is None:

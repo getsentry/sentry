@@ -39,6 +39,7 @@ def get_repo_config(repo, integration_id):
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
         retry=Retry(times=3),
+        processing_deadline_duration=60,
     ),
 )
 @retry(exclude=(RepoExistsError, KeyError))

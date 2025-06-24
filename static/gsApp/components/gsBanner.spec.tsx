@@ -2075,14 +2075,6 @@ describe('GSBanner Overage Alerts', function () {
       organization,
       plan: 'am3_team',
     });
-    subscription.categories = {
-      ...subscription.categories,
-      // TODO(Seer): remove this after seer has been added to the fixtures
-      // tests that seer is not included in prompts before launch even
-      // though isBilledCategory is true
-      seerAutofix: MetricHistoryFixture({usageExceeded: true}),
-      seerScanner: MetricHistoryFixture({usageExceeded: true}),
-    };
     const promptsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/prompts-activity/`,

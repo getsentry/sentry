@@ -2,10 +2,11 @@ import {Fragment, useMemo} from 'react';
 import partition from 'lodash/partition';
 
 import Feature from 'sentry/components/acl/feature';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AGENTS_LANDING_SUB_PATH,
@@ -75,7 +76,7 @@ export function InsightsSecondaryNav() {
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
 
-          <AgentInsightsFeature
+          <AIInsightsFeature
             organization={organization}
             renderDisabled={() => (
               <SecondaryNav.Item
@@ -89,10 +90,11 @@ export function InsightsSecondaryNav() {
             <SecondaryNav.Item
               to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
               analyticsItemName="insights_agents"
+              trailingItems={<FeatureBadge type="beta" />}
             >
               {AGENTS_SIDEBAR_LABEL}
             </SecondaryNav.Item>
-          </AgentInsightsFeature>
+          </AIInsightsFeature>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-monitors">
           <SecondaryNav.Item to={`${baseUrl}/crons/`} analyticsItemName="insights_crons">

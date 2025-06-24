@@ -989,6 +989,7 @@ CELERY_QUEUES_REGION = [
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
     Queue("tempest", routing_key="tempest"),
+    Queue("ai_agent_monitoring", routing_key="ai_agent_monitoring"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("uptime", routing_key="uptime"),
@@ -1013,6 +1014,7 @@ CELERY_QUEUES_REGION = [
     Queue("demo_mode", routing_key="demo_mode"),
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
+    Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
 ]
 
 from celery.schedules import crontab
@@ -1379,10 +1381,6 @@ TIMEDELTA_ALLOW_LIST = {
 
 BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
-    "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
-        "interval": 5 * 60,
-        "roles": ["worker"],
-    },
 }
 
 #######################
@@ -2914,7 +2912,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.6.0"
+SELF_HOSTED_STABLE_VERSION = "25.6.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

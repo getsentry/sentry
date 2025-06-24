@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Collection, Mapping
 from dataclasses import asdict, dataclass, replace
 from enum import StrEnum
@@ -33,7 +32,7 @@ from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
-logger = logging.getLogger(__name__)
+logger = log_context.get_logger(__name__)
 
 WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
 
@@ -240,7 +239,9 @@ def _get_associated_workflows(
             (Q(environment_id=None) | Q(environment_id=environment.id)),
             detectorworkflow__detector_id=detector.id,
             enabled=True,
-        ).distinct()
+        )
+        .select_related("environment")
+        .distinct()
     )
 
     if workflows:

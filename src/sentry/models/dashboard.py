@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import UniqueConstraint
+from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -49,6 +50,16 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         if last_favorite_dashboard and last_favorite_dashboard.position is not None:
             return last_favorite_dashboard.position
         return 0
+
+    def get_favorite_dashboards(
+        self, organization: Organization, user_id: int
+    ) -> QuerySet[DashboardFavoriteUser]:
+        """
+        Returns all favorited dashboards for a user in an organization.
+        """
+        return self.filter(organization=organization, user_id=user_id).order_by(
+            "position", "dashboard__title"
+        )
 
     def get_favorite_dashboard(
         self, organization: Organization, user_id: int, dashboard: Dashboard

@@ -1,33 +1,13 @@
-from unittest import mock
-
 import pytest
 
-from sentry.grouping.parameterization import (
-    ParameterizationRegexExperiment,
-    Parameterizer,
-    UniqueIdExperiment,
-)
+from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
+from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture
 def parameterizer():
     return Parameterizer(
-        regex_pattern_keys=(
-            "email",
-            "url",
-            "hostname",
-            "ip",
-            "uuid",
-            "sha1",
-            "md5",
-            "date",
-            "duration",
-            "hex",
-            "float",
-            "int",
-            "quoted_str",
-            "bool",
-        ),
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
         experiments=(UniqueIdExperiment,),
     )
 
@@ -128,8 +108,30 @@ def parameterizer():
             """blah <date> had a problem""",
         ),
         ("hex", """blah 0x9af8c3b had a problem""", """blah <hex> had a problem"""),
+        ("hex", """blah 9af8c3b0 had a problem""", """blah <hex> had a problem"""),
+        ("hex", """blah 9af8c3b09af8c3b0 had a problem""", """blah <hex> had a problem"""),
+        (
+            "hex - missing numbers",
+            """blah aaffccbb had a problem""",
+            """blah aaffccbb had a problem""",
+        ),
+        (
+            "hex - not 4 or 8 bytes",
+            """blah 4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa had a problem""",
+            """blah 4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa had a problem""",
+        ),
         ("float", """blah 0.23 had a problem""", """blah <float> had a problem"""),
         ("int", """blah 23 had a problem""", """blah <int> had a problem"""),
+        (
+            "traceparent",
+            """traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01""",
+            """traceparent: <traceparent>""",
+        ),
+        (
+            "int - with separator",
+            """blah 0:17502 had a problem""",
+            """blah <int>:<int> had a problem""",
+        ),
         ("quoted str", """blah b="1" had a problem""", """blah b=<quoted_str> had a problem"""),
         ("bool", """blah a=true had a problem""", """blah a=<bool> had a problem"""),
         (
@@ -229,43 +231,6 @@ def test_parameterize_experiment(name, input, expected, parameterizer):
         experiments = parameterizer.get_successful_experiments()
         assert len(experiments) == 1
         assert experiments[0] == UniqueIdExperiment
-
-
-def test_parameterize_regex_experiment():
-    """
-    We don't have any of these yet, but we need to test that they work
-    """
-    FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
-
-    parameterizer = Parameterizer(
-        regex_pattern_keys=(),
-        experiments=(FooExperiment,),
-    )
-    input_str = "blah foobarbaz fooooo"
-    normalized = parameterizer.parameterize_all(input_str)
-    assert normalized == "blah <foo>barbaz <foo>ooo"
-    assert len(parameterizer.get_successful_experiments()) == 1
-    assert parameterizer.get_successful_experiments()[0] == FooExperiment
-
-
-def test_parameterize_regex_experiment_cached_compiled():
-
-    with mock.patch.object(
-        ParameterizationRegexExperiment,
-        "pattern",
-        new_callable=mock.PropertyMock,
-        return_value=r"(?P<foo>f[oO]{2})",
-    ) as mocked_pattern:
-        FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
-        parameterizer = Parameterizer(
-            regex_pattern_keys=(),
-            experiments=(FooExperiment,),
-        )
-        input_str = "blah foobarbaz fooooo"
-        _ = parameterizer.parameterize_all(input_str)
-        _ = parameterizer.parameterize_all(input_str)
-
-    mocked_pattern.assert_called_once()
 
 
 # These are test cases that we should fix

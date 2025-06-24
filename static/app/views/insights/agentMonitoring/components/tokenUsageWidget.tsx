@@ -148,6 +148,7 @@ export default function TokenUsageWidget() {
         organization.features.includes('visibility-explore-view') &&
         timeSeries && (
           <Toolbar
+            showCreateAlert
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [

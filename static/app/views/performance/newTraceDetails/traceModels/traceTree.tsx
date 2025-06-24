@@ -265,6 +265,11 @@ export declare namespace TraceTree {
   type Metadata = {
     event_id: string | undefined;
     project_slug: string | undefined;
+    // This is used to track the traceslug associated with a trace in a replay.
+    // This is necessary because a replay has multiple traces and the current ui requires
+    // us to merge them into one trace. We still need to keep track of the original traceSlug
+    // to be able to fetch the correct trace-item details from EAP, in the trace drawer.
+    replayTraceSlug?: string;
     spans?: number;
   };
 
@@ -386,6 +391,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
       meta: TraceMetaQueryResults['data'] | null;
       replay: ReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+      // This is used to track the traceslug associated with a trace in a replay.
+      // This is necessary because a replay has multiple traces and the current ui requires
+      // us to merge them into one trace. We still need to keep track of the original traceSlug
+      // to be able to fetch the correct trace-item details from EAP, in the trace drawer.
+      replayTraceSlug?: string;
     }
   ): TraceTree {
     const tree = new TraceTree();
@@ -423,6 +433,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         spans: options.meta?.transaction_child_count_map[value.event_id] ?? 0,
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
+        replayTraceSlug: options.replayTraceSlug,
       });
 
       if (isTransactionNode(node) || isEAPTransactionNode(node)) {
@@ -2202,47 +2213,21 @@ export class TraceTree extends TraceTreeEventDispatcher {
           return;
         }
 
-        const accumulator: TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace =
-          options.type === 'eap'
-            ? []
-            : {
-                transactions: [],
-                orphan_errors: [],
-              };
-
-        const updatedData = results.reduce((acc, result) => {
+        results.forEach((result, index) => {
+          const traceSlug = batch[index]?.traceSlug;
           // Ignoring the error case for now
           if (result.status === 'fulfilled') {
-            if (
-              isTraceSplitResult<
-                TraceSplitResults<TraceTree.Transaction>,
-                TraceTree.EAPTrace
-              >(result.value) &&
-              isTraceSplitResult<
-                TraceSplitResults<TraceTree.Transaction>,
-                TraceTree.EAPTrace
-              >(acc)
-            ) {
-              const {transactions, orphan_errors} = result.value;
-              acc.transactions.push(...transactions);
-              acc.orphan_errors.push(...orphan_errors);
-            } else if (Array.isArray(acc) && Array.isArray(result.value)) {
-              // accumulate eap trace
-              acc.push(...result.value);
-            }
+            this.appendTree(
+              TraceTree.FromTrace(result.value, {
+                meta: options.meta?.data,
+                replay: null,
+                preferences: options.preferences,
+                replayTraceSlug: traceSlug,
+              })
+            );
+            rerender();
           }
-
-          return acc;
-        }, accumulator);
-
-        this.appendTree(
-          TraceTree.FromTrace(updatedData, {
-            meta: options.meta?.data,
-            replay: null,
-            preferences: options.preferences,
-          })
-        );
-        rerender();
+        });
       }
 
       root.fetchStatus = 'idle';
