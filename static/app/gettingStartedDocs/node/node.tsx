@@ -315,24 +315,7 @@ const performanceOnboarding: OnboardingConfig = {
               value: 'javascript',
               filename: 'instrument.(js|mjs)',
               language: 'javascript',
-              code: `
-const Sentry = require("@sentry/node");
-
-// Ensure to call this before requiring any other modules!
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [Sentry.browserTracingIntegration()],
-
-  // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  // We recommend adjusting this value in production
-  tracesSampleRate: 1.0,
-
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
-});
-`,
+              code: getSdkInitSnippet(params, 'node'),
             },
           ],
           additionalInfo: tct(
