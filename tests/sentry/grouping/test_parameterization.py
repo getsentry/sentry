@@ -5,7 +5,7 @@ from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture
-def parameterizer():
+def parameterizer() -> Parameterizer:
     return Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS)
 
 
@@ -83,7 +83,9 @@ def parameterizer():
         ("Multiple - ip:port", "0.0.0.0:80", "<ip>:<int>"),
     ],
 )
-def test_parameterize_standard(name, input, expected, parameterizer):
+def test_parameterize_standard(
+    name: str, input: str, expected: str, parameterizer: Parameterizer
+) -> None:
     assert expected == parameterizer.parameterize_all(input), f"{name} failed"
     assert (
         f"prefix {expected}" == f"prefix {parameterizer.parameterize_all(input)}"
@@ -108,7 +110,9 @@ def test_parameterize_standard(name, input, expected, parameterizer):
         ),
     ],
 )
-def test_fail_parameterize(name, input, expected, parameterizer):
+def test_fail_parameterize(
+    name: str, input: str, expected: str, parameterizer: Parameterizer
+) -> None:
     assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
 
 
@@ -120,5 +124,7 @@ def test_fail_parameterize(name, input, expected, parameterizer):
         ("Not an Int", "Encoding: utf-8", "Encoding: utf-8"),  # produces "Encoding: utf<int>"
     ],
 )
-def test_too_aggressive_parameterize(name, input, expected, parameterizer):
+def test_too_aggressive_parameterize(
+    name: str, input: str, expected: str, parameterizer: Parameterizer
+) -> None:
     assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
