@@ -1,4 +1,5 @@
 import pytest
+
 from sentry.api.serializers import serialize
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
