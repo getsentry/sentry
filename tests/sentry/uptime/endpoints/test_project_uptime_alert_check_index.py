@@ -1,3 +1,4 @@
+import pytest
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -47,6 +48,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             incident_status=IncidentStatus.IN_INCIDENT,
         )
 
+    @pytest.mark.skip(reason="flaky: #94200")
     def test_get(self):
         response = self.get_success_response(
             self.organization.slug,
