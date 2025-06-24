@@ -20,7 +20,7 @@ from sentry.users.services.user import RpcUser
 
 # Generated based on the response from the Bitbucket API
 # Example: {"type": "error", "error": {"message": "Repository has no issue tracker."}}
-BITBUCKET_HALT_ERROR_CODES = ["Repository has no issue tracker."]
+BITBUCKET_HALT_ERROR_CODES = ["Repository has no issue tracker.", "Resource not found"]
 
 
 ISSUE_TYPES = (
