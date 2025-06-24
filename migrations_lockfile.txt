@@ -21,11 +21,11 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0004_add_django_jsonfield
+preprod: 0006_add_analysis_file_id_field
 
-replays: 0001_squashed_0005_drop_replay_index
+replays: 0006_add_bulk_delete_job
 
-sentry: 0928_move_notifications_models
+sentry: 0934_options_nullable_value
 
 social_auth: 0001_squashed_0002_default_auto_field
 
@@ -33,4 +33,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0070_migrate_remaining_anomaly_detection_alerts
+workflow_engine: 0074_safe_delete_actiongroupstatus

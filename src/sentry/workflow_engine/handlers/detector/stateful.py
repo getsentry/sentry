@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Generic, cast
 from uuid import uuid4
@@ -30,6 +31,8 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
 )
+
+logger = logging.getLogger(__name__)
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 
@@ -333,6 +336,19 @@ class StatefulDetectorHandler(
                 state_data, evaluated_priority, group_key
             )
 
+            # XXX(epurkhiser): Doing some debugging to understand why it
+            # apperas the thresholds are reached immediately for uptime results
+            if self.detector.type == "uptime_domain_failure":
+                logger.info(
+                    "uptime_debug_logging",
+                    extra={
+                        "packet": data_packet,
+                        "state_data": state_data,
+                        "threshold_counts": updated_threshold_counts,
+                        "thresholds": self._thresholds,
+                    },
+                )
+
             new_priority = self._has_breached_threshold(updated_threshold_counts)
             if new_priority is None:
                 # We haven't met any thresholds yet, so continue checking
@@ -412,7 +428,7 @@ class StatefulDetectorHandler(
                 condition_results, data_packet, new_priority
             )
             detector_result = self._create_decorated_issue_occurrence(
-                detector_occurrence, condition_results, new_priority, group_key
+                data_packet, detector_occurrence, condition_results, new_priority, group_key
             )
 
             # Set the event data with the necessary fields
@@ -474,6 +490,7 @@ class StatefulDetectorHandler(
 
     def _create_decorated_issue_occurrence(
         self,
+        data_packet: DataPacket[DataPacketType],
         detector_occurrence: DetectorOccurrence,
         evaluation_result: ProcessedDataConditionGroup,
         new_priority: DetectorPriorityLevel,
@@ -486,6 +503,7 @@ class StatefulDetectorHandler(
             **detector_occurrence.evidence_data,
             "detector_id": self.detector.id,
             "value": new_priority,
+            "data_packet_source_id": str(data_packet.source_id),
             "conditions": [
                 result.condition.get_snapshot() for result in evaluation_result.condition_results
             ],

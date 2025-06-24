@@ -5,7 +5,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry import features, options
-from sentry.autofix.utils import SeerAutomationSource
+from sentry.autofix.utils import SeerAutomationSource, is_seer_scanner_rate_limited
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.seer.issue_summary import get_issue_summary
@@ -29,6 +29,20 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     if not project.get_option("sentry:seer_scanner_automation"):
         return None
     if not get_seer_org_acknowledgement(org_id=group.organization.id):
+        return None
+
+    is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, group.organization)
+    if is_rate_limited:
+        logger.warning(
+            "Seer scanner auto-trigger rate limit hit",
+            extra={
+                "org_slug": group.organization.slug,
+                "project_slug": project.slug,
+                "group_id": group.id,
+                "scanner_run_count": current,
+                "scanner_run_limit": limit,
+            },
+        )
         return None
 
     from sentry import quotas

@@ -2019,6 +2019,12 @@ function buildRoutes() {
     </Route>
   );
 
+  const preprodRoutes = (
+    <Route path="/preprod/" component={make(() => import('sentry/views/preprod/index'))}>
+      <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
+    </Route>
+  );
+
   const feedbackV2ChildRoutes = (
     <Fragment>
       <IndexRoute
@@ -2427,6 +2433,7 @@ function buildRoutes() {
       {issueRoutes}
       {alertRoutes}
       {codecovRoutes}
+      {preprodRoutes}
       {replayRoutes}
       {releasesRoutes}
       {statsRoutes}
