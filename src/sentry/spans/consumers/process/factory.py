@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping
 from functools import partial
 from typing import cast
 
-import rapidjson
+import orjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
@@ -143,7 +143,7 @@ def process_batch(
                 min_timestamp = timestamp
 
             with metrics.timer("spans.buffer.process_batch.decode"):
-                val = cast(SpanEvent, rapidjson.loads(payload.value))
+                val = cast(SpanEvent, orjson.loads(payload.value))
 
             if killswitches.killswitch_matches_context(
                 "spans.drop-in-buffer",
