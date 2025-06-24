@@ -140,6 +140,7 @@ function ReplayTable({
                       <ActivityCell
                         key="activity"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -149,6 +150,7 @@ function ReplayTable({
                       <BrowserCell
                         key="browser"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -158,6 +160,7 @@ function ReplayTable({
                       <DeadClickCountCell
                         key="countDeadClicks"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -167,6 +170,7 @@ function ReplayTable({
                       <ErrorCountCell
                         key="countErrors"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -176,6 +180,7 @@ function ReplayTable({
                       <RageClickCountCell
                         key="countRageClicks"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -185,6 +190,7 @@ function ReplayTable({
                       <DurationCell
                         key="duration"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -194,6 +200,7 @@ function ReplayTable({
                       <OSCell
                         key="os"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -203,6 +210,7 @@ function ReplayTable({
                       <ReplayCell
                         key="session"
                         replay={replay}
+                        rowIndex={index}
                         eventView={eventView}
                         organization={organization}
                         referrer={referrer}
@@ -211,19 +219,14 @@ function ReplayTable({
                     );
 
                   case ReplayColumn.PLAY_PAUSE:
-                    return (
-                      <PlayPauseCell
-                        key="play"
-                        isSelected={selectedReplayIndex === index}
-                        handleClick={() => onClickPlay?.(index)}
-                      />
-                    );
+                    return <PlayPauseCell key="play" replay={replay} rowIndex={index} />;
 
                   case ReplayColumn.SLOWEST_TRANSACTION:
                     return (
                       <TransactionCell
                         key="slowestTransaction"
                         replay={replay}
+                        rowIndex={index}
                         organization={organization}
                       />
                     );

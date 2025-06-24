@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -20,10 +20,14 @@ import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader'
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
+import {
+  SelectedReplayIndexProvider,
+  useSelectedReplayIndex,
+} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
+import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -53,14 +57,7 @@ const VISIBLE_COLUMNS_MOBILE = [
   ReplayColumn.ACTIVITY,
 ];
 
-const visibleColumns = (allMobileProj: boolean) =>
-  allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS;
-
 function ReplayFilterMessage() {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-  if (!hasStreamlinedUI) {
-    return null;
-  }
   return (
     <ReplayFilterText>
       {t('The replays shown below are not subject to search filters.')}
@@ -94,12 +91,16 @@ export default function GroupReplays({group}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
+
   if (!eventView) {
     // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
         <ReplayHeader>
-          <ReplayFilterMessage />
+          {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
           <ReplayCountHeader>
             <IconUser size="sm" />
             {isFetching ? (
@@ -114,14 +115,42 @@ export default function GroupReplays({group}: Props) {
           isFetching={isFetching}
           replays={[]}
           sort={undefined}
-          visibleColumns={visibleColumns(isMobilePlatform)}
+          visibleColumns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
     );
   }
+
+  const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
+
   return (
-    <GroupReplaysTable eventView={eventView} organization={organization} group={group} />
+    <SelectedReplayIndexProvider>
+      <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
+        <ReplayHeader>
+          {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
+          <ReplayCountHeader>
+            <IconUser size="sm" />
+            {(replayCount ?? 0) > 50
+              ? tn(
+                  'There are 50+ replays for this issue across %s event',
+                  'There are 50+ replays for this issue across %s events',
+                  group.count
+                )
+              : t(
+                  'There %s for this issue across %s.',
+                  tn('is %s replay', 'are %s replays', replayCount ?? 0),
+                  tn('%s event', '%s events', group.count)
+                )}
+          </ReplayCountHeader>
+        </ReplayHeader>
+        <GroupReplaysWithEventView
+          eventView={eventView}
+          group={group}
+          replayCount={replayCount}
+        />
+      </StyledLayoutPage>
+    </SelectedReplayIndexProvider>
   );
 }
 
@@ -130,8 +159,6 @@ function GroupReplaysTableInner({
   organization,
   group,
   replaySlug,
-  setSelectedReplayIndex,
-  selectedReplayIndex,
   overlayContent,
   replays,
 }: {
@@ -140,10 +167,11 @@ function GroupReplaysTableInner({
   organization: Organization;
   replaySlug: string;
   replays: ReplayListRecord[] | undefined;
-  selectedReplayIndex: number;
-  setSelectedReplayIndex: (index: number) => void;
   overlayContent?: React.ReactNode;
 }) {
+  const selectedReplayIndex = useSelectedReplayIndex();
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+
   const orgSlug = organization.slug;
   const readerResult = useLoadReplayReader({
     orgSlug,
@@ -183,69 +211,87 @@ function GroupReplaysTableInner({
   );
 }
 
-const locationForFetching = {query: {}} as Location<ReplayListLocationQuery>;
-
-function GroupReplaysTable({
+function GroupReplaysWithEventView({
   eventView,
-  organization,
   group,
+  replayCount,
 }: {
   eventView: EventView;
   group: Group;
-  organization: Organization;
+  replayCount: undefined | number;
 }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const params = useParams<{groupId: string}>();
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const replayListData = useReplayList({
-    eventView,
-    location: locationForFetching,
-    organization,
-    queryReferrer: 'issueReplays',
-  });
-  const {replays} = replayListData;
-  const {allMobileProj} = useAllMobileProj({});
-
-  const rawReplayIndex = location.query.selected_replay_index;
-  const selectedReplayIndex = parseInt(
-    typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
-    10
-  );
+  const {groupId} = useParams<{groupId: string}>();
 
   useCleanQueryParamsOnRouteLeave({
     fieldsToClean: ['selected_replay_index'],
-    shouldClean: newLocation =>
-      newLocation.pathname.includes(`/issues/${params.groupId}/`),
+    shouldClean: newLocation => newLocation.pathname.includes(`/issues/${groupId}/`),
   });
 
-  const setSelectedReplayIndex = useCallback(
-    (index: number) => {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {...location.query, selected_replay_index: index},
-        },
-        {replace: true, preventScrollReset: true}
-      );
-    },
-    [location, navigate]
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+
+  const organization = useOrganization();
+  const replayListData = useReplayList({
+    eventView,
+    location: {query: {}} as Location<ReplayListLocationQuery>,
+    organization,
+    queryReferrer: 'issueReplays',
+  });
+
+  const {allMobileProj} = useAllMobileProj({});
+
+  const selectedReplayIndex = useSelectedReplayIndex();
+  const selectedReplay = replayListData.replays?.[selectedReplayIndex];
+
+  const replayTable = (
+    <ReplayTable
+      sort={undefined}
+      visibleColumns={[
+        ...(selectedReplay ? [ReplayColumn.PLAY_PAUSE] : []),
+        ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
+      ]}
+      showDropdownFilters={false}
+      onClickPlay={setSelectedReplayIndex}
+      fetchError={replayListData.fetchError}
+      isFetching={replayListData.isFetching}
+      replays={replayListData.replays}
+    />
   );
 
-  const selectedReplay = replays?.[selectedReplayIndex];
+  if (selectedReplay) {
+    <GroupReplaysTableInner
+      // Use key to force unmount/remount of component to reset the context and replay iframe
+      key={selectedReplay.id}
+      overlayContent={
+        <ReplayOverlay replayCount={replayCount} replays={replayListData.replays} />
+      }
+      organization={organization}
+      group={group}
+      replaySlug={selectedReplay.id}
+      replays={replayListData.replays}
+    >
+      {replayTable}
+    </GroupReplaysTableInner>;
+  }
+  return replayTable;
+}
 
-  const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
+function ReplayOverlay({
+  replayCount,
+  replays,
+}: {
+  replayCount: undefined | number;
+  replays: ReplayListRecord[] | undefined;
+}) {
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const selectedReplayIndex = useSelectedReplayIndex();
+
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
     ? `${nextReplay.user.display_name || t('Anonymous User')}`
     : undefined;
 
-  const overlayContent =
-    nextReplayText && replayCount && replayCount > 1 ? (
+  if (nextReplayText && replayCount && replayCount > 1) {
+    return (
       <Fragment>
         <UpNext>{t('Up Next')}</UpNext>
         <OverlayText>{nextReplayText}</OverlayText>
@@ -260,63 +306,10 @@ function GroupReplaysTable({
           {t('Play Now')}
         </Button>
       </Fragment>
-    ) : undefined;
+    );
+  }
 
-  const replayTable = (
-    <ReplayTable
-      sort={undefined}
-      visibleColumns={[
-        ...(selectedReplay ? [ReplayColumn.PLAY_PAUSE] : []),
-        ...visibleColumns(allMobileProj),
-      ]}
-      showDropdownFilters={false}
-      onClickPlay={setSelectedReplayIndex}
-      fetchError={replayListData.fetchError}
-      isFetching={replayListData.isFetching}
-      replays={replays}
-    />
-  );
-
-  const inner = selectedReplay ? (
-    <GroupReplaysTableInner
-      // Use key to force unmount/remount of component to reset the context and replay iframe
-      key={selectedReplay.id}
-      setSelectedReplayIndex={setSelectedReplayIndex}
-      selectedReplayIndex={selectedReplayIndex}
-      overlayContent={overlayContent}
-      organization={organization}
-      group={group}
-      replaySlug={selectedReplay.id}
-      replays={replays}
-    >
-      {replayTable}
-    </GroupReplaysTableInner>
-  ) : (
-    replayTable
-  );
-
-  return (
-    <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-      <ReplayHeader>
-        <ReplayFilterMessage />
-        <ReplayCountHeader>
-          <IconUser size="sm" />
-          {(replayCount ?? 0) > 50
-            ? tn(
-                'There are 50+ replays for this issue across %s event',
-                'There are 50+ replays for this issue across %s events',
-                group.count
-              )
-            : t(
-                'There %s for this issue across %s.',
-                tn('is %s replay', 'are %s replays', replayCount ?? 0),
-                tn('%s event', '%s events', group.count)
-              )}
-        </ReplayCountHeader>
-      </ReplayHeader>
-      {inner}
-    </StyledLayoutPage>
-  );
+  return null;
 }
 
 const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
