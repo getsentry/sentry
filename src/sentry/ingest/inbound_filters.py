@@ -91,7 +91,7 @@ def set_filter_state(filter_id, project, state):
             if state["active"]:
                 option_val = "1"
         elif "subfilters" in state and len(state["subfilters"]) > 0:
-            option_val = set(state["subfilters"])
+            option_val = sorted(set(state["subfilters"]))
 
         ProjectOption.objects.set_value(
             project=project, key=f"filters:{filter_id}", value=option_val
