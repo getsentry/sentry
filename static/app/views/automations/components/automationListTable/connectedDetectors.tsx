@@ -47,13 +47,7 @@ function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
         return (
           <HovercardRow key={detector.id}>
             <InteractionStateLayer />
-            <DetectorLink
-              detectorId={detector.id}
-              name={detector.name}
-              createdBy={detector.createdBy}
-              projectId={detector.projectId}
-              disabled={detector.disabled}
-            />
+            <DetectorLink detector={detector} />
           </HovercardRow>
         );
       })}
@@ -77,20 +71,25 @@ export function AutomationListConnectedDetectors({
     <ConnectedDetectors>
       <ClassNames>
         {({css}) => (
-          <Hovercard
+          <WiderHovercard
             body={<ConnectedDetectorsBody detectorIds={detectorIds} />}
             bodyClassName={css`
               padding: 0;
+              max-width: 600px;
             `}
             showUnderline
           >
             {tn('%s monitor', '%s monitors', detectorIds.length)}
-          </Hovercard>
+          </WiderHovercard>
         )}
       </ClassNames>
     </ConnectedDetectors>
   );
 }
+
+const WiderHovercard = styled(Hovercard)`
+  width: 360px;
+`;
 
 const ConnectedDetectors = styled('div')`
   color: ${p => p.theme.textColor};

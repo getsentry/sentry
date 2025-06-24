@@ -9,7 +9,7 @@ import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/conenctedDetectors';
+import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
 import {
   getAutomationActions,
   useAutomationProjectIds,

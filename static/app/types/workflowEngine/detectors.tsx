@@ -57,7 +57,7 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
 /**
  * See DataSourceSerializer
  */
-type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
+export type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
 export type DetectorType = 'error' | 'metric_issue' | 'uptime_domain_failure';
 
