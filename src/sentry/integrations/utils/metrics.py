@@ -151,7 +151,17 @@ class EventLifecycle:
         if isinstance(outcome_reason, BaseException):
             # Capture exception in Sentry if create_issue is True
             if create_issue:
-                event_id = sentry_sdk.capture_exception(outcome_reason)
+                # If the outcome is halted, we want to set the level to warning
+                if outcome == EventLifecycleOutcome.HALTED:
+                    sentry_sdk.set_level("warning")
+
+                event_id = sentry_sdk.capture_exception(
+                    outcome_reason,
+                )
+
+                # Reset the level
+                sentry_sdk.leve
+
                 log_params["extra"]["slo_event_id"] = event_id
 
             # Add exception summary but don't include full stack trace in logs
@@ -204,6 +214,9 @@ class EventLifecycle:
         Calling it means that the feature is broken and requires immediate attention.
 
         An error will be reported to Sentry if create_issue is True (default).
+        The default is True because we want to create an issue for all failures
+        because it will provide a stack trace and help us debug the issue.
+        There needs to be a compelling reason to not create an issue for a failure
 
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
@@ -228,6 +241,8 @@ class EventLifecycle:
         """Record that the event halted in an ambiguous state.
 
         It will be logged to GCP but no Sentry error will be reported by default.
+        The default is False because we don't want to create an issue for all halts.
+        However for certain debugging cases, we may want to create an issue.
 
         This method can be called in response to a sufficiently ambiguous exception
         or other error condition, where it may have been caused by a user error or
