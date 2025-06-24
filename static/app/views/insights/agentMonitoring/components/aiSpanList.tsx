@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
-import {IconCode, IconSort} from 'sentry/icons';
+import {IconCode} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
@@ -288,7 +288,7 @@ function getNodeInfo(
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.title = op;
     nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
-    nodeInfo.color = colors[1];
+    nodeInfo.color = colors[0];
   } else if (
     AI_GENERATION_OPS.includes(op) ||
     AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
@@ -305,11 +305,7 @@ function getNodeInfo(
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.title = op || 'gen_ai.toolCall';
     nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
-    nodeInfo.color = colors[3];
-  } else if (op === 'http.client') {
-    nodeInfo.icon = <IconSort size="md" />;
-    nodeInfo.title = node.value.description || 'HTTP';
-    nodeInfo.color = colors[4];
+    nodeInfo.color = colors[5];
   } else {
     nodeInfo.title = op || 'Span';
     nodeInfo.subtitle = node.value.description || '';
