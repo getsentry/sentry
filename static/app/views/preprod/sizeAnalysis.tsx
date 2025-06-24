@@ -9,7 +9,7 @@ function SizeAnalysis() {
       <Layout.Header unified>
         <Layout.HeaderContent>
           <Layout.Title>
-            Size analysis <FeatureBadge type="new" />
+            {t('Size analysis')} <FeatureBadge type="new" />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>

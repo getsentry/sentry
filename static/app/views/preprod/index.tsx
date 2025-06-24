@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  children: React.ReactNode;
+  children: NonNullable<React.ReactNode>;
 };
 
 function PreprodContainer({children}: Props) {
