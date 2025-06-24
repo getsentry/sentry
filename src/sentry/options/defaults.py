@@ -1191,7 +1191,7 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
-register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("relay.cardinality-limiter.mode", default="disabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Override to set a list of limits into passive mode by organization.
 #
 # In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
@@ -1206,7 +1206,7 @@ register(
 # Rate needs to be between `0.0` and `1.0`.
 # If set to `1.0` all cardinality limiter rejections will be logged as a Sentry error.
 register(
-    "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "relay.cardinality-limiter.error-sample-rate", default=0.00, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 # List of additional cardinality limits and selectors.
 #
