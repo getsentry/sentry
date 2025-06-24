@@ -59,6 +59,7 @@ function useOnboardingProject() {
 }
 
 function useAiSpanWaiter(project: Project) {
+  const {selection} = usePageFilters();
   const [refetchKey, setRefetchKey] = useState(0);
 
   const request = useEAPSpans(
@@ -69,6 +70,16 @@ function useAiSpanWaiter(project: Project) {
       enabled: !!project,
       useQueryOptions: {
         additonalQueryKey: [`refetch-${refetchKey}`],
+      },
+      pageFilters: {
+        ...selection,
+        projects: [Number(project.id)],
+        datetime: {
+          period: '6h',
+          utc: true,
+          start: null,
+          end: null,
+        },
       },
     },
     Referrer.ONBOARDING
