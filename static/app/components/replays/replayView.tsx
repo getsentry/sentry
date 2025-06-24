@@ -14,14 +14,14 @@ import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebar
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
-import useOrganization from 'sentry/utils/useOrganization';
-import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {JetpackComposePiiNotice} from 'sentry/views/replays/jetpackComposePiiNotice';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/views/replays/jetpackComposePiiNotice';
 
 import {CanvasSupportNotice} from './canvasSupportNotice';
 
@@ -32,10 +32,12 @@ type Props = {
 
 function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
-  const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
   const isVideoReplay = replay?.isVideoReplay();
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays: replay ? [replay.getReplay()] : [],
+  });
 
   return (
     <Fragment>
@@ -87,13 +89,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
             <FluidHeight>
-              {isVideoReplay &&
-              organization.slug !== 'demo' &&
-              replay?.getReplay()?.sdk.name === 'sentry.java.android' &&
-              semverCompare(
-                replay?.getReplay()?.sdk.version || '',
-                MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.minVersion
-              ) === -1 ? (
+              {isVideoReplay && needsJetpackComposePiiWarning ? (
                 <JetpackComposePiiNotice />
               ) : null}
               <CanvasSupportNotice />
