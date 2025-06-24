@@ -13,8 +13,12 @@ type Props = {
 };
 
 export type BoxSelectOptions = {
+  boxCoordRange: {
+    x: [number, number];
+    y: [number, number];
+  } | null;
   brush: EChartsOption['brush'];
-  brushArea: EchartBrushAreas | null;
+  clearSelection: () => void;
   onBrushEnd: EChartBrushEndHandler;
   pageCoords: {x: number; y: number} | null;
   reActivateSelection: () => void;
@@ -44,8 +48,8 @@ export function useChartBoxSelect({
     'performance-spans-suspect-attributes'
   );
 
-  // This exposes the coordinate range of the selected area. It is clamped to extremes
-  // of the chart's x and y axes.
+  // This contains the coordinate range of the selected area, that we expose to the parent component.
+  // It is clamped to extremes of the chart's x and y axes.
   const [brushArea, setBrushArea] = useState<EchartBrushAreas | null>(null);
 
   // This exposes the page coordinates when the user finishes drawing the box. This is used
@@ -110,21 +114,25 @@ export function useChartBoxSelect({
     wrapper.addEventListener('mouseup', handleMouseUp);
   }, [brushArea, chartWrapperRef]);
 
+  const clearSelection = useCallback(() => {
+    const chartInstance = chartRef.current?.getEchartsInstance();
+    chartInstance?.dispatchAction({type: 'brush', areas: []});
+    setBrushArea(null);
+    setPageCoords(null);
+  }, [chartRef]);
+
   const handleOutsideClick = useCallback(
     (event: MouseEvent) => {
-      const chartInstance = chartRef.current?.getEchartsInstance();
       if (
         chartWrapperRef.current &&
         !chartWrapperRef.current.contains(event.target as Node) &&
         triggerWrapperRef.current &&
         !triggerWrapperRef.current.contains(event.target as Node)
       ) {
-        chartInstance?.dispatchAction({type: 'brush', areas: []});
-        setBrushArea(null);
-        setPageCoords(null);
+        clearSelection();
       }
     },
-    [chartWrapperRef, triggerWrapperRef, chartRef]
+    [chartWrapperRef, triggerWrapperRef, clearSelection]
   );
 
   const enableBrushMode = useCallback(() => {
@@ -195,15 +203,30 @@ export function useChartBoxSelect({
   }, [brush]);
 
   const config: BoxSelectOptions = useMemo(() => {
+    const coordRange = brushArea?.[0]?.coordRange ?? null;
     return {
       brush,
-      brushArea,
+      boxCoordRange: coordRange
+        ? {
+            x: coordRange[0] as [number, number],
+            y: coordRange[1] as [number, number],
+          }
+        : null,
       onBrushEnd,
       toolBox,
       pageCoords,
       reActivateSelection,
+      clearSelection,
     };
-  }, [brushArea, onBrushEnd, brush, toolBox, pageCoords, reActivateSelection]);
+  }, [
+    brushArea,
+    onBrushEnd,
+    brush,
+    toolBox,
+    pageCoords,
+    reActivateSelection,
+    clearSelection,
+  ]);
 
   return config;
 }

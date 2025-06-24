@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 
 type Props = {
@@ -12,25 +14,47 @@ type Props = {
 };
 
 export function FloatingTrigger({boxSelectOptions, triggerWrapperRef}: Props) {
-  const coords = boxSelectOptions.pageCoords;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pageCoords = boxSelectOptions.pageCoords;
 
   const handleZoomIn = useCallback(() => {
-    // TODO Abdullah Khan: Implement zoom in
-  }, []);
+    const coordRange = boxSelectOptions.boxCoordRange;
+    const startTimestamp = coordRange?.x[0];
+    const endTimestamp = coordRange?.x[1];
+    const newQuery = {...location.query};
+
+    if (newQuery.statsPeriod) {
+      delete newQuery.statsPeriod;
+    }
+
+    if (!startTimestamp || !endTimestamp) {
+      return;
+    }
+
+    newQuery.start = new Date(startTimestamp).toISOString();
+    newQuery.end = new Date(endTimestamp).toISOString();
+
+    boxSelectOptions.clearSelection();
+    navigate({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+  }, [boxSelectOptions, location.pathname, location.query, navigate]);
 
   const handleFindSuspectAttributes = useCallback(() => {
     // TODO Abdullah Khan: Implement find suspect attributes
   }, []);
 
-  if (!coords) return null;
+  if (!pageCoords) return null;
 
   return createPortal(
     <div
       ref={triggerWrapperRef}
       style={{
         position: 'absolute',
-        top: coords.y,
-        left: coords.x,
+        top: pageCoords.y,
+        left: pageCoords.x,
       }}
     >
       <List>
