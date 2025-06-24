@@ -34,6 +34,7 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
           <InnerCell isCentered>
             {crashedInfo ? (
               <Tooltip
+                skipWrapper
                 title={tct('Errored with [crashedInfo]', {
                   crashedInfo: crashedInfo.values[0].type,
                 })}
