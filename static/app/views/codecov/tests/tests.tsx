@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
-import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
+import {RepoSelector} from 'sentry/components/codecov/repoSelector/repoSelector';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -27,7 +27,7 @@ export default function TestsPage() {
     <LayoutGap>
       <PageFilterBar condensed>
         <IntegratedOrgSelector />
-        <RepoPicker />
+        <RepoSelector />
         <BranchSelector />
         <DatePicker />
       </PageFilterBar>

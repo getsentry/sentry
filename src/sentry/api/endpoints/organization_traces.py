@@ -93,9 +93,7 @@ class TraceResult(TypedDict):
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField(
-        ["spans", "spansIndexed"], required=False, default="spansIndexed"
-    )
+    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
 
     breakdownSlices = serializers.IntegerField(default=40, min_value=1, max_value=100)
     query = serializers.ListField(

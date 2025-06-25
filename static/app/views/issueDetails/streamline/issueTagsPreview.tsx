@@ -346,7 +346,7 @@ const TagsPreview = styled('div')`
   align-content: center;
   gap: 1px;
   column-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
@@ -408,7 +408,7 @@ const TagPreviewGrid = styled(Link)`
   margin: 0 -${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
@@ -417,12 +417,12 @@ const TagPreviewGrid = styled(Link)`
 `;
 
 const LegendText = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
 const LegendPercentage = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;

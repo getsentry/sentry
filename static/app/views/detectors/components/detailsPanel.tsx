@@ -12,6 +12,10 @@ interface DetailsPanelProps {
 }
 
 function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
+  if (!dataSource.queryObj) {
+    return <Container>{t('Query not found.')}</Container>;
+  }
+
   return (
     <Container>
       <Flex direction="column" gap={space(0.5)}>
@@ -52,7 +56,7 @@ function DetailsPanel({detector}: DetailsPanelProps) {
 }
 
 const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 `;
 

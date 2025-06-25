@@ -72,5 +72,5 @@ const AlertContent = styled('div')`
 
 const AlertHeader = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;

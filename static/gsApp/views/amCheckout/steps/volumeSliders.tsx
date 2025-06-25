@@ -266,7 +266,7 @@ const SectionHeader = styled('div')`
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const Title = styled('label')`
@@ -282,7 +282,7 @@ const Description = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
@@ -293,7 +293,7 @@ const Events = styled('div')<{isLegacy: boolean}>`
 `;
 
 const MinMax = styled(Description)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const BaseRow = styled('div')`
@@ -309,7 +309,7 @@ const StyledHovercard = styled(Hovercard)`
   ${Header} {
     color: ${p => p.theme.subText};
     text-transform: uppercase;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     border-radius: 6px 6px 0px 0px;
     padding: ${space(2)};
   }
@@ -331,7 +331,7 @@ const IconContainer = styled('span')`
 
 const PerformanceUnits = styled(BaseRow)`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
 `;
 

@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import type {Actor} from 'sentry/types/core';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -97,7 +97,7 @@ type ReadableSavedQuery = {
   query: [ReadableQuery, ...ReadableQuery[]];
   queryDataset: string;
   starred: boolean;
-  createdBy?: Actor;
+  createdBy?: User;
   end?: string;
   environment?: string[];
   isPrebuilt?: boolean;
@@ -117,7 +117,7 @@ export class SavedQuery {
   query: [Query, ...Query[]];
   queryDataset: string;
   starred: boolean;
-  createdBy?: Actor;
+  createdBy?: User;
   end?: string;
   environment?: string[];
   isPrebuilt?: boolean;

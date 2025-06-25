@@ -456,7 +456,7 @@ class Body extends Component<Props, State> {
 
 const MainUpsell = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

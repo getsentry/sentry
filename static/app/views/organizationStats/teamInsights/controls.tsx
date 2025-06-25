@@ -150,7 +150,7 @@ function TeamStatsControls({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              fontSize: theme.fontSizeMedium,
+              fontSize: theme.fontSize.md,
               ':before': {
                 ...provided[':before'],
                 color: theme.textColor,
@@ -209,7 +209,7 @@ function TeamStatsControls({
             }),
             singleValue: (base: any) => ({
               ...base,
-              fontSize: theme.fontSizeMedium,
+              fontSize: theme.fontSize.md,
               display: 'flex',
               ':before': {
                 ...base[':before'],
