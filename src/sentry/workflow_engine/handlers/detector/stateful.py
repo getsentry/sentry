@@ -560,6 +560,7 @@ class StatefulDetectorHandler(
 
         if new_priority == DetectorPriorityLevel.OK:
             incremented_value = (state.counter_updates.get(new_priority) or 0) + 1
+            results.update({level: None for level in self._thresholds.keys()})
             results.update({new_priority: incremented_value})
         else:
             for level in self._thresholds.keys():
