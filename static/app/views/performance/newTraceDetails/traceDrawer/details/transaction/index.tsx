@@ -164,6 +164,7 @@ export function TransactionNodeDetails({
           node={node}
           project={project}
           organization={organization}
+          hideNodeActions={hideNodeActions}
         />
 
         <AIInputSection node={node} event={event} />

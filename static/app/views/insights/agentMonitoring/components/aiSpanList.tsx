@@ -173,26 +173,33 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
   const spans = useMemo(() => {
     return nodes.filter(node => isEAPSpanNode(node));
   }, [nodes]);
-  const projectIds = spans.map(span => span.value.project_id);
+  const projectIds = new Set(spans.map(span => span.value.project_id));
+  const totalStart = Math.min(
+    ...spans.map(span => new Date(span.value.start_timestamp * 1000).getTime())
+  );
+  const totalEnd = Math.max(
+    ...spans.map(span => new Date(span.value.end_timestamp * 1000).getTime())
+  );
 
   const spanAttributesRequest = useEAPSpans(
     {
-      search: `span_id:[${spans.map(span => span.value.event_id).join(',')}]`,
+      search: `span_id:[${spans.map(span => `"${span.value.event_id}"`).join(',')}]`,
       fields: [
         'span_id',
-        keyToTag(AI_MODEL_ID_ATTRIBUTE, 'string'),
+        AI_AGENT_NAME_ATTRIBUTE,
+        AI_MODEL_ID_ATTRIBUTE,
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
-        keyToTag(AI_TOOL_NAME_ATTRIBUTE, 'string'),
+        AI_TOOL_NAME_ATTRIBUTE,
       ] as EAPSpanProperty[],
       limit: 100,
       // Pass custom values as the page filters are not available in the trace view
       pageFilters: {
-        projects: projectIds,
+        projects: Array.from(projectIds),
         environments: [],
         datetime: {
-          period: '90d',
-          start: null,
-          end: null,
+          period: null,
+          start: new Date(totalStart),
+          end: new Date(totalEnd),
           utc: true,
         },
       },
