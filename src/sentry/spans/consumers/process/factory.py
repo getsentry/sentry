@@ -148,6 +148,7 @@ def process_batch(
                     "trace_id": val.get("trace_id"),
                     "partition_id": partition_id,
                 },
+                emit_metrics=False,
             ):
                 continue
 
