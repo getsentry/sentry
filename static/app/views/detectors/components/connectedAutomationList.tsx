@@ -1,23 +1,20 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 const AUTOMATIONS_PER_PAGE = 10;
 
@@ -27,13 +24,39 @@ type Props = {
   toggleConnected?: (id: string) => void;
 };
 
+function Skeletons({canEdit}: {canEdit: boolean}) {
+  return (
+    <Fragment>
+      {Array.from({length: AUTOMATIONS_PER_PAGE}).map((_, index) => (
+        <SimpleTable.Row key={index}>
+          <SimpleTable.RowCell name="name">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell name="last-triggered">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell name="action-filters">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          {canEdit && (
+            <SimpleTable.RowCell name="connected">
+              <Placeholder height="20px" />
+            </SimpleTable.RowCell>
+          )}
+        </SimpleTable.Row>
+      ))}
+    </Fragment>
+  );
+}
+
 export function ConnectedAutomationsList({
   automationIds,
   connectedAutomationIds,
   toggleConnected,
 }: Props) {
-  const organization = useOrganization();
-  const canEdit = connectedAutomationIds && !!toggleConnected;
+  const canEdit = Boolean(
+    connectedAutomationIds && typeof toggleConnected === 'function'
+  );
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,6 +64,7 @@ export function ConnectedAutomationsList({
     data: automations,
     isLoading,
     isError,
+    isSuccess,
     getResponseHeader,
   } = useAutomationsQuery(
     {
@@ -52,39 +76,15 @@ export function ConnectedAutomationsList({
     {enabled: automationIds.length > 0}
   );
 
-  if (isError) {
-    return <LoadingError />;
-  }
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  const tableData: ConnectedAutomationsData[] =
-    automations
-      ?.map(automation => {
-        return {
-          ...automation,
-          link: makeAutomationDetailsPathname(organization.slug, automation.id),
-          connected: canEdit
-            ? {
-                isConnected: connectedAutomationIds?.has(automation.id),
-                toggleConnected: () => toggleConnected?.(automation.id),
-              }
-            : undefined,
-        };
-      })
-      .filter(defined) ?? [];
-
   return (
-    <div>
+    <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="lastTriggered">
+          <SimpleTable.HeaderCell name="last-triggered">
             {t('Last Triggered')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="actionFilters">
+          <SimpleTable.HeaderCell name="action-filters">
             {t('Actions')}
           </SimpleTable.HeaderCell>
           {canEdit && (
@@ -93,33 +93,37 @@ export function ConnectedAutomationsList({
             </SimpleTable.HeaderCell>
           )}
         </SimpleTable.Header>
-        {tableData.length === 0 && (
+        {isLoading && <Skeletons canEdit={canEdit} />}
+        {isError && <LoadingError />}
+        {automationIds.length === 0 && (
           <SimpleTable.Empty>{t('No automations connected')}</SimpleTable.Empty>
         )}
-        {tableData.map(row => (
-          <SimpleTable.Row key={row.id}>
-            <SimpleTable.RowCell name="name">
-              <AutomationTitleCell
-                name={row.name}
-                href={row.link}
-                createdBy={row.createdBy}
-              />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="lastTriggered">
-              <TimeAgoCell date={row.lastTriggered} />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="actionFilters">
-              <ActionCell actions={getAutomationActions(row)} />
-            </SimpleTable.RowCell>
-            {canEdit && (
-              <SimpleTable.RowCell name="connected">
-                <Button onClick={row.connected?.toggleConnected}>
-                  {row.connected?.isConnected ? t('Disconnect') : t('Connect')}
-                </Button>
+        {isSuccess &&
+          automations.map(automation => (
+            <SimpleTable.Row
+              key={automation.id}
+              variant={automation.disabled ? 'faded' : 'default'}
+            >
+              <SimpleTable.RowCell name="name">
+                <AutomationTitleCell automation={automation} />
               </SimpleTable.RowCell>
-            )}
-          </SimpleTable.Row>
-        ))}
+              <SimpleTable.RowCell name="last-triggered">
+                <TimeAgoCell date={automation.lastTriggered} />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell name="action-filters">
+                <ActionCell actions={getAutomationActions(automation)} />
+              </SimpleTable.RowCell>
+              {canEdit && (
+                <SimpleTable.RowCell name="connected">
+                  <Button onClick={() => toggleConnected?.(automation.id)} size="sm">
+                    {connectedAutomationIds?.has(automation.id)
+                      ? t('Disconnect')
+                      : t('Connect')}
+                  </Button>
+                </SimpleTable.RowCell>
+              )}
+            </SimpleTable.Row>
+          ))}
       </SimpleTableWithColumns>
       <Pagination
         onCursor={cursor => {
@@ -133,21 +137,38 @@ export function ConnectedAutomationsList({
         }}
         pageLinks={getResponseHeader?.('Link')}
       />
-    </div>
+    </Container>
   );
 }
 
-interface BaseAutomationData extends Automation {
-  link: string;
-}
-
-interface ConnectedAutomationsData extends BaseAutomationData {
-  connected?: {
-    isConnected: boolean;
-    toggleConnected: () => void;
-  };
-}
+const Container = styled('div')`
+  container-type: inline-size;
+`;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: minmax(0, 3fr) auto auto 1fr;
+  grid-template-columns: 1fr 200px 180px auto;
+
+  /*
+    The connected column can be added/removed depending on props, so in order to
+    have a constant width we have an auto grid column and set the width here.
+    */
+  .connected {
+    width: 140px;
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr 180px auto;
+
+    .last-triggered {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.xsmall}) {
+    grid-template-columns: 1fr auto;
+
+    .action-filters {
+      display: none;
+    }
+  }
 `;
