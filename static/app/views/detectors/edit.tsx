@@ -41,7 +41,7 @@ function DetectorBreadcrumbs({detectorId}: {detectorId: string}) {
       crumbs={[
         {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
         {label: title, to: makeMonitorDetailsPathname(organization.slug, detectorId)},
-        {label: t('Edit')},
+        {label: t('Configure')},
       ]}
     />
   );
