@@ -8,6 +8,7 @@ from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -77,6 +78,21 @@ class ResolvedColumn:
             return self.internal_type
         else:
             return constants.TYPE_MAP[self.search_type]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedLiteral(ResolvedColumn):
+    value: float
+    is_aggregate: bool = False
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        """rpc doesn't understand a bare literal, so we return a no-op formula"""
+        return Column.BinaryFormula(
+            op=constants.ARITHMETIC_OPERATOR_MAP["plus"],
+            left=Column(literal=LiteralValue(val_double=self.value)),
+            right=Column(literal=LiteralValue(val_double=0)),
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -455,6 +471,17 @@ def project_term_resolver(
         return [int(val) for val in raw_value]
     else:
         return int(raw_value)
+
+
+# Any of the resolved attributes, mostly to clean typing up so there's not this giant list all over the code
+AnyResolved = (
+    ResolvedAttribute
+    | ResolvedAggregate
+    | ResolvedConditionalAggregate
+    | ResolvedFormula
+    | ResolvedEquation
+    | ResolvedLiteral
+)
 
 
 @dataclass(frozen=True)
