@@ -1164,11 +1164,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Switch for more performant project counter incr
-register(
-    "store.projectcounter-modern-upsert-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Run an experimental grouping config in background for performance analysis
 register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
