@@ -75,6 +75,7 @@ import {
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
@@ -413,6 +414,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  hideNodeActions?: boolean;
   highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
@@ -424,7 +426,9 @@ function Highlights({
   headerContent,
   bodyContent,
   highlightedAttributes,
+  hideNodeActions,
 }: HighlightProps) {
+  const location = useLocation();
   const dispatch = useTraceStateDispatch();
   const organization = useOrganization();
 
@@ -491,7 +495,22 @@ function Highlights({
               ))}
             </HighlightedAttributesWrapper>
           ) : null}
-          {isAiNode && hasAgentInsightsFeature(organization) ? null : (
+          {isAiNode && hasAgentInsightsFeature(organization) ? (
+            hideNodeActions ? null : (
+              <OpenInAIFocusButton
+                size="xs"
+                to={{
+                  ...location,
+                  query: {
+                    ...location.query,
+                    tab: TraceLayoutTabKeys.AI_SPANS,
+                  },
+                }}
+              >
+                {t('Open in AI View')}
+              </OpenInAIFocusButton>
+            )
+          ) : (
             <Fragment>
               <StyledPanel>
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
@@ -688,6 +707,10 @@ const HighlightedAttributesWrapper = styled('div')`
 
 const HighlightedAttributeName = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const OpenInAIFocusButton = styled(LinkButton)`
+  width: max-content;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`

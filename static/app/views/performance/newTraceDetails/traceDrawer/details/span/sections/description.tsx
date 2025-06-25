@@ -53,11 +53,13 @@ export function SpanDescription({
   organization,
   location,
   project,
+  hideNodeActions,
 }: {
   location: Location;
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
     eventId: node.event?.eventID,
@@ -219,6 +221,7 @@ export function SpanDescription({
       avgDuration={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         organization,
         attributes: span.data,
