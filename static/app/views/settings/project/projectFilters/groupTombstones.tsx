@@ -55,7 +55,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           />
         </StyledBox>
         <RightAlignedColumn>
-          {data.lastSeen ? (
+          {data.lastSeen && data.lastSeen !== data.dateAdded ? (
             <TimeSince
               date={data.lastSeen}
               unitStyle="short"
