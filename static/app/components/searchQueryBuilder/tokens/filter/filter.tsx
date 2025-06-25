@@ -62,22 +62,33 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
+        const allContains =
+          items[0]!.value.type === Token.VALUE_TEXT && !!items[0]!.value.wildcard;
+
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0]!.value)}
+            {formatFilterValue({
+              token: items[0]!.value,
+              stripWildcards: allContains,
+            })}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
+      const allContains = items.every(
+        item => item?.value?.type === Token.VALUE_TEXT && item.value.wildcard
+      );
 
       return (
         <FilterValueList>
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
-                {formatFilterValue(item.value)}
+                {formatFilterValue({
+                  token: item.value!,
+                  stripWildcards: allContains,
+                })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -95,12 +106,18 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
     }
-    default:
+    default: {
+      const allContains = token.value.type === Token.VALUE_TEXT && !!token.value.wildcard;
+
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value)}
+          {formatFilterValue({
+            token: token.value,
+            stripWildcards: allContains,
+          })}
         </FilterValueSingleTruncatedValue>
       );
+    }
   }
 }
 
