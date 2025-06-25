@@ -200,6 +200,34 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert evaluation_result.priority == Level.OK
         assert evaluation_result.result.detector_id == self.detector.id
 
+    def test_evaluate__high_to_low(self):
+        # One HIGH then one LOW will result in a low evaluation
+        result = self.handler.evaluate(self.packet(1, Level.HIGH))
+        assert result == {}
+        result = self.handler.evaluate(self.packet(2, Level.LOW))
+        assert result.get(self.group_key)
+        evaluation_result = result[self.group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        assert evaluation_result.priority == Level.LOW
+
+    def test_evaluate__low_to_high(self):
+        # Two LOW evaluations result in a LOW
+        result = self.handler.evaluate(self.packet(1, Level.LOW))
+        result = self.handler.evaluate(self.packet(2, Level.LOW))
+        assert result.get(self.group_key)
+        evaluation_result = result[self.group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        assert evaluation_result.priority == Level.LOW
+
+        # Followed by two HIGH evaluations to result in a high
+        result = self.handler.evaluate(self.packet(3, Level.HIGH))
+        assert result == {}
+        result = self.handler.evaluate(self.packet(4, Level.HIGH))
+        assert result.get(self.group_key)
+        evaluation_result = result[self.group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        assert evaluation_result.priority == Level.HIGH
+
     def test_evaluate__resolve__detector_state(self):
         # Two HIGH evaluations will trigger
         self.handler.evaluate(self.packet(1, Level.HIGH))
@@ -257,3 +285,46 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
         assert state_data.is_triggered is True
         assert state_data.status == Level.HIGH
+
+    def test_evaluate__ok_resets_counters(self):
+        # This should NOT trigger for HIGH since there's an OK in-between
+        result = self.handler.evaluate(self.packet(1, Level.HIGH))
+        result = self.handler.evaluate(self.packet(2, Level.OK))
+        result = self.handler.evaluate(self.packet(3, Level.HIGH))
+
+        assert result == {}
+
+    def test_evaluate__low_threshold_larger_than_high(self):
+        """
+        Test that a LOW threshold that is larger than the HIGH threshold does
+        not trigger once the HIGH threshold has already triggered.
+        """
+        test_handler = MockDetectorStateHandler(
+            detector=self.detector,
+            thresholds={
+                Level.LOW: 3,
+                Level.MEDIUM: 2,
+                Level.HIGH: 2,
+            },
+        )
+
+        # First two trigger a high result
+        result = test_handler.evaluate(self.packet(1, Level.HIGH))
+        result = test_handler.evaluate(self.packet(2, Level.HIGH))
+        state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
+        assert state_data.is_triggered is True
+        assert state_data.status == Level.HIGH
+
+        # Third evaluation does NOT trigger another result
+        result = test_handler.evaluate(self.packet(3, Level.HIGH))
+        assert result == {}
+
+        # Three LOW results trigger low evaluation
+        result = test_handler.evaluate(self.packet(4, Level.LOW))
+        assert result == {}
+        result = test_handler.evaluate(self.packet(5, Level.LOW))
+        assert result == {}
+        result = test_handler.evaluate(self.packet(6, Level.LOW))
+        state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
+        assert state_data.is_triggered is True
+        assert state_data.status == Level.LOW
