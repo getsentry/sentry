@@ -89,6 +89,10 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
             ["avgIf(transaction.duration,greater,300)"],
             ["avgIf(span.duration,greater,300)"],
         ),
+        pytest.param(
+            ["percentile(transaction.duration,0.5000)", "percentile(transaction.duration,0.94)"],
+            ["p50(span.duration)", "percentile(span.duration,0.94)"],
+        ),
     ],
 )
 def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str]):
