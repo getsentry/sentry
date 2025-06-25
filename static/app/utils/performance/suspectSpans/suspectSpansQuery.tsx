@@ -19,7 +19,7 @@ type SuspectSpansProps = {
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;
 
-export type ChildrenProps = Omit<GenericChildrenProps<SuspectSpansProps>, 'tableData'> & {
+type ChildrenProps = Omit<GenericChildrenProps<SuspectSpansProps>, 'tableData'> & {
   suspectSpans: SuspectSpans | null;
 };
 

@@ -1573,22 +1573,6 @@ function buildRoutes() {
             import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
         )}
       />
-      <Route path="spans/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionSpans')
-          )}
-        />
-        <Route
-          path=":spanSlug/"
-          component={make(
-            () =>
-              import(
-                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
-              )
-          )}
-        />
-      </Route>
     </Route>
   );
 

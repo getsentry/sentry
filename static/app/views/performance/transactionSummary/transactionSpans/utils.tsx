@@ -1,15 +1,8 @@
 import type {Location, Query} from 'history';
-import pick from 'lodash/pick';
 
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField} from 'sentry/utils/discover/fields';
-import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -58,17 +51,7 @@ export function spansRouteWithQuery({
   };
 }
 
-export const SPAN_RETENTION_DAYS = 30;
-
-export const SPAN_RELATIVE_PERIODS = pick(DEFAULT_RELATIVE_PERIODS, [
-  '1h',
-  '24h',
-  '7d',
-  '14d',
-  '30d',
-]);
-
-export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
+const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   {
     prefix: t('Sort By'),
     label: t('Total Self Time'),
@@ -119,91 +102,6 @@ export function getSuspectSpanSortFromLocation(
   return getSuspectSpanSort(sort);
 }
 
-export function getSuspectSpanSortFromEventView(eventView: EventView): SpanSortOption {
-  const sort = eventView.sorts.length ? eventView.sorts[0]!.field : DEFAULT_SORT;
-  return getSuspectSpanSort(sort);
-}
-
-export function parseSpanSlug(spanSlug: string | undefined): SpanSlug | undefined {
-  if (!defined(spanSlug)) {
-    return undefined;
-  }
-
-  const delimiterPos = spanSlug.lastIndexOf(':');
-  if (delimiterPos < 0) {
-    return undefined;
-  }
-
-  const op = spanSlug.slice(0, delimiterPos);
-  const group = spanSlug.slice(delimiterPos + 1);
-
-  return {op, group};
-}
-
-export function generateSpansEventView({
-  location,
-  transactionName,
-}: {
-  location: Location;
-  transactionName: string;
-}): EventView {
-  const query = decodeScalar(location.query.query, '');
-  const conditions = new MutableSearch(query);
-
-  conditions.setFilterValues('event.type', ['transaction']);
-  conditions.setFilterValues('transaction', [transactionName]);
-
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
-  });
-
-  const eventView = EventView.fromNewQueryWithLocation(
-    {
-      id: undefined,
-      version: 2,
-      name: transactionName,
-      fields: [
-        ...Object.values(SpanSortOthers),
-        ...Object.values(SpanSortPercentiles),
-        'trace',
-      ],
-      query: conditions.formatString(),
-      projects: [],
-    },
-    location
-  );
-
-  const sort = getSuspectSpanSortFromLocation(location);
-  return eventView.withSorts([{field: sort.field, kind: 'desc'}]);
-}
-
-/**
- * For the totals view, we want to get some transaction level stats like
- * the number of transactions and the sum of the transaction duration.
- * This requires the removal of any aggregate conditions as they can result
- * in unexpected empty responses.
- */
-export function getTotalsView(eventView: EventView): EventView {
-  const totalsView = eventView.withColumns([
-    {kind: 'function', function: ['count', '', undefined, undefined]},
-    {kind: 'function', function: ['sum', 'transaction.duration', undefined, undefined]},
-  ]);
-
-  const conditions = new MutableSearch(eventView.query);
-
-  // filter out any aggregate conditions
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
-  });
-
-  totalsView.query = conditions.formatString();
-  return totalsView;
-}
-
 export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
   [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.75)',
@@ -243,7 +141,3 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
     'sumArray(spans_exclusive_time)',
   ],
 };
-
-export function getExclusiveTimeDisplayedValue(value: string): string {
-  return value.replace('exclusive', 'self');
-}
