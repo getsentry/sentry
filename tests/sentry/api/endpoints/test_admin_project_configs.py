@@ -4,6 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.relay import projectconfig_cache
+from sentry.relay.globalconfig import get_global_config
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -39,12 +40,14 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
             }
         )
 
-    def get_url(self, proj_id=None, key=None):
+    def get_url(self, proj_id=None, key=None, global_config=None):
         query = {}
         if proj_id is not None:
             query["projectId"] = proj_id
         if key is not None:
             query["projectKey"] = key
+        if global_config is not None:
+            query["global"] = global_config
 
         query_string = parse.urlencode(query)
 
@@ -237,3 +240,10 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
         final_cached_config = projectconfig_cache.backend.get(self.p2_pk.public_key)
         assert final_cached_config is not None
+
+    def test_get_global_config(self):
+        self.login_as(self.superuser, superuser=True)
+        url = self.get_url(global_config=True)
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"global": get_global_config()}

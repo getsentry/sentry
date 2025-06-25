@@ -13,6 +13,7 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.relay import projectconfig_cache
 from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.relay.globalconfig import get_global_config
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 
@@ -37,11 +38,16 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
         """
         project_id = request.GET.get("projectId")
         project_key_param = request.GET.get("projectKey")
+        global_param = request.GET.get("global")
 
-        if not project_id and not project_key_param:
+        if not project_id and not project_key_param and not global_param:
             return Response(
-                {"error": "Please supply either the projectId or projectKey parameter."}, status=400
+                {"error": "Please supply either the projectId or projectKey or global parameter."},
+                status=400,
             )
+
+        if global_param:
+            return Response({"global": get_global_config()}, status=200)
 
         try:
             if project_id:
