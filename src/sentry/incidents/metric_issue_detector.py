@@ -120,6 +120,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         # Handle enable/disable query subscriptions
         if "enabled" in validated_data:
             enabled = validated_data.get("enabled")
+            assert isinstance(enabled, bool)
+
             query_subscriptions = QuerySubscription.objects.filter(
                 id__in=[data_source.source_id for data_source in instance.data_sources.all()]
             )

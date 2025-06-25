@@ -21,6 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
@@ -1045,7 +1046,7 @@ def enable_disable_detector(detector: Detector, enabled: bool) -> None:
 
 
 def enable_disable_subscriptions(
-    query_subscriptions: list[QuerySubscription], enabled: bool
+    query_subscriptions: BaseQuerySet[QuerySubscription], enabled: bool
 ) -> None:
     if enabled:
         bulk_enable_snuba_subscriptions(query_subscriptions)
