@@ -532,7 +532,6 @@ function RuleNode({
     // This will display a banner to nudge users towards selecting a new category.
     if (
       data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
-      organization.features.includes('issue-taxonomy') &&
       !VALID_ISSUE_CATEGORIES_V2.includes(
         getSelectedCategoryLabel({data, node}) as IssueCategory
       )

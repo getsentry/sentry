@@ -18,54 +18,35 @@ export function IssuesSecondaryNav() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
 
-  const hasIssueTaxonomy = organization.features.includes('issue-taxonomy');
-
   return (
     <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        {!hasIssueTaxonomy && (
-          <SecondaryNav.Section id="issues-feed">
-            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-              {t('Feed')}
-            </SecondaryNav.Item>
+        <SecondaryNav.Section id="issues-feed">
+          <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
+            {t('Feed')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
+        <SecondaryNav.Section id="issues-types">
+          {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
             <SecondaryNav.Item
-              to={`${baseUrl}/feedback/`}
-              analyticsItemName="issues_feedback"
+              key={key}
+              to={`${baseUrl}/${key}/`}
+              end
+              analyticsItemName={`issues_types_${key}`}
             >
-              {t('User Feedback')}
+              {label}
             </SecondaryNav.Item>
-          </SecondaryNav.Section>
-        )}
-        {hasIssueTaxonomy && (
-          <Fragment>
-            <SecondaryNav.Section id="issues-feed">
-              <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-                {t('Feed')}
-              </SecondaryNav.Item>
-            </SecondaryNav.Section>
-            <SecondaryNav.Section id="issues-types">
-              {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
-                <SecondaryNav.Item
-                  key={key}
-                  to={`${baseUrl}/${key}/`}
-                  end
-                  analyticsItemName={`issues_types_${key}`}
-                >
-                  {label}
-                </SecondaryNav.Item>
-              ))}
-              <SecondaryNav.Item
-                to={`${baseUrl}/feedback/`}
-                analyticsItemName="issues_feedback"
-              >
-                {t('User Feedback')}
-              </SecondaryNav.Item>
-            </SecondaryNav.Section>
-          </Fragment>
-        )}
+          ))}
+          <SecondaryNav.Item
+            to={`${baseUrl}/feedback/`}
+            analyticsItemName="issues_feedback"
+          >
+            {t('User Feedback')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
         <SecondaryNav.Section id="issues-views-all">
           <SecondaryNav.Item
             to={`${baseUrl}/views/`}

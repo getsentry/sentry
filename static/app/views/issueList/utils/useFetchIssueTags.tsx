@@ -30,7 +30,6 @@ import {
 } from 'sentry/utils/fields';
 import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
-import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -100,8 +99,6 @@ export const useFetchIssueTags = ({
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
-  const organization = useOrganization();
-
   const eventsTagsQuery = useFetchOrganizationTags(
     {
       orgSlug: org.slug,
@@ -191,7 +188,6 @@ export const useFetchIssueTags = ({
       currentTags: renamedTags,
       assigneeFieldValues: assignedValues,
       bookmarksValues: usernames,
-      organization,
     });
 
     return {
@@ -204,7 +200,6 @@ export const useFetchIssueTags = ({
     featureFlagTagsQuery.data,
     usernames,
     assignedValues,
-    organization,
   ]);
 
   return {
@@ -221,7 +216,6 @@ export const useFetchIssueTags = ({
 };
 
 function builtInIssuesFields({
-  organization,
   currentTags,
   assigneeFieldValues = [],
   bookmarksValues = [],
@@ -229,7 +223,6 @@ function builtInIssuesFields({
   assigneeFieldValues: SearchGroup[] | string[];
   bookmarksValues: string[];
   currentTags: TagCollection;
-  organization: Organization;
 }): TagCollection {
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
@@ -288,23 +281,15 @@ function builtInIssuesFields({
     [FieldKey.ISSUE_CATEGORY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
-      values: organization.features.includes('issue-taxonomy')
-        ? SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
-            icon: null,
-            title: value,
-            name: value,
-            documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
-            value,
-            type: ItemType.TAG_VALUE,
-            children: [],
-          }))
-        : [
-            IssueCategory.ERROR,
-            IssueCategory.PERFORMANCE,
-            IssueCategory.REPLAY,
-            IssueCategory.CRON,
-            IssueCategory.UPTIME,
-          ],
+      values: SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
+        icon: null,
+        title: value,
+        name: value,
+        documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
+        value,
+        type: ItemType.TAG_VALUE,
+        children: [],
+      })),
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {

@@ -95,7 +95,7 @@ export enum IssueCategory {
    */
   METRIC_ALERT = 'metric_alert',
 
-  // New issue categories (under the issue-taxonomy flag)
+  // New issue categories
   OUTAGE = 'outage',
   METRIC = 'metric',
   FRONTEND = 'frontend',
