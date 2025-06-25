@@ -33,7 +33,7 @@ const mockApiCall = () =>
   });
 
 describe('Summaries', () => {
-  it('renders the TestAggregates component', () => {
+  it('renders the CIEfficiency component', () => {
     mockApiCall();
     render(
       <CodecovQueryParamsProvider>
@@ -53,7 +53,7 @@ describe('Summaries', () => {
       }
     );
 
-    const testAggregatesPanel = screen.getByText('Test Aggregates');
-    expect(testAggregatesPanel).toBeInTheDocument();
+    const ciEfficiencyPanel = screen.getByText('CI Run Efficiency');
+    expect(ciEfficiencyPanel).toBeInTheDocument();
   });
 });
