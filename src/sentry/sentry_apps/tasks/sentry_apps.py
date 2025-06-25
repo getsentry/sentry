@@ -781,7 +781,9 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
 
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.create_or_update_service_hooks_for_sentry_app",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
+    ),
     **CONTROL_TASK_OPTIONS,
 )
 def create_or_update_service_hooks_for_sentry_app(
