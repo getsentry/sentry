@@ -20,6 +20,10 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
+const LEFT_PANEL_WIDTH = 400;
+const RIGHT_PANEL_WIDTH = 400;
+const DRAWER_WIDTH = LEFT_PANEL_WIDTH + RIGHT_PANEL_WIDTH;
+
 interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
@@ -86,7 +90,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
           ariaLabel: t('Abbreviated Trace'),
           onClose,
           shouldCloseOnInteractOutside: () => true,
-          drawerWidth: '40%',
+          drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
           traceSlug,
           drawerKey: 'abbreviated-trace-view-drawer',
@@ -181,7 +185,7 @@ const SplitContainer = styled('div')`
 
 const LeftPanel = styled('div')`
   flex: 1;
-  min-width: 300px;
+  min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
@@ -191,7 +195,7 @@ const LeftPanel = styled('div')`
 `;
 
 const RightPanel = styled('div')`
-  min-width: 400px;
+  min-width: ${RIGHT_PANEL_WIDTH}px;
   flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.background};
