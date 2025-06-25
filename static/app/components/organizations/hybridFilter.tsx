@@ -445,7 +445,7 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: ${p => (p.visible ? 1 : 0.5)};
+  opacity: ${p => (p.theme.isChonk ? undefined : p.visible ? 1 : 0.5)};
   padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
 `;
 
