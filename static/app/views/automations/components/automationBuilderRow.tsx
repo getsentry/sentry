@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -19,19 +18,17 @@ export default function AutomationBuilderRow({
   isConflicting,
 }: RowProps) {
   return (
-    <Fragment>
-      <RowContainer incompatible={isConflicting}>
-        <RowLine>{children}</RowLine>
-        <DeleteButton
-          aria-label={t('Delete Condition')}
-          size="sm"
-          icon={<IconDelete />}
-          borderless
-          onClick={onDelete}
-          className={'delete-condition'}
-        />
-      </RowContainer>
-    </Fragment>
+    <RowContainer incompatible={isConflicting}>
+      <RowLine>{children}</RowLine>
+      <DeleteButton
+        aria-label={t('Delete Condition')}
+        size="sm"
+        icon={<IconDelete />}
+        borderless
+        onClick={onDelete}
+        className={'delete-condition'}
+      />
+    </RowContainer>
   );
 }
 
