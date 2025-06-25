@@ -4232,5 +4232,117 @@ describe('SearchQueryBuilder', function () {
         });
       });
     });
+
+    describe('rendering wildcarded values', function () {
+      describe('single value', function () {
+        it('renders content without asterisk', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:*firefox*"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          // ensure that we're rendering with wildcard value
+          // this is async because there's things going on in the background where some state updates are happening and RTL is complaining that we're not waiting for act's
+          expect(
+            await within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).findByText('contains')
+          ).toBeInTheDocument();
+
+          expect(
+            within(screen.getByRole('row', {name: 'browser.name:*firefox*'})).getByText(
+              'firefox'
+            )
+          ).toBeInTheDocument();
+        });
+      });
+
+      describe('multiple values', function () {
+        describe('all values are wildcarded', function () {
+          it('renders content without asterisk', async function () {
+            const mockOnChange = jest.fn();
+            render(
+              <SearchQueryBuilder
+                {...defaultProps}
+                initialQuery="browser.name:[*firefox*,*chrome*,*random*value*]"
+                onChange={mockOnChange}
+              />,
+              {organization: {features: ['search-query-builder-wildcard-operators']}}
+            );
+
+            expect(
+              await within(
+                screen.getByRole('button', {
+                  name: 'Edit operator for filter: browser.name',
+                })
+              ).findByText('contains')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
+              ).getByText('firefox')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
+              ).getByText('chrome')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
+              ).getByText('random*value')
+            ).toBeInTheDocument();
+          });
+        });
+
+        describe('some values are wildcarded', function () {
+          it('renders content with asterisk', async function () {
+            const mockOnChange = jest.fn();
+            render(
+              <SearchQueryBuilder
+                {...defaultProps}
+                initialQuery="browser.name:[*firefox*,chrome]"
+                onChange={mockOnChange}
+              />,
+              {organization: {features: ['search-query-builder-wildcard-operators']}}
+            );
+
+            expect(
+              await within(
+                screen.getByRole('button', {
+                  name: 'Edit operator for filter: browser.name',
+                })
+              ).findByText('is')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {name: 'browser.name:[*firefox*,chrome]'})
+              ).getByText('*firefox*')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {name: 'browser.name:[*firefox*,chrome]'})
+              ).getByText('chrome')
+            ).toBeInTheDocument();
+          });
+        });
+      });
+    });
   });
 });
