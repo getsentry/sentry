@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -382,6 +383,16 @@ function SpanTabContentSection({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
+  const error = defined(timeseriesResult.error)
+    ? null // if the timeseries errors, we prefer to show that error in the chart
+    : queryType === 'samples'
+      ? spansTableResult.result.error
+      : queryType === 'traces'
+        ? tracesTableResult.result.error
+        : queryType === 'aggregate'
+          ? aggregatesTableResult.result.error
+          : null;
+
   return (
     <ContentSection expanded={controlSectionExpanded}>
       <ChevronButton
@@ -398,6 +409,13 @@ function SpanTabContentSection({
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
       />
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+      {defined(error) && (
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {error.message}
+          </Alert>
+        </Alert.Container>
+      )}
       <TourElement<ExploreSpansTour>
         tourContext={ExploreSpansTourContext}
         id={ExploreSpansTour.RESULTS}
