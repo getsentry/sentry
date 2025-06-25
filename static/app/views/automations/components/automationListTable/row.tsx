@@ -8,37 +8,31 @@ import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell
 import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import useOrganization from 'sentry/utils/useOrganization';
 import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
 import {
   getAutomationActions,
   useAutomationProjectIds,
 } from 'sentry/views/automations/hooks/utils';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 type AutomationListRowProps = {
   automation: Automation;
 };
 
 export function AutomationListRow({automation}: AutomationListRowProps) {
-  const organization = useOrganization();
   const actions = getAutomationActions(automation);
-  const {id, name, disabled, lastTriggered, detectorIds = [], createdBy} = automation;
+  const {disabled, lastTriggered, detectorIds = []} = automation;
   const projectIds = useAutomationProjectIds(automation);
   const projectSlugs = projectIds.map(
     projectId => ProjectsStore.getById(projectId)?.slug
   ) as string[];
+
   return (
     <AutomationSimpleTableRow
       variant={disabled ? 'faded' : 'default'}
       data-test-id="automation-list-row"
     >
       <SimpleTable.RowCell name="name">
-        <AutomationTitleCell
-          name={name}
-          href={makeAutomationDetailsPathname(organization.slug, id)}
-          createdBy={createdBy}
-        />
+        <AutomationTitleCell automation={automation} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell name="last-triggered">
         <TimeAgoCell date={lastTriggered} />
