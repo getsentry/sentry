@@ -398,6 +398,7 @@ function useParenthesisItems({
         key: 'parenthesis',
         label: t('parenthesis'),
         options,
+        doNotHide: true,
       },
     ];
   }, [nextAllowedTokenKinds]);
@@ -453,6 +454,7 @@ function useOperatorItems({
         key: 'operator',
         label: t('operator'),
         options,
+        doNotHide: true,
       },
     ];
   }, [nextAllowedTokenKinds]);

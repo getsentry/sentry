@@ -121,7 +121,7 @@ export function getHiddenOptions<Value extends SelectKey>(
       if ('options' in item) {
         const filteredOptions = item.options
           .map(opt => {
-            if (filterOption(opt)) {
+            if (item.doNotHide || filterOption(opt)) {
               return opt;
             }
 

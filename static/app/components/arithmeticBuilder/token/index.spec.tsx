@@ -88,7 +88,7 @@ describe('token', function () {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
@@ -111,7 +111,7 @@ describe('token', function () {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       // need to go down twice because parenthesis is always on top
       await userEvent.type(input, '{ArrowDown}{ArrowDown}{Enter}');
@@ -139,7 +139,7 @@ describe('token', function () {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       const options = within(screen.getByRole('listbox'));
       await userEvent.click(options.getByTestId('icon-parenthesis'));
@@ -163,7 +163,7 @@ describe('token', function () {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
@@ -507,6 +507,7 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete +'}));
+      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -530,6 +531,7 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete -'}));
+      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -553,6 +555,7 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete *'}));
+      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -576,6 +579,7 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete /'}));
+      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -602,6 +606,7 @@ describe('token', function () {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'left');
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete left'}));
+      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -626,6 +631,7 @@ describe('token', function () {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'right');
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete right'}));
+      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({

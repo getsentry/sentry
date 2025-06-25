@@ -19,6 +19,10 @@ export interface SelectSection<Value extends SelectKey> {
    */
   disabled?: boolean;
   /**
+   * Optional key to indicate this section should not be hidden
+   */
+  doNotHide?: boolean;
+  /**
    * Optional key to identify this section. If not specified, the section's index will
    * be used.
    */
