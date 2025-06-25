@@ -55,9 +55,9 @@ export default function CodecovQueryParamsProvider({
       const valueKey = Object.keys(value)[0] as keyof typeof value;
       const valuesToReset = VALUES_TO_RESET_MAP[valueKey];
 
-      for (const key of valuesToReset) {
+      valuesToReset.forEach(key => {
         delete currentParams[key];
-      }
+      });
 
       setLocalStorageState((prev: Partial<CodecovContextDataParams>) => {
         const newState = {...prev};
