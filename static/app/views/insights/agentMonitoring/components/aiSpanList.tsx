@@ -351,7 +351,7 @@ function getNodeInfo(
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.subtitle = agentName;
     if (model) {
-      nodeInfo.subtitle += nodeInfo.subtitle ? nodeInfo.subtitle + ` (${model})` : model;
+      nodeInfo.subtitle = nodeInfo.subtitle ? nodeInfo.subtitle + ` (${model})` : model;
     }
     nodeInfo.color = colors[0];
   } else if (
