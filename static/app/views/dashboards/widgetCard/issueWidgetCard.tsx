@@ -78,7 +78,7 @@ export function IssueWidgetCard({
     return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
   };
 
-  return organization.features.includes('use-table-widget-visualization') ? (
+  return organization.features.includes('dashboards-use-widget-table-visualization') ? (
     <TableContainer>
       <TableWidgetVisualization
         columns={columns}

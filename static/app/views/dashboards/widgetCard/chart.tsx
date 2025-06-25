@@ -176,7 +176,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
       return (
         <TableWrapper key={`table:${result.title}`}>
-          {organization.features.includes('use-table-widget-visualization') ? (
+          {organization.features.includes('dashboards-use-widget-table-visualization') ? (
             <TableWidgetVisualization
               columns={columns}
               tableData={tableData}
