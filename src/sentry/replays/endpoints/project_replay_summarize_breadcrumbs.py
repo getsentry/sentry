@@ -181,12 +181,11 @@ def analyze_recording_segments(
     # Combine breadcrumbs and error details
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
 
-    # Log when the input tokens are too large. This is potential for timeout.
-    tokens = len(request_data) / 4
-    if tokens > 100000:
+    # Log when the input string is too large. This is potential for timeout.
+    if len(request_data) > 120000:
         logger.info(
-            "Replay AI summary: input tokens exceeded 100k.",
-            extra={"request_len": len(request_data), "num_tokens": len(request_data) / 4},
+            "Replay AI summary: input length exceeds 120k.",
+            extra={"request_len": len(request_data)},
         )
 
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
