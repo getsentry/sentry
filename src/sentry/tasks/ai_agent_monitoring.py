@@ -11,6 +11,7 @@ from sentry.relay.config.ai_model_costs import (
     AIModelCostV2,
     ModelId,
 )
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
@@ -28,6 +29,7 @@ OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
     queue="ai_agent_monitoring",
     default_retry_delay=5,
     max_retries=3,
+    silo_mode=SiloMode.REGION,
     soft_time_limit=30,  # 30 seconds
     time_limit=35,  # 35 seconds
     taskworker_config=TaskworkerConfig(
@@ -44,6 +46,7 @@ def fetch_ai_model_costs() -> None:
     the AIModelCostV2 format for use by Sentry's LLM cost tracking.
     """
 
+    logger.info("fetch_ai_model_costs.start")
     # Fetch data from OpenRouter API
     response = safe_urlopen(
         OPENROUTER_MODELS_API_URL,
