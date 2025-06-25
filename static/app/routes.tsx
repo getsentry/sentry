@@ -1777,7 +1777,7 @@ function buildRoutes() {
       component={make(() => import('sentry/views/performance'))}
       withOrgPath
     >
-      <IndexRedirect to="/insights/backend/" />
+      <IndexRedirect to="/insights/frontend/" />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
