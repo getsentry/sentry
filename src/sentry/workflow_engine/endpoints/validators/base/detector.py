@@ -7,6 +7,9 @@ from rest_framework import serializers
 from sentry import audit_log
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
+from sentry.incidents.logic import update_detector
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
@@ -35,6 +38,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     type = serializers.CharField()
     config = serializers.JSONField(default={})
     owner = ActorField(required=False, allow_null=True)
+    enabled = serializers.BooleanField(required=False)
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
@@ -62,6 +66,22 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         instance.name = validated_data.get("name", instance.name)
         instance.type = validated_data.get("detector_type", instance.group_type).slug
+
+        # Handle enable/disable detector
+        if "enabled" in validated_data:
+            enabled = validated_data.get("enabled")
+            # get data source and check if the type is metric
+            if DataSource.objects.filter(
+                detectors__in=[instance], type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            ).exists():
+                update_detector(instance, enabled)
+            else:
+                # TODO this is dupe code from update_detector, find a shared location
+                updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+
+                with transaction.atomic(router.db_for_write(Detector)):
+                    instance.update(status=updated_detector_status)
+                    instance.update(enabled=enabled)
 
         # Handle owner field update
         if "owner" in validated_data:
