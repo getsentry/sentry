@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -26,7 +27,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -53,7 +53,7 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -164,8 +164,8 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
-  const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
-  const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -347,7 +347,7 @@ function SpanTabContentSection({
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
-        const dedupedYAxes = dedupeArray(visualize.yAxes);
+        const dedupedYAxes = [visualize.yAxis];
         const series = dedupedYAxes
           .flatMap(yAxis => timeseriesResult.data[yAxis])
           .filter(defined);
@@ -383,6 +383,16 @@ function SpanTabContentSection({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
+  const error = defined(timeseriesResult.error)
+    ? null // if the timeseries errors, we prefer to show that error in the chart
+    : queryType === 'samples'
+      ? spansTableResult.result.error
+      : queryType === 'traces'
+        ? tracesTableResult.result.error
+        : queryType === 'aggregate'
+          ? aggregatesTableResult.result.error
+          : null;
+
   return (
     <ContentSection expanded={controlSectionExpanded}>
       <ChevronButton
@@ -399,6 +409,13 @@ function SpanTabContentSection({
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
       />
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+      {defined(error) && (
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {error.message}
+          </Alert>
+        </Alert.Container>
+      )}
       <TourElement<ExploreSpansTour>
         tourContext={ExploreSpansTourContext}
         id={ExploreSpansTour.RESULTS}

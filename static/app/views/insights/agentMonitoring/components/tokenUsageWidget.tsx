@@ -3,8 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import Count from 'sentry/components/count';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -12,9 +13,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {
-  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
-  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
@@ -33,7 +32,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
-import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function TokenUsageWidget() {
   const theme = useTheme();
@@ -47,12 +46,7 @@ export default function TokenUsageWidget() {
 
   const tokensRequest = useEAPSpans(
     {
-      fields: [
-        AI_MODEL_ID_ATTRIBUTE,
-        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-      ],
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
       sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -64,14 +58,9 @@ export default function TokenUsageWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [
-        AI_MODEL_ID_ATTRIBUTE,
-        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-      ],
-      yAxis: [AI_INPUT_TOKENS_ATTRIBUTE_SUM],
-      sort: {field: AI_INPUT_TOKENS_ATTRIBUTE_SUM, kind: 'desc'},
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
       topN: 3,
       enabled: !!tokensRequest.data,
     },
@@ -96,7 +85,18 @@ export default function TokenUsageWidget() {
       isEmpty={!hasData}
       isLoading={isLoading}
       error={error}
-      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
+      emptyMessage={
+        <GenericWidgetEmptyStateWarning
+          message={tct(
+            'No token usage found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
+              ),
+            }
+          )}
+        />
+      }
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         showLegend: 'never',
@@ -104,7 +104,6 @@ export default function TokenUsageWidget() {
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
               color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
-              alias: ts.seriesName,
               stack: 'stack',
             })
         ),
@@ -129,10 +128,7 @@ export default function TokenUsageWidget() {
               <ModelName modelId={modelId} />
             </ModelText>
             <span>
-              {formatAbbreviatedNumber(
-                Number(item[AI_INPUT_TOKENS_ATTRIBUTE_SUM] || 0) +
-                  Number(item[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM] || 0)
-              )}
+              <Count value={Number(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)} />
             </span>
           </Fragment>
         );
@@ -148,6 +144,7 @@ export default function TokenUsageWidget() {
         organization.features.includes('visibility-explore-view') &&
         timeSeries && (
           <Toolbar
+            showCreateAlert
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [

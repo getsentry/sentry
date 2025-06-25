@@ -2,7 +2,10 @@ import type React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import {
+  openAddToDashboardModal,
+  openDashboardWidgetQuerySelectorModal,
+} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -26,7 +29,7 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -199,6 +202,8 @@ function WidgetCardContextMenu({
     Boolean(isMetricsData),
     widgetLimitReached,
     hasEditAccess,
+    location,
+    router,
     onDelete,
     onDuplicate,
     onEdit
@@ -279,6 +284,8 @@ export function getMenuOptions(
   isMetricsData: boolean,
   widgetLimitReached: boolean,
   hasEditAccess = true,
+  location: Location,
+  router: InjectedRouter,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -369,6 +376,27 @@ export function getMenuOptions(
   }
 
   if (organization.features.includes('dashboards-edit')) {
+    menuOptions.push({
+      key: 'add-to-dashboard',
+      label: t('Add to Dashboard'),
+      onAction: () => {
+        openAddToDashboardModal({
+          organization,
+          location,
+          router,
+          selection,
+          widget: {
+            ...widget,
+            id: undefined,
+            dashboardId: undefined,
+            layout: undefined,
+          },
+          actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
+          allowCreateNewDashboard: true,
+          source: DashboardWidgetSource.DASHBOARDS,
+        });
+      },
+    });
     menuOptions.push({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),

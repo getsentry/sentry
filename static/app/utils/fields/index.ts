@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -1896,11 +1896,29 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
     valueType: FieldValueType.SIZE,
   },
 };
-
-const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
+const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
   ...SPAN_HTTP_FIELD_DEFINITIONS,
+  [SpanFields.NAME]: {
+    desc: t(
+      'The span name. A short, human-readable identifier for the operation being performed by the span.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.KIND]: {
+    desc: t(
+      'The kind of span. Indicates the type of span such as server, client, internal, producer, or consumer.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.STATUS]: {
+    desc: t('Span status. Indicates whether the span operation was successful.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
@@ -2609,8 +2627,8 @@ export const getFieldDefinition = (
       }
       return null;
     case 'span':
-      if (SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS]) {
-        return SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS];
+      if (SPAN_FIELD_DEFINITIONS[key]) {
+        return SPAN_FIELD_DEFINITIONS[key];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to

@@ -5,6 +5,7 @@ import pytest
 from django.conf import settings
 
 from sentry.autofix.utils import (
+    AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS,
     AutofixState,
     AutofixStatus,
     get_autofix_repos_from_project_code_mappings,
@@ -207,14 +208,14 @@ class TestAutomationRateLimiting(TestCase):
         project = self.create_project()
         organization = project.organization
 
-        mock_is_limited.return_value = (True, 950, None)
+        mock_is_limited.return_value = (True, 45, None)
 
-        with self.options({"seer.max_num_scanner_autotriggered_per_hour": 1000}):
+        with self.options({"seer.max_num_scanner_autotriggered_per_minute": 50}):
             is_rate_limited, current, limit = is_seer_scanner_rate_limited(project, organization)
 
         assert is_rate_limited is True
-        assert current == 950
-        assert limit == 1000
+        assert current == 45
+        assert limit == 50
 
     @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
     def test_autofix_rate_limited_with_unlimited_flag(self):
@@ -236,6 +237,8 @@ class TestAutomationRateLimiting(TestCase):
         project = self.create_project()
         organization = project.organization
 
+        project.update_option("sentry:autofix_automation_tuning", None)
+
         mock_is_limited.return_value = (True, 19, None)
 
         with self.options({"seer.max_num_autofix_autotriggered_per_hour": 20}):
@@ -246,3 +249,24 @@ class TestAutomationRateLimiting(TestCase):
         assert is_rate_limited is True
         assert current == 19
         assert limit == 20
+
+    @patch("sentry.autofix.utils.ratelimits.backend.is_limited_with_value")
+    def test_autofix_rate_limit_multiplication_logic(self, mock_is_limited):
+        """Test that the limit is multiplied correctly based on project option"""
+        project = self.create_project()
+        organization = project.organization
+        mock_is_limited.return_value = (False, 0, None)
+
+        base_limit = 20
+
+        for option, multiplier in AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.items():
+            with self.options({"seer.max_num_autofix_autotriggered_per_hour": base_limit}):
+                project.update_option("sentry:autofix_automation_tuning", option)
+                is_seer_autotriggered_autofix_rate_limited(project, organization)
+                expected_limit = base_limit * multiplier
+                mock_is_limited.assert_called_with(
+                    project=project,
+                    key="autofix.auto_triggered",
+                    limit=expected_limit,
+                    window=60 * 60,
+                )

@@ -32,13 +32,14 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
+  useExploreFields,
   useExploreGroupBys,
   useExploreQuery,
   useExploreSortBys,
   useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -55,9 +56,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const location = useLocation();
   const {projects} = useProjects();
 
-  const {result, eventView, fields} = aggregatesTableResult;
+  const {result, eventView, fields: tableFields} = aggregatesTableResult;
 
   const topEvents = useTopEvents();
+  const fields = useExploreFields();
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
   const sorts = useExploreSortBys();
@@ -67,15 +69,15 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(tableFields, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
 
   const meta = result.meta ?? {};
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
@@ -94,7 +96,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent />
             </TableHeadCell>
-            {fields.map((field, i) => {
+            {tableFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
@@ -140,7 +142,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       />
                     )}
                   </TableHeadCellContent>
-                  {i !== fields.length - 1 && (
+                  {i !== tableFields.length - 1 && (
                     <GridResizer
                       dataRows={
                         !result.isError && !result.isPending && result.data
@@ -169,6 +171,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
               const target = viewSamplesTarget({
                 location,
                 query,
+                fields,
                 groupBys,
                 visualizes,
                 sorts,
@@ -187,7 +190,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       </StyledLink>
                     </Tooltip>
                   </TableBodyCell>
-                  {fields.map((field, j) => {
+                  {tableFields.map((field, j) => {
                     return (
                       <TableBodyCell key={j}>
                         <FieldRenderer

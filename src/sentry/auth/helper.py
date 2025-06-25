@@ -21,7 +21,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
@@ -49,7 +48,7 @@ from sentry.organizations.services.organization import (
     RpcOrganizationMemberFlags,
     organization_service,
 )
-from sentry.pipeline import Pipeline
+from sentry.pipeline.base import Pipeline
 from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
@@ -216,7 +215,7 @@ class AuthIdentityHandler:
 
     def _handle_membership(
         self,
-        request: Request,
+        request: HttpRequest,
         organization: RpcOrganization,
         auth_identity: AuthIdentity,
     ) -> tuple[User, RpcOrganizationMember]:

@@ -52,7 +52,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AGENTS_LANDING_SUB_PATH,
@@ -373,7 +373,7 @@ function Sidebar() {
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
-        <AgentInsightsFeature
+        <AIInsightsFeature
           organization={organization}
           renderDisabled={() => (
             <SidebarItem
@@ -391,8 +391,9 @@ function Sidebar() {
             to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AGENTS_LANDING_SUB_PATH]}/`}
             id="performance-domains-agents"
             icon={<SubitemDot collapsed />}
+            isBeta
           />
-        </AgentInsightsFeature>
+        </AIInsightsFeature>
         <SidebarItem
           {...sidebarItemProps}
           label={t('Crons')}

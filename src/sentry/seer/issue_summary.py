@@ -272,8 +272,11 @@ def _run_automation(
     event: GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
-    if not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+    if (
+        not features.has(
+            "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+        )
+        or source == SeerAutomationSource.ISSUE_DETAILS
     ):
         return
 
@@ -308,13 +311,16 @@ def _run_automation(
         group.project, group.organization
     )
     if is_rate_limited:
-        sentry_sdk.set_tags(
-            {
+        logger.warning(
+            "Autofix auto-trigger rate limit hit",
+            extra={
+                "group_id": group.id,
                 "auto_run_count": current,
                 "auto_run_limit": limit,
-            }
+                "org_slug": group.organization.slug,
+                "project_slug": group.project.slug,
+            },
         )
-        logger.error("Autofix auto-trigger rate limit hit", extra={"group_id": group.id})
         return
 
     has_budget: bool = quotas.backend.has_available_reserved_budget(
@@ -392,6 +398,14 @@ def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     )
 
 
+def get_issue_summary_cache_key(group_id: int) -> str:
+    return f"ai-group-summary-v2:{group_id}"
+
+
+def get_issue_summary_lock_key(group_id: int) -> tuple[str, str]:
+    return (f"ai-group-summary-v2-lock:{group_id}", "get_issue_summary")
+
+
 def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
@@ -418,8 +432,8 @@ def get_issue_summary(
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
-    cache_key = f"ai-group-summary-v2:{group.id}"
-    lock_key = f"ai-group-summary-v2-lock:{group.id}"
+    cache_key = get_issue_summary_cache_key(group.id)
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock_duration = 10  # How long the lock is held if acquired (seconds)
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
@@ -438,9 +452,9 @@ def get_issue_summary(
     # 2. Try to acquire lock
     try:
         # Acquire lock context manager. This will poll and wait.
-        with locks.get(
-            key=lock_key, duration=lock_duration, name="get_issue_summary"
-        ).blocking_acquire(initial_delay=0.25, timeout=wait_timeout):
+        with locks.get(key=lock_key, duration=lock_duration, name=lock_name).blocking_acquire(
+            initial_delay=0.25, timeout=wait_timeout
+        ):
             # Re-check cache after acquiring lock, in case another process finished
             # while we were waiting for the lock.
             if cached_summary := cache.get(cache_key):

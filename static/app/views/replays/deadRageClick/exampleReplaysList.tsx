@@ -87,13 +87,13 @@ export default function ExampleReplaysList({
         replays?.map(r => {
           return (
             <ReplayCell
-              key={r.id}
-              replay={r}
               eventView={eventView}
-              organization={organization}
-              referrer={referrer}
-              referrer_table="selector-widget"
               isWidget
+              key={r.id}
+              referrer={referrer}
+              referrerTable="selector-widget"
+              replay={r}
+              rowIndex={0}
             />
           );
         })
