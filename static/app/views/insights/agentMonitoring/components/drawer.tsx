@@ -20,7 +20,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-const LEFT_PANEL_WIDTH = 300;
+const LEFT_PANEL_WIDTH = 400;
 const RIGHT_PANEL_WIDTH = 400;
 const DRAWER_WIDTH = LEFT_PANEL_WIDTH + RIGHT_PANEL_WIDTH;
 
@@ -93,7 +93,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
           drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
           traceSlug,
-          drawerKey: 'abbreviated-trace-view-drawer',
+          drawerKey: 'abbreviated-trace-view-drawer-2',
         }
       ),
     [openDrawer, onClose, closeDrawer]
