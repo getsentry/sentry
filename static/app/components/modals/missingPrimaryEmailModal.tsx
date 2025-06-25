@@ -16,7 +16,7 @@ function MissingPrimaryEmailModal({Header, Body}: Props) {
         <Heading>{t('Action Required')}</Heading>
       </Header>
       <Body>
-        <TextBlock>{t('Your account is missing a primary email address.')}</TextBlock>
+        <TextBlock>{t('Your account doesn't have an email address!')}</TextBlock>
         <TextBlock>
           {t(
             ' We require all Sentry users to have a primary email address. Please add a primary email address to your account within User Settings. If you do not do so within 30 days, your account will be deleted.'
