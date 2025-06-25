@@ -949,6 +949,7 @@ export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReproc
 export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
+  dateAdded: string;
   id: string;
   level: Level;
   metadata: EventMetadata;
