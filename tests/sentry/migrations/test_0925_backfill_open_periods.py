@@ -339,7 +339,7 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
             substatus=None,
             first_seen=self.now - timedelta(days=1),  # Start after the resolution
         )
-        resolution_activity = Activity.objects.create(
+        Activity.objects.create(
             group=group_with_invalid_dates,
             project=self.project,
             type=ActivityType.SET_RESOLVED.value,
