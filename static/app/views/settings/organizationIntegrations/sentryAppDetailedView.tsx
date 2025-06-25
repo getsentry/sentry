@@ -325,10 +325,13 @@ export default function SentryAppDetailedView() {
       }
 
       if (userHasAccess) {
+        // TODO: @sentaur-athena: Remove hardcoded github-deployment-gates after deleting the code
         return (
           <InstallButton
             data-test-id="install-button"
-            disabled={disabledFromFeatures}
+            disabled={
+              disabledFromFeatures || integrationSlug === 'github-deployment-gates'
+            }
             onClick={() => handleInstall()}
             priority="primary"
             size="sm"
