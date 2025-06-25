@@ -125,7 +125,6 @@ class GKEStructLogHandler(StructLogHandler):
     def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = super().get_log_kwargs(record)
 
-        # Update kwargs with GKE-specific fields in the expected order
         kwargs.update(
             {
                 "logging.googleapis.com/labels": {"name": kwargs.get("name", "root")},
