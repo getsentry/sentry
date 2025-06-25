@@ -138,12 +138,6 @@ class PendingChanges extends Component<Props> {
 
     if (hasPerformance(subscription.pendingChanges?.planDetails)) {
       results.push(...this.getAMPlanChanges());
-    } else if (this.hasChange('reservedEvents')) {
-      results.push(
-        tct('Reserved errors change to [quantity]', {
-          quantity: pendingChanges.reservedEvents.toLocaleString(),
-        })
-      );
     }
 
     if (this.hasChange('planDetails.contractInterval')) {
