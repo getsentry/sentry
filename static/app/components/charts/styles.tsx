@@ -8,13 +8,13 @@ export const SectionHeading = styled('h4')`
   gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0;
 `;
 
 export const SectionValue = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
 `;
 

@@ -145,7 +145,7 @@ const TrialCheckInfo = styled('div')`
   padding: ${space(3)} 0;
 
   p {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     margin: 0;
   }
 

@@ -30,7 +30,7 @@ export const ButtonWrapper = styled(ButtonBar)`
 
 export const StripedTable = styled('table')`
   width: 100%;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 
   tr:nth-child(2n + 1) td {

@@ -345,7 +345,7 @@ function calculateLabelCoordinates(
 const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.textColor)};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;

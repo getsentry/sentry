@@ -1681,7 +1681,7 @@ const Badge = styled('span')`
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.5;
 `;

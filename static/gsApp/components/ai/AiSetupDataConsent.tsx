@@ -330,7 +330,7 @@ const SingleCard = styled('div')`
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;

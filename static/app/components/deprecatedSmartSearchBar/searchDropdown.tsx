@@ -521,7 +521,7 @@ const SearchDropdownGroupTitle = styled('header')`
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
@@ -588,7 +588,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
 
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
 
@@ -622,7 +622,7 @@ const Documentation = styled('span')`
   min-width: 0;
 
   ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.subText};
   white-space: pre;
@@ -686,7 +686,7 @@ const IconOpenWithMargin = styled(IconOpen)`
 `;
 
 const RecommendedItem = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const RecommendedItemTitle = styled('div')`

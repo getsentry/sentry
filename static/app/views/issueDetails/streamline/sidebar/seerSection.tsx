@@ -199,7 +199,7 @@ const ExpandButton = styled(Button)`
 `;
 
 const HeaderContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

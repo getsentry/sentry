@@ -98,7 +98,7 @@ const Title = styled('h3')`
 
 const TimeStamp = styled('div')`
   color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: ${p => p.theme.text.lineHeightHeading};
   margin-top: ${space(0.25)};
 `;

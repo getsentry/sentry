@@ -537,7 +537,7 @@ const RecentFilterPill = styled('li')`
   align-items: center;
   height: 22px;
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${space(1.5)} 0 ${space(0.75)};
   background-color: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
@@ -619,7 +619,7 @@ const SeerFullWidthButton = styled(Button)`
   background-color: none;
   box-shadow: none;
   color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: left;
   justify-content: flex-start;

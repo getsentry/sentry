@@ -109,7 +109,7 @@ const Subheader = styled('h4')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

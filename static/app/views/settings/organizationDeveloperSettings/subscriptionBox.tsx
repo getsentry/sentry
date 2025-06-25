@@ -102,7 +102,7 @@ const SubscriptionInfo = styled('div')`
 `;
 
 const SubscriptionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
   color: ${p => p.theme.subText};
 `;

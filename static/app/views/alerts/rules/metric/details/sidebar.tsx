@@ -417,7 +417,7 @@ const TriggerTitle = styled('div')`
 
 const TriggerTitleText = styled('h4')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: 24px;
   min-width: 40px;

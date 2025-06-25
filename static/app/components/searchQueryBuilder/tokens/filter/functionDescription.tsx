@@ -72,7 +72,7 @@ const Description = styled('div')`
 `;
 
 const Code = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Separator = styled('hr')`

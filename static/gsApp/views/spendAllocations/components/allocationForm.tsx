@@ -503,7 +503,7 @@ const InputWrapper = styled('div')`
 
 const FancyInput = styled('input')`
   line-height: 1.4;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => 'solid ' + p.theme.border};
   padding: ${space(1)} ${space(2)};

@@ -157,7 +157,7 @@ const Title = styled('h3')`
 const Subheader = styled('p')`
   text-transform: uppercase;
   color: ${p => p.theme.pink300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;
@@ -206,7 +206,7 @@ const ConsentLabelHeader = styled('div')`
 const ConsentLabelBody = styled('p')`
   margin-bottom: 0;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledIconWrapper = styled('span')`

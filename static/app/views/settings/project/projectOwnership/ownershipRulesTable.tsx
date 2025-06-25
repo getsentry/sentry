@@ -246,7 +246,7 @@ const RulesTableWrapper = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: min-content minmax(1fr, max-content) auto;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0;
 
   ${p =>

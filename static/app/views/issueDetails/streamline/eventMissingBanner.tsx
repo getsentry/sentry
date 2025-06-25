@@ -108,7 +108,7 @@ const MainText = styled('div')`
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 

@@ -265,7 +265,7 @@ const HeaderText = styled('div')`
 
 const Subheader = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export async function openDataConsentModal() {

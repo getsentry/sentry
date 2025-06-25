@@ -449,7 +449,7 @@ const CrumbContainer = styled('div')`
 
 const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 

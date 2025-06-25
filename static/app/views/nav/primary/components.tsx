@@ -342,7 +342,7 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   align-items: center;
   padding: ${space(1.5)} ${space(3)};
   color: ${p.theme.textColor};
-  font-size: ${p.theme.fontSizeMedium};
+  font-size: ${p.theme.fontSize.md};
   font-weight: ${p.theme.fontWeightNormal};
   line-height: 1;
   width: 100%;

@@ -354,7 +354,7 @@ const FinalizeWrapper = styled('div')`
 `;
 
 const PackageName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;

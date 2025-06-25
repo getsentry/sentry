@@ -52,7 +52,7 @@ const Title = styled('div')`
 
 const Description = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const RightPanel = styled('div')`

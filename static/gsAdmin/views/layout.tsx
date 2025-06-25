@@ -156,7 +156,7 @@ const Navigation = styled('ul')`
   display: flex;
   flex-direction: column;
   list-style: none;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   overflow-y: auto;
   gap: ${space(0.25)};

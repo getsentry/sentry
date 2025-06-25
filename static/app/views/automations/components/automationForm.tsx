@@ -133,7 +133,7 @@ const Heading = styled('h2')`
 `;
 
 const Description = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
   padding: 0;

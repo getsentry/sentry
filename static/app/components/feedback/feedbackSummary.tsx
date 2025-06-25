@@ -59,7 +59,7 @@ const SummaryContainer = styled('div')`
 `;
 
 const SummaryHeader = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
 `;

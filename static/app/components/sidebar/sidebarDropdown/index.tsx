@@ -221,7 +221,7 @@ const OrgOrUserName = styled(TextOverflow)`
 `;
 
 const UserNameOrEmail = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 16px;
   transition: 0.15s color linear;
 `;

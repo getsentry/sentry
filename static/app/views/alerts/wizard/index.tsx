@@ -291,7 +291,7 @@ const ExampleHeader = styled('div')`
 `;
 
 const ExampleItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const WizardFooter = styled('div')`

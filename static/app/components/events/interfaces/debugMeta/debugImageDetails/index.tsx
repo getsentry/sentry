@@ -342,7 +342,7 @@ export function DebugImageDetails({
 const Content = styled('div')`
   display: grid;
   gap: ${space(3)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Title = styled('div')`

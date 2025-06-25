@@ -247,7 +247,7 @@ const EmptyContext = styled('div')`
   gap: ${space(1)};
   padding: 20px;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ContextLineWrapper = styled('div')<{isActive: boolean}>`

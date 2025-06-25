@@ -37,7 +37,7 @@ export const NoContextWrapper = styled('div')`
   color: ${p => p.theme.subText};
   height: 50px;
   padding: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   flex-direction: column;
   align-items: center;

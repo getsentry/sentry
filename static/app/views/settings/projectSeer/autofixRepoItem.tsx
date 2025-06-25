@@ -231,7 +231,7 @@ const SettingsGroup = styled('div')`
 const BranchInputLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.gray500};
   margin-bottom: ${space(0.5)};
   gap: ${space(0.5)};

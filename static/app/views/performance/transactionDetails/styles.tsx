@@ -61,5 +61,5 @@ const StyledFeatureBadge = styled(FeatureBadge)`
 
 const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
   color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

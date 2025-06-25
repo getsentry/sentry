@@ -195,7 +195,7 @@ const TimeWrapper = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 

@@ -52,7 +52,7 @@ const Name = styled('div')<{pendingDeletion: boolean}>`
 
 const ProjectCount = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
   margin-top: ${space(0.5)};
   ${p => p.theme.overflowEllipsis};

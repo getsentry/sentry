@@ -45,7 +45,7 @@ const UnitName = styled('div')`
 `;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0px;
   font-weight: normal;
   color: ${p => p.theme.subText};

@@ -444,7 +444,7 @@ const ValueCell = styled('div')`
 const BaseSampleRateWrapper = styled(Alert)`
   padding: ${space(1)};
   margin-right: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   width: max-content;
   flex-basis: 50%;

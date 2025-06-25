@@ -353,7 +353,7 @@ const Footer = styled('div')`
 const ContentRow = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.75)};
 `;
 

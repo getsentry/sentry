@@ -504,7 +504,7 @@ const TitleRow = styled('div')`
 
 const DescriptionRow = styled('div')`
   color: ${p => p.theme.tour.text};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 1.4;
   white-space: wrap;

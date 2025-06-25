@@ -30,7 +30,7 @@ export const Header = styled('div')`
 
 export const HeaderTitle = styled('h4')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
@@ -232,7 +232,7 @@ export const GridBodyCell = styled('td')`
   flex-direction: column;
   justify-content: center;
 
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */

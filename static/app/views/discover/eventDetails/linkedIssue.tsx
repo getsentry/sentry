@@ -122,7 +122,7 @@ const IssueCardBody = styled('div')`
 `;
 
 const StyledShortId = styled(ShortId)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
 `;
 

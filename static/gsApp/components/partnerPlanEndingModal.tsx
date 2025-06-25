@@ -249,7 +249,7 @@ const Bullets = styled('div')`
   grid-auto-rows: max-content;
   gap: ${space(1)} ${space(1.5)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 
@@ -260,7 +260,7 @@ const PathHeading = styled('h5')`
 
 const SubHeading = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
 `;

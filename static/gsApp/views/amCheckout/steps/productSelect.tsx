@@ -385,7 +385,7 @@ const Amount = styled('span')`
 `;
 
 const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-self: end;
   padding-bottom: ${space(0.25)};
 `;

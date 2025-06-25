@@ -290,7 +290,7 @@ const PlanName = styled('div')`
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
@@ -318,7 +318,7 @@ const Amount = styled('span')`
 `;
 
 const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-self: end;
   padding-bottom: ${space(0.25)};
 `;
@@ -327,7 +327,7 @@ const FeatureList = styled('div')`
   display: grid;
   grid-template-rows: auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 
   > a {

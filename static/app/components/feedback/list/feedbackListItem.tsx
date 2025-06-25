@@ -247,7 +247,7 @@ const StyledTextOverflow = styled(TextOverflow)`
 `;
 
 const ContactRow = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   grid-area: 'user';
   font-weight: bold;
 `;

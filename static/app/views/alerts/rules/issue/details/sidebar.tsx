@@ -203,7 +203,7 @@ const StepContent = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 

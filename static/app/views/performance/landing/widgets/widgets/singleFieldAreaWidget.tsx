@@ -191,7 +191,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 const EventsRequest = withApi(_EventsRequest);
 export const Subtitle = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const HighlightNumber = styled('div')<{color?: string}>`

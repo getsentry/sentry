@@ -135,7 +135,7 @@ const OptionLabel = styled('span')`
 `;
 
 const FooterInfoHeading = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   margin: 0;
 `;

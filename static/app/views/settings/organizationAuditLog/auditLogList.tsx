@@ -402,7 +402,7 @@ const SentryAvatar = styled(ActivityAvatar)`
 `;
 
 const Name = styled('strong')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const EventSelector = styled(Select)`
@@ -435,7 +435,7 @@ const IpAddressOverflow = styled('div')`
 `;
 
 const MonoDetail = styled('code')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: no-wrap;
 `;
 
@@ -443,7 +443,7 @@ const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default AuditLogList;

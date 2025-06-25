@@ -74,7 +74,7 @@ export const RightAlignedCell = styled('div')`
 
 export const Subtitle = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: inline-block;
 `;
 
@@ -259,7 +259,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 `;
 
 const PrimaryMessage = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0 auto ${space(1)};
@@ -275,7 +275,7 @@ const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ItemRadioContainer = styled('div')`

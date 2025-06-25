@@ -125,7 +125,7 @@ const KeyMetrics = styled('dl')`
 `;
 
 const KeyMetricLabel = styled('dt')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const KeyMetricData = styled('dd')`

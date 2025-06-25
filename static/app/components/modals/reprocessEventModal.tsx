@@ -122,5 +122,5 @@ const Introduction = styled('p')`
 const StyledList = styled(List)`
   gap: ${space(1)};
   margin-bottom: ${space(4)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

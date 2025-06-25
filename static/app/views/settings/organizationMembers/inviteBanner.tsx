@@ -371,7 +371,7 @@ const MemberCardContentRow = styled('div')`
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const SeeMore = styled('div')`

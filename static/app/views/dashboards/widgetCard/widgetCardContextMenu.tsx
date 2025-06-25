@@ -452,7 +452,7 @@ const SampledTag = styled(Tag)`
 
 const WidgetTooltipTitle = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-align: left;
 `;
 

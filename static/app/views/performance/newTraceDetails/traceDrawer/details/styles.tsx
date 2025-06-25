@@ -160,7 +160,7 @@ const SubTitleWrapper = styled(FlexBox)`
 `;
 
 const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
@@ -690,7 +690,7 @@ const HighlightDuration = styled('div')`
 
 const HighlightOp = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: normal;
 `;
 
@@ -699,7 +699,7 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }

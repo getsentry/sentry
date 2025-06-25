@@ -107,7 +107,7 @@ const Title = styled('div')`
   font-weight: bold;
   text-align: left;
   grid-column: span 1;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Spacer = styled('div')`

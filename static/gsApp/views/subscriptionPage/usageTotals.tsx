@@ -1316,7 +1316,7 @@ const BaseRow = styled('div')`
 
 const SubText = styled('span')`
   color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const AcceptedSummary = styled('div')`

@@ -139,7 +139,7 @@ const ICONS = {
 };
 
 const MediumFontSize = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {

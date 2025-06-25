@@ -315,7 +315,7 @@ const ScoreCardWrapper = styled('div')`
     margin: 0;
   }
   ${Title} {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     color: ${p => p.theme.subText};
     margin-bottom: ${space(0.5)};
   }

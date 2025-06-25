@@ -399,7 +399,7 @@ const StyledPanelBody = styled(PanelBody)`
 
 const Preview = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Header = styled(TextBlock)`
@@ -408,7 +408,7 @@ const Header = styled(TextBlock)`
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   font-weight: normal;
 `;

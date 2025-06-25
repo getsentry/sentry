@@ -178,7 +178,7 @@ const WidgetTitle = styled('h3')`
 `;
 
 const WidgetDescription = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin-bottom: 0;
 `;

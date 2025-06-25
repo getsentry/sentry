@@ -274,7 +274,7 @@ const SegmentBar = styled('div')`
 
 const Title = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   justify-content: space-between;
   margin-bottom: ${space(0.25)};
   line-height: 1.1;
@@ -284,7 +284,7 @@ const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
   align-self: center;
 `;
@@ -294,7 +294,7 @@ const TitleDescription = styled('div')`
   display: flex;
   color: ${p => p.theme.subText};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis};
   align-self: center;
 `;

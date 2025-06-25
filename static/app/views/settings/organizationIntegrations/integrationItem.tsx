@@ -43,7 +43,7 @@ const Labels = styled('div')<{compact: boolean}>`
 `;
 
 const IntegrationName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: ${p => p.theme.text.lineHeightHeading};
 `;

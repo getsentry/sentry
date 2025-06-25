@@ -81,7 +81,7 @@ const Empty = styled('div')`
   align-items: center;
   padding: ${space(2)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 

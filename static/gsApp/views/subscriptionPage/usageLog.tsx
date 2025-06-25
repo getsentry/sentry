@@ -224,7 +224,7 @@ const SentryAvatar = styled(ActivityAvatar)`
 `;
 
 const Note = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
 `;
 
@@ -264,6 +264,6 @@ const TimestampInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-content: center;
 `;

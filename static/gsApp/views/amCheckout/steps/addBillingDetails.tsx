@@ -277,7 +277,7 @@ const DetailsText = styled(TextBlock)`
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   line-height: 1.2;
   font-weight: normal;

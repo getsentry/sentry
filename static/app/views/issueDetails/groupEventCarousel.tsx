@@ -488,7 +488,7 @@ const EventHeading = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
 
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -560,7 +560,7 @@ const EventId = styled('span')`
     }
   }
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 

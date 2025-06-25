@@ -37,7 +37,7 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.subText};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
