@@ -3442,6 +3442,11 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.ai_agent_monitoring.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Flags for taskworker scheduler rollout
 register(
