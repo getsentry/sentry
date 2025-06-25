@@ -32,7 +32,7 @@ export interface SnubaQueryDataSource extends BaseDataSource {
     snubaQuery: SnubaQuery;
     status: number;
     subscription: string;
-  };
+  } | null;
   type: 'snuba_query_subscription';
 }
 

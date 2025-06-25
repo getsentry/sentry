@@ -122,6 +122,9 @@ function DataSourceDetails({dataSource}: {dataSource: DataSource}) {
   const type = dataSource.type;
   switch (type) {
     case 'snuba_query_subscription':
+      if (!dataSource.queryObj) {
+        return <DetailItem>{t('Query not found.')}</DetailItem>;
+      }
       return (
         <Fragment>
           <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
