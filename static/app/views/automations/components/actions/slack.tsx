@@ -1,7 +1,3 @@
-import {useState} from 'react';
-
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
 import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
@@ -10,7 +6,7 @@ import {
   RowLine,
 } from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {IconClose} from 'sentry/icons';
+import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
@@ -61,8 +57,6 @@ function SlackTagsAndNotes(action: Action) {
 }
 
 export function SlackNode() {
-  const [dismissed, setDismissed] = useState(false);
-
   return (
     <Flex direction="column" gap={space(1)} flex="1">
       <RowLine>
@@ -78,31 +72,16 @@ export function SlackNode() {
           notes: <NotesField />,
         })}
       </OptionalRowLine>
-      {dismissed ? null : (
-        <Alert
-          type="info"
-          showIcon
-          trailingItems={
-            <Button
-              aria-label="Dismiss banner"
-              icon={<IconClose color="purple400" style={{padding: 0}} />}
-              borderless
-              onClick={() => setDismissed(true)}
-              size="zero"
-              style={{padding: 0}}
-            />
+      <DismissableInfoAlert>
+        {tct(
+          'Having rate limiting problems? Enter a channel or user ID. Get help [link:here].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/organization/integrations/notification-incidents/slack/#rate-limiting-error" />
+            ),
           }
-        >
-          {tct(
-            'Having rate limiting problems? Enter a channel or user ID. Get help [link:here].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/organization/integrations/notification-incidents/slack/#rate-limiting-error" />
-              ),
-            }
-          )}
-        </Alert>
-      )}
+        )}
+      </DismissableInfoAlert>
     </Flex>
   );
 }
