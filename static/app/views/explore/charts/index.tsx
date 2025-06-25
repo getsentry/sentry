@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
@@ -25,11 +26,13 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
 import type {
   BaseVisualize,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   SAMPLING_MODE,
@@ -105,6 +108,7 @@ export function ExploreCharts({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
@@ -258,7 +262,7 @@ export function ExploreCharts({
   );
 
   return (
-    <ChartList>
+    <ChartList ref={chartWrapperRef}>
       <WidgetSyncContextProvider>
         {chartInfos.map((chartInfo, index) => {
           return (
@@ -275,6 +279,7 @@ export function ExploreCharts({
               hideContextMenu={hideContextMenu}
               samplingMode={samplingMode}
               topEvents={topEvents}
+              chartWrapperRef={chartWrapperRef}
             />
           );
         })}
@@ -285,6 +290,7 @@ export function ExploreCharts({
 
 interface ChartProps {
   chartInfo: ChartInfo;
+  chartWrapperRef: React.RefObject<HTMLDivElement | null>;
   handleChartTypeChange: (chartType: ChartType, index: number) => void;
   index: number;
   interval: string;
@@ -309,11 +315,27 @@ function Chart({
   hideContextMenu,
   samplingMode,
   topEvents,
+  chartWrapperRef,
 }: ChartProps) {
   const theme = useTheme();
   const [visible, setVisible] = useState(true);
 
   const chartHeight = visible ? CHART_HEIGHT : 50;
+
+  const chartRef = useRef<ReactEchartsRef>(null);
+  const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const boxSelectOptions = useChartBoxSelect({
+    chartRef,
+    chartWrapperRef,
+    triggerWrapperRef,
+  });
+
+  // Re-activate box selection when the series data changes
+  useEffect(() => {
+    boxSelectOptions.reActivateSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeseriesResult]);
 
   const Title = (
     <ChartTitle>
@@ -457,40 +479,55 @@ function Chart({
         : Bars;
 
   return (
-    <Widget
-      key={index}
-      height={chartHeight}
-      Title={Title}
-      Actions={actions}
-      revealActions="always"
-      Visualization={
-        <TimeSeriesWidgetVisualization
-          plottables={chartInfo.data.map(timeSeries => {
-            return new DataPlottableConstructor(
-              markDelayedData(timeSeries, INGESTION_DELAY),
-              {
-                alias: timeSeries.seriesName,
-                color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                stack: chartInfo.stack,
-              }
-            );
-          })}
-        />
-      }
-      Footer={
-        <ConfidenceFooter
-          sampleCount={chartInfo.sampleCount}
-          isSampled={chartInfo.isSampled}
-          confidence={chartInfo.confidence}
-          topEvents={topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined}
-          dataScanned={chartInfo.dataScanned}
-        />
-      }
-    />
+    <ChartWrapper>
+      <Widget
+        key={index}
+        height={chartHeight}
+        Title={Title}
+        Actions={actions}
+        revealActions="always"
+        Visualization={
+          <TimeSeriesWidgetVisualization
+            ref={chartRef}
+            brush={boxSelectOptions.brush}
+            onBrushEnd={boxSelectOptions.onBrushEnd}
+            toolBox={boxSelectOptions.toolBox}
+            plottables={chartInfo.data.map(timeSeries => {
+              return new DataPlottableConstructor(
+                markDelayedData(timeSeries, INGESTION_DELAY),
+                {
+                  alias: timeSeries.seriesName,
+                  color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                  stack: chartInfo.stack,
+                }
+              );
+            })}
+          />
+        }
+        Footer={
+          <ConfidenceFooter
+            sampleCount={chartInfo.sampleCount}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined}
+            dataScanned={chartInfo.dataScanned}
+          />
+        }
+      />
+      <FloatingTrigger
+        boxSelectOptions={boxSelectOptions}
+        triggerWrapperRef={triggerWrapperRef}
+      />
+    </ChartWrapper>
   );
 }
 
+const ChartWrapper = styled('div')`
+  position: relative;
+`;
+
 const ChartList = styled('div')`
+  position: relative;
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
