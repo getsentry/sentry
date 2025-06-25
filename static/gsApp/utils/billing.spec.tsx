@@ -18,6 +18,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isDeveloperPlan,
+  isEnterprise,
   isNewPayingCustomer,
   isTeamPlanFamily,
   MILLISECONDS_IN_HOUR,
@@ -881,5 +882,22 @@ describe('getOnDemandCategories', function () {
     });
     expect(categories).toHaveLength(plan.onDemandCategories.length);
     expect(categories).toEqual(plan.onDemandCategories);
+  });
+});
+
+describe('isEnterprise', function () {
+  it('returns true for enterprise plans', function () {
+    expect(isEnterprise('e1')).toBe(true);
+    expect(isEnterprise('enterprise')).toBe(true);
+    expect(isEnterprise('am1_business_ent')).toBe(true);
+    expect(isEnterprise('am2_team_ent_auf')).toBe(true);
+    expect(isEnterprise('am3_business_ent_ds_auf')).toBe(true);
+  });
+
+  it('returns false for non-enterprise plans', function () {
+    expect(isEnterprise('_e1')).toBe(false);
+    expect(isEnterprise('_enterprise')).toBe(false);
+    expect(isEnterprise('am1_business')).toBe(false);
+    expect(isEnterprise('am2_team')).toBe(false);
   });
 });
