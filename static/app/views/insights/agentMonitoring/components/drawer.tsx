@@ -93,7 +93,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
           drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
           traceSlug,
-          drawerKey: 'abbreviated-trace-view-drawer-2',
+          drawerKey: 'abbreviated-trace-view-drawer',
         }
       ),
     [openDrawer, onClose, closeDrawer]
