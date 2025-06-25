@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import Count from 'sentry/components/count';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -130,7 +131,9 @@ export default function LLMGenerationsWidget() {
             <ModelText>
               <ModelName modelId={modelId} />
             </ModelText>
-            <span>{item['count()']}</span>
+            <span>
+              <Count value={item['count()'] ?? 0} />
+            </span>
           </Fragment>
         );
       })}
