@@ -17,9 +17,9 @@ describe('DetectorDetails', function () {
   const ownerTeam = TeamFixture();
   const dataSource = SnubaQueryDataSourceFixture({
     queryObj: {
-      ...defaultDataSource.queryObj,
+      ...defaultDataSource.queryObj!,
       snubaQuery: {
-        ...defaultDataSource.queryObj.snubaQuery,
+        ...defaultDataSource.queryObj!.snubaQuery,
         query: 'test',
         environment: 'test-environment',
       },
@@ -65,10 +65,10 @@ describe('DetectorDetails', function () {
       await screen.findByRole('heading', {name: snubaQueryDetector.name})
     ).toBeInTheDocument();
     // Displays the snuba query
-    expect(screen.getByText(dataSource.queryObj.snubaQuery.query)).toBeInTheDocument();
+    expect(screen.getByText(dataSource.queryObj!.snubaQuery.query)).toBeInTheDocument();
     // Displays the environment
     expect(
-      screen.getByText(dataSource.queryObj.snubaQuery.environment!)
+      screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
     ).toBeInTheDocument();
     // Displays the owner team
     expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
