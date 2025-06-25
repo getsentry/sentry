@@ -114,6 +114,7 @@ class WebhookPayload(Model):
     def create_from_request(
         cls,
         *,
+        region: str,
         provider: str,
         identifier: int | str,
         request: HttpRequest,
@@ -123,6 +124,7 @@ class WebhookPayload(Model):
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
             provider=provider,
+            region_name=region,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),
         )
