@@ -86,7 +86,7 @@ class DiscordIntegration(IntegrationInstallation):
 
         installations = integration_service.get_organization_integrations(
             integration_id=self.model.id,
-            providers=["discord"],
+            providers=[IntegrationProviderSlug.DISCORD.value],
         )
 
         # Remove any installations pending deletion
@@ -164,7 +164,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        discord_config = state.get("discord", {})
+        discord_config = state.get(IntegrationProviderSlug.DISCORD.value, {})
         if isinstance(discord_config, dict):
             use_configure = discord_config.get("use_configure") == "1"
         else:
@@ -185,7 +185,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
             "name": guild_name,
             "external_id": guild_id,
             "user_identity": {
-                "type": "discord",
+                "type": IntegrationProviderSlug.DISCORD.value,
                 "external_id": discord_user_id,
                 "scopes": [],
                 "data": {},
@@ -289,7 +289,7 @@ class DiscordInstallPipeline(IntegrationPipelineViewT):
 
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if "guild_id" not in request.GET or "code" not in request.GET:
-            state = pipeline.fetch_state(key="discord") or {}
+            state = pipeline.fetch_state(key=IntegrationProviderSlug.DISCORD.value) or {}
             redirect_uri = (
                 absolute_uri("extensions/discord/configure/")
                 if state.get("use_configure") == "1"
