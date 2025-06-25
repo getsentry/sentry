@@ -66,7 +66,7 @@ export interface SearchQueryBuilderProps {
    */
   fieldDefinitionGetter?: FieldDefinitionGetter;
   /**
-   * A mapping of secondary aliases for filter keys.
+   * A mapping of aliases for filter keys.
    * These are used to ensure that the filter key does not show them as invalid, however
    * they will not be shown in the filter key dropdown.
    */
