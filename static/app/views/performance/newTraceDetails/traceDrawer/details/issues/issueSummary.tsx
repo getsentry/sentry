@@ -96,7 +96,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
   & em {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.subText};
@@ -111,7 +111,7 @@ const LocationWrapper = styled('div')`
   margin: 0 0 5px;
   direction: rtl;
   text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   span {
     direction: ltr;

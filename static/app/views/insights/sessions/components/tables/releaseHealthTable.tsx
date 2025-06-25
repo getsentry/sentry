@@ -172,7 +172,7 @@ export default function ReleaseHealthTable({
 }
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Title = styled('div')`

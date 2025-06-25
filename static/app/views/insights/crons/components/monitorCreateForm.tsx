@@ -305,7 +305,7 @@ const IntervalInputs = styled(MultiColumnInput)`
 
 const CronstrueText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;
 `;

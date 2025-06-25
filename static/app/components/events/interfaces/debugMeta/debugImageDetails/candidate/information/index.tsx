@@ -257,7 +257,7 @@ const Wrapper = styled('div')`
 
 const FilenameOrLocation = styled('span')`
   padding-left: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const Details = styled('div')`
@@ -266,7 +266,7 @@ const Details = styled('div')`
   grid-auto-columns: max-content;
   gap: ${space(1)};
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TimeSinceWrapper = styled('div')`

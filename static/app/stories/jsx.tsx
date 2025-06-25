@@ -43,10 +43,10 @@ export function JSXNode({name, props = {}, children}: JSXNodeProps) {
 }
 
 const Code = styled('code')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding-inline: 0;
   & > [data-property] {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     padding-inline: 0;
   }
   & > [data-node] {

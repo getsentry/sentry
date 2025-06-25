@@ -109,7 +109,7 @@ const HeaderContentWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
   line-height: 1.4;
 `;

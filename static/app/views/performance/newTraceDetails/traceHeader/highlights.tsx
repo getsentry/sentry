@@ -272,7 +272,7 @@ const HighlightsContainer = styled('div')`
 const HighlightsDescription = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const HighlightsIconWrapper = styled('div')`
@@ -286,7 +286,7 @@ const HighlightsSubtitle = styled(Tooltip)`
 `;
 
 const StyledVersion = styled(Version)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
   &:hover {
     color: ${p => p.theme.textColor};

@@ -260,7 +260,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
@@ -328,7 +328,7 @@ const SectionTitleCollapsible = styled(Button, {
   ${sectionTitleStyles}
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   & > span:last-child {
     flex: 1;
@@ -420,7 +420,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
   height: 34px;
   align-items: center;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};

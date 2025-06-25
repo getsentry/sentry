@@ -84,7 +84,7 @@ const Badge = styled('div')<{status: PerformanceScore}>`
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(1)};
   display: inline-block;
   height: 17px;

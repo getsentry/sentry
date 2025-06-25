@@ -784,7 +784,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const HeadCellContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   padding: ${space(2)};
   border-top: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};

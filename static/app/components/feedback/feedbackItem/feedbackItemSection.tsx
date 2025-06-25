@@ -58,7 +58,7 @@ const SectionWrapper = styled('section')`
 const SectionTitle = styled('h3')`
   margin: 0;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-transform: capitalize;
   user-select: none;
 

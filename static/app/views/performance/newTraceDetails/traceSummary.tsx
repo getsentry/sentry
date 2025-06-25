@@ -209,7 +209,7 @@ const StyledIcon = styled('div')`
 
 const SectionTitle = styled('h6')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   text-transform: uppercase;
   margin: 0;
@@ -217,7 +217,7 @@ const SectionTitle = styled('h6')`
 
 const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   margin-bottom: ${space(3)};
 

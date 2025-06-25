@@ -245,13 +245,13 @@ const PolicyFrame = styled('iframe')`
 `;
 
 const PolicySubtext = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
 const PolicyTitle = styled('h6')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
   }
 `;
 

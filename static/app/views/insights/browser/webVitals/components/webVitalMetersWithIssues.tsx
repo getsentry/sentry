@@ -293,7 +293,7 @@ const MeterBarBody = styled('div')`
 `;
 
 const MeterHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.textColor};
   display: flex;

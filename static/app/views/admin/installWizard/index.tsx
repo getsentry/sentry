@@ -178,7 +178,7 @@ const Heading = styled('h1')`
 `;
 
 const Version = styled('small')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: inherit;
 `;
 

@@ -67,7 +67,7 @@ const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
   padding: ${p =>
     p.size === 'sm' ? `${space(0.75)} ${space(1)}` : `${space(1.5)} ${space(2)}`};
   max-width: ${p => (p.size === 'sm' ? '220px' : 'none')};
-  font-size: ${p => (p.size === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium)};
+  font-size: ${p => (p.size === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
 
   p {
     margin: 0;

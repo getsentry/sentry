@@ -385,12 +385,12 @@ const CodeSnippetDropdown = styled(DropdownAutoComplete)`
 `;
 
 const GroupHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};
-  line-height: ${p => p.theme.fontSizeSmall};
+  line-height: ${p => p.theme.fontSize.sm};
   text-align: left;
 `;
 const CreateIntegrationLink = styled(Link)`

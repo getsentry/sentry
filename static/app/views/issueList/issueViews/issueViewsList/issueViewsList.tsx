@@ -505,12 +505,12 @@ const Banner = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightNormal};
   flex-shrink: 0;
 
@@ -542,7 +542,7 @@ const TableHeading = styled('h2')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
 `;

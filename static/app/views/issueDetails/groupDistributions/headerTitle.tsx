@@ -29,7 +29,7 @@ export default function HeaderTitle({
 
 const Header = styled('h3')`
   ${p => p.theme.overflowEllipsis};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
 `;

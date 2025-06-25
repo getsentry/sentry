@@ -148,7 +148,7 @@ const TimelineLegend = styled('div')`
 
 const TimelineLegendText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TimelineContainer = styled('div')`

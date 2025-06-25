@@ -30,7 +30,7 @@ export const Header = styled('div')`
 
 export const HeaderTitle = styled('h4')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
@@ -124,7 +124,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
 
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   text-transform: uppercase;
@@ -232,7 +232,7 @@ export const GridBodyCell = styled('td')`
   flex-direction: column;
   justify-content: center;
 
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */

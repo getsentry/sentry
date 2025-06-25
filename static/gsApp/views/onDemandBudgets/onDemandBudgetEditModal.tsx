@@ -371,8 +371,8 @@ const Currency = styled('div')`
     position: absolute;
     content: '$';
     color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeLarge};
-    line-height: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
+    line-height: ${p => p.theme.fontSize.lg};
   }
 `;
 
@@ -385,7 +385,7 @@ const OnDemandInput = styled(Input)`
 
 const DetailTitle = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;

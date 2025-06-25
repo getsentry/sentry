@@ -269,7 +269,7 @@ const SQLText = styled('pre')`
   &.language-sql {
     margin: 0;
     padding: ${space(0.25)} 0;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     white-space: pre-wrap;
   }
 `;

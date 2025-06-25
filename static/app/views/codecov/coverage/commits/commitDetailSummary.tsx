@@ -112,12 +112,12 @@ export function CommitDetailSummary() {
 }
 
 const StyledSubText = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray300};
 `;
 
 const SourceText = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SourceEntry = styled(SummaryEntry)`

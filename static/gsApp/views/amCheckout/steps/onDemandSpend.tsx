@@ -130,12 +130,12 @@ const OnDemandRow = styled('div')`
 const Header = styled('div')`
   display: inline-grid;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
@@ -151,7 +151,7 @@ const InputContainer = styled('div')`
 
 const InputHeader = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: bold;
 `;

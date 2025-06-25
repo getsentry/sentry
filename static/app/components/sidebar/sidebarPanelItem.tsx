@@ -83,7 +83,7 @@ export default SidebarPanelItem;
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
   background: ${p => p.theme.background};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(3)};
 
   :not(:first-child) {
@@ -98,7 +98,7 @@ const TitleWrapper = styled('div')`
 `;
 
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
   ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold};`}

@@ -551,7 +551,7 @@ const RuleRowContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(3)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const PerformActionsListItem = styled(StyledListItem)`

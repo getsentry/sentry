@@ -336,7 +336,7 @@ const HighlightColumn = styled(TreeColumn)`
 `;
 
 const HighlightContextContent = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const highlightModalCss = (theme: Theme) => css`

@@ -52,7 +52,7 @@ const Wrapper = styled('div')`
 
 const Content = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: grid;
   gap: ${space(1.5)};
   justify-items: center;

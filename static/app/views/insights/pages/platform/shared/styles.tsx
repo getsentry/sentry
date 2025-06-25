@@ -18,7 +18,7 @@ const getColumns = (props: {columns?: number}) => {
 export const WidgetFooterTable = styled('div')<{columns?: number}>`
   display: grid;
   grid-template-columns: max-content 1fr repeat(${p => getColumns(p) - 2}, max-content);
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   & > * {
     padding: ${space(1)} ${space(0.5)};

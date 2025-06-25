@@ -393,7 +393,7 @@ const BackMotionDiv = styled(motion.div)`
   left: 20px;
 
   button {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 `;
 

@@ -36,7 +36,7 @@ export const DurationPill = styled('div')<{
   align-items: center;
   transform: translateY(-50%);
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 
   font-variant-numeric: tabular-nums;
   line-height: 1;

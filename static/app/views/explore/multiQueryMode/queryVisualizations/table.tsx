@@ -336,13 +336,13 @@ const StyledLink = styled(Link)`
 `;
 
 const TableBodyCell = styled(GridBodyCell)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-height: 12px;
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   height: 33px;
 `;
 

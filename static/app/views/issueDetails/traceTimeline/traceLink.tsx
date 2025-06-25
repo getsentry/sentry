@@ -75,7 +75,7 @@ const StyledLink = styled(Link)`
   align-items: center;
   gap: ${space(0.25)};
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   svg {
     margin-top: 1px;
@@ -88,7 +88,7 @@ const NoTraceAvailable = styled('span')`
   gap: ${space(0.25)};
   line-height: 1.2;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   svg {
     margin-top: 1px;

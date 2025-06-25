@@ -163,7 +163,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const UserName = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

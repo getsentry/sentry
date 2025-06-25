@@ -425,7 +425,7 @@ export default OrganizationMemberDetail;
 const ExtraHeaderText = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Details = styled('div')`

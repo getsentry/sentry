@@ -188,7 +188,7 @@ const ExpandButton = styled(Button)`
   position: absolute;
   bottom: -${space(1)};
   right: 0;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   border: none;
   box-shadow: none;
@@ -199,7 +199,7 @@ const ExpandButton = styled(Button)`
 `;
 
 const HeaderContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

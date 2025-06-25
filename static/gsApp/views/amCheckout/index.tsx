@@ -858,7 +858,7 @@ const SupportPrompt = styled(Panel)`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   align-items: center;
 `;
@@ -870,7 +870,7 @@ const CancelSubscription = styled('div')`
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   text-align: center;
   margin-bottom: ${space(1)};
@@ -888,7 +888,7 @@ const PartnerAlertTitle = styled('div')`
 
 const AnnualTerms = styled(TextBlock)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const CheckoutMain = styled('div')``;

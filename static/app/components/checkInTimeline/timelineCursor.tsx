@@ -181,7 +181,7 @@ const CursorLabel = styled(Overlay)<{
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   position: absolute;
   ${p =>

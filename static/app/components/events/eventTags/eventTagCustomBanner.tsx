@@ -49,7 +49,7 @@ const Body = styled(PanelBody)`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
 `;

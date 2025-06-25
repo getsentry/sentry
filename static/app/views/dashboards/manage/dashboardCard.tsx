@@ -165,7 +165,7 @@ const CardHeader = styled('div')`
 
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
@@ -189,7 +189,7 @@ const CardFooter = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.textColor};

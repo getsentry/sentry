@@ -506,7 +506,7 @@ const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   &:first-child {
     border-top: none;
   }

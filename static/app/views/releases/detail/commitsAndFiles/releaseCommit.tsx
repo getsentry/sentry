@@ -138,7 +138,7 @@ const StyledLink = styled(Link)`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
 `;
 
@@ -170,7 +170,7 @@ const MetaWrapper = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.2;
 `;
 

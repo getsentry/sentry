@@ -304,7 +304,7 @@ const Title = styled('div')`
 
 const SubText = styled('p')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ReshareButton = styled(Button)`

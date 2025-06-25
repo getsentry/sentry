@@ -307,7 +307,7 @@ const Measurements = styled('div')`
 `;
 
 const Container = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(4)};
 `;
 
@@ -316,7 +316,7 @@ const TraceStyledPanel = styled(Panel)`
   display: flex;
   align-items: center;
   max-width: fit-content;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: ${space(0.5)};
 
   > :not(:last-child) {
@@ -330,7 +330,7 @@ const ValueRow = styled('div')`
 `;
 
 const Value = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StyledPanel = styled(Panel)`

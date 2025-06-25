@@ -291,7 +291,7 @@ const SlowestFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;

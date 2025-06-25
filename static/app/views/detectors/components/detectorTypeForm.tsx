@@ -204,7 +204,7 @@ const Header = styled('div')`
 
   h3 {
     margin: 0;
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
   }
   p {
     margin: 0;

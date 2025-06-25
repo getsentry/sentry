@@ -36,7 +36,7 @@ export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
 }
 
 const StyledSummaryEntryLabel = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray300};
 `;

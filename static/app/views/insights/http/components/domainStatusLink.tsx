@@ -35,6 +35,6 @@ const ExternalDomainLink = styled(ExternalLink)`
   display: inline-flex;
   font-weight: ${p => p.theme.fontWeightNormal};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   gap: ${space(1)};
 `;

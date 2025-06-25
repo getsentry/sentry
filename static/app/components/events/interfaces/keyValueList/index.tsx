@@ -137,7 +137,7 @@ const ValueWithButtonContainer = styled('div')`
   display: grid;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   background: ${p => p.theme.bodyBackground};
   padding: ${space(1)} 10px;
   margin: ${space(0.25)} 0;

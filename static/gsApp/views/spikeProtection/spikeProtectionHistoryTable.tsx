@@ -277,7 +277,7 @@ const SectionHeading = styled('div')`
 
 const Title = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.gray400};
   display: flex;
   flex: 1;
@@ -300,7 +300,7 @@ const EmptySpikeHistory = styled(Panel)`
   text-align: center;
   padding: ${space(4)} ${space(2)};
   b {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     margin-bottom: ${space(1)};
   }
   p:last-child {

@@ -333,7 +333,7 @@ const ChartLabel = styled('div')<{top: string}>`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export default SidebarChartsContainer;

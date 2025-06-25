@@ -90,6 +90,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   margin-top: ${space(1.5)};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   box-shadow: none;
 `;

@@ -14,7 +14,7 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   return <div ref={ref} role="menu" {...props} />;
 })`
   position: absolute;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};

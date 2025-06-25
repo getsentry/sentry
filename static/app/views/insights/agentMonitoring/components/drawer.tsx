@@ -230,7 +230,7 @@ const HeaderContent = styled('div')`
 `;
 
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   margin-bottom: ${space(2)};
 `;

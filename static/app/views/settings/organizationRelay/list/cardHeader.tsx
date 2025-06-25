@@ -89,7 +89,7 @@ const KeyName = styled('div')`
 const DateCreated = styled('div')`
   grid-row: 2/3;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

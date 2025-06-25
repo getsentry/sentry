@@ -335,7 +335,7 @@ const BudgetContainer = styled('div')`
 
 const InputFields = styled('div')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 1px;
 `;
 
@@ -346,7 +346,7 @@ const StyledRadio = styled(Radio)`
 const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 
@@ -358,7 +358,7 @@ const Title = styled('div')`
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
@@ -370,7 +370,7 @@ const Currency = styled('div')`
     content: '$';
     color: ${p => p.theme.subText};
     font-weight: bold;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -386,7 +386,7 @@ const OnDemandType = styled('div')`
 `;
 
 const MediumTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const InputDiv = styled('div')`

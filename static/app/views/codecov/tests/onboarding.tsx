@@ -95,12 +95,12 @@ const GetStartedHeader = styled('h2')`
 `;
 
 const TAValueText = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
 const SelectOptionHeader = styled('h5')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(3)};
 `;

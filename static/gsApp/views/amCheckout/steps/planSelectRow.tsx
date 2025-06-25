@@ -281,7 +281,7 @@ const StyledRadio = styled(Radio)`
 const PlanDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 
@@ -290,14 +290,14 @@ const PlanName = styled('div')`
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
 
 const PriceHeader = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: bold;
 `;
@@ -318,7 +318,7 @@ const Amount = styled('span')`
 `;
 
 const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-self: end;
   padding-bottom: ${space(0.25)};
 `;
@@ -327,7 +327,7 @@ const FeatureList = styled('div')`
   display: grid;
   grid-template-rows: auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 
   > a {
@@ -356,7 +356,7 @@ const Title = styled('div')`
 const OriginalTotal = styled('div')`
   color: ${p => p.theme.subText};
   text-decoration: line-through;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const DiscountWrapper = styled('div')`
@@ -367,7 +367,7 @@ const DiscountWrapper = styled('div')`
 
 const PercentOff = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const EventPriceTag = styled(Tag)`

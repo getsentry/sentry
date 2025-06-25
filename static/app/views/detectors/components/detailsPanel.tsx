@@ -52,7 +52,7 @@ function DetailsPanel({detector}: DetailsPanelProps) {
 }
 
 const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 `;
 

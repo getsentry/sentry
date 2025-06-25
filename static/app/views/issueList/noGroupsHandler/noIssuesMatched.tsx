@@ -96,7 +96,7 @@ export default NoIssuesMatched;
 const Wrapper = styled('div')`
   display: flex;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   border-radius: 0 0 3px 3px;
   padding: 40px ${space(3)};
   min-height: 260px;

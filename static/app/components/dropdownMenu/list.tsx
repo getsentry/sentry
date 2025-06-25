@@ -268,7 +268,7 @@ const StyledOverlay = styled(Overlay)`
 const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
   padding: ${space(0.5)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   overflow-x: hidden;
   overflow-y: auto;
 
@@ -282,7 +282,7 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
 const MenuTitle = styled('div')`
   flex-shrink: 0;
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
   padding: ${space(0.75)} ${space(1.5)};

@@ -198,7 +198,7 @@ const IntegationBannerTitle = styled('div')`
   display: flex;
   align-items: baseline;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
   font-weight: 600;
 `;

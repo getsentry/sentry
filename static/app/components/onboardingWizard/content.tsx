@@ -610,7 +610,7 @@ const TaskCardWrapper = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   p {
     margin: 0;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
   button {
     visibility: hidden;

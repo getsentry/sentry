@@ -68,7 +68,7 @@ const Shortcuts = styled('ul')`
   list-style-type: none;
   margin-bottom: 0;
   padding: 0;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:not(:last-child) {
     margin: 0 0 ${space(3)} 0;

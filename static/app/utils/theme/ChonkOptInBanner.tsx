@@ -77,7 +77,7 @@ const TranslucentBackgroundPanel = styled(Panel)<{
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
 
@@ -86,7 +86,7 @@ const Title = styled('div')`
 `;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: ${space(0.5)} 0;
 `;
 

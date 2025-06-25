@@ -173,7 +173,7 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
 
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightBold};
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -198,7 +198,7 @@ const VitalPillValue = styled('div')`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const VitalMetersContainer = styled('div')`
@@ -212,7 +212,7 @@ const VitalMetersContainer = styled('div')`
 
 const SecondaryVitalsCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SecondaryVitalsCountContainer = styled('div')`

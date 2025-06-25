@@ -413,7 +413,7 @@ const CropperActions = styled('div')`
 const AvatarHelp = styled('p')`
   margin-right: auto;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   width: 50%;
 `;
 

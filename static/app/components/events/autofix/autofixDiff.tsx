@@ -705,9 +705,9 @@ const DiffsColumn = styled('div')`
 
 const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   & code {
-    font-size: ${p => (p.integratedStyle ? p.theme.fontSizeSmall : p.theme.codeFontSize)};
+    font-size: ${p => (p.integratedStyle ? p.theme.fontSize.sm : p.theme.codeFontSize)};
   }
   line-height: 20px;
   vertical-align: middle;
@@ -930,7 +930,7 @@ const TextAreaWrapper = styled('div')`
 
 const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};
@@ -944,7 +944,7 @@ const NoChangesMessage = styled('p')`
 
 const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};

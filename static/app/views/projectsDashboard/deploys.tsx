@@ -88,7 +88,7 @@ const DeployRows = styled('div')`
   grid-template-columns: minmax(30px, 1fr) 1fr 1fr;
   grid-template-rows: auto;
   gap: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.2;
 `;
 

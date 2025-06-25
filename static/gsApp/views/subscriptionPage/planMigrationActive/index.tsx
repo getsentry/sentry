@@ -116,7 +116,7 @@ export default PlanMigrationActive;
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h6 {
     font-weight: 400;
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     margin-bottom: ${space(0.75)};
   }
 
@@ -150,5 +150,5 @@ const Feature = styled('span')`
 `;
 
 const MoreInfo = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

@@ -70,6 +70,6 @@ const MobileSecondaryNav = styled('div')`
 `;
 
 const HeaderLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
 `;

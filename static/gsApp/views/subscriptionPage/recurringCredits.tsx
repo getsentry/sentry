@@ -145,7 +145,7 @@ const StyledPanelBody = styled(PanelBodyWithTable)`
 `;
 
 const SubText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 

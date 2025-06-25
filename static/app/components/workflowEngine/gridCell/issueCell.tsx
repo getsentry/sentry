@@ -48,7 +48,7 @@ const IssueWrapper = styled(Link)<{disabled: boolean}>`
 
   ${Wrapper} {
     color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 
   ${p =>

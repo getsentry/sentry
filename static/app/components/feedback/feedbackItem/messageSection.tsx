@@ -98,7 +98,7 @@ const Blockquote = styled('blockquote')`
     margin-bottom: 0;
     background: none;
     font-family: inherit;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     line-height: 1.6;
     padding: 0;
     word-break: break-word;

@@ -135,13 +135,13 @@ const OptionLabel = styled('span')`
 `;
 
 const FooterInfoHeading = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   margin: 0;
 `;
 
 const FooterInfoSubheading = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   margin: 0;
 `;

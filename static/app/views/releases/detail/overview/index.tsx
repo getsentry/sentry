@@ -663,7 +663,7 @@ const ReleaseDetailsPageFilters = styled('div')`
 `;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 

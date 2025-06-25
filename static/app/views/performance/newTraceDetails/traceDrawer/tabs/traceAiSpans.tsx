@@ -136,7 +136,7 @@ const Wrapper = styled('div')`
 `;
 
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   margin-bottom: ${space(2)};
   margin-left: ${space(1)};
@@ -144,7 +144,7 @@ const SpansHeader = styled('h6')`
 
 const HeaderCell = styled('div')<{align?: 'left' | 'right'}>`
   padding: 0 ${space(2)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
