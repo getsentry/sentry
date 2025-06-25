@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {ModalTypes} from 'sentry/components/globalModal';
@@ -70,7 +71,10 @@ export async function openMissingPrimaryEmailModal({
   const {default: Modal} = await import(
     'sentry/components/modals/missingPrimaryEmailModal'
   );
-
+  Sentry.captureMessage(
+    'Displaying MissingPrimaryEmailModel to user without primary email address',
+    'info'
+  );
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 

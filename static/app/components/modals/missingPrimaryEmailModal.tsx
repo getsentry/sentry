@@ -3,24 +3,36 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = Pick<ModalRenderProps, 'Body' | 'Header'>;
 
 function MissingPrimaryEmailModal({Header, Body}: Props) {
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const deadline = isSelfHosted ? 'as soon as possible' : ' before August 1, 2025';
   return (
     <Fragment>
       <Header>
         <Heading>{t('Action Required')}</Heading>
       </Header>
       <Body>
-        <TextBlock>{t('Your account doesn't have an email address!')}</TextBlock>
         <TextBlock>
-          {t(
-            ' We require all Sentry users to have a primary email address. Please add a primary email address to your account within User Settings. If you do not do so within 30 days, your account will be deleted.'
-          )}
+          <p>
+            {t(
+              "Busted! Looks like you've been flying under the radar without an email address!"
+            )}
+          </p>
+          <p>
+            {tct(
+              "Sentry accounts need to have an email address. Please add yours [deadline], or we'll have to delete your account.",
+              {
+                deadline,
+              }
+            )}
+          </p>
         </TextBlock>
         <LinkButton to={`/settings/account/emails/`} priority="primary">
           {t('Go to User Settings')}
