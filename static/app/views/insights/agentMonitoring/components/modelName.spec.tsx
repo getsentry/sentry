@@ -11,8 +11,8 @@ describe('getModelPlatform Function', () => {
     expect(getModelPlatform('o3')).toBe('openai');
     expect(getModelPlatform('o4')).toBe('openai');
 
-    expect(getModelPlatform('gemini-2.5')).toBe('google');
-    expect(getModelPlatform('gemma-7b')).toBe('google');
+    expect(getModelPlatform('gemini-2.5')).toBe('gemini');
+    expect(getModelPlatform('gemma-7b')).toBe('gemini');
     expect(getModelPlatform('claude-3.5-sonnet')).toBe('anthropic-claude');
     expect(getModelPlatform('deepseek-coder')).toBe('deepseek');
     expect(getModelPlatform('grok-beta')).toBe('grok');
