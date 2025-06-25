@@ -114,7 +114,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
 
 const Heading = styled('span')`
   font-weight: 400;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-right: ${space(1)};
 `;
 

@@ -177,7 +177,7 @@ const ActionButton = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;

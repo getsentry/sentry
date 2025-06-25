@@ -305,7 +305,7 @@ const JumpTo = styled('div')`
   flex-direction: row;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
   max-width: 100%;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -316,7 +316,7 @@ const JumpTo = styled('div')`
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   :hover {
     color: ${p => p.theme.red300};
   }

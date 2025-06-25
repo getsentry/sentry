@@ -125,7 +125,7 @@ const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   border-top: 1px solid ${p => p.theme.border};
   align-content: center;
   padding: ${space(2)} ${space(4)};

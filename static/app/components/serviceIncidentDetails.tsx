@@ -138,7 +138,7 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
 }
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(1)};
 `;
 
@@ -222,6 +222,6 @@ const ComponentList = styled(List)`
 `;
 
 const ComponentStatus = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 2;
 `;

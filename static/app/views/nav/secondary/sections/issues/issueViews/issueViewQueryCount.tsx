@@ -100,7 +100,7 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
 
 const QueryCountBubble = styled(motion.span)`
   line-height: 20px;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: 0 ${space(0.5)};
   min-width: 20px;
   display: flex;

@@ -52,7 +52,7 @@ const UnmaskAlertContainer = styled('div')`
   left: 0;
   width: 100%;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   pointer-events: none;
 `;
 

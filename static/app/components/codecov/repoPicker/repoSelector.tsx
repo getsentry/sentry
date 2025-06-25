@@ -158,7 +158,7 @@ const FooterTip = styled('p')`
   grid-auto-flow: column;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
 `;
 

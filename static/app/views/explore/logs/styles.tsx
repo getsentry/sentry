@@ -53,7 +53,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
 
   padding: 2px ${space(2)};
 
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */

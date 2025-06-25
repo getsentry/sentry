@@ -12,7 +12,7 @@ export const SubscriptionBody = styled(PanelBody)`
 
   h3 {
     margin-bottom: ${space(1)};
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
     font-weight: 400;
   }
 
@@ -30,7 +30,7 @@ export const ButtonWrapper = styled(ButtonBar)`
 
 export const StripedTable = styled('table')`
   width: 100%;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 
   tr:nth-child(2n + 1) td {
@@ -45,7 +45,7 @@ export const AlertStripedTable = styled(StripedTable)`
   th {
     text-transform: uppercase;
     text-align: center;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 
   td:first-child,
@@ -78,6 +78,6 @@ export const PanelBodyWithTable = styled(PanelBody)`
 
   h4 {
     font-weight: 400;
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;

@@ -12,7 +12,7 @@ import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export const QuickTraceContainer = styled('div')`

@@ -506,6 +506,6 @@ const PageControl = styled('div')`
 
 const EstimationText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: ${p => p.theme.text.lineHeightBody};
 `;

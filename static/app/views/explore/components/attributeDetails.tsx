@@ -27,7 +27,7 @@ export function AttributeDetails({column, kind, label, type}: AttributeDetailsPr
 const Details = styled('div')`
   padding: ${space(0.75)} ${space(1)};
   max-width: 220px;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const DetailsLabel = styled('p')`

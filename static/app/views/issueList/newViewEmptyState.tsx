@@ -159,7 +159,7 @@ const Card = styled(Panel)`
 `;
 
 const CardHeading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
   display: flex;

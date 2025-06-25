@@ -273,7 +273,7 @@ const SummaryLinks = styled('div')`
   font-weight: ${p => p.theme.fontWeightNormal};
 
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   /* Need to offset for the project icon and margin */
   margin-left: 40px;
@@ -315,7 +315,7 @@ const ScoreCardWrapper = styled('div')`
     margin: 0;
   }
   ${Title} {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     color: ${p => p.theme.subText};
     margin-bottom: ${space(0.5)};
   }

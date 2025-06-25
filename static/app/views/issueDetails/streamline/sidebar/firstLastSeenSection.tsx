@@ -127,6 +127,6 @@ const Title = styled('div')`
 `;
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;

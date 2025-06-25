@@ -109,7 +109,7 @@ const ButtonTitle = styled('div')`
 const ButtonSubtitle = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledLinkButton = styled(LinkButton)`

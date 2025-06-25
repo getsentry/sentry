@@ -358,18 +358,18 @@ const Header = styled('div')`
 `;
 
 const HeaderTitle = styled('h1')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 0;
 `;
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
 `;
 
 const Body = styled('div')`
   margin: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};

@@ -310,7 +310,7 @@ function VitalDetailContent(props: Props) {
 export default withProjects(VitalDetailContent);
 
 const StyledDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(3)};
 `;
 

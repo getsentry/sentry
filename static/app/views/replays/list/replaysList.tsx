@@ -141,7 +141,7 @@ function ReplaysList() {
 
 const EmptyStateSubheading = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ReplayPagination = styled(Pagination)`

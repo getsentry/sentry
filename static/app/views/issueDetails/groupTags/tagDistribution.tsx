@@ -110,7 +110,7 @@ const TagPanel = styled('div')`
 
 const TagHeader = styled('h5')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
   ${p => p.theme.overflowEllipsis}

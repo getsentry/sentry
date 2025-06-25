@@ -84,7 +84,7 @@ const List = styled('ul')`
 `;
 
 const ListItem = styled('li')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   cursor: pointer;

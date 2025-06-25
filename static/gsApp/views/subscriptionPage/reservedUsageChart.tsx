@@ -747,6 +747,6 @@ function ReservedUsageChart({
 export default ReservedUsageChart;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
 `;

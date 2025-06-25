@@ -147,13 +147,13 @@ export const Header = styled('div')`
 export const Title = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export const HeaderItem = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StreamlineGridEditable = styled('div')`
@@ -167,7 +167,7 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridHead} {
     min-height: unset;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     ${GridResizer} {
       height: 36px;
     }
@@ -202,7 +202,7 @@ const StreamlineGridEditable = styled('div')`
   ${GridBodyCell} {
     min-height: unset;
     padding: ${space(1)} ${space(1.5)};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

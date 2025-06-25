@@ -116,7 +116,7 @@ const StepTitle = styled('div')`
   justify-content: start;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
 `;
 

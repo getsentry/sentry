@@ -349,7 +349,7 @@ const AlertNameAndStatus = styled('div')`
 
 const AlertName = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const AlertIncidentDate = styled('div')`

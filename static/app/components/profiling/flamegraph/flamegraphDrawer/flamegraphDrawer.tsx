@@ -376,7 +376,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   height: 100%;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
   button {

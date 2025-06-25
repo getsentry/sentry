@@ -70,7 +70,7 @@ const CloseButton = withChonk(
 );
 
 const ModalBody = styled('section')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   p:last-child {
     margin-bottom: 0;

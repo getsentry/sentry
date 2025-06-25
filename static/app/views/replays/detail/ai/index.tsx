@@ -237,7 +237,7 @@ const Summary = styled('summary')`
   cursor: pointer;
   display: list-item;
   padding: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 
   /* sorry */
   &:focus-visible {
@@ -254,7 +254,7 @@ const Summary = styled('summary')`
     display: inline-block;
     width: 14px;
     margin-right: ${space(1)};
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;
 
@@ -273,5 +273,5 @@ const SummaryText = styled('p')`
 // Copied from breadcrumbItem
 const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

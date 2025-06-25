@@ -168,7 +168,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
 const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
   opacity: ${p => (p.disabled ? 0.4 : null)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray500};
 `;

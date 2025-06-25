@@ -40,7 +40,7 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
 }
 
 export const BannerContainer = styled('div')<BannerProps>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   background: ${p => getColors(p).background};
   border-top: 1px solid ${p => getColors(p).border};
   border-bottom: 1px solid ${p => getColors(p).border};
@@ -88,7 +88,7 @@ export const SuspectCommitHeader = styled('div')`
   & button,
   & h3 {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     font-weight: ${p => p.theme.fontWeightBold};
   }
 

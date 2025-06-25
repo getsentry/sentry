@@ -634,7 +634,7 @@ const Header = styled('div')`
 `;
 
 const SelectedText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   display: flex;
   align-items: center;
@@ -679,7 +679,7 @@ const MessageContent = styled('div')`
   flex-grow: 1;
   border-radius: ${p => p.theme.borderRadius};
   padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
   word-break: break-word;
   overflow-wrap: break-word;

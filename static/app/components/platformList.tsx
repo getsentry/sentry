@@ -91,7 +91,7 @@ const Counter = styled('div')`
   justify-content: center;
   text-align: center;
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.subText};
   padding: 0 1px;

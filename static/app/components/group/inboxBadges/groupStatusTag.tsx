@@ -47,8 +47,7 @@ export function GroupStatusTag({
 const StyledTag = styled(Tag, {
   shouldForwardProp: p => p !== 'fontSize',
 })<{fontSize: 'sm' | 'md'}>`
-  font-size: ${p =>
-    p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
+  font-size: ${p => (p.fontSize === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
 `;
 
 const Separator = styled('span')<{type: keyof Theme['tag']}>`

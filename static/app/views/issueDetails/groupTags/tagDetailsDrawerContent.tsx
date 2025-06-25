@@ -415,5 +415,5 @@ const ExternalLinkbutton = styled(Button)`
 const UserValue = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

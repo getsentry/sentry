@@ -40,7 +40,7 @@ const numericStyle = (
             width: 24px;
             height: 24px;
             font-weight: ${theme.fontWeightNormal};
-            font-size: ${theme.fontSizeSmall};
+            font-size: ${theme.fontSize.sm};
             background-color: ${isChonkTheme(theme)
               ? theme.colors.chonk.yellow400
               : theme.yellow300};

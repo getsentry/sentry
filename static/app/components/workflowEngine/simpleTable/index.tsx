@@ -154,7 +154,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   text-transform: inherit;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 
   position: relative;
@@ -197,7 +197,7 @@ const StyledEmptyMessage = styled('div')`
   justify-content: center;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 SimpleTable.Header = Header;

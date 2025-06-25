@@ -352,7 +352,7 @@ const EmptySpanDurationBar = styled('div')`
   padding-left: ${space(1)};
 
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   font-variant-numeric: tabular-nums;
   line-height: 1;
 `;

@@ -304,7 +304,7 @@ export default function GroupSidebar({
 }
 
 const Container = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ExternalIssues = styled('div')`

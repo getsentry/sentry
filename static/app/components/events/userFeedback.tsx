@@ -89,7 +89,7 @@ const Items = styled('div')`
 
 const CopyButton = styled(Button)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 

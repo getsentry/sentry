@@ -520,7 +520,7 @@ const StyledActions = styled('div')<{listView: boolean}>`
 
 const TemplateSwitch = styled('label')`
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};

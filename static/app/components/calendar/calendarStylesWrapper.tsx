@@ -182,7 +182,7 @@ const CalendarStylesWrapper = styled('div')`
     background: none;
     color: ${p => p.theme.textColor};
     font-weight: ${p => p.theme.fontWeightNormal};
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     padding: ${space(0.25)} ${space(1)};
   }
 

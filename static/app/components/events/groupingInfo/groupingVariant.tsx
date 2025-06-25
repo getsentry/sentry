@@ -246,7 +246,7 @@ const Header = styled('div')`
 `;
 
 const VariantTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   display: flex;
   align-items: center;

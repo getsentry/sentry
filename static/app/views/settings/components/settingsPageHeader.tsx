@@ -87,7 +87,7 @@ const Title = styled('div')<TitleProps>`
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1.5)} 0 0;
 `;
 

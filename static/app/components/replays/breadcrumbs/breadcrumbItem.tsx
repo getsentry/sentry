@@ -408,7 +408,7 @@ const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
@@ -460,7 +460,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
 
 const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   align-self: flex-start;
 `;
 
@@ -486,7 +486,7 @@ const SelectorButton = styled(Button)`
   border-radius: 2px;
   font-weight: ${p => p.theme.fontWeightNormal};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
   height: auto;

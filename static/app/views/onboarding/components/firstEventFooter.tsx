@@ -177,7 +177,7 @@ const WaitingIndicator = styled(motion.div)`
 const StatusWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   justify-content: center;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

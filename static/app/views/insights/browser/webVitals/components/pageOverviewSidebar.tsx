@@ -296,11 +296,11 @@ const SidebarPerformanceScoreRingContainer = styled('div')`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const ChartSubText = styled('div')<{color?: string}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.color ?? p.theme.subText};
 `;
 
@@ -310,7 +310,7 @@ const SectionHeading = styled('h4')`
   gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 `;
 
