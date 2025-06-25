@@ -190,7 +190,7 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
         window=60,  # 1 minute
     )
     if is_rate_limited:
-        logger.warning(
+        logger.info(
             "Seer scanner auto-trigger rate limit hit",
             extra={
                 "org_slug": organization.slug,
@@ -255,7 +255,7 @@ def is_seer_autotriggered_autofix_rate_limited(
         window=60 * 60,  # 1 hour
     )
     if is_rate_limited:
-        logger.warning(
+        logger.info(
             "Autofix auto-trigger rate limit hit",
             extra={
                 "auto_run_count": current,
