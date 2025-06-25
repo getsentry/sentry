@@ -6,65 +6,73 @@ import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
+import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {IconBranch} from './iconBranch';
+export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
+  '24h': t('Last 24 hours'),
+  '7d': t('Last 7 days'),
+  '30d': t('Last 30 days'),
+};
 
-const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
+export type CodecovPeriodOptions = keyof typeof CODECOV_DEFAULT_RELATIVE_PERIODS;
 
-export function BranchSelector() {
-  const {branch, changeContextValue} = useCodecovContext();
+export function DateSelector() {
+  const {codecovPeriod, changeContextValue} = useCodecovContext();
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({branch: selectedOption.value});
+      changeContextValue({codecovPeriod: selectedOption.value});
     },
     [changeContextValue]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    const optionSet = new Set<string>([
-      ...(branch ? [branch] : []),
-      ...(SAMPLE_BRANCH_ITEMS.length ? SAMPLE_BRANCH_ITEMS : []),
-    ]);
-
-    const makeOption = (value: string): SelectOption<string> => {
-      return {
-        value,
-        label: <OptionLabel>{value}</OptionLabel>,
-        textValue: value,
-      };
+    const currentAndDefaultCodecovPeriods = {
+      ...getArbitraryRelativePeriod(codecovPeriod),
+      ...CODECOV_DEFAULT_RELATIVE_PERIODS,
     };
 
-    return [...optionSet].map(makeOption);
-  }, [branch]);
+    return Object.entries(currentAndDefaultCodecovPeriods).map(
+      ([key, value]): SelectOption<string> => {
+        return {
+          value: key,
+          label: <OptionLabel>{value}</OptionLabel>,
+          textValue: value,
+        };
+      }
+    );
+  }, [codecovPeriod]);
 
   return (
     <CompactSelect
+      disableSearchFilter
       options={options}
-      value={branch ?? ''}
+      value={codecovPeriod ?? ''}
       onChange={handleChange}
-      closeOnSelect
+      menuWidth={'16rem'}
       trigger={(triggerProps, isOpen) => {
+        const defaultLabel = options.some(item => item.value === codecovPeriod)
+          ? codecovPeriod?.toUpperCase()
+          : t('Invalid Period');
+
         return (
           <DropdownButton
             isOpen={isOpen}
-            data-test-id="page-filter-branch-selector"
+            data-test-id="codecov-time-selector"
             {...triggerProps}
           >
             <TriggerLabelWrap>
               <Flex align="center" gap={space(0.75)}>
-                <IconContainer>
-                  <IconBranch />
-                </IconContainer>
-                <TriggerLabel>{branch || t('Select branch')}</TriggerLabel>
+                <IconCalendar />
+                <TriggerLabel>{defaultLabel}</TriggerLabel>
               </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
         );
       }}
-      menuWidth={'22em'}
     />
   );
 }
@@ -72,7 +80,6 @@ export function BranchSelector() {
 const TriggerLabelWrap = styled('span')`
   position: relative;
   min-width: 0;
-  max-width: 200px;
 `;
 
 const TriggerLabel = styled('span')`
@@ -81,15 +88,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const OptionLabel = styled('span')`
-  white-space: normal;
-  /* Remove custom margin added by SelectorItemLabel. Once we update custom hooks and
-  remove SelectorItemLabel, we can delete this. */
   div {
     margin: 0;
   }
-`;
-
-const IconContainer = styled('div')`
-  flex: 1 0 14px;
-  height: 14px;
 `;
