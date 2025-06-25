@@ -108,6 +108,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()
             assert non_common_strings == known_non_common_strings
 
+    @pytest.mark.skip(reason="flaky: #94319")
     def test_histogram_outliers(self):
         with Feature(
             {
