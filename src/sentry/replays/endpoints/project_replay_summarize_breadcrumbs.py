@@ -18,8 +18,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import FeedbackGroup
-from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.post_process import process_raw_response
@@ -97,15 +95,15 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
 
         if disable_error_fetching:
             error_events = []
-            feedback_events = []
         else:
             error_events = fetch_error_details(project_id=project.id, error_ids=error_ids)
-            feedback_events = fetch_feedback_details(project_id=project.id, replay_id=replay_id)
         return self.paginate(
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
-            on_results=functools.partial(analyze_recording_segments, error_events, feedback_events),
+            on_results=functools.partial(
+                analyze_recording_segments, error_events, project_id=project.id
+            ),
         )
 
 
@@ -131,26 +129,28 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def fetch_feedback_details(project_id: int, replay_id: str):
+def fetch_feedback_details(feedback_id: str, project_id: int | None = None):
     """
-    Fetch user feedback associated with a specific replay ID.
+    Fetch user feedback associated with a specific feedback event ID.
     """
-    feedback_items = Group.objects.filter(
-        type=FeedbackGroup.type_id,
-        project_id=project_id,
-        data__contexts__feedback__replay_id=replay_id,
-    )
+    if project_id is None:
+        return None
 
-    return [
-        GroupEvent(
-            id=str(item.id),
-            title="User Feedback",
-            message=item.data.get("contexts", {}).get("feedback", {}).get("message", ""),
-            timestamp=item.first_seen.timestamp() * 1000,  # feedback timestamp is in seconds
+    try:
+        node_id = Event.generate_node_id(project_id, event_id=feedback_id)
+        event = nodestore.backend.get(node_id)
+
+        return GroupEvent(
             category="feedback",
+            id=feedback_id,
+            title="User Feedback",
+            timestamp=event.get("timestamp", 0.0) * 1000,  # feedback timestamp is in seconds
+            message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
         )
-        for item in feedback_items
-    ]
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
 
 
 def generate_error_log_message(error: GroupEvent) -> str:
@@ -161,68 +161,56 @@ def generate_error_log_message(error: GroupEvent) -> str:
     return f"User experienced an error: '{title}: {message}' at {timestamp}"
 
 
-def generate_feedback_log_message(feedback: GroupEvent) -> str:
-    message = feedback["message"]
-    timestamp = feedback["timestamp"]
-
-    return f"User submitted feedback: '{message}' at {timestamp}"
-
-
 def get_request_data(
     iterator: Iterator[tuple[int, memoryview]],
     error_events: list[GroupEvent],
-    feedback_events: list[GroupEvent],
+    project_id: int | None = None,
 ) -> list[str]:
-    # Merge and sort all error and feedback events by timestamp
-    all_events = error_events + feedback_events
-    all_events.sort(key=lambda x: x["timestamp"])
-    return list(gen_request_data(iterator, all_events))
+    # Sort error events by timestamp
+    error_events.sort(key=lambda x: x["timestamp"])
+    return list(gen_request_data(iterator, error_events, project_id))
 
 
 def gen_request_data(
-    iterator: Iterator[tuple[int, memoryview]], all_events: list[GroupEvent]
+    iterator: Iterator[tuple[int, memoryview]],
+    error_events: list[GroupEvent],
+    project_id: int | None = None,
 ) -> Generator[str]:
-    """Generate log messages from events, errors, and feedback in chronological order."""
-    event_idx = 0
+    """Generate log messages from events an errors in chronological order."""
+    error_idx = 0
 
     # Process segments
     for _, segment in iterator:
         events = json.loads(segment.tobytes().decode("utf-8"))
         for event in events:
-            # Check if we need to yield any error/feedback messages that occurred before this event
-            while event_idx < len(all_events) and all_events[event_idx]["timestamp"] < event.get(
-                "timestamp", 0
-            ):
-                group_event = all_events[event_idx]
-                if group_event["category"] == "error":
-                    yield generate_error_log_message(group_event)
-                elif group_event["category"] == "feedback":
-                    yield generate_feedback_log_message(group_event)
-                event_idx += 1
+            # Check if we need to yield any error messages that occurred before this event
+            while error_idx < len(error_events) and error_events[error_idx][
+                "timestamp"
+            ] < event.get("timestamp", 0):
+                group_event = error_events[error_idx]
+                yield generate_error_log_message(group_event)
+                error_idx += 1
 
             # Yield the current event's log message
-            if message := as_log_message(event):
+            if message := as_log_message(event, project_id):
                 yield message
 
-    # Yield any remaining error/feedback messages
-    while event_idx < len(all_events):
-        group_event = all_events[event_idx]
-        if group_event["category"] == "error":
-            yield generate_error_log_message(group_event)
-        elif group_event["category"] == "feedback":
-            yield generate_feedback_log_message(group_event)
-        event_idx += 1
+    # Yield any remaining error messages
+    while error_idx < len(error_events):
+        group_event = error_events[error_idx]
+        yield generate_error_log_message(group_event)
+        error_idx += 1
 
 
 @sentry_sdk.trace
 def analyze_recording_segments(
     error_events: list[GroupEvent],
-    feedback_events: list[GroupEvent],
     segments: list[RecordingSegmentStorageMeta],
+    project_id: int,
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details
     request_data = json.dumps(
-        {"logs": get_request_data(iter_segment_data(segments), error_events, feedback_events)}
+        {"logs": get_request_data(iter_segment_data(segments), error_events, project_id)}
     )
 
     # Log when the input tokens are too large. This is potential for timeout.
@@ -238,7 +226,7 @@ def analyze_recording_segments(
     return json.loads(make_seer_request(request_data).decode("utf-8"))
 
 
-def as_log_message(event: dict[str, Any]) -> str | None:
+def as_log_message(event: dict[str, Any], project_id: int | None = None) -> str | None:
     """Return an event as a log message.
 
     Useful in AI contexts where the event's structure is an impediment to the AI's understanding
@@ -250,6 +238,14 @@ def as_log_message(event: dict[str, Any]) -> str | None:
     timestamp = event.get("timestamp", 0.0)
 
     match event_type:
+        case EventType.FEEDBACK:
+            feedback_id = event["data"]["payload"]["data"]["feedback_id"]
+            feedback = fetch_feedback_details(feedback_id, project_id)
+            if feedback:
+                message = feedback["message"]
+                return f"User submitted feedback: '{message}' at {timestamp}"
+            else:
+                return None
         case EventType.CLICK:
             return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
         case EventType.DEAD_CLICK:

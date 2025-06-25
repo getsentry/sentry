@@ -1,6 +1,6 @@
 import uuid
 import zlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import patch
 
 import requests
@@ -9,8 +9,9 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry import nodestore
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import Event
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
+    GroupEvent,
     as_log_message,
     get_request_data,
 )
@@ -54,6 +55,42 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             file_id=None,
         )
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
+
+    def mock_create_feedback_occurrence(self, project_id: int, replay_id: str | None = None):
+        dt = datetime.now(UTC)
+
+        event = {
+            "project_id": project_id,
+            "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+            "timestamp": dt.timestamp(),
+            "received": dt.isoformat(),
+            "first_seen": dt.isoformat(),
+            "user": {
+                "ip_address": "72.164.175.154",
+                "email": "josh.ferge@sentry.io",
+                "id": 880461,
+                "isStaff": False,
+                "name": "Josh Ferge",
+            },
+            "contexts": {
+                "feedback": {
+                    "contact_email": "josh.ferge@sentry.io",
+                    "name": "Josh Ferge",
+                    "message": "Great website!",
+                    "replay_id": replay_id,
+                    "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                },
+            },
+        }
+
+        self.store_event(
+            data={
+                "event_id": event["event_id"],
+                "timestamp": event["timestamp"],
+                "contexts": event["contexts"],
+            },
+            project_id=self.project.id,
+        )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get(self, make_seer_request):
@@ -214,7 +251,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.content == return_value
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_with_error_context_disabled(self, make_seer_request):
+    def test_get_with_error_context_disabled_and_enabled(self, make_seer_request):
         """Test handling of breadcrumbs with error context disabled"""
         return_value = json.dumps({"error": "An error happened"}).encode()
         make_seer_request.return_value = return_value
@@ -256,10 +293,11 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
                 },
-            }
+            },
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
+        # with error context disabled
         with self.feature(
             {
                 "organizations:session-replay": True,
@@ -274,6 +312,85 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert "logs" in call_args
         assert not any("ZeroDivisionError" in log for log in call_args["logs"])
         assert not any("division by zero" in log for log in call_args["logs"])
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.content == return_value
+
+        # with error context enabled
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            response = self.client.get(self.url, {"enable_error_context": "true"})
+
+        call_args = json.loads(make_seer_request.call_args[0][0])
+        assert "logs" in call_args
+        assert any("ZeroDivisionError" in log for log in call_args["logs"])
+        assert any("division by zero" in log for log in call_args["logs"])
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.content == return_value
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get_with_feedback(self, make_seer_request):
+        """Test handling of breadcrumbs with user feedback"""
+        return_value = json.dumps({"feedback": "Feedback was submitted"}).encode()
+        make_seer_request.return_value = return_value
+
+        self.mock_create_feedback_occurrence(self.project.id, replay_id=self.replay_id)
+
+        now = datetime.now(timezone.utc)
+
+        self.store_replays(
+            mock_replay(
+                now,
+                self.project.id,
+                self.replay_id,
+            )
+        )
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "sentry.feedback",
+                        "data": {"feedback_id": "56b08cf7852c42cbb95e4a6998c66ad6"},
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        make_seer_request.assert_called_once()
+        call_args = json.loads(make_seer_request.call_args[0][0])
+        assert "logs" in call_args
+        assert any("Great website!" in log for log in call_args["logs"])
+        assert any("User submitted feedback" in log for log in call_args["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
