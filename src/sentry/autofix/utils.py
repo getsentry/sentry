@@ -12,6 +12,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
@@ -187,12 +188,12 @@ def is_seer_scanner_rate_limited(
 
 
 AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
-    "off": 5,
-    "super_low": 5,
-    "low": 4,
-    "medium": 3,
-    "high": 2,
-    "always": 1,
+    AutofixAutomationTuningSettings.OFF: 5,
+    AutofixAutomationTuningSettings.SUPER_LOW: 5,
+    AutofixAutomationTuningSettings.LOW: 4,
+    AutofixAutomationTuningSettings.MEDIUM: 3,
+    AutofixAutomationTuningSettings.HIGH: 2,
+    AutofixAutomationTuningSettings.ALWAYS: 1,
     None: 1,  # default if option is not set
 }
 
