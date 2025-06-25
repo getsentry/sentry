@@ -58,7 +58,6 @@ class GroupCategory(IntEnum):
     METRIC_ALERT = 8
     TEST_NOTIFICATION = 9
 
-    # New issue categories (under the organizations:issue-taxonomy flag)
     OUTAGE = 10
     METRIC = 11
     DB_QUERY = 12
@@ -190,7 +189,7 @@ class GroupType:
     slug: str
     description: str
     category: int
-    # New issue category mapping (under the organizations:issue-taxonomy flag)
+    # New issue category mapping
     # When GA'd, the original `category` will be removed and this will be renamed to `category`.
     category_v2: int
     noise_config: NoiseConfig | None = None
