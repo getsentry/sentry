@@ -45,8 +45,8 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
-  {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
-  {key: 'duration', name: t('Duration'), width: 100},
+  {key: 'transaction', name: t('Trace Root'), width: COL_WIDTH_UNDEFINED},
+  {key: 'duration', name: t('Root Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
