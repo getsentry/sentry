@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {Link, useSearchParams} from 'react-router-dom';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
@@ -50,8 +50,14 @@ function OrgFooterMessage() {
 }
 
 export function IntegratedOrgSelector() {
-  const {integratedOrg} = useCodecovContext();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {integratedOrg, changeContextValue} = useCodecovContext();
+
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      changeContextValue({integratedOrg: selectedOption.value});
+    },
+    [changeContextValue]
+  );
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
@@ -69,18 +75,6 @@ export function IntegratedOrgSelector() {
 
     return [...optionSet].map(makeOption);
   }, [integratedOrg]);
-
-  const handleChange = useCallback(
-    (selectedOption: SelectOption<string>) => {
-      const currentParams = Object.fromEntries(searchParams.entries());
-      const updatedParams = {
-        ...currentParams,
-        integratedOrg: selectedOption.value,
-      };
-      setSearchParams(updatedParams);
-    },
-    [searchParams, setSearchParams]
-  );
 
   return (
     <CompactSelect
