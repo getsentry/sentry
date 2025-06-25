@@ -34,13 +34,15 @@ describe('Subscription > PendingChanges', function () {
   });
 
   it('renders mm2 plan and ondemand changes', function () {
-    // const planDetails = PlanDetailsLookupFixture();
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_ac',
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'mm2_b_100k',
+        reserved: {
+          errors: 100_000,
+        },
         onDemandMaxSpend: 0,
         effectiveDate: '2021-02-01',
         onDemandEffectiveDate: '2021-02-01',
@@ -48,6 +50,7 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           contractInterval: MONTHLY,
           budgetTerm: 'on-demand',
+          categories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
         }),
       }),
     });
