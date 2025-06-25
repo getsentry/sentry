@@ -489,6 +489,7 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
             times=3,
             delay=60 * 5,
         ),
+        processing_deadline_duration=30,
     ),
     **CONTROL_TASK_OPTIONS,
 )
