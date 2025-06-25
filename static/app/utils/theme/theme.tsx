@@ -962,37 +962,6 @@ type ButtonColors = Record<
   }
 >;
 
-type ButtonSize = 'md' | 'sm' | 'xs';
-type ButtonPaddingSizes = Record<
-  ButtonSize,
-  {
-    paddingBottom: number;
-    paddingLeft: number;
-    paddingRight: number;
-    paddingTop: number;
-  }
->;
-const buttonPaddingSizes: ButtonPaddingSizes = {
-  md: {
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  sm: {
-    paddingLeft: 12,
-    paddingRight: 12,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  xs: {
-    paddingLeft: 8,
-    paddingRight: 8,
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-};
-
 type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
 type Breakpoints = Record<Breakpoint, string>;
 
@@ -1242,12 +1211,6 @@ const commonTheme = {
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
   },
-
-  /**
-   * Padding for buttons
-   * @TODO(jonasbadalic) This should exist on button component
-   */
-  buttonPadding: buttonPaddingSizes,
 
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
