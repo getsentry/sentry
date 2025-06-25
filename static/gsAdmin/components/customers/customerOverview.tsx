@@ -3,17 +3,16 @@ import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ResponseMeta} from 'sentry/api';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useApi from 'sentry/utils/useApi';
 
 import ChangeARRAction from 'admin/components/changeARRAction';
 import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
@@ -31,7 +30,12 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {formatBalance, formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  formatBalance,
+  formatReservedWithUnits,
+  getActiveProductTrial,
+  getProductTrial,
+} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
@@ -424,7 +428,6 @@ function DynamicSampling({organization}: {organization: Organization}) {
 function CustomerOverview({customer, onAction, organization}: Props) {
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
-  const api = useApi();
   if (configFeatures.has('system:multi-region')) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
@@ -448,56 +451,103 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     customer.planDetails?.availableReservedBudgetTypes || {}
   ).filter(group => group.canProductTrial);
 
-  function updateCustomerStatus(action: string, type: string) {
+  const categoryHasUsedProductTrial = (category: DataCategory) => {
+    const trial = getProductTrial(customer.productTrials ?? [], category);
+
+    return trial?.isStarted;
+  };
+
+  const updateCustomerStatus = (action: string) => {
     const data = {
       [action]: true,
     };
 
-    api.request(`/customers/${organization.id}/`, {
-      method: 'PUT',
-      data,
-      success: resp => {
-        addSuccessMessage(`${resp.message}`);
-      },
-      error: (resp: ResponseMeta) => {
-        addErrorMessage(`Error updating ${type} status: ${resp.responseJSON?.message}`);
-      },
-    });
-  }
+    onAction(data);
+  };
 
-  const getTrialManagementActions = (apiName: string, trialName: string) => {
+  const getTrialManagementActions = (
+    category: DataCategory,
+    apiName: string,
+    trialName: string
+  ) => {
     const formattedApiName = upperFirst(apiName);
+    const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
+    const activeProductTrial = getActiveProductTrial(
+      customer.productTrials ?? [],
+      category
+    );
+    const hasActiveProductTrial = !!activeProductTrial;
+    // NOTE: we add 1 day to the end date because the trial end date is inclusive
+    // and diff() can't return a value less than 0
+    const lessThanOneDayLeft =
+      moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
+    const hasUsedProductTrial =
+      hasActiveProductTrial || categoryHasUsedProductTrial(category);
     return (
-      <DetailLabel
-        key={apiName}
-        title={toTitleCase(trialName, {allowInnerUpperCase: true})}
-      >
-        <TrialActions>
-          <Button
-            size="xs"
-            onClick={() =>
-              updateCustomerStatus(`allowTrial${formattedApiName}`, 'product trial')
+      <DetailLabel key={apiName} title={formattedTrialName}>
+        <TrialState>
+          <StyledTag
+            type={
+              lessThanOneDayLeft
+                ? 'promotion'
+                : hasActiveProductTrial
+                  ? 'success'
+                  : hasUsedProductTrial
+                    ? 'warning'
+                    : 'info'
             }
           >
-            Allow Trial
-          </Button>
-          <Button
-            size="xs"
-            onClick={() =>
-              updateCustomerStatus(`startTrial${formattedApiName}`, 'product trial')
-            }
-          >
-            Start Trial
-          </Button>
-          <Button
-            size="xs"
-            onClick={() =>
-              updateCustomerStatus(`stopTrial${formattedApiName}`, 'product trial')
-            }
-          >
-            Stop Trial
-          </Button>
-        </TrialActions>
+            {hasActiveProductTrial
+              ? `Active${lessThanOneDayLeft ? ` (${moment(activeProductTrial.endDate).add(1, 'day').fromNow(true)} left)` : ''}`
+              : hasUsedProductTrial
+                ? 'Used'
+                : 'Available'}
+          </StyledTag>
+          <TrialActions>
+            <Button
+              size="xs"
+              onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
+              disabled={!hasUsedProductTrial || hasActiveProductTrial}
+              title={
+                hasActiveProductTrial
+                  ? `A product trial is currently active for ${formattedTrialName}`
+                  : hasUsedProductTrial
+                    ? `Allow customer to start a new trial for ${formattedTrialName}`
+                    : `A product trial is already available for ${formattedTrialName}`
+              }
+            >
+              Allow Trial
+            </Button>
+            <Button
+              size="xs"
+              onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
+              disabled={hasActiveProductTrial || hasUsedProductTrial}
+              title={
+                hasActiveProductTrial
+                  ? `A product trial is currently active for ${formattedTrialName}`
+                  : hasUsedProductTrial
+                    ? `No product trial is available for ${formattedTrialName}`
+                    : `Start the 14-day ${formattedTrialName} product trial`
+              }
+            >
+              Start Trial
+            </Button>
+            <Button
+              size="xs"
+              onClick={() => updateCustomerStatus(`stopTrial${formattedApiName}`)}
+              disabled={!hasActiveProductTrial || lessThanOneDayLeft}
+              title={
+                lessThanOneDayLeft
+                  ? `Current product trial will end in less than one day`
+                  : hasActiveProductTrial
+                    ? `Stop the current product trial for ${formattedTrialName}`
+                    : `No product trial is active for ${formattedTrialName}`
+              }
+            >
+              Stop Trial
+            </Button>
+          </TrialActions>
+        </TrialState>
       </DetailLabel>
     );
   };
@@ -619,9 +669,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                     <br />
                     <Button
                       priority="link"
-                      onClick={() =>
-                        updateCustomerStatus('deactivatePartnerAccount', 'partner')
-                      }
+                      onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
                     >
                       Deactivate Partner
                     </Button>
@@ -692,10 +740,22 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                   category: categoryInfo.plural,
                   title: true,
                 });
-                return getTrialManagementActions(categoryInfo.plural, categoryName);
+                return getTrialManagementActions(
+                  categoryInfo.plural,
+                  categoryInfo.plural,
+                  categoryName
+                );
               })}
               {productTrialCategoryGroups.map(group => {
-                return getTrialManagementActions(group.apiName, group.productName);
+                const category = group.dataCategories[0]; // doesn't matter which category we use
+                if (category) {
+                  return getTrialManagementActions(
+                    category,
+                    group.apiName,
+                    group.productName
+                  );
+                }
+                return null;
               })}
             </ProductTrialsDetailListContainer>
           </Fragment>
@@ -705,15 +765,23 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   );
 }
 
+const TrialState = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
 const TrialActions = styled('div')`
   display: flex;
-  gap: 8px;
+  gap: ${space(1)};
+  flex-wrap: wrap;
   align-items: center;
 `;
 
 const ProductTrialsDetailListContainer = styled(DetailList)`
+  align-items: baseline;
   dt {
-    justify-self: end;
+    justify-self: start;
     display: flex;
     align-items: center;
     min-height: 38px;
@@ -723,6 +791,10 @@ const ProductTrialsDetailListContainer = styled(DetailList)`
     align-items: center;
     min-height: 38px;
   }
+`;
+
+const StyledTag = styled(Tag)`
+  width: fit-content;
 `;
 
 type ThresholdLabelProps = {
