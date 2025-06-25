@@ -2,15 +2,13 @@ import type {Dispatch, SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
+import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type Props = {
   monitors: Detector[];
@@ -23,7 +21,6 @@ export default function ConnectedMonitorsList({
   connectedIds,
   setConnectedIds,
 }: Props) {
-  const organization = useOrganization();
   const canEdit = connectedIds && !!setConnectedIds;
 
   const toggleConnected = (id: string) => {
@@ -38,86 +35,77 @@ export default function ConnectedMonitorsList({
     });
   };
 
-  const data = monitors.map(monitor => ({
-    title: {
-      name: monitor.name,
-      createdBy: monitor.createdBy,
-      projectId: monitor.projectId,
-      link: makeMonitorDetailsPathname(organization.slug, monitor.id),
-    },
-    type: monitor.type,
-    lastIssue: undefined, // TODO: call API to get last issue
-    owner: monitor.owner,
-    connected: canEdit
-      ? {
-          isConnected: connectedIds?.has(monitor.id),
-          toggleConnected: () => toggleConnected?.(monitor.id),
-        }
-      : undefined,
-  }));
-
   return (
-    <SimpleTableWithColumns>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="type">{t('Type')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="lastIssue">
-          {t('Last Issue')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="owner">{t('Assignee')}</SimpleTable.HeaderCell>
-        {canEdit && (
-          <SimpleTable.HeaderCell name="connected">
-            {t('Connected')}
+    <Container>
+      <SimpleTableWithColumns>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell name="type">{t('Type')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell name="last-issue">
+            {t('Last Issue')}
           </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell name="owner">{t('Assignee')}</SimpleTable.HeaderCell>
+          {canEdit && <SimpleTable.HeaderCell name="connected" />}
+        </SimpleTable.Header>
+        {monitors.length === 0 && (
+          <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
         )}
-      </SimpleTable.Header>
-      {data.length === 0 && (
-        <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
-      )}
-      {data.map(row => (
-        <SimpleTable.Row key={row.title.name}>
-          <SimpleTable.RowCell name="name">
-            <TitleCell
-              name={row.title.name}
-              createdBy={row.title.createdBy}
-              projectId={row.title.projectId}
-              link={row.title.link}
-            />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell name="type">
-            <DetectorTypeCell type={row.type} />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell name="lastIssue">
-            <IssueCell group={row.lastIssue} />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell name="owner">
-            <MonitorOwner owner={row.owner} />
-          </SimpleTable.RowCell>
-          {canEdit && (
-            <SimpleTable.RowCell name="connected">
-              <Button onClick={row.connected?.toggleConnected}>
-                {row.connected?.isConnected ? t('Disconnect') : t('Connect')}
-              </Button>
+        {monitors.map(monitor => (
+          <SimpleTable.Row key={monitor.id}>
+            <SimpleTable.RowCell name="name">
+              <DetectorLink detector={monitor} />
             </SimpleTable.RowCell>
-          )}
-        </SimpleTable.Row>
-      ))}
-    </SimpleTableWithColumns>
+            <SimpleTable.RowCell name="type">
+              <DetectorTypeCell type={monitor.type} />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell name="last-issue">
+              <IssueCell group={undefined} />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell name="owner">
+              <DetectorAssigneeCell assignee={monitor.owner} />
+            </SimpleTable.RowCell>
+            {canEdit && (
+              <SimpleTable.RowCell name="connected" justify="flex-end">
+                <Button onClick={() => toggleConnected(monitor.id)} size="sm">
+                  {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
+                </Button>
+              </SimpleTable.RowCell>
+            )}
+          </SimpleTable.Row>
+        ))}
+      </SimpleTableWithColumns>
+    </Container>
   );
 }
 
-function MonitorOwner({owner}: {owner: string | null}) {
-  if (!owner) {
-    return t('Unassigned');
-  }
-
-  const [ownerType, ownerId] = owner.split(':');
-  if (!ownerId || (ownerType !== 'user' && ownerType !== 'team')) {
-    return t('Unknown Owner');
-  }
-  return <ActorBadge actor={{id: ownerId, name: '', type: ownerType}} />;
-}
+const Container = styled('div')`
+  container-type: inline-size;
+`;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 4fr 1fr 1.5fr 1fr 1fr;
+  grid-template-columns: 1fr auto auto auto 140px;
+
+  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr auto auto 140px;
+
+    .last-issue {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr auto 140px;
+
+    .owner {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.xsmall}) {
+    grid-template-columns: 1fr 140px;
+
+    .type {
+      display: none;
+    }
+  }
 `;
