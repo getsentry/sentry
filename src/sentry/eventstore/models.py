@@ -752,7 +752,7 @@ class GroupEvent(BaseEvent):
         return self._occurrence
 
     @occurrence.setter
-    def occurrence(self, value: IssueOccurrence) -> None:
+    def occurrence(self, value: IssueOccurrence | None) -> None:
         self._occurrence = value
 
     @property
