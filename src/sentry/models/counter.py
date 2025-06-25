@@ -1,7 +1,6 @@
 import sentry_sdk
 from django.conf import settings
 from django.db import connections, transaction
-from django.db.models.signals import post_migrate
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
@@ -9,14 +8,11 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    get_model_if_available,
     region_silo_model,
     sane_repr,
 )
 from sentry.locks import locks
-from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode
-from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ingest_errors_tasks
@@ -97,8 +93,6 @@ def increment_project_counter_in_database(project, delta=1, using="default") -> 
     if delta <= 0:
         raise ValueError("There is only one way, and that's up.")
 
-    modern_upsert = in_random_rollout("store.projectcounter-modern-upsert-sample-rate")
-
     # To prevent the statement_timeout leaking into the session we need to use
     # set local which can be used only within a transaction
     with transaction.atomic(using=using):
@@ -114,21 +108,15 @@ def increment_project_counter_in_database(project, delta=1, using="default") -> 
                     [settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT],
                 )
 
-            if modern_upsert:
-                # Our postgres wrapper thing does not allow for named arguments
-                cur.execute(
-                    "insert into sentry_projectcounter (project_id, value) "
-                    "values (%s, %s) "
-                    "on conflict (project_id) do update "
-                    "set value = sentry_projectcounter.value + %s "
-                    "returning value",
-                    [project.id, delta, delta],
-                )
-            else:
-                cur.execute(
-                    "select sentry_increment_project_counter(%s, %s)",
-                    [project.id, delta],
-                )
+            # Our postgres wrapper thing does not allow for named arguments
+            cur.execute(
+                "insert into sentry_projectcounter (project_id, value) "
+                "values (%s, %s) "
+                "on conflict (project_id) do update "
+                "set value = sentry_projectcounter.value + %s "
+                "returning value",
+                [project.id, delta, delta],
+            )
 
             project_counter = cur.fetchone()[0]
 
@@ -139,50 +127,6 @@ def increment_project_counter_in_database(project, delta=1, using="default") -> 
                 )
 
             return project_counter
-
-
-# this must be idempotent because it seems to execute twice
-# (at least during test runs)
-def create_counter_function(app_config, using, **kwargs) -> None:
-    if app_config and app_config.name != "sentry":
-        return
-
-    if not get_model_if_available(app_config, "Counter"):
-        return
-
-    if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        return
-
-    with unguarded_write(using), connections[using].cursor() as cursor:
-        cursor.execute(
-            """
-            create or replace function sentry_increment_project_counter(
-                project bigint, delta int) returns int as $$
-            declare
-            new_val int;
-            begin
-            loop
-                update sentry_projectcounter set value = value + delta
-                where project_id = project
-                returning value into new_val;
-                if found then
-                return new_val;
-                end if;
-                begin
-                insert into sentry_projectcounter(project_id, value)
-                    values (project, delta)
-                    returning value into new_val;
-                return new_val;
-                exception when unique_violation then
-                end;
-            end loop;
-            end
-            $$ language plpgsql;
-        """
-        )
-
-
-post_migrate.connect(create_counter_function, dispatch_uid="create_counter_function", weak=False)
 
 
 @instrumented_task(

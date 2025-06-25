@@ -5,7 +5,6 @@ import pytest
 from django.db import IntegrityError
 from django.test import override_settings
 
-from sentry import options
 from sentry.locks import locks
 from sentry.models.counter import (
     LOW_WATER_RATIO,
@@ -23,10 +22,7 @@ from sentry.utils.redis import redis_clusters
 
 
 @django_db_all
-@pytest.mark.parametrize("upsert_sample_rate", [0, 1])
-def test_increment(default_project, upsert_sample_rate):
-    options.set("store.projectcounter-modern-upsert-sample-rate", upsert_sample_rate)
-
+def test_increment(default_project):
     assert Counter.increment(default_project) == 1
     assert Counter.increment(default_project) == 2
 
