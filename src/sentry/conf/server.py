@@ -1326,9 +1326,9 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "fetch-ai-model-costs": {
         "task": "sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-        # Run every 30 minutes
-        "schedule": crontab(minute="*/30"),
-        "options": {"expires": 25 * 60},  # 25 minutes
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},  # 1 minute
     },
 }
 
