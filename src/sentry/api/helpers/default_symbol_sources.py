@@ -4,9 +4,9 @@ from sentry.projects.services.project import RpcProject
 DEFAULT_SYMBOL_SOURCES = {
     "electron": ["ios", "microsoft", "electron"],
     "javascript-electron": ["ios", "microsoft", "electron"],
-    "unity": ["unity", "nvidia", "ubuntu"],
-    "unreal": ["nvidia", "ubuntu"],
-    "godot": ["nvidia", "ubuntu"],
+    "unity": ["ios", "microsoft", "android", "nuget", "unity", "nvidia", "ubuntu"],
+    "unreal": ["ios", "microsoft", "android", "nvidia", "ubuntu"],
+    "godot": ["ios", "microsoft", "android", "nuget", "nvidia", "ubuntu"],
 }
 
 
