@@ -7,6 +7,7 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationTarget,
     NotificationTargetResourceType,
     NotificationTemplate,
 )
@@ -20,7 +21,9 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     provider_key = NotificationProviderKey.MSTEAMS
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> MSTeamsRenderable:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> MSTeamsRenderable:
         return {}
 
 
@@ -38,3 +41,7 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: MSTeamsRenderable) -> None:
+        pass
