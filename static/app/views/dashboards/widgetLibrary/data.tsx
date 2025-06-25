@@ -256,22 +256,26 @@ const getDefaultWidgets = (organization: Organization) => {
         'Percentage breakdown of transaction durations over and under 300ms.'
       ),
       displayType: DisplayType.BAR,
-      widgetType: WidgetType.TRANSACTIONS,
+      widgetType: WidgetType.SPANS,
       interval: '5m',
       queries: [
         {
-          name: '',
-          conditions: 'is_transaction:True',
-          fields: [
-            'equation|(count_if(span.duration,greater,300) / count()) * 100',
-            'equation|(count_if(span.duration,lessOrEquals,300) / count()) * 100',
-          ],
-          aggregates: [
-            'equation|(count_if(span.duration,greater,300) / count()) * 100',
-            'equation|(count_if(span.duration,lessOrEquals,300) / count()) * 100',
-          ],
+          name: 'Slow Transactions',
+          fields: ['count(span.duration)'],
           columns: [],
-          orderby: '',
+          fieldAliases: [],
+          aggregates: ['count(span.duration)'],
+          conditions: 'span.duration:>300ms is_transaction:true',
+          orderby: 'count(span.duration)',
+        },
+        {
+          name: 'Fast Transactions',
+          fields: ['count(span.duration)'],
+          columns: [],
+          fieldAliases: [],
+          aggregates: ['count(span.duration)'],
+          conditions: 'span.duration:<=300ms is_transaction:true',
+          orderby: 'count(span.duration)',
         },
       ],
     },
