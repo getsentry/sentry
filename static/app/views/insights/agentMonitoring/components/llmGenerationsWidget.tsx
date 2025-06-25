@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -29,7 +30,9 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
-import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/agents/';
 
 export default function LLMGenerationsWidget() {
   const organization = useOrganization();
@@ -84,7 +87,18 @@ export default function LLMGenerationsWidget() {
       isEmpty={!hasData}
       isLoading={isLoading}
       error={error}
-      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
+      emptyMessage={
+        <GenericWidgetEmptyStateWarning
+          message={tct(
+            'No LLM generations found. Try updating your filters or learn more about AI Agents Insights in our [link:documentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
+              ),
+            }
+          )}
+        />
+      }
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         showLegend: 'never',
