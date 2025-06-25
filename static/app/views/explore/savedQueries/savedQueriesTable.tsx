@@ -356,7 +356,7 @@ const TableHeading = styled('h2')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
 `;

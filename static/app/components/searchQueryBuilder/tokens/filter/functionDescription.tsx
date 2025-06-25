@@ -67,12 +67,12 @@ export function FunctionDescription({token, parameterIndex}: FunctionDescription
 }
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-align: left;
 `;
 
 const Code = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Separator = styled('hr')`

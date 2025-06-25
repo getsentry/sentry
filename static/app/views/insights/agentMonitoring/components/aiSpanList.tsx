@@ -421,7 +421,7 @@ const ListItemHeader = styled(Flex)`
 
 const ListItemTitle = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
   white-space: nowrap;
   flex-basis: max-content;
@@ -429,7 +429,7 @@ const ListItemTitle = styled('div')`
 `;
 
 const ListItemSubtitle = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
   white-space: nowrap;
@@ -462,12 +462,12 @@ const DurationBar = styled('div')<{
 `;
 
 const DurationText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
 `;
 
 const TransactionItem = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   padding: ${space(2)} ${space(0.5)} 0;
   white-space: nowrap;

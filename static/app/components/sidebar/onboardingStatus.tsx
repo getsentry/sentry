@@ -154,7 +154,7 @@ export function OnboardingStatus({
         <ProgressRing
           animate
           textCss={() => css`
-            font-size: ${theme.fontSizeMedium};
+            font-size: ${theme.fontSize.md};
             font-weight: ${theme.fontWeightBold};
           `}
           text={
@@ -200,14 +200,14 @@ export function OnboardingStatus({
 
 const Heading = styled('div')`
   transition: color 100ms;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.white};
   margin-bottom: ${space(0.25)};
 `;
 
 const Remaining = styled('div')`
   transition: color 100ms;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   display: grid;
   grid-template-columns: max-content max-content;

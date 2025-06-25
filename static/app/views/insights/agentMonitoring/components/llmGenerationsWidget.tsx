@@ -183,7 +183,7 @@ export default function LLMGenerationsWidget() {
 const ModelText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

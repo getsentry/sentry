@@ -66,7 +66,7 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 
   ${p =>

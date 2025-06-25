@@ -415,7 +415,7 @@ export function ReplayCell({
 }
 
 const ArchivedId = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledIconDelete = styled(IconDelete)`
@@ -430,7 +430,7 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 `;
 
 const DisplayNameLink = styled(Link)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
@@ -728,7 +728,7 @@ const SpanOperationBreakdown = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;
 
