@@ -26,8 +26,6 @@ from sentry.workflow_engine.models import (
     DataConditionGroupAction,
     Workflow,
     WorkflowActionGroupStatus,
-    WorkflowDataConditionGroup,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import WorkflowEventData
@@ -35,31 +33,6 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
-
-
-def create_workflow_fire_histories(
-    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
-) -> list[WorkflowFireHistory]:
-    """
-    Record that the workflows associated with these actions were fired for this
-    event.
-    """
-    # Create WorkflowFireHistory objects for workflows we fire actions for
-    workflow_ids = set(
-        WorkflowDataConditionGroup.objects.filter(
-            condition_group__dataconditiongroupaction__action__in=actions_to_fire
-        ).values_list("workflow_id", flat=True)
-    )
-
-    fire_histories = [
-        WorkflowFireHistory(
-            workflow_id=workflow_id,
-            group=event_data.event.group,
-            event_id=event_data.event.event_id,
-        )
-        for workflow_id in workflow_ids
-    ]
-    return WorkflowFireHistory.objects.bulk_create(fire_histories)
 
 
 def get_workflow_action_group_statuses(

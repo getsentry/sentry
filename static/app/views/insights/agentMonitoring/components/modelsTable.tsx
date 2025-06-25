@@ -176,7 +176,7 @@ const BodyCell = memo(function BodyCell({
 
   const exploreUrl = getExploreUrl({
     organization,
-    mode: Mode.AGGREGATE,
+    mode: Mode.SAMPLES,
     visualize: [
       {
         chartType: ChartType.BAR,
@@ -184,14 +184,13 @@ const BodyCell = memo(function BodyCell({
       },
     ],
     query: `${AI_MODEL_ID_ATTRIBUTE}:${dataRow.model}`,
-    sort: `-count(span.duration)`,
   });
 
   switch (column.key) {
     case 'model':
       return (
         <ModelCell to={exploreUrl}>
-          <ModelName modelId={dataRow.model} provider={'openai'} />
+          <ModelName modelId={dataRow.model} />
         </ModelCell>
       );
     case 'count()':

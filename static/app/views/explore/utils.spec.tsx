@@ -19,6 +19,7 @@ describe('viewSamplesTarget', function () {
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: [],
       visualizes: [visualize],
       sorts: [sort],
@@ -27,7 +28,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         sort: ['-span.duration'],
@@ -40,17 +41,18 @@ describe('viewSamplesTarget', function () {
     const target = viewSamplesTarget({
       location,
       query: '',
-      groupBys: ['foo'],
+      fields: ['foo'],
+      groupBys: ['bar'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {foo: 'foo', 'count(span.duration)': 10},
+      row: {bar: 'bar', 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
       query: {
         field: ['foo', 'span.duration'],
         mode: 'samples',
-        query: 'foo:foo',
+        query: 'bar:bar',
         sort: ['-span.duration'],
       },
     });
@@ -61,11 +63,11 @@ describe('viewSamplesTarget', function () {
     const target = viewSamplesTarget({
       location,
       query: '',
-      groupBys: ['foo', 'bar', 'baz'],
+      fields: ['foo'],
+      groupBys: ['bar', 'baz'],
       visualizes: [visualize],
       sorts: [sort],
       row: {
-        foo: 'foo',
         bar: 'bar',
         baz: 'baz',
         'count(span.duration)': 10,
@@ -74,9 +76,9 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['foo', 'bar', 'baz', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
-        query: 'foo:foo bar:bar baz:baz',
+        query: 'bar:bar baz:baz',
         sort: ['-span.duration'],
       },
     });
@@ -87,6 +89,7 @@ describe('viewSamplesTarget', function () {
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: ['environment'],
       visualizes: [visualize],
       sorts: [sort],
@@ -98,7 +101,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['environment', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         environment: 'prod',
@@ -112,6 +115,7 @@ describe('viewSamplesTarget', function () {
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: ['project.id'],
       visualizes: [visualize],
       sorts: [sort],
@@ -123,7 +127,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['project.id', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         project: '1',
@@ -137,6 +141,7 @@ describe('viewSamplesTarget', function () {
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: ['project'],
       visualizes: [visualize],
       sorts: [sort],
@@ -148,7 +153,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['project', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         project: String(project.id),

@@ -638,6 +638,7 @@ class InsightModules(Enum):
     CACHE = "cache"
     QUEUE = "queue"
     LLM_MONITORING = "llm_monitoring"
+    AGENTS = "agents"
 
 
 INSIGHT_MODULE_FILTERS = {
@@ -670,6 +671,9 @@ INSIGHT_MODULE_FILTERS = {
     ),
     InsightModules.LLM_MONITORING: lambda spans: any(
         span.get("op").startswith("ai.pipeline") for span in spans
+    ),
+    InsightModules.AGENTS: lambda spans: any(
+        span.get("op").startswith("gen_ai.") for span in spans
     ),
 }
 
@@ -721,8 +725,8 @@ UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
-DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = "off"
-DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = False
+DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = "low"
+DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope

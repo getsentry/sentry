@@ -11,7 +11,7 @@ from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -42,7 +42,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -653,7 +653,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return NestedPipelineView(
             bind_key="identity",
             provider_key=IntegrationProviderSlug.GITLAB.value,
-            pipeline_cls=IdentityProviderPipeline,
+            pipeline_cls=IdentityPipeline,
             config=identity_pipeline_config,
         )
 
