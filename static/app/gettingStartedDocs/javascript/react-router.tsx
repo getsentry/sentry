@@ -199,10 +199,10 @@ export default function ErrorPage() {
 
 const getPackageJsonScriptsSnippet = () => `
 {
-    "scripts": {
-      "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router dev",
-      "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js"
-    }
+  "scripts": {
+    "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router dev",
+    "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js"
+  }
 }`;
 
 const getInstallConfig = () => [
