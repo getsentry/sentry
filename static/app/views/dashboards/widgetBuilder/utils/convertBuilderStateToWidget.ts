@@ -50,8 +50,8 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       : (fields?.[0] ?? defaultQuery.orderby);
   const sort =
     defined(state.sort) && state.sort.length > 0
-      ? serializeSorts(state.dataset)(state.sort)[0]
-      : undefined;
+      ? serializeSorts(state.dataset)(state.sort)[0]!
+      : defaultSort;
 
   const widgetQueries: WidgetQuery[] = queries.map((query, index) => {
     return {
@@ -65,7 +65,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       selectedAggregate: state.selectedAggregate,
 
       // Big number widgets don't support sorting, so always ignore the sort state
-      orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort || defaultSort,
+      orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort,
     };
   });
 
