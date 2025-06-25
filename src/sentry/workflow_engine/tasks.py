@@ -7,8 +7,39 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker import config, namespaces, retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_source import process_data_sources
+from sentry.workflow_engine.processors.detector import process_detectors
 
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
+
+
+@instrumented_task(
+    name="sentry.workflow_engine.tasks.process_data_packet",
+    queue="workflow_engine.process_workflows",
+    acks_late=True,
+    default_retry_delay=5,
+    max_retries=3,
+    silo_mode=SiloMode.REGION,
+    task_worker_config=config.TaskworkerConfig(
+        namespace=namespaces.workflow_engine_tasks,
+        retry=retry.Retry(
+            times=3,
+            delay=5,
+        ),
+    ),
+)
+def process_data_packet[T](data_packet: DataPacket[T], data_packet_type: str | None = None) -> None:
+    """
+    This method will evaluate a data packet against any associated detectors.
+    """
+    query_type = data_packet_type
+    if query_type is None:
+        query_type = type(data_packet.packet).__name__
+
+    processed_sources = process_data_sources(data_packet, query_type)
+    for data_packet, detectors in processed_sources:
+        process_detectors(data_packet, detectors)
 
 
 @instrumented_task(
