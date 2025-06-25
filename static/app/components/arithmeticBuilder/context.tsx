@@ -3,7 +3,7 @@ import {createContext, useContext} from 'react';
 
 import type {
   ArithmeticBuilderAction,
-  FocusOverride,
+  CountDownFocusOverride,
 } from 'sentry/components/arithmeticBuilder/action';
 import type {
   AggregateFunction,
@@ -13,7 +13,7 @@ import type {
 interface ArithmeticBuilderContextData {
   aggregateFunctions: AggregateFunction[];
   dispatch: Dispatch<ArithmeticBuilderAction>;
-  focusOverride: FocusOverride | null;
+  focusOverride: CountDownFocusOverride | null;
   functionArguments: FunctionArgument[];
 }
 

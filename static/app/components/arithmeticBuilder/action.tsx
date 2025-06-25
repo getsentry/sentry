@@ -5,12 +5,23 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {defined} from 'sentry/utils';
 
+const FOCUS_COUNT_DOWN = 2;
+
+type FocusOverride = {
+  itemKey: Key;
+};
+
+export type CountDownFocusOverride = FocusOverride & {
+  countDown: number;
+};
+
 type ArithmeticBuilderUpdateResetFocusOverrideAction = {
   type: 'RESET_FOCUS_OVERRIDE';
 };
 
-export type FocusOverride = {
-  itemKey: Key;
+type ArithmeticBuilderCountDownFocusOverrideAction = {
+  focusOverride: CountDownFocusOverride;
+  type: 'COUNT_DOWN_FOCUS_OVERRIDE';
 };
 
 type ArithmeticBuilderDeleteAction = {
@@ -28,6 +39,7 @@ type ArithmeticBuilderReplaceAction = {
 
 export type ArithmeticBuilderAction =
   | ArithmeticBuilderUpdateResetFocusOverrideAction
+  | ArithmeticBuilderCountDownFocusOverrideAction
   | ArithmeticBuilderDeleteAction
   | ArithmeticBuilderReplaceAction;
 
@@ -35,6 +47,12 @@ function isArithmeticBuilderUpdateResetFocusOverrideAction(
   action: ArithmeticBuilderAction
 ): action is ArithmeticBuilderUpdateResetFocusOverrideAction {
   return action.type === 'RESET_FOCUS_OVERRIDE';
+}
+
+function isArithmeticBuilderCountDownFocusOverrideAction(
+  action: ArithmeticBuilderAction
+): action is ArithmeticBuilderCountDownFocusOverrideAction {
+  return action.type === 'COUNT_DOWN_FOCUS_OVERRIDE';
 }
 
 function isArithmeticBuilderDeleteAction(
@@ -61,29 +79,41 @@ export function useArithmeticBuilderAction({
   dispatch: (action: ArithmeticBuilderAction) => void;
   state: {
     expression: Expression;
-    focusOverride: FocusOverride | null;
+    focusOverride: CountDownFocusOverride | null;
   };
 } {
   const [expression, setExpression] = useState(() => new Expression(initialExpression));
-  const [focusOverride, setFocusOverride] = useState<FocusOverride | null>(null);
+  const [focusOverride, setFocusOverride] = useState<CountDownFocusOverride | null>(null);
 
   const dispatch = useCallback(
     (action: ArithmeticBuilderAction) => {
       if (isArithmeticBuilderUpdateResetFocusOverrideAction(action)) {
         setFocusOverride(null);
+      }
+      if (isArithmeticBuilderCountDownFocusOverrideAction(action)) {
+        setFocusOverride({
+          ...action.focusOverride,
+          countDown: action.focusOverride.countDown - 1,
+        });
       } else if (isArithmeticBuilderDeleteAction(action)) {
         const newExpression = deleteToken(expression.text, action);
         updateExpression?.(newExpression);
         setExpression(newExpression);
         if (defined(action.focusOverride)) {
-          setFocusOverride(action.focusOverride);
+          setFocusOverride({
+            ...action.focusOverride,
+            countDown: FOCUS_COUNT_DOWN,
+          });
         }
       } else if (isArithmeticBuilderReplaceAction(action)) {
         const newExpression = replaceToken(expression.text, action);
         updateExpression?.(newExpression);
         setExpression(newExpression);
         if (defined(action.focusOverride)) {
-          setFocusOverride(action.focusOverride);
+          setFocusOverride({
+            ...action.focusOverride,
+            countDown: FOCUS_COUNT_DOWN,
+          });
         }
       }
     },

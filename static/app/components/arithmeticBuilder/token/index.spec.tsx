@@ -93,6 +93,10 @@ describe('token', function () {
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       expect(await screen.findByLabelText('avg(span.duration)')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
     });
 
     it('allow selecting function using keyboard', async function () {
@@ -116,6 +120,10 @@ describe('token', function () {
           name: 'avg(span.duration)',
         })
       ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
     });
 
     it('allows selection parenthesis using mouse', async function () {
@@ -138,6 +146,8 @@ describe('token', function () {
 
       const row = await screen.findByLabelText('open_paren:0');
       expect(within(row).getByTestId('icon-parenthesis')).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
     it('allows selection parenthesis using keyboard', async function () {
@@ -159,6 +169,8 @@ describe('token', function () {
 
       const row = await screen.findByRole('row');
       expect(within(row).getByTestId('icon-parenthesis')).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
     it('autocompletes function token when they reach the open parenthesis', async function () {
@@ -177,6 +189,10 @@ describe('token', function () {
           name: 'avg(span.duration)',
         })
       ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
     });
 
     it('autocompletes function token when they reach the open parenthesis even if there is more text', async function () {
@@ -197,6 +213,10 @@ describe('token', function () {
       ).toBeInTheDocument();
 
       expect(input).toHaveValue('foo bar');
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
     });
 
     it('autocompletes addition', async function () {
@@ -213,6 +233,8 @@ describe('token', function () {
 
       const operator = screen.getByTestId('icon-add');
       expect(operator).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
     it('autocompletes subtract', async function () {
@@ -229,6 +251,8 @@ describe('token', function () {
 
       const operator = screen.getByTestId('icon-subtract');
       expect(operator).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
     it('autocompletes multiply', async function () {
@@ -245,6 +269,8 @@ describe('token', function () {
 
       const operator = screen.getByTestId('icon-multiply');
       expect(operator).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
     it('autocompletes divide', async function () {
@@ -261,6 +287,8 @@ describe('token', function () {
 
       const operator = screen.getByTestId('icon-divide');
       expect(operator).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
     it('autocompletes open parenthesis', async function () {
@@ -278,6 +306,8 @@ describe('token', function () {
       const parenthesis = screen.getByTestId('icon-parenthesis');
       expect(parenthesis).toBeInTheDocument();
       expect(parenthesis).toHaveAttribute('data-paren-side', 'left');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
     it('autocompletes close parenthesis', async function () {
@@ -295,6 +325,8 @@ describe('token', function () {
       const parenthesis = screen.getByTestId('icon-parenthesis');
       expect(parenthesis).toBeInTheDocument();
       expect(parenthesis).toHaveAttribute('data-paren-side', 'right');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
   });
 
@@ -324,6 +356,9 @@ describe('token', function () {
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
       await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
 
       await waitFor(() => {
         expect(
@@ -359,6 +394,9 @@ describe('token', function () {
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
 
       expect(
         await screen.findByRole('row', {
@@ -469,7 +507,6 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete +'}));
-      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -480,7 +517,7 @@ describe('token', function () {
           itemKey: 'str:0',
         },
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
+      expect(dispatch).toHaveBeenNthCalledWith(4, {
         type: 'RESET_FOCUS_OVERRIDE',
       });
     });
@@ -493,7 +530,6 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete -'}));
-      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -504,7 +540,7 @@ describe('token', function () {
           itemKey: 'str:0',
         },
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
+      expect(dispatch).toHaveBeenNthCalledWith(4, {
         type: 'RESET_FOCUS_OVERRIDE',
       });
     });
@@ -517,7 +553,6 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete *'}));
-      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -528,7 +563,7 @@ describe('token', function () {
           itemKey: 'str:0',
         },
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
+      expect(dispatch).toHaveBeenNthCalledWith(4, {
         type: 'RESET_FOCUS_OVERRIDE',
       });
     });
@@ -541,7 +576,6 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete /'}));
-      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -552,7 +586,7 @@ describe('token', function () {
           itemKey: 'str:0',
         },
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
+      expect(dispatch).toHaveBeenNthCalledWith(4, {
         type: 'RESET_FOCUS_OVERRIDE',
       });
     });
@@ -568,7 +602,6 @@ describe('token', function () {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'left');
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete left'}));
-      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -579,7 +612,7 @@ describe('token', function () {
           itemKey: 'str:0',
         },
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
+      expect(dispatch).toHaveBeenNthCalledWith(4, {
         type: 'RESET_FOCUS_OVERRIDE',
       });
     });
@@ -593,7 +626,6 @@ describe('token', function () {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'right');
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete right'}));
-      expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
@@ -604,7 +636,7 @@ describe('token', function () {
           itemKey: 'str:0',
         },
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
+      expect(dispatch).toHaveBeenNthCalledWith(4, {
         type: 'RESET_FOCUS_OVERRIDE',
       });
     });

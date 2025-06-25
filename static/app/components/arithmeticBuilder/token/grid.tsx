@@ -66,9 +66,13 @@ function useApplyFocusOverride(state: ListState<Token>) {
      * on next render, we do not try to update the focus again.
      */
     if (focusOverride) {
-      state.selectionManager.setFocused(true);
-      state.selectionManager.setFocusedKey(focusOverride.itemKey);
-      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+      if (focusOverride.countDown > 0) {
+        dispatch({type: 'COUNT_DOWN_FOCUS_OVERRIDE', focusOverride});
+      } else {
+        state.selectionManager.setFocused(true);
+        state.selectionManager.setFocusedKey(focusOverride.itemKey);
+        dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+      }
     }
   }, [dispatch, focusOverride, state.collection, state.selectionManager]);
 }
