@@ -103,10 +103,7 @@ export default function DetectorDetails() {
         crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
       >
         <ActionsProvider actions={<Actions detector={detector} />}>
-          <DetailLayout
-            projectId={project?.id}
-            environment={getDetectorEnvironment(detector)}
-          >
+          <DetailLayout project={project}>
             <DetailLayout.Main>
               {/* TODO: Add chart here */}
               <Section title={t('Ongoing Issues')}>

@@ -5,8 +5,8 @@ import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
 
 interface DetectorSubtitleProps {
-  environment: string | undefined;
-  projectId: string | undefined;
+  environment: string;
+  projectId: string;
 }
 
 export function DetectorSubtitle({projectId, environment}: DetectorSubtitleProps) {
