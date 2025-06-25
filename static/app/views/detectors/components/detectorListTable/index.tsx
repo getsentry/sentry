@@ -29,10 +29,12 @@ function LoadingSkeletons() {
 
 function HeaderCell({
   children,
+  name,
   sortKey,
   sort,
 }: {
   children: React.ReactNode;
+  name: string;
   sort: Sort | undefined;
   divider?: boolean;
   sortKey?: string;
@@ -53,7 +55,12 @@ function HeaderCell({
   };
 
   return (
-    <SimpleTable.HeaderCell sort={sort} sortKey={sortKey} handleSortClick={handleSort}>
+    <SimpleTable.HeaderCell
+      className={name}
+      sort={sort}
+      sortKey={sortKey}
+      handleSortClick={handleSort}
+    >
       {children}
     </SimpleTable.HeaderCell>
   );
@@ -70,19 +77,24 @@ function DetectorListTable({
     <Container>
       <DetectorListSimpleTable>
         <SimpleTable.Header>
-          <HeaderCell sortKey="name" sort={sort}>
+          <HeaderCell name="name" sortKey="name" sort={sort}>
             {t('Name')}
           </HeaderCell>
-          <HeaderCell divider sortKey="type" sort={sort}>
+          <HeaderCell name="type" divider sortKey="type" sort={sort}>
             {t('Type')}
           </HeaderCell>
-          <HeaderCell divider sort={sort}>
+          <HeaderCell name="last-issue" divider sort={sort}>
             {t('Last Issue')}
           </HeaderCell>
-          <HeaderCell divider sort={sort}>
+          <HeaderCell name="assignee" divider sort={sort}>
             {t('Assignee')}
           </HeaderCell>
-          <HeaderCell divider sortKey="connectedWorkflows" sort={sort}>
+          <HeaderCell
+            name="connected-automations"
+            divider
+            sortKey="connectedWorkflows"
+            sort={sort}
+          >
             {t('Automations')}
           </HeaderCell>
         </SimpleTable.Header>

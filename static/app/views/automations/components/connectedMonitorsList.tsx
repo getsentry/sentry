@@ -39,31 +39,35 @@ export default function ConnectedMonitorsList({
     <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Last Issue')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell />}
+          <SimpleTable.HeaderCell className="name">{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell className="type">{t('Type')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell className="last-issue">
+            {t('Last Issue')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell className="owner">
+            {t('Assignee')}
+          </SimpleTable.HeaderCell>
+          {canEdit && <SimpleTable.HeaderCell className="connected" />}
         </SimpleTable.Header>
         {monitors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
         )}
         {monitors.map(monitor => (
           <SimpleTable.Row key={monitor.id}>
-            <SimpleTable.RowCell>
+            <SimpleTable.RowCell className="name">
               <DetectorLink detector={monitor} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
+            <SimpleTable.RowCell className="type">
               <DetectorTypeCell type={monitor.type} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
+            <SimpleTable.RowCell className="last-issue">
               <IssueCell group={undefined} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
+            <SimpleTable.RowCell className="owner">
               <DetectorAssigneeCell assignee={monitor.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
-              <SimpleTable.RowCell justify="flex-end">
+              <SimpleTable.RowCell className="connected" justify="flex-end">
                 <Button onClick={() => toggleConnected(monitor.id)} size="sm">
                   {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
                 </Button>
