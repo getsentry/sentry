@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import invariant from 'invariant';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
@@ -25,7 +26,6 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -35,13 +35,17 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
+import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
+  rowIndex: number;
   showDropdownFilters?: boolean;
 };
 
@@ -302,20 +306,19 @@ function getUserBadgeUser(replay: Props['replay']) {
 
 export function ReplayCell({
   eventView,
-  organization,
   referrer,
   replay,
-  referrer_table,
+  referrerTable,
   isWidget,
   className,
 }: Props & {
   eventView: EventView;
-  organization: Organization;
   referrer: string;
   className?: string;
   isWidget?: boolean;
-  referrer_table?: ReferrerTableType;
+  referrerTable?: ReferrerTableType;
 }) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
@@ -327,31 +330,14 @@ export function ReplayCell({
     organization,
   });
 
-  const replayDetails = {
+  const detailsTab = () => ({
     pathname: replayDetailsPathname,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
+      f_b_type: referrerTable === 'selector-widget' ? 'rageOrDead' : undefined,
     },
-  };
-
-  const replayDetailsDeadRage = {
-    pathname: replayDetailsPathname,
-    query: {
-      referrer,
-      ...eventView.generateQueryStringObject(),
-      f_b_type: 'rageOrDead',
-    },
-  };
-
-  const detailsTab = () => {
-    switch (referrer_table) {
-      case 'selector-widget':
-        return replayDetailsDeadRage;
-      default:
-        return replayDetails;
-    }
-  };
+  });
 
   const trackNavigationEvent = () =>
     trackAnalytics('replay.list-navigate-to-details', {
@@ -359,7 +345,7 @@ export function ReplayCell({
       platform: project?.platform,
       organization,
       referrer,
-      referrer_table,
+      referrer_table: referrerTable,
     });
 
   if (replay.is_archived) {
@@ -379,23 +365,9 @@ export function ReplayCell({
     );
   }
 
-  const subText = (
-    <Cols>
-      <Row gap={1}>
-        <Row gap={0.5}>
-          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
-          {project ? <ProjectAvatar size={12} project={project} /> : null}
-          {project ? project.slug : null}
-          <Link to={detailsTab()} onClick={trackNavigationEvent}>
-            {getShortEventId(replay.id)}
-          </Link>
-          <Row gap={0.5}>
-            <IconCalendar color="gray300" size="xs" />
-            <TimeSince date={replay.started_at} />
-          </Row>
-        </Row>
-      </Row>
-    </Cols>
+  invariant(
+    replay.started_at,
+    'For TypeScript: replay.started_at is implied because replay.is_archived is false'
   );
 
   return (
@@ -424,7 +396,18 @@ export function ReplayCell({
               </DisplayNameLink>
             )}
           </Row>
-          <Row gap={0.5}>{subText}</Row>
+          <Row gap={0.5}>
+            {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
+            {project ? <ProjectAvatar size={12} project={project} /> : null}
+            {project ? project.slug : null}
+            <Link to={detailsTab()} onClick={trackNavigationEvent}>
+              {getShortEventId(replay.id)}
+            </Link>
+            <Row gap={0.5}>
+              <IconCalendar color="gray300" size="xs" />
+              <TimeSince date={replay.started_at} />
+            </Row>
+          </Row>
         </SubText>
       </Row>
     </Item>
@@ -432,18 +415,11 @@ export function ReplayCell({
 }
 
 const ArchivedId = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
-`;
-
-const Cols = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  width: 100%;
 `;
 
 const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
@@ -454,7 +430,7 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 `;
 
 const DisplayNameLink = styled(Link)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
@@ -474,10 +450,8 @@ const SubText = styled('div')`
   gap: ${space(0.25)};
 `;
 
-export function TransactionCell({
-  organization,
-  replay,
-}: Props & {organization: Organization}) {
+export function TransactionCell({replay}: Props) {
+  const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
 
@@ -539,7 +513,6 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
   if (name === null && version === null) {
     return (
       <Item>
-        {/* <Tag icon={<IconNot />} /> */}
         <IconNot size="xs" color="gray300" />
       </Item>
     );
@@ -567,6 +540,10 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
+  invariant(
+    replay.duration,
+    'For TypeScript: replay.duration is implied because replay.is_archived is false'
+  );
   return (
     <Item>
       <Container>
@@ -686,27 +663,24 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function PlayPauseCell({
-  isSelected,
-  handleClick,
-}: {
-  handleClick: () => void;
-  isSelected: boolean;
-}) {
-  const inner = isSelected ? (
-    <ReplayPlayPauseButton size="sm" priority="default" borderless />
-  ) : (
-    <Button
-      title={t('Play')}
-      aria-label={t('Play')}
-      icon={<IconPlay size="sm" />}
-      onClick={handleClick}
-      data-test-id="replay-table-play-button"
-      borderless
-      size="sm"
-      priority="default"
-    />
-  );
+export function PlayPauseCell({rowIndex}: Props) {
+  const selectedReplayIndex = useSelectedReplayIndex();
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const inner =
+    rowIndex === selectedReplayIndex ? (
+      <ReplayPlayPauseButton size="sm" priority="default" borderless />
+    ) : (
+      <Button
+        title={t('Play')}
+        aria-label={t('Play')}
+        icon={<IconPlay size="sm" />}
+        onClick={() => setSelectedReplayIndex(rowIndex)}
+        data-test-id="replay-table-play-button"
+        borderless
+        size="sm"
+        priority="default"
+      />
+    );
   return <Item>{inner}</Item>;
 }
 
@@ -754,7 +728,7 @@ const SpanOperationBreakdown = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;
 

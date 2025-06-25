@@ -1216,17 +1216,22 @@ const commonTheme = {
 
   borderRadius: '6px',
 
-  // Relative font sizes
-  // @TODO(jonasbadalic) why do we need these
-  fontSizeRelativeSmall: '0.9em' as const,
-  fontSizeExtraSmall: '11px' as const,
-  fontSizeSmall: '12px' as const,
-  fontSizeMedium: '14px' as const,
-  fontSizeLarge: '16px' as const,
-  fontSizeExtraLarge: '18px' as const,
+  fontSize: {
+    xs: '11px' as const,
+    sm: '12px' as const,
+    md: '14px' as const,
+    lg: '16px' as const,
+    xl: '18px' as const,
+  },
 
-  codeFontSize: '13px',
-  headerFontSize: '22px',
+  /**
+   * @TODO(jonasbadalic) remove relative font sizes
+   * @deprecated use fontSize instead
+   */
+  fontSizeRelativeSmall: '0.9em' as const,
+
+  codeFontSize: '13px' as const,
+  headerFontSize: '22px' as const,
 
   fontWeightNormal: 400,
   fontWeightBold: 600,

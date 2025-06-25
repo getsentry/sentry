@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
@@ -88,11 +89,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   // Onboarding conditions
   const needsGithubIntegration = !hasGithubIntegration;
   const needsRepoSelection =
-    hasGithubIntegration &&
-    repos.length === 0 &&
-    !preference?.repositories?.length &&
-    !codeMappingRepos?.length &&
-    !isLoadingPreferences;
+    repos.length === 0 && !preference?.repositories?.length && !codeMappingRepos?.length;
   const needsAutomation =
     detailedProject?.data &&
     (detailedProject?.data?.autofixAutomationTuning === 'off' ||
@@ -132,7 +129,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   return (
     <NoticesContainer>
       {/* Collapsed summary */}
-      {anyStepIncomplete && stepsCollapsed && (
+      {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
           <IconSeer variant="waiting" size="lg" style={{marginRight: 8}} />
           <span>
@@ -146,128 +143,101 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </CollapsedSummaryCard>
       )}
       {/* Full guided steps */}
-      {anyStepIncomplete && !stepsCollapsed && (
-        <Fragment>
-          <StepsHeader>
-            <IconSeer variant="waiting" size="xl" />
-            Debug Faster with Seer
-          </StepsHeader>
-          <GuidedSteps>
-            {/* Step 1: GitHub Integration */}
-            <GuidedSteps.Step
-              key="github-setup"
-              stepKey="github-setup"
-              title={t('Set Up the GitHub Integration')}
-              isCompleted={!needsGithubIntegration}
-            >
-              <StepContentRow>
-                <StepTextCol>
-                  <CardDescription>
-                    <span>
-                      {tct(
-                        'Seer is [bold:a lot better] when it has your codebase as context.',
-                        {
-                          bold: <b />,
-                        }
-                      )}
-                    </span>
-                    <span>
-                      {tct(
-                        'Set up the [integrationLink:GitHub Integration] to allow Seer to find the most accurate root causes, solutions, and code changes for your issues.',
-                        {
-                          integrationLink: (
-                            <ExternalLink
-                              href={`/settings/${organization.slug}/integrations/github/`}
-                            />
-                          ),
-                        }
-                      )}
-                    </span>
-                  </CardDescription>
-                </StepTextCol>
-                <StepImageCol>
-                  <CardIllustration src={addIntegrationProvider} alt="Add Integration" />
-                </StepImageCol>
-              </StepContentRow>
-              <CustomStepButtons
-                showBack={false}
-                showNext={firstIncompleteIdx !== 0}
-                showSkip={false}
-              >
-                <LinkButton
-                  href={`/settings/${organization.slug}/integrations/github/`}
-                  size="sm"
-                  priority="primary"
-                >
-                  {t('Set Up Integration')}
-                </LinkButton>
-              </CustomStepButtons>
-            </GuidedSteps.Step>
-
-            {/* Step 2: Repo Selection */}
-            <GuidedSteps.Step
-              key="repo-selection"
-              stepKey="repo-selection"
-              title={t('Pick Repositories to Work In')}
-              isCompleted={!needsRepoSelection}
-            >
-              <StepContentRow>
-                <StepTextCol>
-                  <CardDescription>
-                    <span>{t('Select the repos Seer can explore in this project.')}</span>
-                    <span>
-                      {t(
-                        'You can also configure working branches and custom instructions so Seer fits your unique workflow.'
-                      )}
-                    </span>
-                  </CardDescription>
-                </StepTextCol>
-                <StepImageCol>
-                  <CardIllustration src={onboardingCompass} alt="Compass" />
-                </StepImageCol>
-              </StepContentRow>
-              <CustomStepButtons
-                showBack={firstIncompleteIdx !== 1 && incompleteStepIndices.includes(1)}
-                showNext={lastIncompleteIdx !== 1 && incompleteStepIndices.includes(1)}
-                showSkip={lastIncompleteIdx === 1}
-                onSkip={() => setStepsCollapsed(true)}
-              >
-                <LinkButton
-                  to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                  size="sm"
-                  priority="primary"
-                >
-                  {t('Configure Repos')}
-                </LinkButton>
-              </CustomStepButtons>
-            </GuidedSteps.Step>
-
-            {/* Step 3: Unleash Automation */}
-            {isAutomationAllowed && (
+      {!isLoadingPreferences && anyStepIncomplete && !stepsCollapsed && (
+        <AnimatePresence>
+          <motion.div
+            initial={{opacity: 0, y: 10, height: 0}}
+            animate={{opacity: 1, y: 0, height: 'auto'}}
+            exit={{opacity: 0, y: 10, height: 0}}
+            transition={{duration: 0.2}}
+          >
+            <StepsHeader>
+              <IconSeer variant="waiting" size="xl" />
+              Debug Faster with Seer
+            </StepsHeader>
+            <GuidedSteps>
+              {/* Step 1: GitHub Integration */}
               <GuidedSteps.Step
-                key="unleash-automation"
-                stepKey="unleash-automation"
-                title={t('Unleash Automation')}
-                isCompleted={!needsAutomation}
+                key="github-setup"
+                stepKey="github-setup"
+                title={t('Set Up the GitHub Integration')}
+                isCompleted={!needsGithubIntegration}
               >
                 <StepContentRow>
                   <StepTextCol>
                     <CardDescription>
                       <span>
-                        {t(
-                          'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
+                        {tct(
+                          'Seer is [bold:a lot better] when it has your codebase as context.',
+                          {
+                            bold: <b />,
+                          }
+                        )}
+                      </span>
+                      <span>
+                        {tct(
+                          'Set up the [integrationLink:GitHub Integration] to allow Seer to find the most accurate root causes, solutions, and code changes for your issues.',
+                          {
+                            integrationLink: (
+                              <ExternalLink
+                                href={`/settings/${organization.slug}/integrations/github/`}
+                              />
+                            ),
+                          }
                         )}
                       </span>
                     </CardDescription>
                   </StepTextCol>
                   <StepImageCol>
-                    <CardIllustration src={waitingForEventImg} alt="Waiting for Event" />
+                    <CardIllustration
+                      src={addIntegrationProvider}
+                      alt="Add Integration"
+                    />
                   </StepImageCol>
                 </StepContentRow>
                 <CustomStepButtons
-                  showBack={firstIncompleteIdx !== 2 && incompleteStepIndices.includes(2)}
-                  showNext={lastIncompleteIdx !== 2 && incompleteStepIndices.includes(2)}
-                  showSkip={lastIncompleteIdx === 2}
+                  showBack={false}
+                  showNext={firstIncompleteIdx !== 0}
+                  showSkip={false}
+                >
+                  <LinkButton
+                    href={`/settings/${organization.slug}/integrations/github/`}
+                    size="sm"
+                    priority="primary"
+                  >
+                    {t('Set Up Integration')}
+                  </LinkButton>
+                </CustomStepButtons>
+              </GuidedSteps.Step>
+
+              {/* Step 2: Repo Selection */}
+              <GuidedSteps.Step
+                key="repo-selection"
+                stepKey="repo-selection"
+                title={t('Pick Repositories to Work In')}
+                isCompleted={!needsRepoSelection}
+              >
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
+                      <span>
+                        {t('Select the repos Seer can explore in this project.')}
+                      </span>
+                      <span>
+                        {t(
+                          'You can also configure working branches and custom instructions so Seer fits your unique workflow.'
+                        )}
+                      </span>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
+                    <CardIllustration src={onboardingCompass} alt="Compass" />
+                  </StepImageCol>
+                </StepContentRow>
+                <CustomStepButtons
+                  showBack={firstIncompleteIdx !== 1}
+                  showNext={lastIncompleteIdx !== 1}
+                  showSkip={lastIncompleteIdx === 1}
                   onSkip={() => setStepsCollapsed(true)}
                 >
                   <LinkButton
@@ -275,55 +245,97 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                     size="sm"
                     priority="primary"
                   >
-                    {t('Enable Automation')}
+                    {t('Configure Repos')}
                   </LinkButton>
                 </CustomStepButtons>
               </GuidedSteps.Step>
-            )}
 
-            {/* Step 4: Fixability View */}
-            {isAutomationAllowed && isStarredViewAllowed && (
-              <GuidedSteps.Step
-                key="fixability-view"
-                stepKey="fixability-view"
-                title={t('Get Some Quick Wins')}
-                isCompleted={!needsFixabilityView}
-              >
-                <StepContentRow>
-                  <StepTextCol>
-                    <CardDescription>
-                      <span>
-                        {t(
-                          'Seer scans all your issues and highlights the ones that are likely quick to fix.'
-                        )}
-                      </span>
-                      <span>
-                        {t(
-                          'Star the recommended issue view to keep an eye on quick debugging opportunities. You can customize the view later.'
-                        )}
-                      </span>
-                    </CardDescription>
-                  </StepTextCol>
-                  <StepImageCol>
-                    <CardIllustration src={feedbackOnboardingImg} alt="Feedback" />
-                  </StepImageCol>
-                </StepContentRow>
-                <CustomStepButtons
-                  showBack={firstIncompleteIdx !== 3 && incompleteStepIndices.includes(3)}
-                  showNext={lastIncompleteIdx !== 3 && incompleteStepIndices.includes(3)}
-                  showSkip={lastIncompleteIdx === 3}
-                  onSkip={() => setStepsCollapsed(true)}
+              {/* Step 3: Unleash Automation */}
+              {isAutomationAllowed && (
+                <GuidedSteps.Step
+                  key="unleash-automation"
+                  stepKey="unleash-automation"
+                  title={t('Unleash Automation')}
+                  isCompleted={!needsAutomation}
                 >
-                  <StarFixabilityViewButton
-                    isCompleted={!needsFixabilityView}
-                    project={project}
-                  />
-                </CustomStepButtons>
-              </GuidedSteps.Step>
-            )}
-          </GuidedSteps>
-          <StepsDivider />
-        </Fragment>
+                  <StepContentRow>
+                    <StepTextCol>
+                      <CardDescription>
+                        <span>
+                          {t(
+                            'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
+                          )}
+                        </span>
+                      </CardDescription>
+                    </StepTextCol>
+                    <StepImageCol>
+                      <CardIllustration
+                        src={waitingForEventImg}
+                        alt="Waiting for Event"
+                      />
+                    </StepImageCol>
+                  </StepContentRow>
+                  <CustomStepButtons
+                    showBack={firstIncompleteIdx !== 2}
+                    showNext={lastIncompleteIdx !== 2}
+                    showSkip={lastIncompleteIdx === 2}
+                    onSkip={() => setStepsCollapsed(true)}
+                  >
+                    <LinkButton
+                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                      size="sm"
+                      priority="primary"
+                    >
+                      {t('Enable Automation')}
+                    </LinkButton>
+                  </CustomStepButtons>
+                </GuidedSteps.Step>
+              )}
+
+              {/* Step 4: Fixability View */}
+              {isAutomationAllowed && isStarredViewAllowed && (
+                <GuidedSteps.Step
+                  key="fixability-view"
+                  stepKey="fixability-view"
+                  title={t('Get Some Quick Wins')}
+                  isCompleted={!needsFixabilityView}
+                >
+                  <StepContentRow>
+                    <StepTextCol>
+                      <CardDescription>
+                        <span>
+                          {t(
+                            'Seer scans all your issues and highlights the ones that are likely quick to fix.'
+                          )}
+                        </span>
+                        <span>
+                          {t(
+                            'Star the recommended issue view to keep an eye on quick debugging opportunities. You can customize the view later.'
+                          )}
+                        </span>
+                      </CardDescription>
+                    </StepTextCol>
+                    <StepImageCol>
+                      <CardIllustration src={feedbackOnboardingImg} alt="Feedback" />
+                    </StepImageCol>
+                  </StepContentRow>
+                  <CustomStepButtons
+                    showBack={firstIncompleteIdx !== 3}
+                    showNext={lastIncompleteIdx !== 3}
+                    showSkip={lastIncompleteIdx === 3}
+                    onSkip={() => setStepsCollapsed(true)}
+                  >
+                    <StarFixabilityViewButton
+                      isCompleted={!needsFixabilityView}
+                      project={project}
+                    />
+                  </CustomStepButtons>
+                </GuidedSteps.Step>
+              )}
+            </GuidedSteps>
+            <StepsDivider />
+          </motion.div>
+        </AnimatePresence>
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
@@ -429,8 +441,9 @@ const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(0.5)};
+  margin-left: 1px;
 `;
 
 const StepsDivider = styled('hr')`
@@ -449,7 +462,7 @@ const CollapsedSummaryCard = styled('div')`
   padding: ${space(1)};
   margin-bottom: ${space(2)};
   cursor: pointer;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 500;
   color: ${p => p.theme.textColor};
   transition: box-shadow 0.2s;

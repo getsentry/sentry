@@ -5,7 +5,13 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -92,6 +98,55 @@ describe('AutomationsList', function () {
         }),
       })
     );
+  });
+
+  it('can sort the table', async function () {
+    const mockAutomationsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({name: 'Automation 1'})],
+    });
+    const {router} = render(<AutomationsList />, {organization});
+    await screen.findByText('Automation 1');
+
+    // Default sort is connectedWorkflows descending
+    expect(mockAutomationsRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sortBy: '-connectedDetectors',
+        }),
+      })
+    );
+
+    // Click on Name column header to sort
+    await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+
+    await waitFor(() => {
+      expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sortBy: 'name',
+          }),
+        })
+      );
+    });
+    expect(router.location.query.sort).toBe('name');
+
+    // Click on Name column header again to change sort direction
+    await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+
+    await waitFor(() => {
+      expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sortBy: '-name',
+          }),
+        })
+      );
+    });
+    expect(router.location.query.sort).toBe('-name');
   });
 
   describe('search', function () {

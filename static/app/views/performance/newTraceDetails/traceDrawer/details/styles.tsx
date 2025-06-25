@@ -61,6 +61,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
   isEAPSpanNode,
+  isEAPTransactionNode,
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -73,6 +74,8 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
@@ -90,6 +93,7 @@ const BodyContainer = styled('div')`
 `;
 
 const DetailContainer = styled('div')`
+  ${traceGridCssVariables}
   height: 100%;
   overflow: hidden;
   padding: ${space(1)} ${space(2)};
@@ -120,7 +124,7 @@ const LegacyTitleText = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
 
@@ -156,7 +160,7 @@ const SubTitleWrapper = styled(FlexBox)`
 `;
 
 const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
@@ -184,7 +188,7 @@ function TitleOp({text}: {text: string}) {
 }
 
 const Type = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TitleOpText = styled('div')`
@@ -410,6 +414,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  hideNodeActions?: boolean;
   highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
@@ -421,7 +426,9 @@ function Highlights({
   headerContent,
   bodyContent,
   highlightedAttributes,
+  hideNodeActions,
 }: HighlightProps) {
+  const location = useLocation();
   const dispatch = useTraceStateDispatch();
   const organization = useOrganization();
 
@@ -488,7 +495,22 @@ function Highlights({
               ))}
             </HighlightedAttributesWrapper>
           ) : null}
-          {isAiNode && hasAgentInsightsFeature(organization) ? null : (
+          {isAiNode && hasAgentInsightsFeature(organization) ? (
+            hideNodeActions ? null : (
+              <OpenInAIFocusButton
+                size="xs"
+                to={{
+                  ...location,
+                  query: {
+                    ...location.query,
+                    tab: TraceLayoutTabKeys.AI_SPANS,
+                  },
+                }}
+              >
+                {t('Open in AI View')}
+              </OpenInAIFocusButton>
+            )
+          ) : (
             <Fragment>
               <StyledPanel>
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
@@ -650,7 +672,7 @@ const HiglightsDurationComparison = styled('div')<
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
   background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
   border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
   height: 21px;
@@ -668,7 +690,7 @@ const HighlightDuration = styled('div')`
 
 const HighlightOp = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: normal;
 `;
 
@@ -677,7 +699,7 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }
@@ -685,6 +707,10 @@ const HighlightedAttributesWrapper = styled('div')`
 
 const HighlightedAttributeName = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const OpenInAIFocusButton = styled(LinkButton)`
+  width: max-content;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -982,8 +1008,14 @@ function NodeActions(props: {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
+  const transactionId = isTransactionNode(props.node)
+    ? props.node.value.event_id
+    : isEAPTransactionNode(props.node)
+      ? props.node.value.transaction_id
+      : '';
+
   const {data: transaction} = useTransaction({
-    event_id: props.node.value.event_id,
+    event_id: transactionId,
     project_slug: props.node.value.project_slug,
     organization,
   });
@@ -1033,11 +1065,11 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {isTransactionNode(props.node) ? (
+      {isTransactionNode(props.node) || isEAPTransactionNode(props.node) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${transactionId}/json/`}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1274,7 +1306,7 @@ const MultilineTextLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const TraceDrawerComponents = {
+export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
   FlexBox,
@@ -1309,5 +1341,3 @@ const TraceDrawerComponents = {
   MultilineJSON,
   MultilineTextLabel,
 };
-
-export {TraceDrawerComponents};

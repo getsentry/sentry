@@ -139,7 +139,7 @@ const DoneWrapper = styled('div')`
   justify-content: center;
   flex-direction: column;
   padding: 40px;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const DoneIcon = styled(IconCheckmark)`

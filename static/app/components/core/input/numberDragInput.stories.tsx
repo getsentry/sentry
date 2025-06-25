@@ -74,6 +74,6 @@ export default Storybook.story('NumberDragInput', (story, APIReference) => {
 });
 
 const Label = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;

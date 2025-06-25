@@ -1,54 +1,79 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import FormContext from 'sentry/components/forms/formContext';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types/group';
 import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  FieldKey,
-  FieldKind,
-  MobileVital,
-  WebVital,
-} from 'sentry/utils/fields';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
+  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
+import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
+import {Visualize} from 'sentry/views/detectors/components/forms/visualize';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const {projects} = useProjects();
+
+  const traceItemProjects = useMemo(() => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) {
+      return undefined;
+    }
+    return [project];
+  }, [projectId, projects]);
+
+  return (
+    <TraceItemAttributeProvider
+      traceItemType={TraceItemDataset.SPANS}
+      projects={traceItemProjects}
+      enabled
+    >
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
 
 export function MetricDetectorForm() {
   return (
-    <FormStack>
-      <DetectSection />
-      <PrioritizeSection />
-      <ResolveSection />
-      <AssignSection />
-      <AutomateSection />
-    </FormStack>
+    <MetricDetectorFormContext>
+      <FormStack>
+        <DetectSection />
+        <PrioritizeSection />
+        <ResolveSection />
+        <AssignSection />
+        <AutomateSection />
+      </FormStack>
+    </MetricDetectorFormContext>
   );
 }
 
@@ -140,7 +165,7 @@ function AutomateSection() {
           priority="primary"
           icon={<IconAdd />}
         >
-          Connect Automations
+          {t('Connect Automations')}
         </Button>
       </Section>
     </Container>
@@ -177,14 +202,27 @@ function PrioritizeSection() {
   );
 }
 
+function useDatasetChoices() {
+  const organization = useOrganization();
+
+  return useMemo(() => {
+    const datasetChoices: Array<[DetectorDataset, string]> = [
+      [DetectorDataset.ERRORS, t('Errors')],
+      [DetectorDataset.TRANSACTIONS, t('Transactions')],
+      ...(organization.features.includes('visibility-explore-view')
+        ? ([[DetectorDataset.SPANS, t('Spans')]] as Array<[DetectorDataset, string]>)
+        : []),
+      [DetectorDataset.RELEASES, t('Releases')],
+    ];
+
+    return datasetChoices;
+  }, [organization]);
+}
+
 function DetectSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
-
-  const aggregateOptions: Array<[string, string]> = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-      return [aggregate, aggregate];
-    });
-  }, []);
+  const datasetChoices = useDatasetChoices();
+  const formContext = useContext(FormContext);
 
   return (
     <Container>
@@ -192,27 +230,58 @@ function DetectSection() {
         title={t('Detect')}
         description={t('Sentry will check the following query:')}
       >
-        <FirstRow>
-          <Flex flex={1} gap={space(1)}>
-            <VisualizeField
-              placeholder={t('Metric')}
-              flexibleControlStateSize
-              inline={false}
-              label="Visualize"
-              name={METRIC_DETECTOR_FORM_FIELDS.visualize}
-              choices={[['transaction.duration', 'transaction.duration']]}
-            />
-            <AggregateField
-              placeholder={t('aggregate')}
-              flexibleControlStateSize
-              name={METRIC_DETECTOR_FORM_FIELDS.aggregate}
-              choices={aggregateOptions}
-            />
-          </Flex>
-          <Flex flex={1} gap={space(1)}>
-            <FilterField />
-          </Flex>
-        </FirstRow>
+        <DatasetRow>
+          <DatasetField
+            placeholder={t('Dataset')}
+            flexibleControlStateSize
+            inline={false}
+            label={
+              <Tooltip
+                title={t('This reflects the type of information you want to use.')}
+                showUnderline
+              >
+                <SectionLabel>{t('Dataset')}</SectionLabel>
+              </Tooltip>
+            }
+            name={METRIC_DETECTOR_FORM_FIELDS.dataset}
+            choices={datasetChoices}
+            onChange={newDataset => {
+              // Reset aggregate function to dataset default when dataset changes
+              const datasetConfig = getDatasetConfig(newDataset);
+              const defaultAggregate = generateFieldAsString(datasetConfig.defaultField);
+              formContext.form?.setValue(
+                METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+                defaultAggregate
+              );
+            }}
+          />
+          <IntervalField
+            placeholder={t('Interval')}
+            flexibleControlStateSize
+            inline={false}
+            label={
+              <Tooltip
+                title={t('The time period over which to evaluate your metric.')}
+                showUnderline
+              >
+                <SectionLabel>{t('Interval')}</SectionLabel>
+              </Tooltip>
+            }
+            name={METRIC_DETECTOR_FORM_FIELDS.interval}
+            choices={[
+              // TODO: We will probably need to change these options based on dataset
+              // Similar to metric alerts see static/app/views/alerts/rules/metric/constants.tsx
+              [60, t('1 minute')],
+              [5 * 60, t('5 minutes')],
+              [15 * 60, t('15 minutes')],
+              [30 * 60, t('30 minutes')],
+              [60 * 60, t('1 hour')],
+              [4 * 60 * 60, t('4 hours')],
+              [24 * 60 * 60, t('1 day')],
+            ]}
+          />
+        </DatasetRow>
+        <Visualize />
         <MonitorKind />
         <Flex direction="column">
           {(!kind || kind === 'static') && (
@@ -366,11 +435,11 @@ const FormStack = styled('div')`
   max-width: ${p => p.theme.breakpoints.xlarge};
 `;
 
-const FirstRow = styled('div')`
+const DatasetRow = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 1fr;
   gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  max-width: 475px;
 `;
 
 const StyledSelectField = styled(SelectField)`
@@ -385,27 +454,6 @@ const StyledSelectField = styled(SelectField)`
 
 const StyledMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
   padding-left: 0;
-`;
-
-const VisualizeField = styled(SelectField)`
-  flex: 2;
-  padding-left: 0;
-  padding-right: 0;
-  margin-left: 0;
-  border-bottom: none;
-`;
-
-const AggregateField = styled(SelectField)`
-  width: 120px;
-  margin-top: auto;
-  padding-top: 0;
-  padding-left: 0;
-  padding-right: 0;
-  border-bottom: none;
-
-  > div {
-    padding-left: 0;
-  }
 `;
 
 const DirectionField = styled(SelectField)`
@@ -458,104 +506,16 @@ const MutedText = styled('p')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
-function FilterField() {
-  return (
-    <Flex direction="column" gap={space(0.5)} style={{paddingTop: 16, flex: 1}}>
-      <span>Filter</span>
-      <SearchQueryBuilder
-        initialQuery=""
-        filterKeySections={FILTER_KEY_SECTIONS}
-        filterKeys={FILTER_KEYS}
-        getTagValues={getTagValues}
-        searchSource="storybook"
-      />
-    </Flex>
-  );
-}
+const DatasetField = styled(SelectField)`
+  flex: 1;
+  padding: 0;
+  margin-left: 0;
+  border-bottom: none;
+`;
 
-const getTagValues = (): Promise<string[]> => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(['foo', 'bar', 'baz']);
-    }, 500);
-  });
-};
-
-// TODO: replace hardcoded tags with data from API
-const FILTER_KEYS: TagCollection = {
-  [FieldKey.ASSIGNED]: {
-    key: FieldKey.ASSIGNED,
-    name: 'Assigned To',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: [
-      {
-        title: 'Suggested',
-        type: 'header',
-        icon: null,
-        children: [{value: 'me'}, {value: 'unassigned'}],
-      },
-      {
-        title: 'All',
-        type: 'header',
-        icon: null,
-        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
-      },
-    ],
-  },
-  [FieldKey.BROWSER_NAME]: {
-    key: FieldKey.BROWSER_NAME,
-    name: 'Browser Name',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Internet Explorer', 'Opera 1,2'],
-  },
-  [FieldKey.IS]: {
-    key: FieldKey.IS,
-    name: 'is',
-    predefined: true,
-    values: ['resolved', 'unresolved', 'ignored'],
-  },
-  [FieldKey.LAST_SEEN]: {
-    key: FieldKey.LAST_SEEN,
-    name: 'lastSeen',
-    kind: FieldKind.FIELD,
-  },
-  [FieldKey.TIMES_SEEN]: {
-    key: FieldKey.TIMES_SEEN,
-    name: 'timesSeen',
-    kind: FieldKind.FIELD,
-  },
-  [WebVital.LCP]: {
-    key: WebVital.LCP,
-    name: 'lcp',
-    kind: FieldKind.FIELD,
-  },
-  [MobileVital.FRAMES_SLOW_RATE]: {
-    key: MobileVital.FRAMES_SLOW_RATE,
-    name: 'framesSlowRate',
-    kind: FieldKind.FIELD,
-  },
-  custom_tag_name: {
-    key: 'custom_tag_name',
-    name: 'Custom_Tag_Name',
-  },
-};
-
-const FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  {
-    value: 'cat_1',
-    label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.IS],
-  },
-  {
-    value: 'cat_2',
-    label: 'Category 2',
-    children: [WebVital.LCP, MobileVital.FRAMES_SLOW_RATE],
-  },
-  {
-    value: 'cat_3',
-    label: 'Category 3',
-    children: [FieldKey.TIMES_SEEN],
-  },
-];
+const IntervalField = styled(SelectField)`
+  flex: 1;
+  padding: 0;
+  margin-left: 0;
+  border-bottom: none;
+`;

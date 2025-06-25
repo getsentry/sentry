@@ -128,14 +128,23 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
-export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
+export function formatFilterValue({
+  token,
+  stripWildcards = false,
+}: {
+  token: TokenResult<Token.FILTER>['value'];
+  stripWildcards?: boolean;
+}): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
+      const content = token.value ? token.value : token.text;
+      const cleanedContent = stripWildcards ? content.replace(/^\*+|\*+$/g, '') : content;
+
       if (!token.value) {
-        return token.text;
+        return cleanedContent;
       }
 
-      return token.quoted ? unescapeTagValue(token.value) : token.text;
+      return token.quoted ? unescapeTagValue(cleanedContent) : cleanedContent;
     }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);

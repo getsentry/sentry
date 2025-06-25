@@ -1,0 +1,3 @@
+import ephemeral_port_reserve
+
+def reserve(ip: str, port: int) -> int: ...

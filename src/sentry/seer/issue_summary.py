@@ -272,8 +272,11 @@ def _run_automation(
     event: GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
-    if not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+    if (
+        not features.has(
+            "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+        )
+        or source == SeerAutomationSource.ISSUE_DETAILS
     ):
         return
 
@@ -304,19 +307,6 @@ def _run_automation(
     if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
         return
 
-    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
-        group.project, group.organization
-    )
-    if is_rate_limited:
-        sentry_sdk.set_tags(
-            {
-                "auto_run_count": current,
-                "auto_run_limit": limit,
-            }
-        )
-        logger.error("Autofix auto-trigger rate limit hit", extra={"group_id": group.id})
-        return
-
     has_budget: bool = quotas.backend.has_available_reserved_budget(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
@@ -324,16 +314,32 @@ def _run_automation(
     if not has_budget:
         return
 
-    with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-        autofix_state = get_autofix_state(group_id=group.id)
+    autofix_state = get_autofix_state(group_id=group.id)
+    if autofix_state:
+        return  # already have an autofix on this issue
 
-    if not autofix_state:  # Only trigger autofix if we don't have an autofix on this issue already.
-        _trigger_autofix_task.delay(
-            group_id=group.id,
-            event_id=event.event_id,
-            user_id=user_id,
-            auto_run_source=auto_run_source,
+    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
+        group.project, group.organization
+    )
+    if is_rate_limited:
+        logger.warning(
+            "Autofix auto-trigger rate limit hit",
+            extra={
+                "group_id": group.id,
+                "auto_run_count": current,
+                "auto_run_limit": limit,
+                "org_slug": group.organization.slug,
+                "project_slug": group.project.slug,
+            },
         )
+        return
+
+    _trigger_autofix_task.delay(
+        group_id=group.id,
+        event_id=event.event_id,
+        user_id=user_id,
+        auto_run_source=auto_run_source,
+    )
 
 
 def _generate_summary(
@@ -396,6 +402,10 @@ def get_issue_summary_cache_key(group_id: int) -> str:
     return f"ai-group-summary-v2:{group_id}"
 
 
+def get_issue_summary_lock_key(group_id: int) -> tuple[str, str]:
+    return (f"ai-group-summary-v2-lock:{group_id}", "get_issue_summary")
+
+
 def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
@@ -423,7 +433,7 @@ def get_issue_summary(
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
     cache_key = get_issue_summary_cache_key(group.id)
-    lock_key = f"ai-group-summary-v2-lock:{group.id}"
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock_duration = 10  # How long the lock is held if acquired (seconds)
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
@@ -442,9 +452,9 @@ def get_issue_summary(
     # 2. Try to acquire lock
     try:
         # Acquire lock context manager. This will poll and wait.
-        with locks.get(
-            key=lock_key, duration=lock_duration, name="get_issue_summary"
-        ).blocking_acquire(initial_delay=0.25, timeout=wait_timeout):
+        with locks.get(key=lock_key, duration=lock_duration, name=lock_name).blocking_acquire(
+            initial_delay=0.25, timeout=wait_timeout
+        ):
             # Re-check cache after acquiring lock, in case another process finished
             # while we were waiting for the lock.
             if cached_summary := cache.get(cache_key):

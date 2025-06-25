@@ -14,13 +14,13 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
-import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -60,6 +60,7 @@ export default function FeedbackList() {
   const checkboxState = useListItemCheckboxState({
     hits,
     knownIds: issues.map(issue => issue.id),
+    queryKey: listQueryKey,
   });
 
   const listRef = useRef<ReactVirtualizedList>(null);
@@ -172,7 +173,7 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.subText};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
   position: relative;
   top: 50%;
@@ -184,6 +185,6 @@ const EmptyMessage = styled('div')`
   color: ${p => p.theme.gray400};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;

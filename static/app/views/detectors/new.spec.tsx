@@ -40,7 +40,7 @@ describe('DetectorNew', function () {
       expect.objectContaining({
         pathname: `/organizations/org-slug/issues/monitors/new/settings/`,
         query: {
-          detectorType: 'uptime',
+          detectorType: 'uptime_domain_failure',
           project: '2',
           environment: 'prod-2',
         },

@@ -85,6 +85,7 @@ export default withOrganization(SubscriptionBox);
 const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   background: ${p => p.theme.backgroundSecondary};
   opacity: ${p => (p.disabled ? 0.6 : 1)};
   border-radius: ${p => p.theme.borderRadius};
@@ -101,13 +102,13 @@ const SubscriptionInfo = styled('div')`
 `;
 
 const SubscriptionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
   color: ${p => p.theme.subText};
 `;
 
 const SubscriptionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
   color: ${p => p.theme.textColor};
   white-space: nowrap;

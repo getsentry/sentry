@@ -25,6 +25,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import render_react_view
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.models.user import User
@@ -283,7 +284,7 @@ class AwsLambdaProjectSelectPipelineView(IntegrationPipelineViewT):
             organization_id=organization.id,
             filter=dict(project_ids=[p.id for p in projects]),
         )
-        return self.render_react_view(
+        return render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
 
@@ -313,7 +314,7 @@ class AwsLambdaCloudFormationPipelineView(IntegrationPipelineViewT):
                 "organization": serialized_organization,
                 "awsExternalId": pipeline.fetch_state("aws_external_id"),
             }
-            return self.render_react_view(request, "awsLambdaCloudformation", context)
+            return render_react_view(request, "awsLambdaCloudformation", context)
 
         # form submit adds accountNumber to GET parameters
         if "accountNumber" in request.GET:
@@ -372,7 +373,7 @@ class AwsLambdaListFunctionsPipelineView(IntegrationPipelineViewT):
 
         curr_step = 2 if pipeline.fetch_state("skipped_project_select") else 3
 
-        return self.render_react_view(
+        return render_react_view(
             request,
             "awsLambdaFunctionSelect",
             {"lambdaFunctions": lambda_functions, "initialStepNumber": curr_step},
@@ -463,7 +464,7 @@ class AwsLambdaSetupLayerPipelineView(IntegrationPipelineViewT):
         # otherwise, finish
 
         if failures:
-            return self.render_react_view(
+            return render_react_view(
                 request,
                 "awsLambdaFailureDetails",
                 {"lambdaFunctionFailures": failures, "successCount": success_count},

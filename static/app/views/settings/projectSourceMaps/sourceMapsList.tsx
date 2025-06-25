@@ -482,7 +482,7 @@ const ItemHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   border-bottom: 1px solid ${p => p.theme.border};
   line-height: 1;
   padding: ${space(1)} ${space(2)};

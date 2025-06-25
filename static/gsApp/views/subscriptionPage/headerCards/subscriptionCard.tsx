@@ -156,7 +156,7 @@ const PlanHeaderCardWrapper = styled('div')`
 
 const PaymentDetails = styled('div')`
   line-height: 1.5;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   font-weight: 500;
 `;

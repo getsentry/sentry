@@ -347,5 +347,5 @@ const StyledPanelTable = styled(PanelTable)`
 
   grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

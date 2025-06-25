@@ -85,7 +85,7 @@ export const FrameContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   border-top: 1px solid ${p => p.theme.border};
 
