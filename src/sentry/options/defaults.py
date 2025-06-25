@@ -3192,11 +3192,6 @@ register(
     type=Int,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "sentry.demo_mode.sync_debug_artifacts.lookback_days",
-    default=3,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Taskbroker flags
 register(
