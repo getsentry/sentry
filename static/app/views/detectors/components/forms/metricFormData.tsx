@@ -10,11 +10,31 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
+
+/**
+ * Dataset types for detectors
+ */
+export const enum DetectorDataset {
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  SPANS = 'spans',
+  RELEASES = 'releases',
+}
+
+/**
+ * Snuba query types that correspond to the backend SnubaQuery.Type enum.
+ * These values are defined in src/sentry/snuba/models.py:
+ */
+const enum SnubaQueryType {
+  ERROR = 0,
+  PERFORMANCE = 1,
+  CRASH_RATE = 2,
+}
 
 interface PrioritizeLevelFormData {
   /**
@@ -53,10 +73,11 @@ interface MetricDetectorDynamicFormData {
 }
 
 interface SnubaQueryFormData {
-  aggregate: string;
+  aggregateFunction: string;
+  dataset: DetectorDataset;
   environment: string;
+  interval: number;
   query: string;
-  visualize: string;
 }
 
 export interface MetricDetectorFormData
@@ -84,10 +105,11 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   owner: 'owner',
 
   // Snuba query fields
-  aggregate: 'aggregate',
+  dataset: 'dataset',
+  aggregateFunction: 'aggregateFunction',
+  interval: 'interval',
   query: 'query',
   name: 'name',
-  visualize: 'visualize',
 
   // Priority level fields
   initialPriorityLevel: 'initialPriorityLevel',
@@ -118,9 +140,9 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   sensitivity: AlertRuleSensitivity.LOW,
   thresholdType: AlertRuleThresholdType.ABOVE,
 
-  // Snuba query fields
-  visualize: 'transaction.duration',
-  aggregate: 'count',
+  dataset: DetectorDataset.SPANS,
+  aggregateFunction: 'avg(span.duration)',
+  interval: 60 * 60, // One hour in seconds
   query: '',
 
   // Passed in from step 1
@@ -199,23 +221,86 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
 }
 
 /**
+ * Convert backend dataset to our form dataset
+ */
+const getDetectorDataset = (backendDataset: string): DetectorDataset => {
+  switch (backendDataset) {
+    case Dataset.ERRORS:
+      return DetectorDataset.ERRORS;
+    case Dataset.TRANSACTIONS:
+    case Dataset.GENERIC_METRICS:
+      return DetectorDataset.TRANSACTIONS;
+    case Dataset.EVENTS_ANALYTICS_PLATFORM:
+      return DetectorDataset.SPANS;
+    case Dataset.METRICS:
+      return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
+    default:
+      return DetectorDataset.ERRORS;
+  }
+};
+
+/**
+ * Convert our form dataset to the backend dataset
+ */
+const getBackendDataset = (dataset: DetectorDataset): string => {
+  switch (dataset) {
+    case DetectorDataset.ERRORS:
+      return Dataset.ERRORS;
+    case DetectorDataset.TRANSACTIONS:
+      return Dataset.GENERIC_METRICS;
+    case DetectorDataset.SPANS:
+      return Dataset.EVENTS_ANALYTICS_PLATFORM;
+    case DetectorDataset.RELEASES:
+      return Dataset.METRICS; // Maps to metrics dataset for crash rate queries
+    default:
+      return Dataset.ERRORS;
+  }
+};
+
+/**
  * Creates the data source configuration for the detector
  */
 function createDataSource(data: MetricDetectorFormData): NewDataSource {
-  const dataset = 'events';
-  const eventTypes = ['error'];
+  const getEventTypes = (dataset: DetectorDataset): string[] => {
+    switch (dataset) {
+      case DetectorDataset.ERRORS:
+        return ['error'];
+      case DetectorDataset.TRANSACTIONS:
+        return ['transaction'];
+      case DetectorDataset.SPANS:
+        return ['trace_item_span'];
+      case DetectorDataset.RELEASES:
+        return []; // Crash rate queries don't have event types
+      default:
+        return ['error'];
+    }
+  };
+
+  /**
+   * This maps to the backend query_datasets_to_type mapping.
+   */
+  const getQueryType = (dataset: DetectorDataset): number => {
+    switch (dataset) {
+      case DetectorDataset.ERRORS:
+        return SnubaQueryType.ERROR;
+      case DetectorDataset.TRANSACTIONS:
+      case DetectorDataset.SPANS:
+        return SnubaQueryType.PERFORMANCE;
+      case DetectorDataset.RELEASES:
+        return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset
+      default:
+        return SnubaQueryType.ERROR;
+    }
+  };
 
   return {
-    // TODO: Add an enum for queryType and dataset or look for existing ones
-    queryType: 0,
-    dataset,
+    queryType: getQueryType(data.dataset),
+    dataset: getBackendDataset(data.dataset),
     query: data.query,
-    // TODO: aggregate doesn't always contain the selected "visualize" value.
-    aggregate: `${data.aggregate}(${data.visualize})`,
-    // TODO: Add interval to the form
-    timeWindow: 60 * 60,
+    aggregate: data.aggregateFunction,
+    timeWindow: data.interval,
     environment: data.environment ? data.environment : null,
-    eventTypes,
+    eventTypes: getEventTypes(data.dataset),
   };
 }
 
@@ -257,7 +342,6 @@ export function getNewMetricDetectorData(
     projectId: data.projectId,
     owner: data.owner || null,
     conditionGroup: {
-      // TODO: Can this be different values?
       logicType: DataConditionGroupLogicType.ANY,
       conditions,
     },
@@ -331,15 +415,15 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
       ? dataSource.queryObj?.snubaQuery
       : undefined;
 
-  // Extract aggregate and visualize from the aggregate string
-  const parsedFunction = snubaQuery?.aggregate
-    ? parseFunction(snubaQuery.aggregate)
-    : null;
-  const aggregate = parsedFunction?.name || 'count';
-  const visualize = parsedFunction?.arguments[0] || 'transaction.duration';
+  // Use the full aggregate string directly
+  const aggregateFunction = snubaQuery?.aggregate || 'count()';
 
   // Process conditions using the extracted function
   const conditionData = processDetectorConditions(detector);
+
+  const dataset = snubaQuery?.dataset
+    ? getDetectorDataset(snubaQuery.dataset)
+    : DetectorDataset.SPANS;
 
   return {
     // Core detector fields
@@ -348,8 +432,9 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
     environment: snubaQuery?.environment || '',
     owner: detector.owner || '',
     query: snubaQuery?.query || '',
-    aggregate,
-    visualize,
+    aggregateFunction,
+    dataset,
+    interval: 60 * 60, // Default to 1 hour
 
     // Priority level and condition fields from processed conditions
     ...conditionData,
