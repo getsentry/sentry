@@ -73,6 +73,7 @@ export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.request.messages', ['ai.prompt.messages']],
   ['gen_ai.response.tool_calls', ['ai.response.toolCalls']],
   ['gen_ai.response.text', ['ai.response.text']],
+  ['gen_ai.response.object', ['ai.response.object']],
   ['gen_ai.tool.name', ['ai.toolCall.name']],
 ]);
 
