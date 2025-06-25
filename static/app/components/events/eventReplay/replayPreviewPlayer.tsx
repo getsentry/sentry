@@ -98,11 +98,11 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <StyledReplayCell
-          key="session"
-          replay={replayRecord as ReplayListRecord}
           eventView={eventView}
-          organization={organization}
+          key="session"
           referrer="issue-details-replay-header"
+          replay={replayRecord as ReplayListRecord}
+          rowIndex={0}
         />
         <LinkButton
           size="sm"
