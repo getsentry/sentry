@@ -2,7 +2,6 @@
 
 
 import datetime
-import functools
 import logging
 import shutil
 import socket
@@ -27,16 +26,6 @@ RELAY_TEST_IMAGE = environ.get(
 
 def _relay_server_container_name():
     return "sentry_test_relay_server"
-
-
-@functools.cache
-def _relay_server_container_port() -> int:
-    sock = socket.socket()
-    sock.bind(("127.0.0.1", 0))
-    port = sock.getsockname()[1]
-    # maybe this should be a context manager instead?
-    sock.close()
-    return port
 
 
 def _get_template_dir():
@@ -87,7 +76,9 @@ def relay_server_setup(live_server, tmpdir_factory):
     )
     assert redis_db == projectconfig_backend.cluster.connection_pool.connection_kwargs["db"]
 
-    RELAY_PORT = _relay_server_container_port()
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        RELAY_PORT = sock.getsockname()[1]
 
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
