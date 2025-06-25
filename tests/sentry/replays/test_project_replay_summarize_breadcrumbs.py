@@ -293,7 +293,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
                 },
-            },
+            }
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 

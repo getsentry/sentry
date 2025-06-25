@@ -176,7 +176,7 @@ def gen_request_data(
     error_events: list[GroupEvent],
     project_id: int | None = None,
 ) -> Generator[str]:
-    """Generate log messages from events an errors in chronological order."""
+    """Generate log messages from events and errors in chronological order."""
     error_idx = 0
 
     # Process segments
@@ -187,8 +187,8 @@ def gen_request_data(
             while error_idx < len(error_events) and error_events[error_idx][
                 "timestamp"
             ] < event.get("timestamp", 0):
-                group_event = error_events[error_idx]
-                yield generate_error_log_message(group_event)
+                error = error_events[error_idx]
+                yield generate_error_log_message(error)
                 error_idx += 1
 
             # Yield the current event's log message
@@ -197,8 +197,8 @@ def gen_request_data(
 
     # Yield any remaining error messages
     while error_idx < len(error_events):
-        group_event = error_events[error_idx]
-        yield generate_error_log_message(group_event)
+        error = error_events[error_idx]
+        yield generate_error_log_message(error)
         error_idx += 1
 
 
