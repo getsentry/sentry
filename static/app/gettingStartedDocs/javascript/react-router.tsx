@@ -301,7 +301,7 @@ const onboarding: OnboardingConfig = {
     },
     {
       description: tct(
-        'Initialize the Sentry React SDK in your [code:entry.client.tsx] file:',
+        'Initialize the Sentry React Router SDK in your [code:entry.client.tsx] file:',
         {code: <code />}
       ),
       title: t('Client Setup'),
