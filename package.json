@@ -207,7 +207,7 @@
     "eslint-plugin-unicorn": "^57.0.0",
     "expect-type": "1.2.1",
     "globals": "^15.14.0",
-    "jest": "30.0.2",
+    "jest": "30.0.3",
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "30.0.2",
     "jest-fail-on-console": "3.3.1",
