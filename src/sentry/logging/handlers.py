@@ -5,12 +5,12 @@ import random
 import re
 from typing import Any
 
-import sentry_sdk
 from django.utils.timezone import now
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
 
 from sentry.utils import json, metrics
+from sentry.utils.sdk import get_trace_id
 
 # These are values that come default from logging.LogRecord.
 # They are defined here:
@@ -86,7 +86,13 @@ class HumanRenderer:
 class StructLogHandler(logging.StreamHandler):
     def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
-        kwargs.update({"level": record.levelno, "event": record.msg})
+        kwargs.update(
+            {
+                "level": record.levelno,
+                "event": record.msg,
+                "sentry.trace.trace_id": get_trace_id(),
+            }
+        )
 
         if record.args:
             # record.args inside of LogRecord.__init__ gets unrolled
@@ -119,18 +125,10 @@ class GKEStructLogHandler(StructLogHandler):
     def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = super().get_log_kwargs(record)
 
-        # Get trace ID from current Sentry span
-        trace_id = None
-        span = sentry_sdk.get_current_span()
-        if span is not None:
-            # Get trace ID from the span's context
-            trace_id = span.get_trace_context().get("trace_id")
-
         # Update kwargs with GKE-specific fields in the expected order
         kwargs.update(
             {
                 "logging.googleapis.com/labels": {"name": kwargs.get("name", "root")},
-                "sentry.trace.trace_id": trace_id,
                 "severity": record.levelname,
             }
         )

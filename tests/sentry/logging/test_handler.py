@@ -13,6 +13,7 @@ from sentry.logging.handlers import (
     SamplingFilter,
     StructLogHandler,
 )
+from sentry.utils.sdk import get_trace_id
 
 
 @pytest.fixture
@@ -99,9 +100,37 @@ def make_logrecord(
 def test_emit(record, out, handler, logger):
     record = make_logrecord(**record)
     handler.emit(record, logger=logger)
-    expected = dict(level=logging.INFO, event="msg", name="name")
+    expected = {
+        "level": logging.INFO,
+        "event": "msg",
+        "name": "name",
+        "sentry.trace.trace_id": None,
+    }
     expected.update(out)
     logger.log.assert_called_once_with(**expected)
+
+
+@pytest.mark.parametrize(
+    "record,out",
+    (
+        ({}, {}),
+        ({"msg": "%s", "args": (1,)}, {"event": "%s", "positional_args": (1,)}),
+        ({"args": ({"a": 1},)}, {"positional_args": ({"a": 1},)}),
+        ({"exc_info": True}, {"exc_info": True}),
+    ),
+)
+def test_emit_with_trace_id(record, out, handler, logger):
+    with sentry_sdk.start_span(name="test_emit_with_trace_id"):
+        record = make_logrecord(**record)
+        handler.emit(record, logger=logger)
+        expected = {
+            "level": logging.INFO,
+            "event": "msg",
+            "name": "name",
+            "sentry.trace.trace_id": get_trace_id(),
+        }
+        expected.update(out)
+        logger.log.assert_called_once_with(**expected)
 
 
 @mock.patch("sentry.logging.handlers.metrics")
@@ -169,24 +198,6 @@ def test_gke_emit() -> None:
         event="msg",
         **{"logging.googleapis.com/labels": {"name": "name"}, "sentry.trace.trace_id": None},
     )
-    with sentry_sdk.start_span(name="test_gke_emit"):
-        GKEStructLogHandler().emit(make_logrecord(), logger=logger)
-        current_span = sentry_sdk.get_current_span()
-        if current_span is not None:
-            trace_id = current_span.get_trace_context().get("trace_id")
-        else:
-            trace_id = None
-        assert trace_id is not None
-        logger.log.assert_called_with(
-            name="name",
-            level=logging.INFO,
-            severity="INFO",
-            event="msg",
-            **{
-                "logging.googleapis.com/labels": {"name": "name"},
-                "sentry.trace.trace_id": trace_id,
-            },
-        )
 
 
 @mock.patch("random.random", lambda: 0.1)
