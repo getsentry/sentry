@@ -58,7 +58,7 @@ describe('useChartBoxSelect', () => {
           }),
         {wrapper}
       );
-      expect(result.current.brushArea).toBeNull();
+      expect(result.current.boxCoordRange).toBeNull();
     });
   });
 
@@ -144,15 +144,10 @@ describe('useChartBoxSelect', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.brushArea).toEqual([
-          {
-            ...mockEvent.areas[0],
-            coordRange: [
-              [10, 90], // within x bounds
-              [5, 45], // within y bounds
-            ],
-          },
-        ]);
+        expect(result.current.boxCoordRange).toEqual({
+          x: [10, 90], // within x bounds
+          y: [5, 45], // within y bounds
+        });
       });
     });
 
@@ -220,15 +215,10 @@ describe('useChartBoxSelect', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.brushArea).toEqual([
-          {
-            ...mockEvent.areas[0],
-            coordRange: [
-              [0, 100], // constrained to x bounds
-              [0, 50], // constrained to y bounds
-            ],
-          },
-        ]);
+        expect(result.current.boxCoordRange).toEqual({
+          x: [0, 100], // constrained to x bounds
+          y: [0, 50], // constrained to y bounds
+        });
       });
     });
 
@@ -264,7 +254,7 @@ describe('useChartBoxSelect', () => {
         result.current.onBrushEnd(mockEvent, mockChartInstance as any);
       });
 
-      expect(result.current.brushArea).toBeNull();
+      expect(result.current.boxCoordRange).toBeNull();
     });
   });
 
