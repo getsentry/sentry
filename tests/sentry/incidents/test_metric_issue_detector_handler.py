@@ -111,7 +111,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
             data_packet
         )
-        evaluation_result: DetectorEvaluationResult = result.get("value")
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
         assert isinstance(evaluation_result.result, IssueOccurrence)
         occurrence: IssueOccurrence = evaluation_result.result
 
@@ -144,7 +144,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
             data_packet
         )
-        evaluation_result: DetectorEvaluationResult = result.get("value")
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
         assert isinstance(evaluation_result.result, IssueOccurrence)
         occurrence: IssueOccurrence = evaluation_result.result
 
