@@ -41,6 +41,13 @@ class StatusPageSerializer(serializers.Serializer):
         help_text="Custom domain name for the status page",
     )
 
+    def update(self, instance, validated_data):
+        """Update the status page instance with validated data."""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 
 @extend_schema_serializer(component_name="StatusPageResponseSerializer")
 @register(StatusPage)

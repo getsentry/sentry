@@ -14,14 +14,14 @@ class OrganizationStatusPagesTest(APITestCase):
     def test_list_status_pages(self):
         """Test listing status pages for an organization."""
         # Create some status pages
-        status_page_1 = StatusPage.objects.create(
+        status_page_1 = self.create_status_page(
             organization=self.organization,
             title="Main Status Page",
             description="Our main status page",
             is_public=True,
             is_accepting_subscribers=True,
         )
-        status_page_2 = StatusPage.objects.create(
+        status_page_2 = self.create_status_page(
             organization=self.organization,
             title="Secondary Status Page",
             description="Secondary status page",
@@ -53,7 +53,7 @@ class OrganizationStatusPagesTest(APITestCase):
     def test_list_status_pages_other_org(self):
         """Test that status pages from other organizations are not returned."""
         other_org = self.create_organization(owner=self.user)
-        StatusPage.objects.create(
+        self.create_status_page(
             organization=other_org,
             title="Other Org Status Page",
         )
@@ -102,6 +102,8 @@ class OrganizationStatusPagesTest(APITestCase):
         assert response.data["cname"] == "status.example.com"
 
         # Verify it was created in the database
+        from sentry.status_pages.models.status_page import StatusPage
+
         status_page = StatusPage.objects.get(id=response.data["id"])
         assert status_page.title == "Full Status Page"
         assert status_page.description == "A comprehensive status page"
@@ -164,7 +166,7 @@ class OrganizationStatusPagesTest(APITestCase):
         """Test that the endpoint supports pagination."""
         # Create multiple status pages
         for i in range(25):
-            StatusPage.objects.create(
+            self.create_status_page(
                 organization=self.organization,
                 title=f"Status Page {i}",
             )
@@ -176,11 +178,11 @@ class OrganizationStatusPagesTest(APITestCase):
 
     def test_ordering(self):
         """Test that status pages are ordered by date_added descending."""
-        status_page_1 = StatusPage.objects.create(
+        status_page_1 = self.create_status_page(
             organization=self.organization,
             title="First Status Page",
         )
-        status_page_2 = StatusPage.objects.create(
+        status_page_2 = self.create_status_page(
             organization=self.organization,
             title="Second Status Page",
         )

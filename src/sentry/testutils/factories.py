@@ -144,6 +144,7 @@ from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
+from sentry.status_pages.models.status_page import StatusPage
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -2353,4 +2354,29 @@ class Factories:
             condition_group = Factories.create_data_condition_group()
         return DataConditionGroupAction.objects.create(
             action=action, condition_group=condition_group, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_status_page(
+        organization: Organization | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        is_public: bool = False,
+        is_accepting_subscribers: bool = False,
+        cname: str | None = None,
+        **kwargs,
+    ):
+        if organization is None:
+            organization = Factories.create_organization()
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+        return StatusPage.objects.create(
+            organization=organization,
+            title=title,
+            description=description,
+            is_public=is_public,
+            is_accepting_subscribers=is_accepting_subscribers,
+            cname=cname,
+            **kwargs,
         )
