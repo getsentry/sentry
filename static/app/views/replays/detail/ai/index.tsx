@@ -237,7 +237,7 @@ const Summary = styled('summary')`
   cursor: pointer;
   display: list-item;
   padding: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 
   /* sorry */
   &:focus-visible {

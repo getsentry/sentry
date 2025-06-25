@@ -168,7 +168,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const TagHeading = styled('h5')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
   color: ${p => p.theme.linkColor};
 `;

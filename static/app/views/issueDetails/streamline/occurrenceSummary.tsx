@@ -160,18 +160,18 @@ const ItemTitle = styled('div')`
 `;
 
 const ItemValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightNormal};
   max-width: 400px;
 `;
 
 const ItemTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const ItemLink = styled(Link)`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.subText};

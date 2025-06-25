@@ -319,7 +319,7 @@ const CardTitleContent = styled('div')`
 
 const CardTitle = styled('h6')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray400};
 `;
@@ -375,5 +375,5 @@ export const StyledExternalLink = styled(ExternalLink)`
 `;
 
 const SeeMore = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;

@@ -453,7 +453,7 @@ const DropdownTitle = styled('header')`
 
 const DropdownListItem = styled(ListItem)`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
@@ -475,7 +475,7 @@ const DropdownItemTitleWrapper = styled('div')`
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
 
   &:not(:last-child) {

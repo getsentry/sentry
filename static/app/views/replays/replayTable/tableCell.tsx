@@ -428,7 +428,7 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 `;
 
 const DisplayNameLink = styled(Link)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 

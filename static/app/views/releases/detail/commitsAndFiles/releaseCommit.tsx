@@ -138,7 +138,7 @@ const StyledLink = styled(Link)`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
 `;
 

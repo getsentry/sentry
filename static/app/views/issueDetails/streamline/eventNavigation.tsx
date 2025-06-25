@@ -306,20 +306,20 @@ const LargeDropdownButtonWrapper = styled('div')`
 `;
 
 const NavigationDropdownButton = styled(DropdownButton)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   padding-right: ${space(0.5)};
 `;
 
 const NavigationLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   padding-right: ${space(0.25)};
   padding-left: ${space(1.5)};
 `;
 
 const LargeInThisIssueText = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;

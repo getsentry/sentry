@@ -331,7 +331,7 @@ const StyledAlert = styled(Alert)`
 `;
 
 const EmptyStateAction = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 export default IncidentsListContainer;

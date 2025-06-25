@@ -158,7 +158,7 @@ const UnassignedLabel = styled('div')`
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;

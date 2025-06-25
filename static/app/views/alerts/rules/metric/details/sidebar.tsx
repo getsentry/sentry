@@ -385,7 +385,7 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const StatusContainer = styled('div')`

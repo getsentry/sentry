@@ -251,7 +251,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-variant-numeric: tabular-nums;
 `;
 

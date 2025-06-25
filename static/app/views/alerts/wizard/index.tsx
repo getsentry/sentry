@@ -287,7 +287,7 @@ const PanelDescription = styled('p')`
 
 const ExampleHeader = styled('div')`
   margin: 0 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const ExampleItem = styled(ListItem)`

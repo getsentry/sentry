@@ -21,7 +21,7 @@ export const ContextTitle = styled('h6')`
 export const ContextBody = styled('div')`
   width: 100%;
   text-align: left;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
 `;

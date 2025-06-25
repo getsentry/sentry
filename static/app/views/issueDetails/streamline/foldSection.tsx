@@ -245,7 +245,7 @@ const SectionExpander = styled('div')<{preventCollapse: boolean}>`
 `;
 
 const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   user-select: none;
 `;

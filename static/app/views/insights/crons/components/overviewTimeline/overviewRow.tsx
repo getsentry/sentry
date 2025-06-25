@@ -294,7 +294,7 @@ const MonitorStatuses = styled('div')`
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;
@@ -350,7 +350,7 @@ const DetailsActions = styled('div')`
   opacity: 0;
 
   /* Align to the center of the heading text */
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
   margin: ${space(3)};
 
   /* Show when timeline is hovered / focused */
@@ -380,7 +380,7 @@ const EnvRow = styled('div')`
   gap: ${space(0.5)};
   justify-content: space-between;
   align-items: center;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
 `;
 
 const EnvActionButton = styled(Button)`
@@ -405,7 +405,7 @@ const TimelineEnvOuterContainer = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
   opacity: var(--disabled-opacity);
 `;
 
