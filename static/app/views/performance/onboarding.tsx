@@ -806,7 +806,7 @@ const PulsingIndicator = styled('div')`
 
 const OptionalText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -828,7 +828,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BulletList = styled('ul')`

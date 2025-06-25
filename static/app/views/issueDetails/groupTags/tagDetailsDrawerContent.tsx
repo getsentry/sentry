@@ -332,7 +332,7 @@ const Table = styled('div')`
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ShareColumnTitle = styled(ColumnTitle)`
@@ -345,7 +345,7 @@ const ColumnSort = styled(Link)`
   align-items: center;
   white-space: nowrap;
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.textColor};

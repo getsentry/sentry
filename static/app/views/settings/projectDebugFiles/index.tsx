@@ -288,7 +288,7 @@ const Filters = styled('div')`
 `;
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: flex;
   align-items: center;
   margin-bottom: 0;

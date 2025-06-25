@@ -149,7 +149,7 @@ const SectionHeader = styled('div')`
   & h3 a {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 
   & h3 {
@@ -165,7 +165,7 @@ const SectionHeader = styled('div')`
   }
   & small > span {
     color: ${p => p.theme.textColor};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {

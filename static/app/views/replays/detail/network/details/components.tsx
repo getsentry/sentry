@@ -84,7 +84,7 @@ const SectionTitle = styled('dt')``;
 const SectionTitleExtra = styled('span')`
   flex-grow: 1;
   text-align: right;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const SectionData = styled('dd')`
@@ -96,7 +96,7 @@ const ToggleButton = styled('button')`
   border: 0;
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   width: 100%;

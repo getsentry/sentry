@@ -394,7 +394,7 @@ const DismissContainer = styled('div')`
 const CheckboxLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   cursor: pointer;
 
   > span {

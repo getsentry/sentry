@@ -64,7 +64,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   z-index: ${p => (p.isSelected ? 1 : undefined)};
 
   ${p => p.theme.buttonPadding[p.size]}
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
 
@@ -86,7 +86,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 export const ChonkStyledVisibleLabel = chonkStyled('span')`
   ${p => p.theme.overflowEllipsis}
   user-select: none;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-align: center;
 `;
 

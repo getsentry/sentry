@@ -74,7 +74,7 @@ export const DropdownContainer = styled('span')`
 
 export const DropdownMenuHeader = styled(MenuItem)<{first?: boolean}>`
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.backgroundSecondary};

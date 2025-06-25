@@ -98,7 +98,7 @@ const Title = styled('div')`
   & em {
     font-size: ${p => p.theme.fontSize.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
     color: ${p => p.theme.subText};
   }
 `;

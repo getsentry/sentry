@@ -599,7 +599,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

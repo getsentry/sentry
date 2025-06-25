@@ -205,7 +205,7 @@ const ChartLabel = styled('div')`
   width: 38px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   align-content: center;
   align-self: stretch;
 `;

@@ -130,7 +130,7 @@ const KeyMetricLabel = styled('dt')`
 
 const KeyMetricData = styled('dd')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: flex;
   align-items: center;
   gap: ${space(1)};

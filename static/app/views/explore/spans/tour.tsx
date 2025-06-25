@@ -180,13 +180,13 @@ const TextContainer = styled('div')`
 const Title = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Header = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`

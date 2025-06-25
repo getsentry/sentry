@@ -280,7 +280,7 @@ const SegmentWrap = withChonk(
     min-width: 0;
 
     ${p => p.theme.buttonPadding[p.size]}
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
 
     ${p =>
       !p.isDisabled &&
