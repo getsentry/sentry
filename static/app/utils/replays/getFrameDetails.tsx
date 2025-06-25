@@ -80,7 +80,7 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
   ethernet: t('Device connected to ethernet'),
 };
 
-const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
+export const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
     colorGraphicsToken: 'muted',
     description: stripURLOrigin(frame.message ?? ''),
