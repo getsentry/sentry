@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -32,12 +33,18 @@ def create_workflow_fire_histories(
         ).values_list("workflow_id", flat=True)
     )
 
+    event_id = (
+        event_data.event.event_id
+        if isinstance(event_data.event, GroupEvent)
+        else event_data.event.id
+    )
+
     fire_histories = [
         WorkflowFireHistory(
             detector_id=detector.id,
             workflow_id=workflow_id,
             group=event_data.event.group,
-            event_id=event_data.event.event_id,
+            event_id=event_id,
         )
         for workflow_id in workflow_ids
     ]
