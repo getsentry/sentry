@@ -2,10 +2,10 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {formalLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   getIsAiRunSpan,
   getIsAiSpan,
@@ -57,10 +57,6 @@ function getAttribute(attributeObject: Record<string, string>, key: string) {
   return undefined;
 }
 
-function formatCost(cost: string) {
-  return `US $${formatAbbreviatedNumberWithDynamicPrecision(cost)}`;
-}
-
 export function getHighlightedSpanAttributes({
   op,
   description,
@@ -107,7 +103,7 @@ export function getHighlightedSpanAttributes({
   if (totalCosts) {
     highlightedAttributes.push({
       name: t('Cost'),
-      value: formatCost(totalCosts),
+      value: formalLLMCosts(totalCosts),
     });
   }
 

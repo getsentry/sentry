@@ -11,10 +11,12 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {formalLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
+  AI_COST_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
   AI_HANDOFF_OPS,
@@ -224,6 +226,7 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
         AI_AGENT_NAME_ATTRIBUTE,
         AI_MODEL_ID_ATTRIBUTE,
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
+        keyToTag(AI_COST_ATTRIBUTE, 'number'),
         AI_TOOL_NAME_ATTRIBUTE,
       ] as EAPSpanProperty[],
       limit: 100,
@@ -351,8 +354,12 @@ function getNodeInfo(
     AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
+    const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
     nodeInfo.subtitle = tokens ? ` ${tokens} Tokens` : '';
+    if (cost) {
+      nodeInfo.subtitle += ` (${formalLLMCosts(cost)})`;
+    }
     nodeInfo.color = colors[2];
   } else if (
     AI_TOOL_CALL_OPS.includes(op) ||
@@ -423,7 +430,6 @@ const ListItemTitle = styled('div')`
 const ListItemSubtitle = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
