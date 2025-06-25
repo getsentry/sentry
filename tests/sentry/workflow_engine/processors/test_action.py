@@ -10,10 +10,8 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Workflow,
     WorkflowActionGroupStatus,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.processors.action import (
-    create_workflow_fire_histories,
     filter_recently_fired_workflow_actions,
     get_workflow_action_group_statuses,
     is_action_permitted,
@@ -224,34 +222,6 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         assert all_statuses.count() == 2
         for status in all_statuses:
             assert status.date_updated == timezone.now()
-
-
-class TestWorkflowFireHistory(BaseWorkflowTest):
-    def setUp(self):
-        (
-            self.workflow,
-            self.detector,
-            self.detector_workflow,
-            self.workflow_triggers,
-        ) = self.create_detector_and_workflow()
-
-        self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-
-        self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
-        )
-        self.event_data = WorkflowEventData(event=self.group_event)
-
-    def test_create_workflow_fire_histories(self):
-        create_workflow_fire_histories(Action.objects.filter(id=self.action.id), self.event_data)
-        assert (
-            WorkflowFireHistory.objects.filter(
-                workflow=self.workflow,
-                group=self.group,
-                event_id=self.group_event.event_id,
-            ).count()
-            == 1
-        )
 
 
 class TestIsActionPermitted(BaseWorkflowTest):

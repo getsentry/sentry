@@ -1,11 +1,6 @@
-import {
-  getDiffNE,
-  getDiffNW,
-  getDiffSE,
-  getDiffSW,
-} from 'sentry/components/avatarUploader';
+import {getDiffNE, getDiffNW, getDiffSE, getDiffSW} from './avatarCropper';
 
-describe('AvatarUploader', function () {
+describe('AvatarCropper', function () {
   describe('getDiffNW', function () {
     it(
       'should return a negative diff when yDiff and xDiff ' +

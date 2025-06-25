@@ -101,7 +101,7 @@ type GetsentryEventParameters = {
   } & Checkout;
   // no sub here
   'checkout.upgrade': {
-    // TODO(data categories): check if these can be parsed
+    // TODO(data categories): BIL-966
     attachments?: number;
     errors?: number;
     monitorSeats?: number;

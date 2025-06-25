@@ -40,7 +40,7 @@ from sentry.integrations.slack.utils.escape import (
     escape_slack_text,
 )
 from sentry.integrations.time_utils import get_approx_start_time, time_since
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
@@ -67,12 +67,12 @@ from sentry.users.services.user.model import RpcUser
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
-    "github",
+    IntegrationProviderSlug.GITHUB.value,
     "integrations:github",
     "integrations:github_enterprise",
     "integrations:vsts",
     "integrations:gitlab",
-    "bitbucket",
+    IntegrationProviderSlug.BITBUCKET.value,
     "integrations:bitbucket",
 )
 

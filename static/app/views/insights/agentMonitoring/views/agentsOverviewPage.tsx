@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
@@ -8,10 +8,14 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
@@ -24,31 +28,45 @@ import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
-import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {
+  AIInsightsFeature,
+  usePreferedAiModule,
+} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {Onboarding} from 'sentry/views/insights/agentMonitoring/views/onboarding';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const TableControl = SegmentedControl<TableType>;
 const TableControlItem = SegmentedControl.Item<TableType>;
 
+function useShowOnboarding() {
+  const {projects} = useProjects();
+  const pageFilters = usePageFilters();
+  const selectedProjects = getSelectedProjectList(
+    pageFilters.selection.projects,
+    projects
+  );
+  return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
+}
+
 function AgentsMonitoringPage() {
   const location = useLocation();
   const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
+  const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-
-  const showOnboarding = onboardingProject !== undefined;
 
   const {eventView, handleSearch} = useTransactionNameQuery();
   const searchBarQuery = getTransactionSearchQuery(location, eventView.query);
@@ -83,46 +101,52 @@ function AgentsMonitoringPage() {
                 </ToolRibbon>
               </ModuleLayout.Full>
               <ModuleLayout.Full>
-                <WidgetGrid>
-                  <WidgetGrid.Position1>
-                    <OverviewAgentsRunsChartWidget />
-                  </WidgetGrid.Position1>
-                  <WidgetGrid.Position2>
-                    <OverviewAgentsDurationChartWidget />
-                  </WidgetGrid.Position2>
-                  <WidgetGrid.Position3>
-                    <IssuesWidget />
-                  </WidgetGrid.Position3>
-                  <WidgetGrid.Position4>
-                    <LLMGenerationsWidget />
-                  </WidgetGrid.Position4>
-                  <WidgetGrid.Position5>
-                    <ToolUsageWidget />
-                  </WidgetGrid.Position5>
-                  <WidgetGrid.Position6>
-                    <TokenUsageWidget />
-                  </WidgetGrid.Position6>
-                </WidgetGrid>
-                <ControlsWrapper>
-                  <TableControl
-                    value={activeTable}
-                    onChange={onActiveTableChange}
-                    size="sm"
-                  >
-                    <TableControlItem key={TableType.TRACES}>
-                      {t('Traces')}
-                    </TableControlItem>
-                    <TableControlItem key={TableType.MODELS}>
-                      {t('Models')}
-                    </TableControlItem>
-                    <TableControlItem key={TableType.TOOLS}>
-                      {t('Tools')}
-                    </TableControlItem>
-                  </TableControl>
-                </ControlsWrapper>
-                {activeTable === TableType.TRACES && <TracesTable />}
-                {activeTable === TableType.MODELS && <ModelsTable />}
-                {activeTable === TableType.TOOLS && <ToolsTable />}
+                {showOnboarding ? (
+                  <Onboarding />
+                ) : (
+                  <Fragment>
+                    <WidgetGrid>
+                      <WidgetGrid.Position1>
+                        <OverviewAgentsRunsChartWidget />
+                      </WidgetGrid.Position1>
+                      <WidgetGrid.Position2>
+                        <OverviewAgentsDurationChartWidget />
+                      </WidgetGrid.Position2>
+                      <WidgetGrid.Position3>
+                        <IssuesWidget />
+                      </WidgetGrid.Position3>
+                      <WidgetGrid.Position4>
+                        <LLMGenerationsWidget />
+                      </WidgetGrid.Position4>
+                      <WidgetGrid.Position5>
+                        <ToolUsageWidget />
+                      </WidgetGrid.Position5>
+                      <WidgetGrid.Position6>
+                        <TokenUsageWidget />
+                      </WidgetGrid.Position6>
+                    </WidgetGrid>
+                    <ControlsWrapper>
+                      <TableControl
+                        value={activeTable}
+                        onChange={onActiveTableChange}
+                        size="sm"
+                      >
+                        <TableControlItem key={TableType.TRACES}>
+                          {t('Traces')}
+                        </TableControlItem>
+                        <TableControlItem key={TableType.MODELS}>
+                          {t('Models')}
+                        </TableControlItem>
+                        <TableControlItem key={TableType.TOOLS}>
+                          {t('Tools')}
+                        </TableControlItem>
+                      </TableControl>
+                    </ControlsWrapper>
+                    {activeTable === TableType.TRACES && <TracesTable />}
+                    {activeTable === TableType.MODELS && <ModelsTable />}
+                    {activeTable === TableType.TOOLS && <ToolsTable />}
+                  </Fragment>
+                )}
               </ModuleLayout.Full>
             </ModuleLayout.Layout>
           </Layout.Main>
@@ -133,6 +157,16 @@ function AgentsMonitoringPage() {
 }
 
 function PageWithProviders() {
+  const preferedAiModule = usePreferedAiModule();
+
+  if (preferedAiModule === 'llm-monitoring') {
+    return (
+      <Redirect
+        to={`/${INSIGHTS_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+      />
+    );
+  }
+
   return (
     <AIInsightsFeature>
       <ModulePageProviders

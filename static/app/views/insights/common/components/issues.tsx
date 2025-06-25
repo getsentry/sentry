@@ -137,7 +137,9 @@ export default function InsightIssuesList({
   return (
     <StyledPanel>
       <IssueListHeader issues={issues} />
-      {issues?.map(issue => <Issue data={issue} key={issue.id} />)}
+      {issues?.map(issue => (
+        <Issue data={issue} key={issue.id} />
+      ))}
     </StyledPanel>
   );
 }

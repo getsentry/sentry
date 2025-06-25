@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -21,7 +21,7 @@ from . import default_manager
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
 
-class IdentityProviderPipeline(IdentityPipelineT):
+class IdentityPipeline(IdentityPipelineT):
     pipeline_name = "identity_provider"
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
@@ -40,7 +40,7 @@ class IdentityProviderPipeline(IdentityPipelineT):
 
         return super().get_provider(provider_key, organization=organization)
 
-    def finish_pipeline(self):
+    def finish_pipeline(self) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.IDENTITY,
