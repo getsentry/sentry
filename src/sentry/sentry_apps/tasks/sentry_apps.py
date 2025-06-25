@@ -786,10 +786,22 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
 ) -> None:
-    installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
-    for installation in installations:
-        create_or_update_service_hooks_for_installation(
-            installation=installation,
-            events=events,
-            webhook_url=webhook_url,
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.MANAGEMENT,
+        event_type=SentryAppEventType.WEBHOOK_UPDATE,
+    ).capture() as lifecycle:
+        installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
+        lifecycle.add_extras(
+            {
+                "installations": installations.values_list("id", flat=True),
+                "sentry_app_id": sentry_app_id,
+                "events": events,
+            }
         )
+
+        for installation in installations:
+            create_or_update_service_hooks_for_installation(
+                installation=installation,
+                events=events,
+                webhook_url=webhook_url,
+            )
