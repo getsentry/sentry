@@ -202,6 +202,24 @@ def is_seer_autotriggered_autofix_rate_limited(
         return False, 0, 0
 
     limit = options.get("seer.max_num_autofix_autotriggered_per_hour", 20)
+
+    # The more selective automation is, the higher the limit we allow.
+    # This is to protect projects with extreme settings from starting too many runs
+    # while allowing big projects with reasonable settings to run more often.
+    option = project.get_option("sentry:autofix_automation_tuning")
+    if option == "off":
+        limit *= 16
+    elif option == "super_low":
+        limit *= 16
+    elif option == "low":
+        limit *= 8
+    elif option == "medium":
+        limit *= 4
+    elif option == "high":
+        limit *= 2
+    elif option == "always":
+        limit *= 1
+
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
         key="autofix.auto_triggered",
