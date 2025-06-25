@@ -65,6 +65,7 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -96,6 +97,7 @@ type Props = {
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   seriesSamplingInfo?: SeriesSamplingInfo;
   showTotalCount?: boolean;
+  traceItemType?: TraceItemDataset;
 };
 
 type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
@@ -189,6 +191,12 @@ const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
   ...HISTORICAL_TIME_PERIOD_MAP,
   [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
   [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
+};
+const EAP_HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
+  // EAP allows max 2688 buckets
+  ...HISTORICAL_TIME_PERIOD_MAP,
+  [TimePeriod.SEVEN_DAYS]: '28d',
+  [TimePeriod.FOURTEEN_DAYS]: '28d',
 };
 
 const noop: any = () => {};
@@ -311,6 +319,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
+      traceItemType,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -320,6 +329,7 @@ class TriggersChart extends PureComponent<Props, State> {
       location,
       dataset,
       newAlertOrQuery,
+      traceItemType,
     });
 
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
@@ -383,6 +393,7 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       confidence,
       seriesSamplingInfo,
+      traceItemType,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -439,7 +450,8 @@ class TriggersChart extends PureComponent<Props, State> {
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
+              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+              traceItemType === TraceItemDataset.SPANS ? (
                 <ConfidenceFooter
                   sampleCount={seriesSamplingInfo?.sampleCount}
                   isSampled={seriesSamplingInfo?.isSampled}
@@ -501,6 +513,7 @@ class TriggersChart extends PureComponent<Props, State> {
       thresholdType,
       isQueryValid,
       isOnDemandMetricAlert,
+      traceItemType,
     } = this.props;
 
     const period = this.getStatsPeriod()!;
@@ -514,6 +527,7 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       query,
       newAlertOrQuery,
+      traceItemType,
     });
 
     if (isOnDemandMetricAlert) {
@@ -670,11 +684,14 @@ class TriggersChart extends PureComponent<Props, State> {
             {...baseProps}
             api={this.historicalAPI}
             period={
-              timeWindow === 5
+              dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
                 ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  HISTORICAL_TIME_PERIOD_MAP[period]!
+                  EAP_HISTORICAL_TIME_PERIOD_MAP[period]!
+                : timeWindow === 5
+                  ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    HISTORICAL_TIME_PERIOD_MAP[period]!
             }
             dataLoadedCallback={onHistoricalDataLoaded}
           >
@@ -686,7 +703,8 @@ class TriggersChart extends PureComponent<Props, State> {
           period={period}
           dataLoadedCallback={onDataLoaded}
           sampling={
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+            this.props.traceItemType === TraceItemDataset.SPANS
               ? SAMPLING_MODE.NORMAL
               : undefined
           }

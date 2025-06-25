@@ -11,17 +11,17 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
-    AbstractDataConditionValidator,
+    BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
-class MetricIssueComparisonConditionValidator(
-    AbstractDataConditionValidator[float, DetectorPriorityLevel]
-):
-    supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
+class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
+    supported_conditions = frozenset(
+        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+    )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
     )
@@ -37,13 +37,19 @@ class MetricIssueComparisonConditionValidator(
 
         return type
 
-    def validate_comparison(self, value: float | int | str) -> float:
-        try:
-            value = float(value)
-        except ValueError:
-            raise serializers.ValidationError("A valid number is required.")
+    def validate_comparison(self, value: dict | float | int | str) -> float | dict:
+        if isinstance(value, (float, int)):
+            try:
+                value = float(value)
+            except ValueError:
+                raise serializers.ValidationError("A valid number is required.")
+            return value
 
-        return value
+        elif isinstance(value, dict):
+            return super().validate_comparison(value)
+
+        else:
+            raise serializers.ValidationError("A valid number or dict is required.")
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
@@ -68,7 +74,7 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=True)
+    data_source = SnubaQueryValidator(required=True, timeWindowSeconds=True)
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate(self, attrs):
@@ -101,7 +107,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             dataset=data_source.get("dataset", snuba_query.dataset),
             query=data_source.get("query", snuba_query.query),
             aggregate=data_source.get("aggregate", snuba_query.aggregate),
-            time_window=timedelta(minutes=data_source.get("time_window", snuba_query.time_window)),
+            time_window=timedelta(seconds=data_source.get("time_window", snuba_query.time_window)),
             resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
             environment=data_source.get("environment", snuba_query.environment),
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),

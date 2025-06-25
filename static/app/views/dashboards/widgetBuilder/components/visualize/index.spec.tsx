@@ -11,7 +11,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
@@ -28,7 +28,7 @@ describe('Visualize', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockImplementation((type?: 'number' | 'string') => {
+    jest.mocked(useTraceItemTags).mockImplementation((type?: 'number' | 'string') => {
       if (type === 'number') {
         const tags: TagCollection = {
           'span.duration': {
@@ -1247,7 +1247,7 @@ describe('Visualize', () => {
 
   describe('spans', () => {
     beforeEach(() => {
-      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
             tags: {
@@ -1416,7 +1416,7 @@ describe('Visualize', () => {
     });
 
     it('differentiates between function and column values in selection', async () => {
-      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
             tags: {

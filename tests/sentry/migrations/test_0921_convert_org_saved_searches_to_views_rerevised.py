@@ -1,8 +1,13 @@
+import pytest
+
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(
+    "Skipping test b/c test dependency cycle for 0073_safe_pending_delete_actiongroupstatus"
+)
 class ConvertOrgSavedSearchesToViewsTest(TestMigrations):
     migrate_from = "0920_convert_org_saved_searches_to_views_revised"
     migrate_to = "0921_convert_org_saved_searches_to_views_rerevised"

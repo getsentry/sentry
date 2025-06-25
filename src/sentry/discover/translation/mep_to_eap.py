@@ -33,6 +33,11 @@ def column_switcheroo(term):
         "url": "request.url",
         "http.url": "request.url",
         "transaction.status": "trace.status",
+        "geo.city": "user.geo.city",
+        "geo.country_code": "user.geo.country_code",
+        "geo.region": "user.geo.region",
+        "geo.subdivision": "user.geo.subdivision",
+        "geo.subregion": "user.geo.subregion",
     }
 
     swapped_term = column_swap_map.get(term, term)

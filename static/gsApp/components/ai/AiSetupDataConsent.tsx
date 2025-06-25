@@ -5,8 +5,9 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -57,6 +58,12 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY;
 
   const userHasBillingAccess = organization.access.includes('org:billing');
+
+  const warnAboutGithubIntegration =
+    !autofixSetupData?.integration.ok &&
+    shouldShowBilling &&
+    !isTouchCustomer &&
+    !hasSeerButNeedsPayg;
 
   const autofixAcknowledgeMutation = useMutation({
     mutationFn: () => {
@@ -160,7 +167,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap={space(2)} column>
+                  <Flex gap={space(2)} direction="column">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
@@ -287,6 +294,13 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           </LegalText>
         )}
       </SingleCard>
+      {warnAboutGithubIntegration && (
+        <Alert type="warning">
+          {t(
+            'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
+          )}
+        </Alert>
+      )}
     </ConsentItemsContainer>
   );
 }

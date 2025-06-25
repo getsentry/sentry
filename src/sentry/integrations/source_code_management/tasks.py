@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=45,
     ),
 )
 def pr_comment_workflow(pr_id: int, project_id: int):
@@ -355,6 +356,30 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if file_extension == ["rb"]:
             logger.info(
                 _open_pr_comment_log(integration_name=integration_name, suffix="ruby"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
+
+        if file_extension == ["cs"]:
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="csharp"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
+
+        if file_extension == ["go"]:
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="go"),
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,

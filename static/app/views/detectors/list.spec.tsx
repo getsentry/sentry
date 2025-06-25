@@ -4,9 +4,20 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', function () {
@@ -28,7 +39,51 @@ describe('DetectorsList', function () {
   it('displays all detector info correctly', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [DetectorFixture({name: 'Detector 1', owner: null, type: 'metric_issue'})],
+      body: [
+        DetectorFixture({
+          name: 'Detector 1',
+          owner: null,
+          type: 'metric_issue',
+          config: {
+            detection_type: 'percent',
+            comparison_delta: 10,
+            threshold_period: 10,
+          },
+          conditionGroup: {
+            id: '1',
+            logicType: DataConditionGroupLogicType.ALL,
+            conditions: [
+              {
+                comparison: 10,
+                conditionResult: DetectorPriorityLevel.HIGH,
+                type: DataConditionType.GREATER,
+                id: '1',
+              },
+            ],
+          },
+          dataSources: [
+            {
+              id: '1',
+              organizationId: '1',
+              sourceId: '1',
+              type: 'snuba_query_subscription',
+              queryObj: {
+                snubaQuery: {
+                  environment: 'production',
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  id: '1',
+                  query: 'event.type:error',
+                  timeWindow: 3600,
+                },
+                id: '1',
+                status: 200,
+                subscription: '1',
+              },
+            },
+          ],
+        }),
+      ],
     });
 
     render(<DetectorsList />, {organization});
@@ -42,6 +97,12 @@ describe('DetectorsList', function () {
     expect(within(row).getByText('Metric')).toBeInTheDocument();
     // Assignee should be Sentry because owner is null
     expect(within(row).getByTestId('assignee-sentry')).toBeInTheDocument();
+
+    // Details under name
+    expect(within(row).getByText('production')).toBeInTheDocument();
+    expect(within(row).getByText('count()')).toBeInTheDocument();
+    expect(within(row).getByText('event.type:error')).toBeInTheDocument();
+    expect(within(row).getByText('>10% high')).toBeInTheDocument();
   });
 
   it('displays connected automations', async function () {
@@ -107,6 +168,55 @@ describe('DetectorsList', function () {
 
       await screen.findByText('Error Detector');
       expect(mockDetectorsRequestErrorType).toHaveBeenCalled();
+    });
+
+    it('can sort the table', async function () {
+      const mockDetectorsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [DetectorFixture({name: 'Detector 1'})],
+      });
+      const {router} = render(<DetectorsList />, {organization});
+      await screen.findByText('Detector 1');
+
+      // Default sort is connectedWorkflows descending
+      expect(mockDetectorsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sortBy: '-connectedWorkflows',
+          }),
+        })
+      );
+
+      // Click on Name column header to sort
+      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+
+      await waitFor(() => {
+        expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: 'name',
+            }),
+          })
+        );
+      });
+      expect(router.location.query.sort).toBe('name');
+
+      // Click on Name column header again to change sort direction
+      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+
+      await waitFor(() => {
+        expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: '-name',
+            }),
+          })
+        );
+      });
+      expect(router.location.query.sort).toBe('-name');
     });
   });
 });

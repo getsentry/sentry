@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.models.activity import Activity
@@ -11,6 +12,9 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
+@pytest.mark.skip(
+    "Skipping test b/c test dependency cycle for 0073_safe_pending_delete_actiongroupstatus"
+)
 class BackfillGroupOpenPeriodsTest(TestMigrations):
     migrate_from = "0924_dashboard_add_unique_constraint_for_user_org_position"
     migrate_to = "0925_backfill_open_periods"
@@ -310,6 +314,21 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
         assert group.substatus == GroupSubStatus.REGRESSED
         self.test_cases.append(
             ("regressed_group_with_auto_resolved_cycles", group, starts, ends, activities)
+        )
+
+        # Create a group with activities before the first_seen date
+        group, _, _, activities = self._create_resolved_group()
+        activities[0].datetime = group.first_seen - timedelta(days=4)
+        activities[0].save()
+
+        self.test_cases.append(
+            (
+                "resolved_group_with_activities_before_first_seen",
+                group,
+                [group.first_seen],
+                [activities[-1].datetime],
+                [activities[-1]],
+            )
         )
 
     def test(self):

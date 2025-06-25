@@ -6,6 +6,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
+import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -13,6 +14,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/views/replays/jetpackComposePiiNotice';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
@@ -36,16 +41,17 @@ function ReplaysList() {
     },
   });
 
+  const queryKey = useReplayListQueryKey({
+    options: {query},
+    organization,
+    queryReferrer: 'replayList',
+  });
   const {
     data: replays,
     getResponseHeader,
     isPending,
     error,
-  } = useFetchReplayList({
-    options: {query},
-    organization,
-    queryReferrer: 'replayList',
-  });
+  } = useFetchReplayList({queryKey});
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const {
@@ -84,8 +90,13 @@ function ReplaysList() {
         ReplayColumn.ACTIVITY,
       ];
 
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays,
+  });
+
   return (
     <Fragment>
+      {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ReplayTable
         referrerLocation={'replay'}
         fetchError={error}
