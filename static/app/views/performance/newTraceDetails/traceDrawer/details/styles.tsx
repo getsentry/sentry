@@ -74,6 +74,7 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
@@ -91,6 +92,7 @@ const BodyContainer = styled('div')`
 `;
 
 const DetailContainer = styled('div')`
+  ${traceGridCssVariables}
   height: 100%;
   overflow: hidden;
   padding: ${space(1)} ${space(2)};
@@ -1281,7 +1283,7 @@ const MultilineTextLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const TraceDrawerComponents = {
+export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
   FlexBox,
@@ -1316,5 +1318,3 @@ const TraceDrawerComponents = {
   MultilineJSON,
   MultilineTextLabel,
 };
-
-export {TraceDrawerComponents};
