@@ -13,6 +13,7 @@ from sentry.taskworker import config, namespaces, retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -125,15 +126,13 @@ def process_workflows_event(
     has_escalated: bool,
     **kwargs,
 ) -> None:
-    from sentry.workflow_engine.processors.workflow import process_workflows
-
     event = fetch_event(event_id, project_id)
     if event is None:
         logger.error("Event not found", extra={"event_id": event_id, "project_id": project_id})
         return
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
-    group = Group.objects.get_from_cache(id=group_id)
+    group = Group.objects.get(id=group_id)
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
     event_data = WorkflowEventData(
@@ -142,8 +141,6 @@ def process_workflows_event(
         group_state=group_state,
         event=group_event,
     )
-    if False:
-        # Disabled until we're confident in the task
-        process_workflows(event_data)  # type: ignore[unreachable]
+    process_workflows(event_data)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)
