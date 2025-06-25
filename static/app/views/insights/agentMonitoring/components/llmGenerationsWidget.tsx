@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import Count from 'sentry/components/count';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -116,7 +117,9 @@ export default function LLMGenerationsWidget() {
             <ModelText>
               <ModelName modelId={modelId} />
             </ModelText>
-            <span>{item['count()']}</span>
+            <span>
+              <Count value={item['count()'] ?? 0} />
+            </span>
           </Fragment>
         );
       })}
