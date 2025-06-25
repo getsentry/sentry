@@ -28,4 +28,5 @@ class GroupTombstoneSerializer(Serializer):
             "actor": attrs.get("user"),
             "timesSeen": obj.times_seen,
             "lastSeen": obj.last_seen,
+            "dateAdded": obj.date_added,
         }
