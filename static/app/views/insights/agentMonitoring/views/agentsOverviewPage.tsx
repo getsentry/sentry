@@ -1,6 +1,7 @@
 import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -41,6 +42,7 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
@@ -78,6 +80,12 @@ function AgentsMonitoringPage() {
       <AgentsPageHeader
         module={ModuleName.AGENTS}
         headerActions={<AiModuleToggleButton />}
+        headerTitle={
+          <Fragment>
+            {AGENTS_LANDING_TITLE}
+            <FeatureBadge type="beta" />
+          </Fragment>
+        }
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.AGENTS}>
         <Layout.Body>
