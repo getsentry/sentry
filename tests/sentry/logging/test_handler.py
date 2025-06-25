@@ -171,6 +171,12 @@ def test_gke_emit() -> None:
     )
     with sentry_sdk.start_span(name="test_gke_emit"):
         GKEStructLogHandler().emit(make_logrecord(), logger=logger)
+        current_span = sentry_sdk.get_current_span()
+        if current_span is not None:
+            trace_id = current_span.get_trace_context().get("trace_id")
+        else:
+            trace_id = None
+        assert trace_id is not None
         logger.log.assert_called_with(
             name="name",
             level=logging.INFO,
