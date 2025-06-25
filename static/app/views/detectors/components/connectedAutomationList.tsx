@@ -87,11 +87,7 @@ export function ConnectedAutomationsList({
           <SimpleTable.HeaderCell name="action-filters">
             {t('Actions')}
           </SimpleTable.HeaderCell>
-          {canEdit && (
-            <SimpleTable.HeaderCell name="connected">
-              {t('Connected')}
-            </SimpleTable.HeaderCell>
-          )}
+          {canEdit && <SimpleTable.HeaderCell name="connected" />}
         </SimpleTable.Header>
         {isLoading && <Skeletons canEdit={canEdit} />}
         {isError && <LoadingError />}
@@ -114,7 +110,7 @@ export function ConnectedAutomationsList({
                 <ActionCell actions={getAutomationActions(automation)} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell name="connected">
+                <SimpleTable.RowCell name="connected" justify="flex-end">
                   <Button onClick={() => toggleConnected?.(automation.id)} size="sm">
                     {connectedAutomationIds?.has(automation.id)
                       ? t('Disconnect')
