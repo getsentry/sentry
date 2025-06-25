@@ -3513,7 +3513,7 @@ describe('SearchQueryBuilder', function () {
             {...defaultProps}
             disallowUnsupportedFilters
             initialQuery="foo:bar"
-            filterKeysSecondaryAliases={{foo: {key: 'foo', name: 'foo'}}}
+            filterKeyAliases={{foo: {key: 'foo', name: 'foo'}}}
           />
         );
 
