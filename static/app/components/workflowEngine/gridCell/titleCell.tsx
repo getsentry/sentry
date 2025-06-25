@@ -73,9 +73,4 @@ const DetailsWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   white-space: nowrap;
-  line-height: 1.2;
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    line-height: 1;
-  }
 `;
