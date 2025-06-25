@@ -295,9 +295,9 @@ def test_preallocation_early_return(default_project):
     with TaskRunner():
         current_value = Counter.increment(default_project)
     assert current_value == 1
-    assert (
-        Counter.objects.get(project_id=default_project.id).value == 1 + calculate_cached_id_block_size(1)
-    )
+    assert Counter.objects.get(
+        project_id=default_project.id
+    ).value == 1 + calculate_cached_id_block_size(1)
     redis_key = f"pc:{default_project.id}"
     redis = redis_clusters.get("default")
     assert redis.llen(redis_key) == calculate_cached_id_block_size(1) - 1  # One was consumed
@@ -307,8 +307,12 @@ def test_preallocation_early_return(default_project):
     refill_cached_short_ids(default_project.id, block_size)
     assert Counter.objects.get(
         project_id=default_project.id
-    ).value == 1 + calculate_cached_id_block_size(1)  # Value hasn't changed
-    assert redis.llen(redis_key) == calculate_cached_id_block_size(1) - 1  # Redis values haven't changed
+    ).value == 1 + calculate_cached_id_block_size(
+        1
+    )  # Value hasn't changed
+    assert (
+        redis.llen(redis_key) == calculate_cached_id_block_size(1) - 1
+    )  # Redis values haven't changed
 
 
 def test_calculate_cached_id_block_size():
