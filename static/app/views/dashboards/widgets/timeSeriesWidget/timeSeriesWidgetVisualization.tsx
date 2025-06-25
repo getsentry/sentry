@@ -3,7 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, YAXisComponentOption} from 'echarts';
+import type {
+  EChartsOption,
+  SeriesOption,
+  ToolboxComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -20,6 +25,8 @@ import {isChartHovered, truncationFormatter} from 'sentry/components/charts/util
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
+  EChartBrushEndHandler,
+  EChartBrushStartHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
@@ -71,6 +78,12 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   axisRange?: 'auto' | 'dataMin';
+
+  /**
+   * The brush options for the chart.
+   */
+  brush?: EChartsOption['brush'];
+
   /**
    * Reference to the chart instance
    */
@@ -79,6 +92,16 @@ export interface TimeSeriesWidgetVisualizationProps
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
+   */
+  onBrushEnd?: EChartBrushEndHandler;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
+   */
+  onBrushStart?: EChartBrushStartHandler;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -116,6 +139,11 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   showXAxis?: 'auto' | 'never';
+
+  /**
+   * The toolBox options for the chart.
+   */
+  toolBox?: ToolboxComponentOption;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -644,6 +672,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       yAxes={yAxes}
       {...chartZoomProps}
       onDataZoom={props.onZoom ?? onDataZoom}
+      toolBox={props.toolBox ?? chartZoomProps.toolBox}
+      brush={props.brush}
+      onBrushStart={props.onBrushStart}
+      onBrushEnd={props.onBrushEnd}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
