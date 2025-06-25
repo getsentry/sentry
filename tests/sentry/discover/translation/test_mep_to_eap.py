@@ -50,6 +50,10 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "geo.country_code:US AND geo.city:San Francisco",
             "(user.geo.country_code:US AND user.geo.city:San Francisco) AND is_transaction:1",
         ),
+        pytest.param(
+            "percentile(transaction.duration,0.5000):>100 AND percentile(transaction.duration, 0.25):>20",
+            "(p50(span.duration):>100 AND percentile(span.duration, 0.25):>20) AND is_transaction:1",
+        ),
     ],
 )
 def test_mep_to_eap_simple_query(input: str, expected: str):
