@@ -403,7 +403,7 @@ const Preview = styled('div')`
 `;
 
 const Header = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 
@@ -447,7 +447,7 @@ const PreviewItem = styled(BaseItem)`
 
 const PreviewTotal = styled(BaseItem)`
   padding-top: ${space(3)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StepFooter = styled(PanelFooter)`

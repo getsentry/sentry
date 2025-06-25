@@ -571,7 +571,7 @@ const StyledList = styled(List)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.3;
 `;

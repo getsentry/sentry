@@ -130,7 +130,7 @@ const OnDemandRow = styled('div')`
 const Header = styled('div')`
   display: inline-grid;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 

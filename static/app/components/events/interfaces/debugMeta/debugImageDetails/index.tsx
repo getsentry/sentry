@@ -350,7 +350,7 @@ const Title = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   max-width: calc(100% - 40px);
   word-break: break-all;
 `;

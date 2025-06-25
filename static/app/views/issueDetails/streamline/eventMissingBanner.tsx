@@ -103,7 +103,7 @@ export function EventMissingBanner() {
 }
 
 const MainText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 

@@ -496,7 +496,7 @@ const TopRow = styled('div')`
 
 const TitleRow = styled('div')`
   color: ${p => p.theme.tour.header};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.4;
   white-space: wrap;

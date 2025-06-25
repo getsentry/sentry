@@ -45,7 +45,7 @@ const EmptyMessage = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;
 

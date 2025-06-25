@@ -124,7 +124,7 @@ const LegacyTitleText = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
 

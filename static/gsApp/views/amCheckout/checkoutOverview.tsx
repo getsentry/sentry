@@ -364,7 +364,7 @@ const OverviewHeading = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
   gap: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   align-items: center;
   text-align: center;
   justify-items: center;
@@ -469,7 +469,7 @@ const DurationText = styled('div')`
 `;
 const ProminantPlanName = styled('span')`
   font-weight: 500;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.gray500};
 `;
 

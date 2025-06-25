@@ -118,7 +118,7 @@ const DataConsentBannerWrapper = styled('div')`
 `;
 
 const DataConsentBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
   font-weight: 600;
 `;

@@ -358,7 +358,7 @@ const Header = styled('div')`
 `;
 
 const HeaderTitle = styled('h1')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 0;
 `;
 

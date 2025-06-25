@@ -196,7 +196,7 @@ const FireIconContainer = styled('span')<{size: IconSize}>`
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   ${p => p.failedThreshold && `color: ${p.theme.errorText};`}
 `;
 

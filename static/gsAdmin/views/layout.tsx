@@ -141,7 +141,7 @@ const Logo = styled(Link)`
   gap: ${space(1)};
   text-transform: uppercase;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
 

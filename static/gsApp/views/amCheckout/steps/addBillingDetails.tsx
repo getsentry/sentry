@@ -271,7 +271,7 @@ const Heading = styled('div')`
 `;
 
 const DetailsText = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 0px;
   font-weight: 600;
 `;

@@ -532,7 +532,7 @@ const SubSectionBody = styled(PanelTable)`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
   display: flex;
   justify-content: space-between;

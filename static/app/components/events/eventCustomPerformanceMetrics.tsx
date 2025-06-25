@@ -330,7 +330,7 @@ const ValueRow = styled('div')`
 `;
 
 const Value = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StyledPanel = styled(Panel)`

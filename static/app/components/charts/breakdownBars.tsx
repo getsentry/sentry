@@ -63,7 +63,7 @@ const BreakdownGrid = styled('div')`
 `;
 
 const Percentage = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   text-align: right;
 `;
 

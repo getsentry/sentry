@@ -259,7 +259,7 @@ export async function openCodecovModal(options: {organization: Organization}) {
 }
 
 const HeaderText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
 

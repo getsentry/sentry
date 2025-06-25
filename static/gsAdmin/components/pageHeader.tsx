@@ -25,7 +25,7 @@ const Breadcrumbs = styled('div')`
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   text-transform: uppercase;
   margin: 0;
 `;

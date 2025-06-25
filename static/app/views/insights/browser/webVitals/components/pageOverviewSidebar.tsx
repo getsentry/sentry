@@ -296,7 +296,7 @@ const SidebarPerformanceScoreRingContainer = styled('div')`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const ChartSubText = styled('div')<{color?: string}>`

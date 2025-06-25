@@ -2091,7 +2091,7 @@ const DebuggerSectionContainer = styled('div')`
   gap: ${space(1.5)};
   h5 {
     margin-bottom: 0;
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
   h6 {
     font-size: 1rem;

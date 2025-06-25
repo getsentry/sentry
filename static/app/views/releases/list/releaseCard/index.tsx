@@ -380,7 +380,7 @@ const ReleaseProjects = styled('div')`
 `;
 
 const ReleaseInfoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   gap: ${space(2)};

@@ -335,7 +335,7 @@ const BudgetContainer = styled('div')`
 
 const InputFields = styled('div')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 1px;
 `;
 
@@ -346,7 +346,7 @@ const StyledRadio = styled(Radio)`
 const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 

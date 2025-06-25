@@ -91,7 +91,7 @@ const NumericSectionWrapper = styled('div')`
 `;
 
 const SectionBody = styled('div')<{overflowEllipsis?: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;

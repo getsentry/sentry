@@ -100,7 +100,7 @@ const TAValueText = styled('p')`
 `;
 
 const SelectOptionHeader = styled('h5')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(3)};
 `;

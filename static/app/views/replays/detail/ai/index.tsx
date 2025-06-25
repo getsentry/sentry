@@ -254,7 +254,7 @@ const Summary = styled('summary')`
     display: inline-block;
     width: 14px;
     margin-right: ${space(1)};
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;
 

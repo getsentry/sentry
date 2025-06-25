@@ -185,6 +185,6 @@ const EmptyMessage = styled('div')`
   color: ${p => p.theme.gray400};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;

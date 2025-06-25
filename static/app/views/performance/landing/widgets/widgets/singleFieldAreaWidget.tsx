@@ -196,7 +196,7 @@ export const Subtitle = styled('span')`
 
 const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const unmergeIntoIndividualResults: Transform = (response, queryDefinition) => {

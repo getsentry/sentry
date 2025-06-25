@@ -1517,7 +1517,7 @@ const Main = styled(Layout.Main)`
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-top: 0;
 `;
 

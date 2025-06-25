@@ -271,7 +271,7 @@ const DetailTitle = styled('div')`
 
 const Amount = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const PerCategoryBudgetContainer = styled('div')`

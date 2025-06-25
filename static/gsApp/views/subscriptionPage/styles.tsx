@@ -12,7 +12,7 @@ export const SubscriptionBody = styled(PanelBody)`
 
   h3 {
     margin-bottom: ${space(1)};
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
     font-weight: 400;
   }
 
@@ -78,6 +78,6 @@ export const PanelBodyWithTable = styled(PanelBody)`
 
   h4 {
     font-weight: 400;
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;

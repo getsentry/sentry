@@ -43,7 +43,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const SectionBody = styled('div')<{rightAlign?: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   text-align: ${p => (p.rightAlign ? 'right' : 'left')};
   padding: ${space(0.5)} 0;
   max-height: 32px;

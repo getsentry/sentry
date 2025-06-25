@@ -301,7 +301,7 @@ const HeadingContainer = styled('div')`
 `;
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
 `;
 

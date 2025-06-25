@@ -489,7 +489,7 @@ const DescriptionWrapper = styled('div')`
   && > h4,
   && > h5,
   && > h6 {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
     font-weight: ${p => p.theme.fontWeightBold};
     line-height: 34px;
   }

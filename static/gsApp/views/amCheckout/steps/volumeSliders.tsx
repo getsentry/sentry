@@ -266,7 +266,7 @@ const SectionHeader = styled('div')`
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const Title = styled('label')`

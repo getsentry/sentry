@@ -348,7 +348,7 @@ const ProductLabel = styled('div')<{productColor: string}>`
 `;
 
 const ProductName = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 
