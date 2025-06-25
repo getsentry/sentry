@@ -15,7 +15,6 @@ import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withProjects from 'sentry/utils/withProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
-import type {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import UsageStatsOrganization, {
   getChartProps,
@@ -211,7 +210,7 @@ interface EnhancedUsageStatsOrganizationProps
   isSingleProject: boolean;
   projects: Project[];
   subscription: Subscription;
-  chartTransform?: ChartDataTransform;
+  chartTransform?: string;
   spikeCursor?: string;
 }
 /**
