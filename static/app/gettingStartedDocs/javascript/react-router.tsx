@@ -314,7 +314,7 @@ const onboarding: OnboardingConfig = {
     },
     {
       description: tct(
-        'Update your [code:app/root.tsx] file to report any unhandled errors from your error boundary:',
+        'Update your [code:app/root.tsx] file to report any unhandled errors from your error boundary component by adding [code:Sentry.captureException]:',
         {code: <code />}
       ),
       title: t('Error Boundary'),
@@ -359,6 +359,18 @@ const onboarding: OnboardingConfig = {
           code: getPackageJsonScriptsSnippet(),
         },
       ],
+    },
+    {
+      title: t('Upload Source Maps (Optional)'),
+      description: tct(
+        'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/#source-maps-upload" />
+          ),
+        }
+      ),
+      collapsible: true,
     },
     ...(params.isProfilingSelected
       ? [getProfilingDocumentHeaderConfigurationStep()]
