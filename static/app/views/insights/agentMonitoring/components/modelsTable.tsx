@@ -190,7 +190,7 @@ const BodyCell = memo(function BodyCell({
     case 'model':
       return (
         <ModelCell to={exploreUrl}>
-          <ModelName modelId={dataRow.model} />
+          <ModelName modelId={dataRow.model} size={18} />
         </ModelCell>
       );
     case 'count()':

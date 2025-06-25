@@ -1,54 +1,51 @@
+import {PlatformIcon} from 'platformicons';
+
 import {Flex} from 'sentry/components/core/layout';
-import {IconClaude} from 'sentry/icons/iconClaude';
-import {IconGemini} from 'sentry/icons/iconGemini';
-import {IconOpenAI} from 'sentry/icons/iconOpenAI';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
 
 interface ModelNameProps {
   modelId: string;
   provider?: string;
+  size?: number;
 }
 
-export function ModelName({modelId, provider}: ModelNameProps) {
-  const modelProvider = getModelProvider(modelId, provider);
-
-  const ModelIcon = modelProvider ? providerIconMap[modelProvider] : null;
+export function ModelName({modelId, provider, size = 16}: ModelNameProps) {
+  const platform = getModelPlatform(modelId, provider);
 
   return (
     <Flex gap={space(1)}>
-      <div>{ModelIcon && <ModelIcon size="md" color="textColor" />}</div>
+      <div>
+        <PlatformIcon platform={platform ?? 'unknown'} size={size} />
+      </div>
       <div>{modelId}</div>
     </Flex>
   );
 }
 
-const providerIconMap: Record<KnownProvider, React.ComponentType<SVGIconProps>> = {
-  openai: IconOpenAI,
-  google: IconGemini,
-  anthropic: IconClaude,
-};
+export function getModelPlatform(modelId: string, provider?: string) {
+  if (provider) {
+    return provider;
+  }
 
-type KnownProvider = 'openai' | 'google' | 'anthropic';
-
-export function getModelProvider(modelId: string, provider?: string) {
   const lowerCaseModelId = modelId.toLowerCase();
-  if (provider && provider in providerIconMap) {
-    return provider as KnownProvider;
-  }
-  if (
-    lowerCaseModelId.includes('gpt') ||
-    lowerCaseModelId.includes('o1') ||
-    lowerCaseModelId.includes('o3') ||
-    lowerCaseModelId.includes('o4')
-  ) {
-    return 'openai';
-  }
-  if (lowerCaseModelId.includes('gemma') || lowerCaseModelId.includes('gemini')) {
-    return 'google';
-  }
-  if (lowerCaseModelId.includes('claude')) {
-    return 'anthropic';
+
+  const providerMap = [
+    {keywords: ['gpt', 'o1', 'o3', 'o4'], platform: 'openai'},
+    {keywords: ['gemma', 'gemini'], platform: 'google'},
+    {keywords: ['claude'], platform: 'anthropic-claude'},
+    {keywords: ['deepseek'], platform: 'deepseek'},
+    {keywords: ['grok'], platform: 'grok'},
+    {keywords: ['groq'], platform: 'groq'},
+    {keywords: ['mistral'], platform: 'mistral'},
+    {keywords: ['perplexity'], platform: 'perplexity'},
+  ];
+
+  const matchedProvider = providerMap.find(({keywords}) =>
+    keywords.some(keyword => lowerCaseModelId.includes(keyword))
+  );
+
+  if (matchedProvider) {
+    return matchedProvider.platform;
   }
 
   return null;
