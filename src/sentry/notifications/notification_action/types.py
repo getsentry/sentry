@@ -209,7 +209,7 @@ class BaseIssueAlertHandler(ABC):
         ):
             if not isinstance(event_data.event, GroupEvent):
                 raise ValueError(
-                    "WorkflowEventData.event is not a GroupEvent when invoking legacy registry"
+                    "WorkflowEventData.event expected GroupEvent, but received: {type(event_data.event).__name__}"
                 )
 
             grouped_futures = activate_downstream_actions(rule, event_data.event, notification_uuid)
