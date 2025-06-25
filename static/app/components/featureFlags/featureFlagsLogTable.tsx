@@ -44,27 +44,6 @@ export function FeatureFlagsLogTable({
   const analyticsArea = useAnalyticsArea();
   const navigate = useNavigate();
 
-  const renderBodyCell = (
-    column: GridColumnOrder<ColumnKey>,
-    dataRow: RawFlag,
-    _rowIndex: number,
-    _columnIndex: number
-  ) => {
-    switch (column.key) {
-      case 'flag':
-        return <code>{dataRow.flag}</code>;
-      case 'provider':
-        return dataRow.provider || t('unknown');
-      case 'createdAt':
-        return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
-      case 'action': {
-        return getFlagActionLabel(dataRow.action);
-      }
-      default:
-        return dataRow[column.key];
-    }
-  };
-
   const handlePageChange = useCallback(
     (cursor: string | undefined, path: string, searchQuery: Record<string, any>) => {
       trackAnalytics('flags.logs-paginated', {
@@ -102,4 +81,25 @@ export function FeatureFlagsLogTable({
       <Pagination pageLinks={pageLinks} onCursor={handlePageChange} />
     </Fragment>
   );
+}
+
+function renderBodyCell(
+  column: GridColumnOrder<ColumnKey>,
+  dataRow: RawFlag,
+  _rowIndex: number,
+  _columnIndex: number
+) {
+  switch (column.key) {
+    case 'flag':
+      return <code>{dataRow.flag}</code>;
+    case 'provider':
+      return dataRow.provider || t('unknown');
+    case 'createdAt':
+      return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
+    case 'action': {
+      return getFlagActionLabel(dataRow.action);
+    }
+    default:
+      return dataRow[column.key];
+  }
 }
