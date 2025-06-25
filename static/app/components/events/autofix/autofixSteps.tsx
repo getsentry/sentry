@@ -34,6 +34,7 @@ interface StepProps {
   hasStepBelow: boolean;
   runId: string;
   step: AutofixStep;
+  isAutoTriggeredRun?: boolean;
   isChangesFirstAppearance?: boolean;
   isRootCauseFirstAppearance?: boolean;
   isSolutionFirstAppearance?: boolean;
@@ -66,6 +67,7 @@ function Step({
   isRootCauseFirstAppearance,
   isSolutionFirstAppearance,
   isChangesFirstAppearance,
+  isAutoTriggeredRun,
 }: StepProps) {
   return (
     <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
@@ -86,6 +88,7 @@ function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
+                  shouldCollapseByDefault={isAutoTriggeredRun && hasStepBelow}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -164,6 +167,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const errorMessage = getAutofixRunErrorMessage(data);
   const shouldShowStandaloneError = errorMessage && !shouldShowOutputStream;
 
+  const isAutoTriggeredRun = !!data.request.options?.auto_run_source;
+
   return (
     <div>
       {steps.map((step, index) => {
@@ -224,6 +229,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               isChangesFirstAppearance={
                 step.type === AutofixStepType.CHANGES && !isInitialMount
               }
+              isAutoTriggeredRun={isAutoTriggeredRun}
             />
           </div>
         );
