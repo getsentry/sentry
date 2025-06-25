@@ -187,10 +187,10 @@ const getDefaultWidgets = (organization: Organization) => {
         {
           name: '',
           conditions: 'is_transaction:True',
-          fields: ['transaction', 'count()'],
-          aggregates: ['count()'],
+          fields: ['transaction', 'count(span.duration)'],
+          aggregates: ['count(span.duration)'],
           columns: ['transaction'],
-          orderby: '-count()',
+          orderby: '-count(span.duration)',
         },
       ],
     },
