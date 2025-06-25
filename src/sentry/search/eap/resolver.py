@@ -816,7 +816,7 @@ class SearchResolver:
             column_definition = self.definitions.columns[column]
             if column_definition.private and column not in self.config.fields_acl.attributes:
                 raise InvalidSearchQuery(f"The field {column} is not allowed for this query")
-            # Need to override the RA entirely
+            # Need to override the ResolvedAttribute entirely
             if public_alias_override:
                 column_definition = ResolvedAttribute(
                     public_alias=public_alias_override,
