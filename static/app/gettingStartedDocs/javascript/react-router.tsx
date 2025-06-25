@@ -474,7 +474,7 @@ const performanceOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: t(
-        'Create a route that throws an error to verify performance monitoring is working.'
+        'Throw an error in a loader to verify that Sentry is working. After opening this route in your browser, you should see two errors in the Sentry issue stream, one captured from the server and one captured from the client.'
       ),
       configurations: [
         {
