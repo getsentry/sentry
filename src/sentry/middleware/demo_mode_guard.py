@@ -4,12 +4,10 @@ import logging
 from collections.abc import Callable
 
 from django.contrib.auth import logout
-from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 
 from sentry import options
-from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.organizations.services.organization import organization_service
 
@@ -48,10 +46,7 @@ class DemoModeGuardMiddleware:
                         logger.debug("Org %s is demo org, redirecting to welcome page", activeorg)
 
                         if options.get("demo-mode.sandbox-redirect-logout"):
-                            # copied from sentry/api/endpoints/auth_index.py
-                            handle_saml_single_logout(request)
-                            logout(request._request)
-                            request.user = AnonymousUser()
+                            logout(request)
 
                         return HttpResponseRedirect("https://sentry.io/welcome")
 
