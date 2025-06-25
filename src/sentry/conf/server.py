@@ -811,6 +811,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.ai_agent_monitoring",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
@@ -1323,6 +1324,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab(minute="*/5"),
     },
+    "fetch-ai-model-costs": {
+        "task": "sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        # Run every 30 minutes
+        "schedule": crontab(minute="*/30"),
+        "options": {"expires": 25 * 60},  # 25 minutes
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1487,6 +1494,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
+    "sentry.tasks.ai_agent_monitoring",
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
@@ -1679,6 +1687,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "fetch-ai-model-costs": {
+        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
     "sync_options_trial": {
         "schedule": timedelta(minutes=5),
