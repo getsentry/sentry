@@ -136,7 +136,7 @@ export default function DataConditionNodeList({
         conflictingConditionIds.length > 1) && (
         <Alert type="error" showIcon>
           {t(
-            'The conditions highlighted in red are in conflict. This automation will not fire if the only trigger is “A new issue is created.”'
+            'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
           )}
         </Alert>
       )}
