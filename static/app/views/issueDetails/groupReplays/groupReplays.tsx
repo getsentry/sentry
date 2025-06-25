@@ -254,13 +254,7 @@ function GroupReplaysTable({
       <SelectedReplayWrapper
         // Use key to force unmount/remount of component to reset the context and replay iframe
         key={selectedReplay.id}
-        overlayContent={
-          <ReplayOverlay
-            replayCount={replayCount}
-            replays={replays}
-            selectedReplayIndex={selectedReplayIndex}
-          />
-        }
+        overlayContent={<ReplayOverlay replayCount={replayCount} replays={replays} />}
         group={group}
         replaySlug={selectedReplay.id}
         replays={replays}
@@ -275,12 +269,11 @@ function GroupReplaysTable({
 function ReplayOverlay({
   replayCount,
   replays,
-  selectedReplayIndex,
 }: {
   replayCount: number;
   replays: ReplayListRecord[];
-  selectedReplayIndex: number;
 }) {
+  const selectedReplayIndex = useSelectedReplayIndex();
   const {select: setSelectedReplayIndex} = useSelectReplayIndex();
 
   const nextReplay = replays?.[selectedReplayIndex + 1];

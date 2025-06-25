@@ -74,6 +74,8 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
@@ -91,6 +93,7 @@ const BodyContainer = styled('div')`
 `;
 
 const DetailContainer = styled('div')`
+  ${traceGridCssVariables}
   height: 100%;
   overflow: hidden;
   padding: ${space(1)} ${space(2)};
@@ -411,6 +414,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  hideNodeActions?: boolean;
   highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
@@ -422,7 +426,9 @@ function Highlights({
   headerContent,
   bodyContent,
   highlightedAttributes,
+  hideNodeActions,
 }: HighlightProps) {
+  const location = useLocation();
   const dispatch = useTraceStateDispatch();
   const organization = useOrganization();
 
@@ -489,7 +495,22 @@ function Highlights({
               ))}
             </HighlightedAttributesWrapper>
           ) : null}
-          {isAiNode && hasAgentInsightsFeature(organization) ? null : (
+          {isAiNode && hasAgentInsightsFeature(organization) ? (
+            hideNodeActions ? null : (
+              <OpenInAIFocusButton
+                size="xs"
+                to={{
+                  ...location,
+                  query: {
+                    ...location.query,
+                    tab: TraceLayoutTabKeys.AI_SPANS,
+                  },
+                }}
+              >
+                {t('Open in AI View')}
+              </OpenInAIFocusButton>
+            )
+          ) : (
             <Fragment>
               <StyledPanel>
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
@@ -686,6 +707,10 @@ const HighlightedAttributesWrapper = styled('div')`
 
 const HighlightedAttributeName = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const OpenInAIFocusButton = styled(LinkButton)`
+  width: max-content;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -1281,7 +1306,7 @@ const MultilineTextLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const TraceDrawerComponents = {
+export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
   FlexBox,
@@ -1316,5 +1341,3 @@ const TraceDrawerComponents = {
   MultilineJSON,
   MultilineTextLabel,
 };
-
-export {TraceDrawerComponents};

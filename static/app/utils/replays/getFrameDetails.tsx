@@ -96,7 +96,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconLocation size="xs" />,
   }),
   feedback: (frame: FeedbackFrame) => ({
-    colorGraphicsToken: 'accent',
+    colorGraphicsToken: 'promotion',
     description: frame.data.projectSlug,
     tabKey: TabKey.BREADCRUMBS,
     title: defaultTitle(frame),

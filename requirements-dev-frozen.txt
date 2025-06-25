@@ -239,7 +239,7 @@ uritemplate==4.1.1
 urllib3==2.2.2
 vine==5.1.0
 virtualenv==20.26.6
-vroomrs==0.1.5
+vroomrs==0.1.6
 wcwidth==0.2.13
 werkzeug==3.0.6
 wheel==0.38.4
