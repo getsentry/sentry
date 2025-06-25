@@ -251,7 +251,7 @@ const PolicySubtext = styled('div')`
 
 const PolicyTitle = styled('h6')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
   }
 `;
 

@@ -256,7 +256,7 @@ const SummaryTitle = styled('div')`
 `;
 
 const SummaryTotal = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: 700;
 `;
 

@@ -135,7 +135,7 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const InnerContent = styled('div')`
   padding: 20px 30px 20px;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const PriceWrapper = styled('div')`

@@ -242,7 +242,7 @@ const StyledHovercard = styled(Hovercard)<{prefersNewNav: boolean}>`
 
 const HovercardBody = styled('div')`
   h1 {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     margin-bottom: ${space(1.5)};
   }
   p {

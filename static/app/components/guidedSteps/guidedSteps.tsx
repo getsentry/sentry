@@ -260,7 +260,7 @@ const StepWrapper = styled('div')`
 const StepNumber = styled('div')<{isActive: boolean}>`
   position: relative;
   z-index: 2;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   display: flex;
   align-items: center;
@@ -292,7 +292,7 @@ const StepHeading = styled('h4')<{isActive: boolean}>`
   line-height: 34px;
   margin: 0;
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 `;
 

@@ -1291,7 +1291,7 @@ const CardBody = styled('div')`
 `;
 
 const UsageSummaryTitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0px;
   font-weight: 400;
 

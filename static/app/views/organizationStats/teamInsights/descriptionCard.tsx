@@ -46,7 +46,7 @@ const LeftPanel = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin: 0 0 ${space(0.5)};
 `;
 

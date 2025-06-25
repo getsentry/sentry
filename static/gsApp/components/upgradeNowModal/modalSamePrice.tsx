@@ -124,7 +124,7 @@ const UpsellContent = styled('div')`
   padding-top: 190px;
   margin-inline: -45px;
   padding-inline: 45px;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Subheader = styled('h2')`
@@ -151,7 +151,7 @@ const CTAPanel = styled('div')`
 `;
 
 const CTAPrimary = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: bold;
 `;
 const CTASecondary = styled('div')`

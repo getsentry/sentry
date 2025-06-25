@@ -211,7 +211,7 @@ const OrgAndUserWrapper = styled('div')`
   text-align: left;
 `;
 const OrgOrUserName = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => (isChonkTheme(p.theme) ? p.theme.textColor : p.theme.white)};

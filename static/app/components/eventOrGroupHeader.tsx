@@ -159,7 +159,7 @@ function EventOrGroupHeader({
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;

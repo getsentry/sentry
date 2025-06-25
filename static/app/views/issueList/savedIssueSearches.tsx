@@ -378,7 +378,7 @@ const TitleDescriptionWrapper = styled('div')`
 
 const SavedSearchItemTitle = styled('div')`
   text-align: left;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   ${p => p.theme.overflowEllipsis}
 `;
 

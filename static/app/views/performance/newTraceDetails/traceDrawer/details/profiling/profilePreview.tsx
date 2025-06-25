@@ -226,7 +226,7 @@ export function ProfilePreview({
 }
 
 const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.5;
   margin-bottom: ${space(2)};
 `;

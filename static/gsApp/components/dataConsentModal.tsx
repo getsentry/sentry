@@ -163,7 +163,7 @@ const Subheader = styled('p')`
 `;
 
 const Body = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(2)};
 `;
 
@@ -201,7 +201,7 @@ const ConsentLabel = styled('div')`
 
 const ConsentLabelHeader = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 const ConsentLabelBody = styled('p')`
   margin-bottom: 0;

@@ -198,7 +198,7 @@ const VitalPillValue = styled('div')`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const VitalMetersContainer = styled('div')`

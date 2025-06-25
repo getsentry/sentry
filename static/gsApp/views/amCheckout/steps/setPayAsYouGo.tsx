@@ -402,7 +402,7 @@ const Box = styled('div')<{padding?: string}>`
 
 const Title = styled('label')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin: 0;
 `;
 

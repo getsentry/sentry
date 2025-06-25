@@ -397,7 +397,7 @@ const OnDemandAdditionalCost = styled('div')`
 
 const DetailItems = styled(PanelBody)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const DetailItem = styled('div')`
@@ -474,7 +474,7 @@ const ProminantPlanName = styled('span')`
 `;
 
 const ChurnPromoText = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
   font-weight: bold;
 `;

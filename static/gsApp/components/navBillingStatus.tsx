@@ -363,7 +363,7 @@ const HeaderTitle = styled('h1')`
 `;
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
 `;
 

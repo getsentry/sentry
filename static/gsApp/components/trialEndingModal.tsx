@@ -142,7 +142,7 @@ const TrialEndInfo = styled('div')`
   padding: ${space(3)} 0;
 
   p {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     margin: 0;
   }
 

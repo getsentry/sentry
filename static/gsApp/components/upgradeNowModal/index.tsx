@@ -136,7 +136,7 @@ const ModalLayout = styled('div')`
 const UpsellContent = styled('div')`
   grid-column: 1;
   grid-row: 1;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Note = styled('p')`

@@ -389,7 +389,7 @@ const SpaceBetweenRow = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: 600;
   color: ${p => p.theme.textColor};
   line-height: initial;
@@ -420,7 +420,7 @@ const ReservedItem = styled(Title)<{isIndividualProduct?: boolean}>`
 
 const Section = styled(PanelChild)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Separator = styled('div')`

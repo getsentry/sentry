@@ -41,7 +41,7 @@ const UnitColumn = styled('div')`
 
 const UnitName = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Description = styled('p')`

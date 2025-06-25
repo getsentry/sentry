@@ -116,7 +116,7 @@ export function ReprocessingEventModal({
 }
 
 const Introduction = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const StyledList = styled(List)`

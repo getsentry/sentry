@@ -371,8 +371,8 @@ const Currency = styled('div')`
     position: absolute;
     content: '$';
     color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeLarge};
-    line-height: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
+    line-height: ${p => p.theme.fontSize.lg};
   }
 `;
 

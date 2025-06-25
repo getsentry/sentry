@@ -91,7 +91,7 @@ export const SidebarFooter = styled('div')`
     margin-bottom: 0.5rem;
   }
   h2 {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     font-weight: normal;
     margin-bottom: 0.5rem;
   }

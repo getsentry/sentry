@@ -257,7 +257,7 @@ const NoteContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const TimestampInfo = styled('div')`
