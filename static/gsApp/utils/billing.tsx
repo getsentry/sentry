@@ -278,8 +278,8 @@ function displayNumber(n: number, fractionDigits = 0) {
 /**
  * Utility functions for Pricing Plans
  */
-export const isEnterprise = (subscription: Subscription) =>
-  ['e1', 'enterprise'].some(p => subscription.plan.startsWith(p));
+export const isEnterprise = (plan: string) =>
+  ['e1', 'enterprise'].some(p => plan.startsWith(p)) || isAmEnterprisePlan(plan);
 
 export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
@@ -329,14 +329,11 @@ export function isAm3DsPlan(planId?: string) {
 }
 
 export function isAmEnterprisePlan(planId?: string) {
-  return (
-    typeof planId === 'string' &&
-    planId.startsWith('am') &&
-    (planId.endsWith('_ent') ||
-      planId.endsWith('_ent_auf') ||
-      planId.endsWith('_ent_ds') ||
-      planId.endsWith('_ent_ds_auf'))
-  );
+  if (typeof planId !== 'string' || !isAmPlan(planId)) {
+    return false;
+  }
+
+  return planId.includes('_ent');
 }
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {

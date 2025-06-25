@@ -304,7 +304,7 @@ function ContinuousProfilingBetaAlertBannerInner({
               '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
               {bold: <b />}
             )
-        : isEnterprise(subscription)
+        : isEnterprise(subscription.plan)
           ? tct(
               '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
               {bold: <b />}

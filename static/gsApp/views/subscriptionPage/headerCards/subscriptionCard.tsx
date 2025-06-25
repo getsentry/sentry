@@ -28,12 +28,12 @@ function PlanImage({subscription}: {subscription: Subscription}) {
   }
 
   let tierImage: any | null = null;
-  if (isEnterprise(subscription)) {
-    tierImage = BusinessBundleArt;
+  if (isEnterprise(subscription.plan)) {
+    tierImage = CustomBundleArt;
   } else if (isTeamPlan(subscription.plan)) {
     tierImage = TeamBundleArt;
   } else {
-    tierImage = CustomBundleArt;
+    tierImage = BusinessBundleArt;
   }
 
   return (
