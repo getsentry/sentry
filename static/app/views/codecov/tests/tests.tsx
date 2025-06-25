@@ -21,6 +21,7 @@ export default function TestsPage() {
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
+  // TODO: ensure we call this hook when we have all codecov context values populated. Potentially abstract table + summaries into a new component
   const response = useInfiniteTestResults();
 
   return (
