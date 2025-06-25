@@ -5,6 +5,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+import sentry_sdk
 
 from sentry.logging.handlers import (
     GKEStructLogHandler,
@@ -166,8 +167,22 @@ def test_gke_emit() -> None:
         level=logging.INFO,
         severity="INFO",
         event="msg",
-        **{"logging.googleapis.com/labels": {"name": "name"}},
+        **{"logging.googleapis.com/labels": {"name": "name"}, "sentry.trace.trace_id": None},
     )
+    with sentry_sdk.start_span(name="test_gke_emit"):
+        GKEStructLogHandler().emit(make_logrecord(), logger=logger)
+        logger.log.assert_called_with(
+            name="name",
+            level=logging.INFO,
+            severity="INFO",
+            event="msg",
+            **{
+                "logging.googleapis.com/labels": {"name": "name"},
+                "sentry.trace.trace_id": sentry_sdk.get_current_span()
+                .get_trace_context()
+                .get("trace_id"),
+            },
+        )
 
 
 @mock.patch("random.random", lambda: 0.1)

@@ -5,6 +5,7 @@ import random
 import re
 from typing import Any
 
+import sentry_sdk
 from django.utils.timezone import now
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
@@ -117,9 +118,19 @@ class StructLogHandler(logging.StreamHandler):
 class GKEStructLogHandler(StructLogHandler):
     def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = super().get_log_kwargs(record)
+
+        # Get trace ID from current Sentry span
+        trace_id = None
+        span = sentry_sdk.get_current_span()
+        if span is not None:
+            # Get trace ID from the span's context
+            trace_id = span.get_trace_context().get("trace_id")
+
+        # Update kwargs with GKE-specific fields in the expected order
         kwargs.update(
             {
                 "logging.googleapis.com/labels": {"name": kwargs.get("name", "root")},
+                "sentry.trace.trace_id": trace_id,
                 "severity": record.levelname,
             }
         )
