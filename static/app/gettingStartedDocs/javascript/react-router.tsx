@@ -473,15 +473,14 @@ const performanceOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Throw an error in a loader to verify that Sentry is working. After opening this route in your browser, you should see two errors in the Sentry issue stream, one captured from the server and one captured from the client.'
-      ),
-      configurations: [
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React Router application.',
         {
-          language: 'tsx',
-          code: getVerifySnippet(),
-        },
-      ],
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
     },
   ],
   nextSteps: () => [],
