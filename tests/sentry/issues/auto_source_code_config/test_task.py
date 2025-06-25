@@ -1,8 +1,9 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from google.api_core.exceptions import DeadlineExceeded
 
-from sentry.issues.auto_source_code_config.task import fetch_event
 from sentry.issues.auto_source_code_config.constants import METRIC_PREFIX
+from sentry.issues.auto_source_code_config.task import fetch_event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -45,9 +46,7 @@ class FetchEventTest(TestCase):
         assert result is None
         mock_get_event.assert_called_once_with(self.project_id, self.event_id, self.group_id)
         mock_metrics_incr.assert_called_once_with(
-            key=f"{METRIC_PREFIX}.failure", 
-            tags={"reason": "event_not_found"}, 
-            sample_rate=1.0
+            key=f"{METRIC_PREFIX}.failure", tags={"reason": "event_not_found"}, sample_rate=1.0
         )
 
     @requires_snuba
@@ -62,9 +61,9 @@ class FetchEventTest(TestCase):
         assert result is None
         mock_get_event.assert_called_once_with(self.project_id, self.event_id, self.group_id)
         mock_metrics_incr.assert_called_once_with(
-            key=f"{METRIC_PREFIX}.failure", 
-            tags={"reason": "nodestore_deadline_exceeded"}, 
-            sample_rate=1.0
+            key=f"{METRIC_PREFIX}.failure",
+            tags={"reason": "nodestore_deadline_exceeded"},
+            sample_rate=1.0,
         )
 
     @requires_snuba
@@ -82,9 +81,9 @@ class FetchEventTest(TestCase):
         mock_get_event.assert_called_once_with(self.project_id, self.event_id, self.group_id)
         mock_logger.exception.assert_called_once_with("Error fetching event.", extra=self.extra)
         mock_metrics_incr.assert_called_once_with(
-            key=f"{METRIC_PREFIX}.failure", 
-            tags={"reason": "event_fetching_exception"}, 
-            sample_rate=1.0
+            key=f"{METRIC_PREFIX}.failure",
+            tags={"reason": "event_fetching_exception"},
+            sample_rate=1.0,
         )
 
     @requires_snuba
@@ -101,9 +100,9 @@ class FetchEventTest(TestCase):
         mock_get_event.assert_called_once_with(self.project_id, self.event_id, self.group_id)
         mock_logger.exception.assert_called_once_with("Error fetching event.", extra=self.extra)
         mock_metrics_incr.assert_called_once_with(
-            key=f"{METRIC_PREFIX}.failure", 
-            tags={"reason": "event_fetching_exception"}, 
-            sample_rate=1.0
+            key=f"{METRIC_PREFIX}.failure",
+            tags={"reason": "event_fetching_exception"},
+            sample_rate=1.0,
         )
 
     @requires_snuba
@@ -120,9 +119,9 @@ class FetchEventTest(TestCase):
         mock_get_event.assert_called_once_with(self.project_id, self.event_id, self.group_id)
         mock_logger.exception.assert_called_once_with("Error fetching event.", extra=self.extra)
         mock_metrics_incr.assert_called_once_with(
-            key=f"{METRIC_PREFIX}.failure", 
-            tags={"reason": "event_fetching_exception"}, 
-            sample_rate=1.0
+            key=f"{METRIC_PREFIX}.failure",
+            tags={"reason": "event_fetching_exception"},
+            sample_rate=1.0,
         )
 
     @requires_snuba
@@ -133,7 +132,7 @@ class FetchEventTest(TestCase):
             "project_id": self.project_id,
             "group_id": self.group_id,
             "event_id": self.event_id,
-            "additional_field": "test_value"
+            "additional_field": "test_value",
         }
 
         with patch("sentry.eventstore.backend.get_event_by_id") as mock_get_event:
