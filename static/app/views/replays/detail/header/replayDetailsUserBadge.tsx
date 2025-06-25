@@ -24,14 +24,16 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
           <Layout.Title>
             {replayRecord.user.display_name || t('Anonymous User')}
           </Layout.Title>
-          <TimeContainer>
-            <IconCalendar color="gray300" size="xs" />
-            <TimeSince
-              date={replayRecord.started_at}
-              isTooltipHoverable
-              unitStyle="regular"
-            />
-          </TimeContainer>
+          {replayRecord.started_at ? (
+            <TimeContainer>
+              <IconCalendar color="gray300" size="xs" />
+              <TimeSince
+                date={replayRecord.started_at}
+                isTooltipHoverable
+                unitStyle="regular"
+              />
+            </TimeContainer>
+          ) : null}
         </DisplayHeader>
       }
       user={{

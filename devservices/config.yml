@@ -49,6 +49,13 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/symbolicator.git
         mode: default
+    launchpad:
+      description: Service for analyzing iOS and Android apps
+      remote:
+        repo_name: launchpad
+        branch: main
+        repo_link: https://github.com/getsentry/launchpad.git
+        mode: containerized
     vroom:
       description: Sentry's profiling service, processing and deriving data about your profiles
       remote:
@@ -148,6 +155,7 @@ x-sentry-service-config:
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
+    launchpad: [snuba, postgres, relay, spotlight, launchpad]
     taskbroker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
