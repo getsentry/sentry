@@ -21,8 +21,7 @@ class NotificationCategory(StrEnum):
 
 class NotificationSource(StrEnum):
     """
-    An unique identifier for each notification. Each source should map to one way a notification
-    can be sent.
+    An unique identifier for each notification.
     """
 
     TEST = "test"
@@ -109,7 +108,6 @@ class NotificationRenderedAction(TypedDict):
 
 @dataclass(frozen=True)
 class NotificationTemplate:
-
     subject: str
     """
     The subject or title of the notification. It's expected that the receiver understand the
@@ -153,7 +151,7 @@ class NotificationTemplate:
     """
 
 
-type NotificationLoader[DataT: NotificationData] = Callable[[DataT], NotificationTemplate]
+type NotificationTemplateLoader[DataT: NotificationData] = Callable[[DataT], NotificationTemplate]
 """
 A loader is a function which takes in NotificationData and returns a valid NotificationTemplate.
 """

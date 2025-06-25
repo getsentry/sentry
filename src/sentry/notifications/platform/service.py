@@ -5,9 +5,9 @@ from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.target import prepare_targets
 from sentry.notifications.platform.types import (
     NotificationData,
-    NotificationLoader,
     NotificationStrategy,
     NotificationTarget,
+    NotificationTemplateLoader,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,11 +21,12 @@ class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
 
+    # TODO(ecosystem): Eventually this should be converted to spawn a task with the business logic below
     def notify_prepared_target(
         self,
         *,
         target: NotificationTarget,
-        loader: NotificationLoader[T],
+        loader: NotificationTemplateLoader[T],
     ) -> None:
         """
         Send a notification directly to a prepared target.
@@ -60,7 +61,7 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
-        loader: NotificationLoader[T],
+        loader: NotificationTemplateLoader[T],
     ) -> None:
 
         if not strategy and not targets:
