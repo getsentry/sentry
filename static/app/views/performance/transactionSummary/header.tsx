@@ -44,7 +44,6 @@ import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLay
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
-import {spansRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
@@ -101,8 +100,6 @@ function TransactionHeader({
           return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
-        case Tab.SPANS:
-          return spansRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
