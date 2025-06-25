@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import Count from 'sentry/components/count';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -31,7 +32,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
-import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function TokenUsageWidget() {
   const theme = useTheme();
@@ -84,7 +85,18 @@ export default function TokenUsageWidget() {
       isEmpty={!hasData}
       isLoading={isLoading}
       error={error}
-      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
+      emptyMessage={
+        <GenericWidgetEmptyStateWarning
+          message={tct(
+            'No token usage found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
+              ),
+            }
+          )}
+        />
+      }
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         showLegend: 'never',
