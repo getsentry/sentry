@@ -54,11 +54,11 @@ export const AI_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens' as EAPSpanP
 export const AI_HANDOFF_OPS = ['gen_ai.handoff'];
 
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM =
-  `sum(tags[gen_ai.usage.total_tokens,number])` as EAPSpanProperty;
+  `sum(tags[gen_ai.usage.total_tokens,integer])` as EAPSpanProperty;
 export const AI_INPUT_TOKENS_ATTRIBUTE_SUM =
-  `sum(tags[gen_ai.usage.input_tokens,number])` as EAPSpanProperty;
+  `sum(tags[gen_ai.usage.input_tokens,integer])` as EAPSpanProperty;
 export const AI_OUTPUT_TOKENS_ATTRIBUTE_SUM =
-  `sum(tags[gen_ai.usage.output_tokens,number])` as EAPSpanProperty;
+  `sum(tags[gen_ai.usage.output_tokens,integer])` as EAPSpanProperty;
 
 export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.request.model', ['ai.model.id']],
