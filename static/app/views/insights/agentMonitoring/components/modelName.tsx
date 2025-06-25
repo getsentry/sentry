@@ -41,7 +41,7 @@ export function getModelPlatform(modelId: string, provider?: string) {
 
   const providerMap = [
     {keywords: ['gpt', 'o1', 'o3', 'o4'], platform: 'openai'},
-    {keywords: ['gemma', 'gemini'], platform: 'google'},
+    {keywords: ['gemma', 'gemini'], platform: 'gemini'},
     {keywords: ['claude'], platform: 'anthropic-claude'},
     {keywords: ['deepseek'], platform: 'deepseek'},
     {keywords: ['grok'], platform: 'grok'},
