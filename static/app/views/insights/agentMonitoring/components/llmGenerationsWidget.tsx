@@ -33,8 +33,6 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/agents/';
-
 export default function LLMGenerationsWidget() {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
