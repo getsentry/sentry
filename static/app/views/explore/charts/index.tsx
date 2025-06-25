@@ -91,7 +91,6 @@ interface ChartInfo {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   formattedYAxes?: Array<string | undefined>;
-  label?: string;
   stack?: string;
 }
 
@@ -182,7 +181,6 @@ export function ExploreCharts({
   );
 
   const chartInfos = useMemo(() => {
-    const shouldRenderLabel = visualizes.length > 1;
     return visualizes.map((visualize, index) => {
       const chartIcon =
         visualize.chartType === ChartType.LINE
@@ -226,7 +224,6 @@ export function ExploreCharts({
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
         stack: visualize.stack,
-        label: shouldRenderLabel ? visualize.label : undefined,
         yAxes: [visualize.yAxis],
         formattedYAxes,
         data,
@@ -339,7 +336,6 @@ function Chart({
 
   const Title = (
     <ChartTitle>
-      {defined(chartInfo.label) ? <ChartLabel>{chartInfo.label}</ChartLabel> : null}
       <Widget.WidgetTitle title={chartInfo.formattedYAxes?.filter(Boolean).join(', ')} />
     </ChartTitle>
   );
@@ -531,18 +527,6 @@ const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
-`;
-
-const ChartLabel = styled('div')`
-  background-color: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: center;
-  min-width: 24px;
-  color: ${p => p.theme.purple400};
-  white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
-  align-content: center;
-  margin-right: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`
