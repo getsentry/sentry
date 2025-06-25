@@ -4,7 +4,7 @@ import datetime
 from typing import Any, Self
 
 from django.db import models
-from django.db.models import Case, ExpressionWrapper, F, IntegerField, Value, When
+from django.db.models import Case, ExpressionWrapper, F, IntegerField, Q, TextChoices, Value, When
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -19,13 +19,25 @@ BACKOFF_INTERVAL = 3
 BACKOFF_RATE = 1.4
 
 
+class DestinationType(TextChoices):
+    SENTRY_REGION = "sentry_region"
+    CODECOV = "codecov"
+
+
 @control_silo_model
 class WebhookPayload(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     mailbox_name = models.CharField(null=False, blank=False)
     provider = models.CharField(null=True, blank=True)
-    region_name = models.CharField(null=False)
+
+    # Destination attributes
+    # Table is constantly being deleted from so let's make this non-nullable with a default value, since the table should be small at any given point in time.
+    destination_type = models.CharField(
+        choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_REGION
+    )
+    region_name = models.CharField(null=True)
+
     # May need to add organization_id in the future for debugging.
     integration_id = models.BigIntegerField(null=True)
 
@@ -67,8 +79,17 @@ class WebhookPayload(Model):
             ),
         )
 
+        constraints = [
+            models.CheckConstraint(
+                check=Q(destination_type=DestinationType.SENTRY_REGION)
+                & Q(region_name__isnull=False),
+                name="webhookpayload_region_name_not_null",
+            ),
+        ]
+
     __repr__ = sane_repr(
         "mailbox_name",
+        "destination_type",
         "region_name",
         "schedule_for",
         "attempts",
