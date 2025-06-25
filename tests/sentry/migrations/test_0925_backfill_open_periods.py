@@ -331,6 +331,30 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
             )
         )
 
+        # Create a group with only non-resolution activities (tests the upper bounds check fix)
+        group = Group.objects.create(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            first_seen=self.now - timedelta(days=3),
+        )
+        # Add some activities that are NOT resolution types
+        Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            datetime=self.now - timedelta(days=2),
+        )
+        Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_UNRESOLVED.value,
+            datetime=self.now - timedelta(days=1),
+        )
+        self.test_cases.append(
+            ("group_with_only_non_resolution_activities", group, [group.first_seen], [None], [None])
+        )
+
     def test(self):
         for description, group, starts, ends, activities in self.test_cases:
             group.refresh_from_db()
