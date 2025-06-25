@@ -1,4 +1,3 @@
-import re
 from typing import TypedDict
 
 from parsimonious import NodeVisitor
@@ -13,9 +12,6 @@ class QueryParts(TypedDict):
     query: str
     equations: list[str] | None
     orderby: list[str] | None
-
-
-PERCENTILE_REGEX = r"percentile\(.*\)"
 
 
 def format_percentile_term(term):
@@ -79,7 +75,7 @@ def function_switcheroo(term):
     swapped_term = term
     if term == "count()":
         swapped_term = "count(span.duration)"
-    elif re.match(PERCENTILE_REGEX, term):
+    elif term.startswith("percentile("):
         swapped_term = format_percentile_term(term)
 
     return swapped_term, swapped_term != term
