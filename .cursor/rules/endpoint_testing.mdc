@@ -1,7 +1,7 @@
 ---
-description:
+description: Sentry Endpoint testing rules
 globs: tests/sentry/api/test_*.py,tests/sentry/*/endpoints/test_*.py
-alwaysApply: false
+alwaysApply: true
 ---
 # Sentry API Testing Rules
 

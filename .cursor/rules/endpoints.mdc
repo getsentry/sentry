@@ -1,7 +1,7 @@
 ---
-description:
+description: Sentry API Endpoint development rules
 globs: src/sentry/api/*.py,src/sentry/api/endpoints/*/*.py,src/sentry/*/endpoints/*.py
-alwaysApply: false
+alwaysApply: true
 ---
 # Sentry API Endpoint Development Rules
 
