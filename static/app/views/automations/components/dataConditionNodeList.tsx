@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
@@ -26,6 +27,7 @@ interface DataConditionNodeListProps {
   onDeleteRow: (id: string) => void;
   placeholder: string;
   updateCondition: (id: string, condition: Record<string, any>) => void;
+  conflictingConditions?: string[];
   updateConditionType?: (id: string, type: DataConditionType) => void;
 }
 
@@ -43,6 +45,7 @@ export default function DataConditionNodeList({
   onDeleteRow,
   updateCondition,
   updateConditionType,
+  conflictingConditions = [],
 }: DataConditionNodeListProps) {
   const {data: dataConditionHandlers = []} = useDataConditionsQuery(handlerGroup);
 
@@ -112,6 +115,7 @@ export default function DataConditionNodeList({
         <AutomationBuilderRow
           key={`${group}.conditions.${condition.id}`}
           onDelete={() => onDeleteRow(condition.id)}
+          isConflicting={conflictingConditions.includes(condition.id)}
         >
           <DataConditionNodeContext.Provider
             value={{
@@ -126,6 +130,16 @@ export default function DataConditionNodeList({
           </DataConditionNodeContext.Provider>
         </AutomationBuilderRow>
       ))}
+      {/* Always show alert for conflicting action filters, but only show alert for triggers when the trigger conditions conflict with each other */}
+      {((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
+        conflictingConditions.length > 0) ||
+        conflictingConditions.length > 1) && (
+        <Alert type="error" showIcon>
+          {t(
+            'The conditions highlighted in red are in conflict. This automation will not fire if the only trigger is “A new issue is created.”'
+          )}
+        </Alert>
+      )}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {

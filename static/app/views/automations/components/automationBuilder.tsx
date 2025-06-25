@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -11,24 +11,138 @@ import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
-import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionHandlerGroupType,
+  DataConditionType,
+} from 'sentry/types/workflowEngine/dataConditions';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
+import {
+  AgeComparison,
+  FILTER_MATCH_OPTIONS,
+} from 'sentry/views/automations/components/actionFilters/constants';
 import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
+
+const frequencyTypes = [
+  DataConditionType.EVENT_FREQUENCY_COUNT,
+  DataConditionType.EVENT_FREQUENCY_PERCENT,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+];
+
+function findConflictingActionFilterConditions(
+  actionFilter: DataConditionGroup
+): string[] {
+  const incompatibleConditions = [];
+
+  // Find incompatible conditions for NONE logic type
+  if (actionFilter.logicType === DataConditionGroupLogicType.NONE) {
+    for (const condition of actionFilter.conditions) {
+      const isInvalidAgeComparison =
+        condition.type === DataConditionType.AGE_COMPARISON &&
+        condition.comparison.comparison_type === AgeComparison.NEWER &&
+        condition.comparison.value > 0;
+      const isInvalidIssueOccurence =
+        condition.type === DataConditionType.ISSUE_OCCURRENCES &&
+        condition.comparison.value <= 1;
+
+      if (isInvalidAgeComparison || isInvalidIssueOccurence) {
+        incompatibleConditions.push(condition.id);
+      }
+      return incompatibleConditions;
+    }
+  }
+
+  // Find incompatible conditions for ANY_SHORT_CIRCUIT and ALL logic types
+  for (const condition of actionFilter.conditions) {
+    const isInvalidFrequency =
+      frequencyTypes.includes(condition.type) && condition.comparison.value >= 1;
+    const isInvalidAgeComparison =
+      condition.type === DataConditionType.AGE_COMPARISON &&
+      condition.comparison.comparison_type === AgeComparison.OLDER;
+    const isInvalidIssueOccurence =
+      condition.type === DataConditionType.ISSUE_OCCURRENCES &&
+      condition.comparison.value > 1;
+
+    if (isInvalidFrequency || isInvalidAgeComparison || isInvalidIssueOccurence) {
+      incompatibleConditions.push(condition.id);
+    }
+  }
+
+  // If the logic type is ANY_SHORT_CIRCUIT and any of the conditions are valid, consider the action filter valid
+  if (
+    actionFilter.logicType === DataConditionGroupLogicType.ANY_SHORT_CIRCUIT &&
+    incompatibleConditions.length !== actionFilter.conditions.length
+  ) {
+    return [];
+  }
+
+  return incompatibleConditions;
+}
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
   const organization = useOrganization();
   const api = useApi();
 
-  // fetch org members for SelectMembers dropdowns
+  // Fetch org members for SelectMembers dropdowns
   useEffect(() => {
     fetchOrgMembers(api, organization.slug);
   }, [api, organization]);
+
+  const {conflictingTriggers, conflictingActionFilters} = useMemo((): {
+    conflictingActionFilters: Record<string, string[]>;
+    conflictingTriggers: string[];
+  } => {
+    // First check for conflicting trigger conditions
+    if (state.triggers.logicType === 'all' && state.triggers.conditions.length > 1) {
+      return {
+        conflictingTriggers: state.triggers.conditions.map(condition => condition.id),
+        conflictingActionFilters: {},
+      };
+    }
+
+    // Check for first seen event condition
+    const firstSeenId = state.triggers.conditions.find(
+      condition => condition.type === DataConditionType.FIRST_SEEN_EVENT
+    )?.id;
+
+    const conflictingConditions: Record<string, string[]> = {};
+    let hasConflictingActionFilters = false;
+
+    // First seen event condition does not cause conflicts if the logic type is ANY_SHORT_CIRCUIT and there are multiple trigger conditions
+    if (
+      firstSeenId &&
+      !(
+        state.triggers.logicType === DataConditionGroupLogicType.ANY_SHORT_CIRCUIT &&
+        state.triggers.conditions.length > 1
+      )
+    ) {
+      // Create a mapping of conflicting conditions for each action filter
+      for (const actionFilter of state.actionFilters) {
+        const conflicts = findConflictingActionFilterConditions(actionFilter);
+        conflictingConditions[actionFilter.id] = conflicts;
+        if (conflicts.length > 0) {
+          hasConflictingActionFilters = true;
+        }
+      }
+      // First seen event is only conflicting if there are conflicting action filter conditions
+      if (hasConflictingActionFilters) {
+        return {
+          conflictingTriggers: [firstSeenId],
+          conflictingActionFilters: conflictingConditions,
+        };
+      }
+    }
+    return {
+      conflictingTriggers: [],
+      conflictingActionFilters: {},
+    };
+  }, [state]);
 
   return (
     <Flex direction="column" gap={space(1)}>
@@ -71,12 +185,13 @@ export default function AutomationBuilder() {
         onAddRow={type => actions.addWhenCondition(type)}
         onDeleteRow={index => actions.removeWhenCondition(index)}
         updateCondition={(id, comparison) => actions.updateWhenCondition(id, comparison)}
+        conflictingConditions={conflictingTriggers}
       />
-
       {state.actionFilters.map(actionFilter => (
         <ActionFilterBlock
           key={`actionFilters.${actionFilter.id}`}
           actionFilter={actionFilter}
+          conflictingConditions={conflictingActionFilters[actionFilter.id] || []}
         />
       ))}
       <span>
@@ -98,9 +213,13 @@ export default function AutomationBuilder() {
 
 interface ActionFilterBlockProps {
   actionFilter: DataConditionGroup;
+  conflictingConditions: string[];
 }
 
-function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
+function ActionFilterBlock({
+  actionFilter,
+  conflictingConditions = [],
+}: ActionFilterBlockProps) {
   const {actions} = useAutomationBuilderContext();
 
   return (
@@ -160,6 +279,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
             updateConditionType={(id, type) =>
               actions.updateIfConditionType(actionFilter.id, id, type)
             }
+            conflictingConditions={conflictingConditions}
           />
         </Flex>
       </Step>
