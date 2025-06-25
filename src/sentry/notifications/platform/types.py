@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -59,6 +61,14 @@ class NotificationTarget(Protocol):
     specific_data: dict[str, Any] | None
 
 
+class NotificationStrategy(Protocol):
+    """
+    A strategy for determining which targets to send a notification to.
+    """
+
+    def get_targets(self) -> list[NotificationTarget]: ...
+
+
 class NotificationData(Protocol):
     """
     All data passing through the notification platform must adhere to this protocol.
@@ -68,21 +78,82 @@ class NotificationData(Protocol):
     source: NotificationSource
 
 
-# TODO(ecosystem): Replace this 'Any' with a concrete known template output.
-type NotificationRenderedTemplate = Any
-
-
-class NotificationTemplate[T: NotificationData](Protocol):
+class EmailRenderedTemplate(TypedDict):
+    html_path: str
     """
-    All templates of the notification platform must adhere to this protocol.
+    The Email HTML Django template file path. The associated NotificationData will be passed
+    into the template as context.
     """
 
-    def process(self, *, data: T) -> NotificationRenderedTemplate: ...
-
-
-class NotificationStrategy(Protocol):
+    text_path: str
     """
-    A strategy for determining which targets to send a notification to.
+    The Email text template file path. The associated NotificationData will be passed
+    into the template as context.
     """
 
-    def get_targets(self) -> list[NotificationTarget]: ...
+
+class NotificationRenderedAction(TypedDict):
+    """
+    A rendered action for an integration.
+    """
+
+    label: str
+    """
+    The text content of the action (usually appears as a button)
+    """
+    link: str
+    """
+    The underlying link of the action
+    """
+
+
+@dataclass(frozen=True)
+class NotificationTemplate:
+
+    subject: str
+    """
+    The subject or title of the notification. It's expected that the receiver understand the
+    expected content of the notification based on this alone, and it will be the first thing
+    they see.
+    """
+    body: str
+    """
+    The full contents of the notification. Put the details of the notification here, but consider
+    keeping it concise and useful to the receiver.
+    """
+    actions: list[NotificationRenderedAction]
+    """
+    The list of actions that a receiver may take after having received the notification.
+    """
+    chart: str | None = None
+    """
+    A chart that will be displayed in the notification.
+    """
+    footer: str | None = None
+    """
+    Extra notification content that will appear after any actions, separate from the body. Optional,
+    and consider omitting if the extra data is not necessary for your notification to be useful.
+    """
+
+    # The following are optional, as omitting them will use a default email template which expects
+    # the required fields above to be present instead.
+    email_html_path: str | None = None
+    """
+    The email HTML template file path. The associated NotificationData will be passed as context.
+    In general, try to avoid including different information in these Django Templates than appear
+    in the required fields, as it will make the contents of your notification vary from email to other
+    providers.
+    """
+    email_text_path: str | None = None
+    """
+    The email text template file path. The associated NotificationData will be passed as context.
+    In general, try to avoid including different information in these Django Templates than appear
+    in the required fields, as it will make the contents of your notification vary from email to other
+    providers.
+    """
+
+
+type NotificationLoader[DataT: NotificationData] = Callable[[DataT], NotificationTemplate]
+"""
+A loader is a function which takes in NotificationData and returns a valid NotificationTemplate.
+"""

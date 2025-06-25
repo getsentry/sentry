@@ -23,7 +23,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> DiscordRenderable:
+    ](cls, *, data: DataT, template: NotificationTemplate) -> DiscordRenderable:
         return {}
 
 

@@ -23,7 +23,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> EmailRenderable:
+    ](cls, *, data: DataT, template: NotificationTemplate) -> EmailRenderable:
         return {}
 
 
