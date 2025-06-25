@@ -1,3 +1,4 @@
+import Count from 'sentry/components/count';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -5,7 +6,7 @@ import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {formalLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   getIsAiRunSpan,
   getIsAiSpan,
@@ -92,8 +93,10 @@ export function getHighlightedSpanAttributes({
       name: t('Tokens'),
       value: (
         <span>
-          {promptTokens} <IconArrow direction="right" size="xs" />{' '}
-          {`${completionTokens} (Σ ${totalTokens})`}
+          <Count value={promptTokens} /> <IconArrow direction="right" size="xs" />{' '}
+          <Count value={completionTokens} /> {' (Σ '}
+          <Count value={totalTokens} />
+          {')'}
         </span>
       ),
     });
@@ -103,7 +106,7 @@ export function getHighlightedSpanAttributes({
   if (totalCosts) {
     highlightedAttributes.push({
       name: t('Cost'),
-      value: formalLLMCosts(totalCosts),
+      value: formatLLMCosts(totalCosts),
     });
   }
 

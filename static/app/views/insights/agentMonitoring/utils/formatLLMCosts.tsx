@@ -1,5 +1,5 @@
 import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
 
-export function formalLLMCosts(cost: string | number) {
+export function formatLLMCosts(cost: string | number) {
   return `$${formatAbbreviatedNumberWithDynamicPrecision(cost)}`;
 }

@@ -19,7 +19,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
-import {formalLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   AI_COST_ATTRIBUTE_SUM,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
@@ -234,7 +234,7 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.isSpanDataLoading) {
         return <NumberPlaceholder />;
       }
-      return <TextAlignRight>{formalLLMCosts(dataRow.totalCost)}</TextAlignRight>;
+      return <TextAlignRight>{formatLLMCosts(dataRow.totalCost)}</TextAlignRight>;
     case 'timestamp':
       return (
         <TextAlignRight>

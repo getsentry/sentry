@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import Count from 'sentry/components/count';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconCode} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -11,7 +12,7 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formalLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
@@ -301,13 +302,20 @@ function calculateRelativeTiming(
   return {leftPercent: adjustedStart, widthPercent: adjustedWidth};
 }
 
+interface NodeInfo {
+  color: string | undefined;
+  icon: React.ReactNode;
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+}
+
 function getNodeInfo(
   node: AITraceSpanNode,
   colors: readonly string[],
   spanAttributes: Record<string, string>
 ) {
   // Default return value
-  const nodeInfo = {
+  const nodeInfo: NodeInfo = {
     icon: <IconCode size="md" />,
     title: 'Unknown',
     subtitle: '',
@@ -356,9 +364,20 @@ function getNodeInfo(
     const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
     const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
-    nodeInfo.subtitle = tokens ? ` ${tokens} Tokens` : '';
+    nodeInfo.subtitle = tokens ? (
+      <Fragment>
+        <Count value={tokens} />
+        {' Tokens'}
+      </Fragment>
+    ) : (
+      ''
+    );
     if (cost) {
-      nodeInfo.subtitle += ` (${formalLLMCosts(cost)})`;
+      nodeInfo.subtitle = (
+        <Fragment>
+          {nodeInfo.subtitle} ({formatLLMCosts(cost)})
+        </Fragment>
+      );
     }
     nodeInfo.color = colors[2];
   } else if (
