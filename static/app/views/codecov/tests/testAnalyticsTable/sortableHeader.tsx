@@ -16,6 +16,7 @@ type HeaderParams = {
   fieldName: string;
   label: string;
   sort: undefined | Sort;
+  hasRadio?: boolean;
   tooltip?: string | ReactNode;
 };
 
@@ -49,6 +50,7 @@ function SortableHeader({
   tooltip,
   alignment,
   enableToggle,
+  hasRadio,
 }: HeaderParams) {
   // TODO: refactor once API is done to use either or useLocation/useSearchParams
   const location = useLocation();
@@ -57,7 +59,7 @@ function SortableHeader({
   const sortArrow = <IconArrow size="xs" direction={arrowDirection} />;
 
   return (
-    <HeaderCell alignment={alignment}>
+    <HeaderCell alignment={alignment} hasRadio={hasRadio}>
       <StyledLink
         role="columnheader"
         aria-sort={
@@ -91,13 +93,14 @@ function SortableHeader({
   );
 }
 
-const HeaderCell = styled('div')<{alignment: string}>`
+const HeaderCell = styled('div')<{alignment: string; hasRadio?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
   width: 100%;
   justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
   font-weight: ${p => p.theme.fontWeightBold};
+  ${p => p.hasRadio && 'padding-left: 56px;'}
 `;
 
 const StyledLink = styled(Link)`

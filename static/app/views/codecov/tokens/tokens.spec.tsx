@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import TokensPage from 'sentry/views/codecov/tokens/tokens';
@@ -103,6 +103,28 @@ describe('TokensPage', () => {
         name: 'regenerate token',
       });
       await userEvent.click(regenerateButton);
+    });
+
+    it('renders a table component', async () => {
+      render(
+        <CodecovQueryParamsProvider>
+          <TokensPage />
+        </CodecovQueryParamsProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/codecov/tokens/',
+              query: {
+                integratedOrg: 'some-org-name',
+              },
+            },
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      });
     });
   });
 });
