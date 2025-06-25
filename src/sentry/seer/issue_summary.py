@@ -26,7 +26,7 @@ from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.seer_utils import FixabilityScoreThresholds
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings, FixabilityScoreThresholds
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -251,17 +251,17 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
-    if option == "off":
+    if option == AutofixAutomationTuningSettings.OFF:
         return False
-    elif option == "super_low":
+    elif option == AutofixAutomationTuningSettings.SUPER_LOW:
         return fixability_score >= FixabilityScoreThresholds.SUPER_HIGH.value
-    elif option == "low":
+    elif option == AutofixAutomationTuningSettings.LOW:
         return fixability_score >= FixabilityScoreThresholds.HIGH.value
-    elif option == "medium":
+    elif option == AutofixAutomationTuningSettings.MEDIUM:
         return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
-    elif option == "high":
+    elif option == AutofixAutomationTuningSettings.HIGH:
         return fixability_score >= FixabilityScoreThresholds.LOW.value
-    elif option == "always":
+    elif option == AutofixAutomationTuningSettings.ALWAYS:
         return True
     return False
 
