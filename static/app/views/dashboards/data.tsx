@@ -52,9 +52,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count()'],
                 aggregates: ['count()'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? ''
-                  : '!event.type:transaction',
+                conditions: '',
                 orderby: 'count()',
               },
             ],
@@ -78,9 +76,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count_unique(issue)'],
                 aggregates: ['count_unique(issue)'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? ''
-                  : '!event.type:transaction',
+                conditions: '',
                 orderby: 'count_unique(issue)',
               },
             ],
@@ -104,9 +100,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count()'],
                 aggregates: ['count()'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? ''
-                  : '!event.type:transaction',
+                conditions: '',
                 orderby: 'count()',
               },
             ],
@@ -130,9 +124,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count_unique(user)'],
                 aggregates: ['count_unique(user)'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? 'has:user.email'
-                  : 'has:user.email !event.type:transaction',
+                conditions: 'has:user.email',
                 orderby: 'count_unique(user)',
               },
               {
@@ -140,9 +132,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count_unique(user)'],
                 aggregates: ['count_unique(user)'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? '!has:user.email'
-                  : '!has:user.email !event.type:transaction',
+                conditions: '!has:user.email',
                 orderby: 'count_unique(user)',
               },
             ],
@@ -198,9 +188,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['geo.country_code', 'geo.region', 'count()'],
                 aggregates: ['count()'],
                 columns: ['geo.country_code', 'geo.region'],
-                conditions: hasDatasetSelector(organization)
-                  ? 'has:geo.country_code'
-                  : '!event.type:transaction has:geo.country_code',
+                conditions: 'has:geo.country_code',
                 orderby: 'count()',
               },
             ],
@@ -248,9 +236,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['browser.name', 'count()'],
                 aggregates: ['count()'],
                 columns: ['browser.name'],
-                conditions: hasDatasetSelector(organization)
-                  ? 'has:browser.name'
-                  : '!event.type:transaction has:browser.name',
+                conditions: 'has:browser.name',
                 orderby: '-count()',
               },
             ],
@@ -1188,9 +1174,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count()'],
                 aggregates: ['count()'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? 'error.handled:false'
-                  : 'error.handled:false event.type:error',
+                conditions: 'error.handled:false',
                 orderby: '',
               },
             ],
@@ -1214,9 +1198,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count_unique(user)'],
                 aggregates: ['count_unique(user)'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? 'error.handled:false'
-                  : 'error.handled:false event.type:error',
+                conditions: 'error.handled:false',
                 orderby: '',
               },
             ],
@@ -1240,9 +1222,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count_unique(issue)'],
                 aggregates: ['count_unique(issue)'],
                 columns: [],
-                conditions: hasDatasetSelector(organization)
-                  ? 'error.handled:false'
-                  : 'error.handled:false event.type:error',
+                conditions: 'error.handled:false',
                 orderby: '',
               },
             ],
@@ -1266,7 +1246,7 @@ export const getDashboardTemplates = (organization: Organization) => {
                 fields: ['count()'],
                 aggregates: ['count()'],
                 columns: [],
-                conditions: hasDatasetSelector(organization) ? '' : 'event.type:error',
+                conditions: '',
                 orderby: '',
               },
             ],
