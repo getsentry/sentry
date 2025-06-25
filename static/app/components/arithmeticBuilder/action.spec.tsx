@@ -57,6 +57,7 @@ describe('useArithmeticBuilderAction', function () {
       state: {
         expression: new Expression('( sum(span.duration) )'),
         focusOverride: {
+          countDown: expect.any(Number),
           itemKey: 'foo',
         },
       },
