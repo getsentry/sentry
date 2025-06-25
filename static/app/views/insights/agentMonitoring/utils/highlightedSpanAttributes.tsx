@@ -7,9 +7,11 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {
+  getIsAiRunSpan,
   getIsAiSpan,
   legacyAttributeKeys,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -146,7 +148,9 @@ export function getTraceNodeAttribute(
   return undefined;
 }
 
-export function getIsAiNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+export function getIsAiNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is AITraceSpanNode {
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return false;
   }
@@ -159,4 +163,18 @@ export function getIsAiNode(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   return getIsAiSpan(node.value);
+}
+
+export function getIsAiRunNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is AITraceSpanNode {
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+    return false;
+  }
+
+  if (isTransactionNode(node)) {
+    return getIsAiRunSpan({op: node.value['transaction.op']});
+  }
+
+  return getIsAiRunSpan({op: node.value.op});
 }
