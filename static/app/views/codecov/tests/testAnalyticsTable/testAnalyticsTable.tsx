@@ -14,19 +14,26 @@ type TestAnalyticsTableResponse = {
   isBrokenTest: boolean;
   lastRun: string;
   testName: string;
+  totalDurationMs: number;
 };
 
 export type Row = Pick<
   TestAnalyticsTableResponse,
   | 'testName'
   | 'averageDurationMs'
+  | 'totalDurationMs'
   | 'flakeRate'
   | 'commitsFailed'
   | 'lastRun'
   | 'isBrokenTest'
 >;
 export type Column = GridColumnHeader<
-  'testName' | 'averageDurationMs' | 'flakeRate' | 'commitsFailed' | 'lastRun'
+  | 'testName'
+  | 'averageDurationMs'
+  | 'totalDurationMs'
+  | 'flakeRate'
+  | 'commitsFailed'
+  | 'lastRun'
 >;
 
 export type ValidSort = Sort & {
@@ -36,6 +43,7 @@ export type ValidSort = Sort & {
 const COLUMNS_ORDER: Column[] = [
   {key: 'testName', name: t('Test Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'averageDurationMs', name: t('Avg. Duration'), width: COL_WIDTH_UNDEFINED},
+  {key: 'totalDurationMs', name: t('Total Duration'), width: COL_WIDTH_UNDEFINED},
   {key: 'flakeRate', name: t('Flake Rate'), width: COL_WIDTH_UNDEFINED},
   {key: 'commitsFailed', name: t('Commits Failed'), width: COL_WIDTH_UNDEFINED},
   {key: 'lastRun', name: t('Last Run'), width: COL_WIDTH_UNDEFINED},
@@ -43,6 +51,7 @@ const COLUMNS_ORDER: Column[] = [
 
 export const RIGHT_ALIGNED_FIELDS = new Set([
   'averageDurationMs',
+  'totalDurationMs',
   'flakeRate',
   'commitsFailed',
 ]);
@@ -50,6 +59,7 @@ export const RIGHT_ALIGNED_FIELDS = new Set([
 export type SortableTAOptions =
   | 'testName'
   | 'averageDurationMs'
+  | 'totalDurationMs'
   | 'flakeRate'
   | 'commitsFailed'
   | 'lastRun';
@@ -57,6 +67,7 @@ export type SortableTAOptions =
 export const SORTABLE_FIELDS: SortableTAOptions[] = [
   'testName',
   'averageDurationMs',
+  'totalDurationMs',
   'flakeRate',
   'commitsFailed',
   'lastRun',
