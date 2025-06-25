@@ -617,12 +617,35 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
       this.props;
 
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    const deprecatingAddToDashboard =
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      organization.features.includes('discover-saved-queries-deprecation');
+
     const contextMenuItems: MenuItemProps[] = [];
+
+    const tracesUrl = getExploreUrl({
+      organization,
+      query: 'is_transaction:true',
+    });
 
     if (organization.features.includes('dashboards-edit')) {
       contextMenuItems.push({
         key: 'add-to-dashboard',
         label: t('Add to Dashboard'),
+        disabled: deprecatingAddToDashboard,
+        tooltip:
+          deprecatingAddToDashboard &&
+          tct(
+            'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
+            {
+              traces: <Link to={tracesUrl} />,
+            }
+          ),
         onAction: () => {
           handleAddQueryToDashboard({
             organization,
