@@ -20,3 +20,23 @@ class FixabilityScoreThresholds(enum.Enum):
         """
         name = name.upper()
         return self[name] if name in self.__members__ else None
+
+
+class AutofixAutomationTuningSettings(enum.Enum):
+    OFF = "off"
+    SUPER_LOW = "super_low"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    ALWAYS = "always"
+
+    def to_str(self) -> str:
+        return self.name.lower()
+
+    @classmethod
+    def from_str(self, name: str) -> "AutofixAutomationTuningSettings | None":
+        """
+        Return the autofix automation tuning setting from a string representation.
+        """
+        name = name.upper()
+        return self[name] if name in self.__members__ else None
