@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import Count from 'sentry/components/count';
 import {t} from 'sentry/locale';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -12,9 +12,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {
-  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
-  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
@@ -47,12 +45,7 @@ export default function TokenUsageWidget() {
 
   const tokensRequest = useEAPSpans(
     {
-      fields: [
-        AI_MODEL_ID_ATTRIBUTE,
-        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-      ],
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
       sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -64,14 +57,9 @@ export default function TokenUsageWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [
-        AI_MODEL_ID_ATTRIBUTE,
-        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-      ],
-      yAxis: [AI_INPUT_TOKENS_ATTRIBUTE_SUM],
-      sort: {field: AI_INPUT_TOKENS_ATTRIBUTE_SUM, kind: 'desc'},
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
       topN: 3,
       enabled: !!tokensRequest.data,
     },
@@ -104,7 +92,6 @@ export default function TokenUsageWidget() {
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
               color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
-              alias: ts.seriesName,
               stack: 'stack',
             })
         ),
@@ -129,10 +116,7 @@ export default function TokenUsageWidget() {
               <ModelName modelId={modelId} />
             </ModelText>
             <span>
-              {formatAbbreviatedNumber(
-                Number(item[AI_INPUT_TOKENS_ATTRIBUTE_SUM] || 0) +
-                  Number(item[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM] || 0)
-              )}
+              <Count value={Number(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)} />
             </span>
           </Fragment>
         );
