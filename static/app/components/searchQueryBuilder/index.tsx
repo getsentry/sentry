@@ -66,6 +66,12 @@ export interface SearchQueryBuilderProps {
    */
   fieldDefinitionGetter?: FieldDefinitionGetter;
   /**
+   * A mapping of secondary aliases for filter keys.
+   * These are used to ensure that the filter key does not show them as invalid, however
+   * they will not be shown in the filter key dropdown.
+   */
+  filterKeyAliases?: TagCollection;
+  /**
    * The width of the filter key menu.
    * Defaults to 360px. May be increased if there are a large number of categories
    * or long filter key names.
@@ -76,12 +82,6 @@ export interface SearchQueryBuilderProps {
    * Sections and filter keys are displayed in the order they are provided.
    */
   filterKeySections?: FilterKeySection[];
-  /**
-   * A mapping of secondary aliases for filter keys.
-   * These are used to ensure that the filter key does not show them as invalid, however
-   * they will not be shown in the filter key dropdown.
-   */
-  filterKeysSecondaryAliases?: TagCollection;
   /**
    * A function that returns a warning message for a given filter key
    * will only render a warning if the value is truthy
