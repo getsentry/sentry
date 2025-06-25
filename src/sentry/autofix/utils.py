@@ -186,6 +186,17 @@ def is_seer_scanner_rate_limited(
     return is_rate_limited, current, limit
 
 
+AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
+    "off": 5,
+    "super_low": 5,
+    "low": 4,
+    "medium": 3,
+    "high": 2,
+    "always": 1,
+    None: 1,  # default if option is not set
+}
+
+
 def is_seer_autotriggered_autofix_rate_limited(
     project: Project, organization: Organization
 ) -> tuple[bool, int, int]:
@@ -207,18 +218,8 @@ def is_seer_autotriggered_autofix_rate_limited(
     # This is to protect projects with extreme settings from starting too many runs
     # while allowing big projects with reasonable settings to run more often.
     option = project.get_option("sentry:autofix_automation_tuning")
-    if option == "off":
-        limit *= 5
-    elif option == "super_low":
-        limit *= 5
-    elif option == "low":
-        limit *= 4
-    elif option == "medium":
-        limit *= 3
-    elif option == "high":
-        limit *= 2
-    elif option == "always":
-        limit *= 1
+    multiplier = AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.get(option, 1)
+    limit *= multiplier
 
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
