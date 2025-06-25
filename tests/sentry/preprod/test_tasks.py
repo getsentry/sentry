@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
-from sentry.preprod.tasks import assemble_preprod_artifact
+from sentry.preprod.tasks import assemble_preprod_artifact, assemble_preprod_artifact_size_analysis
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -285,3 +285,81 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert len(artifacts) == 0
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
+
+class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
+    def setUp(self):
+        super().setUp()
+        self.preprod_artifact = PreprodArtifact.objects.create(
+            project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
+        )
+
+    def _run_task_and_verify_status(
+        self, content, checksum=None, chunks=None, artifact_id=None, org_id=None, project_id=None
+    ):
+        checksum = checksum or sha1(content).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(content), self.organization)
+        chunks = chunks or [blob.checksum]
+
+        assemble_preprod_artifact_size_analysis(
+            org_id=org_id or self.organization.id,
+            project_id=project_id or self.project.id,
+            checksum=checksum,
+            chunks=chunks,
+            artifact_id=artifact_id or self.preprod_artifact.id,
+        )
+
+        status, details = get_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS, project_id or self.project.id, checksum
+        )
+        delete_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS, project_id or self.project.id, checksum
+        )
+        return status, details
+
+    def test_assemble_preprod_artifact_size_analysis_success(self):
+        status, details = self._run_task_and_verify_status(b"test size analysis content")
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify size analysis file and artifact update
+        size_files = File.objects.filter(type="preprod.size_analysis")
+        assert len(size_files) == 1
+        assert size_files[0].name.startswith("preprod-size-analysis-")
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.analysis_file_id == size_files[0].id
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+    def test_assemble_preprod_artifact_size_analysis_error_cases(self):
+        test_cases = [
+            # (content, kwargs, expected_status, expected_detail_contains)
+            (b"nonexistent artifact", {"artifact_id": 99999}, ChunkFileState.ERROR, None),
+            (
+                b"checksum mismatch",
+                {"checksum": "b" * 40},
+                ChunkFileState.ERROR,
+                "checksum mismatch",
+            ),
+            (
+                b"missing chunks",
+                {"chunks": ["nonexistent" + "1" * 32]},
+                ChunkFileState.ERROR,
+                "Not all chunks available",
+            ),
+            (b"nonexistent org", {"org_id": 99999}, ChunkFileState.ERROR, None),
+            (b"nonexistent project", {"project_id": 99999}, ChunkFileState.ERROR, None),
+        ]
+
+        for content, kwargs, expected_status, expected_detail in test_cases:
+            status, details = self._run_task_and_verify_status(content, **kwargs)
+            assert status == expected_status
+            if expected_detail:
+                assert expected_detail in details
+
+            # Verify artifact was not updated for error cases
+            if expected_status == ChunkFileState.ERROR and kwargs.get("artifact_id") != 99999:
+                self.preprod_artifact.refresh_from_db()
+                assert self.preprod_artifact.analysis_file_id is None
+                assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED

@@ -130,3 +130,134 @@ def assemble_preprod_artifact(
         )
     else:
         set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
+    queue="assemble",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+        processing_deadline_duration=30,
+    ),
+)
+def assemble_preprod_artifact_size_analysis(
+    org_id,
+    project_id,
+    checksum,
+    chunks,
+    artifact_id=None,
+    **kwargs,
+) -> None:
+    """
+    Creates a size analysis file for a preprod artifact from uploaded chunks.
+    """
+    from sentry.preprod.models import PreprodArtifact
+
+    logger.info(
+        "Starting preprod artifact size analysis assembly",
+        extra={
+            "timestamp": datetime.datetime.now().isoformat(),
+            "project_id": project_id,
+            "organization_id": org_id,
+        },
+    )
+
+    try:
+        organization = Organization.objects.get_from_cache(pk=org_id)
+        project = Project.objects.get(id=project_id, organization=organization)
+        bind_organization_context(organization)
+
+        set_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
+            project_id,
+            checksum,
+            ChunkFileState.ASSEMBLING,
+        )
+
+        assemble_result = assemble_file(
+            task=AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
+            org_or_project=project,
+            name=f"preprod-size-analysis-{uuid.uuid4().hex}",
+            checksum=checksum,
+            chunks=chunks,
+            file_type="preprod.size_analysis",
+        )
+
+        if assemble_result is None:
+            return
+
+        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            # Update existing PreprodArtifact with size analysis file
+            try:
+                preprod_artifact = PreprodArtifact.objects.get(
+                    project=project,
+                    id=artifact_id,
+                )
+                preprod_artifact.analysis_file_id = assemble_result.bundle.id
+                preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+                preprod_artifact.save(update_fields=["analysis_file_id", "state", "date_updated"])
+
+                logger.info(
+                    "Updated preprod artifact with size analysis file",
+                    extra={
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "analysis_file_id": assemble_result.bundle.id,
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                    },
+                )
+            except PreprodArtifact.DoesNotExist:
+                # Ideally this should never happen
+                logger.error(
+                    "PreprodArtifact not found during size analysis assembly",
+                    extra={
+                        "artifact_id": artifact_id,
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                    },
+                )
+                # Clean up the assembled file since we can't associate it with an artifact
+                try:
+                    # Close the temporary file handle first
+                    if (
+                        hasattr(assemble_result, "bundle_temp_file")
+                        and assemble_result.bundle_temp_file
+                    ):
+                        assemble_result.bundle_temp_file.close()
+                    # Then delete the file object
+                    assemble_result.bundle.delete()
+                except Exception:
+                    pass  # Ignore cleanup errors
+                raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
+
+        logger.info(
+            "Finished preprod artifact size analysis assembly",
+            extra={
+                "timestamp": datetime.datetime.now().isoformat(),
+                "project_id": project_id,
+                "organization_id": org_id,
+            },
+        )
+
+        # TODO: Trigger size related actions like notifications, etc.
+
+    except Exception as e:
+        logger.exception(
+            "Failed to assemble preprod artifact size analysis",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+            },
+        )
+        set_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
+            project_id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail=str(e),
+        )
+    else:
+        set_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS, project_id, checksum, ChunkFileState.OK
+        )
