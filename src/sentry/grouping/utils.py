@@ -95,12 +95,10 @@ def resolve_fingerprint_variable(
 
     # For ease of reading, let's try to keep all these ifs alphabetized
     if variable_key in ("error.type", "type"):
-        exception_type = get_path(exception, "type")
-        return exception_type or "<no-type>"
+        return get_path(exception, "type") or "<no-type>"
 
     elif variable_key in ("error.value", "value"):
-        value = get_path(exception, "value")
-        return value or "<no-value>"
+        return get_path(exception, "value") or "<no-value>"
 
     elif variable_key == "level":
         return event_data.get("level") or "<no-level>"
@@ -109,12 +107,12 @@ def resolve_fingerprint_variable(
         return event_data.get("logger") or "<no-logger>"
 
     elif variable_key == "message":
-        message = (
+        return (
             get_path(event_data, "logentry", "formatted")
             or get_path(event_data, "logentry", "message")
             or get_path(exception, "value")
+            or "<no-message>"
         )
-        return message or "<no-message>"
 
     elif variable_key in ("stack.abs_path", "path"):
         abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
