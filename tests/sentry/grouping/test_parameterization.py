@@ -86,16 +86,10 @@ def parameterizer() -> Parameterizer:
 def test_parameterize_standard(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected == parameterizer.parameterize_all(input), f"{name} failed"
-    assert (
-        f"prefix {expected}" == f"prefix {parameterizer.parameterize_all(input)}"
-    ), f"{name} with prefix failed"
-    assert (
-        f"{expected} suffix" == f"{parameterizer.parameterize_all(input)} suffix"
-    ), f"{name} with suffix failed"
-    assert (
-        f"prefix {expected} suffix" == f"prefix {parameterizer.parameterize_all(input)} suffix"
-    ), f"{name} with prefix and suffix failed"
+    assert expected == parameterizer.parameterize_all(input)
+    assert f"prefix {expected}" == f"prefix {parameterizer.parameterize_all(input)}"
+    assert f"{expected} suffix" == f"{parameterizer.parameterize_all(input)} suffix"
+    assert f"prefix {expected} suffix" == f"prefix {parameterizer.parameterize_all(input)} suffix"
 
 
 # These are test cases that we should fix
