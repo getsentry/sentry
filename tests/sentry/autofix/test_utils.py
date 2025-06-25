@@ -258,10 +258,10 @@ class TestAutomationRateLimiting(TestCase):
 
         base_limit = 20
         option_multipliers = {
-            "off": 10,
-            "super_low": 10,
-            "low": 8,
-            "medium": 6,
+            "off": 5,
+            "super_low": 5,
+            "low": 4,
+            "medium": 3,
             "high": 2,
             "always": 1,
             None: 1,  # default if option is not set

@@ -208,13 +208,13 @@ def is_seer_autotriggered_autofix_rate_limited(
     # while allowing big projects with reasonable settings to run more often.
     option = project.get_option("sentry:autofix_automation_tuning")
     if option == "off":
-        limit *= 10
+        limit *= 5
     elif option == "super_low":
-        limit *= 10
+        limit *= 5
     elif option == "low":
-        limit *= 8
+        limit *= 4
     elif option == "medium":
-        limit *= 6
+        limit *= 3
     elif option == "high":
         limit *= 2
     elif option == "always":
