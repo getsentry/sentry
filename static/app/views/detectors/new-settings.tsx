@@ -16,6 +16,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,7 +27,6 @@ import type {MetricDetectorFormData} from 'sentry/views/detectors/components/for
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   getNewMetricDetectorData,
-  useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metricFormData';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {
@@ -34,27 +34,12 @@ import {
   makeMonitorDetailsPathname,
 } from 'sentry/views/detectors/pathnames';
 
-function DetectorDocumentTitle() {
-  const title = useMetricDetectorFormField('name');
-  return (
-    <SentryDocumentTitle
-      title={title ? t('%s - New Monitor', title) : t('New Monitor')}
-    />
-  );
-}
-
-function DetectorBreadcrumbs() {
-  const title = useMetricDetectorFormField('name');
-  const organization = useOrganization();
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-        {label: title ? title : t('New Monitor')},
-      ]}
-    />
-  );
-}
+const friendlyDetectorTypeMap: Record<DetectorType, string> = {
+  error: t('Error'),
+  metric_issue: t('Metric'),
+  uptime_subscription: t('Crons'),
+  uptime_domain_failure: t('Uptime'),
+};
 
 export default function DetectorNewSettings() {
   const organization = useOrganization();
@@ -108,11 +93,26 @@ export default function DetectorNewSettings() {
 
   return (
     <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
-      <DetectorDocumentTitle />
+      <SentryDocumentTitle
+        title={t(
+          'New %s Monitor',
+          friendlyDetectorTypeMap[location.query.detectorType as DetectorType]
+        )}
+      />
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
-            <DetectorBreadcrumbs />
+            <Breadcrumbs
+              crumbs={[
+                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+                {
+                  label: t(
+                    'New %s Monitor',
+                    friendlyDetectorTypeMap[location.query.detectorType as DetectorType]
+                  ),
+                },
+              ]}
+            />
             <Flex gap={space(1)} direction="column">
               <Layout.Title>
                 <EditableDetectorName />

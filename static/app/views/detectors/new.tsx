@@ -14,6 +14,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -21,7 +22,7 @@ import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeFo
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface NewDetectorFormData {
-  detectorType: string;
+  detectorType: DetectorType;
   environment: string;
   project: string;
 }
@@ -52,7 +53,7 @@ export default function DetectorNew() {
       hideFooter
       initialData={
         {
-          detectorType: 'metric',
+          detectorType: 'metric_issue',
           project: defaultProject?.id ?? '',
           environment: '',
         } satisfies NewDetectorFormData
