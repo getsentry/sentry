@@ -19,6 +19,7 @@ import {
   AI_GENERATION_OPS,
   AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
+  AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
   AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
   AI_TOOL_CALL_DESCRIPTIONS,
@@ -223,6 +224,7 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
         'span_id',
         AI_AGENT_NAME_ATTRIBUTE,
         AI_MODEL_ID_ATTRIBUTE,
+        AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
         AI_TOOL_NAME_ATTRIBUTE,
       ] as EAPSpanProperty[],
@@ -342,9 +344,15 @@ function getNodeInfo(
     AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
-    const model = getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) || '';
+    const model =
+      getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) ||
+      getNodeAttribute(AI_MODEL_NAME_FALLBACK_ATTRIBUTE) ||
+      '';
     nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
+    nodeInfo.subtitle = agentName;
+    if (model) {
+      nodeInfo.subtitle += nodeInfo.subtitle ? nodeInfo.subtitle + ` (${model})` : model;
+    }
     nodeInfo.color = colors[0];
   } else if (
     AI_GENERATION_OPS.includes(op) ||

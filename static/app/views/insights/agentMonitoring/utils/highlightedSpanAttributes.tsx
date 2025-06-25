@@ -80,7 +80,9 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
   const highlightedAttributes = [];
 
-  const model = getAttribute(attributeObject, 'gen_ai.request.model');
+  const model =
+    getAttribute(attributeObject, 'gen_ai.request.model') ||
+    getAttribute(attributeObject, 'gen_ai.response.model');
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
