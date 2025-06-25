@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from sentry.killswitches import normalize_config, value_matches
+from sentry.killswitches import normalize_value, value_matches
 
 
-def test_normalize_config():
-    assert normalize_config("store.load-shed-group-creation-projects", [1, 2, 3]) == [
+def test_normalize_value():
+    assert normalize_value("store.load-shed-group-creation-projects", [1, 2, 3]) == [
         {"project_id": "1", "platform": None},
         {"project_id": "2", "platform": None},
         {"project_id": "3", "platform": None},
     ]
 
-    assert normalize_config("store.load-shed-group-creation-projects", [{"project_id": 123}]) == [
+    assert normalize_value("store.load-shed-group-creation-projects", [{"project_id": 123}]) == [
         {"project_id": "123", "platform": None},  # match any platform
     ]
 
@@ -63,7 +63,7 @@ def test_normalize_config():
     ),
 )
 def test_value_matches_positive(cfg, value):
-    cfg = normalize_config("store.load-shed-group-creation-projects", cfg)
+    cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
     assert value_matches("store.load-shed-group-creation-projects", cfg, value)
 
 
@@ -97,5 +97,5 @@ def test_value_matches_positive(cfg, value):
     ),
 )
 def test_value_matches_negative(cfg, value):
-    cfg = normalize_config("store.load-shed-group-creation-projects", cfg)
+    cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
     assert not value_matches("store.load-shed-group-creation-projects", cfg, value)

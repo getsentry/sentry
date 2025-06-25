@@ -232,10 +232,10 @@ ALL_KILLSWITCH_OPTIONS = {
 
 
 def validate_user_input(killswitch_name: str, option_value: Any) -> KillswitchConfig:
-    return normalize_config(killswitch_name, option_value, strict=True)
+    return normalize_value(killswitch_name, option_value, strict=True)
 
 
-def normalize_config(
+def normalize_value(
     killswitch_name: str, option_value: Any, strict: bool = False
 ) -> KillswitchConfig:
     rv: KillswitchConfig = []
@@ -264,7 +264,7 @@ def normalize_config(
 def get_killswitch_value(killswitch_name: str) -> KillswitchConfig:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     raw_option_value = options.get(killswitch_name)
-    return normalize_config(killswitch_name, raw_option_value)
+    return normalize_value(killswitch_name, raw_option_value)
 
 
 def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
@@ -310,7 +310,7 @@ def value_matches(
 
 
 def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchConfig) -> str:
-    option_value = normalize_config(killswitch_name, raw_option_value)
+    option_value = normalize_value(killswitch_name, raw_option_value)
     if not option_value:
         return "<disabled entirely>"
 
