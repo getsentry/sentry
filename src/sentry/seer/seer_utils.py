@@ -20,3 +20,12 @@ class FixabilityScoreThresholds(enum.Enum):
         """
         name = name.upper()
         return self[name] if name in self.__members__ else None
+
+
+class AutofixAutomationTuningSettings(enum.StrEnum):
+    OFF = "off"
+    SUPER_LOW = "super_low"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    ALWAYS = "always"
