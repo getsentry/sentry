@@ -4,11 +4,11 @@
 import datetime
 import logging
 import shutil
-import socket
 import time
 from os import environ, path
 from urllib.parse import urlparse
 
+import ephemeral_port_reserve
 import pytest
 import requests
 
@@ -66,6 +66,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
+    relay_port = ephemeral_port_reserve.reserve()
+
     redis_db = TEST_REDIS_DB
     use_old_devservices = environ.get("USE_OLD_DEVSERVICES", "0") == "1"
     from sentry.relay import projectconfig_cache
@@ -76,13 +78,9 @@ def relay_server_setup(live_server, tmpdir_factory):
     )
     assert redis_db == projectconfig_backend.cluster.connection_pool.connection_kwargs["db"]
 
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        RELAY_PORT = sock.getsockname()[1]
-
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
-        "RELAY_PORT": RELAY_PORT,
+        "RELAY_PORT": relay_port,
         "KAFKA_HOST": "sentry_kafka" if use_old_devservices else "kafka",
         "REDIS_HOST": "sentry_redis" if use_old_devservices else "redis",
         "REDIS_DB": redis_db,
@@ -108,7 +106,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     options = {
         "image": RELAY_TEST_IMAGE,
-        "ports": {f"{RELAY_PORT}/tcp": RELAY_PORT},
+        "ports": {"%s/tcp" % relay_port: relay_port},
         "network": "sentry" if use_old_devservices else "devservices",
         "detach": True,
         "name": container_name,
@@ -118,7 +116,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     }
 
     # Some structure similar to what the live_server fixture returns
-    server_info = {"url": f"http://127.0.0.1:{RELAY_PORT}", "options": options}
+    server_info = {"url": f"http://127.0.0.1:{relay_port}", "options": options}
 
     yield server_info
 
