@@ -134,7 +134,7 @@ def process_batch(
 ) -> int:
     killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
     min_timestamp = None
-    decode_time = 0
+    decode_time = 0.0
     spans = []
 
     for value in values.payload:
