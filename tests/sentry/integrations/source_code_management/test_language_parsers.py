@@ -547,7 +547,7 @@ class JavascriptParserTestCase(TestCase):
        </Button>
      </MemberCard>
 @@ -269,17 +259,7 @@ export const Subtitle = styled('div')`
-   font-size: ${p => p.theme.fontSizeSmall};
+   font-size: ${p => p.theme.fontSize.sm};
    font-weight: 400;
    color: ${p => p.theme.gray300};
 -  & > *:first-child {
@@ -568,7 +568,7 @@ class JavascriptParserTestCase(TestCase):
 @@ -305,9 +285,7 @@ const MemberCardContentRow = styled('div')`
    align-items: center;
    margin-bottom: ${space(0.25)};
-   font-size: ${p => p.theme.fontSizeSmall};
+   font-size: ${p => p.theme.fontSize.sm};
 -  & > *:first-child {
 -    margin-right: ${space(0.75)};
 -  }

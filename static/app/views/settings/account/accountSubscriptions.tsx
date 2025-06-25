@@ -219,7 +219,7 @@ const Heading = styled(PanelItem)`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
@@ -239,10 +239,10 @@ const SubscriptionDetails = styled('label')`
 `;
 
 const SubscriptionName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;

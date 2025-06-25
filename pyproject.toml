@@ -472,6 +472,7 @@ module = [
     "tests.sentry.grouping.seer_similarity.test_seer_eligibility",
     "tests.sentry.grouping.test_fingerprinting",
     "tests.sentry.grouping.test_hashing",
+    "tests.sentry.grouping.test_parameterization",
     "tests.sentry.hybridcloud.*",
     "tests.sentry.incidents.serializers.*",
     "tests.sentry.integrations.msteams.webhook.*",

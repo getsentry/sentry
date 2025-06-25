@@ -231,7 +231,7 @@ const DropdownWrapper = styled('div')`
 `;
 
 const DropdownMenuItem = styled(MenuItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};

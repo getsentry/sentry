@@ -50,6 +50,9 @@ export type AutofixData = {
   last_triggered_at: string;
   request: {
     repos: SeerRepoDefinition[];
+    options?: {
+      auto_run_source?: string | null;
+    };
   };
   run_id: string;
   status: AutofixStatus;

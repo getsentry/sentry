@@ -128,7 +128,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   grid-auto-columns: max-content;
   grid-template-rows: 100%;
   gap: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   grid-row: 2;
   grid-column: 1 / -1;
   justify-items: start;

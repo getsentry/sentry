@@ -55,10 +55,14 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         assert resp.data == serialize(
             [
                 WorkflowGroupHistory(
-                    self.group, 3, self.base_triggered_date, self.history[0].event_id
+                    self.group, 3, self.base_triggered_date, self.history[0].event_id, detector=None
                 ),
                 WorkflowGroupHistory(
-                    self.group_2, 1, self.base_triggered_date, self.history[-1].event_id
+                    self.group_2,
+                    1,
+                    self.base_triggered_date,
+                    self.history[-1].event_id,
+                    detector=None,
                 ),
             ],
             self.user,
@@ -76,7 +80,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         assert resp.data == serialize(
             [
                 WorkflowGroupHistory(
-                    self.group, 3, self.base_triggered_date, self.history[0].event_id
+                    self.group, 3, self.base_triggered_date, self.history[0].event_id, detector=None
                 )
             ],
             self.user,
@@ -94,7 +98,11 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         assert resp.data == serialize(
             [
                 WorkflowGroupHistory(
-                    self.group_2, 1, self.base_triggered_date, self.history[-1].event_id
+                    self.group_2,
+                    1,
+                    self.base_triggered_date,
+                    self.history[-1].event_id,
+                    detector=None,
                 )
             ],
             self.user,

@@ -467,7 +467,7 @@ const FooterMessage = styled('p')`
   border: solid 1px ${p => p.theme.alert.warning.border};
   background: ${p => p.theme.alert.warning.backgroundLight};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const FooterTip = styled('p')`
@@ -477,7 +477,7 @@ const FooterTip = styled('p')`
   align-items: center;
   justify-content: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
 
   /* Right-align content if there's non-empty content to the left */

@@ -77,6 +77,6 @@ const TimezoneName = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   width: max-content;
 `;

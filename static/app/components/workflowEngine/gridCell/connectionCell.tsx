@@ -105,7 +105,7 @@ const MonitorDetails = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 500px;
   white-space: nowrap;
   line-height: 1.2;
