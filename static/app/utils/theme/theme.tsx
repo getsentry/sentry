@@ -1224,8 +1224,10 @@ const commonTheme = {
     xl: '18px' as const,
   },
 
-  // @TODO(jonasbadalic) remove relative font sizes
-  // @deprecated use fontSize instead
+  /**
+   * @TODO(jonasbadalic) remove relative font sizes
+   * @deprecated use fontSize instead
+   */
   fontSizeRelativeSmall: '0.9em' as const,
 
   codeFontSize: '13px' as const,
