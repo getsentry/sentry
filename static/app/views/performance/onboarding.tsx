@@ -43,6 +43,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {
   withoutPerformanceSupport,
   withPerformanceOnboarding,
@@ -657,7 +658,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   return (
     <OnboardingPanel project={project}>
-      <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+      <SetupTitle project={project} />
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
@@ -854,12 +855,6 @@ const HeaderText = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex: 1;
   }
-`;
-
-const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
 `;
 
 const Setup = styled('div')`
