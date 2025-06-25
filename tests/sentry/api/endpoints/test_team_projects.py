@@ -385,7 +385,15 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         symbol_sources = ProjectOption.objects.get_value(
             project=unity_project, key="sentry:builtin_symbol_sources"
         )
-        assert symbol_sources == ["ios", "microsoft", "android", "nuget", "unity", "nvidia", "ubuntu"]
+        assert symbol_sources == [
+            "ios",
+            "microsoft",
+            "android",
+            "nuget",
+            "unity",
+            "nvidia",
+            "ubuntu",
+        ]
 
     def test_builtin_symbol_sources_unreal(self):
         """
