@@ -11,6 +11,10 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.helpers.error_upsampling import (
+    is_errors_query_for_error_upsampled_projects,
+    transform_query_columns_for_error_upsampling,
+)
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -117,7 +121,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         status=400,
                     )
                 elif top_events <= 0:
-                    return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
+                    return Response({"detail": "topEvents needs to be at least 1"}, status=400)
 
             comparison_delta = None
             if "comparisonDelta" in request.GET:
@@ -211,12 +215,30 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             zerofill_results: bool,
             comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
+            # Add debug logging for error upsampling decision
+            import logging
+
+            logger = logging.getLogger("sentry.api.endpoints.organization_events_stats")
+            should_upsample = is_errors_query_for_error_upsampled_projects(
+                snuba_params, organization, dataset, request
+            )
+            logger.warning(
+                "[error_upsampling] should_upsample=%s | project_ids=%s | dataset=%s | query=%s",
+                should_upsample,
+                getattr(snuba_params, "project_ids", None),
+                getattr(dataset, "__name__", str(dataset)),
+                request.GET.get("query", None),
+            )
+            transformed_columns = query_columns
+            if should_upsample:
+                transformed_columns = transform_query_columns_for_error_upsampling(query_columns)
+
             if top_events > 0:
                 if use_rpc:
                     return scoped_dataset.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
-                        y_axes=query_columns,
+                        y_axes=transformed_columns,
                         raw_groupby=self.get_field_list(organization, request),
                         orderby=self.get_orderby(request),
                         limit=top_events,
@@ -229,7 +251,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         equations=self.get_equation_list(organization, request),
                     )
                 return scoped_dataset.top_events_timeseries(
-                    timeseries_columns=query_columns,
+                    timeseries_columns=transformed_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
                     user_query=query,
@@ -253,7 +275,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 return scoped_dataset.run_timeseries_query(
                     params=snuba_params,
                     query_string=query,
-                    y_axes=query_columns,
+                    y_axes=transformed_columns,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
@@ -264,7 +286,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
             return scoped_dataset.timeseries_query(
-                selected_columns=query_columns,
+                selected_columns=transformed_columns,
                 query=query,
                 snuba_params=snuba_params,
                 rollup=rollup,

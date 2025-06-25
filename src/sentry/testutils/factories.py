@@ -1029,6 +1029,24 @@ class Factories:
             assert not errors, errors
 
         normalized_data = manager.get_data()
+
+        # Patch: inject sample_weight if client_sample_rate is present
+        client_sample_rate = None
+        try:
+            client_sample_rate = (
+                normalized_data.get("contexts", {})
+                .get("error_sampling", {})
+                .get("client_sample_rate")
+            )
+        except Exception:
+            pass
+        if client_sample_rate:
+            try:
+
+                normalized_data["sample_rate"] = float(client_sample_rate)
+            except Exception:
+                pass
+
         event = None
 
         # When fingerprint is present on transaction, inject performance problems
