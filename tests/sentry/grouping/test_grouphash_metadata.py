@@ -20,7 +20,6 @@ from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
 from tests.sentry.grouping import (
@@ -37,7 +36,6 @@ dummy_project = Mock(id=11211231)
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
     "config_name",
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
