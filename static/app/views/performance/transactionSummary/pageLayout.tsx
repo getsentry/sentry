@@ -42,7 +42,6 @@ import {
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
-import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
@@ -60,7 +59,6 @@ export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
   [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
   [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
-  [Tab.SPANS]: 'performance_views.spans.spans_tab_clicked',
 };
 
 export type ChildProps = {
@@ -141,8 +139,6 @@ function PageLayout(props: Props) {
           return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
-        case Tab.SPANS:
-          return spansRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -333,7 +329,7 @@ function PageLayout(props: Props) {
   );
 }
 
-export function NoAccess() {
+function NoAccess() {
   return (
     <Alert.Container>
       <Alert type="warning">{t("You don't have access to this feature")}</Alert>

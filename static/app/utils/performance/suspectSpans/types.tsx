@@ -15,7 +15,7 @@ export type ExampleTransaction = {
   startTimestamp: number;
 };
 
-export type SpanExample = {
+type SpanExample = {
   description: string | null;
   examples: ExampleTransaction[];
   group: string;

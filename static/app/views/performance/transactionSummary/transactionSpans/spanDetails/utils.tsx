@@ -122,10 +122,3 @@ export function resourceSummaryRouteWithQuery({
     },
   };
 }
-
-export enum ZoomKeys {
-  MIN = 'min',
-  MAX = 'max',
-  START = 'start',
-  END = 'end',
-}
