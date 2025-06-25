@@ -251,17 +251,17 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
-    if option == AutofixAutomationTuningSettings.OFF.value:
+    if option == AutofixAutomationTuningSettings.OFF:
         return False
-    elif option == AutofixAutomationTuningSettings.SUPER_LOW.value:
+    elif option == AutofixAutomationTuningSettings.SUPER_LOW:
         return fixability_score >= FixabilityScoreThresholds.SUPER_HIGH.value
-    elif option == AutofixAutomationTuningSettings.LOW.value:
+    elif option == AutofixAutomationTuningSettings.LOW:
         return fixability_score >= FixabilityScoreThresholds.HIGH.value
-    elif option == AutofixAutomationTuningSettings.MEDIUM.value:
+    elif option == AutofixAutomationTuningSettings.MEDIUM:
         return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
-    elif option == AutofixAutomationTuningSettings.HIGH.value:
+    elif option == AutofixAutomationTuningSettings.HIGH:
         return fixability_score >= FixabilityScoreThresholds.LOW.value
-    elif option == AutofixAutomationTuningSettings.ALWAYS.value:
+    elif option == AutofixAutomationTuningSettings.ALWAYS:
         return True
     return False
 

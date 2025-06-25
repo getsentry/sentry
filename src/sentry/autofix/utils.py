@@ -188,12 +188,12 @@ def is_seer_scanner_rate_limited(
 
 
 AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
-    AutofixAutomationTuningSettings.OFF.value: 5,
-    AutofixAutomationTuningSettings.SUPER_LOW.value: 5,
-    AutofixAutomationTuningSettings.LOW.value: 4,
-    AutofixAutomationTuningSettings.MEDIUM.value: 3,
-    AutofixAutomationTuningSettings.HIGH.value: 2,
-    AutofixAutomationTuningSettings.ALWAYS.value: 1,
+    AutofixAutomationTuningSettings.OFF: 5,
+    AutofixAutomationTuningSettings.SUPER_LOW: 5,
+    AutofixAutomationTuningSettings.LOW: 4,
+    AutofixAutomationTuningSettings.MEDIUM: 3,
+    AutofixAutomationTuningSettings.HIGH: 2,
+    AutofixAutomationTuningSettings.ALWAYS: 1,
     None: 1,  # default if option is not set
 }
 

@@ -325,7 +325,7 @@ class OrganizationExamples:
                 "gitlabPRBot": True,
                 "gitlabOpenPRBot": True,
                 "aggregatedDataConsent": False,
-                "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.SUPER_LOW.value,
+                "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.SUPER_LOW,
                 "defaultSeerScannerAutomation": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
