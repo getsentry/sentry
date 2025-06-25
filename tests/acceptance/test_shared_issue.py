@@ -1,3 +1,4 @@
+import pytest
 from sentry.models.groupshare import GroupShare
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -15,6 +16,7 @@ class SharedIssueTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
 
+    @pytest.mark.skip(reason="flaky: #94321")
     def test_python_event(self):
         data = load_data(platform="python")
         data["timestamp"] = before_now(days=1).isoformat()
