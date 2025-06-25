@@ -1038,20 +1038,30 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
     update_dual_written_detector(alert_rule=alert_rule, enabled=False)
 
 
-def update_detector(detector: Detector, enabled: bool) -> None:
+def enable_disable_detector(detector: Detector, enabled: bool) -> None:
     updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+    detector.update(status=updated_detector_status)
+    detector.update(enabled=enabled)
 
+
+def enable_disable_subscriptions(
+    query_subscriptions: list[QuerySubscription], enabled: bool
+) -> None:
+    if enabled:
+        bulk_enable_snuba_subscriptions(query_subscriptions)
+    else:
+        bulk_disable_snuba_subscriptions(query_subscriptions)
+
+
+def update_detector(detector: Detector, enabled: bool) -> None:
     with transaction.atomic(router.db_for_write(Detector)):
-        detector.update(status=updated_detector_status)
-        detector.update(enabled=enabled)
+        enable_disable_detector(detector, enabled)
+
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
-            if enabled:
-                bulk_enable_snuba_subscriptions(query_subscriptions)
-            else:
-                bulk_disable_snuba_subscriptions(query_subscriptions)
+            enable_disable_subscriptions(query_subscriptions, enabled)
 
 
 def delete_alert_rule(
