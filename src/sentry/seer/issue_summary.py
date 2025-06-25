@@ -314,8 +314,7 @@ def _run_automation(
     if not has_budget:
         return
 
-    with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-        autofix_state = get_autofix_state(group_id=group.id)
+    autofix_state = get_autofix_state(group_id=group.id)
     if autofix_state:
         return  # already have an autofix on this issue
 
