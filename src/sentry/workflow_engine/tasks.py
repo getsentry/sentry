@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -11,6 +13,10 @@ from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors.data_source import process_data_sources
 from sentry.workflow_engine.processors.detector import process_detectors
 
+if TYPE_CHECKING:
+    from sentry.workflow_engine.models import Detector
+
+
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
 
@@ -18,8 +24,6 @@ SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
     name="sentry.workflow_engine.tasks.process_data_packet",
     queue="workflow_engine.process_workflows",
     acks_late=True,
-    default_retry_delay=5,
-    max_retries=3,
     silo_mode=SiloMode.REGION,
     task_worker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
@@ -35,9 +39,15 @@ def process_data_packet[T](data_packet: DataPacket[T], data_packet_type: str | N
     """
     query_type = data_packet_type
     if query_type is None:
+        # if a type isn't provided, infer it from the data_packet
         query_type = type(data_packet.packet).__name__
 
-    processed_sources = process_data_sources(data_packet, query_type)
+        if query_type == "dict":
+            raise ValueError("data_packet_type must be provided for dict data packets")
+
+    processed_sources: list[tuple[DataPacket[T], list[Detector]]] = process_data_sources(
+        [data_packet], query_type
+    )
     for data_packet, detectors in processed_sources:
         process_detectors(data_packet, detectors)
 
