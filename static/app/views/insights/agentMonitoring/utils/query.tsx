@@ -9,7 +9,9 @@ export const AI_RUN_OPS = [
   'ai.run.generateObject',
   'gen_ai.invoke_agent',
   'ai.pipeline.generate_text',
+  'ai.pipeline.generate_object',
   'ai.pipeline.stream_text',
+  'ai.pipeline.stream_object',
 ];
 export const AI_RUN_DESCRIPTIONS = ['ai.generateText', 'generateText'];
 
@@ -83,6 +85,10 @@ export function getIsAiSpan({
     return AI_OPS.includes(op) || op.startsWith('gen_ai.');
   }
   return AI_DESCRIPTIONS.includes(description ?? '');
+}
+
+export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
+  return AI_RUN_OPS.includes(op);
 }
 
 // TODO: Remove once tool spans have their own op
