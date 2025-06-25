@@ -155,7 +155,7 @@ const UpsellContent = styled('div')`
 
 const Note = styled('p')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 export const modalCss = css`

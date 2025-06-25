@@ -306,7 +306,7 @@ const Info = styled('div')`
 
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.gray300};
 `;
 

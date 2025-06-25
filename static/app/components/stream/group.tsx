@@ -816,7 +816,7 @@ const CountTooltipContent = styled('div')`
 
   h4 {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${space(0.25)};

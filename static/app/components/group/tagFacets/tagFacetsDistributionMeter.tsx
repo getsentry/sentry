@@ -319,7 +319,7 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   outline: none;
   background-color: ${p => p.color};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: 1px ${space(0.5)} 0 0;
   user-select: none;
 `;

@@ -161,7 +161,7 @@ const CTASecondary = styled('div')`
 const Note = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   margin-block: ${space(4)};
 `;
 

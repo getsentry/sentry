@@ -500,7 +500,7 @@ const Registers = styled(Context)`
 
 const PackageNote = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const Package = styled('span')`

@@ -720,7 +720,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.textColor};
   }
   .tooltip-release-timerange {
-    font-size: ${p.theme.fontSizeExtraSmall};
+    font-size: ${p.theme.fontSize.xs};
     color: ${p.theme.textColor};
   }
   .tooltip-series {

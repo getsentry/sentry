@@ -119,7 +119,7 @@ const Subheader = styled('div')`
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.gray400};
   margin-top: ${space(1)};
 `;

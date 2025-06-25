@@ -208,7 +208,7 @@ const StyledHovercard = styled(Overlay)`
   line-height: 1.2;
   h6 {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     margin-bottom: ${space(1)};
     text-transform: uppercase;
   }

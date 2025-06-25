@@ -120,7 +120,7 @@ const CollapsibleTimelineHeader = styled('div')<{
 
 export const CollapsibleTimelineLabel = styled('span')`
   padding: 1px ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 export const CollapsibleTimelineMessage = styled('p')`

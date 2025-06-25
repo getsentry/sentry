@@ -170,7 +170,7 @@ const Subheader = styled('h4')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

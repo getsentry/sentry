@@ -386,7 +386,7 @@ const SizingWrapper = styled('div')`
 `;
 
 const SmallPrint = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   line-height: 1.5;
   text-align: right;
@@ -401,7 +401,7 @@ const Ellipsis = styled('span')`
 
 const ErrorMessage = styled('span')`
   color: ${p => p.theme.error};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   line-height: 1.5;
   text-align: right;
 `;

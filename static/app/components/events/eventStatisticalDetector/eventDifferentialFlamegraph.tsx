@@ -513,7 +513,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   justify-content: space-between;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.backgroundSecondary};

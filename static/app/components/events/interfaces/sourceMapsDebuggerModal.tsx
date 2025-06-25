@@ -2053,7 +2053,7 @@ const MonoBlock = styled('code')`
   background: ${p => p.theme.gray100};
   border: 1px solid ${p => p.theme.border};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeightNormal};
   white-space: nowrap;
 `;

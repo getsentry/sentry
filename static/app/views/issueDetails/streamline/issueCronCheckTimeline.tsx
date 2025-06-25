@@ -231,7 +231,7 @@ const EnvironmentLabel = styled(Tooltip)`
   user-select: none;
   left: 0;
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   white-space: nowrap;
 `;

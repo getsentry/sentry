@@ -88,7 +88,7 @@ const SectionTitleExtra = styled('span')`
 `;
 
 const SectionData = styled('dd')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const ToggleButton = styled('button')`

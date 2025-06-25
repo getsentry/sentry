@@ -1528,7 +1528,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceBarDuration {
     display: inline-block;
     transform-origin: left center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     color: ${p => p.theme.subText};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;

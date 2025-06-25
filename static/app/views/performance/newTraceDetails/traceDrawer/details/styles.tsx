@@ -672,7 +672,7 @@ const HiglightsDurationComparison = styled('div')<
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
   background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
   border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
   height: 21px;

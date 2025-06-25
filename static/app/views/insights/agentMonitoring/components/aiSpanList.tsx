@@ -462,7 +462,7 @@ const DurationBar = styled('div')<{
 `;
 
 const DurationText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
 `;
 
