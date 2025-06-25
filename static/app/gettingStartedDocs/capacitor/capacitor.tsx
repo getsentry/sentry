@@ -222,7 +222,7 @@ function getVueConstSetup(siblingOption: string): string {
 }
 
 const getIntegrations = (params: Params): string[] => {
-  const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
+  const integrations: string[] = ['Sentry.browserTracingIntegration()'];
 
   if (params.isPerformanceSelected) {
     integrations.push(`
