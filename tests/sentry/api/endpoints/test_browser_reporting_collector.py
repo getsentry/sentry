@@ -140,6 +140,15 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         )
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_optional_fields_not_required(self) -> None:
+        """Test that reports missing the optional fields are accepted"""
+        report = deepcopy(DEPRECATION_REPORT)
+        del report["destination"]
+        del report["attempts"]
+        response = self.client.post(self.url, [report])
+        assert response.status_code == status.HTTP_200_OK
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     def test_rejects_invalid_attempts(self) -> None:
         """Test that invalid attempts values are rejected"""
         report = deepcopy(DEPRECATION_REPORT)
