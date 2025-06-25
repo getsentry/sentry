@@ -11,6 +11,21 @@ const debug = (...args: any[]) => debugEnabled && log(...args);
 const fatal = (...args: any[]) => console.error(...args);
 
 // Main execution
+// analyze-styled.ts is a script that analyzes styled components in TypeScript React files.
+// It can be invoked via node analyze-styled.ts and accepts the following options:
+
+// -- <file>          : Analyze a specific .tsx file instead of searching directories
+// -n <number>        : Show top N most styled components (default: 10)
+// -c <components>    : Filter analysis to specific components (comma-separated)
+// -l                 : Show file locations for styled components (requires -c)
+// -d                 : Enable debug logging
+// <directory>        : Directory to search for .tsx files (default: './static/app')
+
+// Examples:
+//   node analyze-styled.ts -- ./path/to/file.tsx
+//   node analyze-styled.ts -n 20 -c div,span ./static/app
+//   node analyze-styled.ts -l -c div ./static/app
+
 const args = process.argv.slice(2);
 let searchDir: string | null = null;
 let targetFile: string | null = null;
@@ -35,7 +50,7 @@ for (let i = 0; i < args.length; i++) {
     i++; // Skip the next argument since we consumed it
   } else if (args[i] === '-l') {
     locations = true;
-  } else if (args[i] === '-d') {
+  } else if (args[i] === '-debug') {
     debugEnabled = true;
   } else if (!searchDir) {
     searchDir = args[i];
@@ -131,14 +146,14 @@ function analyzeStyledComponents(
             componentName = 'InlineFunction';
             componentType = 'component';
           } else {
-            // debug(
-            //   'Debug: ',
-            //   component.kind,
-            //   'Text:',
-            //   component.getText(),
-            //   'File:',
-            //   fileName
-            // );
+            debug(
+              'Debug: ',
+              component.kind,
+              'Text:',
+              component.getText(),
+              'File:',
+              fileName
+            );
           }
 
           // Extract CSS rules
@@ -268,6 +283,8 @@ type RuleInfo = {
   children?: RuleInfo[];
 };
 
+const parseErrors: string[] = [];
+
 styledComponents.forEach(sc => {
   const count = (styledInfo[sc.component]?.length ?? 0) + 1;
   styledInfo[sc.component] = styledInfo[sc.component] || [];
@@ -304,6 +321,16 @@ styledComponents.forEach(sc => {
       continue;
     }
 
+    if (line.match(/^\s*\$\{p => p.theme.overflowEllipsis\};?/)) {
+      ruleInfo['@expression: p.theme.overflowEllipsis'] =
+        ruleInfo['@expression: p.theme.overflowEllipsis'] || [];
+      ruleInfo['@expression: p.theme.overflowEllipsis'].push({
+        value: `${p => p.theme.overflowEllipsis}`,
+        dynamic: 1,
+      });
+      continue;
+    }
+
     let [property, value] = line.split(':');
     property = property?.trim();
     value = value?.trim().replace(/;$/, '');
@@ -316,17 +343,11 @@ styledComponents.forEach(sc => {
       });
     } else {
       // debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
-      fs.writeFileSync('analyze-styled-error.txt', `Error parsing line: ${line}\n`);
-      process.exit(1);
-      if (debugEnabled) {
-        ruleInfo['parsing error'] = ruleInfo['parsing error'] || [];
-        ruleInfo['parsing error'].push({
-          value: line,
-          dynamic: 0,
-        });
-      }
+      parseErrors.push(`/////////////////\n${line}\n/////////////////\n`);
     }
   }
+
+  // Deduplicate errors and track counts
 
   styledInfo[sc.component].push({
     count,
@@ -336,120 +357,144 @@ styledComponents.forEach(sc => {
   });
 });
 
-// log(' ');
-// // Output results
-// log(`📊 Found ${totalStyledComponents} styled components:\n`);
-// log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
-// log(`   • React components: ${totalReactComponents}`);
-// log(`   • Unknown components: ${unknownComponents}`);
-// log(`   • Total files analyzed: ${tsxFiles.length}`);
+const errorCounts = new Map<string, {count: number}>();
 
-// log(` `);
-// log(`📄 Types of expressions:`);
-// log(` `);
-// log(
-//   `   • Dynamic expressions per styled component: ~${(dynamicExpressions / totalStyledComponents).toFixed(2)}`
-// );
-// log(
-//   `   • Static expressions per styled component: ~${(staticExpressions / totalStyledComponents).toFixed(2)}`
-// );
-// const totalExpressions = (dynamicExpressions || 0) + (staticExpressions || 0);
-// const dynamicRatio =
-//   totalExpressions > 0 ? (dynamicExpressions || 0) / totalExpressions : 0;
-// const staticRatio =
-//   totalExpressions > 0 ? (staticExpressions || 0) / totalExpressions : 0;
+for (const error of parseErrors) {
+  const existing = errorCounts.get(error);
+  if (existing) {
+    existing.count++;
+  } else {
+    errorCounts.set(error, {
+      count: 1,
+    });
+  }
+}
 
-// log(`   • Total expressions: ${totalExpressions}`);
-// log(
-//   `   • Dynamic/Static ratio: ${(dynamicRatio * 100).toFixed(1)}% / ${(staticRatio * 100).toFixed(1)}%`
-// );
+// Write deduplicated errors with headers to file
+const deduplicatedErrors = Array.from(errorCounts.entries())
+  .sort((a, b) => b[1].count - a[1].count)
+  .map(([error, info]) => {
+    return `// Error occurred ${info.count} time(s)\n${error}`;
+  })
+  .join('\n\n');
 
-// log(' ');
+log(' ');
+// Output results
+log(`📊 Found ${totalStyledComponents} styled components:\n`);
+log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
+log(`   • React components: ${totalReactComponents}`);
+log(`   • Unknown components: ${unknownComponents}`);
+log(`   • Total files analyzed: ${tsxFiles.length}`);
 
-// log(`📂 Top ${topN} most styled components:\n`);
-// console.table(
-//   Object.entries(styledInfo)
-//     .sort((a, b) => b[1].length - a[1].length)
-//     .slice(0, topN)
+log(` `);
+log(`📄 Types of expressions:`);
+log(` `);
+log(
+  `   • Dynamic expressions per styled component: ~${(dynamicExpressions / totalStyledComponents).toFixed(2)}`
+);
+log(
+  `   • Static expressions per styled component: ~${(staticExpressions / totalStyledComponents).toFixed(2)}`
+);
+const totalExpressions = (dynamicExpressions || 0) + (staticExpressions || 0);
+const dynamicRatio =
+  totalExpressions > 0 ? (dynamicExpressions || 0) / totalExpressions : 0;
+const staticRatio =
+  totalExpressions > 0 ? (staticExpressions || 0) / totalExpressions : 0;
 
-//     .map(([component, info]) => {
-//       const pct = (info.length / totalStyledComponents) * 100;
-//       return {
-//         Component: component,
-//         'Styled Components': info.length,
-//         '% of Total': pct < 1 ? '<1%' : `${pct.toFixed(1)}%`,
-//       };
-//     })
-// );
+log(`   • Total expressions: ${totalExpressions}`);
+log(
+  `   • Dynamic/Static ratio: ${(dynamicRatio * 100).toFixed(1)}% / ${(staticRatio * 100).toFixed(1)}%`
+);
 
-// if (locations) {
-//   log('\n📍 Locations of styled components:\n');
-//   for (const [component, info] of Object.entries(styledInfo)) {
-//     log(` ${component}:\n  • ${info.map(n => n.location).join('\n  • ')}`);
-//   }
-// }
+log(' ');
 
-// const commonRules: Record<string, number> = {};
+log(`📂 Top ${topN} most styled components:\n`);
+console.table(
+  Object.entries(styledInfo)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, topN)
 
-// for (const [_, info] of Object.entries(styledInfo)) {
-//   for (const rule of info) {
-//     for (const [property, value] of Object.entries(rule.ruleInfo)) {
-//       commonRules[property] = (commonRules[property] || 0) + value.length;
-//     }
-//   }
-// }
+    .map(([component, info]) => {
+      const pct = (info.length / totalStyledComponents) * 100;
+      return {
+        Component: component,
+        'Styled Components': info.length,
+        '% of Total': pct < 1 ? '<1%' : `${pct.toFixed(1)}%`,
+      };
+    })
+);
 
-// console.table(
-//   Object.entries(commonRules)
-//     .sort((a, b) => b[1] - a[1])
-//     .slice(0, 40)
-//     .map(([property, count]) => ({
-//       Property: property,
-//       Count: count,
-//       '% of Total': ((count / totalStyledComponents) * 100).toFixed(2) + '%',
-//     }))
-// );
+if (locations) {
+  log('\n📍 Locations of styled components:\n');
+  for (const [component, info] of Object.entries(styledInfo)) {
+    log(` ${component}:\n  • ${info.map(n => n.location).join('\n  • ')}`);
+  }
+}
 
-// function searchForDivsWithOnlyFlexRules() {
-//   const flexRules = new Set([
-//     'flex',
-//     'flex-direction',
-//     'flex-wrap',
-//     'justify-content',
-//     'align-items',
-//     'align-content',
-//     'gap',
-//   ]);
+const commonRules: Record<string, number> = {};
 
-//   for (const key in styledInfo) {
-//     if (key === 'div') {
-//       const divs = styledInfo[key];
+for (const [_, info] of Object.entries(styledInfo)) {
+  for (const rule of info) {
+    for (const [property, value] of Object.entries(rule.ruleInfo)) {
+      commonRules[property] = (commonRules[property] || 0) + value.length;
+    }
+  }
+}
 
-//       for (const div of divs) {
-//         let hasOnlyFlexRules = true;
-//         let hasDisplayFlexRule = false;
+console.table(
+  Object.entries(commonRules)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 40)
+    .map(([property, count]) => ({
+      Property: property,
+      Count: count,
+      '% of Total': ((count / totalStyledComponents) * 100).toFixed(2) + '%',
+    }))
+);
 
-//         if (!div.ruleInfo) {
-//           continue;
-//         }
+function searchForDivsWithOnlyFlexRules(): string[] {
+  const flexRules = new Set([
+    'flex',
+    'flex-direction',
+    'flex-wrap',
+    'justify-content',
+    'align-items',
+    'align-content',
+    'gap',
+  ]);
 
-//         for (const rule in div.ruleInfo) {
-//           if (rule === 'display') {
-//             hasDisplayFlexRule = div.ruleInfo[rule].some(value => value.value === 'flex');
-//           }
+  const results: string[] = [];
 
-//           if (rule !== 'display' && !flexRules.has(rule)) {
-//             hasOnlyFlexRules = false;
-//             break;
-//           }
-//         }
+  for (const key in styledInfo) {
+    if (key === 'div') {
+      const divs = styledInfo[key];
 
-//         if (hasDisplayFlexRule && hasOnlyFlexRules) {
-//           console.log('Found div with only flex rules:', div.location);
-//         }
-//       }
-//     }
-//   }
-// }
+      for (const div of divs) {
+        let hasOnlyFlexRules = true;
+        let hasDisplayFlexRule = false;
 
-// searchForDivsWithOnlyFlexRules();
+        if (!div.ruleInfo) {
+          continue;
+        }
+
+        for (const rule in div.ruleInfo) {
+          if (rule === 'display') {
+            hasDisplayFlexRule = div.ruleInfo[rule].some(value => value.value === 'flex');
+          }
+
+          if (rule !== 'display' && !flexRules.has(rule)) {
+            hasOnlyFlexRules = false;
+            break;
+          }
+        }
+
+        if (hasDisplayFlexRule && hasOnlyFlexRules) {
+          results.push(div.location);
+        }
+      }
+    }
+  }
+  return results;
+}
+
+fs.writeFileSync('analyze-styled.txt', searchForDivsWithOnlyFlexRules().join('\n'));

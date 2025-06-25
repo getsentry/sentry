@@ -1,0 +1,8806 @@
+// Error occurred 194 time(s)
+/////////////////
+  ${p =>
+/////////////////
+
+
+// Error occurred 138 time(s)
+/////////////////
+    css`
+/////////////////
+
+
+// Error occurred 117 time(s)
+/////////////////
+    `}
+/////////////////
+
+
+// Error occurred 64 time(s)
+/////////////////
+``
+/////////////////
+
+
+// Error occurred 34 time(s)
+/////////////////
+  :hover {
+/////////////////
+
+
+// Error occurred 27 time(s)
+/////////////////
+  svg {
+/////////////////
+
+
+// Error occurred 27 time(s)
+/////////////////
+      ? css`
+/////////////////
+
+
+// Error occurred 24 time(s)
+/////////////////
+    `};
+/////////////////
+
+
+// Error occurred 23 time(s)
+/////////////////
+    ${p =>
+/////////////////
+
+
+// Error occurred 22 time(s)
+/////////////////
+  button {
+/////////////////
+
+
+// Error occurred 22 time(s)
+/////////////////
+  p {
+/////////////////
+
+
+// Error occurred 20 time(s)
+/////////////////
+  );
+/////////////////
+
+
+// Error occurred 19 time(s)
+/////////////////
+      : css`
+/////////////////
+
+
+// Error occurred 18 time(s)
+/////////////////
+   */
+/////////////////
+
+
+// Error occurred 16 time(s)
+/////////////////
+  h4 {
+/////////////////
+
+
+// Error occurred 16 time(s)
+/////////////////
+        `}
+/////////////////
+
+
+// Error occurred 14 time(s)
+/////////////////
+  pre {
+/////////////////
+
+
+// Error occurred 13 time(s)
+/////////////////
+    );
+/////////////////
+
+
+// Error occurred 13 time(s)
+/////////////////
+  code {
+/////////////////
+
+
+// Error occurred 13 time(s)
+/////////////////
+  :focus {
+/////////////////
+
+
+// Error occurred 12 time(s)
+/////////////////
+  :not(:last-child) {
+/////////////////
+
+
+// Error occurred 12 time(s)
+/////////////////
+  a {
+/////////////////
+
+
+// Error occurred 11 time(s)
+/////////////////
+    svg {
+/////////////////
+
+
+// Error occurred 11 time(s)
+/////////////////
+  div {
+/////////////////
+
+
+// Error occurred 11 time(s)
+/////////////////
+  /*
+/////////////////
+
+
+// Error occurred 11 time(s)
+/////////////////
+  input {
+/////////////////
+
+
+// Error occurred 11 time(s)
+/////////////////
+    90deg,
+/////////////////
+
+
+// Error occurred 11 time(s)
+/////////////////
+        ? css`
+/////////////////
+
+
+// Error occurred 10 time(s)
+/////////////////
+  ${Panel} {
+/////////////////
+
+
+// Error occurred 10 time(s)
+/////////////////
+  `}
+/////////////////
+
+
+// Error occurred 10 time(s)
+/////////////////
+      ? `
+/////////////////
+
+
+// Error occurred 10 time(s)
+/////////////////
+      return css`
+/////////////////
+
+
+// Error occurred 10 time(s)
+/////////////////
+      `;
+/////////////////
+
+
+// Error occurred 9 time(s)
+/////////////////
+  /**
+/////////////////
+
+
+// Error occurred 9 time(s)
+/////////////////
+  span {
+/////////////////
+
+
+// Error occurred 8 time(s)
+/////////////////
+    p.disabled &&
+/////////////////
+
+
+// Error occurred 8 time(s)
+/////////////////
+  img {
+/////////////////
+
+
+// Error occurred 8 time(s)
+/////////////////
+      css`
+/////////////////
+
+
+// Error occurred 8 time(s)
+/////////////////
+          `}
+/////////////////
+
+
+// Error occurred 8 time(s)
+/////////////////
+    box-shadow:
+/////////////////
+
+
+// Error occurred 8 time(s)
+/////////////////
+    layout === 'table bottom'
+/////////////////
+
+
+// Error occurred 7 time(s)
+/////////////////
+  ${FieldWrapper} {
+/////////////////
+
+
+// Error occurred 7 time(s)
+/////////////////
+      ${p => p.theme.visuallyHidden}
+/////////////////
+
+
+// Error occurred 7 time(s)
+/////////////////
+    transition:
+/////////////////
+
+
+// Error occurred 7 time(s)
+/////////////////
+      `}
+/////////////////
+
+
+// Error occurred 7 time(s)
+/////////////////
+    ${IconBackground} {
+/////////////////
+
+
+// Error occurred 7 time(s)
+/////////////////
+        `};
+/////////////////
+
+
+// Error occurred 7 time(s)
+/////////////////
+        : css`
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  ${pulsingIndicatorStyles};
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  * {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  h2 {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  h3 {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  ~ footer {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  li {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+    p.theme.isChonk &&
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+    ${p => p.theme.backgroundSecondary}00 0%,
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+    ${p => p.theme.backgroundSecondary}FF 70%,
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+    ${p => p.theme.backgroundSecondary}FF 100%
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  ${p => {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  ${p => css`
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  .invisible {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+    0% {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+      ${StyledNavButton} {
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+  transition:
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+    .rdrInRange,
+/////////////////
+
+
+// Error occurred 6 time(s)
+/////////////////
+        css`
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  ${p => p.theme.tooltipUnderline()};
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  ${GRID_TEMPLATE}
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  :first-child {
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+    p.isEmpty &&
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  grid-template-areas:
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  :last-child {
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  :not(:first-child) {
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+    .invisible {
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+            to bottom,
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+            transparent 0 4px,
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+          )
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+          80%/2px 100% no-repeat;
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+    p {
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+    h5 {
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  ${AvatarStyle}
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+      : ''}
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+  ${filterCss};
+/////////////////
+
+
+// Error occurred 5 time(s)
+/////////////////
+      transparent,
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+   * The footer component is a sibling of this div.
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+   * entire screen.
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+  :before {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    269.35deg,
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    ${p => p.theme.backgroundTertiary} 0.32%,
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    rgba(245, 243, 247, 0) 99.69%
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    div[data-column='envs'],
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    div[data-column='last-visited'],
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    div[data-column='created'],
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+          grid-template-areas:
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+            grid-template-areas:
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+  */
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    p.highlightedSliceName
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+      )
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+      : `
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+  strong {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    from {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    to {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+  td {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    100% {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    50% {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+  h6 {
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+  pre,
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+    p.labelPosition === 'center-bottom' &&
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+      ${p => p.theme.background} 0 0 0 3px,
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+      ${p => p.theme.focus} 0 0 0 6px;
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+  shadow border */
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+        : p.theme.subText};
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+      : layout === 'table right'
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+      : layout === 'table left'
+/////////////////
+
+
+// Error occurred 4 time(s)
+/////////////////
+        ? `
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  h1 {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${Body} {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${DataSection} {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+   * Remove it so the flamegraph can take up the
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  tr {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  .loading {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${fullPageCss};
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    p.layout === NavLayout.MOBILE &&
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  grid-template-columns:
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    button {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+        return css`
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+        `;
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+        ${NavLinkIconContainer} {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  .loading-indicator {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${textStyles}
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    p.hasStreamlinedUI &&
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+      .TraceIndicatorLabelContainer {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+      .TraceIndicatorLine {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    .TracePattern {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+      .TraceLeftColumn {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ul {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  small {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  :hover,
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    p.isDisabled &&
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  h1,
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  h2,
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  h3,
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  h4,
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    grid-template-areas:
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+      p.expanded
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    )
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  /* Remove custom margin added by SelectorItemLabel. Once we update custom hooks and
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  remove SelectorItemLabel, we can delete this. */
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    p.labelPosition === 'left-top' &&
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    return css`
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    `;
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    p.theme.isChonk
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+    isChonkTheme(p.theme)
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${SidebarDropdownMenu};
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${p => responsiveFlex(p.theme)};
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+      box-shadow 0.1s;
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${baseAvatarStyles};
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+          css`
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+        : ''}
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  :focus-within {
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  ${getListItemStyles}
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+      transparent
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+      `};
+/////////////////
+
+
+// Error occurred 3 time(s)
+/////////////////
+  table.table.key-value td.key {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${fixedStyle}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      to right,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .traceback {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : p.theme.borderRadius};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .show-sidebar & {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  p,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  mark {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .encrypt-help {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  * > img {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    180deg,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${p => p.theme.background}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${p => {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${FeatureBadge} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    force height to be the same as profile digest header,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    but subtract 1px for the border that doesnt exist on the header
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    calc(${p => p.theme.borderRadius} + 1px) 0 0;
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.isSorted &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.role === 'children' &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  label {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      p.theme.breakpoints.medium}) {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${RowCellContainer} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${TraceViewContainer} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${sectionTitleStyles}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  [data-isl] {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${contentStyle};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      p.priority === 'primary' &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      grid-template-columns:
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    div[data-column='stars'] {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    div[data-column='stars'],
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    div[data-column='project'] {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            'page-filters'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            'search'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            'sort-save';
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+              'page-filters sort-save'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+              'search search';
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    !p.tourIsActive &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    !p.isMobile &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.isSuperuser &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    !p.theme.isChonk &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    [data-project-icon] {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  :not(:hover) {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    [data-drag-icon] {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      default:
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.align === 'center'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : p.align === 'left' || p.align === 'right'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        : undefined}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : null}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+   * Max of 2 visible projects, 16px each, 2px border, 8px overlap.
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      --highlightedSlice-${p.sliceName ?? ''}-opacity,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      var(--defaultSlice-opacity, 1)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      --hoveredSlice-${p.offset}-translateY,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      var(
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        --highlightedSlice-${p.sliceName ?? ''}-transform,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        var(--defaultSlice-transform, 1)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${baseNavItemStyles}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.layout === 'drawer bottom'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : p.layout === 'drawer left'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        ? 'min-content 1fr'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .loading-message {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  button[aria-haspopup] {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ${p => p.theme.background},
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      a {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+   * setting this higher up causes it to trickle into the menus */
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  box-shadow:
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${p => getNoteInputErrorStyles(p)};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    .TraceIcon {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      svg {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        svg {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      .TraceRightColumn.Odd {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${linkCss}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${linkIconCss}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.selected &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    .DropdownMenu {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${actionButtonStyles};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${columnStyle}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${NumberContainer} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  @keyframes pulse {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  :fullscreen {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    a {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  h5,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  th {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    !p.isEmpty &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${p => p.textCss?.(p)}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  /* We provide some margin to make room for the scroll bar. It is applied on
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+   * the top and bottom for consistency.
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${Mask}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.transparentMask
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : `linear-gradient(
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${p.theme.background} 50%,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  )`};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${p => getTickStyle(tickStyle, p.status, p.theme)}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    // Chonk tags have a smaller border radius, so we need make sure it matches.
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.columnWidth &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ol,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  /* Need to select the 2nd child to select the first cell
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+     as the first child is the interaction state layer */
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${Panel} & {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      input {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  :nth-child(odd) {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.hide &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    .loading-indicator {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      isChonkTheme(p.theme)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        ? p.theme.button.default.background
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        : p.theme.button.default.backgroundActive};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${FloatingCloseButton} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.scrollable &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    return '';
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.hasNewNav &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${p => AvatarStyles(p)};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            `}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .rdrEndEdge {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .rdrDayInPreview {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    .rdrDayInPreview {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .rdrDayStartOfWeek {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    .rdrDayInPreview,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .rdrDayEndOfWeek {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${textStyles};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${emptyFieldCss}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      isChonkTheme(props.theme)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        ? props.suggested
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+          ? props.theme.background
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        : props.suggested
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+          ? props.theme.subText
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${AvatarStyle};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.hasChildren
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ? p.size === 'xs' || p.size === 'zero'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        ? space(0.75)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        : space(1)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : '0'};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      [role='document'] & {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ul,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      p.orientation === 'horizontal'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+          `};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${p => css`
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ? chonkInnerWrapStyles({
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : innerWrapStyles(p)}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ${p => p.theme.focusBorder} 0 0 0 1px,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      inset ${p => p.theme.focusBorder} 0 0 0 1px;
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${getInputStyles}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${inputStyles};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.highlighted &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      background 0.1s,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.error &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  /* Add 1px to top padding if preceded by menu header, to account for the header's
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  :placeholder-shown {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  [disabled] {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.size === 'small'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ? `${space(0.75)} ${space(1)}`
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : `${space(0.75)} 48px ${space(0.75)} 44px`};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${dateTimeCss};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  .echarts-for-react text {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${p => getTooltipStyles(p)}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    input {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    [data-hidden-text='true']::before {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  blockquote {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.state === 'invalid'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : p.state === 'warning'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.hasErrors
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : p.isSuspectFlag
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            'recentFilters recentFilters'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            'tabs tabs'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            'list list'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+            'footer footer';
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+          ${p.fullWidth &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+              'recentFilters recentFilters'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+              'tabs tabs'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+              'footer footer';
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${StyledForm} &, .form-stacked & {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    .control-group & {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${getBreadcrumbListItemStyles}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      :nth-child(5n) {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ${p =>
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        !p.isEmpty &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  background-image:
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      -45deg,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ),
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${absoluteFull}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    repeating-linear-gradient(
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${commonStyles};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      to bottom,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.gridArea &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${p => commonStyles(p)};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${linkStyles}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${commonCss}
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${Meter} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${Range},
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${SliderAndInputWrapper} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${MouseTrackingValue} {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    /**
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+     */
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    :after {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  /* By default, a grid item cannot be smaller than the size of its content.
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+     We override this by setting min-width to be 0. */
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${p => p.theme.backgroundSecondary} 0%,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    ${p => p.theme.backgroundSecondary} 80%,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    transparent 100%
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ? '100%'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        'minimap'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        'flamegraph'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        'frame-stack'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        'minimap        frame-stack'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        'flamegraph     frame-stack'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        : layout === 'table left'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+          ? `
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        'frame-stack minimap'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        'frame-stack flamegraph'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+          : ''};
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  nav {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    'tabs tabs'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    'table details'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    'drawer drawer'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      'tabs tabs drawer'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      'table table drawer'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      'details details drawer';
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        : `
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      'drawer tabs tabs'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      'drawer table table'
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      'drawer details details';
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.lineType === DiffLineType.ADDED &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.lineType === DiffLineType.REMOVED &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      90deg,
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      from {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      to {
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.isActive
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      ? isChonkTheme(p.theme)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      : isChonkTheme(p.theme)
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+        ? p.theme.white
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    !p.disabled &&
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+      border-color 0.2s ease-in-out;
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+    p.hasProfileMeasurementsChart
+/////////////////
+
+
+// Error occurred 2 time(s)
+/////////////////
+  ${p => p.inlined && inlinedStyles}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${StepHeading} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Important is needed to override our root SVG rule.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * We disable clipping to allow some of the background
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * to animate outside of the illustration during transitions */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${ScorePanel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Title} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${ScoreWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Score} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Trend} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    -180deg,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    rgba(52, 44, 62, 0) 0%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    rgba(52, 44, 62, 0.5) 100%
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${FieldWrapper} + ${FieldWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Panel} + ${Panel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${PanelHeader} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    calc(${p => p.theme.borderRadius} - 1px);
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Actions} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.purple200} 0%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.purple300} 100%
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .delete-condition {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :hover .delete-condition {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${GRID_TEMPLATE};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${CellWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${StyledCheckbox} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .last-triggered,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .action,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .projects,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .connected-monitors {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .projects {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .action {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .last-triggered {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .connected-monitors {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.revealActions === 'hover' &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      :hover {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        transition:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          background-color 100ms linear,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          box-shadow 100ms linear;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${TitleHoverItems} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ${p.theme.visuallyHidden}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${WidgetCardContextMenuContainer} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      background-color 100ms linear,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      box-shadow 100ms linear;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  Button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    Button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    // this background color needs to match the colors used in
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    // app/components/charts/eventsChart so that the ordering matches
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    // the color palette contains n + 1 colors, so we subtract 1 here
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    return p.theme.chart.getColorPalette(p.count - 1)?.[p.index];
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.tripleLayout
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${InnerWrap} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${LeadingItems} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${CheckWrap} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.showDivider &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.showAliasField &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ? `1fr calc(200px + ${space(1)})`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px 40px`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isOpen
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${StyledAutoSelectText} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${BadgeDisplayName} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .delete-condition-group {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :hover .delete-condition-group {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => !p.wrapToggleValue && p.theme.overflowEllipsis};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    h2 {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${props => props.columns},
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    minmax(${MINIMUM_DASHBOARD_CARD_WIDTH}px, 1fr)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${Title} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  button[aria-haspopup='listbox'] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    h3 {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    typeof p.py !== 'undefined' &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .upload-icon {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  input[type='file'] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => color(p.theme.background).alpha(0).string()} 0,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .encrypt-note {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasMenu &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${StyledItemButton} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${OverflowMenu} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ${OverflowMenu} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ${StyledItemButton} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${Name} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Grid} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${AssigneeWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  th,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Remove border radius from the action bar when stuck. Without this there is
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * a small gap where color can peek through. */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.roundCorners &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${tableLayout};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${tableLayout}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${WidgetCardPanel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.displayType === DisplayType.TABLE &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${TableCell} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${WidgetCardPanel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${CellWrapper}, {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .type,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .creator,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .last-issue,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .connected-automations {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .type {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .last-issue {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .creator {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .connected-automations {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isActive &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.isLoading &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${Cell}, ${NumericCell}, ${DescriptionCell}, ${TitleWrapper}, ${ExpanderCell} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell}, ${TitleWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    (p.role === 'default' || (p.role === 'parent' && !p.expanded)) &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${DescriptionCell} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    input[type='radio'] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      #releases-select-control button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.theme.breakpoints.large}) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => p.isDragging && p.theme.visuallyHidden}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${SpanDetails} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${SpanDetailContainer} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'header'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'content';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.layout === NavLayout.SIDEBAR &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-nav-section] + & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasColumnParameter
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ${TriggerLabel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.hasColumnParameter &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${ListItem} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    auto auto auto auto 48px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hideCreatedBy &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        auto auto 48px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.hideCreatedBy &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    div[data-column='creator'],
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.prefersStackedNav
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :not(:hover, :focus-within) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    div {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.index === 0 &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.index === 1 &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    when un-collapsed, and are "sucked in" to the header when collapsed, rather than a standard accordion effect.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .react-grid-item.react-grid-placeholder {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .react-resizable-hide & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isSticky &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.fillSpace &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => getEventDetailHeaderCols(p)};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    switch (p.displayType) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      case 'big_number':
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasMargin &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isMobile &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.showSuperuserWarning &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isEmpty
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+`}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    repeat(${p => Children.toArray(p.children).length - 1}, max-content)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    1fr;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${TagBarBackground} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 0px, ${Color(p.theme.gray300).alpha(0.7).toString()} ${progressBarWidth})`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'trace'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'drawer'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? `'drawer trace'`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : `'trace drawer'`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? '1fr'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : '1fr min-content'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ['warning', 'error'].includes(String(p.level))
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        p.theme.alert[String(p.level)].backgroundLight
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : 'inherit'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  Show the timestamp button "Play" icon when we hover the row.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  This is a really generic selector that could find many things, but for now it
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  only targets the one thing that we expect.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .trace-id-copy-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .trace-id-copy-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${HeaderInfo} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${SectionBody} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Usually the actions are buttons, this height allows actions appearing after opening the
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  details section to not expand the summary */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes showLoadingIndicator {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes showSearchIcon {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.status === 'none'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.border
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : makePerformanceScoreColors(p.theme)[p.status].border};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Gridline} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${GridHead} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${GridResizer} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${GridHeadCell} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        to bottom,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        transparent,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        transparent 30%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${p => p.theme.border} 30%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${p => p.theme.border} 70%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        transparent 70%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        transparent
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      1;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${GridBodyCell} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${GridRow} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.hasToggleSidebar
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    HEADER_HEIGHT}px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    0 0 0 1px rgba(52, 60, 69, 0.2),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    0 1px 3px rgba(70, 82, 98, 0.25);
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    linear-gradient(to right, ${p => p.theme.background}, ${p => p.theme.pink400}20);
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.isExpanded &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .preview {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .preview-open {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceScrollbarContainer {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceIndicator.Timeline {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .Indicator {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceRow {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceLeftColumnInner {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceRightColumn {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceDivider {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceScrollbarContainer {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceScrollbarScroller {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceScrollbarHandle {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceDivider {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceIndicatorsContainer {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceIndicatorContainerMiddleLine {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceIndicatorLabelContainer {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceIndicatorLabel {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceIndicator {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceIndicatorLine {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          to bottom,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          transparent 0 4px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ${p => p.theme.textColor} 4px 8px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        )
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        80%/2px 100% no-repeat;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ${p => p.theme.red300} 4px 8px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ${p => p.theme.subText} 4px 8px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ${p => p.theme.yellow300} 4px 8px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ${p => p.theme.green300} 4px 8px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .Indicator {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ${p => p.theme.error} 4px 8px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceRow {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      * {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TracePatternContainer {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        135deg,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 1%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 11%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 11%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 21%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 21%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 31%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 31%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 41%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 41%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 51%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 51%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 61%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 61%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 71%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 71%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 81%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 81%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-even) 91%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 91%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        var(--pattern-odd) 101%
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      );
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceRightColumn.Odd {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceRightColumn {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceDescription {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceChildrenCountWrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        .TraceChildrenCountWrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        .TraceLeftColumnInner {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceLeftColumn {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceLeftColumnInner {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      img {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceRightColumn {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceArrow.Visible {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceBar {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceArrow {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceBarDuration {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceChildrenCount {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceChildrenCountContent {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      + .TraceChildrenCountAction {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceChildrenCountAction {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .TraceActionsLoadingIndicator {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      @keyframes show {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        from {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        to {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .loading-indicator {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .loading-message {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceChildrenCountWrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceVerticalConnector,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceVerticalLastChildConnector,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceExpandedVerticalConnector {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .TraceVerticalLastChildConnector {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceVerticalConnector {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceVerticalLastChildConnector {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceExpandedVerticalConnector {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceOperation {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceEmDash {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .TraceDescription {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.animate
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : 'none'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes showLoadingContainer {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes showLoadingContainerShake {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    25% {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    75% {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      74px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      max-content
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasTypeColumn &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        minmax(74px, max-content);
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    li {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ::after {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .Actions {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .trigger-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${CardPanel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Subject} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${ValueSection} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${StyledPanel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .Select-value-label {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      100px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      1fr
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  footer {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * Layout.Page is not normally used in settings but <PermissionDenied /> uses
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * it under the hood. This prevents double padding.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Layout.Page} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .messages-container {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.singleRuleView &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.isCollapsed &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.contentHeight &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${Content} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${SearchAndSortWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${StyledBreadcrumbPanelTable} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${BreadcrumbRow} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  button[aria-expanded='true'],
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  Use padding instead of margin so all the <li> will cover the <SplitDivider>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  without taking 100% width.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .beforeCurrentTime,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .afterCurrentTime {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .beforeHoverTime + .afterHoverTime {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .beforeCurrentTime + .afterCurrentTime {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isExpanded &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    70% {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      !p.expanded &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.visibleColumns
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .filter(Boolean)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .join(' ')};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${props =>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    props.gridRows
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `grid-template-rows: 44px max-content;`}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.referrerLocation === 'replay'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `display: contents;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :active {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isWidget
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `padding: ${space(1.5)};`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  grid-template:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'head head head' max-content
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'aside body index' auto / 200px 1fr;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :has(${StyledIssuesButton}:hover) > ${InteractionStateLayer} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    stroke-dashoffset 300ms,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    stroke 300ms;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `linear-gradient(to left, ${Color(p.theme.background).alpha(0).rgb().string()}, ${p.theme.background})`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `linear-gradient(to right, transparent, ${p.theme.background})`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    270deg,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    label {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.align === 'right'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.hideDivider &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.breakpoint &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    (p.isOpen || p.disabled) &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasPrefix &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.expanded &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.leftAligned
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes pop {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.columns !== undefined &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'pos1'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'pos2'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'pos3'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'pos4'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'pos5'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'pos6';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'pos1 pos2'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'pos3 pos3'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'pos4 pos4'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'pos5 pos6';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'pos1 pos3 pos3'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'pos2 pos3 pos3'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'pos4 pos5 pos6';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.singleMonitorView &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.highlighted
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.showHeader
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? ''
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${LogTableRow} & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    rgb(from ${p => p.theme.backgroundTertiary} r g b / 75%),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.expanded &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .inline-flex {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isInteractive &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :hover,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :focus-visible {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    [aria-disabled='true'] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      0 0 0 1px ${p => p.theme.translucentBorder},
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.dropShadowHeavy};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    /* Specificity hack to allow override styles to have higher specificity than
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * styles provided in any styled components which extend Overlay */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :where(*) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.overlayStyle as any}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .attribute-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.visibleSelection &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${SummaryEntryBase}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      /**
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      * Overriding the .less file - for default 64px loader we have the width of border set to 6px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      * For 32px we therefore need 3px to keep the same thickness ratio
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.roundedLeft &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.roundedRight &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.roundedLeft &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.roundedRight &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  thead {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    td {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  tbody,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  thead,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    0px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    calc(var(--cursorOffset) + ${p => p.offsets?.left ?? 0}px + ${TOOLTIP_OFFSET}px),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    calc(
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      var(--cursorMax) - var(--cursorLabelWidth) - ${p => p.offsets?.right ?? 0}px -
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${TOOLTIP_OFFSET}px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !defined(p.underlined) || p.underlined
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : ''};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    auto auto 48px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    div[data-column='created-by'],
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => p.theme.tokens.content.muted} 0%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    rgba(255, 255, 255, 0) 20%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    rgba(255, 255, 255, 0) 80%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => p.theme.tokens.content.muted} 100%
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    // The pseudo element is used to create the left-most notch
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    // Skip the translation for the first label
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.isFirst &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'filters search'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'list details';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'filters'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'search'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'list'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      'details';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.ellipsisDirection === 'left' &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.backgroundImg
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (!p.isOverflowing) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasLineNumber &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (!p.hasLineNumber) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (p.isHighlighted) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (p.coverage === 'H') {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (p.coverage === 'M') {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (p.coverage === 'P') {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    /* Prevent project filter from shrinking (it has in-built max character count)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    except in mobile */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  time {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${SectionHeading} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `-${space(0.5)} -${space(0.5)}`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `-${space(0.25)} -${space(0.25)}`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .culprit {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasMenu
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${menuItemStyles}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.theme.subText
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : p.isInFloatingAccordion
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.gray400
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : 'inherit'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (!p.hasNewNav) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      if (p.isInFloatingAccordion) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getActiveStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.hasNewNav &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getCollapsedBadgeStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.horizontal
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? SIDEBAR_MOBILE_HEIGHT
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : p.accordionRef.current?.getBoundingClientRect().top};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  a[active] & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.orientation === 'top'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => p.isActive && hoverCss(p)};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${hoverCss};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.fontSize === 'large'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * Using 'liga' is the default
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * We want to turn it off for the example.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   *
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * Don't copy+paste this!
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasNewNav
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? SIDEBAR_SEMI_COLLAPSED_WIDTH
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : p.collapsed
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? SIDEBAR_COLLAPSED_WIDTH
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : SIDEBAR_EXPANDED_WIDTH};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    `${p.theme.sidebar.scrollbarThumbColor} ${p.theme.sidebar.scrollbarColorTrack}`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ::-webkit-scrollbar {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.centeredItems &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  button,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      getDiamondTheme(p.status, p.isIssue, p.isDisabled, p.theme).backgroundColor};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => ({...makeBadgeTheme(p, p.theme)})};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => menuItemStyles(p)}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${OrgOrUserName} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${UserNameOrEmail} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => p.interactive && hoverStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.isMultiple
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ${p.isSelected &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            css`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .short-text {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${FreeTrialTextLong} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${FreeTrialTextShort} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrSelected,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrInRange,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrStartEdge,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayNumber {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayNumber span {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayDisabled {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayDisabled .rdrDayNumber span,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayPassive .rdrDayNumber span {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayToday .rdrDayNumber span {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayToday .rdrDayNumber {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDefinedRangesWrapper,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDateDisplayWrapper,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrWeekDays {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrInRange {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrMonth {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrStartEdge {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayStartPreview,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayEndPreview,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayStartOfMonth {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .rdrEndEdge,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :not(.rdrStartEdge) ~ .rdrDayEndPreview:not(.rdrDayStartPreview) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayEndOfMonth {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .rdrStartEdge,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :not(.rdrEndEdge) ~ .rdrDayStartPreview:not(.rdrDayEndPreview) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayStartOfMonth,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .rdrEndEdge {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayEndOfMonth,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .rdrStartEdge {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrStartEdge.rdrEndEdge {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrMonthAndYearWrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDay {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrMonthPicker select,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrYearPicker select {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrMonthsVertical {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrCalendarWrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrNextPrevButton {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrPprevButton {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrNextButton {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrPprevButton i {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrNextButton i {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rdrDayPassive {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ${p =>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ToggleConfig[p.nativeSize].top + ToggleWrapperSize[p.nativeSize] * 0.875}px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        );
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      + div {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      border 0.1s,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.disableBorder &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .loading.mini {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    `calc(${p.theme.borderRadius} - 1px) calc(${p.theme.borderRadius} - 1px) 0 0`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  rect {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : getChonkColor(props.identifier, props.theme).background
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : getColor(props.identifier)};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  text {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : getChonkColor(props.identifier, props.theme).content
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : props.theme.white};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.flex
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hideOverflow &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p.theme.overflowEllipsis};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.hideOverflow
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : // @TODO(jonasbadalic) 240px used to be defined as theme.settings.maxCrumbWidth and only used here
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          '240px'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => p.merged && MergedButtonBarStyles}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.saveOnBlur &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${Panel} & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => p.theme.form[p.size]}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => p.theme.buttonPadding[p.size]}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      !p.isDisabled &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          [role='separator'] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Prevent small gaps between adjacent pairs of selected & hovered radios (due to their
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  border radius) by extending the hovered radio's interaction state layer into and
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  behind the selected radio. */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    left 0.2s,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    right 0.2s;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.priority === 'primary'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${getTextColor}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.visible &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.columns
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hovered &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !!p.expand &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${TrailingItems} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+${p =>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.system &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    with Message. When there is a leading icon, Message is in the second grid column.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    Otherwise it's in the first grid column. */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  Message is in the second grid column. Otherwise it's in the first column. */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.overflowing &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.overflowing &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    li[aria-disabled='true'] & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.orientation === 'horizontal'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      inset ${p => p.theme.focusBorder} 0 0 0 1px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.focusBorder} 0 0 0 1px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.orientation === 'vertical' &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.alignRight
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : undefined}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ::file-selector-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ::-webkit-file-upload-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.autosize &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.isFocused &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ::before {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getPadding}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${inlineStyle}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.stacked &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.hasControlState &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.flexibleControlStateSize
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `width: 24px; margin-left: ${space(0.5)};`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${inlineStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => !p.isHidden && getHatchPattern(p.spanBarType, p.theme)}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getDurationPillAlignment}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getDurationPillColors}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isLast
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => getToggleTheme(p)}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        p.type === 'success'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ? p.theme.successText
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : p.type === 'error'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            ? p.theme.errorText
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            : p.theme.textColor};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  a & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.color
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? ((p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : 'currentcolor'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    defined(p.isHovered)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.isHovered &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : // If isHovered is undefined, then fallback to a default hover selector
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    defined(p.isPressed)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.isPressed &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : // If isPressed is undefined, then fallback to default press selectors
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ${(p.hasSelectedBackground ?? defaultProps.hasSelectedBackground) &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            *[aria-expanded='true'] > &&,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            *[aria-selected='true'] > && {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  *[aria-disabled="true"] && {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    box-shadow 0.1s,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    background 0.1s;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isFocused &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Users can click on the track to quickly jump to a value. We should extend the click
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  area to make the action easier. */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.inSelection &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-menu-has-header='true'] > div > & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-menu-has-footer='true'] > div > & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-menu-has-search='true'] > & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Add 1px to top margin if immediately preceded by menu header, to account for the
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  header's shadow border */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-menu-has-header='true'] > & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ListBoxWrap/GridListWrap will also shrink to fit */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.maxHeight
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : withUnits(p.maxHeightProp)};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    stroke-dashoffset 200ms,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    stroke 100ms;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .dropdown-menu {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (p.maxMenuHeight !== undefined) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (!p.isDisabled) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.inputHasFocus
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `0 0 0 1px ${p.theme.focusBorder}`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `inset ${p.theme.dropShadowMedium}`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    var(--drawer-min-width),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    var(--drawer-width),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    var(--drawer-max-width)
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ) !important;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    * {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      0deg,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => color(p.theme.background).alpha(0).string()}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${new Array(3).fill(0).map(
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    (_, i) => css`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  )}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .source-map-debugger-modal-checklist-line {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ({
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  h5 {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'checkbox user time'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'unread message message'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    '. bottom bottom';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Remove top padding if preceded by search input, since search input already has
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  vertical padding */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :only-of-type {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :focus-visible {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Remove top padding if this is the first section in a headerless menu (selected
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-menu-has-header='false']
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.visible
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.invalid &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.negated
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Value} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.loading &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.hideBorder
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? 'transparent'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.dashedBorder
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ? 'dashed' + p.theme.gray300
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : 'solid ' + p.theme.border};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.disableHeaderBorderBottom
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? ''
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.sticky &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getPadding};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.status === RepositoryStatus.DISABLED &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.detached
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getMenuBorderRadius};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* This is needed to be able to cover e.g. pagination buttons, but also be
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * below dropdown actor button's zindex */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${SettingsHeader} & {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* this is solely for optics, since TimeSince always begins
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  with a number, and numbers do not have descenders */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Header} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.state === 'valid'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          :focus-within {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : p.state === 'invalid'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            :focus-within {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => getNotePreviewCss(p)};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  hr,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ol {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes fade-in {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${PanelTableHeader} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${CheckboxLabel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.visuallyHidden};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-issue-title-link] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      [data-issue-title-primary] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.useTintRow &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.reviewed &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      /*
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+       * A mask that fills the entire row and makes the text opaque. Doing this because
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+       * opacity adds a stacking context in CSS so we need to apply it to another element.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+       */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      @keyframes tintRow {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        0% {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        100% {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${Parameters} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    (p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.theme.alert.error.color
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.yellow400
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.theme.alert.error.backgroundLight
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.yellow100
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.theme.background};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.hasErrors
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.alert.error.backgroundLight
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.isSuspectFlag
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ? p.theme.yellow100
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : p.theme.backgroundSecondary};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.actionButtonAlwaysVisible &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getVariantStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.rating === 'good'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.theme.successText
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : p.rating === 'bad'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.errorText
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  p + p {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasAiFeatures
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+            'seer seer'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+              'seer seer'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      to left,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.backgroundSecondary} 0 2px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      transparent ${space(2)} 100%
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => color(p.theme.background).alpha(0.15).string()},
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.slidePosition === 'bottom'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.slidePosition === 'right'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ? css`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : css`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * This is more specific, with <code>&&</code> than the foundational rule:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * <code>&[data-inspectable='true'] .replayer-wrapper > iframe</code>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      :nth-child(5n-4) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      :nth-child(5n-2) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :nth-child(-n + 6) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      :nth-child(6n-5) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :nth-child(6) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :nth-child(n + 7) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      :nth-child(-n + 6) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        :nth-child(6n-5),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        :nth-child(6n-4),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        :nth-child(6n-2) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        :nth-child(6n-3) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :after {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :hover {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  background-position:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    0 0,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    0 10px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    10px -10px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    -10px 0px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    linear-gradient(
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.backgroundSecondary} 25%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      rgba(0, 0, 0, 0) 25%
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${({bottomGutter = 0}) =>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    typeof bottomGutter === 'number' && bottomGutter > 0
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    0 0 0 1px ${p => p.theme.translucentBorder},
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => p.theme.dropShadowHeavy};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.withBorder &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.divider &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.header &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getChildStyles}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.placement?.startsWith('top') &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.placement?.startsWith('left') &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.placement?.startsWith('right') &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  path.stroke {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  path.fill {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      -145deg,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      transparent 8px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.backgroundSecondary} 8px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.backgroundSecondary} 11px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      transparent 15px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.gray100} 15px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.gray100} 16px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.activated &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${InnerLabel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      transparent 30%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.border} 30%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.border} 70%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      transparent 70%,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    1;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.noBorder &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isFirst &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.disableHover &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasButton &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasDropdown
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    typeof p.symbol === 'string' &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    listSymbol[p.symbol] &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    getListSymbolStyle(p.theme, p.symbol, p.initialCounterValue)}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${PlatformIcons} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${InnerWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Counter} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.vertical
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : 'min-width: 80px;'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${translateStyles}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .Select-value {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .Select-input {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        :hover {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${RangeWrapper},
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * Draw lines so users can see the currenTime & their mouse position
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   *      ^    ^
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   *      |    PlaybackTimeValue @ 20s
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   *      MouseTrackingValue @ 10s
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${PlaybackTimeValue},
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${RangeWrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${PlaybackTimeValue} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     * Draw the circle (appears on hover) to mark the currentTime of the video
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     *           ^
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     *           PlaybackTimeValue @ 20s
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     * Draw a square so users can see their mouse position when it is left or right of the currentTime
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     *      ^    ^
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     *      |    PlaybackTimeValue @ 20s
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     *      MouseTrackingValue @ 10s
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.height
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  a,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  div,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  /* Locking in the height makes calculation for resizer to be easier.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     min-height is used to allow a cell to expand and this is used to display
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+     feedback during empty/error state */
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    const numOfRows = p.dataRows;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    // 1px for the border
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    const totalRowHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    const height = GRID_HEAD_ROW_HEIGHT + totalRowHeight;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    return height;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * This element allows us to have a fat GridResizer that is easy to hover and
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * drag, but still draws an appealing thin line for the border
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * the GridResizer is dragged
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * This element gives the resize handle a more visible knob to grab
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${cellBackground}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${cellColor}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.numeric &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isFloating
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isSelected
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => p.truncate && truncateStyles}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    '. timeline timelineSize'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    'currentTime scrubber duration';
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isCompact
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${baseReplayerCss}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => sentryReplayerCss(p.theme)}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .video-replayer-wrapper + .replayer-wrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .invisible-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .invisible-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+   * Remove it so the replay can take up the
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  when you try to scroll something that is non-scrollable.
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.theme.background
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : p.unified
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.background
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : 'transparent'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.unified &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .pill-icon,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .external-icon {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getPillStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${PillValue} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${getPillValueStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? 'auto auto auto auto auto auto 1fr'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? 'min-content min-content min-content min-content min-content min-content 1fr'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : 'min-content min-content min-content min-content min-content min-content 1fr'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? `min-content auto`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : `auto min-content`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'spans'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'ui-frames'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'battery-chart'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'memory-chart'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'cpu-chart'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'spans          frame-stack'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'ui-frames      frame-stack'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'battery-chart  frame-stack'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'memory-chart   frame-stack'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'cpu-chart      frame-stack'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'frame-stack spans'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'frame-stack ui-frames'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'frame-stack battery-chart'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'frame-stack memory-chart'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        'frame-stack cpu-chart'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :nth-child(even) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? 'auto 1fr auto'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : 'min-content 1fr'};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? `min-content min-content auto`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : `auto min-content min-content`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.ROW} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .${CallTreeTableClassNames.WEIGHT} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .${CallTreeTableClassNames.FRAME_TYPE} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.CELL} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.FRAME_CELL} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.WEIGHT} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.FRAME_TYPE} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.COLOR_INDICATOR} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.EXPAND_BUTTON} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.GHOST_ROW_CELL} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .${CallTreeTableClassNames.GHOST_ROW_CONTAINER} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .timeline-icon-wrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${getBackgroundGradient}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  hr {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.itemsHidden &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ul {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasDropdown &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.isInAppFrame && p.isSubFrame
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? `${p.theme.surface100}`
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : `${p.theme.bodyBackground}`};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${RowHeader} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.lineType === DiffLineType.ADDED
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? "'+'"
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.lineType === DiffLineType.REMOVED
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          ? "'-'"
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+          : "''"};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    background-color 0.2s ease-in-out,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    color 0.2s ease-in-out;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      !p.isSelected &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ${p => p.theme.active}20,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    color 0.2s ease,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    background-color 0.2s ease;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      p.actionType === 'delete' || p.actionType === 'close'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.red400
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.theme.green400};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    @keyframes fadeFromActive {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    @keyframes textFadeFromActive {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    switch (p.level) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      case BreadcrumbLevelType.ERROR:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      case BreadcrumbLevelType.FATAL:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        return p.theme.red400;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      case BreadcrumbLevelType.WARNING:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        return p.theme.yellow400;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      case BreadcrumbLevelType.DEBUG:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      case BreadcrumbLevelType.INFO:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      case BreadcrumbLevelType.LOG:
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        return p.theme.subText;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        to right,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        transparent 20px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ${p => p.theme.translucentInnerBorder} 20px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      100% 1;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    0 0 1px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  * + * {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isCollapsible &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${({valueType, theme}) =>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    (valueType === 'function' || valueType === 'symbol') &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${GroupingValue}, button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :not(:last-child)::before {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.tokens.graphics.accent
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.theme.purple300
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.tokens.graphics.muted
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.theme.gray100};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        : p.theme.white
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Wrapper} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .replayer-mouse {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      left 0.05s linear,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      top 0.05s linear;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .replayer-mouse.touch-device {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      left 0s linear,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      top 0s linear,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .replayer-mouse.touch-device.touch-active {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      left 0.25s linear,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      top 0.25s linear,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .replayer-mouse-tail {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes click {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  @keyframes touch-click {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .replayer-wrapper > iframe {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-player {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-player__frame {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-player iframe {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .replayer-wrapper {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .replayer-mouse,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-controller {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-timeline {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-timeline__time {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-progress {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-progress.disabled {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-progress__step {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-progress__handler {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-controller__btns {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-controller__btns button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .rr-controller__btns button.active {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .switch {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .switch.disabled {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .label {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .switch input[type='checkbox'] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .switch label {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .switch.disabled label {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  :hover ${StyledIconLink}, :focus ${StyledIconLink} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.blendWithFilter &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :not(:last-child) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :not(:first-child) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  h3 a {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.hasHeader &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${PlayerBreadcrumbContainer} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    img {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  [data-test-id='menu-list-item-label'] {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .flag-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    .invisible .flag-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${MinimapBackground} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.change === 'increase'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? p.theme.red300
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : p.change === 'decrease'
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        ? p.theme.green300
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  pre > pre {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${LinkStyles}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${Frame} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${FrameContainer} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${StackTraceContentPanel} {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? MINIMAP_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : MINIMAP_HEIGHT}px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => p.theme.fontWeightNormal};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${({align}) => {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    switch (align) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+        return null;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${({alignLeft}) => {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    if (!alignLeft) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      return null;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ? MINIMAP_CONTAINER_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      : MINIMAP_CONTAINER_HEIGHT}px;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    MINIMAP_HEIGHT +
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    TIME_AXIS_HEIGHT +
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => getBoxColors(p.theme, p.frequency)}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      transparent 0 4px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    80%/2px 100% no-repeat;
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.hasErrors &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${({focused, theme}) =>
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    focused &&
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    p.isExpanded
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => p.theme.gray200} 5px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    ${p => p.theme.gray200} 6px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    transparent 6px,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    transparent 21px
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    Object.entries(COLOR_MAP).map(
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      ([ansiColor, themeColor]) => `
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .ansi-${ansiColor}-bg {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .ansi-${ansiColor}-fg {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+      .ansi-bright-${ansiColor}-fg {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    )}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .ansi-black-fg,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .ansi-bright-black-fg {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .ansi-white-fg,
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .ansi-bright-white-fg {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :nth-child(-n + 5) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    :nth-child(n + 6) {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => layout(p.theme, p.scrollbarWidth)}
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .line-number {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${p => layout(p.theme)};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  ${iconStyle};
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+  .tag-button {
+/////////////////
+
+
+// Error occurred 1 time(s)
+/////////////////
+    !p.hideIcon &&
+/////////////////
