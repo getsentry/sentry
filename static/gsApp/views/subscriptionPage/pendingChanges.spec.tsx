@@ -41,7 +41,6 @@ describe('Subscription > PendingChanges', function () {
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'mm2_b_100k',
-        reservedEvents: 100000,
         onDemandMaxSpend: 0,
         effectiveDate: '2021-02-01',
         onDemandEffectiveDate: '2021-02-01',
@@ -75,9 +74,6 @@ describe('Subscription > PendingChanges', function () {
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         effectiveDate: '2021-02-01',
@@ -122,9 +118,6 @@ describe('Subscription > PendingChanges', function () {
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'am2_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         effectiveDate: '2021-02-01',
@@ -176,9 +169,6 @@ describe('Subscription > PendingChanges', function () {
       onDemandMaxSpend: 10_000,
       pendingChanges: PendingChangesFixture({
         plan: 'am2_business',
-        reservedErrors: 100_000,
-        reservedTransactions: 250_000,
-        reservedAttachments: 50,
         reserved: {errors: 100_000, transactions: 250_000, attachments: 50},
         onDemandMaxSpend: 5_000,
         effectiveDate: '2021-02-01',
@@ -222,7 +212,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization: org,
       plan: 'am1_business',
-      reservedErrors: 500000,
       categories: {
         errors: MetricHistoryFixture({reserved: 500000}),
       },
@@ -235,9 +224,6 @@ describe('Subscription > PendingChanges', function () {
       },
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         onDemandBudgets: {
@@ -277,7 +263,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization: org,
       plan: 'am1_business',
-      reservedErrors: 500000,
       onDemandMaxSpend: 10000,
       onDemandBudgets: {
         enabled: true,
@@ -287,9 +272,6 @@ describe('Subscription > PendingChanges', function () {
       },
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         onDemandBudgets: {
@@ -335,13 +317,9 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
-      reservedErrors: 500000,
       onDemandMaxSpend: 0,
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team_auf',
-        reservedErrors: null,
-        reservedTransactions: null,
-        reservedAttachments: null,
         onDemandMaxSpend: 0,
         effectiveDate: '2021-02-01',
         planDetails: PlanFixture({
@@ -370,7 +348,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
-      reservedErrors: 500000,
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
@@ -458,7 +435,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
-      reservedErrors: 500000,
       onDemandMaxSpend: 10000,
       planDetails: undefined,
       pendingChanges: PendingChangesFixture({
