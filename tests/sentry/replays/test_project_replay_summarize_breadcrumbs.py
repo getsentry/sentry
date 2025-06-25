@@ -9,9 +9,8 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry import nodestore
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
-    ErrorEvent,
     as_log_message,
     get_request_data,
 )
@@ -307,14 +306,14 @@ def test_get_request_data():
         )
 
     error_events = [
-        ErrorEvent(
+        GroupEvent(
             category="error",
             id="123",
             title="ZeroDivisionError",
             timestamp=3.0,
             message="division by zero",
         ),
-        ErrorEvent(
+        GroupEvent(
             category="error",
             id="234",
             title="BadError",
