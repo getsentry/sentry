@@ -443,6 +443,12 @@ def get_condition_group_results(
             comparison_interval=comparison_interval,
             filters=unique_condition.filters,
         )
+        absent_group_ids = group_ids - set(result.keys())
+        if absent_group_ids:
+            logger.warning(
+                "workflow_engine.delayed_workflow.absent_group_ids",
+                extra={"group_ids": absent_group_ids, "unique_condition": unique_condition},
+            )
         condition_group_results[unique_condition] = result
 
     return condition_group_results
