@@ -10,6 +10,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
+import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
@@ -37,8 +38,6 @@ import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
-import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
@@ -664,8 +663,8 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
 }
 
 export function PlayPauseCell({rowIndex}: Props) {
-  const selectedReplayIndex = useSelectedReplayIndex();
-  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
   const inner =
     rowIndex === selectedReplayIndex ? (
       <ReplayPlayPauseButton size="sm" priority="default" borderless />
