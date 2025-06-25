@@ -10,11 +10,9 @@ type TableHeaderParams = {
 export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
   const {key, name} = column;
 
-  const alignment = key === 'token' ? 'right' : 'left';
-
   return (
     <SortableHeader
-      alignment={alignment}
+      alignment={key === 'token' ? 'right' : 'left'}
       sort={sort}
       fieldName={key}
       label={name}
