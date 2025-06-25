@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO_ACTION_TARGET_TYPE
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
-from sentry.integrations.slack.utils.channel import validate_channel_id
+from sentry.integrations.slack.utils.channel import validate_slack_entity_id
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService
@@ -188,7 +188,11 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:
-            validate_channel_id(identifier, attrs["integration_id"], attrs["input_channel_id"])
+            validate_slack_entity_id(
+                integration_id=attrs["integration_id"],
+                input_name=identifier,
+                input_id=attrs["input_channel_id"],
+            )
         return attrs
 
     def create(self, validated_data):

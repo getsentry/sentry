@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=45,
     ),
 )
 def pr_comment_workflow(pr_id: int, project_id: int):

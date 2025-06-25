@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
-import {IconCode, IconSort} from 'sentry/icons';
+import {IconChevron, IconCode} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
@@ -14,6 +14,7 @@ import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
+  AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
   AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
@@ -172,17 +173,36 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
   const spans = useMemo(() => {
     return nodes.filter(node => isEAPSpanNode(node));
   }, [nodes]);
+  const projectIds = new Set(spans.map(span => span.value.project_id));
+  const totalStart = Math.min(
+    ...spans.map(span => new Date(span.value.start_timestamp * 1000).getTime())
+  );
+  const totalEnd = Math.max(
+    ...spans.map(span => new Date(span.value.end_timestamp * 1000).getTime())
+  );
+
   const spanAttributesRequest = useEAPSpans(
     {
-      search: `span_id:[${spans.map(span => span.value.event_id).join(',')}]`,
+      search: `span_id:[${spans.map(span => `"${span.value.event_id}"`).join(',')}]`,
       fields: [
         'span_id',
-        keyToTag(AI_MODEL_ID_ATTRIBUTE, 'string'),
+        AI_AGENT_NAME_ATTRIBUTE,
+        AI_MODEL_ID_ATTRIBUTE,
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
-        keyToTag(AI_TOOL_NAME_ATTRIBUTE, 'string'),
-        keyToTag(AI_AGENT_NAME_ATTRIBUTE, 'string'),
+        AI_TOOL_NAME_ATTRIBUTE,
       ] as EAPSpanProperty[],
       limit: 100,
+      // Pass custom values as the page filters are not available in the trace view
+      pageFilters: {
+        projects: Array.from(projectIds),
+        environments: [],
+        datetime: {
+          period: null,
+          start: new Date(totalStart),
+          end: new Date(totalEnd),
+          utc: true,
+        },
+      },
     },
     Referrer.TRACE_DRAWER
   );
@@ -253,7 +273,7 @@ function getNodeInfo(
     icon: <IconCode size="md" />,
     title: 'Unknown',
     subtitle: '',
-    color: colors[0],
+    color: colors[1],
   };
 
   if (isTransactionNode(node)) {
@@ -288,7 +308,7 @@ function getNodeInfo(
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.title = op;
     nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
-    nodeInfo.color = colors[1];
+    nodeInfo.color = colors[0];
   } else if (
     AI_GENERATION_OPS.includes(op) ||
     AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
@@ -305,10 +325,11 @@ function getNodeInfo(
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.title = op || 'gen_ai.toolCall';
     nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
-    nodeInfo.color = colors[3];
-  } else if (op === 'http.client') {
-    nodeInfo.icon = <IconSort size="md" />;
-    nodeInfo.title = node.value.description || 'HTTP';
+    nodeInfo.color = colors[5];
+  } else if (AI_HANDOFF_OPS.includes(op)) {
+    nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
+    nodeInfo.title = op;
+    nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
   } else {
     nodeInfo.title = op || 'Span';

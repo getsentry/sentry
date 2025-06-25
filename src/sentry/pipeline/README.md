@@ -184,7 +184,7 @@ def get_pipeline_views(self):
     identity_pipeline_view = NestedPipelineView(
         bind_key='identity',
         provider_key='slack',
-        pipeline_cls=IdentityProviderPipeline,
+        pipeline_cls=IdentityPipeline,
         config=identity_pipeline_config,
     )
 

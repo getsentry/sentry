@@ -5,8 +5,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import SortLink from 'sentry/components/gridEditable/sortLink';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
@@ -14,9 +12,7 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {MODULE_PRODUCT_DOC_LINKS} from 'sentry/views/insights/settings';
 import {
-  ModuleName,
   SpanFunction,
   SpanIndexedField,
   SpanMetricsField,
@@ -145,20 +141,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
 
     return (
       <AlignmentContainer>
-        <StyledTooltip
-          isHoverable
-          title={
-            <span>
-              {t('The overall performance rating of this page.')}
-              <br />
-              <ExternalLink
-                href={`${MODULE_PRODUCT_DOC_LINKS[ModuleName.VITAL]}#performance-score`}
-              >
-                {t('How is this calculated?')}
-              </ExternalLink>
-            </span>
-          }
-        >
+        <StyledTooltip isHoverable title={column.tooltip}>
           {sortLink}
         </StyledTooltip>
       </AlignmentContainer>

@@ -14,7 +14,7 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
     def test_get_renders(self):
         project = self.create_project(organization=self.organization)
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, project.id]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, project.id]
         )
 
         resp = self.client.get(path)
@@ -29,14 +29,14 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
         non_member = self.create_user(email="other@example.com")
         project = self.create_project(organization=self.organization)
         path = generate_signed_link(
-            user=non_member, viewname=self.endpoint, args=[self.organization.slug, project.id]
+            user_id=non_member.id, viewname=self.endpoint, args=[self.organization.slug, project.id]
         )
         resp = self.client.get(path)
         assert resp.status_code == 404
 
     def test_get_missing_record(self):
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, 987654321]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, 987654321]
         )
         resp = self.client.get(path)
         assert resp.status_code == 404
@@ -53,14 +53,14 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
         non_member = self.create_user(email="other@example.com")
         project = self.create_project(organization=self.organization)
         path = generate_signed_link(
-            user=non_member, viewname=self.endpoint, args=[self.organization.slug, project.id]
+            user_id=non_member.id, viewname=self.endpoint, args=[self.organization.slug, project.id]
         )
         resp = self.client.post(path)
         assert resp.status_code == 404
 
     def test_post_missing_record(self):
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, 987654321]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, 987654321]
         )
         resp = self.client.post(path)
         assert resp.status_code == 404
@@ -75,7 +75,7 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
     def test_post_success_slug(self):
         project = self.create_project(organization=self.organization)
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, project.id]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, project.id]
         )
         resp = self.client.post(path, data={"cancel": "1"})
         assert resp.status_code == 201
@@ -91,7 +91,7 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
     def test_post_success_id(self):
         project = self.create_project(organization=self.organization)
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.id, project.id]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.id, project.id]
         )
         resp = self.client.post(path, data={"cancel": "1"})
         assert resp.status_code == 201
@@ -111,7 +111,7 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
     def test_get_renders(self):
         group = self.create_group(self.project)
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, group.id]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, group.id]
         )
 
         resp = self.client.get(path)
@@ -126,14 +126,14 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
         non_member = self.create_user(email="other@example.com")
         group = self.create_group(project=self.project)
         path = generate_signed_link(
-            user=non_member, viewname=self.endpoint, args=[self.organization.slug, group.id]
+            user_id=non_member.id, viewname=self.endpoint, args=[self.organization.slug, group.id]
         )
         resp = self.client.get(path)
         assert resp.status_code == 404
 
     def test_get_missing_record(self):
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, 987654321]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, 987654321]
         )
         resp = self.client.get(path)
         assert resp.status_code == 404
@@ -143,14 +143,14 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
         non_member = self.create_user(email="other@example.com")
         group = self.create_group(project=self.project)
         path = generate_signed_link(
-            user=non_member, viewname=self.endpoint, args=[self.organization.slug, group.id]
+            user_id=non_member.id, viewname=self.endpoint, args=[self.organization.slug, group.id]
         )
         resp = self.client.post(path)
         assert resp.status_code == 404
 
     def test_post_missing_record(self):
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, 987654321]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, 987654321]
         )
         resp = self.client.post(path)
         assert resp.status_code == 404
@@ -158,7 +158,7 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
     def test_post_success_slug(self):
         group = self.create_group(project=self.project)
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.slug, group.id]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, group.id]
         )
         resp = self.client.post(path, data={"cancel": "1"})
         assert resp.status_code == 201
@@ -169,7 +169,7 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
     def test_post_success_id(self):
         group = self.create_group(project=self.project)
         path = generate_signed_link(
-            user=self.user, viewname=self.endpoint, args=[self.organization.id, group.id]
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.id, group.id]
         )
         resp = self.client.post(path, data={"cancel": "1"})
         assert resp.status_code == 201
