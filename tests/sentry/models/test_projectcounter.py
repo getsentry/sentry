@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import IntegrityError
-from django.test import override_settings
 
 from sentry.locks import locks
 from sentry.models.counter import (
