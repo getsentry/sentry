@@ -141,7 +141,7 @@
     "mobx": "^6.8.0",
     "mobx-react": "~7.6.0",
     "mockdate": "3.0.5",
-    "moment-timezone": "0.5.44",
+    "moment-timezone": "0.6.0",
     "papaparse": "^5.3.2",
     "peggy": "^4.1.1",
     "platformicons": "^8.0.7",
