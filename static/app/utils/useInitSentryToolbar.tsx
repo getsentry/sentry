@@ -8,8 +8,11 @@ import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 export default function useInitSentryToolbar(organization: null | Organization) {
+  const isEnvEnabled = !!process.env.USE_SENTRY_TOOLBAR;
   const showDevToolbar =
-    !!organization && !!organization.features.includes('init-sentry-toolbar');
+    !!organization &&
+    !!organization.features.includes('init-sentry-toolbar') &&
+    isEnvEnabled;
   const isEmployee = useIsSentryEmployee();
   const config = useLegacyStore(ConfigStore);
 
