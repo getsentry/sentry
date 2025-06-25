@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
+from google.api_core.exceptions import DeadlineExceeded
 from sentry_sdk import set_tag, set_user
 
 from sentry import eventstore
@@ -104,18 +105,20 @@ def fetch_event(
     project_id: int, event_id: str, group_id: int, extra: dict[str, Any]
 ) -> GroupEvent | Event | None:
     event: GroupEvent | Event | None = None
+    failure_reason = None
     try:
         event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
         if event is None:
-            metrics.incr(
-                key=f"{METRIC_PREFIX}.failure", tags={"reason": "event_not_found"}, sample_rate=1.0
-            )
+            failure_reason = "event_not_found"
+    except DeadlineExceeded:
+        failure_reason = "nodestore_deadline_exceeded"
     except Exception:
         logger.exception("Error fetching event.", extra=extra)
+        failure_reason = "event_fetching_exception"
+
+    if failure_reason:
         metrics.incr(
-            key=f"{METRIC_PREFIX}.failure",
-            tags={"reason": "event_fetching_exception"},
-            sample_rate=1.0,
+            key=f"{METRIC_PREFIX}.failure", tags={"reason": failure_reason}, sample_rate=1.0
         )
     return event
 
