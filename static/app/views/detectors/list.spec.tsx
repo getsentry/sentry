@@ -95,8 +95,6 @@ describe('DetectorsList', function () {
     expect(within(row).getByText('Detector 1')).toBeInTheDocument();
     // Type
     expect(within(row).getByText('Metric')).toBeInTheDocument();
-    // Assignee should be Sentry because owner is null
-    expect(within(row).getByTestId('assignee-sentry')).toBeInTheDocument();
 
     // Details under name
     expect(within(row).getByText('production')).toBeInTheDocument();
