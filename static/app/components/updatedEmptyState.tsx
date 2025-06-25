@@ -28,11 +28,15 @@ import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIn
 
 export function SetupTitle({project}: {project: Project}) {
   return (
-    <SetupTitleWrapper>
-      {tct('Set up the Sentry SDK for\u00A0[projectBadge]', {
-        projectBadge: <ProjectBadge project={project} avatarSize={16} />,
+    <BodyTitle>
+      {tct('Set up the Sentry SDK for [projectBadge]', {
+        projectBadge: (
+          <ProjectBadgeWrapper>
+            <ProjectBadge project={project} avatarSize={16} />
+          </ProjectBadgeWrapper>
+        ),
       })}
-    </SetupTitleWrapper>
+    </BodyTitle>
   );
 }
 
@@ -364,6 +368,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   );
 }
 
+const ProjectBadgeWrapper = styled('div')`
+  display: inline-block;
+  vertical-align: text-top;
+  max-width: 100%;
+`;
+
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.fontWeightBold};
@@ -399,11 +409,6 @@ export const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
-`;
-
-const SetupTitleWrapper = styled(BodyTitle)`
-  display: flex;
-  align-items: center;
 `;
 
 const Preview = styled('div')`
