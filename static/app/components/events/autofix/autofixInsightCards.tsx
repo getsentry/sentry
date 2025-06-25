@@ -295,6 +295,7 @@ interface AutofixInsightCardsProps {
   insights: AutofixInsight[];
   runId: string;
   stepIndex: number;
+  shouldCollapseByDefault?: boolean;
 }
 
 interface CollapsibleChainLinkProps {
@@ -455,8 +456,9 @@ function AutofixInsightCards({
   stepIndex,
   groupId,
   runId,
+  shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(shouldCollapseByDefault ?? false);
   const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
   const previousInsightsRef = useRef<AutofixInsight[]>([]);
   const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
