@@ -2,6 +2,7 @@
 
 
 import datetime
+import functools
 import logging
 import shutil
 import socket
@@ -26,6 +27,16 @@ RELAY_TEST_IMAGE = environ.get(
 
 def _relay_server_container_name():
     return "sentry_test_relay_server"
+
+
+@functools.cache
+def _relay_server_container_port() -> int:
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    # maybe this should be a context manager instead?
+    sock.close()
+    return port
 
 
 def _get_template_dir():
@@ -66,10 +77,6 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    sock = socket.socket()
-    sock.bind(("127.0.0.1", 0))
-    relay_port = sock.getsockname()[1]
-
     redis_db = TEST_REDIS_DB
     use_old_devservices = environ.get("USE_OLD_DEVSERVICES", "0") == "1"
     from sentry.relay import projectconfig_cache
@@ -80,9 +87,11 @@ def relay_server_setup(live_server, tmpdir_factory):
     )
     assert redis_db == projectconfig_backend.cluster.connection_pool.connection_kwargs["db"]
 
+    RELAY_PORT = _relay_server_container_port()
+
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
-        "RELAY_PORT": relay_port,
+        "RELAY_PORT": RELAY_PORT,
         "KAFKA_HOST": "sentry_kafka" if use_old_devservices else "kafka",
         "REDIS_HOST": "sentry_redis" if use_old_devservices else "redis",
         "REDIS_DB": redis_db,
@@ -108,7 +117,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     options = {
         "image": RELAY_TEST_IMAGE,
-        "ports": {"%s/tcp" % relay_port: relay_port},
+        "ports": {f"{RELAY_PORT}/tcp": RELAY_PORT},
         "network": "sentry" if use_old_devservices else "devservices",
         "detach": True,
         "name": container_name,
@@ -118,7 +127,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     }
 
     # Some structure similar to what the live_server fixture returns
-    server_info = {"url": f"http://127.0.0.1:{relay_port}", "options": options}
+    server_info = {"url": f"http://127.0.0.1:{RELAY_PORT}", "options": options}
 
     yield server_info
 
