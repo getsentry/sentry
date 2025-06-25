@@ -10,7 +10,6 @@ import {
   type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
-import type {QueryValue} from 'sentry/utils/queryString';
 import {
   decodeInteger,
   decodeList,
@@ -136,8 +135,9 @@ function useWidgetBuilderState(): {
   });
   const [sort, setSort] = useQueryParamState<Sort[]>({
     fieldName: 'sort',
-    decoder: modifiedDecodeSorts,
-    serializer: serializeSorts,
+    decoder: decodeSorts,
+    deserializer: deserializeSorts(dataset),
+    serializer: serializeSorts(dataset),
   });
   const [limit, setLimit] = useQueryParamState<number>({
     fieldName: 'limit',
@@ -297,7 +297,7 @@ function useWidgetBuilderState(): {
 
             if (dataset === WidgetType.RELEASE && sort?.length === 0) {
               setSort(
-                modifiedDecodeSorts(
+                decodeSorts(
                   getDatasetConfig(WidgetType.RELEASE).defaultWidgetQuery.orderby
                 )
               );
@@ -332,7 +332,7 @@ function useWidgetBuilderState(): {
             setSort(
               nextDisplayType === DisplayType.BIG_NUMBER
                 ? []
-                : modifiedDecodeSorts(config.defaultWidgetQuery.orderby)
+                : decodeSorts(config.defaultWidgetQuery.orderby)
             );
           } else {
             setFields([]);
@@ -341,7 +341,7 @@ function useWidgetBuilderState(): {
                 explodeField({field: aggregate})
               )
             );
-            setSort(modifiedDecodeSorts(config.defaultWidgetQuery.orderby));
+            setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           }
 
           setThresholds(undefined);
@@ -353,6 +353,7 @@ function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload);
+
           const isRemoved = action.payload.length < (fields?.length ?? 0);
           if (
             displayType === DisplayType.TABLE &&
@@ -518,7 +519,7 @@ function useWidgetBuilderState(): {
           setLimit(action.payload.limit);
           setQuery(action.payload.query);
           setSelectedAggregate(action.payload.selectedAggregate);
-          setSort(modifiedDecodeSorts(action.payload.sort));
+          setSort(decodeSorts(action.payload.sort));
           setTitle(action.payload.title);
           if (action.payload.yAxis) {
             setYAxis(deserializeFields(action.payload.yAxis));
@@ -613,25 +614,34 @@ export function serializeFields(fields: Column[]): string[] {
   });
 }
 
-export function serializeSorts(sorts: Sort[]): string[] {
-  return sorts.map(sort => {
-    const direction =
-      sort.kind === 'desc' && !REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
-        ? '-'
-        : '';
-    return `${direction}${sort.field}`;
-  });
+export function serializeSorts(dataset?: WidgetType) {
+  return function (sorts: Sort[]): string[] {
+    return sorts.map(sort => {
+      // All issue fields do not use '-' regardless of order
+      if (dataset === WidgetType.ISSUE) {
+        return sort.field;
+      }
+      const direction = sort.kind === 'desc' ? '-' : '';
+      return `${direction}${sort.field}`;
+    });
+  };
 }
 
-function modifiedDecodeSorts(value: QueryValue): Sort[] {
-  const sorts = decodeSorts(value);
-
-  return sorts.map((sort): Sort => {
-    if (REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)) {
-      return {field: sort.field, kind: 'desc'};
-    }
-    return sort;
-  });
+function deserializeSorts(dataset?: WidgetType) {
+  return function (sorts: Sort[]): Sort[] {
+    return sorts.map(sort => {
+      if (
+        dataset === WidgetType.ISSUE &&
+        REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
+      ) {
+        return {
+          field: sort.field,
+          kind: 'desc',
+        };
+      }
+      return sort;
+    });
+  };
 }
 
 /**
