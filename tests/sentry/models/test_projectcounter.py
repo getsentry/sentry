@@ -164,27 +164,25 @@ def redis_mock():
 
 @django_db_all
 def test_increment_project_counter_in_cache(default_project, redis_mock):
-    # Enable the feature flag
-    with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        # Patch the pipeline context manager
-        pipeline_mock = MagicMock()
-        pipeline_mock.__enter__.return_value = pipeline_mock
-        pipeline_mock.__exit__.return_value = None
-        with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
-            # First increment should trigger a refill
-            pipeline_mock.execute.return_value = [None, 0]
-            with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
-                result = increment_project_counter_in_cache(default_project, using="default")
-                mock_refill.assert_called_once_with(
-                    default_project.id,
-                    block_size=calculate_cached_id_block_size(1),
-                    using="default",
-                )
-
-            # After refill, should get a value from Redis
-            pipeline_mock.execute.return_value = ["42", 100]
+    # Patch the pipeline context manager
+    pipeline_mock = MagicMock()
+    pipeline_mock.__enter__.return_value = pipeline_mock
+    pipeline_mock.__exit__.return_value = None
+    with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+        # First increment should trigger a refill
+        pipeline_mock.execute.return_value = [None, 0]
+        with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
             result = increment_project_counter_in_cache(default_project, using="default")
-            assert result == 42
+            mock_refill.assert_called_once_with(
+                default_project.id,
+                block_size=calculate_cached_id_block_size(1),
+                using="default",
+            )
+
+        # After refill, should get a value from Redis
+        pipeline_mock.execute.return_value = ["42", 100]
+        result = increment_project_counter_in_cache(default_project, using="default")
+        assert result == 42
 
 
 @django_db_all
@@ -228,104 +226,89 @@ def test_refill_cached_short_ids_lock_contention(default_project, redis_mock):
 
 @django_db_all
 def test_low_water_mark_trigger(default_project, redis_mock):
-    # Enable the feature flag
-    with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        # Patch the pipeline context manager
-        pipeline_mock = MagicMock()
-        pipeline_mock.__enter__.return_value = pipeline_mock
-        pipeline_mock.__exit__.return_value = None
-        block_size = calculate_cached_id_block_size(42)
-        with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
-            pipeline_mock.execute.return_value = [
-                "42",
-                block_size * LOW_WATER_RATIO - 1,
-            ]
-            with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
-                result = increment_project_counter_in_cache(default_project, using="default")
-                assert result == 42
-                mock_refill.assert_called_once_with(
-                    default_project.id,
-                    block_size=block_size,
-                    using="default",
-                )
+    # Patch the pipeline context manager
+    pipeline_mock = MagicMock()
+    pipeline_mock.__enter__.return_value = pipeline_mock
+    pipeline_mock.__exit__.return_value = None
+    block_size = calculate_cached_id_block_size(42)
+    with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+        pipeline_mock.execute.return_value = [
+            "42",
+            block_size * LOW_WATER_RATIO - 1,
+        ]
+        with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
+            result = increment_project_counter_in_cache(default_project, using="default")
+            assert result == 42
+            mock_refill.assert_called_once_with(
+                default_project.id,
+                block_size=block_size,
+                using="default",
+            )
 
 
 @django_db_all
 def test_fallback_to_database(default_project, redis_mock):
-    # Enable the feature flag
-    with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        # Patch the pipeline context manager
-        pipeline_mock = MagicMock()
-        pipeline_mock.__enter__.return_value = pipeline_mock
-        pipeline_mock.__exit__.return_value = None
-        with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
-            pipeline_mock.execute.return_value = [None, 0]
-            with patch("sentry.models.counter.refill_cached_short_ids.delay"):
-                with patch(
-                    "sentry.models.counter.increment_project_counter_in_database", return_value=42
-                ) as mock_db:
-                    result = increment_project_counter_in_cache(default_project, using="default")
-                    assert result == 42
-                    mock_db.assert_called_once_with(default_project, using="default")
+    # Patch the pipeline context manager
+    pipeline_mock = MagicMock()
+    pipeline_mock.__enter__.return_value = pipeline_mock
+    pipeline_mock.__exit__.return_value = None
+    with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+        pipeline_mock.execute.return_value = [None, 0]
+        with patch("sentry.models.counter.refill_cached_short_ids.delay"):
+            with patch(
+                "sentry.models.counter.increment_project_counter_in_database", return_value=42
+            ) as mock_db:
+                result = increment_project_counter_in_cache(default_project, using="default")
+                assert result == 42
+                mock_db.assert_called_once_with(default_project, using="default")
 
 
 @django_db_all
 def test_preallocation_end_to_end(default_project):
-    # First increment without the feature flag
-    Counter.increment(default_project)
-    assert Counter.objects.get(project_id=default_project.id).value == 1
-    assert redis_clusters.get("default").llen(f"pc:{default_project.id}") == 0
+    # The cached counter path is now always enabled
+    # The first increment should trigger a refill
+    with TaskRunner():
+        current_value = Counter.increment(default_project)
+    # see that the next counter value is 1 (incremented by 1)
+    assert current_value == 1
+    # see that the database was incremented by CACHED_ID_BLOCK_SIZE
+    assert Counter.objects.get(
+        project_id=default_project.id
+    ).value == 1 + calculate_cached_id_block_size(1)
+    # See that the redis key was populated with CACHED_ID_BLOCK_SIZE values
+    redis_key = f"pc:{default_project.id}"
+    redis = redis_clusters.get("default")
+    assert redis.llen(redis_key) == calculate_cached_id_block_size(1) - 1  # One was consumed
+    assert Counter.increment(default_project) == 2
+    assert redis.llen(redis_key) == calculate_cached_id_block_size(1) - 2
+    assert redis.lpop(redis_key) == "3"
 
-    with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        # The first increment should trigger a refill
-        with TaskRunner():
-            current_value = Counter.increment(default_project)
-        # see that the next counter value is 2 (incremented by 1)
-        assert current_value == 2
-        # see that the database was incremented by CACHED_ID_BLOCK_SIZE
-        assert Counter.objects.get(
-            project_id=default_project.id
-        ).value == 2 + calculate_cached_id_block_size(2)
-        # See that the redis key was populated with CACHED_ID_BLOCK_SIZE values
-        redis_key = f"pc:{default_project.id}"
-        redis = redis_clusters.get("default")
-        assert redis.llen(redis_key) == calculate_cached_id_block_size(2)
-        assert Counter.increment(default_project) == 3
-        assert redis.llen(redis_key) == calculate_cached_id_block_size(2) - 1
-        assert redis.lpop(redis_key) == "4"
-
-        # see the the database value is still the same since we didn't refill
-        assert Counter.objects.get(
-            project_id=default_project.id
-        ).value == 2 + calculate_cached_id_block_size(2)
+    # see the the database value is still the same since we didn't refill
+    assert Counter.objects.get(
+        project_id=default_project.id
+    ).value == 1 + calculate_cached_id_block_size(1)
 
 
 @django_db_all
 def test_preallocation_early_return(default_project):
-    Counter.increment(default_project)
-    assert Counter.objects.get(project_id=default_project.id).value == 1
-    block_size = calculate_cached_id_block_size(2)
-    with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        with TaskRunner():
-            current_value = Counter.increment(default_project)
-        assert current_value == 2
-        assert (
-            Counter.objects.get(project_id=default_project.id).value == current_value + block_size
-        )
-        redis_key = f"pc:{default_project.id}"
-        redis = redis_clusters.get("default")
-        assert redis.llen(redis_key) == block_size
+    # The increment now always uses the cached counter path
+    with TaskRunner():
+        current_value = Counter.increment(default_project)
+    assert current_value == 1
+    assert (
+        Counter.objects.get(project_id=default_project.id).value == 1 + calculate_cached_id_block_size(1)
+    )
+    redis_key = f"pc:{default_project.id}"
+    redis = redis_clusters.get("default")
+    assert redis.llen(redis_key) == calculate_cached_id_block_size(1) - 1  # One was consumed
 
-        # Directly call refill_cached_short_ids - should do nothing since we have enough values
-        refill_cached_short_ids(default_project.id, block_size)
-        assert Counter.objects.get(
-            project_id=default_project.id
-        ).value == current_value + calculate_cached_id_block_size(
-            2
-        )  # Value hasn't changed
-        assert redis.llen(redis_key) == calculate_cached_id_block_size(
-            2
-        )  # Redis values haven't changed
+    # Directly call refill_cached_short_ids - should do nothing since we have enough values
+    block_size = calculate_cached_id_block_size(1)
+    refill_cached_short_ids(default_project.id, block_size)
+    assert Counter.objects.get(
+        project_id=default_project.id
+    ).value == 1 + calculate_cached_id_block_size(1)  # Value hasn't changed
+    assert redis.llen(redis_key) == calculate_cached_id_block_size(1) - 1  # Redis values haven't changed
 
 
 def test_calculate_cached_id_block_size():
