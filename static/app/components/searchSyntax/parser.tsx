@@ -921,8 +921,7 @@ export class TokenConverter {
     if (
       this.config.validateKeys &&
       this.config.supportedTags &&
-      !this.config.supportedTags[getKeyName(key)] &&
-      !this.config.filterKeysSecondaryAliases?.[getKeyName(key)]
+      !this.config.supportedTags[getKeyName(key)]
     ) {
       return {
         type: InvalidReason.INVALID_KEY,
@@ -1407,12 +1406,6 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
-  /**
-   * A collection of secondary aliases for filter keys.
-   * These are used to ensure that the filter key does not show them as invalid, however
-   * they will not be shown in the filter key dropdown.
-   */
-  filterKeysSecondaryAliases?: TagCollection;
   /**
    * When true, the parser will not parse paren groups and will return individual paren tokens
    */

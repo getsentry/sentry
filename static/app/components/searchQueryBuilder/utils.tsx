@@ -94,8 +94,12 @@ export function parseQueryBuilderValue(
       disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
       invalidMessages: options?.invalidMessages,
-      supportedTags: options?.filterKeys,
-      filterKeysSecondaryAliases: options?.filterKeysSecondaryAliases,
+      supportedTags: {
+        ...(options?.filterKeys ? options.filterKeys : {}),
+        ...(options?.filterKeysSecondaryAliases
+          ? options.filterKeysSecondaryAliases
+          : {}),
+      },
     })
   );
 }
