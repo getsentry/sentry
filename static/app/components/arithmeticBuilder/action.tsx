@@ -5,6 +5,9 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {defined} from 'sentry/utils';
 
+// The number of update cycles to delay the focus override. This is necessary because of react-aria
+// auto refocuses comboboxes in some situations causing the focus to stay on the current combobox
+// instead of shifting to the next element which is what we want.
 const FOCUS_COUNT_DOWN = 2;
 
 type FocusOverride = {
