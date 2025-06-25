@@ -61,8 +61,6 @@ export default function RepoTokenTable({
       error={response.error}
       data={data}
       columnOrder={COLUMNS_ORDER}
-      // TODO: This isn't used as per the docs but is still required. Test if
-      // it affects sorting when backend is ready.
       columnSortBy={[
         {
           key: sort.field,
