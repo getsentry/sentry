@@ -9,7 +9,6 @@ import {
   useState,
 } from 'react';
 import {flushSync} from 'react-dom';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -41,6 +40,7 @@ import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetai
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
@@ -838,19 +838,6 @@ const TraceLinksNavigationContainer = styled('div')`
   &:not(:empty) {
     margin-top: ${space(1)};
   }
-`;
-
-export const traceGridCssVariables = ({theme}: {theme: Theme}) => `
-  --info: ${theme.purple400};
-  --warning: ${theme.yellow300};
-  --debug: ${theme.blue300};
-  --error: ${theme.error};
-  --fatal: ${theme.error};
-  --default: ${theme.gray300};
-  --unknown: ${theme.gray300};
-  --profile: ${theme.purple300};
-  --autogrouped: ${theme.blue300};
-  --occurence: ${theme.blue300};
 `;
 
 export const TraceGrid = styled('div')<{
