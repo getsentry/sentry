@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -14,13 +15,22 @@ export function ModelName({modelId, provider, size = 16}: ModelNameProps) {
 
   return (
     <Flex gap={space(1)}>
-      <div>
+      <IconWrapper>
         <PlatformIcon platform={platform ?? 'unknown'} size={size} />
-      </div>
-      <div>{modelId}</div>
+      </IconWrapper>
+      <NameWrapper>{modelId}</NameWrapper>
     </Flex>
   );
 }
+
+const IconWrapper = styled('div')`
+  flex-shrink: 0;
+`;
+
+const NameWrapper = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  min-width: 0;
+`;
 
 export function getModelPlatform(modelId: string, provider?: string) {
   if (provider) {
