@@ -8,7 +8,6 @@ from django.utils import timezone
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import GroupEvent
 from sentry.exceptions import NotRegistered
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations_manager
