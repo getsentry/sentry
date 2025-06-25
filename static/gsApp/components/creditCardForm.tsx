@@ -135,7 +135,7 @@ function CreditCardForm({
         color: theme.textColor,
         fontFamily: theme.text.family,
         fontWeight: 400,
-        fontSize: theme.fontSizeLarge,
+        fontSize: theme.fontSize.lg,
         '::placeholder': {
           color: theme.gray300,
         },

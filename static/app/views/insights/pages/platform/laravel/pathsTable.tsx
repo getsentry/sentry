@@ -167,7 +167,7 @@ function TransactionDetails({
   const theme = useTheme();
 
   if (isControllerLoading) {
-    return <Placeholder height={theme.fontSizeSmall} width="200px" />;
+    return <Placeholder height={theme.fontSize.sm} width="200px" />;
   }
 
   if (!controller) {
