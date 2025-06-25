@@ -72,7 +72,7 @@ import {
   DashboardsMEPProvider,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {BuildStep} from './buildSteps/buildStep';
@@ -114,6 +114,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.ERRORS]: DataSet.ERRORS,
   [WidgetType.TRANSACTIONS]: DataSet.TRANSACTIONS,
   [WidgetType.SPANS]: DataSet.SPANS,
+  [WidgetType.LOGS]: DataSet.LOGS,
 };
 
 export const DATA_SET_TO_WIDGET_TYPE = {
@@ -124,6 +125,7 @@ export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.ERRORS]: WidgetType.ERRORS,
   [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
   [DataSet.SPANS]: WidgetType.SPANS,
+  [DataSet.LOGS]: WidgetType.LOGS,
 };
 
 interface RouteParams {
@@ -300,9 +302,9 @@ function WidgetBuilder({
   let tags: TagCollection = useTags();
 
   // HACK: Inject EAP dataset tags when selecting the Spans dataset
-  const {tags: numericSpanTags} = useSpanTags('number');
-  const {tags: stringSpanTags} = useSpanTags('string');
-  if (state.dataSet === DataSet.SPANS) {
+  const {tags: numericSpanTags} = useTraceItemTags('number');
+  const {tags: stringSpanTags} = useTraceItemTags('string');
+  if (state.dataSet === DataSet.SPANS || state.dataSet === DataSet.LOGS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
 
@@ -314,7 +316,7 @@ function WidgetBuilder({
       from: source,
     });
 
-    if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
+    if (isEmptyObject(tags) && ![DataSet.SPANS, DataSet.LOGS].includes(dataSet)) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for
@@ -1066,7 +1068,7 @@ function WidgetBuilder({
 
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
-    state.dataSet !== DataSet.SPANS &&
+    ![DataSet.SPANS, DataSet.LOGS].includes(state.dataSet) &&
     state.queries.length < 3;
 
   const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(

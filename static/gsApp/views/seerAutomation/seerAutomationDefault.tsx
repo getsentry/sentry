@@ -32,6 +32,7 @@ export function SeerAutomationDefault() {
     ...autofixAutomatingTuningField,
     name: 'defaultAutofixAutomationTuning',
     label: <SeerSelectLabel>{t('Default for Automatic Issue Fixes')}</SeerSelectLabel>,
+    visible: ({model}) => model?.getValue('defaultSeerScannerAutomation') === true,
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -52,39 +53,19 @@ export function SeerAutomationDefault() {
           organization.defaultAutofixAutomationTuning ?? 'off',
       }}
     >
-      {({model}) => {
-        const defaultSeerScannerAutomation = model.getValue(
-          'defaultSeerScannerAutomation'
-        );
-        const defaultAutofixAutomationTuning = model.getValue(
-          'defaultAutofixAutomationTuning'
-        );
-        const showWarning =
-          defaultSeerScannerAutomation === false &&
-          defaultAutofixAutomationTuning !== 'off';
-        return (
-          <JsonForm
-            forms={seerFormGroups}
-            disabled={!canWrite}
-            renderHeader={() => (
-              <React.Fragment>
-                <Alert type="info" system>
-                  {t(
-                    'Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis.'
-                  )}
-                </Alert>
-                {showWarning && (
-                  <Alert type="warning" system showIcon>
-                    {t(
-                      'Automatic Issue Scans must be enabled for Issue Fixes to be triggered automatically.'
-                    )}
-                  </Alert>
-                )}
-              </React.Fragment>
-            )}
-          />
-        );
-      }}
+      <JsonForm
+        forms={seerFormGroups}
+        disabled={!canWrite}
+        renderHeader={() => (
+          <React.Fragment>
+            <Alert type="info" system>
+              {t(
+                'Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis.'
+              )}
+            </Alert>
+          </React.Fragment>
+        )}
+      />
     </Form>
   );
 }

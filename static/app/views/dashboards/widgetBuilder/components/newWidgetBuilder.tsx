@@ -18,7 +18,6 @@ import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -31,6 +30,7 @@ import {
   type DashboardFilters,
   DisplayType,
   type Widget,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
@@ -51,7 +51,8 @@ import {
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -70,6 +71,30 @@ type WidgetBuilderV2Props = {
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
+
+function TraceItemAttributeProviderFromDataset({children}: {children: React.ReactNode}) {
+  const {state} = useWidgetBuilderContext();
+  const organization = useOrganization();
+
+  let enabled = false;
+  let traceItemType = TraceItemDataset.SPANS;
+
+  if (state.dataset === WidgetType.SPANS) {
+    enabled = organization.features.includes('visibility-explore-view');
+    traceItemType = TraceItemDataset.SPANS;
+  }
+
+  if (state.dataset === WidgetType.LOGS) {
+    enabled = organization.features.includes('ourlogs-dashboards');
+    traceItemType = TraceItemDataset.LOGS;
+  }
+
+  return (
+    <TraceItemAttributeProvider traceItemType={traceItemType} enabled={enabled}>
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
 
 function WidgetBuilderV2({
   isOpen,
@@ -164,10 +189,7 @@ function WidgetBuilderV2({
                   organization={organization}
                   selection={selection}
                 >
-                  <SpanTagsProvider
-                    dataset={DiscoverDatasets.SPANS_EAP}
-                    enabled={organization.features.includes('visibility-explore-view')}
-                  >
+                  <TraceItemAttributeProviderFromDataset>
                     <ContainerWithoutSidebar
                       sidebarCollapsed={sidebarCollapsed}
                       style={
@@ -227,7 +249,7 @@ function WidgetBuilderV2({
                         )}
                       </WidgetBuilderContainer>
                     </ContainerWithoutSidebar>
-                  </SpanTagsProvider>
+                  </TraceItemAttributeProviderFromDataset>
                 </CustomMeasurementsProvider>
               </WidgetBuilderProvider>
             )}

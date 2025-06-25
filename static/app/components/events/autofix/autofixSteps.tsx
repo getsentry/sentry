@@ -16,6 +16,7 @@ import {
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -157,6 +158,12 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
 
   const isInitialMount = !isMountedRef.current;
 
+  const shouldShowOutputStream =
+    ((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) &&
+    lastStep!.type !== AutofixStepType.CHANGES;
+  const errorMessage = getAutofixRunErrorMessage(data);
+  const shouldShowStandaloneError = errorMessage && !shouldShowOutputStream;
+
   return (
     <div>
       {steps.map((step, index) => {
@@ -221,17 +228,23 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           </div>
         );
       })}
-      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) &&
-        lastStep!.type !== AutofixStepType.CHANGES && (
-          <AutofixOutputStream
-            stream={lastStep!.output_stream ?? ''}
-            activeLog={activeLog}
-            groupId={groupId}
-            runId={runId}
-            responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-            autofixData={data}
-          />
-        )}
+      {shouldShowOutputStream && (
+        <AutofixOutputStream
+          stream={lastStep!.output_stream ?? ''}
+          activeLog={activeLog}
+          groupId={groupId}
+          runId={runId}
+          responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+          autofixData={data}
+        />
+      )}
+      {shouldShowStandaloneError && (
+        <StandaloneErrorMessage>
+          {errorMessage}
+          <br />
+          Just hit "Start Over."
+        </StandaloneErrorMessage>
+      )}
     </div>
   );
 }
@@ -267,3 +280,9 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const AnimationWrapper = styled(motion.div)``;
+
+const StandaloneErrorMessage = styled('div')`
+  margin: ${space(1)} 0;
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+`;

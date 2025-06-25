@@ -29,6 +29,7 @@ from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
     process_individual_attachment,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.broadcast import Broadcast
 from sentry.models.commit import Commit
@@ -484,7 +485,7 @@ def create_repository(organization: Organization) -> Repository:
         # upgrade to the new integration
         repo = Repository.objects.get(
             organization_id=organization.id,
-            provider="github",
+            provider=IntegrationProviderSlug.GITHUB.value,
             external_id="example/example",
             name="Example Repo",
         )
@@ -647,12 +648,9 @@ def generate_events(
             project_id=project.id,
             event_id=event1.event_id,
             name="example-logfile.txt",
-            file_id=File.objects.get_or_create(
-                name="example-logfile.txt",
-                type="text/plain",
-                checksum="abcde" * 8,
-                size=13043,
-            )[0].id,
+            type="text/plain",
+            sha1="abcde" * 8,
+            size=13043,
         )
 
         event2 = create_sample_event(

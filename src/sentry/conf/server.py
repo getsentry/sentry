@@ -710,6 +710,9 @@ SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
 
+# Shared secret used to sign cross-region RPC requests from the launchpad microservice.
+LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
+
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
@@ -808,6 +811,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.ai_agent_monitoring",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
@@ -989,6 +993,7 @@ CELERY_QUEUES_REGION = [
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
     Queue("tempest", routing_key="tempest"),
+    Queue("ai_agent_monitoring", routing_key="ai_agent_monitoring"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("uptime", routing_key="uptime"),
@@ -1013,6 +1018,7 @@ CELERY_QUEUES_REGION = [
     Queue("demo_mode", routing_key="demo_mode"),
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
+    Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
 ]
 
 from celery.schedules import crontab
@@ -1318,6 +1324,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab(minute="*/5"),
     },
+    "fetch-ai-model-costs": {
+        "task": "sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        # Run every 30 minutes
+        "schedule": crontab(minute="*/30"),
+        "options": {"expires": 25 * 60},  # 25 minutes
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1379,10 +1391,6 @@ TIMEDELTA_ALLOW_LIST = {
 
 BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
-    "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
-        "interval": 5 * 60,
-        "roles": ["worker"],
-    },
 }
 
 #######################
@@ -1486,6 +1494,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
+    "sentry.tasks.ai_agent_monitoring",
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
@@ -1678,6 +1687,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "fetch-ai-model-costs": {
+        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
     "sync_options_trial": {
         "schedule": timedelta(minutes=5),
@@ -2914,7 +2927,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.5.1"
+SELF_HOSTED_STABLE_VERSION = "25.6.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3969,6 +3982,7 @@ if SILO_DEVSERVER:
     ]
     RPC_TIMEOUT = 15.0
     SEER_RPC_SHARED_SECRET = ["seers-also-very-long-value-haha"]
+    LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
 
     # Key for signing integration proxy requests.
     SENTRY_SUBNET_SECRET = "secret-subnet-signature"

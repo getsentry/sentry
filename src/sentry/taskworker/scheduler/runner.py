@@ -230,7 +230,7 @@ class ScheduleRunner:
             entry.delay_task()
             entry.set_last_run(now)
 
-            logger.info("taskworker.scheduler.delay_task", extra={"fullname": entry.fullname})
+            logger.debug("taskworker.scheduler.delay_task", extra={"fullname": entry.fullname})
             metrics.incr(
                 "taskworker.scheduler.delay_task",
                 tags={
@@ -242,7 +242,7 @@ class ScheduleRunner:
             # sync with last_run state in storage
             entry.set_last_run(self._run_storage.read(entry.fullname))
 
-            logger.info(
+            logger.debug(
                 "taskworker.scheduler.sync_with_storage", extra={"fullname": entry.fullname}
             )
             metrics.incr("taskworker.scheduler.sync_with_storage")

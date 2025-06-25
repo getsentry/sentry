@@ -52,7 +52,7 @@ import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const NONE = 'none';
 
@@ -82,7 +82,7 @@ function formatColumnOptions(
       return {
         value: option.value.meta.name,
         label:
-          dataset === WidgetType.SPANS
+          dataset === WidgetType.SPANS || dataset === WidgetType.LOGS
             ? prettifyTagKey(option.value.meta.name)
             : option.value.meta.name,
 
@@ -132,7 +132,11 @@ export function getColumnOptions(
   filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
-  if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
+  if (
+    selectedField.kind !== FieldValueKind.FUNCTION ||
+    dataset === WidgetType.SPANS ||
+    dataset === WidgetType.LOGS
+  ) {
     return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
       .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
       .sort(_sortFn);
@@ -255,14 +259,14 @@ function Visualize({error, setError}: VisualizeProps) {
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
-  const {tags: numericSpanTags} = useSpanTags('number');
-  const {tags: stringSpanTags} = useSpanTags('string');
+  const {tags: numericSpanTags} = useTraceItemTags('number');
+  const {tags: stringSpanTags} = useTraceItemTags('string');
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let spanColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
-  if (state.dataset === WidgetType.SPANS) {
+  let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
+  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
     tags = {...numericSpanTags, ...stringSpanTags};
@@ -271,7 +275,7 @@ function Visualize({error, setError}: VisualizeProps) {
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
         .map(field => field.field) ?? [];
-    spanColumnOptions = [
+    traceItemColumnOptions = [
       // Columns that are not in the tag responses, e.g. old tags
       ...columns
         .filter(
@@ -284,7 +288,6 @@ function Visualize({error, setError}: VisualizeProps) {
           return {
             label: prettifyTagKey(column),
             value: column,
-            textValue: column,
             trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
@@ -292,20 +295,18 @@ function Visualize({error, setError}: VisualizeProps) {
         return {
           label: tag.name,
           value: tag.key,
-          textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.TAG} />,
         };
       }),
       ...Object.values(numericSpanTags).map(tag => {
         return {
-          label: tag.name,
+          label: prettifyTagKey(tag.name),
           value: tag.key,
-          textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
         };
       }),
     ];
-    spanColumnOptions.sort(_sortFn);
+    traceItemColumnOptions.sort(_sortFn);
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -414,9 +415,10 @@ function Visualize({error, setError}: VisualizeProps) {
                     ? datasetConfig.filterAggregateParams
                     : datasetConfig.filterTableOptions;
                 const columnOptions =
-                  state.dataset === WidgetType.SPANS &&
+                  (state.dataset === WidgetType.SPANS ||
+                    state.dataset === WidgetType.LOGS) &&
                   field.kind !== FieldValueKind.FUNCTION
-                    ? spanColumnOptions
+                    ? traceItemColumnOptions
                     : getColumnOptions(
                         state.dataset ?? WidgetType.ERRORS,
                         field,
@@ -449,9 +451,12 @@ function Visualize({error, setError}: VisualizeProps) {
                   if (state.dataset === WidgetType.ISSUE) {
                     // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
                     aggregateOptions = baseOptions;
-                  } else if (state.dataset === WidgetType.SPANS) {
+                  } else if (
+                    state.dataset === WidgetType.SPANS ||
+                    state.dataset === WidgetType.LOGS
+                  ) {
                     // Add span column options for Spans dataset
-                    aggregateOptions = [...baseOptions, ...spanColumnOptions];
+                    aggregateOptions = [...baseOptions, ...traceItemColumnOptions];
                   } else if (state.dataset === WidgetType.RELEASE) {
                     aggregateOptions = [
                       ...(canDelete ? baseOptions : aggregateOptions),

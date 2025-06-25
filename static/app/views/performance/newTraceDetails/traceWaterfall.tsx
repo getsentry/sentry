@@ -14,6 +14,7 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Flex} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -30,6 +31,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -38,6 +40,7 @@ import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetai
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
@@ -81,7 +84,7 @@ import TraceTypeWarnings from './traceTypeWarnings';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {useTraceScrollToPath} from './useTraceScrollToPath';
+import {getScrollToPath, useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -103,6 +106,7 @@ export interface TraceWaterfallProps {
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
+  isVisible?: boolean;
   replayTraces?: ReplayTrace[];
 }
 
@@ -130,7 +134,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath(undefined);
+  const scrollQueueRef = useTraceScrollToPath();
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -525,6 +529,19 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     source,
   ]);
 
+  // We re-init the view to sync back with URL params
+  // as they might have changed while the waterfall was hidden
+  const isMountedRef = useIsMountedRef();
+  useLayoutEffect(() => {
+    if (props.isVisible && isMountedRef.current) {
+      scrollQueueRef.current = getScrollToPath();
+      onTraceLoad();
+    }
+
+    // Only run if isVisible changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.isVisible]);
+
   // Setup the middleware for the trace reducer
   useLayoutEffect(() => {
     const beforeTraceNextStateDispatch: DispatchingReducerMiddleware<
@@ -708,7 +725,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }
 
   return (
-    <FlexBox>
+    <Flex direction="column" flex={1}>
       <TraceTypeWarnings
         tree={props.tree}
         traceSlug={props.traceSlug}
@@ -804,7 +821,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           />
         </TraceLinksNavigationContainer>
       )}
-    </FlexBox>
+    </Flex>
   );
 }
 
@@ -826,16 +843,7 @@ const TraceLinksNavigationContainer = styled('div')`
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
-  --info: ${p => p.theme.purple400};
-  --warning: ${p => p.theme.yellow300};
-  --debug: ${p => p.theme.blue300};
-  --error: ${p => p.theme.error};
-  --fatal: ${p => p.theme.error};
-  --default: ${p => p.theme.gray300};
-  --unknown: ${p => p.theme.gray300};
-  --profile: ${p => p.theme.purple300};
-  --autogrouped: ${p => p.theme.blue300};
-  --occurence: ${p => p.theme.blue300};
+  ${traceGridCssVariables}
 
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
@@ -864,11 +872,4 @@ export const TraceGrid = styled('div')<{
   grid-template-rows: 1fr auto;
 
   ${p => `border-radius: ${p.theme.borderRadius};`}
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  height: 100%;
 `;

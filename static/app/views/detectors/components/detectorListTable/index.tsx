@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import LoadingError from 'sentry/components/loadingError';
+import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   DetectorListRow,
   DetectorListRowSkeleton,
@@ -15,7 +15,10 @@ import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 type DetectorListTableProps = {
   detectors: Detector[];
+  isError: boolean;
   isPending: boolean;
+  isSuccess: boolean;
+  sort: Sort | undefined;
 };
 
 function LoadingSkeletons() {
@@ -24,72 +27,106 @@ function LoadingSkeletons() {
   ));
 }
 
-function DetectorListTable({detectors, isPending}: DetectorListTableProps) {
+function HeaderCell({
+  children,
+  name,
+  sortKey,
+  sort,
+}: {
+  children: React.ReactNode;
+  name: string;
+  sort: Sort | undefined;
+  divider?: boolean;
+  sortKey?: string;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isSortedByField = sort?.field === sortKey;
+  const handleSort = () => {
+    if (!sortKey) {
+      return;
+    }
+    const newSort =
+      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, sort: newSort, cursor: undefined},
+    });
+  };
+
   return (
-    <Panel>
-      <StyledPanelHeader>
-        <Flex className="type">
-          <Heading>{t('Type')}</Heading>
-        </Flex>
-        <Flex className="type">
-          <HeaderDivider />
-          <Heading>{t('Type')}</Heading>
-        </Flex>
-        <Flex className="issue">
-          <HeaderDivider />
-          <Heading>{t('Last Issue')}</Heading>
-        </Flex>
-        <Flex className="assignee">
-          <HeaderDivider />
-          <Heading>{t('Assignee')}</Heading>
-        </Flex>
-        <Flex className="connected-automations">
-          <HeaderDivider />
-          <Heading>{t('Automations')}</Heading>
-        </Flex>
-      </StyledPanelHeader>
-      <PanelBody>
-        {isPending ? (
-          <LoadingSkeletons />
-        ) : (
-          detectors.map(detector => (
-            <DetectorListRow key={detector.id} detector={detector} />
-          ))
-        )}
-      </PanelBody>
-    </Panel>
+    <SimpleTable.HeaderCell
+      name={name}
+      sort={sort}
+      sortKey={sortKey}
+      handleSortClick={handleSort}
+    >
+      {children}
+    </SimpleTable.HeaderCell>
   );
 }
 
-const HeaderDivider = styled('div')`
-  background-color: ${p => p.theme.gray200};
-  width: 1px;
-  border-radius: ${p => p.theme.borderRadius};
+function DetectorListTable({
+  detectors,
+  isPending,
+  isError,
+  isSuccess,
+  sort,
+}: DetectorListTableProps) {
+  return (
+    <Container>
+      <DetectorListSimpleTable>
+        <SimpleTable.Header>
+          <HeaderCell name="name" sortKey="name" sort={sort}>
+            {t('Name')}
+          </HeaderCell>
+          <HeaderCell name="type" divider sortKey="type" sort={sort}>
+            {t('Type')}
+          </HeaderCell>
+          <HeaderCell name="last-issue" divider sort={sort}>
+            {t('Last Issue')}
+          </HeaderCell>
+          <HeaderCell name="assignee" divider sort={sort}>
+            {t('Assignee')}
+          </HeaderCell>
+          <HeaderCell
+            name="connected-automations"
+            divider
+            sortKey="connectedWorkflows"
+            sort={sort}
+          >
+            {t('Automations')}
+          </HeaderCell>
+        </SimpleTable.Header>
+        {isError && <LoadingError message={t('Error loading monitors')} />}
+        {isPending && <LoadingSkeletons />}
+        {isSuccess && detectors.length > 0 ? (
+          detectors.map(detector => (
+            <DetectorListRow key={detector.id} detector={detector} />
+          ))
+        ) : (
+          <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
+        )}
+      </DetectorListSimpleTable>
+    </Container>
+  );
+}
+
+const Container = styled('div')`
+  container-type: inline-size;
 `;
 
-const Heading = styled('div')`
-  display: flex;
-  padding: 0 ${space(2)};
-  color: ${p => p.theme.subText};
-  align-items: center;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  justify-content: left;
-  padding: ${space(0.75)} ${space(2)};
-  min-height: 40px;
-  align-items: center;
-  display: grid;
-  text-transform: none;
+const DetectorListSimpleTable = styled(SimpleTable)`
+  grid-template-columns: 1fr;
 
   .type,
-  .creator,
   .last-issue,
+  .assignee,
   .connected-automations {
     display: none;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: 3fr 0.8fr;
 
     .type {
@@ -97,7 +134,7 @@ const StyledPanelHeader = styled(PanelHeader)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @container (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
@@ -105,15 +142,15 @@ const StyledPanelHeader = styled(PanelHeader)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @container (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .creator {
+    .assignee {
       display: flex;
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @container (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
 
     .connected-automations {

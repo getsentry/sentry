@@ -19,13 +19,13 @@ describe('PriorityControl', function () {
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
 
     expect(await screen.findByText('Above 0s')).toBeInTheDocument();
-    expect(await screen.findByTestId('priority-control-medium')).toBeInTheDocument();
-    expect(await screen.findByTestId('priority-control-high')).toBeInTheDocument();
+    expect(screen.getByLabelText('Medium threshold')).toBeInTheDocument();
+    expect(screen.getByLabelText('High threshold')).toBeInTheDocument();
   });
 
   it('allows configuring priority', async function () {
@@ -37,7 +37,7 @@ describe('PriorityControl', function () {
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
     expect(await screen.findByRole('button', {name: 'Low'})).toBeInTheDocument();
@@ -62,13 +62,13 @@ describe('PriorityControl', function () {
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
-    const medium = await screen.findByTestId('priority-control-medium');
+    const medium = screen.getByLabelText('Medium threshold');
     await userEvent.type(medium, '4');
 
-    const high = await screen.findByTestId('priority-control-high');
+    const high = screen.getByLabelText('High threshold');
     await userEvent.type(high, '5');
 
     expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold)).toBe('4');

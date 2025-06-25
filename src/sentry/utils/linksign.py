@@ -4,40 +4,35 @@ from typing import Any
 from urllib.parse import urlencode
 
 from django.core import signing
+from django.http.request import HttpRequest
 from django.urls import reverse
 from sentry_sdk.api import capture_exception
 
 from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.types.region import get_local_region
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.numbers import base36_decode, base36_encode
 
 
-def get_signer():
+def get_signer() -> signing.TimestampSigner:
     return signing.TimestampSigner(salt="sentry-link-signature")
 
 
 def generate_signed_link(
-    user,
+    user_id: int,
     viewname: str,
     referrer: str | None = None,
     args: list[Any] | None = None,
     kwargs: dict[str, Any] | None = None,
-):
+) -> str:
     """This returns an absolute URL where the given user is signed in for
     the given viewname with args and kwargs.  This returns a redirect link
     that if followed sends the user to another URL which carries another
     signature that is valid for that URL only.  The user can also be a user
     ID.
     """
-    if hasattr(user, "is_authenticated"):
-        if not user.is_authenticated:
-            raise RuntimeError("Need an authenticated user to sign a link.")
-        user_id = user.id
-    else:
-        user_id = user
-
     path = reverse(viewname, args=args, kwargs=kwargs)
     item = "{}|{}|{}".format(options.get("system.url-prefix"), path, base36_encode(user_id))
     signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
@@ -54,7 +49,7 @@ def generate_signed_unsubscribe_link(
     resource: str,
     resource_id: str | int,
     referrer: str | None = None,
-):
+) -> str:
     """
     Generate an absolute URL to the react rendered unsubscribe views
 
@@ -84,11 +79,11 @@ def generate_signed_unsubscribe_link(
     return organization.absolute_url(path=htmlpath, query=query)
 
 
-def find_signature(request) -> str | None:
+def find_signature(request: HttpRequest) -> str | None:
     return request.GET.get("_")
 
 
-def process_signature(request, max_age=60 * 60 * 24 * 10):
+def process_signature(request: HttpRequest, max_age: int = 60 * 60 * 24 * 10) -> RpcUser | None:
     """Given a request object this validates the signature from the
     current request and returns the user.
     """

@@ -19,9 +19,12 @@ describe('EnvironmentSelector', function () {
     render(<EnvironmentSelector value={''} onChange={mockOnChange} />);
 
     // Open list
-    await userEvent.click(screen.getByRole('button', {name: 'Environment None'}));
+    await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
 
     // Get groups
+    const allEnvironments = screen.getByRole('group', {
+      name: 'All Environments',
+    });
     const userProjectEnvironments = screen.getByRole('group', {
       name: 'Environments in My Projects',
     });
@@ -30,6 +33,9 @@ describe('EnvironmentSelector', function () {
     });
 
     // Environments are correctly grouped
+    expect(
+      within(allEnvironments).getByRole('option', {name: 'All Environments'})
+    ).toBeInTheDocument();
     expect(
       within(userProjectEnvironments).getByRole('option', {name: 'prod'})
     ).toBeInTheDocument();
@@ -48,7 +54,7 @@ describe('EnvironmentSelector', function () {
     await userEvent.click(screen.getByRole('option', {name: 'prod'}));
 
     // Trigger label is updated
-    expect(screen.getByRole('button', {name: 'Environment prod'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
     expect(mockOnChange).toHaveBeenCalledWith('prod');
   });
 });

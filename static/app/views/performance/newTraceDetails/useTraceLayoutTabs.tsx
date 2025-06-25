@@ -15,6 +15,7 @@ export enum TraceLayoutTabKeys {
   PROFILES = 'profiles',
   LOGS = 'logs',
   SUMMARY = 'summary',
+  AI_SPANS = 'ai-spans',
 }
 
 interface Tab {
@@ -44,6 +45,10 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
   },
   [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.SUMMARY]: {slug: TraceLayoutTabKeys.SUMMARY, label: t('Summary')},
+  [TraceLayoutTabKeys.AI_SPANS]: {
+    slug: TraceLayoutTabKeys.AI_SPANS,
+    label: t('AI Spans'),
+  },
 };
 
 function getTabOptions({
@@ -71,6 +76,10 @@ function getTabOptions({
 
   if (sections.hasSummary) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.SUMMARY]);
+  }
+
+  if (sections.hasAiSpans) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.AI_SPANS]);
   }
 
   return tabOptions;

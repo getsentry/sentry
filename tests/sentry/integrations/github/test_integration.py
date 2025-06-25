@@ -17,6 +17,7 @@ import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import client
+from sentry.integrations.github import integration as github_integration
 from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
 from sentry.integrations.github.integration import (
     API_ERRORS,
@@ -38,7 +39,6 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline import PipelineView
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
@@ -1310,7 +1310,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
     def test_github_installation_calls_ui(self, mock_render, mock_record):
         self._setup_with_existing_installations()
         installations = [
@@ -1527,7 +1527,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     )
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
     def test_github_installation_calls_ui_no_biz_plan(self, mock_render, mock_record):
         self._setup_with_existing_installations()
         installations = [
@@ -1587,7 +1587,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     )
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
     def test_errors_when_invalid_access_to_multi_org(self, mock_render, mock_record):
         self._setup_with_existing_installations()
         installations = [

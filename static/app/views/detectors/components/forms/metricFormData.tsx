@@ -8,8 +8,9 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -28,10 +29,6 @@ interface PrioritizeLevelFormData {
    * Medium priority value is optional depending on the initial level
    */
   mediumThreshold?: string;
-  /**
-   * Optional value at which the issue is resolved
-   */
-  resolveThreshold?: string;
 }
 
 interface MetricDetectorConditionFormData {
@@ -55,17 +52,22 @@ interface MetricDetectorDynamicFormData {
   thresholdType: AlertRuleThresholdType;
 }
 
+interface SnubaQueryFormData {
+  aggregate: string;
+  environment: string;
+  query: string;
+  visualize: string;
+}
+
 export interface MetricDetectorFormData
   extends PrioritizeLevelFormData,
     MetricDetectorConditionFormData,
-    MetricDetectorDynamicFormData {
-  aggregate: string;
-  environment: string;
-  kind: 'threshold' | 'change' | 'dynamic';
+    MetricDetectorDynamicFormData,
+    SnubaQueryFormData {
+  kind: 'static' | 'percent' | 'dynamic';
   name: string;
+  owner: string;
   projectId: string;
-  query: string;
-  visualize: string;
 }
 
 type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
@@ -76,19 +78,21 @@ type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
  */
 export const METRIC_DETECTOR_FORM_FIELDS = {
   // Core detector fields
-  aggregate: 'aggregate',
-  query: 'query',
   kind: 'kind',
-  name: 'name',
-  visualize: 'visualize',
   environment: 'environment',
   projectId: 'projectId',
+  owner: 'owner',
+
+  // Snuba query fields
+  aggregate: 'aggregate',
+  query: 'query',
+  name: 'name',
+  visualize: 'visualize',
 
   // Priority level fields
   initialPriorityLevel: 'initialPriorityLevel',
   highThreshold: 'highThreshold',
   mediumThreshold: 'mediumThreshold',
-  resolveThreshold: 'resolveThreshold',
 
   // Condition fields
   conditionComparisonAgo: 'conditionComparisonAgo',
@@ -101,15 +105,14 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
 } satisfies Record<MetricDetectorFormFieldName, MetricDetectorFormFieldName>;
 
 export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
-  kind: 'threshold',
+  kind: 'static',
 
   // Priority level fields
   // Metric detectors only support MEDIUM and HIGH priority levels
-  initialPriorityLevel: DetectorPriorityLevel.MEDIUM,
+  initialPriorityLevel: DetectorPriorityLevel.HIGH,
   conditionType: DataConditionType.GREATER,
   conditionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
-  resolveThreshold: '',
 
   // Default dynamic fields
   sensitivity: AlertRuleSensitivity.LOW,
@@ -124,6 +127,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   environment: '',
   projectId: '',
   name: '',
+  owner: '',
 } satisfies MetricDetectorFormData;
 
 /**
@@ -153,16 +157,12 @@ interface NewDataSource {
 
 export interface NewMetricDetector {
   conditionGroup: NewConditionGroup;
-  // TODO: config types don't exist yet
-  config: {
-    // TODO: what is the shape of config?
-    detection_type: any;
-    threshold_period: number;
-  };
+  config: DetectorConfig;
   dataSource: NewDataSource; // Single data source object (not array)
-  detectorType: Detector['type'];
   name: string;
+  owner: Detector['owner'];
   projectId: Detector['projectId'];
+  type: Detector['type'];
 }
 
 /**
@@ -185,27 +185,13 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
   // Only add HIGH escalation if initial priority is MEDIUM and highThreshold is provided
   if (
     data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM &&
-    defined(data.highThreshold)
+    defined(data.highThreshold) &&
+    data.highThreshold !== ''
   ) {
     conditions.push({
       type: data.conditionType,
       comparison: parseFloat(data.highThreshold) || 0,
       conditionResult: DetectorPriorityLevel.HIGH,
-    });
-  }
-
-  // Create resolution condition if provided
-  if (defined(data.resolveThreshold)) {
-    // Resolution condition uses opposite comparison type
-    const resolveConditionType =
-      data.conditionType === DataConditionType.GREATER
-        ? DataConditionType.LESS
-        : DataConditionType.GREATER;
-
-    conditions.push({
-      type: resolveConditionType,
-      comparison: data.resolveThreshold,
-      conditionResult: DetectorPriorityLevel.OK,
     });
   }
 
@@ -226,7 +212,8 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
     query: data.query,
     // TODO: aggregate doesn't always contain the selected "visualize" value.
     aggregate: `${data.aggregate}(${data.visualize})`,
-    timeWindow: data.conditionComparisonAgo ? data.conditionComparisonAgo / 60 : 60,
+    // TODO: Add interval to the form
+    timeWindow: 60 * 60,
     environment: data.environment ? data.environment : null,
     eventTypes,
   };
@@ -238,19 +225,150 @@ export function getNewMetricDetectorData(
   const conditions = createConditions(data);
   const dataSource = createDataSource(data);
 
+  // Create config based on detection type
+  let config: DetectorConfig;
+  switch (data.kind) {
+    case 'percent':
+      config = {
+        threshold_period: 1,
+        detection_type: 'percent',
+        comparison_delta: data.conditionComparisonAgo || 3600,
+      };
+      break;
+    case 'dynamic':
+      config = {
+        threshold_period: 1,
+        detection_type: 'dynamic',
+        sensitivity: data.sensitivity,
+      };
+      break;
+    case 'static':
+    default:
+      config = {
+        threshold_period: 1,
+        detection_type: 'static',
+      };
+      break;
+  }
+
   return {
     name: data.name || 'New Monitor',
-    detectorType: 'metric_issue',
+    type: 'metric_issue',
     projectId: data.projectId,
+    owner: data.owner || null,
     conditionGroup: {
       // TODO: Can this be different values?
       logicType: DataConditionGroupLogicType.ANY,
       conditions,
     },
-    config: {
-      threshold_period: 1,
-      detection_type: 'static',
-    },
+    config,
     dataSource,
+  };
+}
+
+/**
+ * Convert the detector conditions array to the flattened form data
+ */
+function processDetectorConditions(
+  detector: Detector
+): PrioritizeLevelFormData &
+  Pick<MetricDetectorFormData, 'conditionValue' | 'conditionType'> {
+  // Get conditions from the condition group
+  const conditions = detector.conditionGroup?.conditions || [];
+  // Sort by priority level, lowest first
+  const sortedConditions = conditions.toSorted((a, b) => {
+    return (a.conditionResult || 0) - (b.conditionResult || 0);
+  });
+
+  // Find the condition with the lowest non-zero priority level
+  const mainCondition = sortedConditions.find(
+    condition => condition.conditionResult !== DetectorPriorityLevel.OK
+  );
+
+  // Find high priority escalation condition
+  const highCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.HIGH
+  );
+
+  // Determine initial priority level, ensuring it's valid for the form
+  let initialPriorityLevel: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH =
+    DetectorPriorityLevel.MEDIUM;
+
+  if (mainCondition?.conditionResult === DetectorPriorityLevel.HIGH) {
+    initialPriorityLevel = DetectorPriorityLevel.HIGH;
+  } else if (mainCondition?.conditionResult === DetectorPriorityLevel.MEDIUM) {
+    initialPriorityLevel = DetectorPriorityLevel.MEDIUM;
+  }
+
+  // Ensure condition type is valid for the form
+  let conditionType: DataConditionType.GREATER | DataConditionType.LESS =
+    DataConditionType.GREATER;
+  if (
+    mainCondition?.type === DataConditionType.LESS ||
+    mainCondition?.type === DataConditionType.GREATER
+  ) {
+    conditionType = mainCondition.type;
+  }
+
+  return {
+    initialPriorityLevel,
+    conditionValue: mainCondition?.comparison.toString() || '',
+    conditionType,
+    highThreshold: highCondition?.comparison.toString() || '',
+  };
+}
+
+/**
+ * Converts a Detector to MetricDetectorFormData for editing
+ */
+export function getMetricDetectorFormData(detector: Detector): MetricDetectorFormData {
+  // Get the first data source (assuming metric detectors have one)
+  const dataSource = detector.dataSources?.[0];
+
+  // Check if this is a snuba query data source
+  const snubaQuery =
+    dataSource?.type === 'snuba_query_subscription'
+      ? dataSource.queryObj?.snubaQuery
+      : undefined;
+
+  // Extract aggregate and visualize from the aggregate string
+  const parsedFunction = snubaQuery?.aggregate
+    ? parseFunction(snubaQuery.aggregate)
+    : null;
+  const aggregate = parsedFunction?.name || 'count';
+  const visualize = parsedFunction?.arguments[0] || 'transaction.duration';
+
+  // Process conditions using the extracted function
+  const conditionData = processDetectorConditions(detector);
+
+  return {
+    // Core detector fields
+    name: detector.name,
+    projectId: detector.projectId,
+    environment: snubaQuery?.environment || '',
+    owner: detector.owner || '',
+    query: snubaQuery?.query || '',
+    aggregate,
+    visualize,
+
+    // Priority level and condition fields from processed conditions
+    ...conditionData,
+    kind: detector.config.detection_type || 'static',
+
+    // Condition fields - get comparison delta from detector config (already in seconds)
+    conditionComparisonAgo:
+      (detector.config?.detection_type === 'percent'
+        ? detector.config.comparison_delta
+        : null) || 3600,
+
+    // Dynamic fields - extract from config for dynamic detectors
+    sensitivity:
+      detector.config?.detection_type === 'dynamic'
+        ? detector.config.sensitivity || AlertRuleSensitivity.LOW
+        : AlertRuleSensitivity.LOW,
+    thresholdType:
+      detector.config?.detection_type === 'dynamic'
+        ? (detector.config as any).threshold_type || AlertRuleThresholdType.ABOVE
+        : AlertRuleThresholdType.ABOVE,
   };
 }

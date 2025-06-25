@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from sentry import buffer
 from sentry.eventstream.base import GroupState
@@ -25,9 +26,10 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    DelayedWorkflowItem,
     WorkflowDataConditionGroupType,
     delete_workflow,
-    enqueue_workflow,
+    enqueue_workflows,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
     process_workflows,
@@ -326,6 +328,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             )
 
 
+@mock_redis_buffer()
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     def setUp(self):
         (
@@ -539,6 +542,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         assert len(project_ids) == 0
 
 
+@mock_redis_buffer()
 class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def setUp(self):
         (
@@ -634,48 +638,68 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         self.condition = self.create_data_condition(condition_group=self.data_condition_group)
         _, self.event, self.group_event = self.create_group_event()
 
-    @patch("sentry.buffer.backend.push_to_hash")
     @patch("sentry.buffer.backend.push_to_sorted_set")
-    def test_enqueue_workflow__adds_to_workflow_engine_buffer(
-        self, mock_push_to_hash, mock_push_to_sorted_set
+    @patch("sentry.buffer.backend.push_to_hash_bulk")
+    def test_enqueue_workflows__adds_to_workflow_engine_buffer(
+        self, mock_push_to_hash_bulk, mock_push_to_sorted_set
     ):
-        enqueue_workflow(
-            self.workflow,
-            [self.condition],
-            self.group_event,
-            WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+        enqueue_workflows(
+            {
+                self.group_event.project_id: [
+                    DelayedWorkflowItem(
+                        self.workflow,
+                        [self.condition],
+                        self.group_event,
+                        WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                        timestamp=timezone.now(),
+                    )
+                ]
+            }
         )
 
-        mock_push_to_hash.assert_called_once_with(
+        mock_push_to_sorted_set.assert_called_once_with(
             key=WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-            value=self.group_event.project_id,
+            value=[self.group_event.project_id],
         )
 
-    @patch("sentry.buffer.backend.push_to_hash")
     @patch("sentry.buffer.backend.push_to_sorted_set")
+    @patch("sentry.buffer.backend.push_to_hash_bulk")
     def test_enqueue_workflow__adds_to_workflow_engine_set(
-        self, mock_push_to_hash, mock_push_to_sorted_set
+        self, mock_push_to_hash_bulk, mock_push_to_sorted_set
     ):
+        current_time = timezone.now()
         condition2 = self.create_data_condition(condition_group=self.create_data_condition_group())
         condition3 = self.create_data_condition(condition_group=self.create_data_condition_group())
-        enqueue_workflow(
-            self.workflow,
-            [self.condition, condition2, condition3],
-            self.group_event,
-            WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+        enqueue_workflows(
+            {
+                self.group_event.project_id: [
+                    DelayedWorkflowItem(
+                        self.workflow,
+                        [self.condition, condition2, condition3],
+                        self.group_event,
+                        WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                        timestamp=current_time,
+                    )
+                ]
+            }
         )
 
         condition_group_ids = ",".join(
             str(condition.condition_group_id)
             for condition in [self.condition, condition2, condition3]
         )
-        mock_push_to_sorted_set.assert_called_once_with(
+        mock_push_to_hash_bulk.assert_called_once_with(
             model=Workflow,
             filters={"project_id": self.group_event.project_id},
-            field=f"{self.workflow.id}:{self.group_event.group_id}:{condition_group_ids}:workflow_trigger",
-            value=json.dumps(
-                {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}
-            ),
+            data={
+                f"{self.workflow.id}:{self.group_event.group_id}:{condition_group_ids}:workflow_trigger": json.dumps(
+                    {
+                        "event_id": self.event.event_id,
+                        "occurrence_id": self.group_event.occurrence_id,
+                        "timestamp": current_time,
+                    }
+                )
+            },
         )
 
 

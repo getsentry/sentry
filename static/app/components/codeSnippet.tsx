@@ -206,6 +206,10 @@ export function CodeSnippet({
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
+const FlexSpacer = styled('div')`
+  flex-grow: 1;
+`;
+
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   background: var(--prism-block-background);
@@ -274,10 +278,6 @@ const Tab = styled('button')<{isSelected: boolean}>`
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}
-`;
-
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
 `;
 
 const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`

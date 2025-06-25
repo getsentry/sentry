@@ -34,6 +34,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -44,6 +45,9 @@ from sentry.seer.autofix_tools import get_error_event_details, get_profile_detai
 from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_file_patches,
     get_issues_related_to_function_names,
+)
+from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
+    get_issues_related_to_exception_type,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.silo.base import SiloMode
@@ -191,6 +195,28 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     return {
         "consent": seer_org_acknowledgement or github_extension_enabled,
     }
+
+
+def get_organization_seer_consent_by_org_name(
+    *, org_name: str, provider: str = "github"
+) -> dict[str, bool]:
+    org_integrations = integration_service.get_organization_integrations(
+        providers=[provider], name=org_name
+    )
+
+    for org_integration in org_integrations:
+        try:
+            org = Organization.objects.get(id=org_integration.organization_id)
+            seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
+            github_extension_enabled = org.id in options.get("github-extension.enabled-orgs")
+
+            if seer_org_acknowledgement or github_extension_enabled:
+                return {"consent": True}
+
+        except Organization.DoesNotExist:
+            continue
+
+    return {"consent": False}
 
 
 def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
@@ -368,8 +394,10 @@ def get_attribute_values_with_substring(
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
+    "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
     "get_issues_related_to_function_names": get_issues_related_to_function_names,
+    "get_issues_related_to_exception_type": get_issues_related_to_exception_type,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "get_attribute_names": get_attribute_names,

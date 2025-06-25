@@ -151,9 +151,13 @@ def child_process(
             """
             deadline = -1
             current = current_task()
+            taskname = "unknown"
             if current:
+                taskname = current.taskname
                 deadline = current.processing_deadline_duration
-            raise ProcessingDeadlineExceeded(f"execution deadline of {deadline} seconds exceeded")
+            raise ProcessingDeadlineExceeded(
+                f"execution deadline of {deadline} seconds exceeded by {taskname}"
+            )
 
         while True:
             if max_task_count and processed_task_count >= max_task_count:
@@ -242,6 +246,7 @@ def child_process(
                         inflight.activation.namespace,
                         inflight.activation.taskname,
                     ]
+                    scope.set_transaction_name(inflight.activation.taskname)
                     sentry_sdk.capture_exception(err)
                 metrics.incr(
                     "taskworker.worker.processing_deadline_exceeded",
@@ -304,10 +309,14 @@ def child_process(
 
         with sentry_sdk.continue_trace(headers):
             with (
-                track_memory_usage("taskworker.worker.memory_change"),
+                track_memory_usage(
+                    "taskworker.worker.memory_change",
+                    tags={"namespace": activation.namespace, "taskname": activation.taskname},
+                ),
+                sentry_sdk.isolation_scope(),
                 sentry_sdk.start_span(
                     op="queue.task.taskworker",
-                    name=f"{activation.namespace}:{activation.taskname}",
+                    name=activation.taskname,
                     origin="taskworker",
                 ) as root_span,
             ):
@@ -315,7 +324,8 @@ def child_process(
                     "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
                 )
                 task_added_time = activation.received_at.ToDatetime().timestamp()
-                latency = time.time() - task_added_time
+                # latency attribute needs to be in milliseconds
+                latency = (time.time() - task_added_time) * 1000
 
                 with sentry_sdk.start_span(
                     op=OP.QUEUE_PROCESS,

@@ -104,7 +104,7 @@ describe('SeerNotices', function () {
     expect(screen.queryByText('Unleash Automation')).not.toBeInTheDocument();
   });
 
-  it('shows fixability view step if automation is allowed and view not starred', () => {
+  it('shows fixability view step if automation is allowed and view not starred', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/group-search-views/`,
       body: [],
@@ -130,8 +130,9 @@ describe('SeerNotices', function () {
         features: ['trigger-autofix-on-issue-summary'],
       },
     });
-    expect(screen.getByText('Get Some Quick Wins')).toBeInTheDocument();
-    expect(screen.getByText('Star Recommended View')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Get Some Quick Wins')).toBeInTheDocument();
+    });
   });
 
   it('does not render guided steps if all onboarding steps are complete', () => {

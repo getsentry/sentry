@@ -1,4 +1,7 @@
 import * as Layout from 'sentry/components/layouts/thirds';
+import Redirect from 'sentry/components/redirect';
+import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
+import {usePreferedAiModule} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -8,13 +11,15 @@ import LlmNumberOfPipelinesChartWidget from 'sentry/views/insights/common/compon
 import LlmPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmPipelineDurationChartWidget';
 import LlmTotalTokensUsedChart from 'sentry/views/insights/common/components/widgets/llmTotalTokensUsedChartWidget';
 import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
+import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function LLMMonitoringPage() {
   return (
     <Layout.Page>
-      <AiHeader module={ModuleName.AI} />
+      <AiHeader module={ModuleName.AI} headerActions={<AiModuleToggleButton />} />
       <ModuleBodyUpsellHook moduleName={ModuleName.AI}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -45,6 +50,12 @@ function LLMMonitoringPage() {
 }
 
 function PageWithProviders() {
+  const preferedAiModule = usePreferedAiModule();
+
+  if (preferedAiModule === 'agents-insights') {
+    return <Redirect to={`/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`} />;
+  }
+
   return (
     <ModulePageProviders moduleName="ai" analyticEventName="insight.page_loads.ai">
       <LLMMonitoringPage />
