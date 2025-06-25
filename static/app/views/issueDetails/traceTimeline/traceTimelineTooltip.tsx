@@ -185,7 +185,7 @@ const EventItemRoot = styled(Link)`
   width: 100%;
   padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background-color: ${p => p.theme.surface200};

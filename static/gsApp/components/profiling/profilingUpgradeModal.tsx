@@ -122,7 +122,7 @@ const Subheader = styled('h2')`
   text-transform: uppercase;
   font-weight: bold;
 
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${space(1)};
 `;
 

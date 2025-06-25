@@ -258,7 +258,7 @@ const AvatarWrapper = styled('div')`
 `;
 
 const EmailWarning = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4;
   margin: -4px;
 `;

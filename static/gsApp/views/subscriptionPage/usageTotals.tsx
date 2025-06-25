@@ -1372,12 +1372,12 @@ const CombinedLegendContainer = styled('div')`
 
 const LegendTitle = styled('div')`
   font-weight: 700;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
 const LegendPrice = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendPriceSubText = styled(LegendPrice)`

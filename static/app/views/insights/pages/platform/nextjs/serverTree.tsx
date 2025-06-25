@@ -361,7 +361,7 @@ const HeaderCell = styled('div')`
   text-transform: uppercase;
   font-weight: 600;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   border-bottom: 1px solid ${p => p.theme.border};
   white-space: nowrap;
   line-height: 1;

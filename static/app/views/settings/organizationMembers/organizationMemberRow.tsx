@@ -297,7 +297,7 @@ const UserName = styled('div')`
 
 const Email = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

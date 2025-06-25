@@ -53,7 +53,7 @@ const Description = styled('p')`
 
 const UnitTitle = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: 600;
 `;

@@ -141,7 +141,7 @@ const FooterInfoHeading = styled('p')`
 `;
 
 const FooterInfoSubheading = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   margin: 0;
 `;

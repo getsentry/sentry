@@ -185,7 +185,7 @@ const PathHeading = styled('h5')`
 `;
 
 const OtherPlanDetails = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.5;
 `;
 

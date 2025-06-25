@@ -242,7 +242,7 @@ const SubscriptionName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;

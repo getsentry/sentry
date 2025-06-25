@@ -458,7 +458,7 @@ const WidgetTooltipTitle = styled('div')`
 
 const WidgetTooltipDescription = styled('div')`
   margin-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-align: left;
 `;
 

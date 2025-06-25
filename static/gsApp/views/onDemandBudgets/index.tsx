@@ -263,7 +263,7 @@ const Label = styled('div')`
 
 const DetailTitle = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
   white-space: nowrap;

@@ -231,7 +231,7 @@ const CodeWrapper = styled('div')`
 
   && pre,
   && code {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     white-space: pre-wrap;
     margin: 0;
     overflow: hidden;

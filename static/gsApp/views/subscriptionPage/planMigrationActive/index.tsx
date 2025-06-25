@@ -150,5 +150,5 @@ const Feature = styled('span')`
 `;
 
 const MoreInfo = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

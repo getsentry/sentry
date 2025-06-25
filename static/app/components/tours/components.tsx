@@ -489,7 +489,7 @@ const TopRow = styled('div')`
   align-items: start;
   height: 18px;
   color: ${p => p.theme.tour.close};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightBold};
   opacity: 0.6;
 `;

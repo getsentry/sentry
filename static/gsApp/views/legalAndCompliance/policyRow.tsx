@@ -245,7 +245,7 @@ const PolicyFrame = styled('iframe')`
 `;
 
 const PolicySubtext = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

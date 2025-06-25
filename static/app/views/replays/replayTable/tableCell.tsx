@@ -413,7 +413,7 @@ export function ReplayCell({
 }
 
 const ArchivedId = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledIconDelete = styled(IconDelete)`

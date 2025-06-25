@@ -190,6 +190,6 @@ function TransactionDetails({
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 0px;
 `;

@@ -274,7 +274,7 @@ const RowRule = styled('div')`
   align-items: center;
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
 `;
 

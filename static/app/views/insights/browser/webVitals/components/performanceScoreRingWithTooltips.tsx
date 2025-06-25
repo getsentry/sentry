@@ -353,7 +353,7 @@ const ProgressRingText = styled('text')<{isLink?: boolean}>`
 `;
 
 const ProgressRingSubText = styled('text')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   fill: ${p => p.theme.subText};
   text-anchor: middle;
 `;

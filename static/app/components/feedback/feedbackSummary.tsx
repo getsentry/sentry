@@ -65,7 +65,7 @@ const SummaryHeader = styled('p')`
 `;
 
 const SummaryContent = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin: 0;
 `;

@@ -362,7 +362,7 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${space(1)};
   overflow: hidden;
   white-space: nowrap;
@@ -372,7 +372,7 @@ const LegendText = styled('span')<{unfocus: boolean}>`
 `;
 
 const LegendPercent = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${space(1)};
   color: ${p => p.theme.subText};
   text-align: right;

@@ -442,7 +442,7 @@ const TriggerText = styled('span')`
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   width: 100%;
   font-weight: ${p => p.theme.fontWeightNormal};
 `;

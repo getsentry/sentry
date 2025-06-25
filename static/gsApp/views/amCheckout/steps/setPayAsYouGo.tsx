@@ -421,7 +421,7 @@ const SuggestedAmountTag = styled(Tag)`
 `;
 
 const CategoryInfoDescription = styled(Description)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const CategoryInfoList = styled('ul')`

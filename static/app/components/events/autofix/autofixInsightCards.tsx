@@ -654,9 +654,9 @@ const CardsStack = styled('div')`
 `;
 
 const ContextMarkedText = styled(MarkedText)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   code {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 `;
 
@@ -837,7 +837,7 @@ const CollapseIconChevron = styled(IconChevron)`
 
 const CollapsedCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const AddEditContainer = styled('div')`
@@ -874,7 +874,7 @@ const CheckpointIcon = styled('span')`
 const RethinkLabel = styled('span')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-right: ${space(0.5)};
 `;

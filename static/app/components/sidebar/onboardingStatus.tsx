@@ -207,7 +207,7 @@ const Heading = styled('div')`
 
 const Remaining = styled('div')`
   transition: color 100ms;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   display: grid;
   grid-template-columns: max-content max-content;

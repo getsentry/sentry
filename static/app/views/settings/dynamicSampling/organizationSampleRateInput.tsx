@@ -118,7 +118,7 @@ const Label = styled('label')`
 `;
 
 const HelpText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

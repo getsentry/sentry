@@ -139,7 +139,7 @@ const FieldLabel = styled('div')`
 `;
 
 const FieldHelp = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

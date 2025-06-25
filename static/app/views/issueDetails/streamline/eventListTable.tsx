@@ -153,7 +153,7 @@ export const Title = styled('div')`
 export const HeaderItem = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StreamlineGridEditable = styled('div')`

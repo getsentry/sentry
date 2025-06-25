@@ -306,7 +306,7 @@ const StepDoneIcon = styled(IconCheckmark, {
 
 const StepOptionalLabel = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-top: -${space(0.75)};
   margin-bottom: ${space(1)};
 `;

@@ -293,7 +293,7 @@ const Events = styled('div')<{isLegacy: boolean}>`
 `;
 
 const MinMax = styled(Description)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const BaseRow = styled('div')`
@@ -309,7 +309,7 @@ const StyledHovercard = styled(Hovercard)`
   ${Header} {
     color: ${p => p.theme.subText};
     text-transform: uppercase;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     border-radius: 6px 6px 0px 0px;
     padding: ${space(2)};
   }
@@ -331,7 +331,7 @@ const IconContainer = styled('span')`
 
 const PerformanceUnits = styled(BaseRow)`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
 `;
 

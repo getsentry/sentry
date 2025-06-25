@@ -569,7 +569,7 @@ const SectionButton = styled(Button)`
   height: 20px;
   text-align: left;
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(1.5)};
   color: ${p => p.theme.subText};
   border: 0;

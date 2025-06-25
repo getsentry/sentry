@@ -392,7 +392,7 @@ const BillingInterval = styled('div')`
 `;
 
 const OnDemandAdditionalCost = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const DetailItems = styled(PanelBody)`
@@ -411,7 +411,7 @@ const DetailItem = styled('div')`
 
 const DetailTitle = styled('div')<{noBottomMargin?: boolean}>`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
@@ -460,12 +460,12 @@ const DiscountWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
 const DurationText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 const ProminantPlanName = styled('span')`
   font-weight: 500;

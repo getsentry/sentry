@@ -179,7 +179,7 @@ const TextContainer = styled('div')`
 
 const Title = styled('div')`
   color: ${p => p.theme.tour.header};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 

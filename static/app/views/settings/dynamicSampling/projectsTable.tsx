@@ -459,7 +459,7 @@ const FirstCellLine = styled('div')`
 
 const SubContent = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-align: right;
   white-space: nowrap;
 
@@ -533,7 +533,7 @@ const SettingsButton = styled(LinkButton)`
 
 const TableHeader = styled(TableRowWrapper)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;

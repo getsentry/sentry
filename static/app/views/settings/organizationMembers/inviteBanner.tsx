@@ -327,7 +327,7 @@ const CardTitle = styled('h6')`
 const Subtitle = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   gap: ${space(0.5)};
@@ -336,7 +336,7 @@ const Subtitle = styled('div')`
 const MemberEmail = styled('div')`
   display: block;
   max-width: 70%;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   text-overflow: ellipsis;
@@ -366,7 +366,7 @@ const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: ${space(0.75)};
 `;
 

@@ -55,7 +55,7 @@ const DomainName = styled('div')<{compact: boolean}>`
   color: ${p => p.theme.subText};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (p.compact ? 'inherit' : 0)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: ${p => p.theme.text.lineHeightBody};

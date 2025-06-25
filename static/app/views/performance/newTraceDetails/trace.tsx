@@ -1188,7 +1188,7 @@ const TraceStylingWrapper = styled('div')`
     height: 24px;
     width: 100%;
     transition: none;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     transform: translateZ(0);
 
     --row-background-odd: ${p => p.theme.backgroundSecondary};

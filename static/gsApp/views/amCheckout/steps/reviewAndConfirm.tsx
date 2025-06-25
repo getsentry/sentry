@@ -472,7 +472,7 @@ const MigrateNowAlertContext = styled('div')`
 
 const MigrateNowButton = styled(Button)`
   padding: 6px ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-height: 0;
   height: min-content;
 `;

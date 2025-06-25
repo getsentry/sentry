@@ -279,7 +279,7 @@ const OwnershipDetails = styled('div')`
   gap: ${space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const UnassignedLabel = styled('div')`
@@ -304,7 +304,7 @@ const ScheduleDetails = styled('small')`
   gap: ${space(0.5)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 interface TimelineRowProps {

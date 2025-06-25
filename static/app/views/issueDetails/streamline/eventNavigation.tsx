@@ -329,7 +329,7 @@ const EventNavigationWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     flex-direction: row;

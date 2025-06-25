@@ -100,7 +100,7 @@ const NumItemsButton = styled(Button)`
   border-radius: 2px;
   font-weight: ${p => p.theme.fontWeightNormal};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
 

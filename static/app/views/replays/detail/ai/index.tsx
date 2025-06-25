@@ -273,5 +273,5 @@ const SummaryText = styled('p')`
 // Copied from breadcrumbItem
 const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

@@ -325,7 +325,7 @@ const ReleaseInfo = styled('div')`
 `;
 
 const ReleaseInfoSubheader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray400};
   flex-grow: 1;
 `;
@@ -390,7 +390,7 @@ const ReleaseInfoHeader = styled('div')`
 const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
   padding: ${space(1.5)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ProjectRows = styled('div')`
@@ -516,7 +516,7 @@ export const DisplaySmallCol = styled(ReleaseProjectColumn)`
 const HiddenProjectsMessage = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(2)};
   border-top: 1px solid ${p => p.theme.border};
   overflow: hidden;

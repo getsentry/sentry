@@ -664,7 +664,7 @@ const FilterTitle = styled('div')`
 
 const FilterDescription = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 

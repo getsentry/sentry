@@ -108,7 +108,7 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${space(0.5)};
   margin: 0 -${space(0.5)} 0 ${space(2)};
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   transition: opacity 0.1s;
 
@@ -178,7 +178,7 @@ export const SizeLimitMessage = styled('li')`
   margin: ${space(0.5)} ${space(1.5)} ${space(0.5)};
   padding: ${space(0.75)} ${space(1)} 0;
 
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   list-style-type: none;
   white-space: nowrap;

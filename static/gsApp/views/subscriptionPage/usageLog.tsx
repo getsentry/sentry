@@ -245,7 +245,7 @@ const UsageTable = styled(PanelTable)`
 `;
 
 const UserInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
   display: flex;
 `;

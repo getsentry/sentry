@@ -413,7 +413,7 @@ const UserInfo = styled('div')`
   display: flex;
   align-items: center;
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
 `;
 
@@ -424,7 +424,7 @@ const NameContainer = styled('div')`
 `;
 
 const Note = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   margin-top: ${space(0.5)};
 `;

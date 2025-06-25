@@ -137,9 +137,7 @@ export default function InsightIssuesList({
   return (
     <StyledPanel>
       <IssueListHeader issues={issues} />
-      {issues?.map(issue => (
-        <Issue data={issue} key={issue.id} />
-      ))}
+      {issues?.map(issue => <Issue data={issue} key={issue.id} />)}
     </StyledPanel>
   );
 }
@@ -150,7 +148,7 @@ const Heading = styled('h6')`
   margin: 0 ${space(2)};
   width: 60px;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const IssueHeading = styled(Heading)`

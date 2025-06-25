@@ -316,7 +316,7 @@ const TraceStyledPanel = styled(Panel)`
   display: flex;
   align-items: center;
   max-width: fit-content;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: ${space(0.5)};
 
   > :not(:last-child) {

@@ -360,7 +360,7 @@ const ContentRow = styled('div')`
 const MemberEmail = styled('div')`
   display: block;
   max-width: 150px;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   text-overflow: ellipsis;

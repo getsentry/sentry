@@ -168,7 +168,7 @@ const CopyButton = styled(Button)`
 const CodeText = styled('code')`
   font-family: ${p => p.theme.text.familyMono};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: block;
   min-width: 0;
   width: 100%;

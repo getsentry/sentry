@@ -310,10 +310,10 @@ const LegendContainer = styled('div')`
 
 const LegendTitle = styled('div')`
   font-weight: 700;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendPrice = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
 `;

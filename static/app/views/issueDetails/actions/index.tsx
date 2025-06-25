@@ -688,5 +688,5 @@ const ResolvedActionWapper = styled('div')`
 const ReasonBanner = styled('div')`
   font-weight: normal;
   color: ${p => p.theme.green400};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

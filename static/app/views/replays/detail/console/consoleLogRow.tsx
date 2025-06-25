@@ -100,7 +100,7 @@ const ConsoleLog = styled('div')<{
   gap: ${space(0.75)};
   align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   background-color: ${p =>
     ['warning', 'error'].includes(String(p.level))

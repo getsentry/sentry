@@ -819,7 +819,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     padding: 5px 10px;
     position: relative;
     font-weight: ${p.theme.fontWeightBold};
-    font-size: ${p.theme.fontSizeSmall};
+    font-size: ${p.theme.fontSize.sm};
     line-height: 1.4;
     font-family: ${p.theme.text.family};
     max-width: 230px;

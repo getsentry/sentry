@@ -45,7 +45,7 @@ export const AlertStripedTable = styled(StripedTable)`
   th {
     text-transform: uppercase;
     text-align: center;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 
   td:first-child,

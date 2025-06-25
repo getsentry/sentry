@@ -384,13 +384,13 @@ const SavedSearchItemTitle = styled('div')`
 
 const SavedSearchItemVisbility = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const SavedSearchItemQuery = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
 `;

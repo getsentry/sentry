@@ -237,7 +237,7 @@ const ScoreBadge = styled('div')<{status: PerformanceScore}>`
 
 const StatusText = styled('span')`
   padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StatusScore = styled('span')`

@@ -222,6 +222,6 @@ const ComponentList = styled(List)`
 `;
 
 const ComponentStatus = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 2;
 `;

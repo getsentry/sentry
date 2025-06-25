@@ -663,7 +663,7 @@ const IconWrapper = styled('span')`
 `;
 
 const QueryItemWrapper = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   width: 100%;
   gap: ${space(1)};
   display: flex;
@@ -674,7 +674,7 @@ const QueryItemWrapper = styled('span')`
 
 const Value = styled('span')<{hasDocs?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 

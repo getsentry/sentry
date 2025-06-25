@@ -38,7 +38,7 @@ const HeaderInfo = styled('div')`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
 `;
 

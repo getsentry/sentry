@@ -87,7 +87,7 @@ export const SidebarFooter = styled('div')`
   h1 {
     text-transform: uppercase;
     font-weight: bold;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     margin-bottom: 0.5rem;
   }
   h2 {

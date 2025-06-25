@@ -297,7 +297,7 @@ const Description = styled(TextBlock)`
 
 const PriceHeader = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: bold;
 `;
@@ -356,7 +356,7 @@ const Title = styled('div')`
 const OriginalTotal = styled('div')`
   color: ${p => p.theme.subText};
   text-decoration: line-through;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const DiscountWrapper = styled('div')`
@@ -367,7 +367,7 @@ const DiscountWrapper = styled('div')`
 
 const PercentOff = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const EventPriceTag = styled(Tag)`

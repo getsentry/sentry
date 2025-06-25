@@ -364,7 +364,7 @@ const PriceContainer = styled(Column)`
 
 const PriceHeader = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: bold;
 `;
@@ -423,7 +423,7 @@ const Features = styled('div')`
 `;
 
 const Feature = styled(Column)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const FeatureHeader = styled(Row)`

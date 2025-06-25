@@ -453,7 +453,7 @@ const DifferentialFlamegraphChangedFunctionStats = styled('div')`
 
 const DifferentialFlamegraphFunctionSecondaryStats = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const DifferentialFlamegraphChangedFunctionNameLink = styled(Link)`
@@ -609,7 +609,7 @@ const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
 
 const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
   font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

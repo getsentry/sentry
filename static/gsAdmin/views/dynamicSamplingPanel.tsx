@@ -463,7 +463,7 @@ const NameColumn = styled('div')`
 `;
 
 const NameColumnDetail = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   > strong {
     margin-right: ${space(0.5)};
   }

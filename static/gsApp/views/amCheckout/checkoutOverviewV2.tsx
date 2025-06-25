@@ -378,7 +378,7 @@ const Column = styled('div')<{alignItems?: string; minWidth?: string}>`
 
 const Description = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SpaceBetweenRow = styled('div')`
@@ -399,7 +399,7 @@ const Subtitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
   color: ${p => p.theme.subText};
   margin-bottom: ${space(0.5)};
@@ -447,7 +447,7 @@ const TotalPrice = styled(Price)`
 
 const AdditionalMonthlyCharge = styled('div')`
   text-align: right;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   text-wrap: pretty;
 `;
