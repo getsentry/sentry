@@ -93,7 +93,10 @@ export function useInfiniteTestResults() {
           url,
           {
             query: {
-              interval: DATE_TO_QUERY_INTERVAL[codecovPeriod],
+              interval:
+                DATE_TO_QUERY_INTERVAL[
+                  codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
+                ],
               sortBy: signedSortBy,
               branch,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),

@@ -1,10 +1,8 @@
 import {createContext, useContext} from 'react';
 
-import type {CodecovPeriodOptions} from 'sentry/components/codecov/datePicker/dateSelector';
-
 export type CodecovContextData = {
   changeContextValue: (value: Partial<CodecovContextDataParams>) => void;
-  codecovPeriod: CodecovPeriodOptions;
+  codecovPeriod: string;
   branch?: string;
   integratedOrg?: string;
   repository?: string;

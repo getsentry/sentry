@@ -6,7 +6,7 @@ import type {
   CodecovContextDataParams,
 } from 'sentry/components/codecov/context/codecovContext';
 import {CodecovContext} from 'sentry/components/codecov/context/codecovContext';
-import type {CodecovPeriodOptions} from 'sentry/components/codecov/datePicker/dateSelector';
+import type {CodecovPeriodOptions} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
