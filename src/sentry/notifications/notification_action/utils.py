@@ -19,7 +19,7 @@ def execute_via_group_type_registry(
     Generic "notification action handler" this method will lookup which registry
     to send the notification to, based on the type of detector that created it.
 
-    This currently only supported detector types: 'error', 'metric_issue'
+    This currently only supports the following detector types: 'error', 'metric_issue'
 
     If an `Activity` model for a `Group` is provided in the event data
     it will send an activity notification instead.
