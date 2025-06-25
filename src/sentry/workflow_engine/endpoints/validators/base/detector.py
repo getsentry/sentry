@@ -68,6 +68,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         # Handle enable/disable detector
         if "enabled" in validated_data:
             enabled = validated_data.get("enabled")
+            assert isinstance(enabled, bool)
             enable_disable_detector(instance, enabled)
 
         # Handle owner field update
