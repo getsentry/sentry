@@ -241,7 +241,7 @@ const getDefaultWidgets = (organization: Organization) => {
       queries: [
         {
           name: '',
-          conditions: 'is_transaction:True span.op:pageload has:geo.country_code',
+          conditions: 'is_transaction:True span.op:pageload has:user.geo.country_code',
           fields: ['user.geo.country_code', 'user.geo.region', 'p75(measurements.lcp)'],
           aggregates: ['p75(measurements.lcp)'],
           columns: ['user.geo.country_code', 'user.geo.region'],
