@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {EXPLORE_CHART_BRUSH_OPTION, useChartBoxSelect} from './useChartBoxSelect';
@@ -20,12 +19,9 @@ describe('useChartBoxSelect', () => {
     current: null as HTMLDivElement | null,
   };
 
-  const mockChartResults = {
-    pageLinks: undefined,
-    data: {},
-    meta: {},
-    promise: Promise.resolve({}),
-  } as ReturnType<typeof useSortedTimeSeries>;
+  const mockTriggerWrapperRef = {
+    current: null as HTMLDivElement | null,
+  };
 
   const mockChartInstance = {
     getModel: jest.fn(),
@@ -57,12 +53,12 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
-      expect(result.current.brushArea).toBeNull();
+      expect(result.current.boxCoordRange).toBeNull();
     });
   });
 
@@ -72,8 +68,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -120,8 +116,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -148,15 +144,10 @@ describe('useChartBoxSelect', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.brushArea).toEqual([
-          {
-            ...mockEvent.areas[0],
-            coordRange: [
-              [10, 90], // within x bounds
-              [5, 45], // within y bounds
-            ],
-          },
-        ]);
+        expect(result.current.boxCoordRange).toEqual({
+          x: [10, 90], // within x bounds
+          y: [5, 45], // within y bounds
+        });
       });
     });
 
@@ -196,8 +187,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -224,15 +215,10 @@ describe('useChartBoxSelect', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.brushArea).toEqual([
-          {
-            ...mockEvent.areas[0],
-            coordRange: [
-              [0, 100], // constrained to x bounds
-              [0, 50], // constrained to y bounds
-            ],
-          },
-        ]);
+        expect(result.current.boxCoordRange).toEqual({
+          x: [0, 100], // constrained to x bounds
+          y: [0, 50], // constrained to y bounds
+        });
       });
     });
 
@@ -241,8 +227,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
@@ -268,7 +254,7 @@ describe('useChartBoxSelect', () => {
         result.current.onBrushEnd(mockEvent, mockChartInstance as any);
       });
 
-      expect(result.current.brushArea).toBeNull();
+      expect(result.current.boxCoordRange).toBeNull();
     });
   });
 
@@ -309,8 +295,8 @@ describe('useChartBoxSelect', () => {
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
-            chartResults: mockChartResults,
             chartWrapperRef: mockChartWrapperRef,
+            triggerWrapperRef: mockTriggerWrapperRef,
           }),
         {wrapper}
       );
