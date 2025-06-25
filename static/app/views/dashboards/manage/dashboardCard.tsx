@@ -2,11 +2,10 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
@@ -87,30 +86,28 @@ function DashboardCard({
       </CardLink>
 
       <ContextMenuWrapper>
-        <Feature features="dashboards-favourite">
-          <StyledButton
-            icon={
-              <IconStar
-                isSolid={favorited}
-                color={favorited ? 'yellow300' : 'gray300'}
-                size="sm"
-                aria-label={favorited ? t('UnFavorite') : t('Favorite')}
-              />
+        <StyledButton
+          icon={
+            <IconStar
+              isSolid={favorited}
+              color={favorited ? 'yellow300' : 'gray300'}
+              size="sm"
+              aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+            />
+          }
+          size="zero"
+          borderless
+          aria-label={t('Dashboards Favorite')}
+          onClick={async () => {
+            try {
+              setFavorited(!favorited);
+              await onFavorite(!favorited);
+            } catch (error) {
+              // If the api call fails, revert the state
+              setFavorited(favorited);
             }
-            size="zero"
-            borderless
-            aria-label={t('Dashboards Favorite')}
-            onClick={async () => {
-              try {
-                setFavorited(!favorited);
-                await onFavorite(!favorited);
-              } catch (error) {
-                // If the api call fails, revert the state
-                setFavorited(favorited);
-              }
-            }}
-          />
-        </Feature>
+          }}
+        />
         {renderContextMenu?.()}
       </ContextMenuWrapper>
     </CardWithoutMargin>

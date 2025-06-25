@@ -23,6 +23,7 @@ export type InsightEventParameters = {
   'insight.general.select_region_value': {regions: string[]};
   'insight.general.table_paginate': {direction: string; source: string};
   'insight.general.table_sort': {direction: string; field: string; source: string};
+  'insight.page_loads.agents': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.ai': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.app_start': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.assets': {has_ever_sent_data: boolean; view: DomainView};
@@ -46,6 +47,7 @@ export type InsightEventParameters = {
     page: ModuleName | 'overview';
     view: DomainView | undefined;
   };
+  'insights.open_in_explore': {organization: string; referrer: string};
   'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
   'insights.session_health_tour.dismissed': Record<string, unknown>;
 };
@@ -55,6 +57,7 @@ export type InsightEventKey = keyof InsightEventParameters;
 export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insights.page_loads.overview': 'Insights: Overview Page Load',
   'insight.page_loads.ai': 'Insights: AI Page Load',
+  'insight.page_loads.agents': 'Insights: Agents Page Load',
   'insight.page_loads.app_start': 'Insights: App Start Page Load',
   'insight.page_loads.assets': 'Insights: Assets Page Load',
   'insight.page_loads.cache': 'Insights: Cache Page Load',
@@ -96,4 +99,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.general.create_alert': 'Insights: Create Alert clicked',
   'insights.session_health_tour.dismissed': 'Insights: Session Health Tour Dismissed',
   'insights.eap.toggle': 'Insights: EAP Toggle',
+  'insights.open_in_explore': 'Insights: Open in Explore',
 };

@@ -1,5 +1,14 @@
 import type {Duration} from 'moment-timezone';
 
+type Geo = Record<string, string>;
+// Geo could be this, not sure:
+// {
+//   city?: string;
+//   country_code?: string;
+//   region?: string;
+//   subdivision?: string;
+// };
+
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
@@ -11,10 +20,34 @@ export type ReplayRecord = {
     name: null | string;
     version: null | string;
   };
+  clicks: Array<{
+    ['click.alt']: string | null;
+    ['click.class']: string | null;
+    ['click.component_name']: string | null;
+    ['click.id']: string | null;
+    ['click.label']: string | null;
+    ['click.role']: string | null;
+    ['click.tag']: string | null;
+    ['click.testid']: string | null;
+    ['click.text']: string | null;
+    ['click.title']: string | null;
+  }>;
+  /**
+   * The number of dead clicks associated with the replay.
+   */
+  count_dead_clicks: number;
   /**
    * The number of errors associated with the replay.
    */
   count_errors: number;
+  /**
+   * The number of infos associated with the replay.
+   */
+  count_infos: number;
+  /**
+   * The number of rage clicks associated with the replay.
+   */
+  count_rage_clicks: number;
   /**
    * The number of segments that make up the replay.
    */
@@ -23,6 +56,10 @@ export type ReplayRecord = {
    * The number of urls visited in the replay.
    */
   count_urls: number;
+  /**
+   * The number of warnings associated with the replay.
+   */
+  count_warnings: number;
   device: {
     brand: null | string;
     family: null | string;
@@ -35,6 +72,9 @@ export type ReplayRecord = {
    */
   duration: Duration;
   environment: null | string;
+  /**
+   * The IDs of the errors associated with the replay.
+   */
   error_ids: string[];
   /**
    * The **latest** timestamp received as determined by the SDK.
@@ -49,6 +89,10 @@ export type ReplayRecord = {
    */
   id: string;
   /**
+   * The IDs of the infos associated with the replay.
+   */
+  info_ids: string[];
+  /**
    * Whether the replay was deleted.
    * When deleted the rrweb data & attachments are removed from blob storage,
    * but the record of the replay is not removed.
@@ -58,9 +102,15 @@ export type ReplayRecord = {
     name: null | string;
     version: null | string;
   };
+  ota_updates: {
+    channel: string;
+    runtime_version: string;
+    update_id: string;
+  };
   platform: string;
   project_id: string;
   releases: null | string[];
+  replay_type: 'buffer' | 'session';
   sdk: {
     name: null | string;
     version: null | string;
@@ -78,15 +128,9 @@ export type ReplayRecord = {
     id: null | string;
     ip: null | string;
     username: null | string;
+    geo?: Geo;
   };
-  /**
-   * The number of dead clicks associated with the replay.
-   */
-  count_dead_clicks?: number;
-  /**
-   * The number of rage clicks associated with the replay.
-   */
-  count_rage_clicks?: number;
+  warning_ids: string[];
 };
 
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
@@ -142,18 +186,37 @@ export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
   | 'browser'
+  | 'clicks'
   | 'count_dead_clicks'
   | 'count_errors'
+  | 'count_infos'
   | 'count_rage_clicks'
+  | 'count_segments'
+  | 'count_urls'
+  | 'count_warnings'
+  | 'device'
+  | 'dist'
   | 'duration'
+  | 'environment'
+  | 'error_ids'
   | 'finished_at'
   | 'has_viewed'
   | 'id'
+  | 'info_ids'
   | 'is_archived'
   | 'os'
+  | 'ota_updates'
+  | 'platform'
   | 'project_id'
+  | 'releases'
+  | 'replay_type'
+  | 'sdk'
   | 'started_at'
+  | 'tags'
+  | 'trace_ids'
+  | 'urls'
   | 'user'
+  | 'warning_ids'
 >;
 
 /**
@@ -210,7 +273,6 @@ export interface DeadRageSelectorQueryParams {
   cursor?: string | string[] | undefined | null;
   per_page?: number;
   prefix?: string;
-  query?: string;
   sort?:
     | 'count_dead_clicks'
     | '-count_dead_clicks'

@@ -226,6 +226,7 @@ function EnhancedUsageStatsOrganization({
   projectIds,
   dataDatetime,
   dataCategory,
+  dataCategoryName,
   dataCategoryApiName,
   setRouteAnalyticsParams,
   isSingleProject,
@@ -335,7 +336,7 @@ function EnhancedUsageStatsOrganization({
       organization={organization}
       dataCategory={dataCategory}
       dataCategoryApiName={dataCategoryApiName}
-      dataCategoryName={dataCategoryInfo.name}
+      dataCategoryName={dataCategoryName}
       dataDatetime={dataDatetime}
       projectIds={projectIds}
       endpointQuery={newEndpointQuery}

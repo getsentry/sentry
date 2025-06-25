@@ -17,7 +17,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         self.one_min_ago = before_now(minutes=1)
         self.trace_uuid = str(uuid.uuid4()).replace("-", "")
 
-    def do_request(self, event_type: str, item_id: str):
+    def do_request(self, event_type: str, item_id: str, features=None):
         item_details_url = reverse(
             "sentry-api-0-project-trace-item-details",
             kwargs={
@@ -26,7 +26,9 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 "organization_id_or_slug": self.project.organization.slug,
             },
         )
-        with self.feature(self.features):
+        if features is None:
+            features = self.features
+        with self.feature(features):
             return self.client.get(
                 item_details_url,
                 {
@@ -221,7 +223,11 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
     def test_simple_using_spans_item_type(self):
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
-            measurements={"code.lineno": {"value": 420}},
+            measurements={
+                "code.lineno": {"value": 420},
+                "http.response_content_length": {"value": 100},
+                "http.response.body.size": {"value": 100},
+            },
             start_ts=self.one_min_ago,
         )
         span_1["trace_id"] = self.trace_uuid
@@ -232,9 +238,19 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
-            {"name": "is_segment", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
+            {"name": "http.response_content_length", "type": "float", "value": 100.0},
             {"name": "is_transaction", "type": "float", "value": 0.0},
+            {
+                "name": "precise.finish_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "precise.start_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
             {
                 "name": "received",
                 "type": "float",
@@ -242,23 +258,83 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             },
             {"name": "span.duration", "type": "float", "value": 1000.0},
             {"name": "span.self_time", "type": "float", "value": 1000.0},
-            {
-                "name": "tags[end_timestamp_precise,number]",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {
-                "name": "tags[start_timestamp_precise,number]",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "span.duration", "type": "int", "value": "1000"},
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
-            {"name": "raw_description", "type": "str", "value": "foo"},
             {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
             {"name": "sdk.version", "type": "str", "value": "1.0"},
+            {"name": "span.description", "type": "str", "value": "foo"},
+            {"name": "span.status", "type": "str", "value": "success"},
+            {"name": "trace", "type": "str", "value": self.trace_uuid},
+            {
+                "name": "transaction.event_id",
+                "type": "str",
+                "value": span_1["event_id"],
+            },
+            {
+                "name": "transaction.span_id",
+                "type": "str",
+                "value": span_1["segment_id"],
+            },
+        ]
+        assert trace_details_response.data["itemId"] == item_id
+        assert (
+            trace_details_response.data["timestamp"]
+            == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+        )
+
+    def test_simple_using_spans_item_type_with_sentry_conventions(self):
+        span_1 = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            measurements={
+                "code.lineno": {"value": 420},
+                "http.response_content_length": {"value": 100},
+                "http.response.body.size": {"value": 100},
+            },
+            start_ts=self.one_min_ago,
+        )
+        span_1["trace_id"] = self.trace_uuid
+        item_id = span_1["span_id"]
+
+        self.store_span(span_1, is_eap=True)
+
+        trace_details_response = self.do_request(
+            "spans",
+            item_id,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:performance-sentry-conventions-fields": True,
+            },
+        )
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert trace_details_response.data["attributes"] == [
+            {"name": "code.lineno", "type": "float", "value": 420.0},
+            {"name": "http.response.body.size", "type": "float", "value": 100.0},
+            {"name": "is_transaction", "type": "float", "value": 0.0},
+            {
+                "name": "precise.finish_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "precise.start_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "received",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {"name": "span.duration", "type": "float", "value": 1000.0},
+            {"name": "span.self_time", "type": "float", "value": 1000.0},
+            {"name": "project_id", "type": "int", "value": str(self.project.id)},
+            {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
+            {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
+            {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
+            {"name": "sdk.version", "type": "str", "value": "1.0"},
+            {"name": "span.description", "type": "str", "value": "foo"},
             {"name": "span.status", "type": "str", "value": "success"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
             {

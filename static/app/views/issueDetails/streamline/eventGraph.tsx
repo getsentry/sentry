@@ -16,13 +16,15 @@ import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
+import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
@@ -41,7 +43,6 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -86,7 +87,10 @@ interface EventGraphProps {
 }
 
 function createSeriesAndCount(stats: EventsStats) {
-  return stats?.data?.reduce(
+  return stats?.data?.reduce<{
+    count: number;
+    series: Array<{name: number; value: number}>;
+  }>(
     (result, [timestamp, countData]) => {
       const count = countData?.[0]?.count ?? 0;
       return {
@@ -100,7 +104,7 @@ function createSeriesAndCount(stats: EventsStats) {
         count: result.count + count,
       };
     },
-    {series: [] as SeriesDataUnit[], count: 0}
+    {series: [], count: 0}
   );
 }
 
@@ -155,7 +159,7 @@ export function EventGraph({
     },
   });
 
-  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
+  const shouldShowBubbles = showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
@@ -240,6 +244,7 @@ export function EventGraph({
   const currentEventSeries = useCurrentEventMarklineSeries({
     event,
     group,
+    eventSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
@@ -264,6 +269,18 @@ export function EventGraph({
       staleTime: 0,
     }
   );
+  const {flags} = useFlagsInEvent({
+    eventId: event?.id,
+    groupId: group.id,
+    group,
+    event,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+    enabled: Boolean(event?.id && group.id),
+  });
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
@@ -280,16 +297,20 @@ export function EventGraph({
 
   const releaseSeries = useReleaseMarkLineSeries({
     group,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+    releases: shouldShowBubbles ? [] : releases,
     onReleaseClick: handleReleaseLineClick,
+  });
+
+  const flagSeries = useFlagSeries({
+    event,
+    flags: shouldShowBubbles ? [] : flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
   const lastEventSeries = eventSeries.at(-1);
   const penultEventSeries = eventSeries.at(-2);
-  const lastEventSeriesTimestamp = lastEventSeries && (lastEventSeries.name as number);
-  const penultEventSeriesTimestamp =
-    penultEventSeries && (penultEventSeries.name as number);
+  const lastEventSeriesTimestamp = lastEventSeries?.name;
+  const penultEventSeriesTimestamp = penultEventSeries?.name;
   const eventSeriesInterval =
     lastEventSeriesTimestamp &&
     penultEventSeriesTimestamp &&
@@ -302,6 +323,7 @@ export function EventGraph({
     releaseBubbleGrid,
   } = useReleaseBubbles({
     chartId: EVENT_GRAPH_WIDGET_ID,
+    eventId: event?.id,
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
@@ -310,7 +332,8 @@ export function EventGraph({
       lastEventSeriesTimestamp && eventSeriesInterval
         ? lastEventSeriesTimestamp + eventSeriesInterval
         : undefined,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+    releases: shouldShowBubbles ? releases : [],
+    flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
     datetime: {
@@ -328,14 +351,6 @@ export function EventGraph({
     },
     [connectReleaseBubbleChartRef]
   );
-  const flagSeries = useFlagSeries({
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-    event,
-  });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
@@ -396,7 +411,7 @@ export function EventGraph({
     }
 
     // Only display the current event mark line if on the issue details tab
-    if (currentEventSeries.markLine && currentTab === Tab.DETAILS) {
+    if (currentEventSeries?.markLine && currentTab === Tab.DETAILS) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
@@ -560,6 +575,12 @@ export function EventGraph({
             },
           }}
           xAxis={{
+            axisTick: {
+              show: false,
+            },
+            axisLabel: {
+              margin: 8,
+            },
             ...releaseBubbleXAxis,
           }}
           {...(disableZoomNavigation
@@ -590,7 +611,7 @@ function GraphButton({
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <Flex column>
+      <Flex direction="column">
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>

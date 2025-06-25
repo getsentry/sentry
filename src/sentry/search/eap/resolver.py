@@ -14,7 +14,9 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationComparisonFilter,
     AggregationFilter,
     AggregationOrFilter,
+    Column,
 )
+from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -35,6 +37,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.api import event_search
+from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -46,11 +49,12 @@ from sentry.search.eap.columns import (
     ResolvedAggregate,
     ResolvedAttribute,
     ResolvedConditionalAggregate,
+    ResolvedEquation,
     ResolvedFormula,
     VirtualColumnDefinition,
 )
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
@@ -69,6 +73,7 @@ class SearchResolver:
     config: SearchResolverConfig
     definitions: ColumnDefinitions
     granularity_secs: int | None = None
+    _query_result_cache: dict[str, EAPResponse] = field(default_factory=dict)
     _resolved_attribute_cache: dict[
         str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
@@ -214,9 +219,9 @@ class SearchResolver:
             if isinstance(terms[0], event_search.ParenExpression):
                 return self._resolve_boolean_conditions(terms[0].children)
             elif isinstance(terms[0], event_search.SearchFilter):
-                return self._resolve_terms([cast(event_search.SearchFilter, terms[0])])
+                return self._resolve_terms([terms[0]])
             elif isinstance(terms[0], event_search.AggregateFilter):
-                return self._resolve_terms([cast(event_search.AggregateFilter, terms[0])])
+                return self._resolve_terms([terms[0]])
             else:
                 raise NotImplementedError("Haven't handled all the search expressions yet")
 
@@ -313,9 +318,7 @@ class SearchResolver:
         resolved_contexts = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
-                resolved_term, resolved_context = self.resolve_term(
-                    cast(event_search.SearchFilter, item)
-                )
+                resolved_term, resolved_context = self.resolve_term(item)
                 parsed_terms.append(resolved_term)
                 resolved_contexts.append(resolved_context)
 
@@ -335,9 +338,7 @@ class SearchResolver:
         resolved_contexts = []
         for item in terms:
             if isinstance(item, event_search.AggregateFilter):
-                resolved_term, resolved_context = self.resolve_aggregate_term(
-                    cast(event_search.AggregateFilter, item)
-                )
+                resolved_term, resolved_context = self.resolve_aggregate_term(item)
                 parsed_terms.append(resolved_term)
                 resolved_contexts.append(resolved_context)
 
@@ -399,9 +400,20 @@ class SearchResolver:
             )
         return final_raw_value
 
+    def convert_term(self, term: event_search.SearchFilter) -> event_search.SearchFilter:
+        name = term.key.name
+
+        converter = self.definitions.filter_aliases.get(name)
+        if converter is not None:
+            term = converter(self.params, term)
+
+        return term
+
     def resolve_term(
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
+        term = self.convert_term(term)
+
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
         value = term.value.value
@@ -654,12 +666,19 @@ class SearchResolver:
                 if operator in constants.IN_OPERATORS:
                     if isinstance(value, list):
                         return AttributeValue(
-                            val_double_array=DoubleArray(values=[val for val in value])
+                            val_double_array=DoubleArray(
+                                values=[
+                                    val.timestamp() if isinstance(val, datetime) else val
+                                    for val in value
+                                ]
+                            )
                         )
                     else:
                         raise InvalidSearchQuery(
                             f"{value} is not a valid value for doing an IN filter"
                         )
+                elif isinstance(value, datetime):
+                    return AttributeValue(val_double=value.timestamp())
                 elif isinstance(value, float):
                     return AttributeValue(val_double=value)
             elif column_type == constants.BOOLEAN:
@@ -701,7 +720,7 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(self, selected_columns: list[str]) -> tuple[
+    def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
         list[
             ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula
         ],
@@ -717,7 +736,6 @@ class SearchResolver:
         stripped_columns = [column.strip() for column in selected_columns]
         if span:
             span.set_tag("SearchResolver.selected_columns", stripped_columns)
-        has_aggregates = False
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
@@ -802,7 +820,7 @@ class SearchResolver:
             else:
                 field_type = None
             # make sure to remove surrounding quotes if it's a tag
-            field = tag_match.group("tag").strip('"') if tag_match else column
+            field = tag_match.group("tag") if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]
@@ -914,14 +932,19 @@ class SearchResolver:
                     f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
                 )
 
-            if (
-                isinstance(argument_definition, AttributeArgumentDefinition)
-                and argument_definition.attribute_types is not None
+            if isinstance(argument_definition, AttributeArgumentDefinition) and (
+                argument_definition.attribute_types is not None
                 and parsed_argument.search_type not in argument_definition.attribute_types
             ):
-                raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
-                )
+                if argument_definition.field_allowlist is not None:
+                    if parsed_argument.public_alias not in argument_definition.field_allowlist:
+                        raise InvalidSearchQuery(
+                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}."
+                        )
+                else:
+                    raise InvalidSearchQuery(
+                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    )
 
         resolved_arguments = []
         for parsed_arg in parsed_args:
@@ -947,8 +970,98 @@ class SearchResolver:
             search_type=search_type,
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
+            query_result_cache=self._query_result_cache,
+            extrapolation_override=self.config.disable_aggregate_extrapolation,
         )
 
         resolved_context = None
         self._resolved_function_cache[column] = (resolved_function, resolved_context)
         return self._resolved_function_cache[column]
+
+    def resolve_equations(self, equations: list[str]) -> tuple[
+        list[ResolvedEquation],
+        list[VirtualColumnDefinition],
+    ]:
+        formulas = []
+        contexts = []
+        for equation in equations:
+            formula, context = self.resolve_equation(equation)
+            formulas.append(formula)
+            contexts.extend(context)
+        return formulas, contexts
+
+    def resolve_equation(self, equation: str) -> tuple[
+        ResolvedEquation,
+        list[VirtualColumnDefinition],
+    ]:
+        """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
+        it'll help callers with extra information, like the existence of aggregates and the search type
+        """
+        operation, fields, functions = arithmetic.parse_arithmetic(equation)
+        lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+        rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+        has_aggregates = False
+        for function in functions:
+            resolved_function, _ = self.resolve_function(function)
+            if resolved_function.is_aggregate:
+                has_aggregates = True
+                break
+        return (
+            ResolvedEquation(
+                public_alias=f"equation|{equation}",
+                # Type of equations can become complex very quickly. We could try to make sure all the columns have the
+                # same type and return that, but then ratios would have types eg. (p75/p50), as well managing multiple
+                # column types is strange too (p75+count). Keeping this as just `number` for now
+                search_type="number",
+                operator=constants.ARITHMETIC_OPERATOR_MAP[operation.operator],
+                lhs=lhs,
+                rhs=rhs,
+                is_aggregate=has_aggregates,
+            ),
+            lhs_contexts + rhs_contexts,
+        )
+
+    def _resolve_operation(self, operation: arithmetic.OperandType) -> tuple[
+        Column,
+        list[VirtualColumnDefinition],
+    ]:
+        """This function is to recursively step into the branches of the arithmetic to resolve branches to Columns for
+        the RPC, but we can't only use this since we want the resolver to return a ResolvedEquation so the resolver API
+        matches between resolved arithmetic and columns
+        """
+        if isinstance(operation, arithmetic.Operation):
+            lhs, lhs_contexts = (
+                self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+            )
+            rhs, rhs_contexts = (
+                self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+            )
+            vcc = []
+            if lhs_contexts:
+                vcc += lhs_contexts
+            if rhs_contexts:
+                vcc += rhs_contexts
+            return (
+                Column(
+                    formula=Column.BinaryFormula(
+                        op=constants.ARITHMETIC_OPERATOR_MAP[operation.operator],
+                        left=lhs,
+                        right=rhs,
+                    )
+                ),
+                vcc,
+            )
+        elif isinstance(operation, float):
+            return Column(literal=LiteralValue(val_double=operation)), []
+        else:
+            # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
+            col, context = self.resolve_column(operation)
+            contexts = [context] if context is not None else []
+            if isinstance(col, ResolvedAttribute):
+                return Column(key=col.proto_definition), contexts
+            elif isinstance(col, ResolvedAggregate):
+                return Column(aggregation=col.proto_definition), contexts
+            elif isinstance(col, ResolvedConditionalAggregate):
+                return Column(conditional_aggregation=col.proto_definition), contexts
+            elif isinstance(col, ResolvedFormula):
+                return Column(formula=col.proto_definition), contexts

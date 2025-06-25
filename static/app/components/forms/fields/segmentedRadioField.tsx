@@ -1,12 +1,12 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Radio} from 'sentry/components/core/radio';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 
 interface SegmentedRadioFieldProps<Choices extends string = string>
@@ -73,7 +73,7 @@ function RadioControlGroup<C extends string>({
               <InteractionStateLayer />
               <Radio
                 name={groupName}
-                aria-label={name?.toString()}
+                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
                 disabled={disabled}
                 checked={value === id}
                 onChange={(e: React.FormEvent<HTMLInputElement>) =>

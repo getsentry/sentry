@@ -33,7 +33,6 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 
 interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
-  withholdBestEffort?: boolean;
 }
 
 /**

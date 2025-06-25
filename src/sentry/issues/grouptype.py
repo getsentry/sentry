@@ -391,7 +391,7 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
+class PerformanceNPlusOneAPICallsExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1910
     slug = "performance_n_plus_one_api_calls_experimental"
     description = "N+1 API Call (Experimental)"
@@ -500,6 +500,19 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
+
+
+@dataclass(frozen=True)
+class DBQueryInjectionVulnerabilityGroupType(GroupType):
+    type_id = 1020
+    slug = "db_query_injection_vulnerability"
+    description = "Potential Database Query Injection Vulnerability"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.MEDIUM
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType

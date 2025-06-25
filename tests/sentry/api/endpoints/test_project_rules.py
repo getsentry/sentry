@@ -727,6 +727,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
+            "project": None,
+            "project_id": self.project.id,
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),
@@ -738,7 +740,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
-        assert call_args.pop("project").id == self.project.id
         assert call_args == kwargs
 
     def test_comparison_condition(self):

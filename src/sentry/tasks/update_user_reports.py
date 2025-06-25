@@ -1,6 +1,5 @@
 import logging
-from datetime import timedelta
-from typing import Any
+from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
@@ -31,13 +30,26 @@ logger = logging.getLogger(__name__)
         namespace=issues_tasks,
     ),
 )
-def update_user_reports(**kwargs: Any) -> None:
+def update_user_reports(
+    start_datetime: str | None = None,
+    end_datetime: str | None = None,
+    max_events: int | None = None,
+    event_lookback_days: int | None = None,
+) -> None:
     now = timezone.now()
-    start = kwargs.get("start", now - timedelta(days=1))
-    end = kwargs.get("end", now + timedelta(minutes=5))  # +5 minutes just to catch clock skew
+    start = now - timedelta(days=1)
+    # +5 minutes just to catch clock skew
+    end = now + timedelta(minutes=5)
+
+    if start_datetime:
+        start = datetime.fromisoformat(start_datetime)
+    if end_datetime:
+        end = datetime.fromisoformat(end_datetime)
 
     # The event query time range is [start - event_lookback, end].
-    event_lookback = kwargs.get("event_lookback", timedelta(days=1))
+    if event_lookback_days is None:
+        event_lookback_days = 1
+    event_lookback = timedelta(days=event_lookback_days)
 
     # Filter for user reports where there was no event associated with them at
     # ingestion time
@@ -57,10 +69,8 @@ def update_user_reports(**kwargs: Any) -> None:
     updated_reports = 0
     samples = None
 
-    MAX_EVENTS = kwargs.get(
-        "max_events",
-        2000,  # the default max_query_size is 256 KiB, which we're hitting with 5000 events, so keeping it safe at 2000
-    )
+    # the default max_query_size is 256 KiB, which we're hitting with 5000 events, so keeping it safe at 2000
+    MAX_EVENTS = max_events or 2000
     for project_id, reports in project_map.items():
         project = Project.objects.get(id=project_id)
         event_ids = [r.event_id for r in reports]
@@ -96,10 +106,6 @@ def update_user_reports(**kwargs: Any) -> None:
             if report:
                 if report.environment_id is None:
                     if not is_in_feedback_denylist(project.organization):
-                        logger.info(
-                            "update_user_reports.shim_to_feedback",
-                            extra={"report_id": report.id, "event_id": event.event_id},
-                        )
                         metrics.incr("tasks.update_user_reports.shim_to_feedback")
                         shim_to_feedback(
                             {

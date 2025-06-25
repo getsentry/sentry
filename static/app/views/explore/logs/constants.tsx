@@ -13,6 +13,8 @@ export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = 
   [OurLogKnownFieldKey.TRACE_ID]: t('Trace'),
 };
 
+export const LOG_INGEST_DELAY = 10_000;
+
 /**
  * These are required fields are always added to the query when fetching the log table.
  */
@@ -23,12 +25,16 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.SEVERITY,
   OurLogKnownFieldKey.TIMESTAMP,
-];
+  OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+  OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE,
+] as const;
 
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.ITEM_TYPE,
+  OurLogKnownFieldKey.PROJECT,
+  OurLogKnownFieldKey.TIMESTAMP_PRECISE,
   'project.id',
   'project_id', // these are both aliases that might show up
 ];
@@ -43,7 +49,6 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   // deprecated/otel fields that clutter the UI
   'sentry.timestamp_nanos',
   'sentry.observed_timestamp_nanos',
-  'tags[sentry.timestamp_precise,number]',
   'tags[sentry.trace_flags,number]',
   'span_id',
 ];
@@ -56,4 +61,11 @@ const LOGS_FILTERS: FilterKeySection = {
   children: [...SENTRY_LOG_STRING_TAGS, ...SENTRY_LOG_NUMBER_TAGS],
 };
 
+export const LOGS_INSTRUCTIONS_URL =
+  'https://docs.sentry.io/product/explore/logs/getting-started/';
+
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
+
+export const VIRTUAL_STREAMED_INTERVAL_MS = 333;
+
+export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 100; // Items from bottom of table to trigger table fetch.

@@ -148,6 +148,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "error": str(e),
                 "project_id": event.project_id,
                 "event_id": event.event_id,
+                "integration_id": client.integration_id,
             }
 
             lifecycle.add_extras(log_params)

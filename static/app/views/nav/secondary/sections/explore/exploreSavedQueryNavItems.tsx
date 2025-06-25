@@ -2,8 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -126,11 +126,8 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   align-items: center;
-  padding-left: ${space(0.75)};
-  width: 100%;
   padding-right: ${space(0.5)};
   position: relative;
-  gap: 0;
 
   :not(:hover) {
     [data-drag-icon] {
@@ -151,10 +148,6 @@ const StyledReorderItem = styled(Reorder.Item, {
   position: relative;
   background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
   border-radius: ${p => p.theme.borderRadius};
-  list-style: none;
-  display: flex;
-  align-items: center;
-  margin-bottom: ${space(0.25)};
 `;
 
 const GrabHandleWrapper = styled('div')`
@@ -181,7 +174,6 @@ const LeadingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
 `;
 
 const TruncatedTitle = styled('div')`

@@ -32,7 +32,7 @@ const links: Record<
 };
 
 export function ConnectionCell({
-  ids: items,
+  ids: items = [],
   type,
   disabled = false,
   className,

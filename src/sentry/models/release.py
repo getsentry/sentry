@@ -7,6 +7,7 @@ from typing import ClassVar, Literal, TypedDict
 
 import orjson
 import sentry_sdk
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Sum, When
 from django.utils import timezone
@@ -18,7 +19,6 @@ from sentry_relay.processing import parse_release
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
-    ArrayField,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -45,6 +45,7 @@ from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
+from sentry.utils.sdk import set_span_attribute
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +214,7 @@ class Release(Model):
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
     last_commit_id = BoundedBigIntegerField(null=True)
-    authors = ArrayField(null=True)
+    authors = ArrayField(models.TextField(), default=list, null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
@@ -644,7 +645,8 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
-        sentry_sdk.set_measurement("release.set_commits", len(commit_list))
+        set_span_attribute("release.set_commits", len(commit_list))
+
         from sentry.models.releases.set_commits import set_commits
 
         set_commits(self, commit_list)

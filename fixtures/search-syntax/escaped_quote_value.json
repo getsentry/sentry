@@ -13,7 +13,7 @@
           "type": "valueText",
           "value": "\\\"",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -33,7 +33,7 @@
           "type": "valueText",
           "value": "te\\\"st",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -50,7 +50,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "te", "quoted": true, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "te",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""},
       {"type": "freeText", "value": "st", "quoted": false, "invalid": null},

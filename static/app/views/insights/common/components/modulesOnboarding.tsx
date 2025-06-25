@@ -307,6 +307,13 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: llmPreviewImg,
     supportedSdks: ['python'],
   },
+  agents: {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -489,22 +496,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
-  },
-  // XXX(epurkhiser): Crons does not use the insights onboarding component.
-  crons: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
-  },
-  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
-  uptime: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
   },
   sessions: {
     heading: t(`Get insights about your application's session health`),

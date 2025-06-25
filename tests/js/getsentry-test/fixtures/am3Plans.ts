@@ -1,4 +1,9 @@
-import {DataCategory} from 'sentry/types/core';
+import {
+  DynamicSamplingReservedBudgetCategoryFixture,
+  SeerReservedBudgetCategoryFixture,
+} from 'getsentry-test/fixtures/reservedBudget';
+
+import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {CheckoutType, type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
@@ -16,13 +21,11 @@ const AM3_ONDEMAND_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
-] as DataCategory[];
-
-const AM3_CATEGORIES = [
-  ...AM3_ONDEMAND_CATEGORIES,
   'seerAutofix',
   'seerScanner',
 ] as DataCategory[];
+
+const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
@@ -37,32 +40,13 @@ const AM3_DS_CATEGORIES = [
 ] as DataCategory[];
 
 const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  [ReservedBudgetCategoryType.SEER]: {
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: true,
-    apiName: ReservedBudgetCategoryType.SEER,
-  },
+  [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
 const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
   ...AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
-  [ReservedBudgetCategoryType.DYNAMIC_SAMPLING]: {
-    budgetCategoryType: 'DYNAMIC_SAMPLING',
-    name: 'spans budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
-    productName: 'dynamic sampling',
-    canProductTrial: false,
-    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
-  },
+  [ReservedBudgetCategoryType.DYNAMIC_SAMPLING]:
+    DynamicSamplingReservedBudgetCategoryFixture({}),
 };
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
@@ -114,6 +98,7 @@ const AM3_TEAM_FEATURES = [
   'integrations-incident-management',
   'sso-basic',
   'weekly-reports',
+  'seer-billing',
 ];
 
 const AM3_BUSINESS_FEATURES = [
@@ -153,6 +138,106 @@ const AM3_DS_FEATURES = [
   'dynamic-sampling',
   'dynamic-sampling-custom',
 ];
+
+export const SEER_TIERS_DEVELOPER = {
+  seerAutofix: [
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+  seerScanner: [
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+};
+
+export const SEER_TIERS_TRIAL_OR_ENTERPRISE = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+};
+
+export const SEER_TIERS = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 20_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
+
+export const SEER_TIERS_ANNUAL = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 216_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
 
 const BUDGET_TERM = 'pay-as-you-go';
 
@@ -866,6 +951,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0004,
         },
       ],
+      ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1363,6 +1449,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1458,6 +1545,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1553,6 +1641,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1656,6 +1745,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1759,6 +1849,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1854,6 +1945,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      ...SEER_TIERS_DEVELOPER,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1949,6 +2041,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -2052,6 +2145,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -2549,6 +2643,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -3046,6 +3141,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,

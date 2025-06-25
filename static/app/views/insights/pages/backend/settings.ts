@@ -13,8 +13,6 @@ export const MODULES = [
   ModuleName.HTTP,
   ModuleName.CACHE,
   ModuleName.QUEUE,
-  ModuleName.CRONS,
-  ModuleName.UPTIME,
 ];
 
 export const OVERVIEW_PAGE_ALLOWED_OPS = ['http.server'];
@@ -25,3 +23,5 @@ export const DEFAULT_SORT: ValidSort = {
 };
 
 export const BACKEND_PLATFORMS: PlatformKey[] = [...backend];
+
+export const USE_NEW_BACKEND_EXPERIENCE = 'insights-backend-use-new-backend-experience';

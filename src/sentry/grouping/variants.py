@@ -91,7 +91,6 @@ class HashedChecksumVariant(ChecksumVariant):
 
 class FallbackVariant(BaseVariant):
     type = "fallback"
-    contributes = True
 
     def get_hash(self) -> str | None:
         return hash_from_values([])
@@ -110,7 +109,6 @@ class PerformanceProblemVariant(BaseVariant):
 
     type = "performance_problem"
     description = "performance problem"
-    contributes = True
 
     def __init__(self, event_performance_problem: Any):
         self.event_performance_problem = event_performance_problem

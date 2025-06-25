@@ -91,6 +91,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import type {ReleaseWidgetQueriesProps} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -320,7 +321,8 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // Default table columns for visualizations that don't have a column setting
+  // Default table columns for visualizations that don't have a group by set
+  const hasGroupBy = (widget.queries[0]?.columns.length ?? 0) > 0;
   const shouldReplaceTableColumns =
     [
       DisplayType.AREA,
@@ -330,7 +332,7 @@ function WidgetViewerModal(props: Props) {
     ].includes(widget.displayType) &&
     widget.widgetType &&
     [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType) &&
-    !defined(widget.limit);
+    !hasGroupBy;
 
   // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
@@ -626,7 +628,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderReleaseTable: ReleaseWidgetQueries['props']['children'] = ({
+  const renderReleaseTable: ReleaseWidgetQueriesProps['children'] = ({
     tableResults,
     loading,
     pageLinks,
@@ -1053,6 +1055,7 @@ function WidgetViewerModal(props: Props) {
                       {widget.widgetType && (
                         <OpenButton
                           widget={primaryWidget}
+                          dashboardFilters={dashboardFilters}
                           organization={organization}
                           selection={modalSelection}
                           selectedQueryIndex={selectedQueryIndex}
@@ -1077,6 +1080,7 @@ function WidgetViewerModal(props: Props) {
 }
 
 interface OpenButtonProps {
+  dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   selectedQueryIndex: number;
   selection: PageFilters;
@@ -1087,6 +1091,7 @@ interface OpenButtonProps {
 
 function OpenButton({
   widget,
+  dashboardFilters,
   selection,
   organization,
   selectedQueryIndex,
@@ -1100,21 +1105,22 @@ function OpenButton({
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(widget, selection, organization);
+      path = getWidgetIssueUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
-      path = getWidgetReleasesUrl(widget, selection, organization);
+      path = getWidgetReleasesUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.SPANS:
       openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, selection, organization);
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
+        dashboardFilters,
         selection,
         organization,
         0,
@@ -1185,6 +1191,10 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 export const modalCss = css`
   width: 100%;
   max-width: 1200px;
+`;
+
+export const backdropCss = css`
+  z-index: 9998;
 `;
 
 const Container = styled('div')<{height?: number | null}>`

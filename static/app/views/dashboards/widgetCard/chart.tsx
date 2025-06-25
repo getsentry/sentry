@@ -23,6 +23,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
@@ -59,6 +60,7 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -99,6 +101,7 @@ type WidgetCardChartProps = Pick<
   sampleCount?: number;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
+  showLoadingText?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -135,7 +138,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection, minTableColumnWidth} = this.props;
+    const {location, widget, selection, minTableColumnWidth, organization} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -146,11 +149,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const getCustomFieldRenderer = (
       field: string,
       meta: MetaType,
-      organization?: Organization
+      org?: Organization
     ) => {
-      return (
-        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-      );
+      return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
     };
 
     return tableResults.map((result, i) => {
@@ -160,23 +161,36 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
       return (
         <TableWrapper key={`table:${result.title}`}>
-          <StyledSimpleTableChart
-            eventView={eventView}
-            fieldAliases={fieldAliases}
-            location={location}
-            fields={fields}
-            title={tableResults.length > 1 ? result.title : ''}
-            // Bypass the loading state for span widgets because this renders the loading placeholder
-            // and we want to show the underlying data during preflight instead
-            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
-            loader={<LoadingPlaceholder />}
-            metadata={result.meta}
-            data={result.data}
-            stickyHeaders
-            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={getCustomFieldRenderer}
-            minColumnWidth={minTableColumnWidth}
-          />
+          {organization.features.includes('use-table-widget-visualization') ? (
+            <TableWidgetVisualization
+              columns={[]}
+              tableData={{
+                data: [],
+                meta: {
+                  fields: {},
+                  units: {},
+                },
+              }}
+            />
+          ) : (
+            <StyledSimpleTableChart
+              eventView={eventView}
+              fieldAliases={fieldAliases}
+              location={location}
+              fields={fields}
+              title={tableResults.length > 1 ? result.title : ''}
+              // Bypass the loading state for span widgets because this renders the loading placeholder
+              // and we want to show the underlying data during preflight instead
+              loading={widget.widgetType === WidgetType.SPANS ? false : loading}
+              loader={<LoadingPlaceholder />}
+              metadata={result.meta}
+              data={result.data}
+              stickyHeaders
+              fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
+              getCustomFieldRenderer={getCustomFieldRenderer}
+              minColumnWidth={minTableColumnWidth}
+            />
+          )}
         </TableWrapper>
       );
     });
@@ -285,6 +299,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       sampleCount,
       isSampled,
       disableZoom,
+      showLoadingText,
     } = this.props;
 
     if (errorMessage) {
@@ -299,7 +314,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return getDynamicText({
         value: (
           <TransitionChart loading={loading} reloading={loading}>
-            <LoadingScreen loading={loading} />
+            <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
             {this.tableResultComponent({tableResults, loading})}
           </TransitionChart>
         ),
@@ -310,7 +325,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
+          <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
           <BigNumberResizeWrapper noPadding={noPadding}>
             {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
@@ -327,7 +342,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     );
     const colors = timeseriesResults
       ? (theme.chart
-          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 2 : 1))
           .slice() as string[])
       : [];
     // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
@@ -528,9 +543,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     widget,
                     releaseSeries
                   );
+
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
-                    <LoadingScreen loading={loading} />
+                    <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
                     <ChartWrapper
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
@@ -583,17 +599,30 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
   justify-content: center;
   align-items: center;
+  pointer-events: none;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({
+  loading,
+  showLoadingText,
+}: {
+  loading: boolean;
+  showLoadingText?: boolean;
+}) {
   if (!loading) {
     return null;
   }
+
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
+      {showLoadingText && (
+        <p id="loading-text">{t('Turning data into pixels - almost ready')}</p>
+      )}
     </StyledTransparentLoadingMask>
   );
 }

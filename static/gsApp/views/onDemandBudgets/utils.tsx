@@ -13,7 +13,7 @@ import type {
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -116,6 +116,10 @@ export function formatOnDemandBudget(
     categories = plan.onDemandCategories.map(category => category);
   }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    categories = getOnDemandCategories({
+      plan,
+      budgetMode: budget.budgetMode,
+    });
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,
       pluralOndemand: true,

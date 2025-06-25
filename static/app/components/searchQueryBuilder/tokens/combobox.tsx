@@ -9,7 +9,7 @@ import {
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
-import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
+import {type AriaComboBoxProps} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
@@ -25,9 +25,11 @@ import {
   getDisabledOptions,
   getHiddenOptions,
 } from 'sentry/components/core/compactSelect/utils';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
   findItemInSections,
   itemIsSection,
@@ -374,7 +376,7 @@ export function SearchQueryBuilderCombobox<
     ...comboBoxProps,
   });
 
-  const {inputProps, listBoxProps} = useComboBox<T>(
+  const {inputProps, listBoxProps} = useSearchTokenCombobox<T>(
     {
       ...comboBoxProps,
       'aria-label': inputLabel,
@@ -514,12 +516,18 @@ export function SearchQueryBuilderCombobox<
     return () => {};
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
+  const autosizeInput = useAutosizeInput({value: inputValue});
   return (
     <Wrapper>
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, triggerProps.ref)}
+        ref={mergeRefs(
+          ref,
+          inputRef,
+          autosizeInput,
+          triggerProps.ref as React.Ref<HTMLInputElement>
+        )}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}
@@ -566,7 +574,7 @@ const Wrapper = styled('div')`
   width: 100%;
 `;
 
-const UnstyledInput = styled(GrowingInput)`
+const UnstyledInput = styled(Input)`
   background: transparent;
   border: none;
   box-shadow: none;

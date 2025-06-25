@@ -17,8 +17,8 @@ class AlertRuleDetector(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule_id = BoundedBigIntegerField(null=True)
-    rule_id = BoundedBigIntegerField(null=True)
+    alert_rule_id = BoundedBigIntegerField(null=True, db_index=True)
+    rule_id = BoundedBigIntegerField(null=True, db_index=True)
     detector = FlexibleForeignKey("workflow_engine.Detector")
 
     class Meta:

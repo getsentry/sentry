@@ -69,6 +69,7 @@ class _UserOptions(TypedDict):
     prefersStackedNavigation: bool | None
     prefersChonkUI: bool
     quickStartDisplay: dict[str, int]
+    prefersAgentsInsightsModule: bool
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -208,6 +209,7 @@ class UserSerializer(Serializer):
                 "prefersStackedNavigation": options.get("prefers_stacked_navigation"),
                 "prefersChonkUI": options.get("prefers_chonk_ui", False),
                 "quickStartDisplay": options.get("quick_start_display") or {},
+                "prefersAgentsInsightsModule": options.get("prefers_agents_insights_module", True),
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
@@ -297,7 +299,7 @@ class DetailedUserSerializer(UserSerializer):
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
     ) -> UserSerializerResponse:
-        d = cast(UserSerializerResponse, super().serialize(obj, attrs, user))
+        d = super().serialize(obj, attrs, user)
 
         # TODO(schew2381): Remove mention of superuser below once the staff feature flag is removed
 

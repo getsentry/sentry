@@ -1,108 +1,123 @@
+import type {Dispatch, SetStateAction} from 'react';
+import styled from '@emotion/styled';
+
 import {Button} from 'sentry/components/core/button';
+import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
-import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
-import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type Props = {
   monitors: Detector[];
-  connectedMonitorIds?: Set<string>;
-  toggleConnected?: (id: string) => void;
+  connectedIds?: Set<string>;
+  setConnectedIds?: Dispatch<SetStateAction<Set<string>>>;
 };
 
 export default function ConnectedMonitorsList({
   monitors,
-  connectedMonitorIds,
-  toggleConnected,
+  connectedIds,
+  setConnectedIds,
 }: Props) {
   const organization = useOrganization();
-  const canEdit = connectedMonitorIds && !!toggleConnected;
+  const canEdit = connectedIds && !!setConnectedIds;
+
+  const toggleConnected = (id: string) => {
+    setConnectedIds?.(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
 
   const data = monitors.map(monitor => ({
     title: {
       name: monitor.name,
+      createdBy: monitor.createdBy,
       projectId: monitor.projectId,
       link: makeMonitorDetailsPathname(organization.slug, monitor.id),
     },
     type: monitor.type,
     lastIssue: undefined, // TODO: call API to get last issue
-    createdBy: monitor.createdBy,
+    owner: monitor.owner,
     connected: canEdit
       ? {
-          isConnected: connectedMonitorIds?.has(monitor.id),
+          isConnected: connectedIds?.has(monitor.id),
           toggleConnected: () => toggleConnected?.(monitor.id),
         }
       : undefined,
   }));
 
-  if (canEdit) {
-    return <SimpleTable columns={connectedColumns} data={data} />;
-  }
-
   return (
-    <SimpleTable
-      columns={baseColumns}
-      data={data}
-      fallback={t('No monitors connected')}
-    />
+    <SimpleTableWithColumns>
+      <SimpleTable.Header>
+        <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell name="type">{t('Type')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell name="lastIssue">
+          {t('Last Issue')}
+        </SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell name="owner">{t('Assignee')}</SimpleTable.HeaderCell>
+        {canEdit && (
+          <SimpleTable.HeaderCell name="connected">
+            {t('Connected')}
+          </SimpleTable.HeaderCell>
+        )}
+      </SimpleTable.Header>
+      {data.length === 0 && (
+        <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
+      )}
+      {data.map(row => (
+        <SimpleTable.Row key={row.title.name}>
+          <SimpleTable.RowCell name="name">
+            <TitleCell
+              name={row.title.name}
+              createdBy={row.title.createdBy}
+              projectId={row.title.projectId}
+              link={row.title.link}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell name="type">
+            <DetectorTypeCell type={row.type} />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell name="lastIssue">
+            <IssueCell group={row.lastIssue} />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell name="owner">
+            <MonitorOwner owner={row.owner} />
+          </SimpleTable.RowCell>
+          {canEdit && (
+            <SimpleTable.RowCell name="connected">
+              <Button onClick={row.connected?.toggleConnected}>
+                {row.connected?.isConnected ? t('Disconnect') : t('Connect')}
+              </Button>
+            </SimpleTable.RowCell>
+          )}
+        </SimpleTable.Row>
+      ))}
+    </SimpleTableWithColumns>
   );
 }
 
-interface BaseMonitorsData {
-  createdBy: string;
-  lastIssue: Group | undefined;
-  title: {link: string; name: string; projectId: string};
-  type: DetectorType;
+function MonitorOwner({owner}: {owner: string | null}) {
+  if (!owner) {
+    return t('Unassigned');
+  }
+
+  const [ownerType, ownerId] = owner.split(':');
+  if (!ownerId || (ownerType !== 'user' && ownerType !== 'team')) {
+    return t('Unknown Owner');
+  }
+  return <ActorBadge actor={{id: ownerId, name: '', type: ownerType}} />;
 }
 
-const baseColumns = defineColumns<BaseMonitorsData>({
-  title: {
-    Header: () => t('Name'),
-    Cell: ({value}) => (
-      <TitleCell name={value.name} projectId={value.projectId} link={value.link} />
-    ),
-    width: '4fr',
-  },
-  type: {
-    Header: () => t('Type'),
-    Cell: ({value}) => <TypeCell type={value} />,
-    width: '1fr',
-  },
-  lastIssue: {
-    Header: () => t('Last Issue'),
-    Cell: ({value}) => <IssueCell group={value} />,
-    width: '1.5fr',
-  },
-  createdBy: {
-    Header: () => t('Creator'),
-    Cell: ({value}) => <UserCell user={value} />,
-    width: '1fr',
-  },
-});
-
-interface ConnectedMonitorsData extends BaseMonitorsData {
-  connected?: {
-    isConnected: boolean;
-    toggleConnected: () => void;
-  };
-}
-
-const connectedColumns = defineColumns<ConnectedMonitorsData>({
-  ...baseColumns,
-  connected: {
-    Header: () => null,
-    Cell: ({value}) =>
-      value && (
-        <Button onClick={value.toggleConnected}>
-          {value.isConnected ? t('Disconnect') : t('Connect')}
-        </Button>
-      ),
-    width: '1fr',
-  },
-});
+const SimpleTableWithColumns = styled(SimpleTable)`
+  grid-template-columns: 4fr 1fr 1.5fr 1fr 1fr;
+`;

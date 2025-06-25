@@ -197,9 +197,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             )
           }
         />
-        <LargeInThisIssueText aria-hidden>
-          {t('matching your filters')}
-        </LargeInThisIssueText>
+        <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}

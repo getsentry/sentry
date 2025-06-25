@@ -1,4 +1,4 @@
-import React, {useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
@@ -14,6 +14,7 @@ interface AutofixHighlightWrapperProps {
   className?: string;
   displayName?: string;
   isAgentComment?: boolean;
+  ref?: React.RefObject<HTMLDivElement | null>;
   retainInsightCardIndex?: number | null;
 }
 
@@ -30,27 +31,46 @@ export function AutofixHighlightWrapper({
   isAgentComment = false,
   className,
   displayName,
+  ref,
 }: AutofixHighlightWrapperProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const containerRef = ref || internalRef;
   const selection = useTextSelection(containerRef);
+
+  const [shouldPersist, setShouldPersist] = useState(false);
+  const lastSelectedText = useRef<string | null>(null);
+  const lastReferenceElement = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (selection) {
+      lastSelectedText.current = selection.selectedText;
+      lastReferenceElement.current = selection.referenceElement;
+    }
+  }, [selection]);
 
   return (
     <React.Fragment>
-      <Wrapper ref={containerRef} className={className} isSelected={!!selection}>
+      <Wrapper
+        ref={containerRef}
+        className={className}
+        isSelected={!!selection}
+        title={selection ? undefined : 'Click to chat about this with Seer'}
+      >
         {children}
       </Wrapper>
 
       <AnimatePresence>
-        {selection && (
+        {(selection || shouldPersist) && (
           <AutofixHighlightPopup
-            selectedText={selection.selectedText}
-            referenceElement={selection.referenceElement}
+            selectedText={selection?.selectedText ?? lastSelectedText.current ?? ''}
+            referenceElement={selection?.referenceElement ?? lastReferenceElement.current}
             groupId={groupId}
             runId={runId}
             stepIndex={stepIndex}
             retainInsightCardIndex={retainInsightCardIndex}
             isAgentComment={isAgentComment}
             blockName={displayName}
+            onShouldPersistChange={setShouldPersist}
           />
         )}
       </AnimatePresence>
@@ -64,10 +84,6 @@ const Wrapper = styled('div')<{isSelected: boolean}>`
       !p.isSelected &&
       css`
         cursor: pointer;
-
-        * {
-          ${p.theme.tooltipUnderline('gray200')};
-        }
       `};
   }
 `;

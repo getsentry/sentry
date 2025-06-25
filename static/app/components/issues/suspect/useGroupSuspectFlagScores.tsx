@@ -4,6 +4,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 type SuspectFlagScore = {
   baseline_percent: number;
+  distribution: {
+    baseline: Record<string, number>;
+    outliers: Record<string, number>;
+  };
   flag: string;
   score: number;
 };

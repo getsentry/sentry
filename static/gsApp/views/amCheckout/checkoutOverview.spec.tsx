@@ -10,7 +10,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverview', function () {
   const api = new MockApiClient();
@@ -175,12 +175,16 @@ describe('CheckoutOverview', function () {
     expect(screen.queryByTestId('on-demand-additional-cost')).not.toBeInTheDocument();
   });
 
-  it('displays Seer Agent AI when enabled and feature flag is present', () => {
+  it('displays product when selected', () => {
     const orgWithSeerFeature = {...organization, features: ['seer-billing']};
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
-      seerEnabled: true,
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: true,
+        },
+      },
     };
 
     render(
@@ -194,19 +198,20 @@ describe('CheckoutOverview', function () {
       />
     );
 
-    expect(screen.getByTestId('seer')).toBeInTheDocument();
-    expect(screen.getByText('Seer: Sentry AI Enhancements')).toBeInTheDocument();
-    expect(
-      screen.getByText('Surface insights and propose solutions to fix bugs faster.')
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('seer-reserved')).toBeInTheDocument();
+    expect(screen.getByText('Seer AI Agent')).toBeInTheDocument();
   });
 
-  it('does not display Seer Agent AI when seerEnabled is false', () => {
+  it('does not display product when not selected', () => {
     const orgWithSeerFeature = {...organization, features: ['seer-billing']};
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
-      seerEnabled: false,
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: false,
+        },
+      },
     };
 
     render(
@@ -221,31 +226,6 @@ describe('CheckoutOverview', function () {
     );
 
     expect(screen.queryByTestId('seer')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seer: Sentry AI Enhancements')).not.toBeInTheDocument();
-  });
-
-  it('does not display Seer Agent AI when enabled but feature flag is missing', () => {
-    const orgWithoutSeerFeature = {...organization, features: []};
-    const formData: CheckoutFormData = {
-      plan: 'am2_team',
-      reserved: {errors: 100000, transactions: 500000, attachments: 25},
-      seerEnabled: true,
-    };
-
-    jest.spyOn(CheckoutOverview.prototype, 'renderSeer').mockReturnValue(null);
-
-    render(
-      <CheckoutOverview
-        activePlan={teamPlanMonthly}
-        billingConfig={billingConfig}
-        formData={formData}
-        onUpdate={jest.fn()}
-        organization={orgWithoutSeerFeature}
-        subscription={subscription}
-      />
-    );
-
-    expect(screen.queryByTestId('seer')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seer: Sentry AI Enhancements')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer AI Agent')).not.toBeInTheDocument();
   });
 });

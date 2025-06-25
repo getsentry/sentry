@@ -125,6 +125,12 @@ def mock_expected_response(
             "email": kwargs.pop("user_email", "username@example.com"),
             "username": kwargs.pop("user_name", "username"),
             "ip": kwargs.pop("user_ip", "127.0.0.1"),
+            "geo": {
+                "city": kwargs.pop("user_geo_city", "San Francisco"),
+                "country_code": kwargs.pop("user_geo_country_code", "USA"),
+                "region": kwargs.pop("user_geo_region", "United States"),
+                "subdivision": kwargs.pop("user_geo_subdivision", "California"),
+            },
         },
         "tags": kwargs.pop("tags", {}),
         "activity": kwargs.pop("activity", 0),
@@ -185,6 +191,12 @@ def mock_replay(
                             "username": kwargs.pop("user_name", "username"),
                             "email": kwargs.pop("user_email", "username@example.com"),
                             "ip_address": kwargs.pop("ipv4", "127.0.0.1"),
+                            "geo": {
+                                "city": kwargs.pop("user_geo_city", "San Francisco"),
+                                "country_code": kwargs.pop("user_geo_country_code", "USA"),
+                                "region": kwargs.pop("user_geo_region", "United States"),
+                                "subdivision": kwargs.pop("user_geo_subdivision", "California"),
+                            },
                         },
                         "sdk": {
                             "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
@@ -436,9 +448,11 @@ def mock_segment_rageclick(
         {
             "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
             "type": "default",
-            "category": "ui.multiClick",
+            "category": "ui.slowClickDetected",
             "message": message,
             "data": {
+                "endReason": "timeout",
+                "timeAfterClickMs": 7000,
                 "node": {
                     "tagName": tagName,
                     "attributes": {

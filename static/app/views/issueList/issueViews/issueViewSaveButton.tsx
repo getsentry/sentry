@@ -3,13 +3,17 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,7 +50,6 @@ function SegmentedIssueViewSaveButton({
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
-
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -76,52 +79,72 @@ function SegmentedIssueViewSaveButton({
   };
 
   return (
-    <ButtonBar merged>
-      <PrimarySaveButton
-        priority={buttonPriority}
-        data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
-        onClick={() => {
-          if (canEdit) {
-            saveView();
-          } else {
-            openCreateIssueViewModal();
+    <Feature
+      features={'organizations:issue-views'}
+      hookName="feature-disabled:issue-views"
+      renderDisabled={props => (
+        <Hovercard
+          body={
+            <FeatureDisabled
+              features={props.features}
+              hideHelpToggle
+              featureName={t('Issue Views')}
+            />
           }
-        }}
-        disabled={isSaving}
-      >
-        {canEdit ? t('Save') : t('Save As')}
-      </PrimarySaveButton>
-      <DropdownMenu
-        items={[
-          {
-            key: 'reset',
-            label: t('Reset'),
-            disabled: !hasUnsavedChanges,
-            onAction: () => {
-              discardUnsavedChanges();
-            },
-          },
-          {
-            key: 'save-as',
-            label: t('Save as new view'),
-            onAction: () => {
-              openCreateIssueViewModal();
-            },
-            hidden: !canEdit,
-          },
-        ]}
-        trigger={props => (
-          <DropdownTrigger
-            {...props}
-            disabled={isSaving}
-            icon={<IconChevron direction="down" />}
-            aria-label={t('More save options')}
+        >
+          {typeof props.children === 'function' ? props.children(props) : props.children}
+        </Hovercard>
+      )}
+    >
+      {({hasFeature}) => (
+        <ButtonBar merged>
+          <PrimarySaveButton
             priority={buttonPriority}
+            data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
+            onClick={() => {
+              if (canEdit) {
+                saveView();
+              } else {
+                openCreateIssueViewModal();
+              }
+            }}
+            disabled={isSaving || !hasFeature}
+          >
+            {canEdit ? t('Save') : t('Save As')}
+          </PrimarySaveButton>
+          <DropdownMenu
+            items={[
+              {
+                key: 'reset',
+                label: t('Reset'),
+                disabled: !hasUnsavedChanges,
+                onAction: () => {
+                  discardUnsavedChanges();
+                },
+              },
+              {
+                key: 'save-as',
+                label: t('Save as new view'),
+                onAction: () => {
+                  openCreateIssueViewModal();
+                },
+                hidden: !canEdit,
+              },
+            ]}
+            trigger={props => (
+              <DropdownTrigger
+                {...props}
+                disabled={!hasFeature || isSaving}
+                icon={<IconChevron direction="down" color="subText" />}
+                aria-label={t('More save options')}
+                priority={buttonPriority}
+              />
+            )}
+            position="bottom-end"
           />
-        )}
-        position="bottom-end"
-      />
-    </ButtonBar>
+        </ButtonBar>
+      )}
+    </Feature>
   );
 }
 
@@ -149,9 +172,35 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
   if (!viewId) {
     return (
-      <Button priority="primary" onClick={openCreateIssueViewModal}>
-        {t('Save As')}
-      </Button>
+      <Feature
+        features={'organizations:issue-views'}
+        hookName="feature-disabled:issue-views"
+        renderDisabled={props => (
+          <Hovercard
+            body={
+              <FeatureDisabled
+                features={props.features}
+                hideHelpToggle
+                featureName={t('Issue Views')}
+              />
+            }
+          >
+            {typeof props.children === 'function'
+              ? props.children(props)
+              : props.children}
+          </Hovercard>
+        )}
+      >
+        {({hasFeature}) => (
+          <Button
+            priority="primary"
+            onClick={openCreateIssueViewModal}
+            disabled={!hasFeature}
+          >
+            {t('Save As')}
+          </Button>
+        )}
+      </Feature>
     );
   }
 
@@ -160,23 +209,26 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   );
 }
 
-const PrimarySaveButton = styled(Button)`
-  box-shadow: none;
+const PrimarySaveButton = withChonk(
+  styled(Button)`
+    box-shadow: none;
 
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        bottom: -1px;
-        right: -1px;
-        border-right: solid 1px currentColor;
-        opacity: 0.25;
-      }
-    `}
-`;
+    ${p =>
+      p.priority === 'primary' &&
+      css`
+        &::after {
+          content: '';
+          position: absolute;
+          top: -1px;
+          bottom: -1px;
+          right: -1px;
+          border-right: solid 1px currentColor;
+          opacity: 0.25;
+        }
+      `}
+  `,
+  Button
+);
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

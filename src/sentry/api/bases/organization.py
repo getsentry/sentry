@@ -37,7 +37,7 @@ from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context, set_measurement
+from sentry.utils.sdk import bind_organization_context, set_span_attribute
 
 
 class NoProjects(Exception):
@@ -62,6 +62,9 @@ class OrganizationPermission(DemoSafePermission):
             return False
 
         if request.user.is_authenticated and request.user.is_sentry_app:
+            return False
+
+        if request.user.is_anonymous:
             return False
 
         if is_active_superuser(request):
@@ -566,7 +569,7 @@ class OrganizationEndpoint(Endpoint):
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
-        set_measurement("query.num_projects", len_projects)
+        set_span_attribute("query.num_projects", len_projects)
 
         params: FilterParams = {
             "start": start,

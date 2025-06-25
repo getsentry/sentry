@@ -1,4 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {Flatten} from 'sentry/utils/types/flatten';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -11,11 +13,10 @@ export enum ModuleName {
   APP_START = 'app_start',
   RESOURCE = 'resource',
   AI = 'ai',
+  AGENTS = 'agents',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
-  CRONS = 'crons',
-  UPTIME = 'uptime',
   SESSIONS = 'sessions',
   OTHER = 'other',
 }
@@ -24,7 +25,7 @@ export enum SpanMetricsField {
   SPAN_OP = 'span.op',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
   SPAN_DESCRIPTION = 'span.description',
-  SPAN_MODULE = 'span.module',
+  SPAN_CATEGORY = 'span.category',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
   SPAN_GROUP = 'span.group',
@@ -69,12 +70,14 @@ export enum SpanMetricsField {
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
 }
 
-// TODO: This will be the final field type for eap spans
+// TODO: This will be the final field type for EAP spans
 export enum SpanFields {
   TRANSACTION = 'transaction',
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  ID = 'id',
+  TIMESTAMP = 'timestamp',
   SPAN_DURATION = 'span.duration',
   USER = 'user',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
@@ -89,8 +92,15 @@ export enum SpanFields {
   SPAN_DESCRIPTION = 'span.description',
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
+  NAME = 'span.name',
+  KIND = 'span.kind',
+  STATUS = 'span.status',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
+  RESPONSE_CODE = 'span.status_code',
+  DEVICE_CLASS = 'device.class',
+  SPAN_SYSTEM = 'span.system',
+  SPAN_CATEGORY = 'span.category',
 }
 
 type WebVitalsMeasurements =
@@ -135,12 +145,14 @@ type SpanNumberFields =
 type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
-  | 'id'
+  | SpanFields.ID
+  | SpanFields.NAME
+  | SpanFields.KIND
+  | SpanFields.STATUS
   | 'span_id'
   | 'span.op'
   | 'span.description'
   | 'sentry.normalized_description'
-  | 'span.module'
   | 'span.action'
   | 'span.group'
   | 'span.category'
@@ -159,6 +171,7 @@ type SpanStringFields =
   | 'project'
   | 'http.request.method'
   | 'messaging.destination.name'
+  | 'command'
   | 'user'
   | 'user.display'
   | 'user.id'
@@ -168,7 +181,8 @@ type SpanStringFields =
   | 'replayId'
   | 'profile.id'
   | 'profiler.id'
-  | 'thread.id';
+  | 'thread.id'
+  | 'span.domain'; // TODO: With `useInsightsEap` we get a string, without it we get an array
 
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
@@ -235,7 +249,7 @@ export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 type WebVitalsFunctions = 'performance_score' | 'count_scores';
 
-export type SpanMetricsResponse = {
+type SpanMetricsResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -271,9 +285,11 @@ export type SpanMetricsResponse = {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
 
+export type SpanMetricsResponse = Flatten<SpanMetricsResponseRaw>;
+
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
-export type EAPSpanResponse = {
+type EAPSpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -309,7 +325,8 @@ export type EAPSpanResponse = {
     [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
-export type EAPSpanProperty = keyof EAPSpanResponse;
+export type EAPSpanResponse = Flatten<EAPSpanResponseRaw>;
+export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
 
 export enum SpanIndexedField {
   ENVIRONMENT = 'environment',
@@ -319,7 +336,6 @@ export enum SpanIndexedField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
-  SPAN_MODULE = 'span.module',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
@@ -341,6 +357,7 @@ export enum SpanIndexedField {
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
@@ -404,7 +421,6 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
-  [SpanIndexedField.SPAN_MODULE]: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
@@ -426,7 +442,6 @@ export type SpanIndexedResponse = {
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
-  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
@@ -439,9 +454,9 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
-
   [SpanIndexedField.PROFILE_ID]: string;
   [SpanIndexedField.PROFILEID]: string;
+  [SpanIndexedField.PROFILER_ID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
@@ -486,8 +501,6 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.LCP_ELEMENT]: string;
   [SpanIndexedField.CLS_SOURCE]: string;
   [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
-  [SpanIndexedField.PROJECT]: string;
-  [SpanIndexedField.SPAN_GROUP]: string;
   'any(id)': string;
   [SpanIndexedField.DB_SYSTEM]: SupportedDatabaseSystem;
   [SpanIndexedField.CODE_FILEPATH]: string;
@@ -505,6 +518,7 @@ export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
   TPM = 'tpm',
+  COUNT = 'count',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
@@ -598,7 +612,7 @@ type MetricsStringFields =
   | MetricsFields.TIMESTAMP
   | MetricsFields.DEVICE_CLASS;
 
-export type MetricsResponse = {
+type MetricsResponseRaw = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
@@ -611,6 +625,7 @@ export type MetricsResponse = {
 } & {
   ['project.id']: number;
 };
+export type MetricsResponse = Flatten<MetricsResponseRaw>;
 
 enum DiscoverFields {
   ID = 'id',
@@ -687,11 +702,13 @@ type DiscoverStringFields =
   | DiscoverFields.PROFILE_ID
   | DiscoverFields.PROJECT;
 
-export type DiscoverResponse = {
+type DiscoverResponseRaw = {
   [Property in DiscoverNumberFields as `${Property}`]: number;
 } & {
   [Property in DiscoverStringFields as `${Property}`]: string;
 };
+
+export type DiscoverResponse = Flatten<DiscoverResponseRaw>;
 
 export type DiscoverProperty = keyof DiscoverResponse;
 
@@ -732,3 +749,5 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type SearchHook = {search: MutableSearch; enabled?: boolean};

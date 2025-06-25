@@ -9,7 +9,7 @@ from typing import Any, Generic, TypeVar
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 DataPacketType = TypeVar("DataPacketType")
 DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
 
-# TODO - get more info about how this is used in issue platform
 EventData = dict[str, Any]
 
 
@@ -30,11 +29,8 @@ EventData = dict[str, Any]
 class EvidenceData(Generic[DataPacketEvaluationType]):
     value: DataPacketEvaluationType
     detector_id: int
-    data_source_ids: list[int]
-    data_condition_ids: list[int]
-    data_condition_type: Condition
-    # Represents the actual value that we are comparing against
-    data_condition_comparison_value: DataPacketEvaluationType
+    data_packet_source_id: int
+    conditions: list[dict[str, Any]]
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -79,7 +75,6 @@ class DetectorOccurrence:
         )
 
 
-# TODO - DetectorHandler -> AbstractDetectorHandler? (then DetectorHandler is the base implementation)
 class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
     def __init__(self, detector: Detector):
         self.detector = detector
@@ -125,7 +120,9 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         pass
 
     @abc.abstractmethod
-    def extract_value(self, data_packet: DataPacket[DataPacketType]) -> DataPacketEvaluationType:
+    def extract_value(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> DataPacketEvaluationType | dict[DetectorGroupKey, DataPacketEvaluationType]:
         """
         Extracts the evaluation value from the data packet to be processed.
 
@@ -133,11 +130,10 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         """
         pass
 
-    # TODO should this be a required method? :thinking:
     @abc.abstractmethod
     def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
         """
-        Extracts the deduplication value from a passed data packet. This duplication
+        Extracts the de-duplication value from a passed data packet. This duplication
         value is used to determine if we've already processed data to this point or not.
 
         This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).

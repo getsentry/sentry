@@ -15,7 +15,7 @@ from cachetools.func import ttl_cache
 from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
-from google.auth.transport import Request
+from google.auth.transport.requests import Request
 from rediscluster import RedisCluster
 
 from sentry import features, options
@@ -567,29 +567,27 @@ def get_sources_for_project(project):
             # processing at this point.
             logger.exception("Invalid symbolicator source config")
 
-    def resolve_alias(source):
+    def resolve_alias(source, organization):
         for key in source.get("sources") or ():
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
                 if other_source.get("type") == "alias":
-                    yield from resolve_alias(other_source)
+                    yield from resolve_alias(other_source, organization)
                 else:
-                    yield other_source
+                    yield fetch_token_for_gcp_source_if_necessary(other_source, organization)
 
-    # Add builtin sources last to ensure that custom sources have precedence
-    # over our defaults.
-    builtin_sources = project.get_option("sentry:builtin_symbol_sources")
-    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
-        if key not in builtin_sources:
-            continue
-
-        if features.has("organizations:gcp-bearer-token-authentication", organization):
-            if source.get("type") == "gcs":
+    def fetch_token_for_gcp_source_if_necessary(source, organization):
+        if source.get("type") == "gcs":
+            if "client_email" in source and "private_key" in source:
+                return source
+            else:
                 client_email = source.get("client_email")
                 token = get_gcp_token(client_email)
                 # if target_credentials.token is None it means that the
                 # token could not be fetched successfully
                 if token is not None:
+                    # Create a new dict to avoid reference issues
+                    source = deepcopy(source)
                     source["bearer_token"] = token
 
                     # Remove other credentials if we have a token
@@ -598,13 +596,22 @@ def get_sources_for_project(project):
                     if "private_key" in source:
                         del source["private_key"]
 
+        return source
+
+    # Add builtin sources last to ensure that custom sources have precedence
+    # over our defaults.
+    builtin_sources = project.get_option("sentry:builtin_symbol_sources")
+    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
+        if key not in builtin_sources:
+            continue
+
         # special internal alias type expands to more than one item.  This
         # is used to make `apple` expand to `ios`/`macos` and other
         # sources if configured as such.
         if source.get("type") == "alias":
-            sources.extend(resolve_alias(source))
+            sources.extend(resolve_alias(source, organization))
         else:
-            sources.append(source)
+            sources.append(fetch_token_for_gcp_source_if_necessary(source, organization))
 
     return sources
 
@@ -616,7 +623,7 @@ def get_gcp_token(client_email):
     # Fetch the regular credentials for GCP
     source_credentials, _ = google.auth.default()
 
-    if source_credentials.token is None:
+    if source_credentials is None:
         return None
 
     # Impersonate the service account to give the token for symbolicator a proper scope

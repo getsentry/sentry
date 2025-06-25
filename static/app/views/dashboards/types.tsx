@@ -1,5 +1,6 @@
 import type {Layout} from 'react-grid-layout';
 
+import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {type DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
 
@@ -12,6 +13,8 @@ import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/t
 export const MAX_WIDGETS = 30;
 
 export const DEFAULT_TABLE_LIMIT = 5;
+
+export const DEFAULT_WIDGET_NAME = t('Custom Widget');
 
 export enum DisplayType {
   AREA = 'area',
@@ -30,6 +33,7 @@ export enum WidgetType {
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
+  LOGS = 'logs',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -65,6 +69,10 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
+/**
+ * A widget query is one or more aggregates and a single filter string (conditions.)
+ * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
+ */
 export type WidgetQuery = {
   aggregates: string[];
   columns: string[];
@@ -122,6 +130,7 @@ export type DashboardPermissions = {
  */
 export type DashboardListItem = {
   id: string;
+  projects: number[];
   title: string;
   widgetDisplay: DisplayType[];
   widgetPreview: WidgetPreview[];

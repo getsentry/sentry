@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -23,7 +24,6 @@ import {
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -298,6 +298,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
           initialQuery={query}
           onSearch={handleSearch}
           searchSource="profile_landing"
+          disallowFreeText={false}
         />
       </SearchbarContainer>
       {transactionsError && (

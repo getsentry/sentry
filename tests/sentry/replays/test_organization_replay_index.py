@@ -235,12 +235,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "urls" in response_data["data"][0]
             assert "user" in response_data["data"][0]
 
-            assert len(response_data["data"][0]["user"]) == 5
+            assert len(response_data["data"][0]["user"]) == 6
             assert "id" in response_data["data"][0]["user"]
             assert "username" in response_data["data"][0]["user"]
             assert "email" in response_data["data"][0]["user"]
             assert "ip" in response_data["data"][0]["user"]
             assert "display_name" in response_data["data"][0]["user"]
+            assert "geo" in response_data["data"][0]["user"]
+            assert "city" in response_data["data"][0]["user"]["geo"]
+            assert "country_code" in response_data["data"][0]["user"]["geo"]
+            assert "region" in response_data["data"][0]["user"]["geo"]
+            assert "subdivision" in response_data["data"][0]["user"]["geo"]
 
     def test_get_replays_tags_field(self):
         """Test replay response with fields requested in production."""
@@ -658,6 +663,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.ip:127.0.0.1",
                 "user.ip:[127.0.0.1, 10.0.4.4]",
                 "!user.ip:[127.1.1.1, 10.0.4.4]",
+                'user.geo.city:"San Francisco"',
+                "user.geo.country_code:USA",
+                'user.geo.region:"United States"',
+                "user.geo.subdivision:California",
+                'user.geo.city:"San Francisco" AND user.geo.country_code:USA AND user.geo.region:"United States" AND user.geo.subdivision:California',
                 "sdk.name:sentry.javascript.react",
                 "ota_updates.channel:stable",
                 "ota_updates.runtime_version:1.2.3",
@@ -716,6 +726,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 f"seen_by_id:[{self.user.id + 3},{self.user.id}]",
                 "viewed_by_me:true",
                 "seen_by_me:true",
+                "is_archived:false",
+                "!is_archived:true",
+                "is_archived:0",
+                "!is_archived:1",
             ]
 
             for query in queries:
@@ -774,12 +788,22 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "seen_by_me:false",
                 "user.email:[user2@example.com]",
                 "!user.email:[username@example.com, user2@example.com]",
+                '!user.geo.city:"San Francisco"',
+                "!user.geo.country_code:USA",
+                '!user.geo.region:"United States"',
+                "!user.geo.subdivision:California",
+                'user.geo.city:"San Francisco" AND !user.geo.country_code:USA',
+                '!user.geo.subdivision:California OR !user.geo.region:"United States"',
                 "!ota_updates.channel:stable",
                 "!ota_updates.runtime_version:1.2.3",
                 "!ota_updates.update_id:1234567890",
                 "ota_updates.channel:unstable",
                 "ota_updates.runtime_version:4.5.6",
                 "ota_updates.update_id:9876543210",
+                "is_archived:true",
+                "!is_archived:false",
+                "is_archived:1",
+                "!is_archived:0",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -1068,7 +1092,19 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "error_ids": [],
                     "environment": None,
                     "tags": [],
-                    "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+                    "user": {
+                        "id": "Archived Replay",
+                        "display_name": "Archived Replay",
+                        "username": None,
+                        "email": None,
+                        "ip": None,
+                        "geo": {
+                            "city": None,
+                            "country_code": None,
+                            "region": None,
+                            "subdivision": None,
+                        },
+                    },
                     "sdk": {"name": None, "version": None},
                     "os": {"name": None, "version": None},
                     "browser": {"name": None, "version": None},

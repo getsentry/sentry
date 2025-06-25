@@ -1,7 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithSeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
@@ -110,7 +113,7 @@ describe('UsageCard', () => {
     expect(screen.queryByText('Reserved')).not.toBeInTheDocument();
     expect(screen.getByText('On-Demand')).toBeInTheDocument();
     expect(screen.queryByText('Included In Subscription')).not.toBeInTheDocument();
-    expect(screen.getByTestId('current-monthly-spend')).toHaveTextContent('$960');
+    expect(screen.getByTestId('current-monthly-spend')).toHaveTextContent('$0');
   });
 
   it('should not render anything for orgs with no spend', () => {
@@ -138,5 +141,40 @@ describe('UsageCard', () => {
       <UsageCard organization={organization} subscription={subscription} />
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('should not show reserved budget under included in subscription', () => {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+
+    render(<UsageCard organization={organization} subscription={seerSubscription} />);
+
+    expect(screen.queryByText('Reserved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Included In Subscription')).not.toBeInTheDocument();
+    // $89 business plan + $20 for reserved budget
+    expect(screen.getByTestId('current-monthly-spend')).toHaveTextContent('$109');
+  });
+
+  it('should not calculate prepaid spend with reserved budget', () => {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    const errorsPrice = 1000;
+    seerSubscription.planDetails.planCategories.errors = [
+      {events: 100_000, price: errorsPrice, unitPrice: 0.1, onDemandPrice: 0.2},
+    ];
+    seerSubscription.categories.errors!.reserved = 100_000;
+
+    render(<UsageCard organization={organization} subscription={seerSubscription} />);
+
+    expect(screen.queryByText('Reserved')).not.toBeInTheDocument();
+    expect(screen.getByText('Included in Subscription').parentElement).toHaveTextContent(
+      '0% of $10'
+    );
+    // $89 business plan + $20 for reserved budget + $10 for errors
+    expect(screen.getByTestId('current-monthly-spend')).toHaveTextContent('$119');
   });
 });

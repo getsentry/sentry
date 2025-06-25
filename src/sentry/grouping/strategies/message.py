@@ -20,6 +20,42 @@ from sentry.utils.settings import is_self_hosted
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
 
+REGEX_PATTERN_KEYS = (
+    "email",
+    "url",
+    "hostname",
+    "ip",
+    "traceparent",
+    "uuid",
+    "sha1",
+    "md5",
+    "date",
+    "duration",
+    "hex",
+    "float",
+    "int",
+    "quoted_str",
+    "bool",
+)
+
+EXPERIMENT_PROJECTS = [  # Active internal Sentry projects
+    1,
+    11276,
+    54785,
+    155735,
+    162676,
+    221969,
+    300688,
+    1267915,
+    1269704,
+    1492057,
+    6424467,
+    6690737,
+    4503972821204992,
+    4505469596663808,
+    4506400311934976,
+]
+
 
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(message: str, event: Event, share_analytics: bool = True) -> str:
@@ -36,27 +72,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
     if trimmed != message:
         trimmed += "..."
 
-    parameterizer = Parameterizer(
-        regex_pattern_keys=(
-            "email",
-            "url",
-            "hostname",
-            "ip",
-            "uuid",
-            "sha1",
-            "md5",
-            "date",
-            "duration",
-            "hex",
-            "float",
-            "int",
-            "quoted_str",
-            "bool",
-        ),
-        experiments=(UniqueIdExperiment,),
-    )
-
-    def _shoudl_run_experiment(experiment_name: str) -> bool:
+    def _should_run_experiment(experiment_name: str) -> bool:
         return bool(
             not is_self_hosted()
             and event.project_id
@@ -64,28 +80,16 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
                 in_rollout_group(
                     f"grouping.experiments.parameterization.{experiment_name}", event.project_id
                 )
-                or event.project_id
-                in [  # Active internal Sentry projects
-                    155735,
-                    4503972821204992,
-                    1267915,
-                    221969,
-                    11276,
-                    1269704,
-                    4505469596663808,
-                    1,
-                    54785,
-                    1492057,
-                    162676,
-                    6690737,
-                    300688,
-                    4506400311934976,
-                    6424467,
-                ]
+                or event.project_id in EXPERIMENT_PROJECTS
             )
         )
 
-    normalized = parameterizer.parameterize_all(trimmed, _shoudl_run_experiment)
+    parameterizer = Parameterizer(
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
+        experiments=(UniqueIdExperiment,),
+    )
+
+    normalized = parameterizer.parameterize_all(trimmed, _should_run_experiment)
 
     for experiment in parameterizer.get_successful_experiments():
         if share_analytics and experiment.counter < 100:

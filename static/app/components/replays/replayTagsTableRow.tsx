@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
@@ -17,8 +18,8 @@ import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 interface Props {
   name: string;
-  values: ReactNode[];
-  generateUrl?: (name: string, value: ReactNode) => LocationDescriptor;
+  values: string[];
+  generateUrl?: (name: string, value: string) => LocationDescriptor;
 }
 
 const expandedViewKeys = [
@@ -108,21 +109,23 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
         </StyledTooltip>
       }
       value={
-        <ValueContainer>
-          <StyledTooltip
-            disabled={releaseKeys.includes(name)}
-            overlayStyle={
-              expandedViewKeys.includes(name) ? {textAlign: 'left'} : undefined
-            }
-            title={
-              expandedViewKeys.includes(name) ? renderValueList(values) : renderTagValue
-            }
-            isHoverable
-            showOnlyOnOverflow
-          >
-            {renderTagValue}
-          </StyledTooltip>
-        </ValueContainer>
+        <ErrorBoundary mini>
+          <ValueContainer>
+            <StyledTooltip
+              disabled={releaseKeys.includes(name)}
+              overlayStyle={
+                expandedViewKeys.includes(name) ? {textAlign: 'left'} : undefined
+              }
+              title={
+                expandedViewKeys.includes(name) ? renderValueList(values) : renderTagValue
+              }
+              isHoverable
+              showOnlyOnOverflow
+            >
+              {renderTagValue}
+            </StyledTooltip>
+          </ValueContainer>
+        </ErrorBoundary>
       }
     />
   );

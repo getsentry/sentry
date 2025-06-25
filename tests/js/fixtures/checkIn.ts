@@ -4,9 +4,13 @@ import {CheckInStatus, ScheduleType} from 'sentry/views/insights/crons/types';
 export function CheckInFixture(params: Partial<CheckIn> = {}): CheckIn {
   return {
     status: CheckInStatus.ERROR,
-    duration: 767,
+    duration: 9050,
     environment: 'production',
-    dateAdded: '2025-01-01T00:00:00Z',
+    dateAdded: '2025-01-01T00:00:01Z',
+    dateCreated: '2025-01-01T00:00:05Z',
+    dateUpdated: '2025-01-01T00:00:10Z',
+    dateClock: '2025-01-01T00:00:00Z',
+    dateInProgress: '2025-01-01T00:00:00Z',
     expectedTime: '2025-01-01T00:00:00Z',
     id: '97f0e440-317c-5bb5-b5e0-024ca202a61d',
     monitorConfig: {

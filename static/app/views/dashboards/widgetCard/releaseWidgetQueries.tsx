@@ -12,12 +12,14 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
+import withProjects from 'sentry/utils/withProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -35,20 +37,22 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-type Props = {
+export interface ReleaseWidgetQueriesProps {
   api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
+  projects: Project[];
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
-};
+}
 
 type State = {
   loading: boolean;
@@ -141,7 +145,7 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
   return useMetricsAPI && rawOrderby === 'release';
 }
 
-class ReleaseWidgetQueries extends Component<Props, State> {
+class ReleaseWidgetQueries extends Component<ReleaseWidgetQueriesProps, State> {
   state: State = {
     loading: false,
     errorMessage: undefined,
@@ -156,7 +160,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Readonly<Props>): void {
+  componentDidUpdate(prevProps: Readonly<ReleaseWidgetQueriesProps>): void {
     if (
       !requiresCustomReleaseSorting(prevProps.widget.queries[0]!) &&
       requiresCustomReleaseSorting(this.props.widget.queries[0]!) &&
@@ -316,7 +320,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   };
 
   afterFetchData = (data: SessionApiResponse) => {
-    const {widget} = this.props;
+    const {widget, projects} = this.props;
     const {releases} = this.state;
 
     const isDescending = widget.queries[0]!.orderby.startsWith('-');
@@ -345,6 +349,15 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       });
       data.groups = data.groups.slice(0, this.limit);
     }
+
+    data.groups.forEach(group => {
+      // Convert the project ID in the grouping results to the project slug
+      // for a more human readable display
+      if (group.by.project) {
+        const project = projects.find(p => p.id === String(group.by.project));
+        group.by.project = project?.slug ?? group.by.project;
+      }
+    });
   };
 
   render() {
@@ -357,6 +370,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       cursor,
       dashboardFilters,
       onDataFetched,
+      onDataFetchStart,
       limit,
     } = this.props;
     const config = ReleasesConfig;
@@ -372,6 +386,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         cursor={cursor}
         limit={limit}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         loading={
           requiresCustomReleaseSorting(widget.queries[0]!)
             ? !this.state.releases
@@ -392,4 +407,4 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 }
 
-export default ReleaseWidgetQueries;
+export default withProjects(ReleaseWidgetQueries);

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
+from django.db.models.functions.text import Upper
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -23,6 +24,7 @@ from sentry.constants import (
 )
 from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import slugify_instance
@@ -32,7 +34,11 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.locks import locks
 from sentry.notifications.services import notifications_service
-from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
+from sentry.organizations.absolute_url import (
+    api_absolute_url,
+    has_customer_domain,
+    organization_absolute_url,
+)
 from sentry.roles.manager import Role
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
@@ -208,8 +214,9 @@ class Organization(ReplicatedRegionModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
-        # TODO: Once we're on a version of Django that supports functional indexes,
-        # include index on `upper((slug::text))` here.
+        indexes = (
+            IndexWithPostgresNameLimits(Upper("slug"), name="sentry_organization_slug_upper_idx"),
+        )
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 
@@ -473,6 +480,21 @@ class Organization(ReplicatedRegionModel):
         """
         return organization_absolute_url(
             has_customer_domain=self.__has_customer_domain,
+            slug=self.slug,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
+
+    def absolute_api_url(
+        self, path: str, query: str | None = None, fragment: str | None = None
+    ) -> str:
+        """
+        Get an absolute URL to `path` for this organization for APIs
+
+        e.g https://sentry.io/api/0/organizations/<org_slug><path>
+        """
+        return api_absolute_url(
             slug=self.slug,
             path=path,
             query=query,

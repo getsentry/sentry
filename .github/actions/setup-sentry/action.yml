@@ -17,9 +17,6 @@ inputs:
     default: 'default'
 
 outputs:
-  yarn-cache-dir:
-    description: 'Path to yarn cache'
-    value: ${{ steps.config.outputs.yarn-cache-dir }}
   matrix-instance-number:
     description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
@@ -50,12 +47,7 @@ runs:
 
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
-        # XXX(epurkihser): We've raised fail-slow from 60s to 120s since
-        # 2025-05, our migration dependency tree has grown too large and it
-        # takes these tests longer than 60 seconds to run. Once we've flattened
-        # our migrations we can bring this back down (asottile is working on
-        # this)
-        echo "PYTEST_ADDOPTS=--reruns=5 --durations=10 --fail-slow=120s" >> $GITHUB_ENV
+        echo "PYTEST_ADDOPTS=--reruns=5 --durations=10 --fail-slow=60s" >> $GITHUB_ENV
         echo "COVERAGE_CORE=sysmon" >> "$GITHUB_ENV"
 
         ### pytest-sentry configuration ###
@@ -99,7 +91,6 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       run: |
-        echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
 

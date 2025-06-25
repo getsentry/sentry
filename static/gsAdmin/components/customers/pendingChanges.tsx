@@ -251,8 +251,8 @@ function getRegularChanges(subscription: Subscription) {
   const newBudgetsChanges: string[] = [];
   oldBudgets?.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      reservedBudget: budget,
       plan: subscription.planDetails,
-      categories: Object.keys(budget.categories) as DataCategory[],
       hadCustomDynamicSampling: oldPlanUsesDsNames,
     });
     oldBudgetsChanges.push(
@@ -261,8 +261,8 @@ function getRegularChanges(subscription: Subscription) {
   });
   pendingChanges.reservedBudgets.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      pendingReservedBudget: budget,
       plan: pendingChanges.planDetails,
-      categories: Object.keys(budget.categories) as DataCategory[],
       hadCustomDynamicSampling: newPlanUsesDsNames,
     });
     newBudgetsChanges.push(
@@ -271,11 +271,11 @@ function getRegularChanges(subscription: Subscription) {
   });
 
   if (oldBudgetsChanges.length > 0 || newBudgetsChanges.length > 0) {
-    changes.push(
-      `Reserved budgets — ${
-        oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None'
-      } → ${newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None'}`
-    );
+    const before = oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None';
+    const after = newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None';
+    if (before !== after) {
+      changes.push(`Reserved budgets — ${before} → ${after}`);
+    }
   }
 
   return changes;

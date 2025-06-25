@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,16 +7,19 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {useScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useTimelineScale, {
   TimelineScaleContextProvider,
 } from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -26,9 +29,26 @@ type TimeAndScrubberGridProps = {
 
 function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   const {replay} = useReplayContext();
+  const organization = useOrganization();
   const [timelineScale, setTimelineScale] = useTimelineScale();
   const durationMs = replay?.getDurationMs();
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
+
+  const handleZoomOut = useCallback(() => {
+    const newScale = Math.max(timelineScale - 1, 1);
+    setTimelineScale(newScale);
+    trackAnalytics('replay.timeline.zoom-out', {
+      organization,
+    });
+  }, [timelineScale, setTimelineScale, organization]);
+
+  const handleZoomIn = useCallback(() => {
+    const newScale = Math.min(timelineScale + 1, maxScale);
+    setTimelineScale(newScale);
+    trackAnalytics('replay.timeline.zoom-in', {
+      organization,
+    });
+  }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
     <ButtonBar gap={0.5}>
@@ -37,7 +57,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         title={t('Zoom out')}
         icon={<IconSubtract />}
         borderless
-        onClick={() => setTimelineScale(Math.max(timelineScale - 1, 1))}
+        onClick={handleZoomOut}
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1 || isLoading}
       />
@@ -50,7 +70,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         title={t('Zoom in')}
         icon={<IconAdd />}
         borderless
-        onClick={() => setTimelineScale(Math.min(timelineScale + 1, maxScale))}
+        onClick={handleZoomIn}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}
       />
@@ -63,7 +83,7 @@ export default function TimeAndScrubberGrid({
   showZoom = false,
   isLoading,
 }: TimeAndScrubberGridProps) {
-  const {currentTime, replay} = useReplayContext();
+  const {replay} = useReplayContext();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
@@ -75,11 +95,7 @@ export default function TimeAndScrubberGrid({
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
         <Numeric style={{gridArea: 'currentTime'}}>
-          {timestampType === 'absolute' ? (
-            <DateTime timeOnly seconds date={startTimestamp + currentTime} />
-          ) : (
-            <Duration duration={[currentTime, 'ms']} precision="sec" />
-          )}
+          <ReplayCurrentTime />
         </Numeric>
 
         <div style={{gridArea: 'timeline'}}>

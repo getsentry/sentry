@@ -3,14 +3,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 
 import {type BillingStats, PlanTier} from 'getsentry/types';
 
-import {
+import ReservedUsageChart, {
   getCategoryOptions,
   mapCostStatsToChart,
   mapReservedBudgetStatsToChart,
@@ -302,6 +304,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 2000_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 
@@ -329,7 +332,7 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 500_00],
+          value: ['Jan 1', 2000_00],
         },
         {
           value: ['Jan 2', 2000_00],
@@ -429,6 +432,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 1500_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
       spansIndexed: {
         freeBudget: 0,
@@ -436,6 +440,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 2_00,
         reservedSpend: 500_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 
@@ -463,7 +468,7 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 1000_00],
+          value: ['Jan 1', 2000_00],
         },
         {
           value: ['Jan 2', 2000_00],
@@ -513,6 +518,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 2000_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 
@@ -537,10 +543,10 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 500_00],
+          value: ['Jan 1', 2000_00],
         },
         {
-          value: ['Jan 2', 1500_00],
+          value: ['Jan 2', 2000_00],
         },
       ],
     });
@@ -608,6 +614,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 1250_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
       spansIndexed: {
         freeBudget: 0,
@@ -615,6 +622,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 2_00,
         reservedSpend: 750_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 
@@ -639,10 +647,10 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 1000_00],
+          value: ['Jan 1', 4000_00],
         },
         {
-          value: ['Jan 2', 1000_00],
+          value: ['Jan 2', 4000_00],
         },
       ],
     });
@@ -742,5 +750,220 @@ describe('getCategoryOptions', () => {
     result.forEach(option => {
       expect(subscription.planDetails.categories).toContain(option.value);
     });
+  });
+});
+
+describe('DisplayMode Toggle for Reserved Budget Categories', () => {
+  const organization = OrganizationFixture({access: ['org:billing']});
+
+  // Helper function to extract reservedBudgetCategoryInfo from subscription
+  function getReservedBudgetCategoryInfo(subscription: any) {
+    const info: Record<string, any> = {};
+    subscription.reservedBudgets?.forEach((budget: any) => {
+      Object.entries(budget.categories || {}).forEach(
+        ([category, categoryData]: [string, any]) => {
+          info[category] = {
+            freeBudget: budget.freeBudget || 0,
+            prepaidBudget: budget.reservedBudget || 0,
+            reservedCpe: categoryData.reservedCpe || 0,
+            reservedSpend: categoryData.reservedSpend || 0,
+            totalReservedBudget: budget.reservedBudget || 0,
+            apiName: budget.apiName || 'seer',
+          };
+        }
+      );
+    });
+    return info;
+  }
+
+  it('should respect displayMode="usage" for SEER reserved budget categories', async () => {
+    const subscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+
+    const usageStats = {
+      seerAutofix: [
+        {
+          date: '2019-01-01',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+        {
+          date: '2019-01-02',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+      ],
+    };
+
+    const reservedBudgetCategoryInfo = getReservedBudgetCategoryInfo(subscription);
+
+    const location = {
+      pathname: '/billing',
+      query: {
+        category: DataCategory.SEER_AUTOFIX,
+        displayMode: 'usage', // This should be respected, not overridden
+      },
+      search: '',
+      hash: '',
+      state: null,
+      key: '',
+      action: 'PUSH' as const,
+    };
+
+    const mockProps = {
+      location,
+      organization,
+      subscription,
+      usagePeriodStart: '2019-01-01',
+      usagePeriodEnd: '2019-01-31',
+      usageStats,
+      displayMode: 'usage' as const,
+      reservedBudgetCategoryInfo,
+    };
+
+    act(() => {
+      render(<ReservedUsageChart {...mockProps} />);
+    });
+
+    // When displayMode is 'usage' for reserved budget categories,
+    // it should show "Current Usage Period" title (usage mode)
+    await screen.findByText('Current Usage Period');
+    expect(screen.queryByText(/Estimated.*Spend This Period/)).not.toBeInTheDocument();
+  });
+
+  it('should respect displayMode="cost" for SEER reserved budget categories', async () => {
+    const subscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+
+    const usageStats = {
+      seerAutofix: [
+        {
+          date: '2019-01-01',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+        {
+          date: '2019-01-02',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+      ],
+    };
+
+    const reservedBudgetCategoryInfo = getReservedBudgetCategoryInfo(subscription);
+
+    const location = {
+      pathname: '/billing',
+      query: {
+        category: DataCategory.SEER_AUTOFIX,
+        displayMode: 'cost', // This should be respected
+      },
+      search: '',
+      hash: '',
+      state: null,
+      key: '',
+      action: 'PUSH' as const,
+    };
+
+    const mockProps = {
+      location,
+      organization,
+      subscription,
+      usagePeriodStart: '2019-01-01',
+      usagePeriodEnd: '2019-01-31',
+      usageStats,
+      displayMode: 'cost' as const,
+      reservedBudgetCategoryInfo,
+    };
+
+    act(() => {
+      render(<ReservedUsageChart {...mockProps} />);
+    });
+
+    // When displayMode is 'cost' for reserved budget categories,
+    // it should show "Estimated ... Spend This Period" title (cost mode)
+    await screen.findByText(/Estimated.*Spend This Period/);
+    expect(screen.queryByText('Current Usage Period')).not.toBeInTheDocument();
+  });
+
+  it('should force displayMode="cost" for sales-led customers with reserved budget categories', async () => {
+    const subscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+      canSelfServe: false, // Sales-led customer
+    });
+
+    const usageStats = {
+      seerAutofix: [
+        {
+          date: '2019-01-01',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+      ],
+    };
+
+    const reservedBudgetCategoryInfo = getReservedBudgetCategoryInfo(subscription);
+
+    const location = {
+      pathname: '/billing',
+      query: {
+        category: DataCategory.SEER_AUTOFIX,
+        displayMode: 'usage', // Try to set usage mode
+      },
+      search: '',
+      hash: '',
+      state: null,
+      key: '',
+      action: 'PUSH' as const,
+    };
+
+    const mockProps = {
+      location,
+      organization,
+      subscription,
+      usagePeriodStart: '2019-01-01',
+      usagePeriodEnd: '2019-01-31',
+      usageStats,
+      displayMode: 'usage' as const, // Try to set usage mode
+      reservedBudgetCategoryInfo,
+    };
+
+    act(() => {
+      render(<ReservedUsageChart {...mockProps} />);
+    });
+
+    // Sales-led customers should be forced to cost view, regardless of displayMode prop
+    await screen.findByText(/Estimated.*Spend This Period/);
+    expect(screen.queryByText('Current Usage Period')).not.toBeInTheDocument();
   });
 });

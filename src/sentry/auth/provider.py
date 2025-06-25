@@ -10,10 +10,12 @@ from django.http.request import HttpRequest
 from django.utils.encoding import force_str
 
 from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.store import AuthHelperSessionStore
 from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import PipelineProvider
+from sentry.pipeline.provider import PipelineProvider
 from sentry.plugins.base.response import DeferredResponse
 from sentry.users.models.user import User
 
@@ -38,7 +40,7 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
         return force_str(self.id)
 
 
-class Provider(PipelineProvider, abc.ABC):
+class Provider(PipelineProvider[AuthProvider, AuthHelperSessionStore], abc.ABC):
     """
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
@@ -83,7 +85,7 @@ class Provider(PipelineProvider, abc.ABC):
 
     # TODO: state should be Mapping[str, Any]?
     # Must be reconciled with sentry.pipeline.base.Pipeline.fetch_state
-    def build_config(self, state: Any) -> Mapping[str, Any]:
+    def build_config(self, state: Any) -> dict[str, Any]:
         """
         Return a mapping containing provider configuration.
 

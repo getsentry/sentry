@@ -85,5 +85,5 @@ export function AggregateParameterField({
       />
     );
   }
-  throw new Error(`Unknown parameter type encountered for ${fieldValue}`);
+  throw new Error(`Unknown parameter type encountered for ${JSON.stringify(fieldValue)}`);
 }

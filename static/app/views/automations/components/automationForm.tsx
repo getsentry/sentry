@@ -1,30 +1,26 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {flattie} from 'flattie';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
+import useDrawer from 'sentry/components/globalDrawer';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
+import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
-import {
-  AutomationBuilderContext,
-  initialAutomationBuilderState,
-  useAutomationBuilderReducer,
-} from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import {
-  NEW_AUTOMATION_CONNECTED_IDS_KEY,
-  useConnectedIds,
-} from 'sentry/views/automations/hooks/utils';
+import {EditConnectedMonitorsDrawer} from 'sentry/views/automations/components/editConnectedMonitorsDrawer';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -38,64 +34,105 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-export default function AutomationForm() {
+export default function AutomationForm({model}: {model: FormModel}) {
+  const organization = useOrganization();
   const title = useDocumentTitle();
-  const {state, actions} = useAutomationBuilderReducer();
-  const [model] = useState(() => new FormModel());
 
   useEffect(() => {
     model.setValue('name', title);
   }, [title, model]);
 
-  const monitors: Detector[] = []; // TODO: Fetch monitors from API
-  const {connectedIds, toggleConnected} = useConnectedIds({
-    storageKey: NEW_AUTOMATION_CONNECTED_IDS_KEY,
-  });
+  const {data: monitors = []} = useDetectorsQuery();
+  const initialConnectedIds = useFormField('detectorIds');
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(
+    initialConnectedIds ? new Set(initialConnectedIds) : new Set<string>()
+  );
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
+  const updateConnectedIds = (ids: Set<string>) => {
+    setConnectedIds(ids);
+    model.setValue('detectorIds', Array.from(ids));
+  };
+
+  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+
+  const showEditMonitorsDrawer = () => {
+    if (!isDrawerOpen) {
+      openDrawer(
+        () => (
+          <EditConnectedMonitorsDrawer
+            initialIds={connectedIds}
+            onSave={ids => {
+              updateConnectedIds(ids);
+              closeDrawer();
+            }}
+          />
+        ),
+        {
+          ariaLabel: 'Edit Monitors Drawer',
+          drawerKey: 'edit-monitors-drawer',
+        }
+      );
+    }
+  };
+
+  const [environment, setEnvironment] = useState<string>('');
 
   return (
-    <Form
-      hideFooter
-      model={model}
-      initialData={{...flattie(initialAutomationBuilderState), frequency: '1440'}}
-    >
-      <AutomationBuilderContext.Provider value={{state, actions}}>
-        <Flex column gap={space(1.5)} style={{padding: space(2)}}>
-          <Card>
-            <Heading>{t('Connect Monitors')}</Heading>
-            <ConnectedMonitorsList
-              monitors={connectedMonitors}
-              connectedMonitorIds={connectedIds}
-              toggleConnected={toggleConnected}
-            />
-            <ButtonWrapper justify="space-between">
-              <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
-              <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
-            </ButtonWrapper>
-          </Card>
-          <Card>
-            <Heading>{t('Automation Builder')}</Heading>
-            <AutomationBuilder />
-          </Card>
-          <Card>
-            <Heading>{t('Action Interval')}</Heading>
-            <EmbeddedSelectField
-              name="frequency"
-              inline={false}
-              clearable={false}
-              options={FREQUENCY_OPTIONS}
-            />
-          </Card>
-          <DebugForm />
+    <Flex direction="column" gap={space(1.5)}>
+      <Card>
+        <Heading>{t('Connect Monitors')}</Heading>
+        <ConnectedMonitorsList monitors={connectedMonitors} />
+        <ButtonWrapper justify="space-between">
+          <LinkButton
+            icon={<IconAdd />}
+            to={`${makeMonitorBasePathname(organization.slug)}new/`}
+          >
+            {t('Create New Monitor')}
+          </LinkButton>
+          <Button icon={<IconEdit />} onClick={showEditMonitorsDrawer}>
+            {t('Edit Monitors')}
+          </Button>
+        </ButtonWrapper>
+      </Card>
+      <Card>
+        <Flex direction="column" gap={space(0.5)}>
+          <Heading>{t('Choose Environment')}</Heading>
+          <Description>
+            {t(
+              'If you select environments different than your monitors then the automation will not fire.'
+            )}
+          </Description>
         </Flex>
-      </AutomationBuilderContext.Provider>
-    </Form>
+        <EnvironmentSelector value={environment} onChange={setEnvironment} />
+      </Card>
+      <Card>
+        <Heading>{t('Automation Builder')}</Heading>
+        <AutomationBuilder />
+      </Card>
+      <Card>
+        <Heading>{t('Action Interval')}</Heading>
+        <EmbeddedSelectField
+          name="frequency"
+          inline={false}
+          clearable={false}
+          options={FREQUENCY_OPTIONS}
+        />
+      </Card>
+      <DebugForm />
+    </Flex>
   );
 }
 
 const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: 0;
+`;
+
+const Description = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  margin: 0;
+  padding: 0;
 `;
 
 const ButtonWrapper = styled(Flex)`

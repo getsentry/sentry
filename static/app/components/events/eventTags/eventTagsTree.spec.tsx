@@ -109,12 +109,18 @@ describe('EventTagsTree', function () {
     for (const link of linkDropdowns) {
       await userEvent.click(link);
       expect(
-        await screen.findByLabelText('Search issues with this tag value')
+        await within(link.parentElement!).findByLabelText(
+          'Search issues with this tag value'
+        )
       ).toBeInTheDocument();
       expect(
-        await screen.findByLabelText('View other events with this tag value')
+        await within(link.parentElement!).findByLabelText(
+          'View other events with this tag value'
+        )
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('Copy tag value to clipboard')).toBeInTheDocument();
+      expect(
+        await within(link.parentElement!).findByLabelText('Copy tag value to clipboard')
+      ).toBeInTheDocument();
     }
   });
 
@@ -148,8 +154,9 @@ describe('EventTagsTree', function () {
       HTMLElement & {parentElement: HTMLAnchorElement}
     >(releaseVersion);
     const anchorLink = versionText.parentElement;
+    // Release links are opened in the Release Drawer
     expect(anchorLink.href).toContain(
-      `/organizations/${organization.slug}/releases/${releaseVersion}/`
+      `/mock-pathname/?rd=show&rdRelease=${releaseVersion}&rdSource=release-version-link`
     );
     expect(reposRequest).toHaveBeenCalled();
     expect(releasesRequest).toHaveBeenCalled();

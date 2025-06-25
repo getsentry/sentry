@@ -8,6 +8,7 @@ import type {FieldKind} from 'sentry/utils/fields';
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {
+  AvatarSentryApp,
   Commit,
   ExternalIssue,
   PlatformExternalIssue,
@@ -69,8 +70,8 @@ export enum IssueCategory {
 
   /**
    * @deprecated
-   * Regression issues will move to the "performance_regression" category
-   * Other issues will move to the "performance_best_practice" category
+   * Regression issues will move to the "metric" category
+   * Other issues will move to "db_query"/"http_client"/"mobile"/"frontend"
    */
   PERFORMANCE = 'performance',
   /**
@@ -80,7 +81,7 @@ export enum IssueCategory {
   CRON = 'cron',
   /**
    * @deprecated
-   * Rage/dead click issues will move to the "user_experience" category
+   * Rage click and hydration issues will move to the "frontend" category
    */
   REPLAY = 'replay',
   /**
@@ -90,7 +91,7 @@ export enum IssueCategory {
   UPTIME = 'uptime',
   /**
    * @deprecated
-   * Metric alert issues will move to the "performance_regression" category
+   * Metric alert issues will move to the "metric" category
    */
   METRIC_ALERT = 'metric_alert',
 
@@ -102,6 +103,20 @@ export enum IssueCategory {
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
 }
+
+/**
+ * Valid issue categories for the new issue-taxonomy flag
+ */
+export const VALID_ISSUE_CATEGORIES_V2 = [
+  IssueCategory.ERROR,
+  IssueCategory.OUTAGE,
+  IssueCategory.METRIC,
+  IssueCategory.DB_QUERY,
+  IssueCategory.HTTP_CLIENT,
+  IssueCategory.FRONTEND,
+  IssueCategory.MOBILE,
+  IssueCategory.FEEDBACK,
+];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
@@ -157,6 +172,9 @@ export enum IssueType {
 
   // Metric Issues
   METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+
+  // Detectors
+  DB_QUERY_INJECTION_VULNERABILITY = 'db_query_injection_vulnerability',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -192,7 +210,7 @@ export enum IssueTitle {
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 }
 
-const ISSUE_TYPE_TO_ISSUE_TITLE = {
+export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -232,10 +250,13 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
   1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
   1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  1906: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
   1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
+  1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -450,9 +471,9 @@ export enum GroupActivityType {
 interface GroupActivityBase {
   dateCreated: string;
   id: string;
-  project: Project;
   assignee?: string;
   issue?: Group;
+  sentry_app?: AvatarSentryApp;
   user?: null | User;
 }
 
@@ -840,6 +861,7 @@ export const enum PriorityLevel {
 }
 
 export const enum FixabilityScoreThresholds {
+  SUPER_HIGH = 'super_high',
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
@@ -931,6 +953,8 @@ export interface GroupTombstone {
   level: Level;
   metadata: EventMetadata;
   type: EventOrGroupType;
+  lastSeen?: string;
+  timesSeen?: number;
   title?: string;
 }
 export interface GroupTombstoneHelper extends GroupTombstone {
@@ -976,7 +1000,7 @@ export type KeyValueListDataItem = {
   key: string;
   subject: string;
   action?: {
-    link?: string | LocationDescriptor;
+    link?: LocationDescriptor;
   };
   actionButton?: React.ReactNode;
   /**

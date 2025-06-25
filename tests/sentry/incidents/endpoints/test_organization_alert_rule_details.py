@@ -236,7 +236,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             alert_rule_trigger=critical_trigger
         )
         _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _ = migrate_metric_data_conditions(critical_trigger)
+        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
 
         self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
@@ -719,7 +719,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             alert_rule_trigger=critical_trigger
         )
         _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _ = migrate_metric_data_conditions(critical_trigger)
+        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
 
         self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(

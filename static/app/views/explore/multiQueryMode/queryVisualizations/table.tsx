@@ -19,8 +19,8 @@ import {
   fieldAlignment,
   parseFunction,
   prettifyParsedFunction,
-  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBody,
@@ -30,7 +30,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
@@ -95,8 +95,8 @@ function AggregatesTable({
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(fields, tableRef, {
@@ -106,11 +106,11 @@ function AggregatesTable({
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
@@ -231,8 +231,8 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
     [fields]
   );
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
@@ -241,7 +241,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {

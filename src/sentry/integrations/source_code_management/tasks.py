@@ -13,7 +13,9 @@ from sentry.integrations.source_code_management.commit_context import (
     _open_pr_comment_log,
     _pr_comment_log,
 )
-from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
+from sentry.integrations.source_code_management.language_parsers import (
+    get_patch_parsers_for_organization,
+)
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -143,10 +145,6 @@ def pr_comment_workflow(pr_id: int, project_id: int):
     top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
 
     comment_body = pr_comment_workflow.get_comment_body(issue_ids=top_5_issue_ids)
-    logger.info(
-        _pr_comment_log(integration_name=integration_name, suffix="comment_body"),
-        extra={"body": comment_body},
-    )
 
     top_24_issue_ids = issue_ids[:24]  # 24 is the P99 for issues-per-PR
 
@@ -186,6 +184,7 @@ def pr_comment_workflow(pr_id: int, project_id: int):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=150,
     ),
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
@@ -279,8 +278,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_table_contents = {}
     top_issues_per_file = []
 
-    patch_parsers = PATCH_PARSERS
-    # NOTE: if we are testing beta patch parsers, add check here
+    patch_parsers = get_patch_parsers_for_organization(organization)
 
     file_extensions = set()
     # fetch issues related to the files
@@ -299,6 +297,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             extra={
                 "organization_id": org_id,
                 "repository_id": repo.id,
+                "file_name": file.filename,
                 "extension": file_extension,
             },
         )
@@ -307,15 +306,27 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not language_parser:
             logger.info(
                 _open_pr_comment_log(integration_name=integration_name, suffix="missing_parser"),
-                extra={"extension": file_extension},
+                extra={"file_name": file.filename, "extension": file_extension},
             )
             metrics.incr(
                 OPEN_PR_METRICS_BASE.format(integration=integration_name, key="missing_parser"),
-                tags={"extension": file_extension},
+                tags={"file_name": file.filename, "extension": file_extension},
             )
             continue
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
+
+        if file_extension == "py":
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="python"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
 
         if file_extension in ["js", "jsx"]:
             logger.info(
@@ -323,6 +334,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,
+                    "file_name": file.filename,
                     "extension": file_extension,
                     "has_function_names": bool(function_names),
                 },
@@ -334,6 +346,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,
+                    "file_name": file.filename,
                     "extension": file_extension,
                     "has_function_names": bool(function_names),
                 },
@@ -345,6 +358,31 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
+
+        if file_extension == ["cs"]:
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="csharp"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
+
+        if file_extension == ["go"]:
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="go"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
                     "extension": file_extension,
                     "has_function_names": bool(function_names),
                 },

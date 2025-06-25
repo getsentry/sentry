@@ -1,12 +1,12 @@
 import type {ReactNode} from 'react';
-import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {useHovercardContext} from 'sentry/components/hovercard';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
@@ -18,14 +18,14 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Collapsible} from 'sentry/views/nav/collapsible';
 import {useNavContext} from 'sentry/views/nav/context';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {NavLayout} from 'sentry/views/nav/types';
-import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
   children: ReactNode;
+  className?: string;
 };
 
 interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
@@ -47,19 +47,16 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   trailingItems?: ReactNode;
 }
 
-export function SecondaryNav({children}: SecondaryNavProps) {
-  const {secondaryNavEl} = useNavContext();
-
-  if (!secondaryNavEl) {
-    return null;
-  }
-
-  return createPortal(children, secondaryNavEl);
+export function SecondaryNav({children, className}: SecondaryNavProps) {
+  return (
+    <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
+      {children}
+    </Wrapper>
+  );
 }
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavContext();
-  const group = useActiveNavGroup();
 
   if (layout === NavLayout.MOBILE) {
     return null;
@@ -67,7 +64,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
 
   return (
     <Header>
-      <div>{children ?? PRIMARY_NAV_GROUP_CONFIG[group].label}</div>
+      <div>{children}</div>
       <div>
         <Button
           borderless
@@ -180,7 +177,9 @@ SecondaryNav.Section = function SecondaryNavSection({
           setIsCollapsed={setIsCollapsedState}
         />
       ) : null}
-      {isCollapsed ? null : children}
+      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+        {children}
+      </Collapsible>
     </Section>
   );
 };
@@ -195,6 +194,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   leadingItems,
   showInteractionStateLayer = true,
   trailingItems,
+  onClick,
   ...linkProps
 }: SecondaryNavItemProps) {
   const organization = useOrganization();
@@ -202,6 +202,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavContext();
+  const {reset: closeCollapsedNavHovercard} = useHovercardContext();
 
   return (
     <Item
@@ -211,13 +212,19 @@ SecondaryNav.Item = function SecondaryNavItem({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       layout={layout}
-      onClick={() => {
+      onClick={e => {
         if (analyticsItemName) {
           trackAnalytics('navigation.secondary_item_clicked', {
             item: analyticsItemName,
             organization,
           });
         }
+
+        // When this is rendered inside a hovercard (when the nav is collapsed)
+        // this will dismiss it when clicking on a link.
+        closeCollapsedNavHovercard();
+
+        onClick?.(e);
       }}
     >
       {leadingItems}
@@ -236,13 +243,25 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
   return <Footer layout={layout}>{children}</Footer>;
 };
 
+function SectionSeparator() {
+  return (
+    <SeparatorWrapper data-separator>
+      <Separator />
+    </SeparatorWrapper>
+  );
+}
+
+const Wrapper = styled('div')`
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+`;
+
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
   padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -254,6 +273,7 @@ const Header = styled('div')`
 
 const Body = styled('div')<{layout: NavLayout}>`
   overflow-y: auto;
+  overscroll-behavior: contain;
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
@@ -279,7 +299,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 
   /* Hide separators if there is not a previous section */
   [data-nav-section] + & {
-    > hr {
+    > [data-separator] {
       display: block;
     }
   }
@@ -288,7 +308,6 @@ const Section = styled('div')<{layout: NavLayout}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.fontWeightBold};
   color: ${p.theme.textColor};
-  margin: ${space(1)} 0 ${space(0.5)} 0;
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
   ${p.isMobile &&
@@ -329,12 +348,15 @@ const TrailingItems = styled('div')`
   flex-shrink: 0;
 `;
 
-const SectionSeparator = styled('hr')`
+const SeparatorWrapper = styled('div')`
+  margin: ${space(1.5)} 0;
   display: none;
+`;
 
+const Separator = styled('hr')`
   height: 1px;
   background: ${p => p.theme.innerBorder};
-  margin: ${space(1.5)} ${space(1)};
+  margin: 0 ${space(1)};
   border: none;
 `;
 
@@ -344,13 +366,13 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.content.muted};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -366,7 +388,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     width: 4px;
     height: 20px;
     left: -${space(1.5)};
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.colors.blue400};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
@@ -402,6 +424,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
+  gap: ${space(0.75)};
 
   &:focus-visible {
     box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};

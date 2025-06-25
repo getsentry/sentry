@@ -4,6 +4,7 @@ import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction'
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {CheckoutType, Subscription} from 'getsentry/types';
+import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 
 type HasSub = {subscription: Subscription};
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
@@ -86,13 +87,21 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
+  'checkout.product_select': Record<
+    SelectableProduct,
+    {
+      enabled: boolean;
+      previously_enabled: boolean;
+    }
+  > &
+    HasSub;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;
   } & Checkout;
   // no sub here
   'checkout.upgrade': {
-    // TODO(data categories): check if these can be parsed
+    // TODO(data categories): BIL-966
     attachments?: number;
     errors?: number;
     monitorSeats?: number;
@@ -123,6 +132,7 @@ type GetsentryEventParameters = {
     value: FieldValue;
   };
   'gen_ai_consent.view_in_settings_clicked': Record<PropertyKey, unknown>;
+  'github.multi_org.upsell': {source?: string};
   'grace_period_modal.seen': HasSub;
   'growth.clicked_enter_sandbox': {
     scenario: string;
@@ -231,6 +241,7 @@ export type GetsentryEventKey = keyof GetsentryEventParameters;
 
 const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'power_icon.clicked': 'Clicked Power Icon',
+  'github.multi_org.upsell': 'Github Multi-Org Upsell Clicked',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_need_help': 'Growth: Onboarding Clicked Need Help',
   'growth.onboarding_clicked_upgrade': 'Growth: Onboarding Clicked Upgrade',
@@ -274,6 +285,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'am_checkout.viewed': 'AM Checkout: Viewed',
   'checkout.bundle_navigation': 'Checkout: Bundle Navigation',
   'checkout.change_plan': 'Checkout: Change Plan',
+  'checkout.product_select': 'Checkout: Product Select',
   'checkout.ondemand_changed': 'Checkout: Ondemand Changed',
   'checkout.payg_changed': 'Checkout: Pay As You Go Budget Changed',
   'checkout.change_contract': 'Checkout: Change Contract',

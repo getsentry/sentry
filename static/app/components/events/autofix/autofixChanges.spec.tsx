@@ -91,7 +91,7 @@ describe('AutofixChanges', () => {
     );
 
     expect(
-      screen.getByText('Autofix had trouble applying its code changes.')
+      screen.getByText('Seer had trouble applying its code changes.')
     ).toBeInTheDocument();
   });
 

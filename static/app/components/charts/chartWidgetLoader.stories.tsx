@@ -1,25 +1,23 @@
 import {Fragment} from 'react';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
-export default storyBook('ChartWidgetLoader', (story, APIReference) => {
+export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {
   APIReference(types.ChartWidgetLoader);
 
   story('Getting Started', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="ChartWidgetLoader" /> is a helper component that dynamically
-          imports and renders a chart. It currently only supports charts used in Insights,
-          specifically all chart widgets that are defined in
+          <Storybook.JSXNode name="ChartWidgetLoader" /> is a helper component that
+          dynamically imports and renders a chart. It currently only supports charts used
+          in Insights, specifically all chart widgets that are defined in
           <code>sentry/views/insights/common/components/widgets</code>. However, it will
           be expanded to support at least one other chart type (
-          <JSXNode name="EventGraph" />) in the future.
+          <Storybook.JSXNode name="EventGraph" />) in the future.
         </p>
 
         <p>

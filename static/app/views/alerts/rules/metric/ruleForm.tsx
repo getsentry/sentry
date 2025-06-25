@@ -52,14 +52,12 @@ import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerFor
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
-import {
-  determineIsSampled,
-  determineMultiSeriesConfidence,
-  determineSeriesConfidence,
-} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -67,8 +65,15 @@ import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -82,6 +87,13 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
+import type {
+  EventTypes,
+  MetricActionTemplate,
+  MetricRule,
+  Trigger,
+  UnsavedMetricRule,
+} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -89,12 +101,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
-  type EventTypes,
-  type MetricActionTemplate,
-  type MetricRule,
   TimeWindow,
-  type Trigger,
-  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -152,8 +159,8 @@ type State = {
   comparisonDelta?: number;
   confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
-  isSampled?: boolean | null;
   seasonality?: AlertRuleSeasonality;
+  seriesSamplingInfo?: SeriesSamplingInfo;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -167,8 +174,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     super(props);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
-    this.handleConfidenceTimeSeriesDataFetched =
-      this.handleConfidenceTimeSeriesDataFetched.bind(this);
   }
 
   get isDuplicateRule(): boolean {
@@ -179,7 +184,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      ['span_metrics', 'eap_metrics'].includes(alertType)
+      isEapAlertType(alertType)
         ? query
         : query
           ? `(${query}) AND (${eventTypeFilter})`
@@ -201,7 +206,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location} = this.props;
+    const {rule, location, organization} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -225,6 +230,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
       : (rule.query ?? '');
+
+    const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, ruleEventTypes);
+
+    const alertType = getAlertTypeFromAggregateDataset({
+      aggregate,
+      dataset,
+      eventTypes: ruleEventTypes,
+      organization,
+    });
 
     return {
       ...super.getDefaultState(),
@@ -256,7 +271,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
-      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
+      alertType,
+      traceItemType,
     };
   }
 
@@ -548,7 +564,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    const {projects} = this.props;
+    const {projects, organization} = this.props;
     const {timeWindow, chartError} = this.state;
     if (chartError) {
       this.setState({chartError: false, chartErrorMessage: undefined});
@@ -601,9 +617,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           this.state.query
         );
 
+        if (deprecateTransactionAlerts(organization)) {
+          const newAlertType = getAlertTypeFromAggregateDataset({
+            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            dataset,
+            organization,
+          });
+
+          return {
+            [name]: value,
+            alertType: newAlertType,
+            dataset,
+          };
+        }
+
         const newAlertType = getAlertTypeFromAggregateDataset({
           aggregate,
           dataset,
+          organization,
         });
 
         return {
@@ -766,7 +797,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             timeWindow,
             aggregate,
             // Remove eventTypes as it is no longer required for crash free
-            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            eventTypes: isCrashFreeAlert(dataset) ? undefined : eventTypes,
             dataset,
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             queryType: DatasetMEPAlertQueryTypes[dataset],
@@ -981,6 +1012,32 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
+  handleEAPMetricsAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
+    if (!data) {
+      return;
+    }
+
+    let timeseries: TimeSeries[];
+
+    if (isEventsStats(data)) {
+      const [, series] = convertEventsStatsToTimeSeriesData('', data);
+      timeseries = [series];
+    } else {
+      timeseries = Object.values(data).map(result => {
+        const [, series] = convertEventsStatsToTimeSeriesData('', result);
+        return series;
+      });
+    }
+
+    const seriesSamplingInfo = determineSeriesSampleCountAndIsSampled(
+      timeseries,
+      !isEventsStats(data)
+    );
+    const confidence = combineConfidenceForSeries(timeseries);
+
+    this.setState({confidence, seriesSamplingInfo});
+  };
+
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
     const currentData = formatStatsToHistoricalDataset(data);
@@ -994,20 +1051,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
-  };
-
-  handleConfidenceTimeSeriesDataFetched(
-    data: EventsStats | MultiSeriesEventsStats | null
-  ) {
-    if (!data) {
-      return;
+    if (isEapAlertType(this.state.alertType)) {
+      this.handleEAPMetricsAlertDataset(data);
     }
-    const confidence = isEventsStats(data)
-      ? determineSeriesConfidence(data)
-      : determineMultiSeriesConfidence(data);
-    const isSampled = determineIsSampled(data);
-    this.setState({confidence, isSampled});
-  }
+  };
 
   handleHistoricalTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
@@ -1016,13 +1063,21 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({historicalData}, () => this.fetchAnomalies());
   }
 
+  timeWindowsAreConsistent() {
+    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
+    const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
+    return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
+  }
+
   async fetchAnomalies() {
     const {comparisonType, historicalData, currentData} = this.state;
     if (
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
       currentData.length === 0 ||
-      historicalData.length === 0
+      historicalData.length === 0 ||
+      !this.timeWindowsAreConsistent()
     ) {
       return;
     }
@@ -1030,6 +1085,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const {organization, project} = this.props;
     const {timeWindow, sensitivity, seasonality, thresholdType} = this.state;
+
     const direction =
       thresholdType === AlertRuleThresholdType.ABOVE
         ? 'up'
@@ -1140,7 +1196,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartError,
       chartErrorMessage,
       confidence,
+      seriesSamplingInfo,
     } = this.state;
+
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
     if (chartError) {
       return (
@@ -1157,7 +1216,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedAggregate = aggregate;
 
     const func = parseFunction(aggregate);
-    if (func && alertType === 'eap_metrics') {
+    if (func && isEapAlertType(alertType)) {
       formattedAggregate = prettifyParsedFunction(func);
     }
 
@@ -1182,16 +1241,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       isOnDemandMetricAlert: isOnDemand,
       showTotalCount: !['span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
-      onConfidenceDataLoaded: this.handleConfidenceTimeSeriesDataFetched,
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
-      includeConfidence: alertType === 'eap_metrics',
-      confidence,
       theme: this.props.theme,
+      confidence,
+      seriesSamplingInfo,
+      traceItemType: traceItemType ?? undefined,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (alertType === 'eap_metrics') {
+    if (isEapAlertType(alertType)) {
       formattedQuery = '';
     }
 
@@ -1395,6 +1454,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     router={router}
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
+                    eventTypes={eventTypes}
                   />
                   <AlertListItem>{t('Set thresholds')}</AlertListItem>
                   {thresholdTypeForm(formDisabled)}
@@ -1430,6 +1490,25 @@ function formatStatsToHistoricalDataset(
         entries.map(entry => [timestamp, entry] as [number, {count: number}])
       ) ?? [])
     : [];
+}
+
+function getTimeWindowFromDataset(
+  data: ReturnType<typeof formatStatsToHistoricalDataset>,
+  defaultWindow: TimeWindow
+): number {
+  for (let i = 0; i < data.length; i++) {
+    const [timestampA] = data[i] ?? [];
+    const [timestampB] = data[i + 1] ?? [];
+    if (!timestampA || !timestampB) {
+      break;
+    }
+    // ignore duplicate timestamps
+    if (timestampA === timestampB) {
+      continue;
+    }
+    return Math.abs(timestampB - timestampA) / 60;
+  }
+  return defaultWindow;
 }
 
 const Main = styled(Layout.Main)`

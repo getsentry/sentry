@@ -1,54 +1,27 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
-import type {DO_NOT_USE_CommonButtonProps} from 'sentry/components/core/button';
-import {
-  DO_NOT_USE_BUTTON_ICON_SIZES,
-  DO_NOT_USE_getButtonStyles,
-  useButtonFunctionality,
-} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+// eslint-disable-next-line boundaries/element-types
 import Link from 'sentry/components/links/link';
+// eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+// eslint-disable-next-line boundaries/element-types
 import {space} from 'sentry/styles/space';
 
-import {getChonkButtonStyles} from './index.chonk';
+import {
+  DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
+  DO_NOT_USE_getButtonStyles as getButtonStyles,
+} from './styles';
+import {DO_NOT_USE_getChonkButtonStyles as getChonkButtonStyles} from './styles.chonk';
+import type {
+  DO_NOT_USE_CommonButtonProps as CommonButtonProps,
+  DO_NOT_USE_LinkButtonProps as LinkButtonProps,
+} from './types';
+import {useButtonFunctionality} from './useButtonFunctionality';
 
-type LinkElementProps = Omit<
-  React.AnchorHTMLAttributes<HTMLAnchorElement>,
-  'label' | 'size' | 'title' | 'href'
->;
-
-interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementProps {
-  /**
-   * Determines if the link is disabled.
-   */
-  disabled?: boolean;
-}
-
-interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
-  href: string;
-  /**
-   * Determines if the link is external and should open in a new tab.
-   */
-  external?: boolean;
-}
-
-interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
-  to: string | LocationDescriptor;
-  /**
-   * If true, the link will not reset the scroll position of the page when clicked.
-   */
-  preventScrollReset?: boolean;
-  /**
-   * Determines if the link should replace the current history entry.
-   */
-  replace?: boolean;
-}
-
-export type LinkButtonProps = LinkButtonPropsWithHref | LinkButtonPropsWithTo;
+export type {LinkButtonProps};
 
 export function LinkButton({
   size = 'md',
@@ -66,6 +39,7 @@ export function LinkButton({
       <StyledLinkButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
+        disabled={disabled}
         size={size}
         {...props}
         // @ts-expect-error set href as undefined to force "disabled" state.
@@ -84,7 +58,7 @@ export function LinkButton({
         <ButtonLabel size={size} borderless={props.borderless}>
           {props.icon && (
             <Icon size={size} hasChildren={hasChildren}>
-              <IconDefaultsProvider size={DO_NOT_USE_BUTTON_ICON_SIZES[size]}>
+              <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}
               </IconDefaultsProvider>
             </Icon>
@@ -125,10 +99,7 @@ const StyledLinkButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`
-  ${p =>
-    p.theme.isChonk
-      ? getChonkButtonStyles(p as any)
-      : DO_NOT_USE_getButtonStyles(p as any)}
+  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p as any))}
 `;
 
 const ButtonLabel = styled('span', {
@@ -136,15 +107,19 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
-})<Pick<LinkButtonProps, 'size' | 'borderless'>>`
+})<Pick<CommonButtonProps, 'size' | 'borderless'>>`
   height: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
 `;
 
-const Icon = styled('span')<{hasChildren?: boolean; size?: LinkButtonProps['size']}>`
+const Icon = styled('span')<{
+  hasChildren?: boolean;
+  size?: CommonButtonProps['size'];
+}>`
   display: flex;
   align-items: center;
   margin-right: ${p =>

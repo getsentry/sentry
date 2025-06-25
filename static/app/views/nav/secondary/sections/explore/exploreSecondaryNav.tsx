@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
@@ -28,7 +30,7 @@ export function ExploreSecondaryNav() {
   const showOurlogsNew = !localStorage.getItem(ourlogsSeenKey);
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
       </SecondaryNav.Header>
@@ -58,7 +60,10 @@ export function ExploreSecondaryNav() {
               {t('Logs')}
             </SecondaryNav.Item>
           </Feature>
-          <Feature features="discover-basic">
+          <Feature
+            features="discover-basic"
+            hookName="feature-disabled:discover2-sidebar-item"
+          >
             <SecondaryNav.Item
               to={`${baseUrl}/discover/homepage/`}
               activeTo={`${baseUrl}/discover/`}
@@ -67,7 +72,10 @@ export function ExploreSecondaryNav() {
               {t('Discover')}
             </SecondaryNav.Item>
           </Feature>
-          <Feature features="profiling">
+          <Feature
+            features="profiling"
+            hookName="feature-disabled:profiling-sidebar-item"
+          >
             <SecondaryNav.Item
               to={`${baseUrl}/profiling/`}
               analyticsItemName="explore_profiles"
@@ -75,7 +83,10 @@ export function ExploreSecondaryNav() {
               {t('Profiles')}
             </SecondaryNav.Item>
           </Feature>
-          <Feature features="session-replay-ui">
+          <Feature
+            features="session-replay-ui"
+            hookName="feature-disabled:replay-sidebar-item"
+          >
             <SecondaryNav.Item
               to={`${baseUrl}/replays/`}
               analyticsItemName="explore_replays"
@@ -106,6 +117,6 @@ export function ExploreSecondaryNav() {
           )}
         </Feature>
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }

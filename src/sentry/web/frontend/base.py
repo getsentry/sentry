@@ -243,6 +243,9 @@ class OrganizationMixin:
         if request.user.is_authenticated and request.user.is_sentry_app:
             return False
 
+        if request.user.is_anonymous:
+            return False
+
         if is_active_superuser(request):
             return False
 

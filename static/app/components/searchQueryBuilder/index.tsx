@@ -82,6 +82,13 @@ export interface SearchQueryBuilderProps {
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   /**
+   * This is used when a user types in a search key and submits the token.
+   * The submission happens when the user types a colon or presses enter.
+   * When this happens, this function is used to map the user input to a
+   * known column.
+   */
+  getSuggestedFilterKey?: (key: string) => string | null;
+  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
@@ -250,7 +257,7 @@ export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
 }
 
 const Wrapper = styled(Input.withComponent('div'))`
-  min-height: 38px;
+  min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;
   width: 100%;
@@ -276,7 +283,7 @@ const ActionButton = styled(Button)`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${space(1.5)};
-  top: ${space(1)};
+  top: ${p => (p.theme.isChonk ? space(0.75) : space(1))};
 `;
 
 const SearchIcon = styled(IconSearch)`

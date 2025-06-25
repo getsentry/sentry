@@ -13,12 +13,8 @@ import {
   useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {
-  MetricsFields,
-  type MetricsQueryFilters,
-  SpanFields,
-  type SpanQueryFilters,
-} from 'sentry/views/insights/types';
+import type {SearchHook, SpanQueryFilters} from 'sentry/views/insights/types';
+import {MetricsFields, SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   samples: Samples;
@@ -32,10 +28,14 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
     },
   });
 
-  const {data, isPending, error} = useTransactionDurationSeries({transaction});
+  const {search} = useTransactionDurationSearch({transaction});
+  const referrer = Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART;
+
+  const {data, isPending, error} = useTransactionDurationSeries({search});
 
   return (
     <InsightsLineChartWidget
+      queryInfo={{search, referrer}}
       showLegend="never"
       title={t('Average Transaction Duration')}
       isLoading={isPending}
@@ -46,27 +46,40 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
   );
 }
 
-const useTransactionDurationSeries = ({transaction}: {transaction: string}) => {
+const useTransactionDurationSearch = ({
+  transaction,
+}: {
+  transaction: string;
+}): SearchHook => {
+  const useEap = useInsightsEap();
+  const search = useEap
+    ? MutableSearch.fromQueryObject({
+        transaction,
+        is_transaction: 'true',
+      } satisfies SpanQueryFilters)
+    : MutableSearch.fromQueryObject({transaction} satisfies SpanQueryFilters);
+
+  return {search};
+};
+
+const useTransactionDurationSeries = ({search}: {search: MutableSearch}) => {
   const useEap = useInsightsEap();
 
   const metricsResult = useMetricsSeries(
     {
       yAxis: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
-      search: MutableSearch.fromQueryObject({
-        transaction,
-      } satisfies MetricsQueryFilters),
+      search,
       transformAliasToInputFormat: true,
+      enabled: !useEap,
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART
   );
 
   const eapResult = useEAPSeries(
     {
-      search: MutableSearch.fromQueryObject({
-        transaction,
-        is_transaction: 'true',
-      } satisfies SpanQueryFilters),
+      search,
       yAxis: [`avg(${SpanFields.SPAN_DURATION})`],
+      enabled: useEap,
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
   );

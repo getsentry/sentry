@@ -127,6 +127,11 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         return self.__decode_row(row)
 
     def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, bytes]]:
+        if not keys:
+            # This is probably unintentional, and the behavior isn't specified.
+            logging.warning("get_many called with empty keys sequence")
+            return
+
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)

@@ -139,7 +139,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
             project=self.project,
             event_type=EventType.PROFILE_CHUNK.value,
             sdk_name="sentry.cocoa",
-            sdk_version="8.49.0",
+            sdk_version="8.49.2",
         )
         response = self.client.get(
             self.url,

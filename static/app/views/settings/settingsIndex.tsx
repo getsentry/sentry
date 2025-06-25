@@ -228,12 +228,12 @@ function SettingsIndex(props: SettingsIndexProps) {
           {organizationSettingsUrl && (
             <li>
               <HomeLink to={`${organizationSettingsUrl}auth-tokens/`}>
-                {t('Organization Auth Tokens')}
+                {t('Organization Tokens')}
               </HomeLink>
             </li>
           )}
           <li>
-            <HomeLink to={LINKS.API}>{t('User Auth Tokens')}</HomeLink>
+            <HomeLink to={LINKS.API}>{t('Personal Tokens')}</HomeLink>
           </li>
           {organizationSettingsUrl && (
             <li>

@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -78,7 +79,10 @@ export default function GroupReplays({group}: Props) {
     location,
     organization,
   });
-  const {allMobileProj} = useAllMobileProj({});
+
+  const isMobilePlatform = replayMobilePlatforms.includes(
+    group.project.platform ?? 'other'
+  );
 
   useEffect(() => {
     trackAnalytics('replay.render-issues-group-list', {
@@ -110,7 +114,7 @@ export default function GroupReplays({group}: Props) {
           isFetching={isFetching}
           replays={[]}
           sort={undefined}
-          visibleColumns={visibleColumns(allMobileProj)}
+          visibleColumns={visibleColumns(isMobilePlatform)}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
@@ -146,12 +150,12 @@ function GroupReplaysTableInner({
     replaySlug,
     group,
   });
-  const {fetching, replay} = readerResult;
+  const {status, replay} = readerResult;
 
   return (
     <ReplayContextProvider
       analyticsContext="replay_tab"
-      isFetching={fetching}
+      isFetching={status === 'pending'}
       replay={replay}
       autoStart
     >

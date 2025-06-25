@@ -121,7 +121,6 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
     queryHookArgs: {query, yAxes, sortBys, enabled},
     queryOptions: {
-      withholdBestEffort: true,
       canTriggerHighAccuracy,
     },
   });

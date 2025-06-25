@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -47,13 +48,22 @@ export const HeaderButtonContainer = styled('div')`
   }
 `;
 
-export const Body = styled(({children, ...props}: any) => (
-  <Panel {...props}>
-    <PanelBody>{children}</PanelBody>
-  </Panel>
-))`
+export const Body = styled(
+  ({
+    children,
+    showVerticalScrollbar: _,
+    ...props
+  }: React.ComponentProps<typeof Panel> & {
+    children?: React.ReactNode;
+    showVerticalScrollbar?: boolean;
+  }) => (
+    <Panel {...props}>
+      <StyledPanelBody>{children}</StyledPanelBody>
+    </Panel>
+  )
+)`
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: ${({showVerticalScrollbar}) => (showVerticalScrollbar ? 'auto' : 'hidden')};
   z-index: ${Z_INDEX_PANEL};
 `;
 
@@ -70,7 +80,11 @@ export const Body = styled(({children, ...props}: any) => (
  * <thead>, <tbody>, <tr> are ignored by CSS Grid.
  * The entire layout is determined by the usage of <th> and <td>.
  */
-export const Grid = styled('table')<{height?: string | number; scrollable?: boolean}>`
+export const Grid = styled('table')<{
+  fit?: 'max-content';
+  height?: CSSProperties['height'];
+  scrollable?: boolean;
+}>`
   position: inherit;
   display: grid;
 
@@ -94,6 +108,8 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
           max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
         `
       : ''}
+
+  min-width: ${p => p.fit}
 `;
 
 /**
@@ -101,7 +117,7 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
  * Grid. As the entirety of the add/remove/resize actions are performed on the
  * header, most of the elements behave different for each stage.
  */
-export const GridHead = styled('thead')`
+export const GridHead = styled('thead')<{sticky?: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
@@ -117,9 +133,11 @@ export const GridHead = styled('thead')`
 
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
+
+  ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_GRID + 1}` : '')}
 `;
 
-export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
+export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
@@ -131,8 +149,6 @@ export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-
-  ${p => (p.sticky ? `position: sticky; top: 0;` : '')}
 
   a,
   div,
@@ -322,4 +338,8 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     background-color: ${p => p.theme.purple300};
     opacity: 0.4;
   }
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  height: 100%;
 `;

@@ -4,10 +4,10 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
   createablePlatforms,
@@ -81,6 +81,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     category: this.props.defaultCategory ?? categoryList[0]!.id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
   };
+
+  componentDidUpdate(prevProps: Readonly<PlatformPickerProps>): void {
+    if (this.props.defaultCategory !== prevProps.defaultCategory) {
+      this.setState({category: this.props.defaultCategory ?? categoryList[0]!.id});
+    }
+  }
 
   get platformList() {
     const {category} = this.state;

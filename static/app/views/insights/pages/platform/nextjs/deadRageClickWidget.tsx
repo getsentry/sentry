@@ -12,8 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
-import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 import {
   SelectorLink,
   transformSelectorQuery,
@@ -24,28 +23,26 @@ import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 export function DeadRageClicksWidget() {
   const location = useLocation();
   const organization = useOrganization();
-  const {query} = useTransactionNameQuery();
-  const fullQuery = `!count_dead_clicks:0 ${query}`.trim();
-
   const {isLoading, error, data} = useDeadRageSelectors({
     per_page: 6,
     sort: '-count_dead_clicks',
     cursor: undefined,
-    query: fullQuery,
-    isWidgetData: true,
+    // Setting this to true just strips rage clicks from the data
+    isWidgetData: false,
   });
 
   const isEmpty = !isLoading && data.length === 0;
-
-  if (isEmpty) {
-    return <SlowSSRWidget query={query} />;
-  }
 
   const visualization = (
     <WidgetVisualizationStates
       isLoading={isLoading}
       error={error}
       isEmpty={isEmpty}
+      emptyMessage={
+        <GenericWidgetEmptyStateWarning
+          message={t('Rage or dead clicks may not be listed due to the filters above')}
+        />
+      }
       VisualizationType={DeadRageClickWidgetVisualization}
       visualizationProps={{
         items: data,

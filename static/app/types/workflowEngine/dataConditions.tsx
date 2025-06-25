@@ -1,20 +1,4 @@
-import type {NewAction} from './actions';
-
-interface SnubaQuery {
-  aggregate: string;
-  dataset: string;
-  id: string;
-  query: string;
-  timeWindow: number;
-  environment?: string;
-}
-
-export interface DataSource {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription?: string;
-}
+import type {Action} from './actions';
 
 export enum DataConditionType {
   // operators
@@ -54,6 +38,11 @@ export enum DataConditionType {
   PERCENT_SESSIONS_PERCENT = 'percent_sessions_percent',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = 'event_unique_user_frequency_with_conditions_count',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = 'event_unique_user_frequency_with_conditions_percent',
+
+  // frequency types for UI only
+  EVENT_FREQUENCY = 'event_frequency',
+  EVENT_UNIQUE_USER_FREQUENCY = 'event_unique_user_frequency',
+  PERCENT_SESSIONS = 'percent_sessions',
 }
 
 export enum DataConditionGroupLogicType {
@@ -63,16 +52,45 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export interface NewDataCondition {
+export enum DetectorPriorityLevel {
+  OK = 0,
+  LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
+}
+
+/**
+ * See DataConditionSerializer
+ */
+export interface DataCondition {
   comparison: any;
-  comparison_type: DataConditionType;
-  condition_group?: DataConditionGroup;
-  condition_result?: any;
+  id: string;
+  type: DataConditionType;
+  conditionResult?: any;
 }
 
 export interface DataConditionGroup {
-  conditions: NewDataCondition[];
+  conditions: DataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
-  actions?: NewAction[];
+  actions?: Action[];
+}
+
+export enum DataConditionHandlerGroupType {
+  DETECTOR_TRIGGER = 'detector_trigger',
+  WORKFLOW_TRIGGER = 'workflow_trigger',
+  ACTION_FILTER = 'action_filter',
+}
+
+export enum DataConditionHandlerSubgroupType {
+  ISSUE_ATTRIBUTES = 'issue_attributes',
+  FREQUENCY = 'frequency',
+  EVENT_ATTRIBUTES = 'event_attributes',
+}
+
+export interface DataConditionHandler {
+  comparisonJsonSchema: Record<string, any>;
+  handlerGroup: DataConditionHandlerGroupType;
+  handlerSubgroup: DataConditionHandlerSubgroupType;
+  type: DataConditionType;
 }

@@ -257,6 +257,16 @@ function MonitorForm({
       submitLabel={submitLabel}
     >
       <StyledList symbol="colored-numeric">
+        {monitor?.isUpserting && (
+          <Alert.Container>
+            <Alert type="warning" showIcon>
+              {t(
+                'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+
         <StyledListItem>{t('Add a name and project')}</StyledListItem>
         <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
         <InputGroup noPadding>
@@ -335,7 +345,7 @@ function MonitorForm({
               const parsedSchedule =
                 scheduleType === 'crontab'
                   ? crontabAsText(
-                      form.current.getValue('config.schedule')?.toString() ?? ''
+                      form.current.getValue<string>('config.schedule')?.toString() ?? ''
                     )
                   : null;
 
@@ -507,7 +517,9 @@ function MonitorForm({
             <PanelBody>
               <Observer>
                 {() => {
-                  const projectSlug = form.current.getValue('project')?.toString();
+                  const projectSlug = form.current
+                    .getValue<string>('project')
+                    ?.toString();
                   return (
                     <SentryMemberTeamSelectorField
                       label={t('Notify')}
@@ -524,6 +536,8 @@ function MonitorForm({
                 {() => {
                   const selectedAssignee = form.current.getValue('alertRule.targets');
                   // Check for falsey value or empty array value
+
+                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
                   const disabled = !selectedAssignee || !selectedAssignee.toString();
 
                   return (

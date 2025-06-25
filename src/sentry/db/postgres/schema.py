@@ -4,6 +4,7 @@ from django.db.backends.postgresql.schema import (
 )
 from django.db.models import Field, Model
 from django.db.models.base import ModelBase
+from django.db.models.constraints import BaseConstraint
 from django_zero_downtime_migrations.backends.postgres.schema import (
     DatabaseSchemaEditorMixin,
     Unsafe,
@@ -66,6 +67,11 @@ class MakeBtreeGistSchemaEditor(PostgresDatabaseSchemaEditor):
         if any(isinstance(c, ExclusionConstraint) for c in model._meta.constraints):
             self.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
         super().create_model(model)
+
+    def add_constraint(self, model: type[Model], constraint: BaseConstraint) -> None:
+        if isinstance(constraint, ExclusionConstraint):
+            self.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
+        super().add_constraint(model, constraint)
 
 
 class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):

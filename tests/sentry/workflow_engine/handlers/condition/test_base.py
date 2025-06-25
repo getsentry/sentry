@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition as dual_write_condition,
 )
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -25,10 +25,14 @@ class ConditionTestCase(BaseWorkflowTest):
         data_condition.save()
         return data_condition
 
-    def assert_passes(self, data_condition: DataCondition, job: WorkflowEventData) -> None:
+    def assert_passes(
+        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket
+    ) -> None:
         assert data_condition.evaluate_value(job) == data_condition.get_condition_result()
 
-    def assert_does_not_pass(self, data_condition: DataCondition, job: WorkflowEventData) -> None:
+    def assert_does_not_pass(
+        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket
+    ) -> None:
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 
     def assert_slow_condition_passes(self, data_condition: DataCondition, value: list[int]) -> None:

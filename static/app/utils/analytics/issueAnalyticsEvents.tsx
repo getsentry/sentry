@@ -337,6 +337,7 @@ export type IssueEventParameters = {
     surface: 'issue-views-list' | 'issue-view-details';
   };
   'issue_views.switched_views': Record<string, unknown>;
+  'issue_views.table.banner_create_view_clicked': Record<string, unknown>;
   'issue_views.table.create_view_clicked': Record<string, unknown>;
   'issue_views.table.search': {
     query: string;
@@ -525,6 +526,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.page_filters_logged': 'Issue Views: Page Filters Logged',
   'issue_views.table.sort_changed': 'Issue Views: Changed Sort',
   'issue_views.table.create_view_clicked': 'Issue Views: Create View Clicked',
+  'issue_views.table.banner_create_view_clicked':
+    'Issue Views: Create View Clicked from No Views Banner',
   'issue_views.new_view.suggested_query_clicked': 'Issue Views: Suggested Query Clicked',
   'issue_views.edit_name': 'Issue Views: Edit Name',
   'issue_views.star_view': 'Issue Views: Star View',

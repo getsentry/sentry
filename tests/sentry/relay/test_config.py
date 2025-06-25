@@ -20,7 +20,7 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -1006,6 +1006,7 @@ def test_mobile_performance_calculate_score(default_project):
 @pytest.mark.parametrize("passive", [False, True])
 def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
             {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
         ],
@@ -1099,6 +1100,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
 @region_silo_test
 def test_project_config_cardinality_limits_project_options_override_other_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
@@ -1166,6 +1168,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
 @region_silo_test
 def test_project_config_cardinality_limits_organization_options_override_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
@@ -1222,3 +1225,30 @@ def test_project_config_with_generic_filters(default_project):
     _validate_project_config(config["config"])
 
     assert config["config"]["filterSettings"]["generic"]["filters"]
+
+
+@django_db_all
+@region_silo_test
+@mock.patch("sentry.relay.config.get_transaction_names_config")
+def test_project_config_with_transaction_name_clustering_disabled(
+    mock_get_transaction_name_config, default_project
+):
+    mock_get_transaction_name_config.return_value = [
+        TransactionNameRule(
+            pattern="dummy_rule",
+            expiry="2999-05-26T00:00:00Z",
+            redaction={"method": "replace", "substitution": "*"},
+        )
+    ]
+
+    # clustering is enabled (by default)
+    config = get_project_config(default_project).to_dict()
+    mock_get_transaction_name_config.assert_called_once()
+    _validate_project_config(config["config"])
+    assert "txNameRules" in config["config"]
+
+    # clustering is disabled (via explicit option)
+    with Feature({"projects:transaction-name-clustering-disabled": True}):
+        config = get_project_config(default_project).to_dict()
+        _validate_project_config(config["config"])
+        assert "txNameRules" not in config["config"]

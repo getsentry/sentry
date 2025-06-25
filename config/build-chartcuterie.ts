@@ -6,7 +6,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-// @ts-expect-error need to switch tsconfig to use module: esnext or es2020
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
 const packageJsonPath = path.join(workspaceRoot, 'package.json');

@@ -1,22 +1,65 @@
+import type React from 'react';
 import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
 import {
+  type DataCondition,
   DataConditionType,
-  type NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
-import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
-import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
-import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
-import IssuePriorityNode from 'sentry/views/automations/components/actionFilters/issuePriority';
-import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
-import LevelNode from 'sentry/views/automations/components/actionFilters/level';
-import TaggedEventNode from 'sentry/views/automations/components/actionFilters/taggedEvent';
+import {
+  AgeComparisonDetails,
+  AgeComparisonNode,
+} from 'sentry/views/automations/components/actionFilters/ageComparison';
+import {
+  AssignedToDetails,
+  AssignedToNode,
+} from 'sentry/views/automations/components/actionFilters/assignedTo';
+import {
+  EventAttributeDetails,
+  EventAttributeNode,
+} from 'sentry/views/automations/components/actionFilters/eventAttribute';
+import {
+  EventFrequencyCountDetails,
+  EventFrequencyNode,
+  EventFrequencyPercentDetails,
+} from 'sentry/views/automations/components/actionFilters/eventFrequency';
+import {
+  EventUniqueUserFrequencyCountDetails,
+  EventUniqueUserFrequencyNode,
+  EventUniqueUserFrequencyPercentDetails,
+} from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
+import {
+  IssueOccurrencesDetails,
+  IssueOccurrencesNode,
+} from 'sentry/views/automations/components/actionFilters/issueOccurrences';
+import {
+  IssuePriorityDetails,
+  IssuePriorityNode,
+} from 'sentry/views/automations/components/actionFilters/issuePriority';
+import {
+  LatestAdoptedReleaseDetails,
+  LatestAdoptedReleaseNode,
+} from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
+import {LatestReleaseNode} from 'sentry/views/automations/components/actionFilters/latestRelease';
+import {
+  LevelDetails,
+  LevelNode,
+} from 'sentry/views/automations/components/actionFilters/level';
+import {
+  PercentSessionsCountDetails,
+  PercentSessionsNode,
+  PercentSessionsPercentDetails,
+} from 'sentry/views/automations/components/actionFilters/percentSessions';
+import {
+  TaggedEventDetails,
+  TaggedEventNode,
+} from 'sentry/views/automations/components/actionFilters/taggedEvent';
 
 interface DataConditionNodeProps {
-  condition: NewDataCondition;
+  condition: DataCondition;
   condition_id: string;
-  onUpdate: (condition: Record<string, any>) => void;
+  onUpdate: (comparison: Record<string, any>) => void;
+  onUpdateType: (type: DataConditionType) => void;
 }
 
 export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
@@ -35,7 +78,8 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
 
 type DataConditionNode = {
   label: string;
-  dataCondition?: React.ReactNode;
+  dataCondition?: React.ComponentType<any>;
+  details?: React.ComponentType<any>;
 };
 
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
@@ -58,59 +102,168 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.NEW_HIGH_PRIORITY_ISSUE,
+    {
+      label: t('Sentry marks a new issue as high priority'),
+    },
+  ],
+  [
+    DataConditionType.EXISTING_HIGH_PRIORITY_ISSUE,
+    {
+      label: t('Sentry marks an existing issue as high priority'),
+    },
+  ],
+  [
     DataConditionType.AGE_COMPARISON,
     {
       label: t('Issue age'),
-      dataCondition: <AgeComparisonNode />,
+      dataCondition: AgeComparisonNode,
+      details: AgeComparisonDetails,
+    },
+  ],
+  [
+    DataConditionType.ASSIGNED_TO,
+    {
+      label: t('Issue assignment'),
+      dataCondition: AssignedToNode,
+      details: AssignedToDetails,
     },
   ],
   [
     DataConditionType.ISSUE_OCCURRENCES,
     {
       label: t('Issue frequency'),
-      dataCondition: <IssueOccurrencesNode />,
+      dataCondition: IssueOccurrencesNode,
+      details: IssueOccurrencesDetails,
     },
   ],
   [
     DataConditionType.ISSUE_PRIORITY_EQUALS,
     {
       label: t('Issue priority'),
-      dataCondition: <IssuePriorityNode />,
+      dataCondition: IssuePriorityNode,
+      details: IssuePriorityDetails,
     },
   ],
   [
     DataConditionType.LATEST_ADOPTED_RELEASE,
     {
       label: t('Release age'),
-      dataCondition: <LatestAdoptedReleaseNode />,
+      dataCondition: LatestAdoptedReleaseNode,
+      details: LatestAdoptedReleaseDetails,
     },
   ],
   [
     DataConditionType.LATEST_RELEASE,
     {
       label: t('Latest release'),
-      dataCondition: t('The issue is from the latest release'),
+      dataCondition: LatestReleaseNode,
+      details: LatestReleaseNode,
     },
   ],
   [
     DataConditionType.EVENT_ATTRIBUTE,
     {
       label: t('Event attribute'),
-      dataCondition: <EventAttributeNode />,
+      dataCondition: EventAttributeNode,
+      details: EventAttributeDetails,
     },
   ],
   [
     DataConditionType.TAGGED_EVENT,
     {
       label: t('Tagged event'),
-      dataCondition: <TaggedEventNode />,
+      dataCondition: TaggedEventNode,
+      details: TaggedEventDetails,
     },
   ],
   [
     DataConditionType.LEVEL,
     {
       label: t('Event level'),
-      dataCondition: <LevelNode />,
+      dataCondition: LevelNode,
+      details: LevelDetails,
+    },
+  ],
+  [
+    DataConditionType.EVENT_FREQUENCY,
+    {
+      label: t('Number of events'),
+      dataCondition: EventFrequencyNode,
+    },
+  ],
+  [
+    DataConditionType.EVENT_FREQUENCY_COUNT,
+    {
+      label: t('Number of events'),
+      dataCondition: EventFrequencyNode,
+      details: EventFrequencyCountDetails,
+    },
+  ],
+  [
+    DataConditionType.EVENT_FREQUENCY_PERCENT,
+    {
+      label: t('Number of events'),
+      dataCondition: EventFrequencyNode,
+      details: EventFrequencyPercentDetails,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+    {
+      label: t('Number of users affected'),
+      dataCondition: EventUniqueUserFrequencyNode,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    {
+      label: t('Number of users affected'),
+      dataCondition: EventUniqueUserFrequencyNode,
+      details: EventUniqueUserFrequencyCountDetails,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    {
+      label: t('Number of users affected'),
+      dataCondition: EventUniqueUserFrequencyNode,
+      details: EventUniqueUserFrequencyPercentDetails,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: PercentSessionsNode,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS_COUNT,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: PercentSessionsNode,
+      details: PercentSessionsCountDetails,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS_PERCENT,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: PercentSessionsNode,
+      details: PercentSessionsPercentDetails,
     },
   ],
 ]);
+
+export const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>> =
+  {
+    [DataConditionType.PERCENT_SESSIONS_COUNT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.PERCENT_SESSIONS_PERCENT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.EVENT_FREQUENCY_COUNT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_FREQUENCY_PERCENT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  };

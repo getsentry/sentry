@@ -121,7 +121,7 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     expect(mockApi).toHaveBeenCalledWith(
@@ -154,7 +154,7 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
@@ -176,12 +176,12 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(
-        'Something went wrong when sending Autofix your message.'
+        'Something went wrong when sending Seer your message.'
       );
     });
   });

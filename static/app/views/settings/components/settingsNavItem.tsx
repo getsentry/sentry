@@ -26,7 +26,7 @@ const LabelHook = HookOrDefault({
 
 function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
-    return <FeatureBadge type={badge} variant="short" />;
+    return <FeatureBadge type={badge} />;
   }
   if (badge === 'warning') {
     return (

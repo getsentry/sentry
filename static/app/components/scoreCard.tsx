@@ -19,7 +19,7 @@ type ScoreCardProps = {
   trendStatus?: 'good' | 'bad';
 };
 
-function ScoreCard({
+export function ScoreCard({
   title,
   score,
   help,
@@ -28,10 +28,8 @@ function ScoreCard({
   className,
   renderOpenButton,
   isTooltipHoverable,
-  isEstimate,
 }: ScoreCardProps) {
-  const value = score ?? '\u2014';
-  const displayScore = isEstimate && value !== '0' ? `~${value}` : value;
+  const displayScore = score ?? '\u2014';
 
   return (
     <ScorePanel className={className}>
@@ -52,7 +50,6 @@ function ScoreCard({
 
       <ScoreWrapper>
         <Score>{displayScore}</Score>
-        {isEstimate && <Asterisk>*</Asterisk>}
         {defined(trend) && (
           <Trend trendStatus={trendStatus}>
             <TextOverflow>{trend}</TextOverflow>
@@ -127,16 +124,3 @@ export const Trend = styled('div')<TrendProps>`
   line-height: 1;
   overflow: hidden;
 `;
-
-const Asterisk = styled('div')`
-  color: grey;
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  display: inline-block;
-  width: 10pt;
-  height: 10pt;
-  position: relative;
-  top: -10pt;
-  margin-left: ${space(0.25)};
-`;
-
-export default ScoreCard;

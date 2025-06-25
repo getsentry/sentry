@@ -1,20 +1,21 @@
+import type {Dispatch, SetStateAction} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import SearchBar from 'sentry/components/searchBar';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import {useConnectedIds} from 'sentry/views/automations/hooks/utils';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 interface Props {
-  storageKey: string;
+  connectedIds: Set<string>;
+  setConnectedIds: Dispatch<SetStateAction<Set<string>>>;
 }
 
-export default function EditConnectedMonitors({storageKey}: Props) {
-  const monitors: Detector[] = []; // TODO: Fetch monitors from API
-  const {connectedIds, toggleConnected} = useConnectedIds({storageKey});
+export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
+  const {data: monitors = []} = useDetectorsQuery();
 
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
   const unconnectedMonitors = monitors.filter(monitor => !connectedIds.has(monitor.id));
@@ -26,8 +27,8 @@ export default function EditConnectedMonitors({storageKey}: Props) {
           <Heading>{t('Connected Monitors')}</Heading>
           <ConnectedMonitorsList
             monitors={connectedMonitors}
-            connectedMonitorIds={connectedIds}
-            toggleConnected={toggleConnected}
+            connectedIds={connectedIds}
+            setConnectedIds={setConnectedIds}
           />
         </Fragment>
       )}
@@ -35,12 +36,21 @@ export default function EditConnectedMonitors({storageKey}: Props) {
         {connectedMonitors.length > 0 ? t('Other Monitors') : t('All Monitors')}
       </Heading>
       <div style={{flexGrow: 1}}>
-        <StyledSearchBar placeholder={t('Search for a monitor or project')} />
+        <StyledInputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch color="subText" size="sm" />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input
+            placeholder={t('Search for a monitor or project')}
+            type="text"
+            autoComplete="off"
+          />
+        </StyledInputGroup>
       </div>
       <ConnectedMonitorsList
         monitors={unconnectedMonitors}
-        connectedMonitorIds={connectedIds}
-        toggleConnected={toggleConnected}
+        connectedIds={connectedIds}
+        setConnectedIds={setConnectedIds}
       />
     </div>
   );
@@ -51,7 +61,6 @@ const Heading = styled('h2')`
   margin-bottom: ${space(1.5)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
+const StyledInputGroup = styled(InputGroup)`
   margin-bottom: ${space(2)};
 `;

@@ -1,33 +1,17 @@
 from typing import Any
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH
 from sentry.db.models import region_silo_model
 from sentry.db.models.base import DefaultFieldsModel, DefaultFieldsModelExisting
-from sentry.db.models.fields.array import ArrayField
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.savedsearch import SortOptions
 
 DEFAULT_TIME_FILTER = {"period": "14d"}
-
-DEFAULT_VIEWS = [
-    {
-        "name": "Prioritized",
-        "query": "is:unresolved issue.priority:[high, medium]",
-        "querySort": SortOptions.DATE.value,
-        "position": 0,
-        "isAllProjects": False,
-        "environments": [],
-        "projects": [],
-        "timeFilters": DEFAULT_TIME_FILTER,
-        "dateCreated": None,
-        "dateUpdated": None,
-    }
-]
 
 
 @region_silo_model
@@ -78,9 +62,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     # If is_all_projects is True, then override `projects` to be "All Projects"
     is_all_projects = models.BooleanField(db_default=False)
     # Environments = [] maps to "All Environments"
-    environments = ArrayField(
-        models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH), default=list
-    )
+    environments = ArrayField(models.TextField(), default=list)
     time_filters = models.JSONField(null=False, db_default=DEFAULT_TIME_FILTER)
 
     class Meta:

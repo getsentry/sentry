@@ -7,6 +7,7 @@ import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -59,6 +60,7 @@ type Props = {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
+  showLoadingText?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -86,6 +88,7 @@ export function WidgetCardChartContainer({
   minTableColumnWidth,
   onDataFetchStart,
   disableZoom,
+  showLoadingText,
 }: Props) {
   const location = useLocation();
 
@@ -156,7 +159,7 @@ export function WidgetCardChartContainer({
               {typeof renderErrorMessage === 'function'
                 ? renderErrorMessage(errorOrEmptyMessage)
                 : null}
-              <LoadingScreen loading={loading} />
+              <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
                 transformedResults={tableResults?.[0]!.data ?? []}
                 loading={loading}
@@ -206,6 +209,7 @@ export function WidgetCardChartContainer({
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
+              showLoadingText={showLoadingText}
             />
           </Fragment>
         );
@@ -218,17 +222,27 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
   justify-content: center;
   align-items: center;
+  pointer-events: none;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({
+  loading,
+  showLoadingText,
+}: {
+  loading: boolean;
+  showLoadingText?: boolean;
+}) {
   if (!loading) {
     return null;
   }
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
+      {showLoadingText && <p>{t('Turning data into pixels - almost ready')}</p>}
     </StyledTransparentLoadingMask>
   );
 }

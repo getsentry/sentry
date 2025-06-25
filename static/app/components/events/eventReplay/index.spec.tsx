@@ -74,12 +74,15 @@ jest.mocked(useLoadReplayReader).mockImplementation(() => {
     attachments: [],
     errors: mockErrors,
     fetchError: undefined,
-    fetching: false,
+    attachmentError: undefined,
+    isError: false,
+    isPending: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
     replayRecord: ReplayRecordFixture(),
+    status: 'success' as const,
   };
 });
 

@@ -183,3 +183,37 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["project"] == self.project.slug
 
         assert meta["dataset"] == self.dataset
+
+    def test_trace_id_list_filter(self):
+        trace_id_1 = "1" * 32
+        trace_id_2 = "2" * 32
+        logs = [
+            self.create_ourlog(
+                {"body": "foo", "trace_id": trace_id_1},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "bar", "trace_id": trace_id_2},
+                timestamp=self.ten_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+        response = self.do_request(
+            {
+                "field": ["message", "trace"],
+                "query": f"trace:[{trace_id_1},{trace_id_2}]",
+                "orderby": "message",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {"message": "bar", "trace": trace_id_2},
+            {"message": "foo", "trace": trace_id_1},
+        ]
+        assert meta["dataset"] == self.dataset

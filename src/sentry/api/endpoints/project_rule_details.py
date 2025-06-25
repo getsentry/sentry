@@ -244,7 +244,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             kwargs = {
                 "name": data["name"],
                 "environment": data.get("environment"),
-                "project": project,
+                "project": None,
+                "project_id": project.id,
                 "action_match": data["actionMatch"],
                 "filter_match": data.get("filterMatch"),
                 "conditions": conditions,

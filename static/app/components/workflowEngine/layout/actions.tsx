@@ -1,7 +1,8 @@
 import {createContext, useContext} from 'react';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
+import {space} from 'sentry/styles/space';
 
 const ActionContext = createContext<React.ReactNode | undefined>(undefined);
 
@@ -26,9 +27,7 @@ export function ActionsFromContext() {
   }
   return (
     <HeaderActions>
-      <ButtonBar merged={false} gap={1}>
-        {actions}
-      </ButtonBar>
+      <Flex gap={space(1)}>{actions}</Flex>
     </HeaderActions>
   );
 }

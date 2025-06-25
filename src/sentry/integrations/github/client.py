@@ -25,7 +25,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -86,12 +86,31 @@ class GithubSetupApiClient(IntegrationProxyClient):
 
     def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
         """
-        https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
+        Authentication: JWT
+        Docs: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
         return self.get(f"/app/installations/{installation_id}")
 
     def get_user_info(self) -> dict[str, Any]:
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
+        """
         return self.get("/user")
+
+    def get_user_info_installations(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
+        """
+        return self.get("/user/installations")
+
+    def get_organization_memberships_for_user(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
+        """
+        return self.get("/user/memberships/orgs")
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -176,7 +195,6 @@ class GithubProxyClient(IntegrationProxyClient):
         if should_refresh:
             access_token = self._refresh_access_token()
 
-        logger.info("token.access_token", extra=logger_extra)
         return access_token
 
     @control_silo_function
@@ -225,7 +243,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
     allow_redirects = True
 
     base_url = "https://api.github.com"
-    integration_name = "github"
+    integration_name = IntegrationProviderSlug.GITHUB.value
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
@@ -537,7 +555,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
     ) -> Sequence[FileBlameInfo]:
         log_info = {
             **extra,
-            "provider": "github",
+            "provider": IntegrationProviderSlug.GITHUB,
             "organization_integration_id": self.org_integration_id,
         }
         metrics.incr("integrations.github.get_blame_for_files")
@@ -554,7 +572,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                 logger.error(
                     "sentry.integrations.github.get_blame_for_files.rate_limit",
                     extra={
-                        "provider": "github",
+                        "provider": IntegrationProviderSlug.GITHUB,
                         "specific_resource": "graphql",
                         "remaining": rate_limit.remaining,
                         "next_window": rate_limit.next_window(),
@@ -610,7 +628,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             files=files,
             extra={
                 **extra,
-                "provider": "github",
+                "provider": IntegrationProviderSlug.GITHUB,
                 "organization_integration_id": self.org_integration_id,
             },
         )

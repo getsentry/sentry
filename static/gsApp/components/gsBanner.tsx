@@ -30,11 +30,11 @@ import GuideStore from 'sentry/stores/guideStore';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -47,6 +47,7 @@ import {
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -54,7 +55,6 @@ import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
-  PlanTier,
   type Promotion,
   type PromotionClaimed,
   type Subscription,
@@ -128,7 +128,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
         </ul>
         <p>
           {t(
-            'Until this situation is resolved you will not be able to send events to Sentry.'
+            'Until this situation is resolved you will not be able to send events to Sentry. Please contact support if you have any questions or need assistance.'
           )}
         </p>
       </Body>
@@ -162,6 +162,7 @@ function NoticeModal({
   whichModal,
   billingPermissions,
 }: NoticeModalProps) {
+  const navigate = useNavigate();
   const closeModalAndContinue = (link: string) => {
     closeModal();
     if (whichModal === ModalType.PAST_DUE) {
@@ -175,7 +176,7 @@ function NoticeModal({
     if (link === window.location.pathname) {
       return;
     }
-    browserHistory.push(link);
+    navigate(link);
   };
 
   const closeModalDoNotContinue = () => {
@@ -222,7 +223,7 @@ function NoticeModal({
       title = t('Unable to bill your account');
       body = billingPermissions
         ? t(
-            `There was an issue with your payment. Update your payment information to ensure uniterrupted access to Sentry.`
+            `There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.`
           )
         : t(
             `There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.`
@@ -709,8 +710,6 @@ class GSBanner extends Component<Props, State> {
             checkResults[`${snakeCase(c.plural)}_warning_alert`]!
           )
         ),
-        // TODO(data categories): We don't need to check every EventType for product trials,
-        // only the ones that are supported for product trials.
         productTrialDismissed: objectFromBilledCategories(c =>
           trialPromptIsDismissed(
             checkResults[`${snakeCase(c.plural)}_product_trial_alert`]!,
@@ -1033,11 +1032,11 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILES,
       categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
     },
-    '/insights/backend/crons/': {
+    '/insights/crons/': {
       product: DataCategory.MONITOR_SEATS,
       categories: [DataCategory.MONITOR_SEATS],
     },
-    '/insights/backend/uptime/': {
+    '/insights/uptime/': {
       product: DataCategory.UPTIME,
       categories: [DataCategory.UPTIME],
     },
@@ -1050,28 +1049,12 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILE_DURATION_UI,
       categories: [DataCategory.PROFILE_DURATION_UI],
     },
-    // TODO(Seer): add in-product links for Seer categories
   };
 
   renderProductTrialAlerts() {
     const {subscription, organization, api} = this.props;
-    if (subscription.planTier === PlanTier.AM3) {
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/database/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/profiling/'] = {
-        product: DataCategory.PROFILES,
-        categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
-      };
-    }
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    const productPath = this.PATHS_FOR_PRODUCT_TRIALS[window.location.pathname] || null;
 
+    const productPath = getProductForPath(subscription, window.location.pathname);
     if (!productPath) {
       return null;
     }

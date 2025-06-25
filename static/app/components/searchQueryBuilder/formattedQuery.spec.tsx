@@ -17,6 +17,7 @@ const FILTER_KEYS: TagCollection = {
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   useSearchQueryBuilder: () => ({
     size: 'normal',
+    getFieldDefinition: () => null,
   }),
 }));
 
@@ -66,5 +67,29 @@ describe('FormattedQuery', function () {
 
     expect(screen.getByText('OR')).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
+  });
+
+  it('renders explicit string tag correctly', function () {
+    render(<FormattedQuery {...defaultProps} query="tags[foo,string]:bar" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('foo is bar'))).toBeInTheDocument();
+  });
+
+  it('renders explicit number tag correctly', function () {
+    render(<FormattedQuery {...defaultProps} query="tags[foo,number]:<=100" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('foo is <=100'))).toBeInTheDocument();
+  });
+
+  it('renders has explicit string tag correctly', function () {
+    render(<FormattedQuery {...defaultProps} query="has:tags[foo,string]" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
+  });
+
+  it('renders has number string tag correctly', function () {
+    render(<FormattedQuery {...defaultProps} query="has:tags[foo,number]" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
   });
 });

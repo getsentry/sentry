@@ -1,7 +1,9 @@
 from django.db.models import Count
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -18,34 +20,14 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
 from sentry.db.models.query import in_icontains, in_iexact
 from sentry.issues import grouptype
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import tokenize_query
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
+from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
-
-
-def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None
-):
-    detector_type = grouptype.registry.get_by_slug(detector_type_slug)
-    if detector_type is None:
-        raise ValidationError({"detectorType": ["Unknown detector type"]})
-
-    if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
-        raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
-
-    return detector_type.detector_settings.validator(
-        instance=instance,
-        context={
-            "project": project,
-            "organization": project.organization,
-            "request": request,
-            "access": request.access,
-        },
-        data=request.data,
-    )
-
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -55,6 +37,29 @@ SORT_ATTRS = {
     "type": "type",
     "connectedWorkflows": "connected_workflows",
 }
+
+
+def get_detector_validator(
+    request: Request, project: Project, detector_type_slug: str, instance=None
+) -> BaseDetectorTypeValidator:
+    type = grouptype.registry.get_by_slug(detector_type_slug)
+    if type is None:
+        error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
+        raise ValidationError({"type": [error_message]})
+
+    if type.detector_settings is None or type.detector_settings.validator is None:
+        raise ValidationError({"type": ["Detector type not compatible with detectors"]})
+
+    return type.detector_settings.validator(
+        instance=instance,
+        context={
+            "project": project,
+            "organization": project.organization,
+            "request": request,
+            "access": request.access,
+        },
+        data=request.data,
+    )
 
 
 @region_silo_endpoint
@@ -77,6 +82,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             OrganizationParams.PROJECT,
             DetectorParams.QUERY,
             DetectorParams.SORT,
+            DetectorParams.ID,
         ],
         responses={
             201: DetectorSerializer,
@@ -86,7 +92,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Detectors
         `````````````````````````````
@@ -96,6 +102,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = Detector.objects.filter(
             project_id__in=projects,
         )
+
+        if raw_idlist := request.GET.getlist("id"):
+            try:
+                ids = [int(id) for id in raw_idlist]
+            except ValueError:
+                raise ValidationError({"id": ["Invalid ID format"]})
+            queryset = queryset.filter(id__in=ids)
 
         if raw_query := request.GET.get("query"):
             tokenized_query = tokenize_query(raw_query)
@@ -125,3 +138,63 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             order_by=sort_by.db_order_by,
             on_results=lambda x: serialize(x, request.user),
         )
+
+    @extend_schema(
+        operation_id="Create a Detector",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        request=PolymorphicProxySerializer(
+            "GenericDetectorSerializer",
+            serializers=[
+                gt.detector_settings.validator
+                for gt in grouptype.registry.all()
+                if gt.detector_settings and gt.detector_settings.validator
+            ],
+            resource_type_field_name=None,
+        ),
+        responses={
+            201: DetectorSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Create a Detector
+        ````````````````
+        Create a new detector for a project.
+
+        :param string name: The name of the detector
+        :param string detector_type: The type of detector to create
+        :param object data_source: Configuration for the data source
+        :param array data_conditions: List of conditions to trigger the detector
+        """
+        detector_type = request.data.get("type")
+        if not detector_type:
+            raise ValidationError({"type": ["This field is required."]})
+
+        try:
+            project_id = request.data.get("projectId")
+            if not project_id:
+                raise ValidationError({"projectId": ["This field is required."]})
+
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            raise ValidationError({"projectId": ["Project not found"]})
+
+        if project.organization.id != organization.id:
+            raise ValidationError({"projectId": ["Project not found"]})
+
+        # TODO: Should be in the validator?
+        if not request.access.has_project_access(project):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        validator = get_detector_validator(request, project, detector_type)
+        if not validator.is_valid():
+            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        detector = validator.save()
+        return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)

@@ -36,7 +36,7 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id, is_span_id
 
@@ -761,7 +761,7 @@ def build_span_query(trace_id: str, spans_params: SnubaParams, query_spans: list
     # Performance improvement, snuba's parser is extremely slow when we're sending thousands of
     # span_ids here, using a `splitByChar` means that snuba will not parse the giant list of spans
     span_minimum = options.get("performance.traces.span_query_minimum_spans")
-    sentry_sdk.set_measurement("trace_view.spans.span_minimum", span_minimum)
+    set_span_attribute("trace_view.spans.span_minimum", span_minimum)
     sentry_sdk.set_tag("trace_view.split_by_char.optimization", len(query_spans) > span_minimum)
     if len(query_spans) > span_minimum:
         # TODO: because we're not doing an IN on a list of literals, snuba will not optimize the query with the HexInt
@@ -813,14 +813,14 @@ def augment_transactions_with_spans(
             projects.add(error["project.id"])
         ts_params = find_timestamp_params(transactions)
         time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
-        sentry_sdk.set_measurement("trace_view.spans.time_buffer", time_buffer)
+        set_span_attribute("trace_view.spans.time_buffer", time_buffer)
         if ts_params["min"]:
             params.start = ts_params["min"] - timedelta(hours=time_buffer)
         if ts_params["max"]:
             params.end = ts_params["max"] + timedelta(hours=time_buffer)
 
         if ts_params["max"] and ts_params["min"]:
-            sentry_sdk.set_measurement(
+            set_span_attribute(
                 "trace_view.trace_duration", (ts_params["max"] - ts_params["min"]).total_seconds()
             )
             sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", False)
@@ -899,7 +899,7 @@ def augment_transactions_with_spans(
             total_chunks = 3
         else:
             total_chunks = 4
-        sentry_sdk.set_measurement("trace_view.span_query.total_chunks", total_chunks)
+        set_span_attribute("trace_view.span_query.total_chunks", total_chunks)
         chunks = chunked(list_spans, (len(list_spans) // total_chunks) + 1)
         queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
         results = bulk_snuba_queries(
@@ -1046,7 +1046,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             sentry_sdk.set_tag(
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
-            set_measurement("trace_view.transactions", len_transactions)
+            set_span_attribute("trace_view.transactions", len_transactions)
+
             projects: set[int] = set()
             for transaction in transactions:
                 projects.add(transaction["project.id"])
@@ -1054,9 +1055,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
             sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
-            set_measurement("trace_view.projects", len_projects)
+            set_span_attribute("trace_view.projects", len_projects)
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -1117,7 +1121,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                     False,
                     query_source=query_source,
                 )
-            self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
+            self.record_analytics(transactions, trace_id, request.user.id, organization.id)
 
         warning_extra: dict[str, str] = {"trace": trace_id, "organization": organization.slug}
 

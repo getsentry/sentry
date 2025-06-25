@@ -59,7 +59,6 @@ describe('GroupActivity', function () {
           data: {text: 'Test Note'},
           dateCreated: '2020-01-01T00:00:00',
           user: UserFixture(),
-          project,
         },
       ],
       project,
@@ -98,7 +97,6 @@ describe('GroupActivity', function () {
           type: GroupActivityType.MARK_REVIEWED,
           id: 'reviewed-1',
           dateCreated: '',
-          project: ProjectFixture(),
           data: {},
           user,
         },
@@ -115,7 +113,6 @@ describe('GroupActivity', function () {
       activity: [
         {
           dateCreated: '',
-          project: ProjectFixture(),
           type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'pr-1',
           data: {
@@ -149,7 +146,6 @@ describe('GroupActivity', function () {
           user,
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
-          project: ProjectFixture(),
           type: GroupActivityType.ASSIGNED,
         },
       ],
@@ -171,7 +167,6 @@ describe('GroupActivity', function () {
             rule: 'path:something/*.py #workflow',
             user: UserFixture(),
           },
-          project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -196,7 +191,6 @@ describe('GroupActivity', function () {
             integration: 'slack',
             user: UserFixture(),
           },
-          project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -220,7 +214,6 @@ describe('GroupActivity', function () {
             integration: 'suspectCommitter',
             user: UserFixture(),
           },
-          project: ProjectFixture(),
           dateCreated: '1999-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -247,7 +240,6 @@ describe('GroupActivity', function () {
             integration: 'lottery',
             user: UserFixture(),
           },
-          project: ProjectFixture(),
           dateCreated: '1999-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -269,7 +261,6 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
@@ -296,7 +287,6 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
@@ -329,7 +319,6 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
@@ -383,7 +372,6 @@ describe('GroupActivity', function () {
           id: '123',
           user: null,
           type: GroupActivityType.ASSIGNED,
-          project: ProjectFixture(),
           data: {
             assignee: team.id,
             assigneeType: 'team',
@@ -438,7 +426,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: ProjectFixture(),
           data: {
             ignoreUntilEscalating: true,
           },
@@ -457,7 +444,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
-          project: ProjectFixture(),
           data: {
             forecast: 200,
           },
@@ -467,7 +453,6 @@ describe('GroupActivity', function () {
         {
           id: '124',
           type: GroupActivityType.SET_ESCALATING,
-          project: ProjectFixture(),
           data: {
             forecast: 400,
           },
@@ -491,7 +476,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
-          project: ProjectFixture(),
           data: {
             forecast: 1,
           },
@@ -512,7 +496,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
-          project: ProjectFixture(),
           data: {
             integration_id: '1',
             provider_key: 'jira',
@@ -533,7 +516,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_RESOLVED,
-          project: ProjectFixture(),
           data: {
             integration_id: '1',
             provider_key: 'jira',
@@ -554,7 +536,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: ProjectFixture(),
           data: {
             expired_snooze: {
               count: 400,
@@ -580,7 +561,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: ProjectFixture(),
           data: {
             expired_snooze: {
               user_count: 1,
@@ -607,7 +587,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: ProjectFixture(),
           data: {
             expired_snooze: {
               until: date,
@@ -633,7 +612,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: ProjectFixture(),
           data: {},
           user: UserFixture(),
           dateCreated,
@@ -650,7 +628,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-          project: ProjectFixture(),
           data: {
             version: 'frontend@1.0.0',
           },
@@ -671,7 +648,6 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-          project: ProjectFixture(),
           data: {
             current_release_version: 'frontend@1.0.0',
           },
@@ -693,7 +669,6 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: ProjectFixture(),
             data: {},
             dateCreated,
           },
@@ -709,7 +684,6 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: ProjectFixture(),
             data: {
               version: 'frontend@1.0.0',
             },
@@ -729,7 +703,6 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: ProjectFixture(),
             data: {
               version: 'frontend@2.0.0',
               resolved_in_version: 'frontend@1.0.0',
@@ -754,7 +727,6 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: ProjectFixture(),
             data: {
               version: 'frontend@abc1',
               resolved_in_version: 'frontend@abc2',
@@ -779,7 +751,6 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_PRIORITY,
-            project: ProjectFixture(),
             data: {
               priority: PriorityLevel.HIGH,
               reason: 'escalating',
@@ -800,7 +771,6 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_PRIORITY,
-            project: ProjectFixture(),
             data: {
               priority: PriorityLevel.LOW,
               reason: 'ongoing',
@@ -821,7 +791,6 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.DELETED_ATTACHMENT,
-            project: ProjectFixture(),
             data: {},
             dateCreated,
             user: UserFixture(),

@@ -5,9 +5,9 @@ import {PlatformIcon, platforms} from 'platformicons';
 import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
-import JSXNode from 'sentry/components/stories/jsxNode';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {
   IdentityIcon,
@@ -164,6 +164,27 @@ const SECTIONS: TSection[] = [
         keywords: ['cron', 'monitors', 'clock', 'cycle'],
         name: 'Timer',
         defaultProps: {},
+      },
+      {
+        id: 'seer',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {},
+      },
+      {
+        id: 'seer-waiting',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {variant: 'waiting'},
+      },
+      {
+        id: 'seer-loading',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {variant: 'loading'},
       },
     ],
   },
@@ -1384,7 +1405,7 @@ function Section({section}: {section: TSection}) {
               key={icon.id}
               isHoverable
               overlayStyle={{maxWidth: 440}}
-              title={<JSXNode name={name} props={props} />}
+              title={<Storybook.JSXNode name={name} props={props} />}
             >
               <Cell>
                 <Component {...props} />
@@ -1420,7 +1441,7 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
             overlayStyle={{maxWidth: 440}}
             title={
               <Fragment>
-                <JSXNode name="PlatformIcon" props={{platform}} />
+                <Storybook.JSXNode name="PlatformIcon" props={{platform}} />
               </Fragment>
             }
           >
@@ -1502,7 +1523,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
             overlayStyle={{maxWidth: 440}}
             title={
               <Fragment>
-                <JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
+                <Storybook.JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
               </Fragment>
             }
           >
@@ -1570,7 +1591,10 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
             overlayStyle={{maxWidth: 440}}
             title={
               <Fragment>
-                <JSXNode name="IdentityIcon" props={{providerId: platform.id}} />
+                <Storybook.JSXNode
+                  name="IdentityIcon"
+                  props={{providerId: platform.id}}
+                />
               </Fragment>
             }
           >

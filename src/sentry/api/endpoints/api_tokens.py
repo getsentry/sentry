@@ -39,6 +39,8 @@ def get_appropriate_user_id(request: Request) -> int:
     For GET endpoints, the GET dict is used.
     For all others, the DATA dict is used.
     """
+    assert request.user.is_authenticated
+
     # Get the user id for the user that made the current request as a baseline default
     user_id = request.user.id
     if has_elevated_mode(request):

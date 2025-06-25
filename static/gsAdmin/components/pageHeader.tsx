@@ -19,7 +19,7 @@ const Breadcrumbs = styled('div')`
     gap: ${space(1)};
 
     &:before {
-      content: '\u203A';
+      content: '\203A';
     }
   }
 `;
@@ -34,7 +34,9 @@ const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
   <header {...props}>
     <Breadcrumbs>
       <Heading>{title}</Heading>
-      {breadcrumbs?.map((item, i) => <div key={i}>{item}</div>)}
+      {breadcrumbs?.map((item, i) => (
+        <div key={i}>{item}</div>
+      ))}
     </Breadcrumbs>
     {children}
   </header>

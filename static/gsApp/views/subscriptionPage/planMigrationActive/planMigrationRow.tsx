@@ -79,17 +79,17 @@ function formatCategoryRowString(
 function PlanMigrationRow(props: Props) {
   let currentValue: React.ReactNode;
   let nextValue: React.ReactNode;
-  let discountPrice: React.ReactNode;
+  let discountPrice: string | undefined;
   let currentTitle: React.ReactNode =
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     DATA_CATEGORY_INFO[props.type]?.productName ?? props.type;
-  const dataTestIdSuffix: React.ReactNode =
+  const dataTestIdSuffix: string =
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     DATA_CATEGORY_INFO[props.type]?.plural ?? props.type;
 
   const options = {isAbbreviated: true};
 
-  // TODO(data categories): check if this can be parsed
+  // TODO(data categories): BIL-955
   switch (props.type) {
     case 'plan':
       currentValue = tct('Legacy [currentValue]', {currentValue: props.currentValue});

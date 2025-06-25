@@ -35,7 +35,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -57,7 +56,10 @@ import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
-import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
+import {
+  isEapAlertType,
+  shouldUseErrorsDiscoverDataset,
+} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   alertDetailsLink,
@@ -66,7 +68,10 @@ import {
 } from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
@@ -93,10 +98,7 @@ interface MetricChartProps {
 }
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return moment(date).format(format);
 }
 
 export function getRuleChangeSeries(
@@ -158,6 +160,11 @@ export default function MetricChart({
   const navigate = useNavigate();
   const organization = useOrganization();
   const shouldUseSessionsStats = isCrashFreeAlert(rule.dataset);
+
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(
+    rule.dataset,
+    rule.eventTypes
+  );
 
   const handleZoom = useCallback(
     (start: DateString, end: DateString) => {
@@ -234,6 +241,7 @@ export default function MetricChart({
         query,
         dataset,
         openInDiscoverDataset,
+        traceItemType,
       });
 
       const resolvedPercent =
@@ -288,7 +296,13 @@ export default function MetricChart({
             </Fragment>
           </StyledInlineContainer>
           {!isSessionAggregate(rule.aggregate) &&
-            (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            (isEapAlertType(
+              getAlertTypeFromAggregateDataset({
+                ...rule,
+                eventTypes: rule.eventTypes,
+                organization,
+              })
+            ) ? (
               <Feature features="visibility-explore-view">
                 <LinkButton size="sm" {...props}>
                   {buttonText}
@@ -304,7 +318,7 @@ export default function MetricChart({
         </StyledChartControls>
       );
     },
-    [rule, organization, project, timePeriod, query]
+    [query, rule, organization, project, timePeriod, traceItemType]
   );
 
   const renderChart = useCallback(
@@ -378,7 +392,14 @@ export default function MetricChart({
           <StyledPanelBody withPadding>
             <ChartHeader>
               <HeaderTitleLegend>
-                {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
+                {
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      ...rule,
+                      organization,
+                    })
+                  ]
+                }
               </HeaderTitleLegend>
             </ChartHeader>
             <ChartFilters>

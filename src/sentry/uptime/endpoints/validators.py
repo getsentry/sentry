@@ -99,7 +99,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     timeout_ms = serializers.IntegerField(
         required=True,
         min_value=1000,
-        max_value=30_000,
+        max_value=60_000,
         help_text="The number of milliseconds the request will wait for a response before timing-out.",
     )
     mode = serializers.IntegerField(required=False)

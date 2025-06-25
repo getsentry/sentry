@@ -33,7 +33,7 @@ function WidgetTemplatesList({
 }: WidgetTemplatesListProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
+  const [selectedWidget, setSelectedWidget] = useState<number | null>(0);
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
@@ -65,7 +65,7 @@ function WidgetTemplatesList({
   return (
     <Fragment>
       {widgets.map((widget, index) => {
-        const iconColor = theme.chart.getColorPalette(widgets.length - 2)?.[index]!;
+        const iconColor = theme.chart.getColorPalette(widgets.length - 1)?.[index]!;
 
         const Icon = getWidgetIcon(widget.displayType);
         const lastWidget = index === widgets.length - 1;

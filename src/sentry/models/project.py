@@ -105,6 +105,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-gatsby",
     "javascript-nextjs",
     "javascript-react",
+    "javascript-react-router",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",
@@ -235,7 +236,7 @@ class Project(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = SentrySlugField(null=True, max_length=PROJECT_SLUG_MAX_LENGTH)
+    slug = SentrySlugField(max_length=PROJECT_SLUG_MAX_LENGTH)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
@@ -344,6 +345,9 @@ class Project(Model):
 
         # This Project has sent feature flags
         has_flags: bool
+
+        # This Project has sent insight agent monitoring spans
+        has_insights_agent_monitoring: bool
 
         bitfield_default = 10
         bitfield_null = True

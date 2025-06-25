@@ -1,7 +1,7 @@
 from typing import Literal
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter, Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
@@ -92,8 +92,9 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
-# The RPC limits us to 2688 points per timeseries
-MAX_ROLLUP_POINTS = 2688
+# The RPC limits us to 2689 points per timeseries
+# MAX 15 minute granularity over 28 days (2688 buckets) + 1 bucket to allow for partial time buckets on
+MAX_ROLLUP_POINTS = 2689
 # Copied from snuba, a number of total seconds
 VALID_GRANULARITIES = frozenset(
     {
@@ -163,4 +164,11 @@ SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType]
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
     "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
     "HIGHEST_ACCURACY": DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
+}
+
+ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
+    "divide": Column.BinaryFormula.OP_DIVIDE,
+    "multiply": Column.BinaryFormula.OP_MULTIPLY,
+    "plus": Column.BinaryFormula.OP_ADD,
+    "minus": Column.BinaryFormula.OP_SUBTRACT,
 }

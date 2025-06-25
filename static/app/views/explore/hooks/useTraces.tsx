@@ -1,9 +1,11 @@
+import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {UseApiQueryOptions, UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,11 +57,13 @@ interface TraceResults {
   meta: any;
 }
 
-interface UseTracesOptions {
+interface UseTracesOptions
+  extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
   cursor?: string;
   dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
+  keepPreviousData?: boolean;
   limit?: number;
   query?: string | string[];
   sort?: 'timestamp' | '-timestamp';
@@ -77,6 +81,8 @@ export function useTraces({
   limit,
   query,
   sort,
+  keepPreviousData,
+  refetchInterval,
 }: UseTracesOptions): UseTracesResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -103,7 +109,9 @@ export function useTraces({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: false,
+    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     enabled,
+    refetchInterval,
   });
 
   return {

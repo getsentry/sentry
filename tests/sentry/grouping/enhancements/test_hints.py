@@ -6,7 +6,7 @@ from typing import Literal
 import pytest
 
 from sentry.grouping.component import FrameGroupingComponent
-from sentry.grouping.enhancer import get_hint_for_frame
+from sentry.grouping.enhancer import _combine_hints, get_hint_for_frame
 
 
 @dataclass
@@ -28,7 +28,7 @@ default_system_frame_hint = "non app frame"
 @pytest.mark.parametrize(
     [
         "variant_name",
-        "in_app",
+        "final_in_app",
         "client_in_app",
         "rust_hint",
         "incoming_hint",
@@ -38,7 +38,7 @@ default_system_frame_hint = "non app frame"
     # This represents every combo of:
     #
     #    variant_name: app or system
-    #    in_app: True or False
+    #    final_in_app: True or False
     #    client_in_app: None, True, or False
     #    rust_hint: in_app_hint, out_of_app_hint, ignored_hint, unignored_hint, or None
     #    incoming_hint: None or ignored_because_hint (the only kind of hint that gets set ahead of time)
@@ -415,7 +415,7 @@ default_system_frame_hint = "non app frame"
 )
 def test_get_hint_for_frame(
     variant_name: str,
-    in_app: bool,
+    final_in_app: bool,
     client_in_app: bool | None,
     rust_hint: str | None,
     incoming_hint: str | None,
@@ -423,11 +423,43 @@ def test_get_hint_for_frame(
     expected_result: str | None,
 ) -> None:
 
-    frame = {"in_app": in_app, "data": {"client_in_app": client_in_app}}
-    frame_component = FrameGroupingComponent(in_app=in_app, hint=incoming_hint, values=[])
+    frame = {"in_app": final_in_app, "data": {"client_in_app": client_in_app}}
+    frame_component = FrameGroupingComponent(in_app=final_in_app, hint=incoming_hint, values=[])
     rust_frame = DummyRustFrame(hint=rust_hint)
 
     assert (
         get_hint_for_frame(variant_name, frame, frame_component, rust_frame, desired_hint_type)  # type: ignore[arg-type]
+        == expected_result
+    )
+
+
+@pytest.mark.parametrize(
+    ["variant_name", "in_app", "contributes", "in_app_hint", "contributes_hint", "expected_result"],
+    [
+        ("app", True, True, in_app_hint, None, in_app_hint),
+        ("app", True, True, in_app_hint, unignored_hint, f"{in_app_hint} and {unignored_hint}"),
+        ("app", True, False, in_app_hint, ignored_hint, f"{in_app_hint} but {ignored_hint}"),
+        ("app", False, True, out_of_app_hint, None, out_of_app_hint),
+        ("app", False, True, out_of_app_hint, unignored_hint, out_of_app_hint),
+        ("app", False, False, out_of_app_hint, ignored_hint, out_of_app_hint),
+        ("system", True, True, None, None, None),
+        ("system", True, True, None, unignored_hint, unignored_hint),
+        ("system", True, False, None, ignored_hint, ignored_hint),
+        ("system", False, True, None, None, None),
+        ("system", False, True, None, unignored_hint, unignored_hint),
+        ("system", False, False, None, ignored_hint, ignored_hint),
+    ],
+)
+def test_combining_hints(
+    variant_name,
+    in_app,
+    contributes,
+    in_app_hint,
+    contributes_hint,
+    expected_result,
+):
+    frame_component = FrameGroupingComponent(in_app=in_app, contributes=contributes, values=[])
+    assert (
+        _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
         == expected_result
     )

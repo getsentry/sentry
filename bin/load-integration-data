@@ -1,0 +1,152 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+import argparse
+
+import click
+from django.core import serializers
+from django.db import IntegrityError, router
+
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.utils.db import atomic_transaction
+
+# The order in which models should be loaded to respect foreign key dependencies.
+MODEL_LOAD_ORDER = [
+    "sentry.identityprovider",
+    "sentry.integration",
+    "sentry.identity",  # Depends on sentry.identityprovider
+    "sentry.organizationintegration",  # Depends on sentry.integration (and sentry.organization)
+]
+
+
+def load_data(input_file, org_id):
+    """
+    Loads data from a JSON file and saves it to the database.
+    Assumes that PKs from the file should be preserved.
+    """
+    click.echo(f"Reading serialized data from {input_file}...")
+    with open(input_file) as f:
+        serialized_data = f.read()
+
+    if not serialized_data.strip() or serialized_data.strip() == "[]":
+        click.echo("Input file is empty or contains no data. Nothing to load.")
+        return
+
+    click.echo("Deserializing objects...")
+    try:
+        deserialized_objects = list(serializers.deserialize("json", serialized_data))
+    except Exception as e:
+        click.echo(f"Error during deserialization: {e}")
+        click.echo(
+            "Please ensure the input file is a valid JSON dump created by the save_integration_data.py script."
+        )
+        return
+
+    if not deserialized_objects:
+        click.echo("No objects were deserialized from the file.")
+        return
+
+    click.echo(f"Deserialized {len(deserialized_objects)} objects.")
+
+    # Sort deserialized objects based on MODEL_LOAD_ORDER to handle dependencies.
+    # Objects not in MODEL_LOAD_ORDER will be placed at the end.
+    def get_sort_key(d_obj):
+        model_key = f"{d_obj.object._meta.app_label}.{d_obj.object._meta.model_name}"
+        try:
+            return MODEL_LOAD_ORDER.index(model_key)
+        except ValueError:
+            return len(MODEL_LOAD_ORDER)  # Put unknown models at the end
+
+    sorted_deserialized_objects = sorted(deserialized_objects, key=get_sort_key)
+
+    saved_count = 0
+    skipped_count = 0
+    error_count = 0
+
+    parsed_org_id = None
+    if org_id:
+        try:
+            parsed_org_id = int(org_id)
+            click.echo(
+                f"Will update OrganizationIntegration objects to organization_id: {parsed_org_id}"
+            )
+        except ValueError:
+            click.echo(
+                f"Warning: Invalid org_id '{org_id}'. It will be ignored. Please provide a valid integer."
+            )
+            parsed_org_id = None
+
+    click.echo("Attempting to save objects to the database...")
+    with atomic_transaction(
+        using=(
+            router.db_for_write(Integration),
+            router.db_for_write(OrganizationIntegration),
+            router.db_for_write(Identity),
+            router.db_for_write(IdentityProvider),
+        )
+    ):
+        for deserialized_object in sorted_deserialized_objects:
+            model_name = deserialized_object.object._meta.object_name
+            pk = deserialized_object.object.pk
+
+            # If org_id is provided, update OrganizationIntegration's organization_id
+            if parsed_org_id is not None and isinstance(
+                deserialized_object.object, OrganizationIntegration
+            ):
+                click.echo(
+                    f"  Updating organization_id for {model_name} (PK: {pk}) to {parsed_org_id}"
+                )
+                deserialized_object.object.organization_id = parsed_org_id
+
+            try:
+                # The deserialized_object.save() method handles saving the object
+                # and its many-to-many data (if any). It attempts to use the PK
+                # from the serialized data.
+                deserialized_object.save()
+                saved_count += 1
+                click.echo(f"  Saved: {model_name} (PK: {pk})")
+            except IntegrityError as e:
+                # This can occur due to PK conflict, unique constraint violation,
+                # or a non-existent foreign key (e.g., if a referenced User or Organization
+                # doesn't exist in the target DB).
+                skipped_count += 1
+                click.echo(f"  Skipped: {model_name} (PK: {pk}) due to IntegrityError: {e}")
+            except Exception as e:
+                # Catch other potential errors during save.
+                error_count += 1
+                click.echo(f"  Error saving: {model_name} (PK: {pk}): {e}")
+                # Depending on severity, you might want to re-raise to stop the transaction.
+                # For now, we'll log and continue.
+
+    click.echo("\nLoad process completed.")
+    click.echo(f"  Successfully saved: {saved_count} objects.")
+    click.echo(f"  Skipped (IntegrityError): {skipped_count} objects.")
+    click.echo(f"  Errors (Other): {error_count} objects.")
+    if skipped_count > 0 or error_count > 0:
+        click.echo(
+            "Please check skipped/error messages. This might indicate that the target database was not clean,"
+        )
+        click.echo("or that required related objects (like Organizations or Users) were missing.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Load Sentry integration-related models from a JSON file into the database."
+    )
+    parser.add_argument(
+        "--input-file",
+        required=True,
+        help="Path to the input JSON file containing the data to load.",
+    )
+    parser.add_argument(
+        "--org-id",
+        required=False,
+        help="The organization ID to save integration data for.",
+    )
+    args = parser.parse_args()
+
+    load_data(args.input_file, args.org_id)

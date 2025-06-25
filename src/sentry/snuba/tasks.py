@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
-from sentry import features
+from sentry import features, options
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
@@ -147,18 +147,21 @@ def update_subscription_in_snuba(
                 "event_types": subscription.snuba_query.event_types,
             },
         )
-        old_entity_key = (
-            EntityKey.EAPSpans
-            if dataset == Dataset.EventsAnalyticsPlatform
-            else get_entity_key_from_query_builder(
-                old_entity_subscription.build_query_builder(
-                    query,
-                    [subscription.project_id],
-                    None,
-                    {"organization_id": subscription.project.organization_id},
-                ),
+        if dataset == Dataset.EventsAnalyticsPlatform and options.get("alerts.spans.use-eap-items"):
+            old_entity_key = EntityKey.EAPItems
+        else:
+            old_entity_key = (
+                EntityKey.EAPItemsSpan
+                if dataset == Dataset.EventsAnalyticsPlatform
+                else get_entity_key_from_query_builder(
+                    old_entity_subscription.build_query_builder(
+                        query,
+                        [subscription.project_id],
+                        None,
+                        {"organization_id": subscription.project.organization_id},
+                    ),
+                )
             )
-        )
         _delete_from_snuba(
             Dataset(dataset),
             subscription.subscription_id,

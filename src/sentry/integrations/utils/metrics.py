@@ -108,6 +108,9 @@ class EventLifecycle:
         self._state: EventLifecycleOutcome | None = None
         self._extra = dict(self.payload.get_extras())
 
+    def get_state(self) -> EventLifecycleOutcome | None:
+        return self._state
+
     def add_extra(self, name: str, value: Any) -> None:
         """Add a value to logged "extra" data.
 
@@ -143,7 +146,11 @@ class EventLifecycle:
         }
 
         if isinstance(outcome_reason, BaseException):
+            # (iamrajjoshi): Log the full exception and the repr of the exception
+            # This is an experiment to dogfood Sentry logs
+            #  Logs are paid by bytes, we save money by mking optimizations like this - we should try to dogfood from a similar perspective
             log_params["exc_info"] = outcome_reason
+            log_params["extra"]["exception_summary"] = repr(outcome_reason)
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
 
@@ -258,7 +265,7 @@ class EventLifecycle:
 class IntegrationPipelineViewType(StrEnum):
     """A specific step in an integration's pipeline that is not a static page."""
 
-    # IdentityProviderPipeline
+    # IdentityPipeline
     IDENTITY_LOGIN = "identity_login"
     IDENTITY_LINK = "identity_link"
     TOKEN_EXCHANGE = "token_exchange"
@@ -266,6 +273,7 @@ class IntegrationPipelineViewType(StrEnum):
     # GitHub
     OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
+    ORGANIZATION_SELECTION = "organization_selection"
 
     # Bitbucket
     VERIFY_INSTALLATION = "verify_installation"

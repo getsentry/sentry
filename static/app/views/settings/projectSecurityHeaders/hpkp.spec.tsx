@@ -7,6 +7,13 @@ describe('ProjectHpkpReports', function () {
   const {organization, project} = initializeOrg();
   const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/security-headers/hpkp/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/security-headers/hpkp/',
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -19,11 +26,8 @@ describe('ProjectHpkpReports', function () {
   it('renders', async function () {
     render(<ProjectHpkpReports />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
-
-    // Renders the loading indication initially
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // Heading
     expect(
@@ -40,7 +44,7 @@ describe('ProjectHpkpReports', function () {
     });
     render(<ProjectHpkpReports />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     expect(

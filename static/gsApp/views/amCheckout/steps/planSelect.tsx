@@ -1,23 +1,18 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
-import {SEER_MONTHLY_PRICE_CENTS} from 'getsentry/constants';
 import {type Plan, PlanTier} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
@@ -33,10 +28,10 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
+import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils';
-import * as utils from 'getsentry/views/amCheckout/utils';
 
 export type PlanContent = {
   description: React.ReactNode;
@@ -140,10 +135,6 @@ function PlanSelect({
   onCompleteStep,
 }: StepProps) {
   const {data: promotionData, refetch} = usePromotionTriggerCheck(organization);
-
-  const [seerIsEnabled, setSeerIsEnabled] = useState(Boolean(formData.seerEnabled));
-  const hasSeerFeature = organization.features.includes('seer-billing');
-
   const discountInfo = promotion?.discountInfo;
   let trailingItems: React.ReactNode = null;
   if (showSubscriptionDiscount({activePlan, discountInfo}) && discountInfo) {
@@ -247,88 +238,6 @@ function PlanSelect({
     );
   };
 
-  const renderAdditionalFeature = ({
-    featureKey,
-    featureEnabled,
-    featureAvailable,
-    title,
-    description,
-    icon,
-    priceCents,
-    featureItems,
-    tooltipTitle,
-    isNew = false,
-    setFeatureEnabled,
-  }: {
-    description: string;
-    featureAvailable: boolean;
-    featureEnabled: boolean;
-    featureItems: string[];
-    featureKey: string;
-    icon: React.ReactNode;
-    priceCents: number;
-    setFeatureEnabled: (enabled: boolean) => void;
-    title: string;
-    tooltipTitle: string;
-    isNew?: boolean;
-  }) => {
-    return (
-      featureAvailable && (
-        <StepFooter data-test-id={`footer-${featureKey}`}>
-          <FeatureContainer>
-            <FeatureHeader>
-              {icon}
-              {title}
-              {isNew && <FeatureBadge type="new" variant="badge" />}
-            </FeatureHeader>
-            <FeatureDescription>{description}</FeatureDescription>
-            <FeatureList>
-              {featureItems.map((item, index) => (
-                <FeatureItem key={index}>{item}</FeatureItem>
-              ))}
-            </FeatureList>
-            <ButtonWrapper>
-              <Button
-                priority={'default'}
-                icon={featureEnabled ? <IconCheckmark /> : <IconAdd />}
-                onClick={() => {
-                  // Update the UI state
-                  setFeatureEnabled(!featureEnabled);
-                  // Update the form data
-                  onUpdate({...formData, [`${featureKey}Enabled`]: !featureEnabled});
-                }}
-                data-test-id={`${featureKey}-toggle-button`}
-              >
-                {featureEnabled
-                  ? t('Added to plan')
-                  : t('%s/mo', utils.displayPrice({cents: priceCents}))}
-              </Button>
-            </ButtonWrapper>
-            <div>
-              Extra usage requires PAYG <QuestionTooltip size="xs" title={tooltipTitle} />
-            </div>
-          </FeatureContainer>
-        </StepFooter>
-      )
-    );
-  };
-
-  const renderSeer = () => {
-    return renderAdditionalFeature({
-      featureKey: 'seer',
-      featureEnabled: seerIsEnabled,
-      featureAvailable: hasSeerFeature,
-      title: 'Add Seer, our AI Agent',
-      description: 'Insights and solutions to fix bugs faster',
-      icon: <SeerIcon size="lg" />,
-      priceCents: SEER_MONTHLY_PRICE_CENTS,
-      featureItems: ['Root Cause Analysis', 'Autofix PRs', 'AI Issue Priority'],
-      tooltipTitle: t('Additional Seer information.'),
-      isNew: true,
-      setFeatureEnabled: setSeerIsEnabled,
-    });
-  };
-
   const renderFooter = () => {
     const bizPlanContent = getContentForPlan('business', checkoutTier);
     let missingFeatures: string[] = [];
@@ -420,7 +329,9 @@ function PlanSelect({
         organization={organization}
       />
       {isActive && renderBody()}
-      {isActive && renderSeer()}
+      {isActive && (
+        <ProductSelect activePlan={activePlan} formData={formData} onUpdate={onUpdate} />
+      )}
       {isActive && renderFooter()}
     </Panel>
   );
@@ -439,39 +350,4 @@ const FooterWarningWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const FeatureHeader = styled('div')`
-  margin: 0;
-  gap: ${space(1)};
-  display: flex;
-  align-items: center;
-  font-weight: 900;
-  font-size: large;
-`;
-
-const FeatureContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-`;
-
-const FeatureDescription = styled('p')`
-  margin: 0;
-  color: ${p => p.theme.subText};
-`;
-
-const FeatureList = styled('ul')`
-  list-style: disc;
-  padding-left: ${space(2)};
-  margin: ${space(1)} 0 0 0;
-  color: ${p => p.theme.subText};
-`;
-
-const FeatureItem = styled('li')`
-  margin-bottom: ${space(0.5)};
-`;
-
-const ButtonWrapper = styled('div')`
-  margin-top: ${space(2)};
 `;

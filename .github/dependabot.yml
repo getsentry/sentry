@@ -20,7 +20,10 @@ updates:
           - '@babel/*'
       sentry-dependencies:
         patterns:
-          - '@sentry/*'
+          - '@sentry/core'
+          - '@sentry/node'
+          - '@sentry/react'
+          - '@sentry/profiling-node'
       spectrum-dependencies:
         patterns:
           - '@react-stately/*'
@@ -42,10 +45,6 @@ updates:
           - 'react-dom'
           - '@types/react'
           - '@types/react-dom'
-      webpack-dependencies:
-        patterns:
-          - 'webpack'
-          - 'webpack-*'
     ignore:
       # For all packages, ignore all patch updates
       - dependency-name: '*'

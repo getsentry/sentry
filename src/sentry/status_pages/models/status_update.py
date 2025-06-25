@@ -15,16 +15,16 @@ class StatusUpdate(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Organization
 
     # Status types
-    STATUS_TYPE_OPERATIONAL = "operational"
-    STATUS_TYPE_DEGRADED = "degraded"
-    STATUS_TYPE_DOWN = "down"
-    STATUS_TYPE_MAINTENANCE = "maintenance"
+    STATUS_UPDATE_TYPE_OPERATIONAL = "operational"
+    STATUS_UPDATE_TYPE_DEGRADED = "degraded"
+    STATUS_UPDATE_TYPE_DOWN = "down"
+    STATUS_UPDATE_TYPE_MAINTENANCE = "maintenance"
 
     STATUS_TYPE_CHOICES = (
-        (STATUS_TYPE_OPERATIONAL, "Operational"),
-        (STATUS_TYPE_DEGRADED, "Degraded"),
-        (STATUS_TYPE_DOWN, "Down"),
-        (STATUS_TYPE_MAINTENANCE, "Scheduled Maintenance"),
+        (STATUS_UPDATE_TYPE_OPERATIONAL, "Operational"),
+        (STATUS_UPDATE_TYPE_DEGRADED, "Degraded"),
+        (STATUS_UPDATE_TYPE_DOWN, "Down"),
+        (STATUS_UPDATE_TYPE_MAINTENANCE, "Scheduled Maintenance"),
     )
 
     title = models.CharField(max_length=255)

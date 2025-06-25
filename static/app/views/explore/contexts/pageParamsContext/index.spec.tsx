@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -74,11 +76,11 @@ describe('PageParamsProvider', function () {
       setPageParams({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
         fields: ['id', 'timestamp'],
-        groupBys: ['span.op'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-        visualizes: [
+        aggregateFields: [
+          {groupBy: 'span.op'},
           {
             chartType: ChartType.AREA,
             label: 'A',
@@ -97,22 +99,26 @@ describe('PageParamsProvider', function () {
       </PageParamsProvider>
     );
 
-    expect(pageParams).toEqual({
-      dataset: undefined,
-      fields: [
-        'id',
-        'span.op',
-        'span.description',
-        'span.duration',
-        'transaction',
-        'timestamp',
-      ],
-      groupBys: [''],
-      mode: Mode.SAMPLES,
-      query: '',
-      sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [new Visualize(['count(span.duration)'], {label: 'A'})],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: undefined,
+        fields: [
+          'id',
+          'span.op',
+          'span.description',
+          'span.duration',
+          'transaction',
+          'timestamp',
+        ],
+        mode: Mode.SAMPLES,
+        query: '',
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: ''},
+          new Visualize('count(span.duration)', {label: 'A'}),
+        ],
+      })
+    );
   });
 
   it('correctly updates fields', function () {
@@ -120,17 +126,22 @@ describe('PageParamsProvider', function () {
 
     act(() => setFields(['id', 'span.op', 'timestamp']));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'span.op', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'span.op', 'timestamp'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates groupBys', function () {
@@ -138,17 +149,23 @@ describe('PageParamsProvider', function () {
 
     act(() => setGroupBys(['browser.name', 'sdk.name']));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['browser.name', 'sdk.name'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        aggregateFields: [
+          {groupBy: 'browser.name'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+          {groupBy: 'sdk.name'},
+        ],
+      })
+    );
   });
 
   it('correctly gives default for empty groupBys', function () {
@@ -156,17 +173,22 @@ describe('PageParamsProvider', function () {
 
     act(() => setGroupBys([]));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: [''],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        aggregateFields: [
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+          {groupBy: ''},
+        ],
+      })
+    );
   });
 
   it('permits ungrouped', function () {
@@ -174,17 +196,22 @@ describe('PageParamsProvider', function () {
 
     act(() => setGroupBys(['']));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: [''],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        aggregateFields: [
+          {groupBy: ''},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates mode from samples to aggregates', function () {
@@ -192,35 +219,56 @@ describe('PageParamsProvider', function () {
 
     act(() => setMode(Mode.AGGREGATE));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates mode from aggregates to sample without group bys', function () {
-    renderTestComponent({mode: Mode.AGGREGATE, groupBys: [''], sortBys: null});
+    renderTestComponent({
+      mode: Mode.AGGREGATE,
+      aggregateFields: [
+        {groupBy: ''},
+        {
+          chartType: ChartType.AREA,
+          label: 'A',
+          yAxes: ['count(span.self_time)'],
+        },
+      ],
+      sortBys: null,
+    });
 
     act(() => setMode(Mode.SAMPLES));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: [''],
-      mode: Mode.SAMPLES,
-      query: '',
-      sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.SAMPLES,
+        query: '',
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: ''},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates mode from aggregates to sample with group bys', function () {
@@ -228,22 +276,47 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       sortBys: null,
       fields: ['id', 'sdk.name', 'sdk.version', 'timestamp'],
-      groupBys: ['sdk.name', 'sdk.version', 'span.op', ''],
+      aggregateFields: [
+        {groupBy: 'sdk.name'},
+        {groupBy: 'sdk.version'},
+        {groupBy: 'span.op'},
+        {groupBy: ''},
+        {
+          chartType: ChartType.AREA,
+          label: 'A',
+          yAxes: ['count(span.self_time)'],
+        },
+      ],
     });
 
     act(() => setMode(Mode.SAMPLES));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'sdk.name', 'sdk.version', 'timestamp', 'span.op'],
-      groupBys: ['sdk.name', 'sdk.version', 'span.op', ''],
-      mode: Mode.SAMPLES,
-      query: '',
-      sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: [
+          'id',
+          'sdk.name',
+          'sdk.version',
+          'timestamp',
+          'span.self_time',
+          'span.op',
+        ],
+        mode: Mode.SAMPLES,
+        query: '',
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'sdk.name'},
+          {groupBy: 'sdk.version'},
+          {groupBy: 'span.op'},
+          {groupBy: ''},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates query', function () {
@@ -251,17 +324,22 @@ describe('PageParamsProvider', function () {
 
     act(() => setQuery('foo:bar'));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: 'foo:bar',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: 'foo:bar',
+        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates sort bys in samples mode with known field', function () {
@@ -269,17 +347,22 @@ describe('PageParamsProvider', function () {
 
     act(() => setSortBys([{field: 'id', kind: 'desc'}]));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.SAMPLES,
-      query: '',
-      sortBys: [{field: 'id', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.SAMPLES,
+        query: '',
+        sortBys: [{field: 'id', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates sort bys in samples mode with unknown field', function () {
@@ -287,23 +370,29 @@ describe('PageParamsProvider', function () {
 
     act(() => setSortBys([{field: 'span.op', kind: 'desc'}]));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.SAMPLES,
-      query: '',
-      sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.SAMPLES,
+        query: '',
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates sort bys in aggregates mode with known y axis', function () {
     renderTestComponent({
       mode: Mode.AGGREGATE,
-      visualizes: [
+      aggregateFields: [
+        {groupBy: 'span.op'},
         {
           chartType: ChartType.AREA,
           label: 'A',
@@ -314,30 +403,33 @@ describe('PageParamsProvider', function () {
 
     act(() => setSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'max(span.duration)', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['min(span.self_time)'], {
-          label: 'A',
-          chartType: ChartType.AREA,
-        }),
-        new Visualize(['max(span.duration)'], {
-          label: 'B',
-          chartType: ChartType.AREA,
-        }),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'max(span.duration)', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('min(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+          new Visualize('max(span.duration)', {
+            label: 'B',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates sort bys in aggregates mode with unknown y axis', function () {
     renderTestComponent({
       mode: Mode.AGGREGATE,
-      visualizes: [
+      aggregateFields: [
+        {groupBy: 'span.op'},
         {
           chartType: ChartType.AREA,
           label: 'A',
@@ -348,60 +440,112 @@ describe('PageParamsProvider', function () {
 
     act(() => setSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['min(span.self_time)'], {
-          label: 'A',
-          chartType: ChartType.AREA,
-        }),
-        new Visualize(['max(span.duration)'], {
-          label: 'B',
-          chartType: ChartType.AREA,
-        }),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('min(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+          new Visualize('max(span.duration)', {
+            label: 'B',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates sort bys in aggregates mode with known group by', function () {
-    renderTestComponent({mode: Mode.AGGREGATE, groupBys: ['sdk.name']});
+    renderTestComponent({
+      mode: Mode.AGGREGATE,
+      aggregateFields: [
+        {groupBy: 'sdk.name'},
+        {
+          chartType: ChartType.AREA,
+          label: 'A',
+          yAxes: ['count(span.self_time)'],
+        },
+      ],
+    });
 
     act(() => setSortBys([{field: 'sdk.name', kind: 'desc'}]));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['sdk.name'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'sdk.name', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'sdk.name', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'sdk.name'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates sort bys in aggregates mode with unknown group by', function () {
-    renderTestComponent({mode: Mode.AGGREGATE, groupBys: ['sdk.name']});
+    renderTestComponent({
+      mode: Mode.AGGREGATE,
+      aggregateFields: [
+        {groupBy: 'sdk.name'},
+        {
+          chartType: ChartType.AREA,
+          label: 'A',
+          yAxes: ['count(span.self_time)'],
+        },
+      ],
+    });
 
     act(() => setSortBys([{field: 'sdk.version', kind: 'desc'}]));
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['sdk.name'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'sdk.name'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
+  });
+
+  it('correctly gives default for empty visualizes', function () {
+    renderTestComponent();
+
+    act(() => setVisualizes([]));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('count(span.duration)', {label: 'A'}),
+        ],
+      })
+    );
   });
 
   it('correctly updates visualizes with labels', function () {
@@ -420,25 +564,30 @@ describe('PageParamsProvider', function () {
       ])
     );
 
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-        new Visualize(['avg(span.duration)'], {
-          label: 'B',
-          chartType: ChartType.LINE,
-        }),
-        new Visualize(['avg(span.self_time)'], {
-          label: 'C',
-          chartType: ChartType.LINE,
-        }),
-      ],
-    });
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new Visualize('count(span.self_time)', {
+            label: 'A',
+            chartType: ChartType.AREA,
+          }),
+          new Visualize('avg(span.duration)', {
+            label: 'B',
+            chartType: ChartType.LINE,
+          }),
+          new Visualize('avg(span.self_time)', {
+            label: 'C',
+            chartType: ChartType.LINE,
+          }),
+        ],
+      })
+    );
   });
 
   it('correctly updates id', function () {
@@ -451,5 +600,167 @@ describe('PageParamsProvider', function () {
     renderTestComponent();
     act(() => setTitle('My Query'));
     expect(pageParams).toEqual(expect.objectContaining({title: 'My Query'}));
+  });
+
+  it('manages inserting and deleting a column when added/removed', function () {
+    renderTestComponent();
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.self_time)']},
+        {yAxes: ['avg(span.duration)']},
+        {yAxes: ['p50(span.self_time)']},
+        {yAxes: ['p75(span.duration)']},
+      ])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time'],
+      })
+    );
+  });
+
+  it('only deletes 1 managed columns when there are duplicates', function () {
+    renderTestComponent();
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() =>
+      setFields(['id', 'timestamp', 'span.self_time', 'span.duration', 'span.duration'])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration', 'span.duration'],
+      })
+    );
+
+    act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+  });
+
+  it('re-adds managed column if a new reference is found', function () {
+    renderTestComponent();
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() => setFields(['id', 'timestamp', 'span.self_time']));
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.self_time)']},
+        {yAxes: ['avg(span.duration)']},
+        {yAxes: ['p50(span.self_time)']},
+      ])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time'],
+      })
+    );
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.self_time)']},
+        {yAxes: ['avg(span.duration)']},
+        {yAxes: ['p50(span.duration)']},
+      ])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+  });
+
+  it('should not manage an existing column', function () {
+    renderTestComponent();
+
+    act(() => setFields(['id', 'timestamp', 'span.self_time', 'span.duration']));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+  });
+
+  it('uses OTel-friendly default fields in OTel-friendly mode', function () {
+    const organization = OrganizationFixture({
+      features: ['performance-otel-friendly-ui'],
+    });
+
+    render(
+      <PageParamsProvider>
+        <Component />
+      </PageParamsProvider>,
+      {organization}
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'span.name', 'span.duration', 'timestamp'],
+      })
+    );
   });
 });

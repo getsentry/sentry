@@ -1,8 +1,6 @@
 import {createContext, useContext} from 'react';
 
-interface TraceExploreAiQueryContextValue {
-  onAiButtonClick: (initialQuery?: string) => void;
-}
+interface TraceExploreAiQueryContextValue {}
 
 export const TraceExploreAiQueryContext = createContext<
   TraceExploreAiQueryContextValue | undefined

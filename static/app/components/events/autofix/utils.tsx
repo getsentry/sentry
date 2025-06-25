@@ -7,6 +7,7 @@ import {
   AutofixStatus,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
 export function getRootCauseDescription(autofixData: AutofixData) {
@@ -129,7 +130,10 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
 };
 
 export const isSupportedAutofixProvider = (provider: string) => {
-  return provider.toLowerCase().includes('github');
+  return (
+    provider.toLowerCase() === 'github' ||
+    provider.toLowerCase() === 'integrations:github'
+  );
 };
 
 export interface AutofixProgressDetails {
@@ -182,4 +186,49 @@ export function getAutofixRunExists(group: Group) {
     : false;
 
   return autofixRanWithinTtl;
+}
+
+export function isIssueQuickFixable(group: Group) {
+  return group.seerFixabilityScore && group.seerFixabilityScore > 0.7;
+}
+
+export function getAutofixRunErrorMessage(autofixData: AutofixData | undefined) {
+  if (!autofixData || autofixData.status !== AutofixStatus.ERROR) {
+    return null;
+  }
+
+  const errorStep = autofixData.steps?.find(step => step.status === AutofixStatus.ERROR);
+  const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
+
+  let customErrorMessage = '';
+  if (
+    errorMessage.toLowerCase().includes('overloaded') ||
+    errorMessage.toLowerCase().includes('no completion tokens') ||
+    errorMessage.toLowerCase().includes('exhausted')
+  ) {
+    customErrorMessage = t(
+      'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
+    );
+  } else if (
+    errorMessage.toLowerCase().includes('prompt') ||
+    errorMessage.toLowerCase().includes('tokens')
+  ) {
+    customErrorMessage = t(
+      "Seer worked so hard that it couldn't fit all its findings in its own memory. Please try again."
+    );
+  } else if (errorMessage.toLowerCase().includes('iterations')) {
+    customErrorMessage = t(
+      'Seer was taking a ton of iterations, so we pulled the plug out of fear it might go rogue. Please try again.'
+    );
+  } else if (errorMessage.toLowerCase().includes('timeout')) {
+    customErrorMessage = t(
+      'Seer was taking way too long, so we pulled the plug to turn it off and on again. Please try again.'
+    );
+  } else {
+    customErrorMessage = t(
+      "Oops, Seer went kaput. We've dispatched Seer to fix Seer. In the meantime, try again?"
+    );
+  }
+
+  return customErrorMessage;
 }

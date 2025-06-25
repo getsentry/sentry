@@ -195,6 +195,9 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
             "orderby": "-transaction.duration",
             "query": "test",
             "range": None,
+            "queryDataset": DiscoverSavedQueryTypes.get_type_name(
+                DiscoverSavedQueryTypes.TRANSACTION_LIKE
+            ),
         }
 
         with self.feature(FEATURES):
@@ -207,3 +210,28 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         )
         assert response.data == serialize(new_query)
         assert list(new_query.projects.values_list("id", flat=True)) == [self.project_ids[0]]
+
+    def test_put_success_is_filter(self):
+        with self.feature(FEATURES):
+            response = self.client.put(
+                self.url,
+                {
+                    "name": "new query",
+                    "projects": self.project_ids,
+                    "fields": ["title"],
+                    "query": "is:unresolved",
+                    "range": "24h",
+                    "yAxis": ["count(id)"],
+                    "display": "releases",
+                    "version": 2,
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["fields"] == ["title"]
+        assert data["range"] == "24h"
+        assert data["query"] == "is:unresolved"
+        assert data["yAxis"] == ["count(id)"]
+        assert data["display"] == "releases"
+        assert data["version"] == 2

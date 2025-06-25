@@ -1,10 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
-  Am3DsEnterpriseSubscriptionFixture,
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -307,9 +308,16 @@ describe('CustomerOverview', function () {
 
   it('renders reserved budget data', function () {
     const organization = OrganizationFixture();
-    const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
-    subscription.reservedBudgets![0]!.reservedBudget = 99_000_00;
-    subscription.reservedBudgets![0]!.freeBudget = 1000_00;
+    const subscription = SubscriptionWithSeerFixture({organization});
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        totalReservedSpend: 20_00,
+        freeBudget: 15_00,
+        percentUsed: 0.5,
+      }),
+    ];
+    subscription.reservedBudgets[0]!.categories.seerAutofix!.reservedSpend = 18_00;
+    subscription.reservedBudgets[0]!.categories.seerScanner!.reservedSpend = 2_00;
 
     render(
       <CustomerOverview
@@ -319,28 +327,24 @@ describe('CustomerOverview', function () {
       />
     );
 
-    expect(
-      screen.getByText('Accepted Spans and Stored Spans Reserved Budget')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
     expect(screen.getByText('Reserved Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$99,000.00')).toBeInTheDocument();
+    expect(screen.getByText('$25.00')).toBeInTheDocument();
     expect(screen.getByText('Gifted Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$1,000.00')).toBeInTheDocument();
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
     expect(screen.getByText('Total Used:')).toBeInTheDocument();
-    expect(screen.getByText('$60,000.00 / $100,000.00 (60.00%)')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Accepted spans:')).toBeInTheDocument();
-    expect(
-      screen.getByText('Reserved Cost-Per-Event Accepted spans:')
-    ).toBeInTheDocument();
-    expect(screen.getByText('$0.01000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Accepted spans:')).toBeInTheDocument();
-    expect(screen.getByText('$40,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Stored spans:')).toBeInTheDocument();
+    expect(screen.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('$1.00000000')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('$18.00')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue scans:')).toBeInTheDocument();
     expect(screen.getAllByText('N/A')).toHaveLength(2);
-    expect(screen.getByText('Reserved Cost-Per-Event Stored spans:')).toBeInTheDocument();
-    expect(screen.getByText('$0.02000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Stored spans:')).toBeInTheDocument();
-    expect(screen.getByText('$20,000.00')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('$0.01000000')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('$2.00')).toBeInTheDocument();
 
     expect(screen.queryByText('Reserved Cost-Per-Event Errors')).not.toBeInTheDocument();
   });
@@ -366,15 +370,15 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer:')).not.toBeInTheDocument();
   });
 
-  it('renders no product trials for non-self-serve account', function () {
+  it('renders product trials for non-self-serve account', function () {
     const organization = OrganizationFixture();
-    const enterprise_subscription = SubscriptionFixture({
+    const enterprise_subscription = InvoicedSubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
       planTier: PlanTier.AM3,
-      canSelfServe: false,
     });
 
     render(
@@ -385,9 +389,10 @@ describe('CustomerOverview', function () {
       />
     );
 
-    expect(screen.queryByText('Product Trials')).not.toBeInTheDocument();
-    expect(screen.queryByText('Replays:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
+    expect(screen.getByText('Product Trials')).toBeInTheDocument();
+    expect(screen.getByText('Spans:')).toBeInTheDocument();
+    expect(screen.getByText('Replays:')).toBeInTheDocument();
+    expect(screen.getByText('Seer:')).toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
@@ -401,6 +406,7 @@ describe('CustomerOverview', function () {
       canSelfServe: true,
     });
     am1_subscription.planDetails.categories = [DataCategory.TRANSACTIONS];
+    am1_subscription.planDetails.availableReservedBudgetTypes = {};
 
     render(
       <CustomerOverview
@@ -449,6 +455,7 @@ describe('CustomerOverview', function () {
     ).not.toBeInTheDocument();
 
     expect(within(productTrialsList).queryByText('Spans:')).not.toBeInTheDocument();
+    expect(within(productTrialsList).queryByText('Seer:')).not.toBeInTheDocument();
   });
 
   it('render product trials for am2 account', function () {
@@ -463,6 +470,7 @@ describe('CustomerOverview', function () {
       DataCategory.REPLAYS,
       DataCategory.TRANSACTIONS,
     ];
+    am2_subscription.planDetails.availableReservedBudgetTypes = {};
 
     render(
       <CustomerOverview
@@ -522,6 +530,7 @@ describe('CustomerOverview', function () {
     ).not.toBeInTheDocument();
 
     expect(within(productTrialsList).queryByText('Spans:')).not.toBeInTheDocument();
+    expect(within(productTrialsList).queryByText('Seer:')).not.toBeInTheDocument();
   });
 
   it('render product trials for am3 account', function () {
@@ -576,6 +585,17 @@ describe('CustomerOverview', function () {
     }
     expect(
       within(spansDefinition).getByRole('button', {name: 'Allow Trial'})
+    ).toBeInTheDocument();
+
+    // Check within the Seer section
+    const seerTermElement = within(productTrialsList).getByText('Seer:');
+    const seerDefinition = seerTermElement.nextElementSibling;
+    expect(seerDefinition).toBeInTheDocument(); // Ensure we found the dd
+    if (!seerDefinition || !(seerDefinition instanceof HTMLElement)) {
+      throw new Error('Seer definition not found or not an HTMLElement');
+    }
+    expect(
+      within(seerDefinition).getByRole('button', {name: 'Allow Trial'})
     ).toBeInTheDocument();
 
     // Ensure other trial categories are NOT present
