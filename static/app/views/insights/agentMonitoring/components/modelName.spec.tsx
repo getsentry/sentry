@@ -1,32 +1,37 @@
-import {getModelProvider} from './modelName';
+import {getModelPlatform} from './modelName';
 
-// Test suite for getModelProvider function
-describe('getModelProvider Function', () => {
-  it('returns provider for known modelId', () => {
-    expect(getModelProvider('gpt-3')).toBe('openai');
-    expect(getModelProvider('gpt-3.5')).toBe('openai');
-    expect(getModelProvider('gpt-4o')).toBe('openai');
-    expect(getModelProvider('gpt-4o-mini')).toBe('openai');
-    expect(getModelProvider('o1-mini')).toBe('openai');
-    expect(getModelProvider('o3')).toBe('openai');
-    expect(getModelProvider('o4')).toBe('openai');
+// Test suite for getModelPlatform function
+describe('getModelPlatform Function', () => {
+  it('returns platform for known modelId', () => {
+    expect(getModelPlatform('gpt-3')).toBe('openai');
+    expect(getModelPlatform('gpt-3.5')).toBe('openai');
+    expect(getModelPlatform('gpt-4o')).toBe('openai');
+    expect(getModelPlatform('gpt-4o-mini')).toBe('openai');
+    expect(getModelPlatform('o1-mini')).toBe('openai');
+    expect(getModelPlatform('o3')).toBe('openai');
+    expect(getModelPlatform('o4')).toBe('openai');
 
-    expect(getModelProvider('gemini-2.5')).toBe('google');
-    expect(getModelProvider('claude-3.5-sonnet')).toBe('anthropic');
+    expect(getModelPlatform('gemini-2.5')).toBe('google');
+    expect(getModelPlatform('gemma-7b')).toBe('google');
+    expect(getModelPlatform('claude-3.5-sonnet')).toBe('anthropic-claude');
+    expect(getModelPlatform('deepseek-coder')).toBe('deepseek');
+    expect(getModelPlatform('grok-beta')).toBe('grok');
+    expect(getModelPlatform('groq-llama')).toBe('groq');
+    expect(getModelPlatform('mistral-7b')).toBe('mistral');
+    expect(getModelPlatform('perplexity-sonar')).toBe('perplexity');
   });
 
   it('returns null for unknown modelId', () => {
-    expect(getModelProvider('DeepSeek R1')).toBeNull();
-    expect(getModelProvider('Sonar')).toBeNull();
-    expect(getModelProvider('Llama 3.1')).toBeNull();
-    expect(getModelProvider('Qwen 2.5')).toBeNull();
-    expect(getModelProvider('Mistral')).toBeNull();
+    expect(getModelPlatform('unknown-model')).toBeNull();
+    expect(getModelPlatform('Llama 3.1')).toBeNull();
+    expect(getModelPlatform('Qwen 2.5')).toBeNull();
+    expect(getModelPlatform('random-ai-model')).toBeNull();
   });
 
   it('returns provider when provider is explicitly provided', () => {
-    expect(getModelProvider('some-model', 'openai')).toBe('openai');
-    expect(getModelProvider('some-model', 'google')).toBe('google');
-    expect(getModelProvider('some-model', 'anthropic')).toBe('anthropic');
-    expect(getModelProvider('some-model', 'unknown')).toBeNull();
+    expect(getModelPlatform('some-model', 'openai')).toBe('openai');
+    expect(getModelPlatform('some-model', 'google')).toBe('google');
+    expect(getModelPlatform('some-model', 'anthropic')).toBe('anthropic');
+    expect(getModelPlatform('some-model', 'unknown-provider')).toBe('unknown-provider');
   });
 });
