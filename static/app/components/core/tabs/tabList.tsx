@@ -128,7 +128,8 @@ export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
   /**
    * @deprecated
-   * In chonk, tabs never have a border.
+   * With chonk, tabs never have a border.
+   * Whether to hide the bottom border of the tab list.
    * Defaults to `false`.
    */
   hideBorder?: boolean;
@@ -321,7 +322,7 @@ const TabListWrap = withChonk(
             grid-auto-flow: column;
             justify-content: start;
             gap: ${p.variant === 'floating' ? 0 : space(2)};
-            border-bottom: ${p.hideBorder ? 'undefined' : `solid 1px ${p.theme.border}`};
+            ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
           `
         : css`
             height: 100%;
@@ -329,7 +330,7 @@ const TabListWrap = withChonk(
             align-content: start;
             gap: 1px;
             padding-right: ${space(2)};
-            border-right: ${p.hideBorder ? 'undefined' : `solid 1px ${p.theme.border}`};
+            ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
           `};
   `,
   ChonkStyledTabListWrap
