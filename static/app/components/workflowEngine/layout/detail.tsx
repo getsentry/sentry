@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
+import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
 
 interface WorkflowEngineDetailLayoutProps {
   /**
@@ -15,13 +14,18 @@ interface WorkflowEngineDetailLayoutProps {
    * Expected to include `<DetailLayout.Main>` and `<DetailLayout.Sidebar>` components.
    */
   children: React.ReactNode;
-  project?: AvatarProject;
+  environment: string | undefined;
+  projectId: string | undefined;
 }
 
 /**
  * Precomposed 67/33 layout for Automations / Monitors detail pages.
  */
-function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
+function DetailLayout({
+  children,
+  projectId,
+  environment,
+}: WorkflowEngineDetailLayoutProps) {
   const title = useDocumentTitle();
   return (
     <StyledPage>
@@ -29,11 +33,7 @@ function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
           <Layout.Title>{title}</Layout.Title>
-          {project && (
-            <ProjectContainer>
-              <ProjectBadge project={project} disableLink avatarSize={16} />
-            </ProjectContainer>
-          )}
+          <DetectorSubtitle projectId={projectId} environment={environment} />
         </Layout.HeaderContent>
         <ActionsFromContext />
       </Layout.Header>
@@ -41,11 +41,6 @@ function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
     </StyledPage>
   );
 }
-
-const ProjectContainer = styled('div')`
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
-`;
 
 const StyledPage = styled(Layout.Page)`
   background: ${p => p.theme.background};
