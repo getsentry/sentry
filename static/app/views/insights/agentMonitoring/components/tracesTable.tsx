@@ -11,6 +11,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -153,6 +154,7 @@ export function TracesTable() {
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
+        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
         {column.key === 'transaction' && <CellExpander />}
       </HeadCell>
     );
@@ -262,5 +264,6 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;
   align-items: center;
+  gap: ${space(0.5)};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;
