@@ -507,7 +507,7 @@ function Highlights({
                   },
                 }}
               >
-                {t('Open in AI Focus')}
+                {t('Open in AI View')}
               </OpenInAIFocusButton>
             )
           ) : (
