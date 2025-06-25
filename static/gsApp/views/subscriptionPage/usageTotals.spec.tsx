@@ -1131,7 +1131,9 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1171,7 +1173,9 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1202,10 +1206,16 @@ describe('Subscription > CombinedUsageTotals', function () {
       organization,
       hadCustomDynamicSampling: true,
     });
-    dsSubscription.reservedBudgets![0]!.freeBudget = 10_000_00;
+    dsSubscription.reservedBudgets?.forEach(b => {
+      if (b.apiName === 'dynamicSampling') {
+        b.freeBudget = 10_000_00;
+      }
+    });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1233,7 +1243,9 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1264,17 +1276,10 @@ describe('Subscription > CombinedUsageTotals', function () {
         endDate: moment().utc().add(20, 'years').format(),
       },
     ];
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1305,17 +1310,9 @@ describe('Subscription > CombinedUsageTotals', function () {
   });
 
   it('renders enable upsell for customer when product is not enabled and trial not available', function () {
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
-
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1362,17 +1359,10 @@ describe('Subscription > CombinedUsageTotals', function () {
         endDate: moment().utc().add(20, 'days').format(),
       },
     ];
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1391,17 +1381,10 @@ describe('Subscription > CombinedUsageTotals', function () {
 
   it('renders contact sales upsell for managed accounts', function () {
     subscription.canSelfServe = false;
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{

@@ -1,12 +1,8 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import Panel from 'sentry/components/panels/panel';
-import {IconArrow} from 'sentry/icons';
+import LoadingError from 'sentry/components/loadingError';
+import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,7 +15,9 @@ import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 type DetectorListTableProps = {
   detectors: Detector[];
+  isError: boolean;
   isPending: boolean;
+  isSuccess: boolean;
   sort: Sort | undefined;
 };
 
@@ -32,7 +30,6 @@ function LoadingSkeletons() {
 function HeaderCell({
   children,
   name,
-  divider,
   sortKey,
   sort,
 }: {
@@ -53,83 +50,83 @@ function HeaderCell({
       sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
     navigate({
       pathname: location.pathname,
-      query: {...location.query, sort: newSort},
+      query: {...location.query, sort: newSort, cursor: undefined},
     });
   };
 
   return (
-    <ColumnHeaderCell
-      className={name}
-      isSorted={isSortedByField}
-      onClick={handleSort}
-      role="columnheader"
-      as={sortKey ? 'button' : 'div'}
+    <SimpleTable.HeaderCell
+      name={name}
+      sort={sort}
+      sortKey={sortKey}
+      handleSortClick={handleSort}
     >
-      {divider && <HeaderDivider />}
-      {sortKey && <InteractionStateLayer />}
-      <Heading>{children}</Heading>
-      {sortKey && (
-        <SortIndicator
-          aria-hidden
-          size="xs"
-          direction={sort?.kind === 'asc' ? 'up' : 'down'}
-          isSorted={isSortedByField}
-        />
-      )}
-    </ColumnHeaderCell>
+      {children}
+    </SimpleTable.HeaderCell>
   );
 }
 
-function DetectorListTable({detectors, isPending, sort}: DetectorListTableProps) {
+function DetectorListTable({
+  detectors,
+  isPending,
+  isError,
+  isSuccess,
+  sort,
+}: DetectorListTableProps) {
   return (
-    <PanelGrid>
-      <StyledPanelHeader>
-        <HeaderCell name="name" sortKey="name" sort={sort}>
-          {t('Name')}
-        </HeaderCell>
-        <HeaderCell name="type" divider sortKey="type" sort={sort}>
-          {t('Type')}
-        </HeaderCell>
-        <HeaderCell name="issue" divider sort={sort}>
-          {t('Last Issue')}
-        </HeaderCell>
-        <HeaderCell name="assignee" divider sort={sort}>
-          {t('Assignee')}
-        </HeaderCell>
-        <HeaderCell
-          name="connected-automations"
-          divider
-          sortKey="connectedWorkflows"
-          sort={sort}
-        >
-          {t('Automations')}
-        </HeaderCell>
-      </StyledPanelHeader>
-      <Fragment>
-        {isPending ? (
-          <LoadingSkeletons />
-        ) : (
+    <Container>
+      <DetectorListSimpleTable>
+        <SimpleTable.Header>
+          <HeaderCell name="name" sortKey="name" sort={sort}>
+            {t('Name')}
+          </HeaderCell>
+          <HeaderCell name="type" divider sortKey="type" sort={sort}>
+            {t('Type')}
+          </HeaderCell>
+          <HeaderCell name="last-issue" divider sort={sort}>
+            {t('Last Issue')}
+          </HeaderCell>
+          <HeaderCell name="assignee" divider sort={sort}>
+            {t('Assignee')}
+          </HeaderCell>
+          <HeaderCell
+            name="connected-automations"
+            divider
+            sortKey="connectedWorkflows"
+            sort={sort}
+          >
+            {t('Automations')}
+          </HeaderCell>
+        </SimpleTable.Header>
+        {isError && <LoadingError message={t('Error loading monitors')} />}
+        {isPending && <LoadingSkeletons />}
+        {isSuccess && detectors.length > 0 ? (
           detectors.map(detector => (
             <DetectorListRow key={detector.id} detector={detector} />
           ))
+        ) : (
+          <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
         )}
-      </Fragment>
-    </PanelGrid>
+      </DetectorListSimpleTable>
+    </Container>
   );
 }
 
-const PanelGrid = styled(Panel)`
-  display: grid;
+const Container = styled('div')`
+  container-type: inline-size;
+`;
+
+const DetectorListSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
   .type,
-  .creator,
   .last-issue,
+  .assignee,
   .connected-automations {
     display: none;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: 3fr 0.8fr;
 
     .type {
@@ -137,7 +134,7 @@ const PanelGrid = styled(Panel)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @container (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
@@ -145,91 +142,21 @@ const PanelGrid = styled(Panel)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @container (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .creator {
+    .assignee {
       display: flex;
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @container (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
 
     .connected-automations {
       display: flex;
     }
   }
-`;
-
-const HeaderDivider = styled('div')`
-  position: absolute;
-  left: 0;
-  background-color: ${p => p.theme.gray200};
-  width: 1px;
-  border-radius: ${p => p.theme.borderRadius};
-  height: 14px;
-`;
-
-const Heading = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledPanelHeader = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: calc(${p => p.theme.borderRadius} + 1px)
-    calc(${p => p.theme.borderRadius} + 1px) 0 0;
-  justify-content: left;
-  padding: 0;
-  min-height: 40px;
-  align-items: center;
-  text-transform: none;
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-`;
-
-const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
-  background: none;
-  outline: none;
-  border: none;
-  padding: 0 ${space(2)};
-  text-transform: inherit;
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
-  height: 100%;
-
-  &:first-child {
-    padding-left: ${space(4)};
-  }
-
-  ${p =>
-    p.isSorted &&
-    css`
-      color: ${p.theme.textColor};
-    `}
-`;
-
-const SortIndicator = styled(IconArrow, {
-  shouldForwardProp: prop => prop !== 'isSorted',
-})<{isSorted?: boolean}>`
-  visibility: hidden;
-
-  ${p =>
-    p.isSorted &&
-    css`
-      visibility: visible;
-    `}
 `;
 
 export default DetectorListTable;

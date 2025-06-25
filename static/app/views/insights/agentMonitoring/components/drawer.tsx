@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -12,6 +11,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/agentMonitoring/hooks/useNodeDetailsLink';
+import {useUrlTraceDrawer} from 'sentry/views/insights/agentMonitoring/hooks/useUrlTraceDrawer';
+import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -19,11 +20,21 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
+const LEFT_PANEL_WIDTH = 400;
+const RIGHT_PANEL_WIDTH = 400;
+const DRAWER_WIDTH = LEFT_PANEL_WIDTH + RIGHT_PANEL_WIDTH;
+
 interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
 
-function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
+function TraceViewDrawer({
+  traceSlug,
+  closeDrawer,
+}: {
+  closeDrawer: () => void;
+  traceSlug: string;
+}) {
   const {nodes, isLoading, error} = useAITrace(traceSlug);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
 
@@ -32,15 +43,9 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
     setSelectedNodeKey(uniqueKey);
   }, []);
 
-  useEffect(() => {
-    if (nodes.length > 0 && !selectedNodeKey && nodes[0]) {
-      handleSelectNode(nodes[0]);
-    }
-  }, [handleSelectNode, nodes, selectedNodeKey]);
-
-  const selectedNode = selectedNodeKey
-    ? nodes.find(node => getNodeId(node) === selectedNodeKey) || nodes[0]
-    : nodes[0];
+  const selectedNode =
+    (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
+    getDefaultSelectedNode(nodes);
 
   const nodeDetailsLink = useNodeDetailsLink({
     node: selectedNode,
@@ -53,7 +58,7 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
       <StyledDrawerHeader>
         <HeaderContent>
           {t('Abbreviated Trace')}
-          <LinkButton size="xs" to={nodeDetailsLink}>
+          <LinkButton size="xs" onMouseDown={closeDrawer} to={nodeDetailsLink}>
             {t('View in Full Trace')}
           </LinkButton>
         </HeaderContent>
@@ -75,18 +80,30 @@ function TraceViewDrawer({traceSlug}: {traceSlug: string}) {
 }
 
 export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
-  const {openDrawer, isDrawerOpen} = useDrawer();
+  const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
-  const openTraceViewDrawer = (traceSlug: string) =>
-    openDrawer(() => <TraceViewDrawer traceSlug={traceSlug} />, {
-      ariaLabel: t('Abbreviated Trace'),
-      onClose,
-      shouldCloseOnInteractOutside: () => true,
-      drawerWidth: '40%',
-      resizable: true,
+  const openTraceViewDrawer = useCallback(
+    (traceSlug: string) =>
+      openDrawer(
+        () => <TraceViewDrawer traceSlug={traceSlug} closeDrawer={closeDrawer} />,
+        {
+          ariaLabel: t('Abbreviated Trace'),
+          onClose,
+          shouldCloseOnInteractOutside: () => true,
+          drawerWidth: `${DRAWER_WIDTH}px`,
+          resizable: true,
+          traceSlug,
+          drawerKey: 'abbreviated-trace-view-drawer',
+        }
+      ),
+    [openDrawer, onClose, closeDrawer]
+  );
 
-      drawerKey: 'abbreviated-trace-view-drawer',
-    });
+  useEffect(() => {
+    if (drawerUrlState.trace && !isDrawerOpen) {
+      openTraceViewDrawer(drawerUrlState.trace);
+    }
+  }, [drawerUrlState.trace, isDrawerOpen, openTraceViewDrawer]);
 
   return {
     openTraceViewDrawer,
@@ -168,7 +185,7 @@ const SplitContainer = styled('div')`
 
 const LeftPanel = styled('div')`
   flex: 1;
-  min-width: 300px;
+  min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
@@ -178,7 +195,7 @@ const LeftPanel = styled('div')`
 `;
 
 const RightPanel = styled('div')`
-  min-width: 400px;
+  min-width: ${RIGHT_PANEL_WIDTH}px;
   flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.background};

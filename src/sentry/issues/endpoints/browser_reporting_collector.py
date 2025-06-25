@@ -40,8 +40,8 @@ class BrowserReportSerializer(serializers.Serializer[Any]):
     type = serializers.ChoiceField(choices=BROWSER_REPORT_TYPES)
     url = serializers.URLField()
     user_agent = serializers.CharField()
-    destination = serializers.CharField()
-    attempts = serializers.IntegerField(min_value=1)
+    destination = serializers.CharField(required=False)
+    attempts = serializers.IntegerField(required=False, min_value=1)
     # Fields that do not overlap between specs
     # We need to support both specs
     age = serializers.IntegerField(required=False)

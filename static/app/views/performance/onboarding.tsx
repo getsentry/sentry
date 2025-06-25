@@ -43,6 +43,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {
   withoutPerformanceSupport,
   withPerformanceOnboarding,
@@ -65,7 +66,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 
@@ -492,11 +492,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
-  const dataset = useExploreDataset();
   const tracesQuery = useTraces({
     enabled: received,
     limit: 1,
-    dataset,
     sort: 'timestamp',
     refetchInterval: query => {
       const trace = query.state.data?.[0]?.data?.[0]?.trace;
@@ -660,7 +658,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   return (
     <OnboardingPanel project={project}>
-      <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+      <SetupTitle project={project} />
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
@@ -857,12 +855,6 @@ const HeaderText = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex: 1;
   }
-`;
-
-const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
 `;
 
 const Setup = styled('div')`

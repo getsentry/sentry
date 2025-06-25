@@ -1,6 +1,8 @@
+import type {IssueConfigField} from 'sentry/types/integrations';
+
 export interface Action {
   config: {
-    target_type: ActionTarget;
+    target_type: ActionTarget | null;
     sentry_app_identifier?: SentryAppIdentifier;
     target_display?: string;
     target_identifier?: string;
@@ -9,6 +11,15 @@ export interface Action {
   id: string;
   type: ActionType;
   integrationId?: string;
+}
+
+export interface TicketCreationAction extends Action {
+  [key: string]: any;
+  data: {
+    additional_fields?: Record<string, unknown>;
+    dynamic_form_fields?: IssueConfigField[];
+  };
+  integrationId: string;
 }
 
 export enum ActionTarget {

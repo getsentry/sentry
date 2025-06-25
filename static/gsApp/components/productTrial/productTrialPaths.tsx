@@ -43,7 +43,6 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
     product: DataCategory.TRANSACTIONS,
     categories: [DataCategory.TRANSACTIONS],
   },
-  // TODO(Seer): add in-product links for Seer categories
 };
 
 const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
