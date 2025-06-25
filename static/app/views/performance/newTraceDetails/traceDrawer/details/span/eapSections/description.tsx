@@ -57,6 +57,7 @@ export function SpanDescription({
   project,
   attributes,
   avgSpanDuration,
+  hideNodeActions,
 }: {
   attributes: TraceItemResponseAttribute[];
   avgSpanDuration: number | undefined;
@@ -64,6 +65,7 @@ export function SpanDescription({
   node: TraceTreeNode<TraceTree.EAPSpan>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
     eventId: node.event?.eventID,
@@ -212,6 +214,7 @@ export function SpanDescription({
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         organization,
         attributes,
