@@ -11,9 +11,9 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
@@ -45,8 +45,8 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
-  {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
-  {key: 'duration', name: t('Duration'), width: 100},
+  {key: 'transaction', name: t('Trace Root'), width: COL_WIDTH_UNDEFINED},
+  {key: 'duration', name: t('Root Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
@@ -69,8 +69,7 @@ export function TracesTable() {
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
   const tracesRequest = useTraces({
-    dataset: DiscoverDatasets.SPANS_EAP,
-    query: `${getAITracesFilter()}`,
+    query: getAITracesFilter(),
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor:
@@ -153,6 +152,7 @@ export function TracesTable() {
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
+        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
         {column.key === 'transaction' && <CellExpander />}
       </HeadCell>
     );
@@ -262,5 +262,6 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;
   align-items: center;
+  gap: ${space(0.5)};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;

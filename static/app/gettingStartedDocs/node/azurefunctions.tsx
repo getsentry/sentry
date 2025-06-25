@@ -13,6 +13,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -101,6 +102,7 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding(),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
 };
 
 export default docs;

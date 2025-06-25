@@ -20,13 +20,23 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+export enum ChartIntervalUnspecifiedStrategy {
+  /** Use the second biggest possible interval (e.g., pretty big buckets) */
+  USE_SECOND_BIGGEST = 'use_second_biggest',
+  /** Use the smallest possible interval (e.g., the smallest possible buckets) */
+  USE_SMALLEST = 'use_smallest',
+}
+
 interface Options {
   location: Location;
   navigate: ReturnType<typeof useNavigate>;
   pagefilters: ReturnType<typeof usePageFilters>;
+  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
 }
 
-export function useChartInterval(): [
+export function useChartInterval({
+  unspecifiedStrategy,
+}: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}): [
   string,
   (interval: string) => void,
   intervalOptions: Array<{label: string; value: string}>,
@@ -34,15 +44,20 @@ export function useChartInterval(): [
   const location = useLocation();
   const navigate = useNavigate();
   const pagefilters = usePageFilters();
-  const options = {location, navigate, pagefilters};
 
-  return useChartIntervalImpl(options);
+  return useChartIntervalImpl({
+    location,
+    navigate,
+    pagefilters,
+    unspecifiedStrategy,
+  });
 }
 
 function useChartIntervalImpl({
   location,
   navigate,
   pagefilters,
+  unspecifiedStrategy,
 }: Options): [
   string,
   (interval: string) => void,
@@ -59,14 +74,16 @@ function useChartIntervalImpl({
 
     // Default to the second largest option or largest option
     const fallbackInterval =
-      intervalOptions[intervalOptions.length - 2]?.value ??
-      intervalOptions[intervalOptions.length - 1]!.value;
+      unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
+        ? intervalOptions[0]!.value
+        : (intervalOptions[intervalOptions.length - 2]?.value ??
+          intervalOptions[intervalOptions.length - 1]!.value);
 
     return decodedInterval &&
       intervalOptions.some(option => option.value === decodedInterval)
       ? decodedInterval
       : fallbackInterval;
-  }, [location.query.interval, intervalOptions]);
+  }, [location.query.interval, unspecifiedStrategy, intervalOptions]);
 
   const setInterval = useCallback(
     (newInterval: string) => {

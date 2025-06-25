@@ -26,7 +26,7 @@ sentry-cli>=2.16.0
 # pre-commit dependencies
 pre-commit>=4.2
 black>=24.10.0
-flake8>=7.2
+flake8>=7.3
 flake8-bugbear>=22.10
 flake8-logging>=1.5
 pyupgrade>=3.19.1
