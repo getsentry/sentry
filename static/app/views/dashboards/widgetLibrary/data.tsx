@@ -252,9 +252,7 @@ const getDefaultWidgets = (organization: Organization) => {
     {
       id: 'slow-vs-fast',
       title: t('Slow vs. Fast Transactions'),
-      description: t(
-        'Percentage breakdown of transaction durations over and under 300ms.'
-      ),
+      description: t('Count breakdown of transaction durations over and under 300ms.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '5m',
