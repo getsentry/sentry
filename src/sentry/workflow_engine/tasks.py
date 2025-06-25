@@ -8,6 +8,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -16,7 +17,7 @@ from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
@@ -138,6 +139,44 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     )
 
 
+def build_workflow_event_data(
+    project_id: int,
+    event_id: str,
+    group_id: int,
+    occurrence_id: str | None = None,
+    group_state: GroupState | None = None,
+    has_reappeared: bool = False,
+    has_escalated: bool = False,
+    workflow_env_id: int | None = None,
+) -> WorkflowEventData:
+    """
+    Build a WorkflowEventData object from individual parameters.
+    This method handles all the database fetching and object construction logic.
+    """
+
+    event = fetch_event(event_id, project_id)
+    if event is None:
+        raise ValueError(f"Event not found: event_id={event_id}, project_id={project_id}")
+
+    occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
+    group = Group.objects.get_from_cache(id=group_id)
+    group_event = GroupEvent.from_event(event, group)
+    group_event.occurrence = occurrence
+
+    # Fetch environment if provided
+    workflow_env = None
+    if workflow_env_id:
+        workflow_env = Environment.objects.get(id=workflow_env_id)
+
+    return WorkflowEventData(
+        event=group_event,
+        group_state=group_state,
+        has_reappeared=has_reappeared,
+        has_escalated=has_escalated,
+        workflow_env=workflow_env,
+    )
+
+
 @instrumented_task(
     name="sentry.workflow_engine.tasks.process_workflows_event",
     queue="workflow_engine.process_workflows",
@@ -167,22 +206,89 @@ def process_workflows_event(
     has_escalated: bool,
     **kwargs,
 ) -> None:
-    event = fetch_event(event_id, project_id)
-    if event is None:
-        logger.error("Event not found", extra={"event_id": event_id, "project_id": project_id})
-        return
+    from sentry.workflow_engine.processors.workflow import process_workflows
 
-    occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
-    group = Group.objects.get(id=group_id)
-    group_event = GroupEvent.from_event(event, group)
-    group_event.occurrence = occurrence
-    event_data = WorkflowEventData(
+    event_data = build_workflow_event_data(
+        project_id=project_id,
+        event_id=event_id,
+        group_id=group_id,
+        occurrence_id=occurrence_id,
+        group_state=group_state,
         has_reappeared=has_reappeared,
         has_escalated=has_escalated,
         group_state=group_state,
-        event=group_event,
-        group=group,
     )
     process_workflows(event_data)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)
+
+
+@instrumented_task(
+    name="sentry.workflow_engine.tasks.trigger_action",
+    queue="workflow_engine.trigger_action",
+    acks_late=True,
+    default_retry_delay=5,
+    max_retries=3,
+    soft_time_limit=50,
+    time_limit=60,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=config.TaskworkerConfig(
+        namespace=namespaces.workflow_engine_tasks,
+        processing_deadline_duration=30,
+        retry=retry.Retry(
+            times=3,
+            delay=5,
+        ),
+    ),
+)
+def trigger_action(
+    action_id: int,
+    detector_id: int,
+    workflow_id: int,
+    project_id: int,
+    event_id: str,
+    group_id: int,
+    occurrence_id: str | None,
+    group_state: GroupState,
+    has_reappeared: bool,
+    has_escalated: bool,
+    workflow_env_id: int | None,
+) -> None:
+
+    logger = log_context.get_logger(__name__)
+
+    # Fetch the action and detector
+    action = Action.objects.get(id=action_id)
+    detector = Detector.objects.get(id=detector_id)
+
+    event_data = build_workflow_event_data(
+        project_id=project_id,
+        event_id=event_id,
+        group_id=group_id,
+        occurrence_id=occurrence_id,
+        group_state=group_state,
+        has_reappeared=has_reappeared,
+        has_escalated=has_escalated,
+        workflow_env_id=workflow_env_id,
+    )
+
+    # Annotate the action with workflow_id
+    setattr(action, "workflow_id", workflow_id)
+
+    action.trigger(event_data, detector)
+
+    metrics.incr(
+        "workflow_engine.tasks.trigger_action_task_executed",
+        tags={"action_type": action.type},
+        sample_rate=1.0,
+    )
+
+    logger.info(
+        "workflow_engine.trigger_workflow_action.success",
+        extra={
+            "action_id": action_id,
+            "detector_id": detector_id,
+            "workflow_id": workflow_id,
+            "event_id": event_id,
+        },
+    )

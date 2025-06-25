@@ -61,6 +61,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
+from sentry.workflow_engine.tasks import trigger_action
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -646,7 +647,23 @@ def fire_actions_for_groups(
                     organization,
                 ):
                     for action in filtered_actions:
-                        action.trigger(workflow_event_data, detector)
+                        trigger_action.delay(
+                            action_id=action.id,
+                            detector_id=detector.id,
+                            workflow_id=getattr(action, "workflow_id", None),
+                            project_id=detector.project.id,
+                            event_id=workflow_event_data.event.event_id,
+                            group_id=group.id,
+                            occurrence_id=workflow_event_data.event.occurrence_id,
+                            group_state=workflow_event_data.group_state,
+                            has_reappeared=workflow_event_data.has_reappeared,
+                            has_escalated=workflow_event_data.has_escalated,
+                            workflow_env_id=(
+                                workflow_event_data.workflow_env.id
+                                if workflow_event_data.workflow_env
+                                else None
+                            ),
+                        )
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
