@@ -318,20 +318,8 @@ def _run_automation(
     if autofix_state:
         return  # already have an autofix on this issue
 
-    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
-        group.project, group.organization
-    )
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
     if is_rate_limited:
-        logger.warning(
-            "Autofix auto-trigger rate limit hit",
-            extra={
-                "group_id": group.id,
-                "auto_run_count": current,
-                "auto_run_limit": limit,
-                "org_slug": group.organization.slug,
-                "project_slug": group.project.slug,
-            },
-        )
         return
 
     _trigger_autofix_task.delay(
