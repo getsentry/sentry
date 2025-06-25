@@ -289,4 +289,4 @@ def test_unparseable_arithmetic(equation):
 )
 def test_invalid_arithmetic(equation):
     with pytest.raises(ArithmeticValidationError):
-        parse_arithmetic(equation)
+        parse_arithmetic(equation, validate_single_operator=True)

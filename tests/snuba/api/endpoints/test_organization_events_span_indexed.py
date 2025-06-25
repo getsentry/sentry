@@ -5010,6 +5010,156 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["dataset"] == self.dataset
         assert meta["fields"][equation] == "number"
 
+    def test_equation_single_function_term(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|count()"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "invalid_argument",
+                "description": "bar",
+                equation: 1,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                equation: 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "integer"
+
+    def test_equation_single_field_term(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"lcp": {"value": 1}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"lcp": {"value": 1}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|measurements.lcp"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation, "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "success",
+                "description": "bar",
+                "count()": 1,
+                equation: 1,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+                equation: 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "duration"
+
+    def test_equation_single_literal(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|3.14159"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation, "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "success",
+                "description": "bar",
+                "count()": 1,
+                equation: 3.14159,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+                equation: 3.14159,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "number"
+
     @pytest.mark.xfail(reason="Confidence isn't being returned by the RPC currently")
     def test_equation_with_extrapolation(self):
         """Extrapolation only changes the number when there's a sample rate"""
