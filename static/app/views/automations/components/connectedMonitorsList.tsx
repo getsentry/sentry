@@ -39,33 +39,31 @@ export default function ConnectedMonitorsList({
     <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="type">{t('Type')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="last-issue">
-            {t('Last Issue')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="owner">{t('Assignee')}</SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell name="connected" />}
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Issue')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
+          {canEdit && <SimpleTable.HeaderCell />}
         </SimpleTable.Header>
         {monitors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
         )}
         {monitors.map(monitor => (
           <SimpleTable.Row key={monitor.id}>
-            <SimpleTable.RowCell name="name">
+            <SimpleTable.RowCell>
               <DetectorLink detector={monitor} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="type">
+            <SimpleTable.RowCell>
               <DetectorTypeCell type={monitor.type} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="last-issue">
+            <SimpleTable.RowCell>
               <IssueCell group={undefined} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="owner">
+            <SimpleTable.RowCell>
               <DetectorAssigneeCell assignee={monitor.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
-              <SimpleTable.RowCell name="connected" justify="flex-end">
+              <SimpleTable.RowCell justify="flex-end">
                 <Button onClick={() => toggleConnected(monitor.id)} size="sm">
                   {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
                 </Button>

@@ -29,12 +29,10 @@ function LoadingSkeletons() {
 
 function HeaderCell({
   children,
-  name,
   sortKey,
   sort,
 }: {
   children: React.ReactNode;
-  name: string;
   sort: Sort | undefined;
   divider?: boolean;
   sortKey?: string;
@@ -55,12 +53,7 @@ function HeaderCell({
   };
 
   return (
-    <SimpleTable.HeaderCell
-      name={name}
-      sort={sort}
-      sortKey={sortKey}
-      handleSortClick={handleSort}
-    >
+    <SimpleTable.HeaderCell sort={sort} sortKey={sortKey} handleSortClick={handleSort}>
       {children}
     </SimpleTable.HeaderCell>
   );
@@ -76,19 +69,15 @@ function AutomationListTable({
   return (
     <AutomationsSimpleTable>
       <SimpleTable.Header>
-        <HeaderCell name="name" sort={sort} sortKey="name">
+        <HeaderCell sort={sort} sortKey="name">
           {t('Name')}
         </HeaderCell>
-        <HeaderCell name="last-triggered" sort={sort}>
-          {t('Last Triggered')}
-        </HeaderCell>
-        <HeaderCell name="action" sort={sort} sortKey="actions">
+        <HeaderCell sort={sort}>{t('Last Triggered')}</HeaderCell>
+        <HeaderCell sort={sort} sortKey="actions">
           {t('Actions')}
         </HeaderCell>
-        <HeaderCell name="projects" sort={sort}>
-          {t('Projects')}
-        </HeaderCell>
-        <HeaderCell name="connected-monitors" sort={sort} sortKey="connectedDetectors">
+        <HeaderCell sort={sort}>{t('Projects')}</HeaderCell>
+        <HeaderCell sort={sort} sortKey="connectedDetectors">
           {t('Monitors')}
         </HeaderCell>
       </SimpleTable.Header>
