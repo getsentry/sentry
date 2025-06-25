@@ -132,6 +132,7 @@ def process_batch(
     buffer: SpansBuffer,
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
+    killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
     min_timestamp = None
     spans = []
     for value in values.payload:
@@ -145,14 +146,16 @@ def process_batch(
             with metrics.timer("spans.buffer.process_batch.decode"):
                 val = cast(SpanEvent, orjson.loads(payload.value))
 
-            if killswitches.killswitch_matches_context(
+            if killswitches.value_matches(
                 "spans.drop-in-buffer",
+                killswitch_config,
                 {
                     "org_id": val.get("organization_id"),
                     "project_id": val.get("project_id"),
                     "trace_id": val.get("trace_id"),
                     "partition_id": value.partition.index,
                 },
+                emit_metrics=False,
             ):
                 continue
 
