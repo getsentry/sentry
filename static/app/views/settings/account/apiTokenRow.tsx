@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
-import {IconSubtract} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -63,7 +63,7 @@ function ApiTokenRow({
             )
           }
         >
-          <Button size="sm" icon={<IconSubtract isCircled />}>
+          <Button size="sm" icon={<IconDelete />}>
             {t('Revoke')}
           </Button>
         </Confirm>
