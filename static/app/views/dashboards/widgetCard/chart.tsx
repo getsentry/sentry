@@ -62,7 +62,10 @@ import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegend
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {
+  convertTableDataToTabularData,
+  decodeColumnAliases,
+} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
@@ -172,6 +175,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         width: minTableColumnWidth ?? column.width,
         type: column.type === 'never' ? null : column.type,
       }));
+      const aliases = decodeColumnAliases(columns, fieldAliases);
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
 
       return (
@@ -183,6 +187,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               frameless
               scrollable
               fit="max-content"
+              aliases={aliases}
               getRenderer={(field, _dataRow, meta) => {
                 const customRenderer = datasetConfig.getCustomFieldRenderer?.(
                   field,

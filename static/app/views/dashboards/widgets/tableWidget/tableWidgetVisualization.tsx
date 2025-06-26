@@ -41,6 +41,10 @@ interface TableWidgetVisualizationProps {
    */
   tableData: TabularData;
   /**
+   * A mapping between column key to a column alias to override header name.
+   */
+  aliases?: Record<string, string>;
+  /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
    */
@@ -94,6 +98,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     columns,
     scrollable,
     fit,
+    aliases,
   } = props;
 
   const theme = useTheme();
@@ -138,14 +143,14 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
-        renderHeadCell: (tableColumn, columnIndex) => {
+        renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
-
           const align = fieldAlignment(column.name, column.type as ColumnValueType);
+          const name = aliases?.[column.key] || column.name;
 
           return (
             <CellWrapper align={align}>
-              <StyledTooltip title={tableColumn.name}>{tableColumn.name}</StyledTooltip>
+              <StyledTooltip title={name}>{name}</StyledTooltip>
             </CellWrapper>
           );
         },
