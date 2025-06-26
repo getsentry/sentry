@@ -1,11 +1,12 @@
 import {Flex} from 'sentry/components/core/layout';
+import ExternalLink from 'sentry/components/links/externalLink';
 import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
 import {
   OptionalRowLine,
   RowLine,
 } from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {BannerLink, InfoBanner} from 'sentry/components/workflowEngine/ui/infoBanner';
+import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
@@ -71,18 +72,16 @@ export function SlackNode() {
           notes: <NotesField />,
         })}
       </OptionalRowLine>
-      <InfoBanner>
-        <Flex gap={space(0.5)}>
-          {tct(
-            'Having rate limiting problems? Enter a channel or user ID. Get help [link:here]',
-            {
-              link: (
-                <BannerLink href="https://docs.sentry.io/organization/integrations/notification-incidents/slack/#rate-limiting-error" />
-              ),
-            }
-          )}
-        </Flex>
-      </InfoBanner>
+      <DismissableInfoAlert>
+        {tct(
+          'Having rate limiting problems? Enter a channel or user ID. Get help [link:here].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/organization/integrations/notification-incidents/slack/#rate-limiting-error" />
+            ),
+          }
+        )}
+      </DismissableInfoAlert>
     </Flex>
   );
 }
