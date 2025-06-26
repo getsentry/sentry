@@ -16,11 +16,11 @@ import {
   AI_MODEL_ID_ATTRIBUTE,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -51,7 +51,7 @@ export default function LLMGenerationsWidget() {
       search: fullQuery,
       limit: 3,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.LLM_GENERATIONS_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
@@ -64,7 +64,7 @@ export default function LLMGenerationsWidget() {
       topN: 3,
       enabled: !!generationsRequest.data,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.LLM_GENERATIONS_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -147,6 +147,7 @@ export default function LLMGenerationsWidget() {
         hasData && (
           <Toolbar
             showCreateAlert
+            referrer={Referrer.LLM_GENERATIONS_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [

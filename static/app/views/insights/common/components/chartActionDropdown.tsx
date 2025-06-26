@@ -117,7 +117,16 @@ export function BaseChartActionDropdown({
       key: 'create-alert',
       label: t('Create Alert for'),
       isSubmenu: true,
-      children: alertMenuOptions,
+      children: alertMenuOptions.map(option => ({
+        ...option,
+        onAction: () => {
+          option.onAction?.();
+          trackAnalytics('insights.create_alert', {
+            organization: organization.slug,
+            referrer,
+          });
+        },
+      })),
     });
   }
 
