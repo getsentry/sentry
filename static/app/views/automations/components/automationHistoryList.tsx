@@ -24,22 +24,22 @@ export default function AutomationHistoryList({history}: Props) {
   return (
     <SimpleTableWithColumns>
       <SimpleTable.Header>
-        <SimpleTable.HeaderCell className="dateSent">
+        <SimpleTable.HeaderCell>
           {tct('Time Sent ([timezone])', {timezone: moment.tz(timezone).zoneAbbr()})}
         </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell className="monitor">Monitor</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell className="groupId">Issue</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>Monitor</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>Issue</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {history.length === 0 && <SimpleTable.Empty>No history found</SimpleTable.Empty>}
       {history.map((row, index) => (
         <SimpleTable.Row key={index}>
-          <SimpleTable.RowCell className="dateSent">
+          <SimpleTable.RowCell>
             <DateTime date={row.dateSent} forcedTimezone={timezone} />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell className="monitor">
+          <SimpleTable.RowCell>
             <Link to={row.monitor.link}>{row.monitor.name}</Link>
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell className="groupId">
+          <SimpleTable.RowCell>
             <Link to={`/issues/${row.groupId}`}>{`#${row.groupId}`}</Link>
           </SimpleTable.RowCell>
         </SimpleTable.Row>

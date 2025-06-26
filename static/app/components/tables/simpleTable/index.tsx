@@ -1,4 +1,4 @@
-import type {CSSProperties, HTMLAttributes} from 'react';
+import type {ComponentProps, CSSProperties, HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,12 +31,11 @@ function Header({children}: {children: React.ReactNode}) {
 
 function HeaderCell({
   children,
-  className,
   sort,
   handleSortClick,
-}: {
+  ...props
+}: HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;
-  className?: string;
   handleSortClick?: () => void;
   sort?: 'asc' | 'desc';
 }) {
@@ -45,7 +44,7 @@ function HeaderCell({
 
   return (
     <ColumnHeaderCell
-      className={className}
+      {...props}
       isSorted={isSorted}
       onClick={handleSortClick}
       role="columnheader"
@@ -78,13 +77,20 @@ function RowCell({
   children,
   className,
   justify,
-}: {
+  ...props
+}: ComponentProps<typeof Flex> & {
   children: React.ReactNode;
   className?: string;
   justify?: CSSProperties['justifyContent'];
 }) {
   return (
-    <StyledRowCell className={className} role="cell" align="center" justify={justify}>
+    <StyledRowCell
+      {...props}
+      className={className}
+      role="cell"
+      align="center"
+      justify={justify}
+    >
       {children}
     </StyledRowCell>
   );

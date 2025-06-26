@@ -196,41 +196,41 @@ export default Storybook.story('SimpleTable', story => {
   });
 
   story('Custom widths and hidden columns', () => {
-    const tableContent = (
-      <Fragment>
-        <SimpleTable.Header>
-          {headers.map(header => (
-            <SimpleTable.HeaderCell key={header.key}>
-              {header.label}
-            </SimpleTable.HeaderCell>
-          ))}
-        </SimpleTable.Header>
-        {data.map(row => (
-          <SimpleTable.Row key={row.name}>
-            <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
-            <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-            <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <TimeAgoCell date={row.lastTriggered} />
-            </SimpleTable.RowCell>
-          </SimpleTable.Row>
-        ))}
-      </Fragment>
-    );
-
     return (
       <Fragment>
         <p>
           Set custom widths for columns by styling SimpleTable with{' '}
           <code>grid-template-columns</code>.
         </p>
-
-        <SimpleTableWithCustomWidths>{tableContent}</SimpleTableWithCustomWidths>
         <p>
-          You can also hide columns by targeting the column's class name, which is useful
-          for creating responsive tables.
+          You can also hide columns by targeting the column in css, usually with a{' '}
+          <Storybook.JSXProperty name="data-*" value="string" />
+          attribute. This is useful for creating responsive tables.
         </p>
-        <SimpleTableWithHiddenColumns>{tableContent}</SimpleTableWithHiddenColumns>
+        <p>This table has 4 columns, but will hide some as it gets narrower.</p>
+        <SizingWindowContainer>
+          <SimpleTableWithHiddenColumns>
+            <SimpleTable.Header>
+              {headers.map(header => (
+                <SimpleTable.HeaderCell key={header.key} data-column-name={header.key}>
+                  {header.label}
+                </SimpleTable.HeaderCell>
+              ))}
+            </SimpleTable.Header>
+            {data.map(row => (
+              <SimpleTable.Row key={row.name}>
+                <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+                <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="action">
+                  {row.action}
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="lastTriggered">
+                  <TimeAgoCell date={row.lastTriggered} />
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            ))}
+          </SimpleTableWithHiddenColumns>
+        </SizingWindowContainer>
       </Fragment>
     );
   });
@@ -303,14 +303,26 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr 1fr;
 `;
 
-const SimpleTableWithCustomWidths = styled(SimpleTable)`
-  grid-template-columns: 2fr min-content auto 256px;
+const SizingWindowContainer = styled(Storybook.SizingWindow)`
+  container-type: inline-size;
 `;
 
-const SimpleTableWithHiddenColumns = styled(SimpleTableWithCustomWidths)`
-  grid-template-columns: 2fr min-content auto;
+const SimpleTableWithHiddenColumns = styled(SimpleTable)`
+  grid-template-columns: 2fr min-content auto 256px;
 
-  .lastTriggered {
-    display: none;
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 2fr min-content auto;
+
+    [data-column-name='action'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 2fr min-content;
+
+    [data-column-name='lastTriggered'] {
+      display: none;
+    }
   }
 `;

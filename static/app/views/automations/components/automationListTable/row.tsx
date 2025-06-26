@@ -31,19 +31,19 @@ export function AutomationListRow({automation}: AutomationListRowProps) {
       variant={disabled ? 'faded' : 'default'}
       data-test-id="automation-list-row"
     >
-      <SimpleTable.RowCell className="name">
+      <SimpleTable.RowCell>
         <AutomationTitleCell automation={automation} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="last-triggered">
+      <SimpleTable.RowCell data-column-name="last-triggered">
         <TimeAgoCell date={lastTriggered} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="action">
+      <SimpleTable.RowCell data-column-name="action">
         <ActionCell actions={actions} disabled={disabled} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="projects">
+      <SimpleTable.RowCell data-column-name="projects">
         <ProjectList projectSlugs={projectSlugs} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="connected-monitors">
+      <SimpleTable.RowCell data-column-name="connected-monitors">
         <AutomationListConnectedDetectors detectorIds={detectorIds} />
       </SimpleTable.RowCell>
     </AutomationSimpleTableRow>
@@ -53,19 +53,19 @@ export function AutomationListRow({automation}: AutomationListRowProps) {
 export function AutomationListRowSkeleton() {
   return (
     <AutomationSimpleTableRow>
-      <SimpleTable.RowCell className="name">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="last-triggered">
+      <SimpleTable.RowCell data-column-name="last-triggered">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="action">
+      <SimpleTable.RowCell data-column-name="action">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="projects">
+      <SimpleTable.RowCell data-column-name="projects">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell className="connected-monitors">
+      <SimpleTable.RowCell data-column-name="connected-monitors">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
     </AutomationSimpleTableRow>
