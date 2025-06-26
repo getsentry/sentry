@@ -40,11 +40,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
-from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT
+from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -499,6 +501,29 @@ def get_attributes_and_values(
     return {"attributes_and_values": attributes_and_values}
 
 
+def get_github_enterprise_integration_config(
+    *, organization_id: int, integration_id: int
+) -> dict[str, Any]:
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    if integration is None:
+        raise Integration.DoesNotExist
+
+    installation = integration.get_installation(organization_id=organization_id)
+
+    return {
+        "base_url": f"https://{installation.model.metadata["domain_name"].split("/")[0]}/api/v3",
+        "private_key": installation.model.metadata["installation"]["private_key"],
+        "app_id": installation.model.metadata["installation"]["id"],
+        "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
+        "installation_id": installation.model.metadata["installation_id"],
+    }
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -512,6 +537,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
+    "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
 }
 
 

@@ -2,13 +2,16 @@ from typing import Any
 from unittest.mock import patch
 
 import orjson
+import pytest
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.seer_rpc import (
     generate_request_signature,
+    get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -355,3 +358,48 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {"consent": True}
         # Should be called twice (checks both existing orgs)
         assert mock_get_acknowledgement.call_count == 2
+
+    def test_get_github_enterprise_integration_config(self):
+        """Test when organization has github enterprise integration"""
+
+        # Create a GitHub Enterprise integration
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="github_external_id",
+            metadata={
+                "domain_name": "github.example.com",
+                "installation": {
+                    "private_key": "fake key",
+                    "id": 1,
+                    "verify_ssl": True,
+                },
+                "installation_id": 1234,
+            },
+        )
+
+        result = get_github_enterprise_integration_config(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+        assert result == {
+            "base_url": "https://github.example.com/api/v3",
+            "private_key": "fake key",
+            "app_id": 1,
+            "verify_ssl": True,
+            "installation_id": 1234,
+        }
+
+        # Test with invalid integration_id
+        with pytest.raises(Integration.DoesNotExist):
+            get_github_enterprise_integration_config(
+                organization_id=self.organization.id,
+                integration_id=-1,
+            )
+
+        # Test with invalid organization_id
+        with pytest.raises(Integration.DoesNotExist):
+            get_github_enterprise_integration_config(
+                organization_id=-1,
+                integration_id=integration.id,
+            )
