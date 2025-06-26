@@ -517,7 +517,7 @@ export function getBestActionToIncreaseEventLimits(
   if (!isBizPlanFamily(subscription.planDetails)) {
     return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
   }
-  return null;
+  return '';
 }
 
 /**
