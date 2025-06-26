@@ -3,8 +3,8 @@ import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useTimezone} from 'sentry/components/timezoneProvider';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {tct} from 'sentry/locale';
 
 interface AutomationHistoryData {
