@@ -79,11 +79,14 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
+    # todo pin and move to action-setup-venv
+    - uses: astral-sh/setup-uv@v5
+
     - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-        install-cmd: cd ${{ inputs.workdir }} && pip install -r requirements-dev-frozen.txt
+        install-cmd: cd ${{ inputs.workdir }} && uv pip install -r requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config
