@@ -88,7 +88,7 @@ describe('token', function () {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(1);
 
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
@@ -111,10 +111,9 @@ describe('token', function () {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(1);
 
-      // need to go down twice because parenthesis is always on top
-      await userEvent.type(input, '{ArrowDown}{ArrowDown}{Enter}');
+      await userEvent.type(input, '{ArrowDown}{Enter}');
       expect(
         await screen.findByRole('row', {
           name: 'avg(span.duration)',
@@ -138,8 +137,6 @@ describe('token', function () {
 
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
-      await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       const options = within(screen.getByRole('listbox'));
       await userEvent.click(options.getByTestId('icon-parenthesis'));
@@ -162,8 +159,6 @@ describe('token', function () {
 
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(4);
-      await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
