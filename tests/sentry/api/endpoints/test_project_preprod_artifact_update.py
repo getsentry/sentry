@@ -100,8 +100,8 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         self.preprod_artifact.save()
 
         # Test that setting error_message sets state to FAILED
-        data = {"error_message": "Processing failed"}
-        response = self._make_request(data)
+        data_two = {"error_message": "Processing failed"}
+        response = self._make_request(data_two)
 
         assert response.status_code == 200
         resp_data = response.json()
@@ -174,7 +174,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "extras" in resp_data["updated_fields"]
 
         self.preprod_artifact.refresh_from_db()
-        stored_apple_info = json.loads(self.preprod_artifact.extras)
+        stored_apple_info = json.loads(self.preprod_artifact.extras or "{}")
         assert stored_apple_info == apple_info
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
@@ -195,7 +195,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "extras" in resp_data["updated_fields"]
 
         self.preprod_artifact.refresh_from_db()
-        stored_apple_info = json.loads(self.preprod_artifact.extras)
+        stored_apple_info = json.loads(self.preprod_artifact.extras or "{}")
         # Should only contain the fields that were provided
         assert stored_apple_info == apple_info
         assert "profile_name" not in stored_apple_info

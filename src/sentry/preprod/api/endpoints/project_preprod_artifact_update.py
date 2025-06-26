@@ -65,12 +65,12 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         jsonschema.validate(data, schema)
         return data, None
     except jsonschema.ValidationError as e:
-        error_message = e.message
+        validation_error_message = e.message
         # Get the field from the path if available
         if e.path:
             if field := e.path[0]:
-                error_message = error_messages.get(str(field), error_message)
-        return {}, error_message
+                validation_error_message = error_messages.get(str(field), validation_error_message)
+        return {}, validation_error_message
     except (orjson.JSONDecodeError, TypeError):
         return {}, "Invalid json body"
 
