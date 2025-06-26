@@ -41,6 +41,7 @@ export function ChartActionDropdown({
   const {selection} = usePageFilters();
 
   const exploreUrl = getExploreUrl({
+    selection,
     organization,
     visualize: [
       {

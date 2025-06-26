@@ -75,6 +75,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
   const colors = theme.chart.getColorPalette(2);
 
   const exploreUrl = getExploreUrl({
+    selection,
     organization,
     visualize: [
       {
