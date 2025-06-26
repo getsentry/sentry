@@ -7,6 +7,7 @@ import type {
   FilterValueItem,
   KeyItem,
   KeySectionItem,
+  RawSearchFilterValueItem,
   RawSearchItem,
   RecentQueryItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -140,6 +141,24 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
     showDetailsInOverlay: true,
     details: null,
     type: 'filter-value',
+  };
+}
+
+export function createRawSearchFilterValueItem(
+  key: string,
+  value: string
+): RawSearchFilterValueItem {
+  const filter = `${key}:${escapeFilterValue(value)}`;
+
+  return {
+    key: getEscapedKey(`${key}:${value}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-value',
   };
 }
 
