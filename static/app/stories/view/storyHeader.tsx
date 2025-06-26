@@ -77,7 +77,7 @@ const H1 = styled('h1')`
   margin: 0;
   display: flex;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.tokens.content.accent};
