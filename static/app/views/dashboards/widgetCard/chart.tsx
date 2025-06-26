@@ -201,6 +201,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                   organization,
                   theme,
                   unit,
+                  eventView,
                 } satisfies RenderFunctionBaggage;
               }}
             />
