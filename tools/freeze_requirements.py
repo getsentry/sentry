@@ -10,7 +10,7 @@ from subprocess import CalledProcessError, run
 from tools.lib import gitroot
 
 
-def worker(args: tuple[str, ...], cwd=None) -> None:
+def worker(args: tuple[str, ...], cwd: str | None = None) -> None:
     env = os.environ.copy()
     env["CUSTOM_COMPILE_COMMAND"] = "make freeze-requirements"
 
@@ -62,10 +62,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             worker,
             (
                 *base_cmd,
-                f"requirements-base.txt",
-                f"requirements-getsentry.txt",
+                "requirements-base.txt",
+                "requirements-getsentry.txt",
                 "-o",
-                f"requirements-frozen.txt",
+                "requirements-frozen.txt",
             ),
             cwd=base_path,
         ),
@@ -73,11 +73,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             worker,
             (
                 *base_cmd,
-                f"requirements-base.txt",
-                f"requirements-getsentry.txt",
-                f"requirements-dev.txt",
+                "requirements-base.txt",
+                "requirements-getsentry.txt",
+                "requirements-dev.txt",
                 "-o",
-                f"requirements-dev-frozen.txt",
+                "requirements-dev-frozen.txt",
             ),
             cwd=base_path,
         ),
