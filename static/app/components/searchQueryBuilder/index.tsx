@@ -66,6 +66,12 @@ export interface SearchQueryBuilderProps {
    */
   fieldDefinitionGetter?: FieldDefinitionGetter;
   /**
+   * A mapping of aliases for filter keys.
+   * These are used to ensure that the filter key does not show them as invalid, however
+   * they will not be shown in the filter key dropdown.
+   */
+  filterKeyAliases?: TagCollection;
+  /**
    * The width of the filter key menu.
    * Defaults to 360px. May be increased if there are a large number of categories
    * or long filter key names.
@@ -88,6 +94,7 @@ export interface SearchQueryBuilderProps {
    * known column.
    */
   getSuggestedFilterKey?: (key: string) => string | null;
+
   /**
    * Allows for customization of the invalid token messages.
    */
