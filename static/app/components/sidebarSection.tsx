@@ -11,7 +11,7 @@ export const Title = styled('h6')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0 0;
 `;
 

@@ -265,6 +265,6 @@ const SmallNumberField = styled(NumberField)`
 `;
 
 const SecondaryLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;

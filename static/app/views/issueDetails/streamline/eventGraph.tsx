@@ -660,7 +660,7 @@ const CalloutButton = withChonk(
 
 const Label = styled('div')<{isActive: boolean}>`
   line-height: 1;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
 `;
 

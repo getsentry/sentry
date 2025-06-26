@@ -42,6 +42,7 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',

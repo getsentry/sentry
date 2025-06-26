@@ -9,9 +9,7 @@ import GridEditable, {
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,6 +35,9 @@ import {
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
+import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
+import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
@@ -61,9 +62,19 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
+const rightAlignColumns = new Set([
+  'count()',
+  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  'failure_rate()',
+  'avg(span.duration)',
+  'p95(span.duration)',
+]);
+
 export function ModelsTable() {
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
   const {query} = useTransactionNameQuery();
 
@@ -123,17 +134,34 @@ export function ModelsTable() {
     }));
   }, [modelsRequest.data]);
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        cursorParamName="modelsCursor"
-        forceCellGrow={column.key === 'model'}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const handleSort = useCallback(
+    (column: string, direction: 'asc' | 'desc') => {
+      trackAnalytics('agent-monitoring.column-sort', {
+        organization,
+        table: 'models',
+        column,
+        direction,
+      });
+    },
+    [organization]
+  );
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          cursorParamName="modelsCursor"
+          forceCellGrow={column.key === 'model'}
+          align={rightAlignColumns.has(column.key) ? 'right' : undefined}
+          onClick={handleSort}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [handleSort]
+  );
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
@@ -194,17 +222,17 @@ const BodyCell = memo(function BodyCell({
         </ModelCell>
       );
     case 'count()':
-      return dataRow.requests;
-    case 'avg(span.duration)':
-      return getDuration(dataRow.avg / 1000, 2, true);
-    case 'p95(span.duration)':
-      return getDuration(dataRow.p95 / 1000, 2, true);
-    case 'failure_rate()':
-      return formatPercentage(dataRow.errorRate ?? 0);
+      return <NumberCell value={dataRow.requests} />;
     case AI_INPUT_TOKENS_ATTRIBUTE_SUM:
-      return formatAbbreviatedNumber(dataRow.inputTokens);
+      return <NumberCell value={dataRow.inputTokens} />;
     case AI_OUTPUT_TOKENS_ATTRIBUTE_SUM:
-      return formatAbbreviatedNumber(dataRow.outputTokens);
+      return <NumberCell value={dataRow.outputTokens} />;
+    case 'avg(span.duration)':
+      return <DurationCell milliseconds={dataRow.avg} />;
+    case 'p95(span.duration)':
+      return <DurationCell milliseconds={dataRow.p95} />;
+    case 'failure_rate()':
+      return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
     default:
       return null;
   }

@@ -132,8 +132,11 @@ def process_batch(
     buffer: SpansBuffer,
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
+    killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
     min_timestamp = None
+    decode_time = 0.0
     spans = []
+
     for value in values.payload:
         assert isinstance(value, BrokerValue)
 
@@ -142,17 +145,20 @@ def process_batch(
             if min_timestamp is None or timestamp < min_timestamp:
                 min_timestamp = timestamp
 
-            with metrics.timer("spans.buffer.process_batch.decode"):
-                val = cast(SpanEvent, orjson.loads(payload.value))
+            decode_start = time.monotonic()
+            val = cast(SpanEvent, orjson.loads(payload.value))
+            decode_time += time.monotonic() - decode_start
 
-            if killswitches.killswitch_matches_context(
+            if killswitches.value_matches(
                 "spans.drop-in-buffer",
+                killswitch_config,
                 {
                     "org_id": val.get("organization_id"),
                     "project_id": val.get("project_id"),
                     "trace_id": val.get("trace_id"),
                     "partition_id": value.partition.index,
                 },
+                emit_metrics=False,
             ):
                 continue
 
@@ -181,6 +187,10 @@ def process_batch(
             # in those situations it's better to halt the consumer as we're
             # otherwise very likely to just DLQ everything anyway.
             raise InvalidMessage(value.partition, value.offset)
+
+    # This timing is not tracked in case of an exception. This is desired
+    # because otherwise the ratio with other batch metrics is out of sync.
+    metrics.timing("spans.buffer.process_batch.decode", decode_time)
 
     assert min_timestamp is not None
     buffer.process_spans(spans, now=min_timestamp)

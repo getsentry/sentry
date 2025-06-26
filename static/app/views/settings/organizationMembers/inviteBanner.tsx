@@ -319,7 +319,7 @@ const CardTitleContent = styled('div')`
 
 const CardTitle = styled('h6')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray400};
 `;
@@ -327,7 +327,7 @@ const CardTitle = styled('h6')`
 const Subtitle = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   gap: ${space(0.5)};
@@ -336,7 +336,7 @@ const Subtitle = styled('div')`
 const MemberEmail = styled('div')`
   display: block;
   max-width: 70%;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   text-overflow: ellipsis;
@@ -366,14 +366,14 @@ const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: ${space(0.75)};
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const SeeMore = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;

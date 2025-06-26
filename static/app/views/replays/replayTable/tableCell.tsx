@@ -10,6 +10,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
+import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
@@ -26,7 +27,6 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -36,6 +36,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -43,6 +44,7 @@ import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/repla
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
+  rowIndex: number;
   showDropdownFilters?: boolean;
 };
 
@@ -303,7 +305,6 @@ function getUserBadgeUser(replay: Props['replay']) {
 
 export function ReplayCell({
   eventView,
-  organization,
   referrer,
   replay,
   referrerTable,
@@ -311,12 +312,12 @@ export function ReplayCell({
   className,
 }: Props & {
   eventView: EventView;
-  organization: Organization;
   referrer: string;
   className?: string;
   isWidget?: boolean;
   referrerTable?: ReferrerTableType;
 }) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
@@ -413,7 +414,7 @@ export function ReplayCell({
 }
 
 const ArchivedId = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledIconDelete = styled(IconDelete)`
@@ -428,7 +429,7 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 `;
 
 const DisplayNameLink = styled(Link)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
@@ -448,10 +449,8 @@ const SubText = styled('div')`
   gap: ${space(0.25)};
 `;
 
-export function TransactionCell({
-  organization,
-  replay,
-}: Props & {organization: Organization}) {
+export function TransactionCell({replay}: Props) {
+  const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
 
@@ -663,27 +662,24 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function PlayPauseCell({
-  isSelected,
-  handleClick,
-}: {
-  handleClick: () => void;
-  isSelected: boolean;
-}) {
-  const inner = isSelected ? (
-    <ReplayPlayPauseButton size="sm" priority="default" borderless />
-  ) : (
-    <Button
-      title={t('Play')}
-      aria-label={t('Play')}
-      icon={<IconPlay size="sm" />}
-      onClick={handleClick}
-      data-test-id="replay-table-play-button"
-      borderless
-      size="sm"
-      priority="default"
-    />
-  );
+export function PlayPauseCell({rowIndex}: Props) {
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
+  const inner =
+    rowIndex === selectedReplayIndex ? (
+      <ReplayPlayPauseButton size="sm" priority="default" borderless />
+    ) : (
+      <Button
+        title={t('Play')}
+        aria-label={t('Play')}
+        icon={<IconPlay size="sm" />}
+        onClick={() => setSelectedReplayIndex(rowIndex)}
+        data-test-id="replay-table-play-button"
+        borderless
+        size="sm"
+        priority="default"
+      />
+    );
   return <Item>{inner}</Item>;
 }
 
@@ -731,7 +727,7 @@ const SpanOperationBreakdown = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;
 

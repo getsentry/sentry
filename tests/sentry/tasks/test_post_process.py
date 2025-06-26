@@ -2698,7 +2698,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         """Test that rate limit check only happens after all other checks pass"""
         mock_get_seer_org_acknowledgement.return_value = True
         mock_has_budget.return_value = True
-        mock_is_rate_limited.return_value = (False, 0, 100)  # Not rate limited
+        mock_is_rate_limited.return_value = False
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
