@@ -37,7 +37,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
-from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import (
     EventLifecycleOutcome,
@@ -188,7 +188,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     }
     authentication_classes = ()
     permission_classes = ()
-    provider = PROVIDER
+    provider = IntegrationProviderSlug.MSTEAMS.value
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
