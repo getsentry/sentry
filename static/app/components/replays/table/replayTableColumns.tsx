@@ -308,26 +308,30 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     }
     if (rowIndex === selectedReplayIndex) {
       return (
-        <ReplayPlayPauseButton
-          key="playPause-play"
-          size="sm"
-          priority="default"
-          borderless
-        />
+        <PlayPauseButtonContainer>
+          <ReplayPlayPauseButton
+            key="playPause-play"
+            borderless
+            priority="default"
+            size="sm"
+          />
+        </PlayPauseButtonContainer>
       );
     }
     return (
-      <Button
-        key="playPause-select"
-        title={t('Play')}
-        aria-label={t('Play')}
-        icon={<IconPlay size="sm" />}
-        onClick={() => setSelectedReplayIndex(rowIndex)}
-        data-test-id="replay-table-play-button"
-        borderless
-        size="sm"
-        priority="default"
-      />
+      <PlayPauseButtonContainer>
+        <Button
+          key="playPause-select"
+          aria-label={t('Play')}
+          borderless
+          data-test-id="replay-table-play-button"
+          icon={<IconPlay />}
+          onClick={() => setSelectedReplayIndex(rowIndex)}
+          priority="default"
+          size="sm"
+          title={t('Play')}
+        />
+      </PlayPauseButtonContainer>
     );
   },
 };
@@ -349,9 +353,9 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     if (replay.is_archived) {
       return (
         <Flex gap={space(1)} align="center" justify="center">
-          <Flex>
+          <div style={{paddingInline: space(0.5)}}>
             <IconDelete color="gray500" size="md" />
-          </Flex>
+          </div>
 
           <Flex direction="column" gap={space(0.5)}>
             <Flex gap={space(0.5)} align="center">
@@ -518,6 +522,14 @@ const DisplayNameLink = styled(Link)`
   &[data-has-viewed='true'] {
     font-weight: ${p => p.theme.fontWeightNormal};
   }
+`;
+
+const PlayPauseButtonContainer = styled(Flex)`
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
+
+  margin-inline: -${space(1)};
 `;
 
 const SpanOperationBreakdown = styled('div')`

@@ -5,6 +5,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
+import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -28,12 +29,14 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ListRecord[];
   showDropdownFilters: boolean;
+  onClickRow?: (props: {replay: ListRecord; rowIndex: number}) => void;
 };
 
 export default function ReplayTable({
   columns,
   error,
   isPending,
+  onClickRow,
   onSortClick,
   replays,
   showDropdownFilters,
@@ -66,7 +69,11 @@ export default function ReplayTable({
     <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
       {replays.length === 0 && <SimpleTable.Empty>No data</SimpleTable.Empty>}
       {replays.map((replay, rowIndex) => (
-        <SimpleTable.Row key={replay.id}>
+        <SimpleTable.Row
+          key={replay.id}
+          variant={replay.is_archived ? 'faded' : 'default'}
+          onClick={() => onClickRow?.({replay, rowIndex})}
+        >
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${column.sortKey}`}>
               <column.Component
@@ -113,10 +120,18 @@ const ReplayTableWithColumns = styled(
     </SimpleTable>
   )
 )`
-  grid-template-columns: 1fr repeat(7, max-content);
-
+  ${p => getGridTemplateColumns(p.columns)}
   margin-bottom: 0;
+  overflow: auto;
 `;
+
+function getGridTemplateColumns(columns: readonly ReplayTableColumn[]) {
+  return `grid-template-columns: ${columns
+    .map(column =>
+      column === ReplaySessionColumn ? 'minmax(150px, 1fr)' : 'max-content'
+    )
+    .join(' ')};`;
+}
 
 function getErrorMessage(fetchError: RequestError) {
   if (typeof fetchError === 'string') {
@@ -138,6 +153,7 @@ function getErrorMessage(fetchError: RequestError) {
 
 const RowCell = styled(SimpleTable.RowCell)`
   position: relative;
+  overflow: auto;
 
   &:hover [data-visible-on-hover='true'] {
     opacity: 1;

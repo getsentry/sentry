@@ -216,6 +216,7 @@ function GroupReplaysTable({
   const organization = useOrganization();
   const {allMobileProj} = useAllMobileProj({});
   const selectedReplayIndex = useSelectedReplayIndex();
+  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
 
   const {groupId} = useParams<{groupId: string}>();
   useCleanQueryParamsOnRouteLeave({
@@ -240,6 +241,7 @@ function GroupReplaysTable({
       ]}
       error={replayListData.fetchError}
       isPending={replayListData.isFetching}
+      onClickRow={({rowIndex}) => setSelectedReplayIndex(rowIndex)}
       replays={replays ?? []}
       showDropdownFilters={false}
     />
