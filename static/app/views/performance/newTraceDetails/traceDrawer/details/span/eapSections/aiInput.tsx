@@ -108,6 +108,32 @@ function transformInputMessages(inputMessages: string) {
   }
 }
 
+function transformPrompt(prompt: string) {
+  try {
+    const json = JSON.parse(prompt);
+    const result = [];
+    const {system, messages} = json;
+    if (system) {
+      result.push({
+        role: 'system',
+        content: system,
+      });
+    }
+    const parsedMessages = parseAIMessages(messages);
+    if (parsedMessages) {
+      result.push(...parsedMessages);
+    }
+    return JSON.stringify(result);
+  } catch (error) {
+    Sentry.captureMessage('Error parsing ai.prompt', {
+      extra: {
+        error,
+      },
+    });
+    return undefined;
+  }
+}
+
 const roleHeadings = {
   system: t('System'),
   user: t('User'),
@@ -143,6 +169,12 @@ export function AIInputSection({
       attributes
     );
     promptMessages = inputMessages && transformInputMessages(inputMessages);
+  }
+  if (!promptMessages) {
+    const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
+    if (messages) {
+      promptMessages = transformPrompt(messages);
+    }
   }
 
   const messages = defined(promptMessages) && parseAIMessages(promptMessages);
