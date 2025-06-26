@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
+from django.contrib.auth import logout
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 
@@ -43,6 +44,10 @@ class DemoModeGuardMiddleware:
                     logger.debug("Maybe blocking org redirect for org: %s", activeorg)
                     if is_demo_org(_get_org(activeorg)):
                         logger.debug("Org %s is demo org, redirecting to welcome page", activeorg)
+
+                        if options.get("demo-mode.sandbox-redirect-logout"):
+                            logout(request)
+
                         return HttpResponseRedirect("https://sentry.io/welcome")
 
         return self.get_response(request)
