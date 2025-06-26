@@ -353,7 +353,6 @@ export function useAnalytics({
 
 export function useCompareAnalytics({
   query: queryParts,
-  index,
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -369,14 +368,13 @@ export function useCompareAnalytics({
   | 'interval'
   | 'isTopN'
 > & {
-  index: number;
   query: ReadableExploreQueryParts;
 }) {
   const dataset = DiscoverDatasets.SPANS_EAP_RPC;
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.map(
-    yAxis => new Visualize(yAxis, {label: String(index), chartType: queryParts.chartType})
+    yAxis => new Visualize(yAxis, {chartType: queryParts.chartType})
   );
 
   return useTrackAnalytics({

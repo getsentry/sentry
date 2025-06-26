@@ -58,7 +58,7 @@ export function ArithmeticTokenFunction({
       {...rowProps}
       ref={ref}
       tabIndex={isFocused ? 0 : -1}
-      aria-label={`${token.function}(${attribute.format()})`}
+      aria-label={`${token.function}(${attribute.text})`}
       aria-invalid={false}
       state={'valid'}
     >
@@ -305,7 +305,7 @@ function DeleteFunction({token}: DeleteFunctionProps) {
   }, [dispatch, token]);
 
   return (
-    <DeleteButton aria-label={t('Remove function %s', token.format())} onClick={onClick}>
+    <DeleteButton aria-label={t('Remove function %s', token.text)} onClick={onClick}>
       <InteractionStateLayer />
       <IconClose legacySize="8px" />
     </DeleteButton>

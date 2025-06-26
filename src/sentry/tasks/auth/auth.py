@@ -31,7 +31,9 @@ logger = logging.getLogger("sentry.auth")
     name="sentry.tasks.send_sso_link_emails_control",
     queue="auth.control",
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=auth_control_tasks),
+    taskworker_config=TaskworkerConfig(
+        namespace=auth_control_tasks, processing_deadline_duration=30
+    ),
 )
 def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, **kwargs):
     # This seems dumb as the region method is the same, but we need to keep
