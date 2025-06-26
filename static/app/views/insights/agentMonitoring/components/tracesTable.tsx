@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -26,7 +27,10 @@ import {
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {
+  OverflowEllipsisTextContainer,
+  TextAlignRight,
+} from 'sentry/views/insights/common/components/textAlign';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -218,7 +222,13 @@ const BodyCell = memo(function BodyCell({
         </span>
       );
     case 'transaction':
-      return dataRow.transaction;
+      return (
+        <Tooltip title={dataRow.transaction} showOnlyOnOverflow skipWrapper>
+          <OverflowEllipsisTextContainer>
+            {dataRow.transaction}
+          </OverflowEllipsisTextContainer>
+        </Tooltip>
+      );
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
