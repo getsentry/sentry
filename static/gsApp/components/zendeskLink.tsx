@@ -21,18 +21,26 @@ type Props = {
   subject?: string;
 };
 
-class ZendeskLink extends Component<Props> {
+type State = {
+  zendeskHealthy?: boolean;
+};
+
+class ZendeskLink extends Component<Props, State> {
   componentDidMount() {
     const {organization, source} = this.props;
     if (organization) {
       trackGetsentryAnalytics('zendesk_link.viewed', {organization, source});
     }
+
+    fetch('https://sentry.zendesk.com/embeddable/config').then(() =>
+      this.setState({zendeskHealthy: true})
+    );
   }
 
   activateSupportWidget = (e: React.MouseEvent) => {
     const {organization, source} = this.props;
 
-    if (zendeskIsLoaded()) {
+    if (zendeskIsLoaded() && this.state.zendeskHealthy) {
       e.preventDefault();
       activateZendesk();
     }
