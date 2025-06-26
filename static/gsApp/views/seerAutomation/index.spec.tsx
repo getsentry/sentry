@@ -8,6 +8,24 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import SeerAutomationRoot from './index';
 
 describe('SeerAutomation', function () {
+  beforeEach(() => {
+    // Mock the seer setup check endpoint for all tests
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+  });
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
