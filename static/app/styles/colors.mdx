@@ -155,7 +155,7 @@ export function ExampleCard({imgSrc, text, isPositive}) {
   );
 }
 
-export function ColorPalette({name, palette}) {
+export function ColorPalette({name, palette = []}) {
   const theme = useTheme();
 
 return (
