@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import queryBasedSortLinkGenerator from 'sentry/components/replays/queryBasedSortLinkGenerator';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 

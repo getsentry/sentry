@@ -261,7 +261,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 const PrimaryMessage = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0 auto ${space(1)};
 `;
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from collections.abc import Callable, Collection, Mapping
+from collections.abc import Callable, Collection, Mapping, MutableMapping
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Any, Generic, ParamSpec, TypeVar
 from uuid import uuid4
@@ -91,7 +91,7 @@ class Task(Generic[P, R]):
         self,
         args: Any | None = None,
         kwargs: Any | None = None,
-        headers: Mapping[str, Any] | None = None,
+        headers: MutableMapping[str, Any] | None = None,
         expires: int | datetime.timedelta | None = None,
         countdown: int | datetime.timedelta | None = None,
         **options: Any,
@@ -125,7 +125,7 @@ class Task(Generic[P, R]):
         self,
         args: Collection[Any],
         kwargs: Mapping[Any, Any],
-        headers: Mapping[str, Any] | None = None,
+        headers: MutableMapping[str, Any] | None = None,
         expires: int | datetime.timedelta | None = None,
         countdown: int | datetime.timedelta | None = None,
     ) -> TaskActivation:
@@ -147,11 +147,13 @@ class Task(Generic[P, R]):
         if not headers:
             headers = {}
 
-        headers = {
-            "sentry-trace": sentry_sdk.get_traceparent() or "",
-            "baggage": sentry_sdk.get_baggage() or "",
-            **headers,
-        }
+        if headers.get("sentry-propagate-traces", True):
+            headers = {
+                "sentry-trace": sentry_sdk.get_traceparent() or "",
+                "baggage": sentry_sdk.get_baggage() or "",
+                **headers,
+            }
+
         # Monitor config is patched in by the sentry_sdk
         # however, taskworkers do not support the nested object,
         # nor do they use it when creating checkins.

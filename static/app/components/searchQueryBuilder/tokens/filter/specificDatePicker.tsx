@@ -289,7 +289,7 @@ const UtcPickerLabel = styled('label')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   user-select: none;
   gap: ${space(1)};
   cursor: pointer;
@@ -305,7 +305,7 @@ const CheckboxLabel = styled('label')`
   align-items: center;
   margin: 0;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
   cursor: pointer;
 `;

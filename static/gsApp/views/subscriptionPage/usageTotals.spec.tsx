@@ -1442,10 +1442,6 @@ describe('Subscription > CombinedUsageTotals', function () {
       plan: 'am2_business',
       onDemandBudgets: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        attachmentsBudget: 0,
-        errorsBudget: 0,
-        replaysBudget: 0,
-        transactionsBudget: 0,
         budgets: {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,
@@ -1975,7 +1971,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       plan: 'am3_business',
     });
 
-    // Add SEER category but don't include it in reservedBudgetCategories
+    // Add SEER category but don't include it in reservedBudgets
     subscription.categories.seerAutofix = MetricHistoryFixture({
       category: DataCategory.SEER_AUTOFIX,
       usage: 10,

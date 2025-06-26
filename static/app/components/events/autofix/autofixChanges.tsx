@@ -420,7 +420,7 @@ const Content = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 `;

@@ -223,7 +223,7 @@ const TourButtonBar = styled(ButtonBar)`
 const StepCounter = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 

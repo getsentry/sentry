@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,12 +30,12 @@ function LoadingSkeletons() {
 
 function HeaderCell({
   children,
-  name,
+  className,
   sortKey,
   sort,
 }: {
   children: React.ReactNode;
-  name: string;
+  className: string;
   sort: Sort | undefined;
   divider?: boolean;
   sortKey?: string;
@@ -56,10 +57,9 @@ function HeaderCell({
 
   return (
     <SimpleTable.HeaderCell
-      name={name}
-      sort={sort}
-      sortKey={sortKey}
-      handleSortClick={handleSort}
+      className={className}
+      sort={sort && sortKey === sort?.field ? sort.kind : undefined}
+      handleSortClick={sortKey ? handleSort : undefined}
     >
       {children}
     </SimpleTable.HeaderCell>
@@ -76,19 +76,23 @@ function AutomationListTable({
   return (
     <AutomationsSimpleTable>
       <SimpleTable.Header>
-        <HeaderCell name="name" sort={sort} sortKey="name">
+        <HeaderCell className="name" sort={sort} sortKey="name">
           {t('Name')}
         </HeaderCell>
-        <HeaderCell name="last-triggered" sort={sort}>
+        <HeaderCell className="last-triggered" sort={sort}>
           {t('Last Triggered')}
         </HeaderCell>
-        <HeaderCell name="action" sort={sort} sortKey="actions">
+        <HeaderCell className="action" sort={sort} sortKey="actions">
           {t('Actions')}
         </HeaderCell>
-        <HeaderCell name="projects" sort={sort}>
+        <HeaderCell className="projects" sort={sort}>
           {t('Projects')}
         </HeaderCell>
-        <HeaderCell name="connected-monitors" sort={sort} sortKey="connectedDetectors">
+        <HeaderCell
+          className="connected-monitors"
+          sort={sort}
+          sortKey="connectedDetectors"
+        >
           {t('Monitors')}
         </HeaderCell>
       </SimpleTable.Header>
@@ -108,6 +112,8 @@ function AutomationListTable({
 const AutomationsSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
+  margin-bottom: ${space(2)};
+
   .last-triggered,
   .action,
   .projects,
@@ -115,7 +121,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     display: none;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 2.5fr 1fr;
 
     .projects {
@@ -123,7 +129,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 2.5fr 1fr 1fr;
 
     .action {
@@ -131,7 +137,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 2.5fr 1fr 1fr 1fr;
 
     .last-triggered {
@@ -139,7 +145,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
 
     .connected-monitors {
