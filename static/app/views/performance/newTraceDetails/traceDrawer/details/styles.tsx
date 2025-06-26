@@ -45,6 +45,7 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -499,6 +500,11 @@ function Highlights({
             hideNodeActions ? null : (
               <OpenInAIFocusButton
                 size="xs"
+                onClick={() => {
+                  trackAnalytics('agent-monitoring.view-ai-trace-click', {
+                    organization,
+                  });
+                }}
                 to={{
                   ...location,
                   query: {
