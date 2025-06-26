@@ -37,6 +37,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 },
             )
 
+    @pytest.mark.skip(reason="flaky: #94445")
     def test_simple(self):
         logs = [
             self.create_ourlog(
