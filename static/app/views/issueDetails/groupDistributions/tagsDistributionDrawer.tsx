@@ -74,7 +74,9 @@ export default function TagsDistributionDrawer({
           <EventStickyControls>
             {includeFeatureFlagsTab ? (
               <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
-            ) : null}
+            ) : (
+              <div />
+            )}
 
             <ButtonBar gap={1}>
               <GroupDistributionsSearchInput
