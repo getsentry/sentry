@@ -1,3 +1,4 @@
+import builtins
 from typing import TYPE_CHECKING
 
 from sentry.issues.status_change_consumer import group_status_update_registry
@@ -17,6 +18,12 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
 
 
+PRIMITIVE_TYPES = {
+    obj.__name__
+    for obj in builtins.__dict__.values()
+    if isinstance(obj, type) and obj.__name__.islower()
+}
+
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
 
@@ -25,7 +32,7 @@ SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
     queue="workflow_engine.process_workflows",
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    task_worker_config=config.TaskworkerConfig(
+    taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         retry=retry.Retry(
             times=3,
@@ -42,12 +49,13 @@ def process_data_packet[T](data_packet: DataPacket[T], data_packet_type: str | N
         # if a type isn't provided, infer it from the data_packet
         query_type = type(data_packet.packet).__name__
 
-        if query_type == "dict":
-            raise ValueError("data_packet_type must be provided for dict data packets")
+    if query_type in PRIMITIVE_TYPES:
+        raise ValueError(f"DataPacket cannot be a primitive, {query_type}, without a packet_type.")
 
     processed_sources: list[tuple[DataPacket[T], list[Detector]]] = process_data_sources(
         [data_packet], query_type
     )
+
     for data_packet, detectors in processed_sources:
         process_detectors(data_packet, detectors)
 
