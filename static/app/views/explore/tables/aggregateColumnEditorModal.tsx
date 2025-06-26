@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {
   AggregateFunction,
   FunctionArgument,
@@ -77,7 +78,17 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
+    onColumnsChange(
+      tempColumns
+        .filter(col => {
+          if (isVisualize(col) && col.isEquation) {
+            const expression = new Expression(stripEquationPrefix(col.yAxis));
+            return expression.isValid;
+          }
+          return true;
+        })
+        .map(col => (isVisualize(col) ? col.toJSON() : col))
+    );
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
@@ -384,7 +395,7 @@ function AggregateSelector({
   );
 }
 
-function EquationSelector({numberTags, visualize}: VisualizeSelectorProps) {
+function EquationSelector({numberTags, onChange, visualize}: VisualizeSelectorProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
   const aggregateFunctions: AggregateFunction[] = useMemo(() => {
@@ -403,12 +414,20 @@ function EquationSelector({numberTags, visualize}: VisualizeSelectorProps) {
     });
   }, [numberTags]);
 
+  const handleExpressionChange = useCallback(
+    (newExpression: Expression) => {
+      onChange(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
+    },
+    [onChange, visualize]
+  );
+
   return (
     <Fragment>
       <ArithmeticBuilder
         aggregateFunctions={aggregateFunctions}
         functionArguments={functionArguments}
         expression={expression}
+        setExpression={handleExpressionChange}
       />
     </Fragment>
   );

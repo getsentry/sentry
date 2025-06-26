@@ -104,7 +104,7 @@ function BaseExploreFieldRenderer({
   const theme = useTheme();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
-  const field = column.name;
+  const field = String(column.key);
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
     return projects.reduce(
