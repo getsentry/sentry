@@ -12,7 +12,6 @@ import type {InputStylesProps} from 'sentry/components/core/input';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {space} from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
 
 interface NumberInputProps
   extends InputStylesProps,
@@ -91,7 +90,7 @@ export function NumberInput({
   );
 }
 
-const StepWrap = styled('div')<{size?: FormSize}>`
+const StepWrap = styled('div')<{size?: NonNullable<NumberInputProps['size']>}>`
   display: flex;
   flex-direction: column;
   align-items: center;

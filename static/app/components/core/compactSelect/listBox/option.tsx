@@ -7,15 +7,18 @@ import type {Node} from '@react-types/shared';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
-import {InnerWrap, MenuListItem} from 'sentry/components/core/menuListItem';
+import {
+  InnerWrap,
+  MenuListItem,
+  type MenuListItemProps,
+} from 'sentry/components/core/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
 
-interface ListBoxOptionProps extends AriaOptionProps {
+export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
-  size: FormSize;
+  size: MenuListItemProps['size'];
   showDetails?: boolean;
 }
 

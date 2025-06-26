@@ -985,6 +985,11 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
   left: 270,
 } as const;
 
+/**
+ * Unless you are implementing a new component in the `sentry/components/core`
+ * directory, use `ComponentProps['size']` instead.
+ * @internal
+ */
 export type FormSize = 'xs' | 'sm' | 'md';
 
 export type FormTheme = {
