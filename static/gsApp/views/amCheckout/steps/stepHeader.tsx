@@ -128,7 +128,7 @@ const EditStep = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.accent};
   justify-self: end;
 `;
 
