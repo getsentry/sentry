@@ -4,7 +4,6 @@ import * as qs from 'query-string';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
@@ -76,19 +75,16 @@ function getTabOptions({
 
 interface UseTraceLayoutTabsProps {
   logs: OurLogsResponseItem[] | undefined;
-  rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 }
 
 export function useTraceLayoutTabs({
   tree,
-  rootEventResults,
   logs,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const sections = useTraceContextSections({
     tree,
-    rootEventResults,
     logs,
   });
   const tabOptions = getTabOptions({sections: {...sections}});

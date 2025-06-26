@@ -104,7 +104,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
-    rootEventResults,
     logs: logsData,
   });
 
