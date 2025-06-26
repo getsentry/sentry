@@ -243,10 +243,6 @@ const ContextContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-// const StyledReplayCell = styled(ReplayCell)`
-//   padding: 0 0 ${space(1)};
-// `;
-
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
