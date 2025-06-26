@@ -75,3 +75,23 @@ class DemoModeGuardMiddlewareTestCase(TestCase):
 
         # SHOULD NOT redirect to welcome page
         assert getattr(response, "url", "") != "https://sentry.io/welcome"
+
+    @override_options(
+        {
+            "demo-mode.enabled": True,
+            "demo-mode.disable-sandbox-redirect": True,
+            "demo-mode.sandbox-redirect-logout": True,
+        }
+    )
+    def test_middleware_okay_logout(self):
+        demo_org = self.create_organization()
+        with override_options({"demo-mode.orgs": [demo_org.id]}):
+            self.request.session["activeorg"] = demo_org.slug
+            response = self.middleware(self.request)
+
+        # empty session means we logged out
+        assert self.request.session.is_empty()
+
+        # SHOULD redirect to welcome page
+        assert isinstance(response, HttpResponseRedirect)
+        assert response.url == "https://sentry.io/welcome"

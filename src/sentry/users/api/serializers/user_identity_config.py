@@ -53,7 +53,7 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt(cls, provider: PipelineProvider[Any, Any]) -> Self:
+    def adapt(cls, provider: PipelineProvider[Any]) -> Self:
         return cls(provider.key, provider.name)
 
 
@@ -92,7 +92,7 @@ class UserIdentityConfig:
                 is_login=False,
             )
         elif isinstance(identity, Identity):
-            provider: PipelineProvider[Any, Any]
+            provider: PipelineProvider[Any]
             try:
                 provider = identity.get_provider()
             except NotRegistered:
