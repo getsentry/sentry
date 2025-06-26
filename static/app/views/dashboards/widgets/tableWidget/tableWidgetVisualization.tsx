@@ -18,7 +18,7 @@ import type {
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-export type FieldRendererGetter = (
+type FieldRendererGetter = (
   field: string,
   data: TabularRow,
   meta: TabularMeta
@@ -29,7 +29,7 @@ export type FieldRenderer = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode | undefined;
 
-export type BaggageMaker = (
+type BaggageMaker = (
   field: string,
   _dataRow: TabularRow,
   meta: TabularMeta
