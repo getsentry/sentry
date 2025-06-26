@@ -96,7 +96,7 @@ describe('useExploreTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.NORMAL,
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );
@@ -108,7 +108,7 @@ describe('useExploreTimeseries', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );
@@ -117,7 +117,7 @@ describe('useExploreTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );
