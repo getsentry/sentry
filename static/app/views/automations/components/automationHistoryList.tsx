@@ -6,6 +6,7 @@ import Link from 'sentry/components/links/link';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 interface AutomationHistoryData {
   dateSent: Date;
@@ -49,4 +50,6 @@ export default function AutomationHistoryList({history}: Props) {
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 2fr 2fr;
+
+  margin-bottom: ${space(2)};
 `;
