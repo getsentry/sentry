@@ -15,7 +15,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
+import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {TabsContext} from './index';
@@ -344,4 +344,6 @@ const TabListOverflowWrap = styled('div')`
 const OverflowMenuTrigger = styled(DropdownButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
+  color: ${p =>
+    isChonkTheme(p.theme) ? p.theme.tokens.component.link.muted.default : undefined};
 `;
