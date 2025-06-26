@@ -56,7 +56,7 @@ function HeaderCell({
 
   return (
     <SimpleTable.HeaderCell
-      name={name}
+      className={name}
       sort={sort}
       sortKey={sortKey}
       handleSortClick={handleSort}

@@ -22,19 +22,19 @@ export function DetectorListRow({detector}: DetectorListRowProps) {
       variant={detector.disabled ? 'faded' : 'default'}
       data-test-id="detector-list-row"
     >
-      <SimpleTable.RowCell name="name">
+      <SimpleTable.RowCell className="name">
         <DetectorLink detector={detector} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="type">
+      <SimpleTable.RowCell className="type">
         <DetectorTypeCell type={detector.type} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="last-issue">
+      <SimpleTable.RowCell className="last-issue">
         <IssueCell group={issues.length > 0 ? issues[0] : undefined} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="assignee">
+      <SimpleTable.RowCell className="assignee">
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="connected-automations">
+      <SimpleTable.RowCell className="connected-automations">
         <DetectorListConnectedAutomations automationIds={detector.workflowIds} />
       </SimpleTable.RowCell>
     </DetectorSimpleTableRow>
@@ -44,22 +44,22 @@ export function DetectorListRow({detector}: DetectorListRowProps) {
 export function DetectorListRowSkeleton() {
   return (
     <DetectorSimpleTableRow>
-      <SimpleTable.RowCell name="name">
+      <SimpleTable.RowCell className="name">
         <div style={{width: '100%'}}>
           <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
           <Placeholder height="16px" width="20%" />
         </div>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="type">
+      <SimpleTable.RowCell className="type">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="last-issue">
+      <SimpleTable.RowCell className="last-issue">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="assignee">
+      <SimpleTable.RowCell className="assignee">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="connected-automations">
+      <SimpleTable.RowCell className="connected-automations">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
     </DetectorSimpleTableRow>
