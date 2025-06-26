@@ -18,7 +18,7 @@ from requests.exceptions import SSLError
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import NotRegistered
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.pipeline_types import IdentityPipelineT, IdentityPipelineViewT
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
@@ -27,6 +27,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -40,7 +41,7 @@ ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
 
 
-def _redirect_url(pipeline: IdentityPipelineT) -> str:
+def _redirect_url(pipeline: IdentityPipeline) -> str:
     associate_url = reverse(
         "sentry-extension-setup",
         kwargs={
@@ -119,7 +120,7 @@ class OAuth2Provider(Provider):
     def get_refresh_token_headers(self):
         return None
 
-    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
             OAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
@@ -243,7 +244,7 @@ def record_event(event: IntegrationPipelineViewType, provider: str):
     )
 
 
-class OAuth2LoginView(IdentityPipelineViewT):
+class OAuth2LoginView:
     authorize_url: str | None = None
     client_id: str | None = None
     scope = ""
@@ -273,7 +274,7 @@ class OAuth2LoginView(IdentityPipelineViewT):
         }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IdentityPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
             for param in ("code", "error", "state"):
                 if param in request.GET:
@@ -293,7 +294,7 @@ class OAuth2LoginView(IdentityPipelineViewT):
             return HttpResponseRedirect(redirect_uri)
 
 
-class OAuth2CallbackView(IdentityPipelineViewT):
+class OAuth2CallbackView:
     access_token_url: str | None = None
     client_id: str | None = None
     client_secret: str | None = None
@@ -317,7 +318,7 @@ class OAuth2CallbackView(IdentityPipelineViewT):
         }
 
     def exchange_token(
-        self, request: HttpRequest, pipeline: IdentityPipelineT, code: str
+        self, request: HttpRequest, pipeline: IdentityPipeline, code: str
     ) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
@@ -361,7 +362,7 @@ class OAuth2CallbackView(IdentityPipelineViewT):
                     "error_description": "We were not able to parse a JSON response, please try again.",
                 }
 
-    def dispatch(self, request: HttpRequest, pipeline: IdentityPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(
             IntegrationPipelineViewType.OAUTH_CALLBACK, pipeline.provider.key
         ).capture() as lifecycle:

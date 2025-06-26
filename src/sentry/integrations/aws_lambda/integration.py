@@ -22,10 +22,10 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import render_react_view
+from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.models.user import User
@@ -204,7 +204,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
 
-    def get_pipeline_views(self) -> list[IntegrationPipelineViewT]:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [
             AwsLambdaProjectSelectPipelineView(),
             AwsLambdaCloudFormationPipelineView(),
@@ -262,8 +262,8 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             oi.update(config={"default_project_id": default_project_id})
 
 
-class AwsLambdaProjectSelectPipelineView(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class AwsLambdaProjectSelectPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
@@ -289,8 +289,8 @@ class AwsLambdaProjectSelectPipelineView(IntegrationPipelineViewT):
         )
 
 
-class AwsLambdaCloudFormationPipelineView(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class AwsLambdaCloudFormationPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
@@ -352,8 +352,8 @@ class AwsLambdaCloudFormationPipelineView(IntegrationPipelineViewT):
         return render_response()
 
 
-class AwsLambdaListFunctionsPipelineView(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class AwsLambdaListFunctionsPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -380,8 +380,8 @@ class AwsLambdaListFunctionsPipelineView(IntegrationPipelineViewT):
         )
 
 
-class AwsLambdaSetupLayerPipelineView(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class AwsLambdaSetupLayerPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 

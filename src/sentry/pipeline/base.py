@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Self
+from typing import Any, Protocol, Self
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -12,19 +12,23 @@ from sentry import analytics
 from sentry.db.models.base import Model
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.pipeline.views.base import PipelineView
 from sentry.utils.hashlib import md5_text
 from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
 from .constants import PIPELINE_STATE_TTL
-from .provider import PipelineProvider
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
+from .views.base import PipelineView
 from .views.nested import NestedPipelineView
 
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
+
+
+class _HasKey(Protocol):
+    @property
+    def key(self) -> str: ...
 
 
 class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
@@ -36,10 +40,6 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
     The pipeline works with a PipelineProvider object which provides the
     pipeline views and is made available to the views through the passed in
     pipeline.
-
-    :provider_manager:
-    A class property that must be specified to allow for lookup of a provider
-    implementation object given it's key.
 
     :provider_model_cls:
     The Provider model object represents the instance of an object implementing
@@ -54,7 +54,6 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
     """
 
     pipeline_name: str
-    provider_manager: Any
     provider_model_cls: type[M] | None = None
     session_store_cls: type[S] = PipelineSessionStore  # type: ignore[assignment]  # python/mypy#18812
 
@@ -96,11 +95,6 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(
-        self, provider_key: str, *, organization: RpcOrganization | None
-    ) -> PipelineProvider[M, S]:
-        return self.provider_manager.get(provider_key)
-
     def __init__(
         self,
         request: HttpRequest,
@@ -120,11 +114,9 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key, organization=self.organization)
+        self._provider_key = provider_key
 
         self.config = config or {}
-        self.provider.set_pipeline(self)
-        self.provider.update_config(self.config)
 
         self.pipeline_views = self.get_pipeline_views()
 
@@ -134,7 +126,14 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[M, S] | Callable[[], PipelineView[M, S]]]:
+    @property
+    @abc.abstractmethod
+    def provider(self) -> _HasKey:
+        """implement me with @cached_property please!"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_pipeline_views(self) -> Sequence[PipelineView[Self] | Callable[[], PipelineView[Self]]]:
         """
         Retrieve the pipeline views from the provider.
 
@@ -142,7 +141,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         providers should inherit, or customize the provider method called to
         retrieve the views.
         """
-        return self.provider.get_pipeline_views()
+        raise NotImplementedError
 
     def is_valid(self) -> bool:
         return (
