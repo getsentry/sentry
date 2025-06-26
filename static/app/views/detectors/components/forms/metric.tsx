@@ -113,13 +113,27 @@ function ResolveSection() {
   );
   const thresholdSuffix = useDetectorThresholdSuffix();
 
-  const description = getResolutionDescription({
-    detectionType: kind,
-    conditionType: conditionType ?? undefined,
-    conditionValue: conditionValue ? parseFloat(conditionValue) || 0 : undefined,
-    comparisonDelta: conditionComparisonAgo ?? undefined,
-    thresholdSuffix: thresholdSuffix ?? undefined,
-  });
+  const description = getResolutionDescription(
+    kind === 'percent'
+      ? {
+          detectionType: 'percent',
+          conditionType,
+          conditionValue,
+          comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
+          thresholdSuffix,
+        }
+      : kind === 'static'
+        ? {
+            detectionType: 'static',
+            conditionType,
+            conditionValue,
+            thresholdSuffix,
+          }
+        : {
+            detectionType: 'dynamic',
+            thresholdSuffix,
+          }
+  );
 
   return (
     <Container>
