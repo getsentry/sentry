@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import Panel from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
   GridHead,
   GridHeadCell,
   GridResizer,
   GridRow,
-} from 'sentry/components/gridEditable/styles';
-import Panel from 'sentry/components/panels/panel';
+} from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
