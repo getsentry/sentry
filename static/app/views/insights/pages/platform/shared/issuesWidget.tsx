@@ -372,7 +372,7 @@ export function IssuesWidget() {
       queryParams={queryParams}
       canSelectGroups={false}
       renderEmptyMessage={renderEmptyMessage}
-      withChart={breakpoints.xlarge}
+      withChart={breakpoints.xl}
       useFilteredStats={false}
       source="laravel-insights"
     />

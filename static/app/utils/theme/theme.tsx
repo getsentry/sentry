@@ -962,16 +962,16 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
+type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 type Breakpoints = Record<Breakpoint, string>;
 
 const breakpoints = {
-  xsmall: '500px',
-  small: '800px',
-  medium: '992px',
-  large: '1200px',
-  xlarge: '1440px',
-  xxlarge: '2560px',
+  xs: '500px',
+  sm: '800px',
+  md: '992px',
+  lg: '1200px',
+  xl: '1440px',
+  '2xl': '2560px',
 } as const satisfies Breakpoints;
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';

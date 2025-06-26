@@ -54,7 +54,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&
@@ -331,7 +331,7 @@ const EventNavigationWrapper = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.fontSize.sm};
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     flex-direction: row;
     align-items: center;
   }
@@ -342,7 +342,7 @@ const NavigationWrapper = styled('div')`
   gap: ${space(0.25)};
   justify-content: space-between;
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     gap: ${space(0.5)};
   }
 `;

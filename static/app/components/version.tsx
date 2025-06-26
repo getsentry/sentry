@@ -131,7 +131,7 @@ function Version({
     }
 
     return css`
-      @media (min-width: ${theme.breakpoints.small}) {
+      @media (min-width: ${theme.breakpoints.sm}) {
         max-width: 500px;
       }
     `;

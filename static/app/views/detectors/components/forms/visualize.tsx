@@ -386,7 +386,7 @@ const AggregateContainer = styled('div')<{hasParameters: boolean}>`
   padding: ${space(2)} ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
   }

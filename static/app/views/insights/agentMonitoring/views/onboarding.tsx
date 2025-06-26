@@ -404,7 +404,7 @@ const HeaderWrapper = styled('div')`
 const HeaderText = styled('div')`
   flex: 0.65;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
   }
 `;
@@ -457,7 +457,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

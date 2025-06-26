@@ -33,7 +33,7 @@ export default function ReplayInlineOnboardingPanel({
 
   const platformKey = platforms.find(p => p.id === platform) ?? otherPlatform;
   const platformName = platformKey === otherPlatform ? '' : platformKey.name;
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_replay_inline_onboarding',

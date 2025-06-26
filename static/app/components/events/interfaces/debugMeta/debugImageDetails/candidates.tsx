@@ -379,7 +379,7 @@ const Wrapper = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     flex-wrap: wrap;
     flex-direction: row;
   }
@@ -396,7 +396,7 @@ const Title = styled('div')`
   height: 32px;
   flex: 1;
 
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     margin-bottom: ${space(1)};
   }
 `;
@@ -407,7 +407,7 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints.xxlarge}) {
+  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
     overflow: visible;
   }
 `;

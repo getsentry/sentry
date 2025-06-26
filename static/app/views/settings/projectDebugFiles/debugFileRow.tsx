@@ -202,7 +202,7 @@ const Name = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     line-height: 1.7;
   }
 `;

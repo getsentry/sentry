@@ -115,7 +115,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     display: none;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 2.5fr 1fr;
 
     .projects {
@@ -123,7 +123,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 2.5fr 1fr 1fr;
 
     .action {
@@ -131,7 +131,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 2.5fr 1fr 1fr 1fr;
 
     .last-triggered {
@@ -139,7 +139,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
 
     .connected-monitors {

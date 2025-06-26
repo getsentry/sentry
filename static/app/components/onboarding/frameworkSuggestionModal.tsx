@@ -384,7 +384,7 @@ const Header = styled('header')`
   height: 30px;
 
   margin: -${space(4)} -${space(2)} 0 -${space(3)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)} -${space(4)} 0 -${space(4)};
   }
 `;

@@ -240,7 +240,7 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 `;
@@ -274,7 +274,7 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const Hash = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     ${p => p.theme.overflowEllipsis};
     width: 210px;
   }

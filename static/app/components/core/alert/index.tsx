@@ -260,7 +260,7 @@ const TrailingItems = withChonk(
     align-items: center;
     gap: ${space(1)};
 
-    @media (max-width: ${p => p.theme.breakpoints.small}) {
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
       /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
     with Message. When there is a leading icon, Message is in the second grid column.
     Otherwise it's in the first grid column. */
@@ -290,7 +290,7 @@ const ExpandContainer = withChonk(
     grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
     cursor: auto;
 
-    @media (max-width: ${p => p.theme.breakpoints.small}) {
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
       grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
     }
   `,

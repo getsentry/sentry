@@ -44,7 +44,7 @@ export const DurationPill = styled('div')<{
   ${getDurationPillAlignment}
   ${getDurationPillColors}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     font-size: 10px;
   }
 `;

@@ -280,7 +280,7 @@ const EventInfoJumpToWrapper = styled('div')`
   padding: 0 ${space(2)};
   flex-wrap: nowrap;
   min-height: ${MIN_NAV_HEIGHT}px;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-wrap: wrap;
     gap: 0;
   }
@@ -294,7 +294,7 @@ const EventInfo = styled('div')`
   align-items: center;
   line-height: 1.2;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     padding-top: ${space(1)};
   }
 `;
@@ -308,7 +308,7 @@ const JumpTo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
   max-width: 100%;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 50%;
   }
 `;

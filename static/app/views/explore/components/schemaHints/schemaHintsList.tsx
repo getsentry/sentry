@@ -489,7 +489,7 @@ export const SchemaHintsSection = styled('div')`
   margin-top: -4px;
   height: fit-content;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;

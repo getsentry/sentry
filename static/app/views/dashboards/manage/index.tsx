@@ -513,7 +513,7 @@ const StyledActions = styled('div')<{listView: boolean}>`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;
@@ -533,11 +533,11 @@ const TemplateContainer = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(0.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
 `;

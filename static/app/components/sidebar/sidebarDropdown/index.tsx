@@ -252,7 +252,7 @@ const AvatarStyles = (p: {collapsed: boolean; theme: Theme}) => css`
   box-shadow: ${isChonkTheme(p.theme) ? 'none' : '0 2px 0 rgba(0, 0, 0, 0.08)'};
   border-radius: 6px; /* Fixes background bleeding on corners */
 
-  @media (max-width: ${p.theme.breakpoints.medium}) {
+  @media (max-width: ${p.theme.breakpoints.md}) {
     margin-right: 0;
   }
 `;

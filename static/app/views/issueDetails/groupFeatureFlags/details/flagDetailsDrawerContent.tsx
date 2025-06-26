@@ -225,7 +225,7 @@ const Table = styled('div')`
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     column-gap: ${space(2)};
   }
 `;

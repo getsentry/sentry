@@ -235,11 +235,11 @@ function getPrimaryVitalsCount(
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.xxlarge, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints['2xl'], 10)) {
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.small, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints.sm, 10)) {
     if (type === 'web') {
       return totalCount;
     }

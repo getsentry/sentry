@@ -353,7 +353,7 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
       flex-direction: column;
       gap: ${space(3)};
 
-      @media (min-width: ${p.theme.breakpoints.large}) {
+      @media (min-width: ${p.theme.breakpoints.lg}) {
         display: flex;
         flex-direction: column;
         gap: ${space(3)};

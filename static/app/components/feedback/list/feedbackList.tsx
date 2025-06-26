@@ -172,7 +172,7 @@ const Wrapper = styled('div')`
   text-align: center;
   color: ${p => p.theme.subText};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.md};
   }
   position: relative;
@@ -184,7 +184,7 @@ const EmptyMessage = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.xl};
   }
 `;
