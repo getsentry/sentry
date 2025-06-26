@@ -112,12 +112,12 @@ export function CommitDetailSummary() {
 }
 
 const StyledSubText = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray300};
 `;
 
 const SourceText = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SourceEntry = styled(SummaryEntry)`
@@ -129,7 +129,7 @@ const SourceEntry = styled(SummaryEntry)`
 const SelectedCommitPanel = styled(Panel)`
   grid-column: span 12;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 9;
   }
 `;
@@ -137,7 +137,7 @@ const SelectedCommitPanel = styled(Panel)`
 const UploadsPanel = styled(Panel)`
   grid-column: span 12;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 3;
   }
 `;

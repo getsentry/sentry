@@ -1,11 +1,13 @@
 from collections.abc import Collection, Mapping
 from dataclasses import asdict, dataclass, replace
+from datetime import datetime
 from enum import StrEnum
 from typing import DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
 from django.db.models import F, Q
+from django.utils import timezone
 
 from sentry import buffer, features
 from sentry.eventstore.models import GroupEvent
@@ -18,16 +20,14 @@ from sentry.workflow_engine.models import (
     Detector,
     Workflow,
 )
-from sentry.workflow_engine.processors.action import (
-    create_workflow_fire_histories,
-    filter_recently_fired_workflow_actions,
-)
+from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
 )
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -75,6 +75,10 @@ class DelayedWorkflowItem:
     event: GroupEvent
     source: WorkflowDataConditionGroupType
 
+    # Used to pick the end of the time window in snuba querying.
+    # Should be close to when fast conditions were evaluated to try to be consistent.
+    timestamp: datetime
+
     def buffer_key(self) -> str:
         condition_group_set = {
             condition.condition_group_id for condition in self.delayed_conditions
@@ -86,7 +90,11 @@ class DelayedWorkflowItem:
 
     def buffer_value(self) -> str:
         return json.dumps(
-            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+            {
+                "event_id": self.event.event_id,
+                "occurrence_id": self.event.occurrence_id,
+                "timestamp": self.timestamp,
+            }
         )
 
 
@@ -113,6 +121,8 @@ def evaluate_workflow_triggers(
 ) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    current_time = timezone.now()
+
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
@@ -123,6 +133,7 @@ def evaluate_workflow_triggers(
                     remaining_conditions,
                     event_data.event,
                     WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                    timestamp=current_time,
                 )
             )
         else:
@@ -171,6 +182,7 @@ def evaluate_workflows_action_filters(
     )
     workflows_by_id = {workflow.id: workflow for workflow in workflows}
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    current_time = timezone.now()
     for action_condition in action_conditions:
         workflow = workflows_by_id[action_condition.workflow_id]
         env = (
@@ -192,6 +204,7 @@ def evaluate_workflows_action_filters(
                     remaining_conditions,
                     event_data.event,
                     WorkflowDataConditionGroupType.ACTION_FILTER,
+                    timestamp=current_time,
                 )
             )
         else:
@@ -323,7 +336,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
-    create_workflow_fire_histories(actions, event_data)
+    create_workflow_fire_histories(detector, actions, event_data)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if features.has(

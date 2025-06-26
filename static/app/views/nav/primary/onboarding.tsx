@@ -83,8 +83,8 @@ function OnboardingItem({
             isMobile={isMobile}
             animate
             textCss={() => css`
-              font-size: ${theme.fontSizeSmall};
-              font-weight: ${theme.fontWeightBold};
+              font-size: ${theme.fontSize.sm};
+              font-weight: ${theme.fontWeight.bold};
               color: ${theme.tokens.content.accent};
               ${isMobile && 'display: none'};
             `}

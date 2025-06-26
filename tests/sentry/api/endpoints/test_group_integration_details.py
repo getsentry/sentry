@@ -256,7 +256,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             assert response.status_code == 201
             self.assert_correctly_linked(group, "APP-123", integration, org)
 
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
 
     @mock.patch.object(ExampleIntegration, "get_issue")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
@@ -422,7 +422,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "new": True,
             }
 
-            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
 
     @mock.patch.object(ExampleIntegration, "create_issue")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")

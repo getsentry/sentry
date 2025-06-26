@@ -82,7 +82,11 @@ function EditableAutomationName() {
   );
 }
 
-const initialData = {...flattie(initialAutomationBuilderState), frequency: '1440'};
+const initialData = {
+  ...flattie(initialAutomationBuilderState),
+  environment: null,
+  frequency: '1440',
+};
 
 export default function AutomationNewSettings() {
   const navigate = useNavigate();

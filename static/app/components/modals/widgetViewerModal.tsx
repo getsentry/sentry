@@ -1221,7 +1221,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 2;
   flex: 1;
 `;
@@ -1232,7 +1232,7 @@ const ResultsContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     align-items: center;
     flex-direction: row;
     justify-content: space-between;

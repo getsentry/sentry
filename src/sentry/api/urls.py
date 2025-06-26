@@ -37,6 +37,7 @@ from sentry.api.endpoints.organization_projects_experiment import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
+from sentry.api.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
@@ -2124,6 +2125,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-trace-explorer-ai-query",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
+        OrganizationSeerSetupCheck.as_view(),
+        name="sentry-api-0-organization-seer-setup-check",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sentry-app-components/$",
         OrganizationSentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-app-components",
@@ -3276,6 +3282,7 @@ INTERNAL_URLS = [
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
     ),
+    *preprod_urls.preprod_internal_urlpatterns,
 ]
 
 PREVENT_URLS = [

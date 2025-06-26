@@ -76,6 +76,10 @@ export default function AutomationForm({model}: {model: FormModel}) {
   };
 
   const [environment, setEnvironment] = useState<string>('');
+  const updateEnvironment = (env: string) => {
+    setEnvironment(env);
+    model.setValue('environment', env || null);
+  };
 
   return (
     <Flex direction="column" gap={space(1.5)}>
@@ -103,7 +107,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             )}
           </Description>
         </Flex>
-        <EnvironmentSelector value={environment} onChange={setEnvironment} />
+        <EnvironmentSelector value={environment} onChange={updateEnvironment} />
       </Card>
       <Card>
         <Heading>{t('Automation Builder')}</Heading>
@@ -124,12 +128,12 @@ export default function AutomationForm({model}: {model: FormModel}) {
 }
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
 `;
 
 const Description = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
   padding: 0;
@@ -143,6 +147,6 @@ const ButtonWrapper = styled(Flex)`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;

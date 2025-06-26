@@ -202,7 +202,7 @@ const ProfilesTableRow = styled('div')`
 
 const ProfilesTableTitle = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding: 0 ${space(0.5)};
 `;

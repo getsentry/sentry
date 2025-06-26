@@ -58,7 +58,7 @@ export type TimeSeries = {
 
 export type TabularValueType = AttributeValueType;
 export type TabularValueUnit = AttributeValueUnit;
-type TabularMeta<TFields extends string = string> = {
+export type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
 };

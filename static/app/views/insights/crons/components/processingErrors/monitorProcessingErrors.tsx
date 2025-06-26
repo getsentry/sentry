@@ -216,5 +216,5 @@ const StyledStructuredEventData = styled(StructuredEventData)`
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

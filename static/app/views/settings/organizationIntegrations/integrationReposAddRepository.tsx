@@ -137,7 +137,9 @@ export function IntegrationReposAddRepository({
         query.isFetching
           ? t('Searching\u2026')
           : debouncedSearch
-            ? t('No repositories found')
+            ? t(
+                'No repositories found. Newly added repositories may take a few minutes to appear.'
+              )
             : t('Please enter a repository name')
       }
       searchPlaceholder={t('Search Repositories')}

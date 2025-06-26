@@ -3,7 +3,6 @@ import os
 from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
-    FLAG_ADMIN_MODIFIABLE,
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_BOOL,
@@ -13,7 +12,6 @@ from sentry.options.manager import (
     FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
-    FLAG_RATE,
     FLAG_REQUIRED,
     FLAG_SCALAR,
 )
@@ -1162,11 +1160,6 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Switch for more performant project counter incr
-register(
-    "store.projectcounter-modern-upsert-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Run an experimental grouping config in background for performance analysis
@@ -2618,13 +2611,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rates controlling the rollout of grouping parameterization experiments
-register(
-    "grouping.experiments.parameterization.uniq_id",
-    default=0.0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
-)
-
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
 # transitioned to the optimized logic, and before the next config change, we probably either want to
@@ -3129,6 +3115,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "demo-mode.sandbox-redirect-logout",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3190,11 +3182,6 @@ register(
 register(
     "sentry.demo_mode.sync_debug_artifacts.source_org_id",
     type=Int,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry.demo_mode.sync_debug_artifacts.lookback_days",
-    default=3,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3453,6 +3440,11 @@ register(
 )
 register(
     "taskworker.ingest.transactions.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ai_agent_monitoring.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

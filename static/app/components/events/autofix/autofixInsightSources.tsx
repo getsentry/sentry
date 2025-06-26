@@ -315,7 +315,7 @@ const SourceCard = styled(Button)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   white-space: nowrap;
   flex-shrink: 0;
@@ -335,7 +335,7 @@ const ThoughtsOverlay = styled('div')`
   flex-direction: column;
   max-height: calc(100vh - 18rem);
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     left: ${space(2)};
   }
 `;

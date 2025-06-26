@@ -5,6 +5,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -12,7 +13,7 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -24,6 +25,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
+
+export function SetupTitle({project}: {project: Project}) {
+  return (
+    <BodyTitle>
+      {tct('Set up the Sentry SDK for [projectBadge]', {
+        projectBadge: (
+          <ProjectBadgeWrapper>
+            <ProjectBadge project={project} avatarSize={16} />
+          </ProjectBadgeWrapper>
+        ),
+      })}
+    </BodyTitle>
+  );
+}
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const api = useApi();
@@ -127,7 +142,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         <Divider />
         <Body>
           <Setup>
-            <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+            <SetupTitle project={project} />
             <GuidedSteps
               initialStep={decodeInteger(location.query.guidedStep)}
               onStepChange={step => {
@@ -353,9 +368,15 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   );
 }
 
+const ProjectBadgeWrapper = styled('div')`
+  display: inline-block;
+  vertical-align: text-top;
+  max-width: 100%;
+`;
+
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
@@ -371,12 +392,6 @@ const HeaderWrapper = styled('div')`
   padding: ${space(4)};
 `;
 
-const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
-`;
-
 const Setup = styled('div')`
   padding: ${space(4)};
 
@@ -388,6 +403,12 @@ const Setup = styled('div')`
     height: 78%;
     border-right: 1px ${p => p.theme.border} solid;
   }
+`;
+
+export const BodyTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${space(1)};
 `;
 
 const Preview = styled('div')`
@@ -413,7 +434,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

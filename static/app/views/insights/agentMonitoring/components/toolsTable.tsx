@@ -8,8 +8,7 @@ import GridEditable, {
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,11 +31,14 @@ import {
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
+// import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
+import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
   avg: number;
-  errorRate: number;
+  // errorRate: number;
   p95: number;
   requests: number;
   tool: string;
@@ -49,12 +51,20 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'count()', name: t('Requests'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
-  {key: 'failure_rate()', name: t('Error Rate'), width: 120},
+  // {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
+
+const rightAlignColumns = new Set([
+  'count()',
+  'failure_rate()',
+  'avg(span.duration)',
+  // 'p95(span.duration)',
+]);
 
 export function ToolsTable() {
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
   const {query} = useTransactionNameQuery();
@@ -107,21 +117,38 @@ export function ToolsTable() {
       requests: span['count()'],
       avg: span['avg(span.duration)'],
       p95: span['p95(span.duration)'],
-      errorRate: span['failure_rate()'],
+      // errorRate: span['failure_rate()'],
     }));
   }, [toolsRequest.data]);
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        cursorParamName="toolsCursor"
-        forceCellGrow={column.key === 'tool'}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const handleSort = useCallback(
+    (column: string, direction: 'asc' | 'desc') => {
+      trackAnalytics('agent-monitoring.column-sort', {
+        organization,
+        table: 'tools',
+        column,
+        direction,
+      });
+    },
+    [organization]
+  );
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          cursorParamName="toolsCursor"
+          forceCellGrow={column.key === 'tool'}
+          align={rightAlignColumns.has(column.key) ? 'right' : undefined}
+          onClick={handleSort}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [handleSort]
+  );
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
@@ -178,13 +205,13 @@ const BodyCell = memo(function BodyCell({
     case 'tool':
       return <CellLink to={exploreUrl}>{dataRow.tool}</CellLink>;
     case 'count()':
-      return dataRow.requests;
+      return <NumberCell value={dataRow.requests} />;
     case 'avg(span.duration)':
-      return getDuration(dataRow.avg / 1000, 2, true);
+      return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
-      return getDuration(dataRow.p95 / 1000, 2, true);
-    case 'failure_rate()':
-      return formatPercentage(dataRow.errorRate ?? 0);
+      return <DurationCell milliseconds={dataRow.p95} />;
+    // case 'failure_rate()':
+    //   return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
     default:
       return null;
   }

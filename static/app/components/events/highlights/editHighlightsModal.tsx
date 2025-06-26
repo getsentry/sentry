@@ -468,7 +468,7 @@ const modalBodyCss = css`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Subtitle = styled('div')`
@@ -481,7 +481,7 @@ const Subtitle = styled('div')`
 `;
 
 const SubtitleText = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0;
 `;
 
@@ -501,11 +501,11 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
   margin: 0 -${space(1.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   grid-column: 1 / -1;
   text-align: center;
@@ -544,7 +544,7 @@ const EditPreviewColumn = styled(EditHighlightColumn)`
 `;
 
 const EditPreviewContextItem = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -560,7 +560,7 @@ const EditPreviewTagItem = styled(EventTagsTreeRow)`
 const EditTagContainer = styled('div')`
   display: grid;
   grid-template-columns: 26px 1fr;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   align-items: center;
 `;
 
@@ -599,7 +599,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

@@ -117,5 +117,5 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 }
 
 const SideBarWidgetTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

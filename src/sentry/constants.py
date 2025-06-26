@@ -16,6 +16,7 @@ import sentry_relay.processing
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 
@@ -725,7 +726,7 @@ UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
-DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = "low"
+DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
 

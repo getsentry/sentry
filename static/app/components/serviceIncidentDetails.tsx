@@ -138,7 +138,7 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
 }
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(1)};
 `;
 
@@ -207,7 +207,7 @@ const UpdateHeading = styled('div')<{status: UpdateStatus}>`
 
 const StatusTitle = styled('div')`
   color: ${p => p.theme.headingColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StatusDate = styled('div')`
@@ -222,6 +222,6 @@ const ComponentList = styled(List)`
 `;
 
 const ComponentStatus = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 2;
 `;
