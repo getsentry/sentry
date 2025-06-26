@@ -147,6 +147,7 @@ export function ComboBox({
       onKeyDown?.(evt);
       switch (evt.key) {
         case 'Escape':
+          evt.stopPropagation();
           state.close();
           state.setFocused(false);
           onInputEscape?.();
